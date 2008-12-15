@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.13 2007/11/05 16:16:13 bmy Exp $
+! $Id: biofuel_mod.f,v 1.14 2008/12/15 15:55:16 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -618,12 +618,7 @@
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
          IF ( DO_ND29 ) THEN
-!-----------------------------------------------------------------------------
-! Prior to 9/18/07:
-! Modified for H2/HD simulation (phs, 9/18/07)
-!            AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
-!     &                                    BXHEIGHT_CM )
-!-----------------------------------------------------------------------------
+
             IF ( ITS_A_H2HD_SIM() ) THEN
                AD29(I,J,3) = AD29(I,J,3) + ( BIOFUEL(IDBFCO,I,J) * 
      &                                       BXHEIGHT_CM ) * 1.189d0

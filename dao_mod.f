@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.28 2008/08/08 17:20:34 bmy Exp $
+! $Id: dao_mod.f,v 1.29 2008/12/15 15:55:16 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -2037,11 +2037,6 @@
       ! GEOS-5 cloud mass flux 
       ALLOCATE( CMFMC( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CMFMC' )
-      !--------------------------------------------------------------------
-      ! Prior to 6/11/08:
-      ! Bug fix: should be CMFMC=0 (jaf, bmy, 6/11/08)
-      !CLDMAS = 0d0
-      !--------------------------------------------------------------------
       CMFMC = 0d0
 
       ! GEOS-5 tendency of ice in moist processes

@@ -1,4 +1,4 @@
-! $Id: aircraft_nox_mod.f,v 1.5 2008/08/08 17:20:31 bmy Exp $
+! $Id: aircraft_nox_mod.f,v 1.6 2008/12/15 15:55:16 bmy Exp $
       MODULE AIRCRAFT_NOX_MOD
 !
 !******************************************************************************
@@ -351,10 +351,6 @@
                TMP             = AIREMIS(I,J,L)  / BOXVL(I,J,L)
 
                ! Store in GEMISNOX in [molec/cm3/s]
-               !---------------------------------------------------------
-               ! Prior to 10/3/07:
-               !GEMISNOX(I,J,L) = GEMISNOX(I,J,L) + TMP
-               !---------------------------------------------------------
                EMIS_AC_NOx(I,J,L) = TMP
 
                ! ND32 -- save NOx in [molec/cm2], will convert to

@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.15 2008/11/19 19:57:19 bmy Exp $
+! $Id: gasconc.f,v 1.16 2008/12/15 15:55:15 bmy Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
 !
 !******************************************************************************
@@ -249,14 +249,6 @@ C *********************************************************************
       ! chemistry mechanism in the urban slot of SMVGEAR II
       NCS = NCSURBAN
 
-!------------------------------------------------------------------------------
-!--prior 19/11/08
-! Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit over drydep 
-! species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is the # 
-! of drydep species in GEOS-Chem.  The two values may not be the same. 
-! (dbm, phs, 11/19/08)
-!      DO 130 N = 1,NDRYDEP(NCS)
-!------------------------------------------------------------------------------
       DO 130 N = 1,NUMDEP
          NK = NTDEP(N)
          IF (NK.EQ.0) GOTO 130

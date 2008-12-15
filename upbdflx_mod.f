@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.21 2008/11/07 19:30:32 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.22 2008/12/15 15:55:14 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -727,11 +727,6 @@
                STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
 
                ! Partition total [NOy] to [HNO3], units are [v/v]
-!------------------------------------------------------------------------------
-! Prior to 6/30/08:
-! Cap 1-XRATIO to avoid numerical problems later (phs, 6/30/08)
-!               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
-!------------------------------------------------------------------------------
                STT(I,J,L,IDTHNO3) = PNOY *
      &                              MAX( ( 1d0 -  XRATIO(J,L) ), 1d-20 )
 
@@ -776,11 +771,6 @@
                STT(I,J,L,IDTNOX)  = PNOY * XRATIO(J,L) 
 
                ! Partition total [NOy] to [HNO3], units are [v/v]
-!------------------------------------------------------------------------------
-! Prior to 6/30/08:
-! Cap the value of 1d0-XRATIO to avoid numerical problems (phs, 6/30/08)
-!               STT(I,J,L,IDTHNO3) = PNOY * ( 1d0 - XRATIO(J,L) ) 
-!------------------------------------------------------------------------------
                STT(I,J,L,IDTHNO3) = PNOY *
      &                              MAX( ( 1d0 -  XRATIO(J,L) ), 1d-20 )
 

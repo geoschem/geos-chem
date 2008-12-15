@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.15 2007/11/05 16:16:13 bmy Exp $
+! $Id: biomass_mod.f,v 1.16 2008/12/15 15:55:16 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -282,10 +282,6 @@
             
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
-               !-------------------------------------------------------------
-               ! Prior to 9/18/07:
-               !AD29(I,J,2)  = AD29(I,J,2)  + BIOMASS(I,J,IDBCO)
-               !-------------------------------------------------------------
                IF ( ITS_A_H2HD_SIM() .and. (.not. LGFED2BB ) ) THEN
                   AD29(I,J,2) = AD29(I,J,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0

@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.15 2008/08/08 17:20:37 bmy Exp $
+! $Id: setemis.f,v 1.16 2008/12/15 15:55:15 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -118,11 +118,6 @@
 #     include "comode.h"  ! IDEMS, NEMIS
 
       ! Arguments
-      !-----------------------------------------------------------------
-      ! Prior to 6/11/08:
-      ! Resize to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
-      !REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,2:NEMPARA+NEMPARB)
-      !-----------------------------------------------------------------
       REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
 

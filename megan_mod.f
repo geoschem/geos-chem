@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.9 2008/11/18 21:55:52 bmy Exp $
+! $Id: megan_mod.f,v 1.10 2008/12/15 15:55:15 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -253,6 +253,21 @@
     
          ! Isoprene emission is the product of all these
          EMISOP    = AEF_ISOP(I,J) * HEA_TL * DEA * MEA
+
+         if ( i==65 .and. j==22 ) THEN
+            print*, '### aef_isop : ', aef_isop(i,j)
+            print*, '### suncos   : ', suncos
+            print*, '### q_dir    : ', q_dir
+            print*, '### q_dir_2  : ', q_dir_2
+            print*, '### q_diff   : ', q_diff
+            print*, '### q_diff_2 : ', q_diff_2
+            print*, '### laiCurr  : ', misolai(i,j)
+            print*, '### laiPrev  : ', pmisolai(i,j)
+            print*, '### hea_tl   : ', hea_tl
+            print*, '### dea      : ', dea
+            print*, '### mea      : ', mea
+            print*, '### emisop   : ', emisop
+         endif
 
          ! Convert from [kg/box] to [atoms C/box]
          EMISOP    = EMISOP * XNUMOL

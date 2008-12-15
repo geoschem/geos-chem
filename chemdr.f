@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.28 2008/08/08 17:20:32 bmy Exp $
+! $Id: chemdr.f,v 1.29 2008/12/15 15:55:16 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -429,23 +429,6 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
 
-!------------------------------------------------------------------------------
-! Prior to 6/3/08:
-! Move this to the end of CHEMDR to avoid errors w/ vartrop (phs, 6/3/08)
-!      !=================================================================
-!      ! Copy the chemical species from CSPEC (actual troposphere) to
-!      ! CSPEC_FULL (potential troposphere) array.  We only need to do 
-!      ! this if the variable troposphere is turned on. 
-!      ! (bdf, phs, bmy, 10/3/06)
-!      !=================================================================
-!      IF ( LVARTROP ) THEN
-!         CALL SAVE_FULL_TROP
-!
-!         !### Debug
-!         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SAVE_FULL_TROP')
-!      ENDIF
-!
-!------------------------------------------------------------------------------
       !=================================================================
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================

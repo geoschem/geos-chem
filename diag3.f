@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.54 2008/11/18 21:55:54 bmy Exp $
+! $Id: diag3.f,v 1.55 2008/12/15 15:55:16 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -175,14 +175,10 @@
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
-!-- prior to 11/17/08
-!      REAL*8             :: SCALE_TMP3D(IIPAR,JJPAR,LD45)
       REAL*8             :: SCALE_I6,  SCALE_A6,  SCALE_A3,  SCALED    
       REAL*8             :: SCALEDYN,  SCALECONV, SCALESRCE, SCALECHEM 
       REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
       REAL*8             :: FDTT,      AREA_M2,   DIAGb,     DIAGe
-!-- prior to 11/17/08
-!      LOGICAL, SAVE      :: FIRST = .TRUE.
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -2314,43 +2310,6 @@
             N  = TINDEX(43,M)
             NN = N 
 
-! prior to 11/13/08
-!            SELECT CASE ( N )
-!
-!               ! OH
-!               CASE ( 1 )
-!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTOH ) + 1d-20
-!                  UNIT                    = 'molec/cm3'
-!                  
-!               ! NO
-!               CASE ( 2 ) 
-!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO ) + 1d-20
-!                  UNIT                    = 'v/v'
-!
-!               ! HO2 (rvm, bmy, 2/27/02)
-!               CASE ( 3 ) 
-!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTHO2 ) + 1d-20
-!                  UNIT                    = 'v/v'
-!
-!               ! NO2 (rvm, bmy, 2/27/02)
-!               CASE ( 4 ) 
-!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO2 ) + 1d-20
-!                  UNIT                    = 'v/v'
-!
-!               ! NO3 (rjp, bmy, 1/16/03)
-!               CASE ( 5 )
-!                  SCALE_TMP3D(:,:,1:LD43) = FLOAT( CTNO3 ) + 1d-20
-!                  UNIT                    = 'v/v'
-!
-!               CASE DEFAULT
-!                  CYCLE
-!            END SELECT
-!
-!            DO L = 1, LD43 
-!               ARRAY(:,:,L) = AD43(:,:,L,N) / SCALE_TMP3D(:,:,L)
-!            ENDDO
-!            
-
             ! default units
             UNIT = 'v/v'
 
@@ -2550,15 +2509,6 @@
          SCALE_TMP   = FLOAT( CTOTH ) + 1d-20
          UNIT        = ''   
 
-!-- prior to 11/17/08
-!         ! Now account for undefined O3 concentration
-!         ! at first timestep (phs, 1/24/07)
-!         IF ( FIRST ) THEN
-!            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
-!         ELSE
-!            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
-!         ENDIF
-
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
             IF ( N > N_TRACERS ) CYCLE
@@ -2576,11 +2526,6 @@
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-!-- prior to 11/17/08
-!               DO L = 1, LD45
-!                  ARRAY(:,:,L) =
-!     &                 AD45(:,:,L,N_TRACERS+1) / SCALE_TMP3D(:,:,L)
-!               ENDDO
 
                   WHERE( CTO3 /= 0 )
                      ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N) /
@@ -2667,26 +2612,12 @@
          CATEGORY = 'IJ-24H-$'
          UNIT     = ''   
 
-!-- prior to 11/17/08
-!         ! Now use SCALE_TMP instead of SCALEDYN
-!         SCALE_TMP = FLOAT( CTOTH ) + 1d-20 
-!
-!         ! Now account for undefined O3 concentration
-!         ! at first timestep (phs, 1/24/07)
-!         IF ( FIRST ) THEN
-!            SCALE_TMP3D = MAX( FLOAT( CTO3 )-1d0, 1d-20 )
-!         ELSE
-!            SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
-!         ENDIF
-
          DO M = 1, TMAX(47)
             N  = TINDEX(47,M)
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
             DO L = 1, LD47
-!-- prior to 11/17/08
-!               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALE_TMP(:,:)
                ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
             ENDDO
 
@@ -2698,11 +2629,6 @@
 
             ! Store pure O3 as NNPAR+1 (bmy, 1/10/03)
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
-!-- prior to 11/17/08
-!               DO L = 1, LD47
-!                  ARRAY(:,:,L) = AD47(:,:,L,N_TRACERS+1) / 
-!     &                           SCALE_TMP3D(:,:,L) 
-!               ENDDO
 
                WHERE( CTO3_24h(:,:,1:LD47) /= 0 )
                   ARRAY(:,:,1:LD47) = AD47(:,:,1:LD47,N_TRACERS+1) /
@@ -2862,12 +2788,6 @@
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
 
-!-- prior to 11/17/08
-!         ! Note: P/L are defined at first time step, since
-!         ! they are computed after chemistry (phs, 3/6/07)
-!         SCALE_TMP3D = FLOAT( CTO3 ) + 1d-20
-!         SCALE_TMP3D = SCALECHEM
-
          ! Loop over ND65 families
          DO N = 1, NFAMILIES
 
@@ -2876,8 +2796,6 @@
             IF ( ITS_A_CH3I_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-!-- prior to 11/17/08
-!               SCALE_TMP3D = 1d0
 
                DO L = 1, LD65
                   ARRAY(:,:,L) = AD65(:,:,L,N)
@@ -2886,8 +2804,6 @@
             ELSE IF ( ITS_A_TAGOX_SIM() ) THEN
                NN          = N
                UNIT        = 'kg/s'
-!-- prior to 11/17/08
-!               SCALE_TMP3D = SCALECHEM
                
                WHERE( CTO3_24h(:,:,1:LD65) /= 0 )
                   ARRAY(:,:,1:LD65) = AD65(:,:,1:LD65,N) /
@@ -2899,8 +2815,6 @@
             ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
                NN          = N
                UNIT        = 'mol/cm3/s'
-!-- prior to 11/17/08
-!               SCALE_TMP3D = SCALECHEM
 
                DO L = 1, LD65
                   ARRAY(:,:,L) = AD65(:,:,L,N) / SCALECHEM
@@ -2918,11 +2832,6 @@
                ENDWHERE
                
             ENDIF
-
-!-- prior to 11/17/08
-!            DO L = 1, LD65
-!               ARRAY(:,:,L) = AD65(:,:,L,N) / SCALE_TMP3D(:,:,L)
-!            ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -3197,10 +3106,6 @@
          ! Set ND69 = 0 so we won't print it out again
          ND69 = 0
       ENDIF
-
-!-- prior to 11/17/08
-!      ! Reset FIRST flag
-!      FIRST = .FALSE.
 
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'

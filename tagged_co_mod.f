@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.21 2008/08/08 17:20:37 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.22 2008/12/15 15:55:14 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -513,11 +513,6 @@
 
                ! E_CO = Fossil Fuel CO emissions in [molec CO/s]
                ! EMISRR is archived in "emissdr.f" (jaf, mak, bmy, 2/14/08)
-               !-------------------------------------------------------------
-               ! Prior to 6/30/08:
-               ! Now use IDECO to be consistent (bmy, 6/30/08)
-               !E_CO = EMISRR(IREF,JREF,1)
-               !-------------------------------------------------------------
                E_CO = EMISRR(IREF,JREF,IDECO)
 
                ! Convert from [molec CO/s] to [kg CO] 

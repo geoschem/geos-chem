@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.64 2008/11/19 19:57:19 bmy Exp $
+ ! $Id: define.h,v 1.65 2008/12/15 15:55:16 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -114,7 +114,7 @@
 !#define GRID1x125   'GRID1x125'
 !#define GRID2x25    'GRID2x25'
 #define GRID4x5     'GRID4x5'
-#define GRIDREDUCED  'GRIDREDUCED'
+#define GRIDREDUCED 'GRIDREDUCED'
 
 !----- Compilers -----
 !#define COMPAQ      'COMPAQ'

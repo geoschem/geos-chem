@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.24 2008/11/18 21:55:52 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.25 2008/12/15 15:55:14 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -156,10 +156,6 @@
 #     include "CMN_DIAG" ! LD65
 
       ! Local variables
-!-----------------------------------------------------------
-!-- prior to 11/17/08
-!      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
-!-----------------------------------------------------------
       REAL*4             :: ARRAY(IGLOB,JGLOB,LD65)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
@@ -259,10 +255,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN)     :: I, J, L
-!--------------------------------------------------------------------
-!-- prior to 11/17/08
-!      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-!--------------------------------------------------------------------
       REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
 
       ! Local variables
@@ -459,11 +451,6 @@
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
-!-------------------------------------------------------------------
-!-- prior to 11/17/08
-!      REAL*8            :: PP(IIPAR,JJPAR,LLTROP,N_TAGGED)
-!      REAL*8            :: ND44_TMP(IIPAR,JJPAR,LLTROP)
-!-------------------------------------------------------------------
       REAL*8            :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
       REAL*8            :: ND44_TMP(IIPAR,JJPAR,LD65)
       REAL*8            :: DTCHEM,  FREQ,    FLUX
@@ -679,19 +666,11 @@
       ENDIF
 
       ! Allocate P24H
-!-------------------------------------------------------------
-!-- prior to 11/17/08
-!      ALLOCATE( P24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
-!-------------------------------------------------------------
       ALLOCATE( P24H( IIPAR, JJPAR, LD65 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'P24H' )
       P24H = 0d0
 
       ! Allocate L24H
-!-------------------------------------------------------------
-!--prior to 11/17/08
-!      ALLOCATE( L24H( IIPAR, JJPAR, LLTROP ), STAT=AS )
-!-------------------------------------------------------------
       ALLOCATE( L24H( IIPAR, JJPAR, LD65 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0

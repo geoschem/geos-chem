@@ -1,5 +1,15 @@
-! $Id: main.f,v 1.54 2008/11/07 19:30:33 bmy Exp $
+! $Id: main.f,v 1.55 2008/12/15 15:55:15 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.55  2008/12/15 15:55:15  bmy
+! Replaced TPCORE by S-J Lin and Kevin Yeh with the version
+! from GMI (ccarouge, bmy, 12/15/08)
+!
+! Bug fix in ND51
+!
+! Removed obsolete "Prior to" code from various routines
+!
+! (bmy, 12/15/08)
+!
 ! Revision 1.54  2008/11/07 19:30:33  bmy
 ! Modifications for GEOS-5 0.5 x 0.666 nested grid simulation
 ! Also removed obsolete lightning_nox_nl_mod.f
@@ -127,9 +137,13 @@
 !
 !     http://www.as.harvard.edu/chemistry/trop/geos/
 !
-!  and  the GEOS-CHEM User's Guide:
+!  and  the GEOS-Chem User's Guide:
 !
 !     http://www.as.harvard.edu/chemistry/trop/geos/doc/man/
+!
+!  and the GEOS-Chem wiki:
+!
+!     http://wiki.seas.harvard.edu/geos-chem/
 !
 !  for the most up-to-date GEOS-CHEM documentation on the following topics:
 !
@@ -897,10 +911,6 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            !--------------------------------------------------------
-            ! Prior to 9/18/07:
-            !IF ( LDRYD ) CALL DO_DRYDEP
-            !--------------------------------------------------------
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
 
             !========================================================
@@ -925,60 +935,6 @@
             ! Call the appropriate chemistry routine
             CALL DO_CHEMISTRY
          ENDIF 
-!           
-!         ! check STT (yxw)
-!#if   defined( GEOS_5 ) && defined( GRID05x0666 )
-!            ! Loop over grid boxes
-!!$OMP PARALLEL DO 
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N )
-!            DO N = 1, N_TRACERS
-!            DO L = 1, LLPAR
-!            DO J = 1, JJPAR
-!            DO I = 1, IIPAR
-!
-!              !---------------------------
-!              ! Check for Negatives
-!              !---------------------------
-!              IF ( STT(I,J,L,N) < 0d0 ) THEN
-!!$OMP CRITICAL
-!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!                  PRINT*, 'Neg STT after chemistry ' // 
-!     &                   'SET STT TO BE ZERO'
-!p                  STT(I,J,L,N) = 0d0
-!!$OMP END CRITICAL
-!
-!              !---------------------------
-!              ! Check for NaN's
-!              !---------------------------
-!              ELSE IF ( IT_IS_NAN( STT(I,J,L,N) ) ) THEN
-!!$OMP CRITICAL
-!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!                  PRINT*, 'NaN STT after chemistry ' // 
-!     &                  'SET STT TO BE LOWER LEVEL'
-!                  STT(I,J,L,N) = STT(I,J,L-1,N)
-!!$OMP END CRITICAL
-!
-!              !----------------------------
-!              ! Check STT's for Infinities
-!              !----------------------------
-!              ELSE IF ( .not. IT_IS_FINITE( STT(I,J,L,N) ) ) THEN
-!!$OMP CRITICAL
-!                  WRITE( 6, 100 ) I, J, L, N, STT(I,J,L,N)
-!                  PRINT*, 'Inf STT after chemistry ' //
-!     &                  'SET STT TO BE LOWER LEVEL'
-!                  STT(I,J,L,N) =  STT(I,J,L-1,N)
-!!$OMP END CRITICAL            
-!
-!              ENDIF
-!
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
-!
-!#endif
  
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****

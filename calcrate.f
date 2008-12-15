@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.13 2008/11/19 19:57:19 bmy Exp $
+! $Id: calcrate.f,v 1.14 2008/12/15 15:55:16 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -311,13 +311,6 @@ C ******   such as HNO3 from being depleted in the shallow       ******
 C ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
 C *********************************************************************
 C
-!----------------------------------------------------------------------------
-!--prior 19/11/08
-! Now use NUMDEP instead of NDRYDEP(NCS) for the loop limit.  NDRYDEP is the
-! # of rxns in "globchem.dat", and NUMDEP are the # of drydep species in 
-! GEOS-Chem.  The two values may not be the same. (dbm, phs, 11/19/08)
-!      DO I = 1,NDRYDEP(NCS)
-!----------------------------------------------------------------------------
       DO I = 1,NUMDEP
          NK = NTDEP(I)
          IF (NK.NE.0) THEN

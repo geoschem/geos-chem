@@ -1,4 +1,4 @@
-! $Id: CMN_O3,v 1.4 2008/08/08 17:20:29 bmy Exp $
+! $Id: CMN_O3,v 1.5 2008/12/15 15:55:17 bmy Exp $
 
 !-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
 !
@@ -17,12 +17,6 @@
 ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
       REAL*8 EMISR, EMISRN, EMIST, EMISTN
       COMMON /EMIS/                                                     
-!------------------------------------------------------------------------------
-! Prior to 6/11/08:
-! Redimension EMISR, EMIST to avoid errors in tagged CO (jaf, bmy, 6/11/08)
-!     &   EMISR(IGLOB,JGLOB,2:NEMPARA), EMISRN(IGLOB,JGLOB,NOXLEVELS),   
-!     &   EMIST(IIPAR,JJPAR,2:NEMPARA), EMISTN(IIPAR,JJPAR,NOXLEVELS)
-!------------------------------------------------------------------------------
      &   EMISR(IGLOB,JGLOB,NEMPARA),  EMISRN(IGLOB,JGLOB,NOXLEVELS),   
      &   EMIST(IIPAR,JJPAR,NEMPARA),  EMISTN(IIPAR,JJPAR,NOXLEVELS)
 
@@ -31,11 +25,6 @@
 ! EMISRR  = All other tracer emissions into sigma level L=1
       REAL*8 EMISRR, EMISRRN
       COMMON /EMIS2/                                                    
-!------------------------------------------------------------------------------
-! Prior to 6/11/08:
-! Redimension EMISRR to avoid errors in tagged CO (jaf, bmy, 6/11/08)
-!     &   EMISRR (IIPAR,JJPAR,2:NEMPARA+NEMPARB),                        
-!------------------------------------------------------------------------------
      &   EMISRR (IIPAR,JJPAR,NEMPARA+NEMPARB),                          
      &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
  

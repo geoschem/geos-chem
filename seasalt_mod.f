@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.14 2008/10/08 18:30:31 bmy Exp $
+! $Id: seasalt_mod.f,v 1.15 2008/12/15 15:55:15 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -961,16 +961,6 @@
          CONST1 = 4.D0/(V*GAMMA_SO2)
          A1     = (RAD1/DG)+CONST1
          B1     = (RAD2/DG)+CONST1
-!-----------------------------------------------------------------------------
-! Prior to 7/18/08:
-! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
-!         TERM1A = (((B1/DG)**2)+(2.0D0*CONST1*B1/DG)+(CONST1**2)) -
-!     &            (((A1/DG)**2)+(2.0D0*CONST1*A1/DG)+(CONST1**2))
-!         TERM2A = 2.D0*CONST1*(((B1/DG)+CONST1)-((A1/DG)+CONST1))
-!         TERM3A = (CONST1**2)*(LOG((B1/DG)+CONST1) -
-!     &            LOG((A1/DG)+CONST1))
-!         KT1    = 4.D0*PI*N1*(DG**2)*(TERM1A - TERM2A + TERM3A)
-!-----------------------------------------------------------------------------
          TERM1A = ((B1**2)/2.0d0) - ((A1**2)/2.0d0)
          TERM2A = 2.D0*CONST1*(B1-A1)
          TERM3A = (CONST1**2)*LOG(B1/A1)
@@ -985,17 +975,6 @@
          CONST2 = 4.D0/(V*GAMMA_SO2)
          A2     = (RAD2/DG)+CONST2
          B2     = (RAD3/DG)+CONST2
-!------------------------------------------------------------------------------
-! Prior to 7/18/08:
-! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
-! Remove these lines:
-!         TERM1B = (((B2/DG)**2)+(2.0D0*CONST2*B2/DG)+(CONST2**2)) -
-!     &            (((A2/DG)**2)+(2.0D0*CONST2*A2/DG)+(CONST2**2))
-!         TERM2B = 2.D0*CONST2*(((B2/DG)+CONST2)-((A2/DG)+CONST2))
-!         TERM3B = (CONST2**2)*(LOG((B2/DG)+CONST2) -
-!     &             LOG((A2/DG)+CONST2))
-!         KT2    = 4.D0*PI*N2*(DG**2)*(TERM1B - TERM2B + TERM3B)
-!------------------------------------------------------------------------------
          TERM1B = ((B2**2)/2.0d0) - ((A2**2)/2.0d0)
          TERM2B = 2.D0*CONST2*(B2-A2)
          TERM3B = (CONST2**2)*LOG(B2/A2)
@@ -1011,17 +990,6 @@
          CONST1N = 4.D0/(V*GAMMA_HNO3)
          A1N     = (RAD1/DG)+CONST1N
          B1N     = (RAD2/DG)+CONST1N
-!-----------------------------------------------------------------------------
-! Prior to 7/18/08:
-! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
-! Remove these lines:
-!         TERM1AN = (((B1N/DG)**2)+(2.0D0*CONST1N*B1N/DG)+(CONST1N**2)) -
-!     &             (((A1N/DG)**2)+(2.0D0*CONST1N*A1N/DG)+(CONST1N**2))
-!         TERM2AN = 2.D0*CONST1N*(((B1N/DG)+CONST1N)-((A1N/DG)+CONST1N))
-!         TERM3AN = (CONST1N**2)*(LOG((B1N/DG)+CONST1N) -
-!     &             LOG((A1N/DG)+CONST1N))
-!         KT1N    = 4.D0*PI*N1*(DG**2)*(TERM1AN - TERM2AN + TERM3AN)
-!-----------------------------------------------------------------------------
          TERM1AN = ((B1N**2)/2.0d0) - ((A1N**2)/2.0d0)
          TERM2AN = 2.D0*CONST1N*(B1N-A1N)
          TERM3AN = (CONST1N**2)*LOG(B1N/A1N)
@@ -1036,17 +1004,6 @@
          CONST2N = 4.D0/(V*GAMMA_HNO3)
          A2N     = (RAD2/DG)+CONST2N
          B2N     = (RAD3/DG)+CONST2N
-!-----------------------------------------------------------------------------
-! Prior to 7/18/08:
-! Becky Alexander's fix to remove double-substitution (bec, bmy, 7/18/08)
-! Remove these lines:
-!         TERM1BN = (((B2N/DG)**2)+(2.0D0*CONST2N*B2N/DG)+(CONST2N**2)) -
-!     &             (((A2N/DG)**2)+(2.0D0*CONST2N*A2N/DG)+(CONST2N**2))
-!         TERM2BN = 2.D0*CONST2N*(((B2N/DG)+CONST2N)-((A2N/DG)+CONST2N))
-!         TERM3BN = (CONST2N**2)*(LOG((B2N/DG)+CONST2N) -
-!     &             LOG((A2N/DG)+CONST2N))
-!         KT2N    = 4.D0*PI*N2*(DG**2)*(TERM1BN - TERM2BN + TERM3BN)
-!-----------------------------------------------------------------------------
          TERM1BN = ((B2N**2)/2.0d0) - ((A2N**2)/2.0d0)
          TERM2BN = 2.D0*CONST2N*(B2N-A2N)
          TERM3BN = (CONST2N**2)*LOG(B2N/A2N)

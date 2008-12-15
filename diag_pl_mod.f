@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.14 2008/11/18 21:55:54 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.15 2008/12/15 15:55:16 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -104,10 +104,6 @@
       INTEGER, PARAMETER             :: MAXMEM  = 10
       INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
-      !--------------------------------------------------------
-      ! Prior to 11/18/08:
-      !INTEGER                        :: YYYYMMDD, COUNT
-      !--------------------------------------------------------
       INTEGER                        :: YYYYMMDD
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
@@ -714,11 +710,6 @@
       WRITE( 6, 120 ) STAMP
  120  FORMAT( '     - DIAG20: Archiving P(Ox) & L(Ox) at ', a )
 
-!--------------------------------
-!-- prior to 11/17/08
-!      ! Increment counter
-!      COUNT = COUNT + 1
-!--------------------------------
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -782,10 +773,6 @@
          DO L = 1, LD65
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-!---------------------------------------------------------
-!-- prior to 11/17/08
-!            PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT
-!---------------------------------------------------------
             IF ( COUNT(I,J,L) /= 0 )
      $           PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT(I,J,L)
          ENDDO

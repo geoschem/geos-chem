@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.14 2008/11/18 21:55:52 bmy Exp $
+! $Id: tropopause_mod.f,v 1.15 2008/12/15 15:55:14 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -626,23 +626,6 @@
       !=================================================================
       ! ITS_IN_THE_STRAT begins here
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 11/14/08:
-!      IF ( LVARTROP ) THEN
-!
-!         ! Get bottom pressure edge
-!         PRESS_BEDGE = GET_PEDGE(I,J,L)
-!         
-!         ! Test against actual tropopause pressure
-!         IS_STRAT    = ( PRESS_BEDGE <= TROPP(I,J) )
-!
-!      ELSE
-!
-!         ! Test against annual mean tropopause
-!         IS_STRAT    = ( L >= TROPOPAUSE(I,J) )
-!
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! Make the algorithm more robust by making ITS_IN_THE_STRAT be the 
       ! exact opposite of function ITS_IN_THE_TROP.  This should avoid

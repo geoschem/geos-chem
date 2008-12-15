@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.51 2008/11/18 21:55:52 bmy Exp $
+! $Id: input_mod.f,v 1.52 2008/12/15 15:55:15 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -685,8 +685,6 @@
       CALL COMPUTE_GRID
 
       ! Initialze quantities for "transfer_mod.f"
-!--- prior to 6/17/08
-!      CALL INIT_TRANSFER( I0, J0 )
       CALL INIT_TRANSFER( 0, 0 )
 
       ! Set counter
@@ -2688,11 +2686,6 @@
       CALL INIT_DIAG41
       CALL INIT_DIAG42
       CALL INIT_DIAG56
-      !------------------------------------------------
-      ! Prior to 11/18/08:
-      ! Now call from READ_INPUT_FILE (bmy, 11/18/08)
-      !CALL NDXX_SETUP
-      !------------------------------------------------
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it
       CALL INIT_DIAG_OH 

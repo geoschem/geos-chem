@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.14 2008/11/07 19:30:33 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.15 2008/12/15 15:55:15 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -501,13 +501,12 @@
 
       IF ( IS_CONC ) THEN
 
-         ! Regrid concentration field to 4x5
+         ! Regrid concentration field to 2x25
          CALL REGRID_CONC_TO_2x25( I1x1,  J1x1, L1x1, INDATA,
      &                             IIPAR, JJPAR,      OUTDATA )
 
       ELSE
- (yxw, dan, bmy, 11/6/08)
-         ! Regrid mass field to 4x5
+         ! Regrid mass field to 2x25
          CALL REGRID_MASS_TO_2x25( I1x1,  J1x1, L1x1, INDATA,
      &                             IIPAR, JJPAR,      OUTDATA )
 

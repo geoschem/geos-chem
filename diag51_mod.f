@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.27 2008/10/08 18:30:32 bmy Exp $
+! $Id: diag51_mod.f,v 1.28 2008/12/15 15:55:16 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/7/08)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 12/10/08)
 !
 !  Module Variables:
 !  ============================================================================
@@ -113,6 +113,7 @@
 !  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !  (13) Renumber RH in WRITE_DIAG50 (bmy, 2/11/08)
 !  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
+!  (15) Bug fix in GET_LOCAL_TIME (ccarouge, 12/10/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -243,7 +244,7 @@
 !******************************************************************************
 !  Subroutine GET_LOCAL_TIME computes the local time and returns an array 
 !  of points where the local time is between two user-defined limits. 
-!  (bmy, 11/29/00, 7/20/04)
+!  (bmy, 11/29/00, 12/10/08)
 !
 !  NOTES:
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
@@ -254,6 +255,7 @@
 !  (3 ) Updated comments (rvm, bmy, 2/27/02)
 !  (4 ) Now uses function GET_LOCALTIME of "time_mod.f" (bmy, 3/27/03) 
 !  (5 ) Removed reference to CMN (bmy, 7/20/04)
+!  (6 ) Bug fix: LT should be REAL*8 and not INTEGER (ccarouge, 12/10/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -262,7 +264,13 @@
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Local variables 
-      INTEGER :: I, LT
+      !------------------------------------------
+      ! Prior to 12/10/08:
+      ! LT should be REAL*8 (ccarouge, 12/10/08)
+      !INTEGER :: I, LT
+      !------------------------------------------
+      INTEGER :: I
+      REAL*8  :: LT
 
       !=================================================================
       ! GET_LOCAL_TIME begins here!
@@ -1238,10 +1246,6 @@
             !---------------------
             ! Psurface - PTOP 
             !---------------------
-            !--------------------------
-            ! Prior to 10/7/08:
-            !CATEGORY = 'PS-PTOP'
-            !--------------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
             GMNL     = 1

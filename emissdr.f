@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.17 2008/11/18 21:55:53 bmy Exp $
+! $Id: emissdr.f,v 1.18 2008/12/15 15:55:15 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -285,7 +285,20 @@
 
                ENDIF
 
+               !--------------------------------------------------------------
                ! Isoprene emissions from grasslands (use GEIA always)
+               !
+               ! Note from May Fu (cetmfu@polyu.edu.hk), 02 Dec 2008:
+               ! 
+               ! EMISOP_GRASS calculates isoprene emission from grasslands
+               ! using the GEIA inventory; this is used only in EMISS_BIOACET
+               ! below to calculate grassland acetone emission.
+               ! 
+               ! EMISOP (GEIA) and GET_EMISOP_MEGAN (MEGAN) already contains
+               ! the full isoprene emission, including grasslands.  Therefore 
+               ! EMISOP_GRASS should NOT be considered as an additional
+               ! isoprene source.
+               !--------------------------------------------------------------
                GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
 
 !-----------------------------------------------------------------------------

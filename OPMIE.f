@@ -1,4 +1,4 @@
-C $Id: OPMIE.f,v 1.2 2008/08/08 17:20:30 bmy Exp $
+C $Id: OPMIE.f,v 1.3 2008/12/15 15:55:17 bmy Exp $
       SUBROUTINE OPMIE(KW,WAVEL,XQO2,XQO3,FMEAN)
 C-----------------------------------------------------------------------
 C  NEW Mie code for J's, only uses 8-term expansion, 4-Gauss pts
@@ -218,11 +218,6 @@ c
 !
 ! PART 1: We need to replace the .gt. with .ge in this IF test
 !
-      !---------------------------------
-      ! Prior to 7/1/08: 
-      ! Replace GT with GE
-      !if((jaddto(nc)+nc).gt.nl) then
-      !---------------------------------
       if((jaddto(nc)+nc).GE.nl) then
          write(6,1500)  jaddto(nc)+nc, 'NL',NL
 !

@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.27 2008/11/18 21:55:55 bmy Exp $
+# $Id: Makefile.ifort,v 1.28 2008/12/15 15:55:17 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Nov  6 16:59:20 2008)
 #=============================================================================
@@ -17,7 +17,7 @@ F90 = ifort $(FFLAGS) -openmp -Dmultitask
 # Compile command -- single processor
 #F90 = ifort $(FFLAGS)
 
-OBJSe =                   \
+OBJSe =                       \
 ifort_errmsg.o
 
 OBJS =                        \
@@ -244,7 +244,7 @@ GAUSSP.o                       : GAUSSP.f
 GEN.o                          : GEN.f                          jv_mie.h 
 JRATET.o                       : JRATET.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 JVALUE.o                       : JVALUE.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
-Kr85_mod.o                     : Kr85_mod.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 
+Kr85_mod.o                     : Kr85_mod.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h define.h
 LEGND0.o                       : LEGND0.f                       
 MATIN4.o                       : MATIN4.f                       
 MIESCT.o                       : MIESCT.f                       jv_mie.h 
@@ -418,10 +418,10 @@ tcorr.o                        : tcorr.f
 time_mod.o                     : time_mod.f                     CMN_DIAG CMN_SIZE define.h define.h 
 toms_mod.o                     : toms_mod.f                     CMN_SIZE define.h 
 tpcore_bc_mod.o                : tpcore_bc_mod.f                CMN CMN_SIZE define.h 
-tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             
-	$(F90) -c -r8 $*.f90
+tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90           CMN_GCTM
+	$(F90) -c -free $*.f90
 tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90      
-	$(F90) -c -r8 $*.f90
+	$(F90) -c -r8 -free $*.f90
 tpcore_mod.o                   : tpcore_mod.f                   CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
 	$(F90) -c -r8 $*.f
 tpcore_window_mod.o            : tpcore_window_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 

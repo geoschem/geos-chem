@@ -1,11 +1,72 @@
-! $Id: pjc_pfix_mod.f,v 1.5 2007/11/16 18:47:44 bmy Exp $
-      MODULE PJC_PFIX_MOD
+! $Id: pjc_pfix_mod.f,v 1.6 2008/12/15 15:55:15 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Module PJC_PFIX_MOD contains routines which implements the Philip Cameron-
-!  Smith pressure fixer for the new GEOS-4/fvDAS transport scheme.
-!  (bdf, bmy, 5/8/03, 10/27/03)
+! !MODULE: Pjc_Pfix_Mod
+!
+! !DESCRIPTION: Module Pjc\_Pfix\_Mod contains routines which implements the 
+!  Philip Cameron-Smith pressure fixer for the new fvDAS transport 
+!  scheme. (bdf, bmy, 5/8/03, 10/27/03)
+!\\
+!\\
+! !INTERFACE:
+!
+      MODULE Pjc_Pfix_Mod
+!
+! !USES:
+!
+      IMPLICIT NONE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: Do_Pjc_Pfix
+      PUBLIC  :: Cleanup_Pjc_Pfix
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: Calc_Pressure
+      PRIVATE :: Calc_Advection_Factors
+      PRIVATE :: Adjust_Press
+      PRIVATE :: Init_Press_Fix
+      PRIVATE :: Do_Press_Fix_LLNL
+      PRIVATE :: Average_Press_Poles
+      PRIVATE :: Convert_Winds
+      PRIVATE :: Calc_Horiz_Mass_Flux
+      PRIVATE :: Calc_Divergence
+      PRIVATE :: Set_Press_Terms
+      PRIVATE :: Do_Divergence_Pole_Sum
+      PRIVATE :: Xpavg
+      PRIVATE :: Init_Pjc_Pfix
+!
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+!  Brendan Field and Bob Yantosca (5/8/03) 
+!  Modified for new GMI TPCORE by Claire Carouge (ccarouge@seas.harvard.edu)
 ! 
+! !REVISION HISTORY:
+!  (1 ) Bug fix for Linux/PGI compiler in routines ADJUST_PRESS and 
+!        INIT_PRESS_FIX. (bmy, 6/23/03)
+!  (2 ) Now make P1, P2 true surface pressure in DO_PJC_PFIX (bmy, 10/27/03)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE DATA MEMBERS:
+! 
+      PRIVATE :: AI,        BI,      DAP,      DBK,     COSE_FV
+      PRIVATE :: COSP_FV,   CLAT_FV, DLAT_FV,  ELAT_FV, GEOFAC
+      PRIVATE :: GW_FV,     MCOR,    REL_AREA, RGW_FV,  SINE_FV
+      PRIVATE :: GEOFAC_PC, DLON_FV, LOC_PROC, PR_DIAG, IMP_NBORDER 
+      PRIVATE :: I1_GL,     I2_GL,   JU1_GL,   JV1_GL,  J2_GL
+      PRIVATE :: K1_GL,     K2_GL,   ILO_GL,   IHI_GL,  JULO_GL
+      PRIVATE :: JVLO_GL,   JHI_GL,  I1,       I2,      JU1
+      PRIVATE :: JV1,       J2,      K1,       K2,      ILO
+      PRIVATE :: IHI,       JULO,    JVLO,     JHI,     ILAT
+      PRIVATE :: ILONG,     IVERT,   J1P,      J2P       
+
+!  ============================================================================
 !  Module Variables:
 !  ============================================================================
 !  (1 ) AI          (REAL*8 )  : Vertical coord "A" for hybrid grid [hPa]
@@ -53,75 +114,6 @@
 !  (43) JVLO        (INTEGER)  : JV1 - IMP_NBORDER           (has ghost zones)
 !  (44) JHI         (INTEGER)  : J2  + IMP_NBORDER           (has ghost zones)
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_PJC_PFIX            : Driver for Phil Cameron-Smith Pressure Fixer
-!  (2 ) CHECK_TOTAL_MASS       : Prints total air mass and tracer masses
-!  (3 ) CALC_PRESSURE          : Computes new pressures
-!  (4 ) CALC_ADVECTION_FACTORS : Computes surface area factors for P-fixer
-!  (5 ) ADJUST_PRESS           : Pressure-fixer routine from GMI/LLNL
-!  (6 ) INIT_PRESS_FIX         : Pressure-fixer routine from GMI/LLNL
-!  (7 ) DO_PRESS_FIX_LLNL      : Pressure-fixer routine from GMI/LLNL
-!  (8 ) AVERAGE_PRESS_POLES    : Pressure-fixer routine from GMI/LLNL
-!  (9 ) CONVERT_WINDS          : Pressure-fixer routine from GMI/LLNL
-!  (10) CALC_HORIZ_MASS_FLUX   : Pressure-fixer routine from GMI/LLNL
-!  (11) CALC_DIVERGENCE        : Pressure-fixer routine from GMI/LLNL
-!  (12) SET_PRESS_TERMS        : Pressure-fixer routine from GMI/LLNL
-!  (13) DO_DIVERGENCE_POLE_SUM : Pressure-fixer routine from GMI/LLNL
-!  (14) XPAVG                  : Overwrites a 1-D vector w/ its avg value
-!  (15) INIT_PJC_PFIX          : Initializes and allocates module variables
-!  (16) CLEANUP_PJC_PFIX       : Deallocates all module variables
-!
-!  GEOS-CHEM modules referenced by tpcore_call_mod.f
-!  ============================================================================
-!  (1 ) error_mod.f    : Module containing I/O error/NaN check routines
-!  (2 ) grid_mod.f     : Module containing horizontal grid information
-!  (3 ) pressure_mod.f : Module containing routines to compute P(I,J,L)
-!
-!  NOTES:
-!  (1 ) Bug fix for Linux/PGI compiler in routines ADJUST_PRESS and 
-!        INIT_PRESS_FIX. (bmy, 6/23/03)
-!  (2 ) Now make P1, P2 true surface pressure in DO_PJC_PFIX (bmy, 10/27/03)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "pjc_pfix_mod.f"
-      !=================================================================
-      
-      ! PRIVATE module variables
-      PRIVATE :: AI,        BI,      DAP,      DBK,     COSE_FV
-      PRIVATE :: COSP_FV,   CLAT_FV, DLAT_FV,  ELAT_FV, GEOFAC
-      PRIVATE :: GW_FV,     MCOR,    REL_AREA, RGW_FV,  SINE_FV
-      PRIVATE :: GEOFAC_PC, DLON_FV, LOC_PROC, PR_DIAG, IMP_NBORDER 
-      PRIVATE :: I1_GL,     I2_GL,   JU1_GL,   JV1_GL,  J2_GL
-      PRIVATE :: K1_GL,     K2_GL,   ILO_GL,   IHI_GL,  JULO_GL
-      PRIVATE :: JVLO_GL,   JHI_GL,  I1,       I2,      JU1
-      PRIVATE :: JV1,       J2,      K1,       K2,      ILO
-      PRIVATE :: IHI,       JULO,    JVLO,     JHI,     ILAT
-      PRIVATE :: ILONG,     IVERT,   J1P,      J2P       
-
-      ! PRIVATE module routines
-      PRIVATE :: CALC_PRESSURE
-      PRIVATE :: CALC_ADVECTION_FACTORS
-      PRIVATE :: ADJUST_PRESS
-      PRIVATE :: INIT_PRESS_FIX
-      PRIVATE :: DO_PRESS_FIX_LLNL
-      PRIVATE :: AVERAGE_PRESS_POLES
-      PRIVATE :: CONVERT_WINDS
-      PRIVATE :: CALC_HORIZ_MASS_FLUX
-      PRIVATE :: CALC_DIVERGENCE
-      PRIVATE :: SET_PRESS_TERMS
-      PRIVATE :: DO_DIVERGENCE_POLE_SUM
-      PRIVATE :: XPAVG
-      PRIVATE :: INIT_PJC_PFIX
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
       ! Allocatable arrays
       REAL*8, ALLOCATABLE :: AI(:)
       REAL*8, ALLOCATABLE :: BI(:)
@@ -162,57 +154,79 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_PJC_PFIX( D_DYN, P1, P2, UWND, VWND, XMASS, YMASS )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DO_PJC_PFIX is the driver routine for the Philip Cameron-Smith
-!  pressure fixer for the GEOS-4/fvDAS transport scheme. 
+! !IROUTINE: Do_Pjc_Pfix
+!
+! !DESCRIPTION: Subroutine Do\_Pjc\_Pfix is the driver routine for the Philip 
+!  Cameron-Smith pressure fixer for the fvDAS transport scheme. 
 !  (bdf, bmy, 5/8/03, 3/5/07)
-!
+!\\
+!\\
 !  We assume that the winds are on the A-GRID, since this is the input that 
-!  the GEOS-4/fvDAS transport scheme takes. (bdf, bmy, 5/8/03)
+!  the fvDAS transport scheme takes. (bdf, bmy, 5/8/03)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) D_DYN (REAL*8) : Dynamic timestep [s]
-!  (2 ) P1    (REAL*8) : True PSurface at middle of dynamic timestep [hPa]
-!  (3 ) P2    (REAL*8) : True PSurface at end    of dynamic timestep [hPa]
-!  (4 ) UWND  (REAL*8) : Zonal (E-W) wind [m/s]
-!  (5 ) VWND  (REAL*8) : Meridional (N-S) wind [m/s]
+      SUBROUTINE Do_Pjc_Pfix( D_DYN, P1, P2, UWND, VWND, XMASS, YMASS )
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (6 ) XMASS (REAL*8) : E-W mass fluxes [kg/s ??]
-!  (7 ) YMASS (REAL*8) : N-S mass fluxes [kg/s ??]
-!  
-!  NOTES:
+! !USES:
+!
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_GCTM"    ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+      ! Dynamic timestep [s]
+      REAL*8,  INTENT(IN)  :: D_DYN
+
+      ! True PSurface at middle of dynamic timestep [hPa]
+      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
+
+      ! True PSurface at end    of dynamic timestep [hPa]
+      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
+
+      ! Zonal (E-W) wind [m/s]
+      REAL*8,  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
+
+      ! Meridional (N-S) wind [m/s]
+      REAL*8,  INTENT(IN)  :: VWND(IIPAR,JJPAR,LLPAR)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! E-W mass fluxes [mixing ratio]
+      REAL*8,  INTENT(OUT) :: XMASS(IIPAR,JJPAR,LLPAR)
+
+      ! N-S mass fluxes [mixing ratio]
+      REAL*8,  INTENT(OUT) :: YMASS(IIPAR,JJPAR,LLPAR)
+!
+! !AUTHOR:
+!  Brendan Field and Bob Yantosca (5/8/03) 
+!
+! !REMARKS:
 !  (1 ) Now P1 and P2 are "true" surface pressures, and not PS-PTOP.  If using
 !        this P-fixer w/ GEOS-3 winds, pass true surface pressure to this
 !        routine. (bmy, 10/27/03)
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
-!******************************************************************************
 !
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! Physical constants
-
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: D_DYN
-      REAL*8,  INTENT(IN)  :: P1(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)  :: P2(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)  :: UWND(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)  :: VWND(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT) :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT) :: YMASS(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER              :: I, J
+      INTEGER              :: I, J, K
       REAL*8               :: P2_TMP(IIPAR,JJPAR)
- 
-      ! Parameters
+!
+! !DEFINED PARAMETERS:
+! 
       LOGICAL, PARAMETER   :: INTERP_WINDS     = .TRUE.  ! winds are interp'd 
       INTEGER, PARAMETER   :: MET_GRID_TYPE    = 0       ! A-GRID
       INTEGER, PARAMETER   :: ADVEC_CONSRV_OPT = 0       ! 2=floating pressure 
@@ -236,9 +250,11 @@
          FIRST = .FALSE.
       ENDIF
 
+
       ! Copy P2 into P2_TMP (yxw, bmy, 3/5/07)
       P2_TMP = P2
  
+
       ! Call PJC pressure fixer w/ the proper arguments
       ! NOTE: P1 and P2 are now "true" surface pressure, not PS-PTOP!!!
       CALL ADJUST_PRESS( 'GEOS-CHEM',        INTERP_WINDS,  
@@ -253,45 +269,62 @@
      &                   UWND,               VWND, 
      &                   XMASS,              YMASS )
 
+      
       ! Return to calling program
-      END SUBROUTINE DO_PJC_PFIX
-
+      END SUBROUTINE Do_Pjc_Pfix
+!EOC 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CALC_PRESSURE( XMASS, YMASS, RGW_FV, PS_NOW, PS_AFTER )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CALC_PRESSURE recalculates the new surface pressure from the
-!  adjusted air masses XMASS and YMASS.  This is useful for debugging 
-!  purposes. (bdf, bmy, 5/8/03)
+! !IROUTINE: Calc_Pressure
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XMASS    (REAL*8) : E-W mass flux from pressure fixer
-!  (2 ) YMASS    (REAL*8) : N-S mass flux from pressure fixer
-!  (3 ) RGW_FV   (REAL*8) : 1 / ( SINE(J+1) - SINE(J) ) -- latitude factor
-!  (4 ) PS_NOW   (REAL*8) : Surface pressure - PTOP at current time
+! !DESCRIPTION: Subroutine Calc\_Pressure recalculates the new surface 
+!  pressure from the adjusted air masses XMASS and YMASS.  This is useful 
+!  for debugging purposes. (bdf, bmy, 5/8/03)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (5 ) PS_AFTER (REAL*8) : Surface pressure - PTOP adjusted by P-fixer
+      SUBROUTINE Calc_Pressure( XMASS, YMASS, RGW_FV, PS_NOW, PS_AFTER )
 !
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
-      IMPLICIT NONE
-
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, NTRACE, LPRT, LWINDO
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
+      ! E-W mass flux from pressure fixer
       REAL*8, INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(IN)  :: YMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(IN)  :: PS_NOW(IIPAR,JJPAR)
-      REAL*8, INTENT(IN)  :: RGW_FV(JJPAR)
-      REAL*8, INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
 
-      ! Local variables
+      ! N-S mass flux from pressure fixer
+      REAL*8, INTENT(IN)  :: YMASS(IIPAR,JJPAR,LLPAR)
+
+      ! Surface pressure - PTOP at current time
+      REAL*8, INTENT(IN)  :: PS_NOW(IIPAR,JJPAR)
+
+      ! 1 / ( SINE(J+1) - SINE(J) ) -- latitude factor
+      REAL*8, INTENT(IN)  :: RGW_FV(JJPAR)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Surface pressure - PTOP adjusted by P-fixer
+      REAL*8, INTENT(OUT) :: PS_AFTER(IIPAR,JJPAR)
+!
+! !AUTHOR:
+!   Brendan Field and Bob Yantosca (5/8/03)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER             :: I, J, L
       REAL*8              :: DELP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: DELP1(IIPAR,JJPAR,LLPAR)
@@ -359,66 +392,72 @@
       ENDDO
 
       ! Return to calling program
-      END SUBROUTINE CALC_PRESSURE
-
+      END SUBROUTINE Calc_Pressure
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Calc_Advection_Factors
+!
+! !DESCRIPTION: Subroutine Calc\_Advection\_Factors calculates the relative 
+!   area of each grid box, and the geometrical factors used by this modified 
+!   version of TPCORE.  These geomoetrical DO assume that the space is 
+!   regularly gridded, but do not assume any link between the surface area 
+!   and the linear dimensions.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Calc_Advection_Factors
      &  (mcor, rel_area, geofac, geofac_pc)
 !
-!******************************************************************************
+! !USES:
 !
-!  ROUTINE
-!    Calc_Advection_Factors 
-!  
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
-!  DESCRIPTION 
-!      This routine calculates the relative area of each grid
-!      box, and the geometrical factors used by this modified version of
-!      TPCORE. These geomoetrical DO assume that the space is regularly
-!      grided, but do not assume any link between the surface area and
-!      the linear dimensions.
-!  
-!  ARGUMENTS
-!    mcor      : area of grid box (m^2)
-!    rel_area  : relative surface area of grid box (fraction)
-!    geofac    : geometrical factor for meridional advection; geofac uses
-!                correct spherical geometry, and replaces acosp as the
-!                meridional geometrical factor in tpcore
-!    geofac_pc : special geometrical factor (geofac) for Polar cap
-!  
-!  NOTES:
-!  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
-!        double-precision with the "D" exponent. (bmy, 5/6/03)
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_GCTM"   ! Physical constants
 !
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-      implicit none
+      ! Area of grid box (m^2)
+      REAL*8, INTENT(IN)  :: mcor(i1_gl :i2_gl, ju1_gl:j2_gl)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! relative surface area of grid box (fraction)
+      REAL*8, INTENT(OUT) :: rel_area(i1_gl :i2_gl, ju1_gl:j2_gl)
 
-#     include "CMN_SIZE"
-#     include "CMN_GCTM"
+      ! Geometrical factor for meridional advection; geofac uses
+      ! correct spherical geometry, and replaces acosp as the
+      ! meridional geometrical factor in tpcore
+      REAL*8, INTENT(OUT) :: geofac(ju1_gl:j2_gl)
 
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      real*8, intent(IN)  :: mcor    (i1_gl :i2_gl, ju1_gl:j2_gl)
-      real*8, intent(OUT) :: rel_area(i1_gl :i2_gl, ju1_gl:j2_gl)
-      real*8, intent(OUT) :: geofac  (ju1_gl:j2_gl)
-      real*8, intent(OUT) :: geofac_pc
-
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
-      integer :: ij
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8, INTENT(OUT) :: geofac_pc
+!
+! !AUTHOR:
+!   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! 
+! !REMARKS:
+!   Now reference PI from "CMN_GCTM" for consistency.  Also force
+!   double-precision with the "D" exponent. (bmy, 5/6/03)
+!
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER :: ij
  
-      real*8  :: dp           ! spacing in latitude (rad)
-      real*8  :: ri2_gl
-      real*8  :: rj2m1
-      real*8  :: total_area
+      REAL*8  :: dp           ! spacing in latitude (rad)
+      REAL*8  :: ri2_gl
+      REAL*8  :: rj2m1
+      REAL*8  :: total_area
 
       !----------------
       !Begin execution.
@@ -453,111 +492,108 @@
 
       ! Return to calling program
       END SUBROUTINE Calc_Advection_Factors
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Adjust_Press
+!
+! !DESCRIPTION: Subroutine Adjust\_Press initializes and calls the 
+!  pressure fixer code.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Adjust_Press
      &  (metdata_name_org, do_timinterp_winds, new_met_rec,
      &   met_grid_type, advec_consrv_opt, pmet2_opt, press_fix_opt,
      &   tdt, geofac_pc, geofac, cose, cosp, rel_area, dap, dbk,
      &   pctm1, pctm2, pmet2, uu, vv, xmass, ymass)
 !
-!******************************************************************************
-! 
-!  ROUTINE
-!    Adjust_Press
-! 
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! !INPUT PARAMETERS: 
 !
-!  DESCRIPTION
-!    This routine initializes and calls the pressure fixer code.
-! 
-!  ARGUMENTS
-!    metdata_name_org   : first  part of metdata_name, e.g., "NCAR"
-!    do_timinterp_winds : time interpolate wind fields?
-!    new_met_rec        : new met record?
-!    met_grid_type      : met grid type, A or C
-!    advec_consrv_opt   : advection_conserve option
-!    pmet2_opt          : pmet2 option
-!    press_fix_opt      : pressure fixer option
-!    tdt       : model time step (s)
-!    geofac_pc : special geometrical factor (geofac) for Polar cap
-!    geofac    : geometrical factor for meridional advection; geofac uses
-!                correct spherical geometry, and replaces acosp as the
-!                meridional geometrical factor in tpcore
-!    cose      : cosine of grid box edges
-!    cosp      : cosine of grid box centers
-!    rel_area  : relative surface area of grid box (fraction)
-!    dap       : pressure difference across layer from (ai * pt) term (mb)
-!    dbk       : difference in bi across layer - the dSigma term
-!    pctm1     : CTM surface pressure at t1     (mb)
-!    pctm2     : CTM surface pressure at t1+tdt (mb)
-!    pmet2     : surface pressure     at t1+tdt (mb)
-!    uu        : wind velocity, x direction at t1+tdt/2 (m/s)
-!    vv        : wind velocity, y direction at t1+tdt/2 (m/s)
-!    xmass     : horizontal mass flux in E-W direction  (mb)
-!    ymass     : horizontal mass flux in N-S direction  (mb)
-! 
-!  NOTES:
-!  (1 ) Now declare METDATA_NAME_ORG as CHARACTER(LEN=*) (bmy, 6/25/03)
-!******************************************************************************
-!
-      implicit none
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
+      ! First  part of metdata_name, e.g., "NCAR"
       CHARACTER(LEN=*) :: metdata_name_org
-      logical :: do_timinterp_winds
-      logical :: new_met_rec
-      integer :: met_grid_type
-      integer :: advec_consrv_opt
-      integer :: pmet2_opt
-      integer :: press_fix_opt
-      real*8  :: tdt
-      real*8  :: geofac_pc
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: cose    (ju1_gl:j2_gl)
-      real*8  :: cosp    (ju1_gl:j2_gl)
-      real*8  :: dap     (k1:k2)
-      real*8  :: dbk     (k1:k2)
 
-      !-----------------------------------------------------------------
-      !rel_area : relative surface area of grid box (fraction)
-      !-----------------------------------------------------------------
- 
-      real*8 :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
+      ! Time interpolate wind fields?
+      LOGICAL :: do_timinterp_winds
+
+      ! New met record?
+      LOGICAL :: new_met_rec
+
+      ! Met grid type, A or C
+      INTEGER :: met_grid_type
+
+      ! Advection_conserve option
+      INTEGER :: advec_consrv_opt
+
+      ! pmet2 option
+      INTEGER :: pmet2_opt
+
+      ! pressure fixer option
+      INTEGER :: press_fix_opt
+
+      ! Model time step [s]
+      REAL*8  :: tdt
+      
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8  :: geofac_pc
+
+      ! Geometrical factor for meridional advection; geofac uses
+      ! correct spherical geometry, and replaces acosp as the
+      ! meridional geometrical factor in tpcore
+      REAL*8  :: geofac  (ju1_gl:j2_gl)
+
+      ! Cosines of grid box edges and centers
+      REAL*8  :: cose    (ju1_gl:j2_gl)
+      REAL*8  :: cosp    (ju1_gl:j2_gl)
+
+      ! Pressure difference across layer from (ai * pt) term [hPa]
+      REAL*8  :: dap     (k1:k2)
+
+      ! Difference in bi across layer - the dSigma term
+      REAL*8  :: dbk     (k1:k2)
+
+      ! Relative surface area of grid box (fraction)
+      REAL*8  :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
             
-      !-----------------------------------------------------------------
-      !pmet1  : Metfield surface pressure at t1 (mb)
-      !pmet2  : Metfield surface pressure at t1+tdt (mb)
-      !pctm1  : CTM surface pressure at t1 (mb)
-      !pctm2  : CTM surface pressure at t1+tdt (mb)
-      !-----------------------------------------------------------------
+      ! Metfield surface pressure at t1+tdt [hPa]
+      REAL*8  :: pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      REAL*8 :: 
-     &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
-     &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
-     &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
+      ! CTM surface pressure at t1 [hPa]
+      REAL*8  :: pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      !-------------------------------------------------
-      !uu : wind velocity, x direction at t1+tdt/2 (m/s)
-      !vv : wind velocity, y direction at t1+tdt/2 (m/s)
-      !-------------------------------------------------
+      ! CTM surface pressure at t1+tdt [hPa]
+      REAL*8  :: pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      real*8 :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      ! Wind velocity, x direction at t1+tdt/2 [m/s]
+      REAL*8  :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
-      !--------------------------------------------------
-      !xmass : horizontal mass flux in E-W direction (mb)
-      !ymass : horizontal mass flux in N-S direction (mb)
-      !--------------------------------------------------
+      ! Wind velocity, y direction at t1+tdt/2 [m/s]
+      REAL*8  :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Horizontal mass flux in E-W direction [hPa]
+      REAL*8  :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
-      real*8 :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-
+      ! Horizontal mass flux in N-S direction [hPa]
+      REAL*8  :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+!
+! !AUTHOR:
+!   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       logical, save :: DO_ADJUST_PRESS_DIAG = .TRUE.
 
 
@@ -577,20 +613,20 @@
       real*8  :: press_dev
 
       !-------------------------------------------------------------
-      !dps : change of surface pressure from met field pressure (mb)
+      !dps : change of surface pressure from met field pressure [hPa]
       !-------------------------------------------------------------
 
       real*8  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !--------------------------------------------
-      !dps_ctm : CTM surface pressure tendency (mb)
+      !dps_ctm : CTM surface pressure tendency [hPa]
       !--------------------------------------------
 
       real*8 :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
 
       !---------------------------------------------------------------------
-      !xmass_fixed : horizontal mass flux in E-W direction after fixing (mb)
-      !ymass_fixed : horizontal mass flux in N-S direction after fixing (mb)
+      !xmass_fixed : horizontal mass flux in E-W direction after fixing [hPa]
+      !ymass_fixed : horizontal mass flux in N-S direction after fixing [hPa]
       !---------------------------------------------------------------------
 
       real*8  :: xmass_fixed(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1:k2)
@@ -622,7 +658,7 @@
 
 !### Debug
 !###      if (DO_ADJUST_PRESS_DIAG) then
-!###        Write (6, *) 'Global mean surface pressure change (mb) = ', 
+!###        Write (6, *) 'Global mean surface pressure change [hPa] = ', 
 !###     &                dgpress
 !###      end if
 
@@ -677,129 +713,107 @@
      &                rel_area(i1_gl:i2_gl,ju1_gl:j2_gl))))
 
 !### Debug
-!###        Write (6, *) 'RMS deviation between pmet2 & pctm2 (mb) = ',
+!###        Write (6, *) 'RMS deviation between pmet2 & pctm2 [hPa] = ',
 !###     &               press_dev
 
       end if
 
       ! Return to calling program
       END SUBROUTINE Adjust_Press
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Press_Fix
+!
+! !DESCRIPTION: Subroutine Init\_Press\_Fix initializes the pressure fixer.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Init_Press_Fix
      &  (metdata_name_org, met_grid_type, tdt, geofac_pc, geofac,
      &   cose, cosp, dap, dbk, dps, dps_ctm, rel_area, pctm1, pmet2,
      &   uu, vv, xmass, ymass)
 !
-!******************************************************************************
-! 
-!  ROUTINE
-!    Init_Press_Fix
+! !INPUT PARAMETERS: 
 !
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-! 
-!  DESCRIPTION
-!    This routine initializes the pressure fixer.
-! 
-!  ARGUMENTS
-!    metdata_name_org : first  part of metdata_name, e.g., "NCAR"
-!    met_grid_type    : met grid type, A or C
-!    tdt       : model time step (s)
-!    geofac_pc : special geometrical factor (geofac) for Polar cap
-!    geofac    : geometrical factor for meridional advection; geofac uses
-!                correct spherical geometry, and replaces acosp as the
-!                meridional geometrical factor in tpcore
-!    cose      : cosine of grid box edges
-!    cosp      : cosine of grid box centers
-!    dap       : pressure difference across layer from (ai * pt) term (mb)
-!    dbk       : difference in bi across layer - the dSigma term
-!    dps       : change of surface pressure from met field pressure (mb)
-!    dps_ctm   : sum over vertical of dpi calculated from original mass
-!                fluxes (mb)
-!    rel_area  : relative surface area of grid box (fraction)
-!    pctm1     : CTM       surface pressure at t1      (mb)
-!    pmet2     : met field surface pressure at t1+tdt  (mb)
-!    uu        : wind velocity in E-W direction        (m/s)
-!    vv        : wind velocity in N-S direction        (m/s)
-!    xmass     : horizontal mass flux in E-W direction (mb)
-!    ymass     : horizontal mass flux in N-S direction (mb)
-!
-!  NOTES: 
-!  (1 ) Now declare METDATA_NAME_ORG as CHARACTER(LEN=*)
-!******************************************************************************
-! 
-      implicit none
+      ! Model Time step [s]
+      REAL*8 :: tdt
 
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
+      ! First part of metdata_name, e.g., "NCAR"
       CHARACTER(LEN=*) :: metdata_name_org
-      integer :: met_grid_type
-      real*8  :: geofac_pc
-      real*8  :: tdt
-      real*8  :: cose    (ju1_gl:j2_gl)
-      real*8  :: cosp    (ju1_gl:j2_gl)
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: dap     (k1:k2)
-      real*8  :: dbk     (k1:k2)
 
-      !-------------------------------------------------------------
-      !dps : change of surface pressure from met field pressure (mb)
-      !-------------------------------------------------------------
+      ! Met grid type, A or C
+      INTEGER          :: met_grid_type
 
-      real*8  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8           :: geofac_pc
 
-      !--------------------------------------------
-      !dps_ctm : CTM surface pressure tendency (mb)
-      !--------------------------------------------
+      ! Cosine of grid box edges and centers
+      REAL*8           :: cose(ju1_gl:j2_gl)
+      REAL*8           :: cosp(ju1_gl:j2_gl)
 
-      real*8 :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
+      ! Geometrical factor for meridional advection; geofac uses
+      ! correct spherical geometry, and replaces acosp as the
+      ! meridional geometrical factor in tpcore
+      REAL*8           :: geofac(ju1_gl:j2_gl)
 
-      !-----------------------------------------------------------------
-      !rel_area : relative surface area of grid box (fraction)
-      !-----------------------------------------------------------------
+      ! Pressure difference across layer from (ai * pt) term [hPa]
+      REAL*8           :: dap(k1:k2)
 
-      real*8 :: rel_area( i1_gl:i2_gl,   ju1_gl:j2_gl)
+      ! Difference in bi across layer - the dSigma term
+      REAL*8           :: dbk(k1:k2)
+
+      ! relative surface area of grid box (fraction)
+      REAL*8           :: rel_area( i1_gl:i2_gl, ju1_gl:j2_gl)
             
-      !-----------------------------------------------------------------
-      !pmet1  : Metfield surface pressure at t1 (mb)
-      !pmet2  : Metfield surface pressure at t1+tdt (mb)
-      !pctm1  : CTM surface pressure at t1 (mb)
-      !pctm2  : CTM surface pressure at t1+tdt (mb)
-      !-----------------------------------------------------------------
+      ! Metfield surface pressure at t1 [hPa]
+      REAL*8           :: pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      REAL*8 :: 
-     &   pmet2(ilo_gl:ihi_gl, julo_gl:jhi_gl),
-     &   pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl),
-     &   pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
+      ! CTM surface pressure at t1 [hPa]
+      REAL*8           :: pctm1(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      !--------------------------------------------------
-      ! uu : wind velocity, x direction at t1+tdt/2 (m/s)
-      ! vv : wind velocity, y direction at t1+tdt/2 (m/s)
-      !--------------------------------------------------
+      ! CTM surface pressure at t1+tdt [hPa]
+      REAL*8           :: pctm2(ilo_gl:ihi_gl, julo_gl:jhi_gl)
 
-      real*8 :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      ! Wind velocity, x direction at t1+tdt/2 [m/s]
+      REAL*8           :: uu(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
-      !--------------------------------------------------
-      !xmass : horizontal mass flux in E-W direction (mb)
-      !ymass : horizontal mass flux in N-S direction (mb)
-      !--------------------------------------------------
+      ! Wind velocity, y direction at t1+tdt/2 [m/s]
+      REAL*8           :: vv(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Horizontal mass flux in E-W direction [hPa]
+      REAL*8  :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
-      real*8 :: xmass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
-      real*8 :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
+      ! Horizontal mass flux in N-S direction [hPa]
+      REAL*8  :: ymass(ilo_gl:ihi_gl, julo_gl:jhi_gl, k1_gl:k2_gl)
 
-      !----------------------
-      !Variable declarations.
-      !----------------------
+      ! Change of surface pressure from met field pressure [hPa]
+      REAL*8  :: dps(i1_gl:i2_gl, ju1_gl:j2_gl)
 
+      ! CTM surface pressure tendency [hPa]
+      REAL*8  :: dps_ctm(i1_gl:i2_gl, ju1_gl:j2_gl)
+!
+! !AUTHOR:
+!   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       !--------------------------------------------------------------
       !dpi   : divergence at a grid point; used to calculate vertical
-      !        motion (mb)
+      !        motion [hPa]
       !--------------------------------------------------------------
 
       real*8  :: dpi(i1:i2, ju1:j2, k1:k2)
@@ -808,10 +822,10 @@
       !crx   : Courant number in E-W direction
       !cry   : Courant number in N-S direction
       !delp1 : pressure thickness, the psudo-density in a hydrostatic system
-      !        at t1 (mb)
+      !        at t1 [hPa]
       !delpm : pressure thickness, the psudo-density in a hydrostatic system
-      !        at t1+tdt/2 (approximate) (mb)
-      !pu    : pressure at edges in "u"  (mb)
+      !        at t1+tdt/2 (approximate) [hPa]
+      !pu    : pressure at edges in "u"  [hPa]
       !---------------------------------------------------------------------
 
       real*8  :: crx  (ilo:ihi, julo:jhi, k1:k2)
@@ -875,85 +889,89 @@
 
       ! Return to calling program
       END SUBROUTINE Init_Press_Fix
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Do_Press_Fix_Llnl
+!
+! !DESCRIPTION: Subroutine Do\_Press\_Fix\_Llnl fixes the mass fluxes to 
+!  match the met field pressure tendency.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Do_Press_Fix_Llnl
      &  (geofac_pc, geofac, dbk, dps, dps_ctm, rel_area,
      &   xmass, ymass, xmass_fixed, ymass_fixed)
 !
-!******************************************************************************
-! 
-!  ROUTINE
-!    Do_Press_Fix_Llnl
-! 
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! !INPUT PARAMETERS: 
 !
-!  DESCRIPTION
-!    This routine fixes the mass fluxes to match the met field pressure
-!    tendency.
-! 
-!  ARGUMENTS
-!    geofac_pc   : special geometrical factor (geofac) for Polar cap
-!    geofac      : geometrical factor for meridional advection; geofac uses
-!                  correct spherical geometry, and replaces acosp as the
-!                  meridional geometrical factor in tpcore
-!    dbk         : difference in bi across layer - the dSigma term
-!    dps         : change of surface pressure from met field pressure (mb)
-!    dps_ctm     : sum over vertical of dpi calculated from original mass
-!                  fluxes (mb)
-!    rel_area    : relative surface area of grid box (fraction)
-!    xmass       : horizontal mass flux in E-W direction (mb)
-!    ymass       : horizontal mass flux in N-S direction (mb)
-!    xmass_fixed : horizontal mass flux in E-W direction after fixing (mb)
-!    ymass_fixed : horizontal mass flux in N-S direction after fixing (mb)
-! 
-!  NOTES:
-! 
-!******************************************************************************
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8, INTENT(IN)   :: geofac_pc
+
+      ! Geometrical factor for meridional advection; geofac uses
+      ! correct spherical geometry, and replaces acosp as the
+      !  meridional geometrical factor in tpcore
+      REAL*8, INTENT(IN)   :: geofac(ju1_gl:j2_gl)
+
+      ! Difference in bi across layer - the dSigma term
+      REAL*8, INTENT(IN)   :: dbk(k1:k2)
+
+      ! Change of surface pressure from met field pressure [hPa]
+      REAL*8, INTENT(IN)   :: dps(i1:i2, ju1:j2)
+
+      ! Relative surface area of grid box (fraction)
+      REAL*8, INTENT(IN)   :: rel_area(i1:i2, ju1:j2)
+
+      ! Horizontal mass fluxes in E-W and N-S directions [hPa]
+      REAL*8, INTENT(IN)   :: xmass(ilo:ihi, julo:jhi, k1:k2)
+      REAL*8, INTENT(IN)   :: ymass(ilo:ihi, julo:jhi, k1:k2)
 !
-      implicit none
+! !OUTPUT PARAMETERS:
+!
+      ! Sum over vertical of dpi calculated from original mass fluxes [hPa]
+      REAL*8,  INTENT(OUT) :: dps_ctm(i1:i2, ju1:j2)
 
-      !----------------------
-      !Argument declarations.
-      !----------------------
+      ! Horizontal mass flux in E-W and N-S directions after fixing [hPa]
+      REAL*8,  INTENT(OUT) :: xmass_fixed(ilo:ihi, julo:jhi, k1:k2)
+      REAL*8,  INTENT(OUT) :: ymass_fixed(ilo:ihi, julo:jhi, k1:k2)
+!
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+!
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      ! Scalars
+      INTEGER :: il, ij, ik
 
-      real*8  :: geofac_pc
-      real*8  :: geofac  (ju1_gl:j2_gl)
-      real*8  :: dbk     (k1:k2)
-      real*8  :: dps     (i1:i2, ju1:j2)
-      real*8  :: dps_ctm (i1:i2, ju1:j2)
-      real*8  :: rel_area(i1:i2, ju1:j2)
-      real*8  :: xmass      (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass      (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: xmass_fixed(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass_fixed(ilo:ihi, julo:jhi, k1:k2)
+      REAL*8  :: dgpress
+      REAL*8  :: fxmean
+      REAL*8  :: ri2
 
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
-      integer :: il, ij, ik
-
-      real*8  :: dgpress
-      real*8  :: fxmean
-      real*8  :: ri2
-
-      real*8  :: fxintegral(i1:i2+1)
-
-      real*8  :: mmfd(ju1:j2)
-      real*8  :: mmf (ju1:j2)
-
-      real*8  :: ddps(i1:i2, ju1:j2)
+      ! Arrays
+      REAL*8  :: fxintegral(i1:i2+1)
+      REAL*8  :: mmfd(ju1:j2)
+      REAL*8  :: mmf (ju1:j2)
+      REAL*8  :: ddps(i1:i2, ju1:j2)
 
       !------------------------------------------------------------------------
-      !dpi : divergence at a grid point; used to calculate vertical motion (mb)
+      !dpi: divergence at a grid point; used to calculate vertical motion [hPa]
       !------------------------------------------------------------------------
 
       real*8  :: dpi(i1:i2, ju1:j2, k1:k2)
 
       real*8  :: xcolmass_fix(ilo:ihi, julo:jhi)
+
 
       !----------------
       !Begin execution.
@@ -1088,48 +1106,48 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Do_Press_Fix_Llnl
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Average_Press_Poles
+!
+! !DESCRIPTION: Subroutine Average\_Press\_Poles averages pressure at the 
+!  Poles when the Polar cap is enlarged.  It makes the last two latitudes 
+!  equal.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Average_Press_Poles
      &  (rel_area, press)
 !
-!******************************************************************************
+! !INPUT PARAMETERS:
 !
-!  ROUTINE
-!    Average_Press_Poles
-!  
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
-!  DESCRIPTION
-!    This routine averages pressure at the Poles when the Polar cap is
-!    enlarged.  It makes the last two latitudes equal.
-!  
-!  ARGUMENTS
-!    rel_area : relative surface area of grid box (fraction)
-!    press    : surface pressure (mb)
-!  
-!  NOTES:
-!  
-!******************************************************************************
+      ! Relative surface area of grid box (fraction)
+      REAL*8, INTENT(IN)    :: rel_area(i1:i2, ju1:j2)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Surface pressure [hPa]
+      REAL*8, INTENT(INOUT) :: press   (ilo:ihi, julo:jhi)
+!
+! !AUTHOR:
+!   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003) 
+!
 ! 
-      implicit none
-
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      real*8  :: rel_area(i1:i2, ju1:j2)
-      real*8  :: press   (ilo:ihi, julo:jhi)
-
-
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
-      real*8  :: meanp
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8  :: meanp
 
 
       !----------------
@@ -1156,59 +1174,65 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Average_Press_Poles
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Convert_Winds
+!
+! !DESCRIPTION: Subroutine Convert\_Winds converts winds on A or C grid to 
+!  Courant \# on C grid.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Convert_Winds
      &  (igd, tdt, cosp, crx, cry, uu, vv)
 !
-!******************************************************************************
+! !USES:
 !
-!  ROUTINE
-!    Convert_Winds
-!  
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
-!  DESCRIPTION
-!    This routine converts winds on A or C grid to Courant # on C grid.
-!  
-!  ARGUMENTS
-!    igd  : A or C grid
-!    tdt  : model time step (s)
-!    cosp : cosine of grid box centers
-!    crx  : Courant number in E-W direction
-!    cry  : Courant number in N-S direction
-!    uu   : wind velocity  in E-W direction at t1+tdt/2 (m/s)
-!    vv   : wind velocity  in N-S direction at t1+tdt/2 (m/s)
-!  
-!  NOTES:
-!  (1 ) Use GEOS-CHEM physical constants Re, PI to be consistent with other
-!        usage everywhere (bmy, 5/5/03)
-!
-!******************************************************************************
-!
-      implicit none
-
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_GCTM" ! Re, PI
- 
-      !----------------------
-      !Argument declarations.
-      !----------------------
+!
+! !INPUT PARAMETERS: 
+!
+      ! A or C grid
+      INTEGER, INTENT(IN)  :: igd
 
-      integer :: igd
-      real*8  :: tdt
-      real*8  :: cosp(ju1_gl:j2_gl)
-      real*8  :: crx (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: cry (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: uu  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: vv  (ilo:ihi, julo:jhi, k1:k2)
+      ! Model time step [s]
+      REAL*8,  INTENT(IN)  :: tdt
 
-      !----------------------
-      !Variable declarations.
-      !----------------------
+      ! Cosine of grid box centers
+      REAL*8,  INTENT(IN)  :: cosp(ju1_gl:j2_gl)
 
+      ! Wind velocity in E-W (UU) and N-S (VV) directions at t1+tdt/2 [m/s]
+      REAL*8,  INTENT(IN)  :: uu  (ilo:ihi, julo:jhi, k1:k2)
+      REAL*8,  INTENT(IN)  :: vv  (ilo:ihi, julo:jhi, k1:k2)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Courant number in E-W (CRX) and N-S (CRY) directions
+      REAL*8,  INTENT(OUT) :: crx (ilo:ihi, julo:jhi, k1:k2)
+      REAL*8,  INTENT(OUT) :: cry (ilo:ihi, julo:jhi, k1:k2)
+
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+!
+! !REMARKS:
+!  Use GEOS-CHEM physical constants Re, PI to be consistent with other
+!  usage everywhere (bmy, 5/5/03)
+!
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.  
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       logical, save :: first = .true.
 
       integer :: il, ij
@@ -1330,69 +1354,81 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Convert_Winds
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Calc_Horiz_Mass_Flux
+!
+! !DESCRIPTION: Subroutine Calc\_Horiz\_Mass\_Flux calculates the horizontal 
+!  mass flux for non-GISS met data.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Calc_Horiz_Mass_Flux
      &  (cose, delpm, uu, vv, xmass, ymass, tdt, cosp)
 !
-!******************************************************************************
-! 
-!  ROUTINE
-!    Calc_Horiz_Mass_Flux
-! 
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-! 
-!  DESCRIPTION
-!    This routine calculates the horizontal mass flux for non-GISS met data.
-! 
-!  ARGUMENTS
-!    cose  : cosine of grid box edges
-!    delpm : pressure thickness, the psudo-density in a hydrostatic system
-!            at t1+tdt/2 (approximate) (mb)
-!    crx   : Courant number in E-W direction
-!    cry   : Courant number in N-S direction
-!    pu    : pressure at edges in "u"  (mb)
-!    xmass : horizontal mass flux in E-W direction (mb)
-!    ymass : horizontal mass flux in N-S direction (mb)
-! 
-!  NOTES:
-!  
-!******************************************************************************
+! !USES:
 !
-      implicit none
-
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_GCTM" ! Re, Pi
+!
+! !INPUT PARAMETERS: 
+!
+      ! Timestep [s]
+      REAL*8, INTENT(IN)   :: tdt
 
-      !----------------------
-      !Argument declarations.
-      !----------------------
+      ! Cosine of grid box edges
+      REAL*8, INTENT(IN)   :: cose (ju1_gl:j2_gl)
 
-      real*8  :: tdt
-      real*8  :: cose (ju1_gl:j2_gl)
-      real*8  :: cosp (ju1_gl:j2_gl)
-      real*8  :: delpm(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: uu  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: vv  (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: xmass(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass(ilo:ihi, julo:jhi, k1:k2)
+      ! Cosine of grid box centers
+      REAL*8, INTENT(IN)   :: cosp (ju1_gl:j2_gl)
 
-      !----------------------
-      !Variable declarations.
-      !----------------------
+      ! Pressure thickness, the pseudo-density in a 
+      ! hdrostatic system  at t1+tdt/2 (approximate) [hPa]
+      REAL*8, INTENT(IN)   :: delpm(ilo:ihi, julo:jhi, k1:k2)
 
-      integer :: ij
-      integer :: il
-      integer :: jst, jend
-      real*8  :: dl
-      real*8  :: dp
+      ! E-W (UU) and N-S (VV) winds [m/s]
+      REAL*8, INTENT(IN)   :: uu  (ilo:ihi, julo:jhi, k1:k2)
+      REAL*8, INTENT(IN)   :: vv  (ilo:ihi, julo:jhi, k1:k2)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Horizontal mass flux in E-W and N-S directions [hPa]
+      REAL*8, INTENT(OUT)  :: xmass(ilo:ihi, julo:jhi, k1:k2)
+      REAL*8, INTENT(OUT)  :: ymass(ilo:ihi, julo:jhi, k1:k2)
 
-      real*8  :: ri2
-      real*8  :: rj2m1
-      real*8  :: factx
-      real*8  :: facty
+! !AUTHOR:
+!   Original code from Shian-Jiann Lin, DAO 
+!   John Tannahill, LLNL (jrt@llnl.gov)
+! 
+! !REMARKS:
+!   Use GEOS-CHEM physical constants Re, PI to be consistent with other
+!   usage everywhere (bmy, 5/5/03)
+
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8. 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER :: ij
+      INTEGER :: il
+      INTEGER :: jst, jend
+      REAL*8  :: dl
+      REAL*8  :: dp
+
+      REAL*8  :: ri2
+      REAL*8  :: rj2m1
+      REAL*8  :: factx
+      REAL*8  :: facty
+
 
       !----------------
       !Begin execution.
@@ -1430,7 +1466,6 @@ c     --------------------------------------
 
       end do
 
-
       !-----------------------------------
       !Calculate N-S horizontal mass flux.
       !-----------------------------------
@@ -1443,57 +1478,63 @@ c     --------------------------------------
 
       end do
 
+      ymass(i1:i2,ju1,:) = facty *
+     &    cose(ju1) * (vv(i1:i2,ju1,:)*delpm(i1:i2,ju1,:))
+
+
       ! Return to calling program
       END SUBROUTINE Calc_Horiz_Mass_Flux
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Calc_Divergence
+!
+! !DESCRIPTION: Subroutine Calc\_Divergence calculates the divergence.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Calc_Divergence
      &  (do_reduction, geofac_pc, geofac, dpi, xmass, ymass)
 !
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-!  ROUTINE
-!    Calc_Divergence
-!
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!
-!  DESCRIPTION
-!    This routine calculates the divergence.
-!
-!  ARGUMENTS
-!    do_reduction : set to false if called on Master;
-!                   set to true  if called by Slaves
-!    geofac_pc    : special geometrical factor (geofac) for Polar cap
-!    geofac       : geometrical factor for meridional advection; geofac uses
-!                   correct spherical geometry, and replaces acosp as the
-!                   meridional geometrical factor in tpcore
-!    dpi   : divergence at a grid point; used to calculate vertical motion (mb)
-!    xmass : horizontal mass flux in E-W direction (mb)
-!    ymass : horizontal mass flux in N-S direction (mb)
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      implicit none
+      ! Set to F if called on Master; set to T if called by Slaves
+      ! (NOTE: this doesn't seem to be used!)
+      LOGICAL, INTENT(IN)    :: do_reduction
 
-      !----------------------
-      !Argument declarations.
-      !----------------------
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8,  INTENT(IN)    :: geofac_pc
 
-      logical :: do_reduction
-      real*8  :: geofac_pc
-      real*8  :: geofac(ju1_gl:j2_gl)
-      real*8  :: dpi   (i1:i2, ju1:j2, k1:k2)
-      real*8  :: xmass (ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: ymass (ilo:ihi, julo:jhi, k1:k2)
+      ! geometrical factor for meridional advection; geofac uses
+      ! correct spherical geometry, and replaces acosp as the
+      ! meridional geometrical factor in tpcore 
+      REAL*8,  INTENT(IN)    :: geofac(ju1_gl:j2_gl)
 
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
+      ! horizontal mass fluxes in E-W and N-S directions [hPa]
+      REAL*8,  INTENT(IN)    :: xmass (ilo:ihi, julo:jhi, k1:k2)
+      REAL*8,  INTENT(IN)    :: ymass (ilo:ihi, julo:jhi, k1:k2)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Divergence at a grid point; used to calculate vertical motion [hPa]
+      REAL*8,  INTENT(INOUT) :: dpi   (i1:i2, ju1:j2, k1:k2)
+!
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8. 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       integer :: il, ij
       integer :: jst, jend
 
@@ -1517,17 +1558,6 @@ c     --------------------------------------
 
       end do
 
-      if(j1p.ne.2) then
-        dpi(:,2,:) = 0.
-        dpi(:,j2-1,:) = 0.
-      endif
-
-      !===========================
-      call Do_Divergence_Pole_Sum
-      !===========================
-     &  (do_reduction, geofac_pc, dpi, ymass)
-       
-
       !-------------------------
       !Calculate E-W divergence.
       !-------------------------
@@ -1543,58 +1573,90 @@ c     --------------------------------------
      &      xmass(i2,ij,:) - xmass(1,ij,:)
       end do
 
+      !===========================
+      call Do_Divergence_Pole_Sum
+      !===========================
+     &  (do_reduction, geofac_pc, dpi, ymass)
+       
+
+      ! Added this IF statemetn (ccarouge, 12/3/08)
+      if (j1p /= ju1_gl+1) then
+
+!       --------------------------------------------
+!       Polar cap enlarged:  copy dpi to polar ring.
+!       --------------------------------------------
+
+        if (ju1 == ju1_gl) then
+
+          dpi(:,ju1+1,:) = dpi(:,ju1,:)
+
+        end if
+
+        if (j2 == j2_gl) then
+
+          dpi(:,j2-1,:)  = dpi(:,j2,:)
+
+        end if
+
+      end if
+
       ! Return to calling program
       END SUBROUTINE Calc_Divergence
-
+!EOC 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_Press_Terms
+!
+! !DESCRIPTION: Subroutine Set\_Press\_Terms sets the pressure terms.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE Set_Press_Terms
      &  (dap, dbk, pres1, pres2, delp1, delpm, pu)
 !
-!******************************************************************************
+! !INPUT PARAMETERS: 
+!
+      ! Pressure difference across layer from (ai * pt) term [hPa]
+      REAL*8, INTENT(IN)  :: dap  (k1:k2)
+
+      ! Difference in bi across layer - the dSigma term
+      REAL*8, INTENT(IN)  :: dbk  (k1:k2)
+
+      ! Surface pressure at t1 [hPa]
+      REAL*8, INTENT(IN)  :: pres1(ilo:ihi, julo:jhi)
+
+      ! Surface pressure at t1+tdt [hPa]
+      REAL*8, INTENT(IN)  :: pres2(ilo:ihi, julo:jhi)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Pressure thickness, the psudo-density in a 
+      ! hydrostatic system at t1 [hPa]
+      REAL*8, INTENT(OUT) :: delp1(ilo:ihi, julo:jhi, k1:k2)
+
+      ! Pressure thickness, the psudo-density in a 
+      ! hydrostatic system at t1+tdt/2 (approximate)  [hPa]
+      REAL*8, INTENT(OUT) :: delpm(ilo:ihi, julo:jhi, k1:k2)
+
+      ! Pressure at edges in "u" [hPa]
+      REAL*8, INTENT(OUT) :: pu   (ilo:ihi, julo:jhi, k1:k2)
+!
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 ! 
-!  ROUTINE
-!    Set_Press_Terms
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!
-!  DESCRIPTION
-!    This routine sets the pressure terms.
+! !LOCAL VARIABLES:
 ! 
-!  ARGUMENTS
-!    dap   : pressure difference across layer from (ai * pt) term (mb)
-!    dbk   : difference in bi across layer - the dSigma term
-!    pres1 : surface pressure at t1     (mb)
-!    pres2 : surface pressure at t1+tdt (mb)
-!    delp1 : pressure thickness, the psudo-density in a hydrostatic system
-!            at t1 (mb)
-!    delpm : pressure thickness, the psudo-density in a hydrostatic system
-!            at t1+tdt/2 (approximate)  (mb)
-!    pu    : pressure at edges in "u"   (mb)
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      implicit none
- 
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      real*8  :: dap  (k1:k2)
-      real*8  :: dbk  (k1:k2)
-      real*8  :: pres1(ilo:ihi, julo:jhi)
-      real*8  :: pres2(ilo:ihi, julo:jhi)
-      real*8  :: delp1(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: delpm(ilo:ihi, julo:jhi, k1:k2)
-      real*8  :: pu   (ilo:ihi, julo:jhi, k1:k2)
-
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
       integer :: il, ij, ik
       integer :: jst, jend
 
@@ -1630,46 +1692,52 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Set_Press_Terms
-
+!EOC 
 !------------------------------------------------------------------------------
-
-      subroutine Do_Divergence_Pole_Sum
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Do_Divergence_Pole_Sum
+!
+! !DESCRIPTION: Do\_Divergence\_Pole\_Sum sets the divergence at the Poles.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Do_Divergence_Pole_Sum
      &  (do_reduction, geofac_pc, dpi, ymass)
 !
-!******************************************************************************
+! !INPUT PARAMETERS: 
+!
+      ! Set to T if called on Master; set to F if called by Slaves
+      ! (NOTE: This does not seem to be used!)
+      LOGICAL :: do_reduction
+
+      ! Special geometrical factor (geofac) for Polar cap
+      REAL*8  :: geofac_pc
+
+      ! horizontal mass flux in N-S direction [hPa]
+      REAL*8  :: ymass(ilo:ihi, julo:jhi, k1:k2)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Divergence at a grid point; used to calculate vertical motion [hPa]
+      REAL*8  :: dpi  ( i1:i2,   ju1:j2,  k1:k2)
+!
+! !AUTHOR:
+!  Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 ! 
-!  ROUTINE
-!    Do_Divergence_Pole_Sum
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Declare all REAL variables as REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 ! 
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 !
-!  DESCRIPTION
-!    This routine sets the divergence at the Poles.
-! 
-!  ARGUMENTS
-!    do_reduction : set to true  if called on Master;
-!                   set to false if called by Slaves
-!    geofac_pc : special geometrical factor (geofac) for Polar cap
-!    dpi   : divergence at a grid point; used to calculate vertical motion (mb)
-!    ymass : horizontal mass flux in N-S direction (mb)
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      implicit none
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      logical :: do_reduction
-      real*8  :: geofac_pc
-      real*8  :: dpi  ( i1:i2,   ju1:j2,  k1:k2)
-      real*8  :: ymass(ilo:ihi, julo:jhi, k1:k2)
-
-
       !----------------------
       !Variable declarations.
       !----------------------
@@ -1757,36 +1825,50 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Do_Divergence_Pole_Sum
-
+!EOC 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE XPAVG( P, IM )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine XPAVG replaces each element of a vector with the average
-!  of the entire array. (bmy, 5/7/03)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) P  (REAL*8)  :: 1-D vector to be averaged
-!  (2 ) IM (INTEGER) :: Dimension of P
+! !IROUTINE: Xpavg
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) P  (REAL*8)  :: Contains average value of P in each element
+! !description: Subroutine Xpavg replaces each element of a vector with 
+!  the average of the entire array. (bmy, 5/7/03)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!******************************************************************************
+      SUBROUTINE Xpavg( P, IM )
+!
+! !USES:
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
+      ! Dimension of P
       INTEGER, INTENT(IN)    :: IM
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! 1-D vector to be averaged
       REAL*8,  INTENT(INOUT) :: P(IM)
 
-      ! Local variables
-      REAL                   :: AVG
+! !AUTHOR:
+!   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!                               Now make all REAL variables REAL*8.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      REAL*8                 :: AVG
 
       !=================================================================
       ! XPAVG begins here!
@@ -1804,19 +1886,25 @@ c     --------------------------------------
       P(:) = AVG
  
       ! Return to calling program 
-      END SUBROUTINE XPAVG
-
+      END SUBROUTINE Xpavg
+!EOC 
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE INIT_PJC_PFIX
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INIT_PJC_PFIX allocates and initializes module arrays and
-!  variables.  GMI dimension variables will be used for compatibility with
-!  the Phil Cameron-Smith P-fixer. (bdf, bmy, 5/8/03)
+! !IROUTINE: Init_Pjc_Pfix      
 !
-!  NOTES:
-!******************************************************************************
+! !DESCRIPTION: Subroutine Init\_Pjc\_Pfix allocates and initializes module 
+!  arrays and variables.  GMI dimension variables will be used for 
+!  compatibility with the Phil Cameron-Smith P-fixer. (bdf, bmy, 5/8/03)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_Pjc_Pfix
+!
+! !USES:
 !
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YMID_R
@@ -1825,7 +1913,19 @@ c     --------------------------------------
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_GCTM"  ! Re, PI, etc...
-
+! 
+!
+! !AUTHOR:
+!   Brendan Field and Bob Yantosca (5/8/03)
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       ! Local variables
       INTEGER :: AS, I, J, L
 
@@ -2009,18 +2109,28 @@ c     --------------------------------------
       ENDDO
 
       ! Return to calling program
-      END SUBROUTINE INIT_PJC_PFIX
-
+      END SUBROUTINE Init_Pjc_Pfix
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_PJC_PFIX
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_PJC_PFIX deallocates all module arrays (bmy, 5/8/03)
-!  
-!  NOTES:
-!******************************************************************************
+! !IROUTINE: Cleanup_Pjc_Pfix      
 !
+! !DESCRIPTION: Subroutine Cleanup\_Pjc\_Pfix deallocates all module arrays 
+!  (bmy, 5/8/03)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Cleanup_Pjc_Pfix
+! 
+! !REVISION HISTORY: 
+!   02 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_PJC_PFIX begins here!
       !=================================================================
@@ -2041,8 +2151,7 @@ c     --------------------------------------
       IF ( ALLOCATED( SINE_FV  ) ) DEALLOCATE( SINE_FV )
 
       ! Return to calling program
-      END SUBROUTINE CLEANUP_PJC_PFIX
+      END SUBROUTINE Cleanup_Pjc_Pfix
 
-!------------------------------------------------------------------------------
-
-      END MODULE PJC_PFIX_MOD
+      END MODULE Pjc_Pfix_Mod
+!EOC

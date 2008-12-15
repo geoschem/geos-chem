@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.10 2008/08/08 17:20:36 bmy Exp $
+! $Id: rpmares_mod.f,v 1.11 2008/12/15 15:55:15 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -507,13 +507,6 @@
       REAL*8, PARAMETER :: TOLER1 = 0.00001d0       
       REAL*8, PARAMETER :: TOLER2 = 0.001d0       
 
-      !-----------------------------------------------------------------
-      ! Prior to 6/10/08:
-      ! Now uses IS_SAFE_DIV from error_mod.f (phs, 6/10/08)
-      !! Limit to test for zero ionic activity (phs, bmy, 4/10/08)
-      !REAL*8, PARAMETER :: EPS    = 1.0d-30
-      !-----------------------------------------------------------------
-
       !=================================================================
       ! SCRATCH LOCAL VARIABLES and their descriptions:
       !=================================================================
@@ -527,11 +520,6 @@
       REAL*8  :: A0               ! Coefficients and roots of
       REAL*8  :: A1               ! Coefficients and roots of
       REAL*8  :: A2               ! Coefficients and roots of
-      !------------------------------------------------------------------------
-      ! Prior to 6/10/08:
-      ! Need to make this REAL*8 (phs, 6/10/08)
-      !REAL    :: AA               ! Coefficients and discriminant for
-      !------------------------------------------------------------------------
       REAL*8  :: AA               ! Coefficients and discriminant for
                                   ! quadratic equation for ammonium nitrate
       REAL*8  :: BAL              ! internal variables ( high ammonia case)
@@ -1118,34 +1106,7 @@
             GAMAS2 = GAMS( 1, 3 )
             GAMAAN = GAMS( 2, 2 )
 
-
-! --- prior to 5/28/08 - Improved and moved above.
-!            !------------------------------------------------------------
-!            ! Add robustness: now check if GAMANA or GAMAS1 is too small
-!            ! for the division in RKNA and RK2SA. If they are, return w/ 
-!            ! original values: basically replicate the procedure used 
-!            ! after the current DO-loop in case of no-convergence
-!            ! (phs, bmy, rjp, 4/10/08)
-!            !--------------------------------------------------------------
-!            IF ( ( ABS( GAMANA ) < EPS ) .OR. 
-!     &           ( ABS( GAMAS1 ) < EPS ) ) THEN
-!               
-!               ! Reset to original values
-!               ANH4  = TNH4 * MWNH4
-!               GNH3  = FLOOR
-!               GNO3  = GNO3_IN
-!               ANO3  = ANO3_IN
-!               ASO4  = TSO4 * MWSO4
-!               AHSO4 = FLOOR
-!
-!               ! Update water
-!               CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
-!               
-!               ! Exit this subroutine
-!               RETURN
-!            ENDIF
-!----------------------
-
+            ! NOTE: Improved for robustness!
             GAMAHAT = ( GAMAS2 * GAMAS2 / ( GAMAAB * GAMAAB ) )
             BHAT = KHAT * GAMAHAT
             !### EROR = ABS ( ( PHIOLD - PHIBAR ) / PHIOLD )

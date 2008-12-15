@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.39 2008/11/05 19:45:44 bmy Exp $
+! $Id: sulfate_mod.f,v 1.40 2008/12/15 15:55:14 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -2114,15 +2114,6 @@
       IF ( IDTHNO3 > 0 ) THEN
 
          ! Coupled sim: IDTHNO3 is defined, so use it
-         !---------------------------------------------------------------------
-         ! Prior to 10/7/08:
-         ! We need to  Replace TITR_HNO3 w/ HNO3_SSC in this line of code:
-         !   HNO3_ss = TITR_HNO3 * 0.063 * TCVV(IDTHNO3) / AD(I,J,L)
-         !
-         ! For a more complete description, see:
-         ! http://wiki.seas.harvard.edu/geos-chem/index.php/
-         !   Sulfate_aerosols#Fix_for_mass_balance_of_HNO3_and_NIT
-         !---------------------------------------------------------------------
          HNO3_ss = HNO3_SSC * 0.063 * TCVV(IDTHNO3)/AD(I,J,L)
          STT(I,J,L,IDTHNO3) = MAX( HNO3_vv - HNO3_ss, MINDAT )
 
@@ -5595,14 +5586,6 @@
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
                      ! Overwrite EDGAR SO2 w/ David Streets' [kg SO2/s]
-!-----------------------------------------------------------------------------
-! Prior to 10/31/08:
-! BUG FIX: Using tracer #26 in the call to GET_STREETS_ANTHRO can cause 
-! problems when adding or removing species.  Replace w/ IDTSO2. 
-! (dkh, 10/31/08) 
-!                     EDG_SO2 = GET_STREETS_ANTHRO( I,  J, 
-!     &                                             26, KG_S=.TRUE. )
-!-----------------------------------------------------------------------------
                      EDG_SO2 = GET_STREETS_ANTHRO( I,      J, 
      &                                             IDTSO2, KG_S=.TRUE. )
                   ENDIF
@@ -5765,14 +5748,6 @@
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
                      ! Overwrite GEIA SO2 w/ David Streets' SO2 [kg SO2/s]
-!------------------------------------------------------------------------------
-! Prior to 10/31/08:
-! BUG FIX: Using tracer #26 in the call to GET_STREETS_ANTHRO can cause 
-! problems when adding or removing species.  Replace w/ IDTSO2. 
-! (dkh, 10/31/08) 
-!                     ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, 26, 
-!     &                                                    KG_S=.TRUE. )
-!------------------------------------------------------------------------------
                      ESO2_an(I,J,1) = GET_STREETS_ANTHRO( I, J, IDTSO2, 
      &                                                    KG_S=.TRUE. )
 
@@ -6460,13 +6435,6 @@
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
                ! Overwrite with David Streets emissions [kg NH3/s]
-!------------------------------------------------------------------------------
-! Prior to 10/31/08:
-! BUG FIX: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause 
-! problems when adding or removing species.  Replace w/ IDTNH3.
-! (dkh, 10/31/08)
-!               ENH3_an(I,J) = GET_STREETS_ANTHRO( I, J, 30, KG_S=.TRUE.)
-!------------------------------------------------------------------------------
                ENH3_an(I,J) = GET_STREETS_ANTHRO( I,      J, 
      &                                            IDTNH3, KG_S=.TRUE.)
             ENDIF
