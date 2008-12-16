@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.56 2008/12/15 21:21:12 bmy Exp $
+! $Id: diag3.f,v 1.57 2008/12/16 14:52:46 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1498,7 +1498,6 @@
             ! Skip if not a valid index
             IF ( MM == 0 ) CYCLE
 
-
             DO L = 1, LD22
                !---------------------------------------------------------------
                ! Prior to 12/15/08:
@@ -1508,7 +1507,7 @@
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, MM,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
@@ -1522,7 +1521,7 @@
                ENDDO
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     HALFPOLAR, CENTER180, CATEGORY, MMB,    
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                     IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
