@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.compaq,v 1.45 2008/11/18 21:55:55 bmy Exp $
+# $Id: Makefile.compaq,v 1.46 2008/12/17 15:34:18 bmy Exp $
 #
-# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Thu Nov  6 16:59:17 2008)
+# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Wed Dec 12 10:27:00 2008)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -229,10 +229,20 @@ gamap_mod.o                   \
 input_mod.o
 
 #=============================================================================
-#  Executable with FAST-J (default)
+#  Executables and Documentation
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)
-		$(F90)  $(Fopt) $(MODS) $(OBJS) $(FJ) $(ZLIB) -o geos
+
+# Build GEOS-Chem executable
+geos:   $(MODS) $(OBJS) $(FJ)
+	$(F90)  $(Fopt) $(MODS) $(OBJS) $(FJ) $(ZLIB) -o geos
+
+# Build GEOS-Chem documenation w/ ProTeX
+doc:
+	@$(MAKE) -C doc all
+
+# Remove all *.tex, *.ps, and *.pdf files from the doc subdirectory
+docclean: 
+	@$(MAKE) -C doc clean
 
 #==============================================================================
 #  Dependencies Listing
@@ -421,7 +431,7 @@ time_mod.o                     : time_mod.f                     CMN_DIAG CMN_SIZ
 toms_mod.o                     : toms_mod.f                     CMN_SIZE define.h 
 tpcore_bc_mod.o                : tpcore_bc_mod.f                CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             
-	$(F90) -c -r8 -check nobounds $*.f90
+	$(F90) -c -check nobounds -freeform $*.f90
 tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90
 	$(F90) -c -r8 -check nobounds $*.f90
 tpcore_mod.o                   : tpcore_mod.f                   CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
@@ -447,6 +457,8 @@ xtra_read_mod.o                : xtra_read_mod.f                CMN_DIAG CMN_SIZ
 #=============================================================================
 clean:
 	rm -rf *.o *.mod geos rii_files
+
+.PHONY: clean doc docclean
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) $(Fopt) -c $*.f

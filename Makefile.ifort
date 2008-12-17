@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.28 2008/12/15 15:55:17 bmy Exp $
+# $Id: Makefile.ifort,v 1.29 2008/12/17 15:34:17 bmy Exp $
 #
-# GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Thu Nov  6 16:59:20 2008)
+# GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Wed Dec 12 10:27:00 2008)
 #=============================================================================
 SHELL = /bin/sh
 
@@ -227,10 +227,20 @@ gamap_mod.o                   \
 input_mod.o
 
 #=============================================================================
-#  Executable with FAST-J (default)
+#  Executables and Documentation
 #=============================================================================
-geos 	      : $(MODS) $(OBJS) $(OBJSe) $(FJ)    
-		$(F90)  $(MODS) $(OBJS)  $(OBJSe) $(FJ) -o geos
+
+# Build GEOS-Chem executable
+geos:   $(MODS) $(OBJS) $(OBJSe) $(FJ)    
+	$(F90)  $(MODS) $(OBJS)  $(OBJSe) $(FJ) -o geos
+
+# Build GEOS-Chem documenation w/ ProTeX
+doc:
+	@$(MAKE) -C doc all
+
+# Remove all *.tex, *.ps, and *.pdf files from the doc subdirectory
+docclean: 
+	@$(MAKE) -C doc clean
 
 #==============================================================================
 #  Dependencies Listing
@@ -452,6 +462,8 @@ linux_err.o                : linux_err.c
 #=============================================================================
 clean:
 	rm -rf *.o *.mod ifc* geos rii_files
+
+.PHONY: clean doc docclean
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:			; $(F90) -c $*.f

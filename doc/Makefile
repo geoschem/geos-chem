@@ -1,11 +1,18 @@
-# $Id: Makefile,v 1.1 2008/12/15 15:55:14 bmy Exp $
+# $Id: Makefile,v 1.2 2008/12/17 15:34:01 bmy Exp $
 #==============================================================================
 # Makefile: to create PDF and PS documentation from the ProTeX headers
-#           contained in GEOS-Chem F90 module files. (bmy, 12/15/08)
+#           contained in GEOS-Chem F90 module files. (bmy, 12/17/08)
 #==============================================================================
+
+# List of "phony" targets (i.e. targets not associated with files)
+.PHONY: all docclean
 
 # Make all documentation
 all: tpcore
+
+# Remove all Latex, PS, PDF files
+clean:
+	rm -f *.tex *.ps *.pdf
 
 #---------------------------
 # tpcore_fvdas_mod.f90

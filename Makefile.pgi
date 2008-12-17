@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.pgi,v 1.33 2008/11/18 21:55:55 bmy Exp $
+# $Id: Makefile.pgi,v 1.34 2008/12/17 15:34:17 bmy Exp $
 #
-# GEOS-Chem Makefile for LINUX/PGI (bmy, Thu Nov  6 16:59:18 2008)
+# GEOS-Chem Makefile for LINUX/PGI (bmy, Wed Dec 12 10:27:00 2008)
 #
 # NOTE: If you want to run the 2 x 2.5 GEOS-CHEM model, then try adding
 #       -Bstatic to the F90 compilation line.  It appears that setting 
@@ -230,10 +230,20 @@ gamap_mod.o                   \
 input_mod.o
 
 #=============================================================================
-#  Executable with FAST-J (default)
+#  Executables and Documentation
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(OBJSc) $(FJ)
-		$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
+
+# Build GEOS-Chem executable
+geos:   $(MODS) $(OBJS) $(OBJSc) $(FJ)
+	$(F90)  $(MODS) $(OBJS)  $(OBJSc) $(FJ) -o geos
+
+# Build GEOS-Chem documenation w/ ProTeX
+doc:
+	@$(MAKE) -C doc all
+
+# Remove all *.tex, *.ps, and *.pdf files from the doc subdirectory
+docclean: 
+	@$(MAKE) -C doc clean
 
 #==============================================================================
 #  Dependencies Listing
@@ -422,7 +432,7 @@ time_mod.o                     : time_mod.f                     CMN_DIAG CMN_SIZ
 toms_mod.o                     : toms_mod.f                     CMN_SIZE define.h 
 tpcore_bc_mod.o                : tpcore_bc_mod.f                CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             
-	$(F90) -c -Mextend -r8 $*.f90
+	$(F90) -c -Mextend -Mfree $*.f90
 tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90   
 	$(F90) -c -Mextend -r8 $*.f90
 tpcore_mod.o                   : tpcore_mod.f                   CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
@@ -454,6 +464,8 @@ linux_err.o                : linux_err.c
 #=============================================================================
 clean:
 	rm -rf *.o *.mod geos rii_files
+
+.PHONY: clean doc docclean
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f

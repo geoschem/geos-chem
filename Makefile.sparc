@@ -1,9 +1,9 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.55 2008/11/18 21:55:54 bmy Exp $
+# $Id: Makefile.sparc,v 1.56 2008/12/17 15:34:13 bmy Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
-# (bmy, Thu Nov  6 16:59:19 2008)
+# (bmy, Wed Dec 12 10:27:00 2008)
 #=============================================================================
 SHELL  = /bin/sh
 
@@ -233,10 +233,20 @@ gamap_mod.o                   \
 input_mod.o
 
 #=============================================================================
-#  Executable with FAST-J (default)
+#  Executables and Documentation
 #=============================================================================
-geos          : $(MODS) $(OBJS) $(FJ)
-		$(F90)  $(MODS) $(OBJS) $(FJ) -o geos
+
+# Build GEOS-Chem executable
+geos:   $(MODS) $(OBJS) $(FJ)
+	$(F90)  $(MODS) $(OBJS) $(FJ) -o geos
+
+# Build GEOS-Chem documenation w/ ProTeX
+doc:
+	@$(MAKE) -C doc all
+
+# Remove all *.tex, *.ps, and *.pdf files from the doc subdirectory
+docclean: 
+	@$(MAKE) -C doc clean
 
 #==============================================================================
 #  Dependencies Listing
@@ -426,7 +436,7 @@ time_mod.o                     : time_mod.f                     CMN_DIAG CMN_SIZ
 toms_mod.o                     : toms_mod.f                     CMN_SIZE define.h 
 tpcore_bc_mod.o                : tpcore_bc_mod.f                CMN CMN_SIZE define.h 
 tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             
-	$(F90) -c -xtypemap=real:64 $*.f90
+	$(F90) -c -free $*.f90
 tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90
 	$(F90) -c -xtypemap=real:64 $*.f90
  tpcore_mod.o                   : tpcore_mod.f                   CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
@@ -452,6 +462,8 @@ xtra_read_mod.o                : xtra_read_mod.f                CMN_DIAG CMN_SIZ
 #=============================================================================
 clean:
 	rm -rf *.o *.mod ifc* geos rii_files
+
+.PHONY: clean doc docclean
 
 .SUFFIXES: .f .F .f90 .F90
 .f.o:                   ; $(F90) -c $*.f
