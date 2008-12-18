@@ -1,5 +1,5 @@
 REVISIONS (v8-01-03)  
-15 Dec 2008
+18 Dec 2008
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -42,3 +42,6 @@ main.f			-- Moved call for DIAG_2PM to after interpolate
                            (for GEOS-4). 
 			-- Moved calls for DIAG1, DIAG41, DIAG42
                            to end of dynamic loop for better consistency.
+
+ndxx_setup.f		-- We don't need to set LD65=1 here anymore, we now 
+ 			   call NDXX_SETUP after DIAG_PL_MOD.

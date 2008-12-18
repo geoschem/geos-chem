@@ -1,9 +1,9 @@
-! $Id: ndxx_setup.f,v 1.34 2008/11/18 21:55:52 bmy Exp $
+! $Id: ndxx_setup.f,v 1.35 2008/12/18 20:25:41 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
 !  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 11/18/08)
+!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 12/18/08)
 !
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
@@ -127,7 +127,9 @@
 !        simulation. (phs, bmy, 9/18/07)
 !  (63) Now save true pressure edges for ND31 diagnostic (bmy, 11/16/07)
 !  (64) Now stop the run if ND20 is defined but ND65 isn't (bmy, 12/4/07)
-!  (65) Allocate CTO3_24h (phs, 11/18/08)
+!  (65) Allocate CTO3_24h (phs, 11/18/08)      
+!  (66) We don't need to set LD65=1 here anymore, we now call NDXX_SETUP!
+!        after DIAG_PL_MOD. (phs, bmy, 12/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -218,7 +220,12 @@
       LD47 = 1
       LD54 = 1
       LD64 = 1
-      LD65 = 1
+      !-----------------------------------------------------------------
+      ! Prior to 12/18/08:
+      ! We don't need to set LD65=1 here anymore, we now call 
+      ! NDXX_SETUP after DIAG_PL_MOD. (phs, bmy, 12/18/08)
+      !LD65 = 1
+      !-----------------------------------------------------------------
       LD66 = 1
       LD68 = 1
 
