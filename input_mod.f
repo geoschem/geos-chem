@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.52 2008/12/15 15:55:15 bmy Exp $
+! $Id: input_mod.f,v 1.53 2009/01/28 19:59:15 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -127,6 +127,7 @@
 !  (21) Fixed typo READ_EMISSIONS_MENU for GEOS-3 (bmy, 10/30/08)
 !  (22) Set upper limit on dynamic timestep for 0.5 x 0.666 nested
 !        grids (yxw, bmy, dan, 11/6/08)
+!  (23) Now read LCAC switch for CAC emissions (amv, 1/09/2008)
 !  (24) Move the call to NDXX_SETUP (phs, 11/18/08)
 !******************************************************************************
 !
@@ -514,7 +515,8 @@
 !  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
 !  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
 !        INIT_TRANSFER (bmy, 11/5/07)
-!  (7 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
+!  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
+!  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1233,7 +1235,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_EMISSIONS_MENU
+      SUBROUTINE READ_EMISSIONS_MENU 
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
@@ -1260,7 +1262,12 @@
 !  (13) Add new error traps for OTD-LIS options, dependent on met field type
 !        (ltm, bmy, 11/29/07)
 !  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
-!  (15) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
+!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
+!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (18) Now read LVISTAS (amv, 12/2/08)
+!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
+!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1272,8 +1279,10 @@
       USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LEMEP,     LGFED2BB
       USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
       USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
-      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS
+      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
+      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
+      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT 
+      USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -1328,87 +1337,129 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:8' )
       READ( SUBSTRS(1:N), * ) LSTREETS
 
-      ! Include biofuel emissions?
+      ! Include CAC anthro emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
+      READ( SUBSTRS(1:N), * ) LCAC
+
+      ! Use EPA/NEI99 emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      READ( SUBSTRS(1:N), * ) LNEI99
+      
+      ! Include ICARTT-based corrections ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      READ( SUBSTRS(1:N), * ) LICARTT
+
+      ! Include VISTAS anthro emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      READ( SUBSTRS(1:N), * ) LVISTAS
+
+      ! Include biofuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
-      ! Use GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      ! Separator line (start of GFED2 biomass emissions)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+
+      ! Use monthly GFED2 biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
+      ! Use 8-day GFED2 biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      READ( SUBSTRS(1:N), * ) L8DAYBB
+
+      ! Use 3-hr GFED2 biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      READ( SUBSTRS(1:N), * ) L3HRBB
+
+      ! Use 3-hr synoptic GFED2 biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      READ( SUBSTRS(1:N), * ) LSYNOPBB
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Scale lightning flash rate to OTD-LIS annual averate rate?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LOTDSCALE
 
       ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LOTDREG
 
       ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
-      ! Use ship SO2 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      ! Separator line (start of ship emissions)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+
+      ! Use ship EDGAR ship emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      READ( SUBSTRS(1:N), * ) LEDGARSHIP
+
+      ! Use ship EMEP emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      READ( SUBSTRS(1:N), * ) LEMEPSHIP
+
+      ! Use ship SO2 Colbert emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
-      ! Use EPA/NEI99 emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
-      READ( SUBSTRS(1:N), * ) LNEI99
+      ! Use ship ARCTAS (SO2, CO2) emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
 
       !=================================================================
       ! Error check logical flags
@@ -1422,8 +1473,11 @@
       ! Set LMEGAN=F if emissions are turned off
       LMEGAN       = ( LMEGAN   .and. LEMIS )
 
-      ! Set LGFED2BB=F if emissions are turned off
+      ! Set all GFED2 flags to F if emissions are turned off      
       LGFED2BB     = ( LGFED2BB .and. LEMIS )
+      L8DAYBB      = ( L8DAYBB  .and. LEMIS )
+      LSYNOPBB     = ( LSYNOPBB .and. LEMIS )
+      L3HRBB       = ( L3HRBB   .and. LEMIS )
       
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
@@ -1436,11 +1490,59 @@
       IF ( LEDGAR ) THEN
          LEDGARNOx  = .TRUE.
          LEDGARCO   = .TRUE.
-         LEDGARSHIP = .TRUE.
+         !LEDGARSHIP = .TRUE.  ! This is read in now (phs, 12/17/08)
          LEDGARSOx  = .TRUE.
       ENDIF
 
+
+      !=================================================================
+      ! Check SO2 ship emissions options
+      !=================================================================
+      IF ( LARCSHIP ) LSHIPSO2 = .FALSE.
+
+      
+      !=================================================================
+      ! Check EPA options
+      !=================================================================
+      
+      ! VISTAS and ICARTT assumes that EPA/NEI is ON
+      IF ( ( ( LVISTAS ) .OR. ( LICARTT )) .AND. .NOT.( LNEI99 ) ) THEN
+         LNEI99 = .TRUE.
+         WRITE( 6, '(/,a,/)' ) ' EPA/NEI99 has been automatically ' //
+     $        'switched ON to use V.I.S.T.A.S. or/and ICARTT-based' //
+     $        ' modifications'
+      ENDIF
+
+      
+      ! ICARTT correction are NOT available at high resolution
+      
+#if !defined(GRID2x25) && !defined(GRID4x5)
+      
+      IF ( LICARTT ) THEN
+         LICARTT = .FALSE.
+         WRITE( 6, '(/,a,/)' ) ' ICARTT-based corrections to  ' //
+     $        'EPA-NEI99 are not available at high resolution.'
+      ENDIF
+         
+#endif
+
+      !=================================================================
+      ! Prioritize GFED2
+      !=================================================================
+      IF ( L3HRBB ) THEN
+         LGFED2BB = .FALSE.
+         L8DAYBB  = .FALSE.
+         LSYNOPBB = .FALSE.
+      ELSE IF ( LSYNOPBB ) THEN
+         LGFED2BB = .FALSE.
+         L8DAYBB  = .FALSE.
+      ELSE IF ( L8DAYBB ) THEN
+         LGFED2BB = .FALSE.
+      ENDIF
+      
+      !=================================================================
       ! Error check lightning switches
+      !=================================================================
       IF ( LLIGHTNOX ) THEN
 
          ! Make sure people don't set both LOTDREG=T and LOTDLOC=T
@@ -1526,16 +1628,26 @@
       WRITE( 6, 100     ) 'Turn on emissions?          : ', LEMIS
       WRITE( 6, 110     ) 'Emissions timestep [min]    : ', TS_EMIS
       WRITE( 6, 100     ) 'Turn on ANTHRO emissions    : ', LANTHRO
-      WRITE( 6, 110     ) 'ANTHRO scale factor year    : ', FSCALYR
-      WRITE( 6, 100     ) 'Use EMEP anthro emissions   : ', LEMEP
-      WRITE( 6, 100     ) 'Use BRAVO anthro emissions  : ', LBRAVO
+      WRITE( 6, 110     ) '  ANTHRO scale factor year  : ', FSCALYR
+      WRITE( 6, 100     ) '  Use EDGAR anthro emissions: ', LEDGAR
+      WRITE( 6, 100     ) '  Use EMEP anthro emissions : ', LEMEP
+      WRITE( 6, 100     ) '  Use BRAVO anthro emissions: ', LBRAVO
+      WRITE( 6, 100     ) '  Use CAC anthro emissions  : ', LCAC
+      WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
+      WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
+      WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
-      WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ', LGFED2BB
+      WRITE( 6, 100     ) 'Use GFED2 BIOMASS emissions?: ',
+     $     LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB 
+      WRITE( 6, 100     ) '    monthly GFED emissions? : ', LGFED2BB
+      WRITE( 6, 100     ) '    8-day GFED emission?    : ', L8DAYBB
+      WRITE( 6, 100     ) '    3hr GFED emission?      : ', L3HRBB 
+      WRITE( 6, 100     ) '    synoptic GFED ?         : ', LSYNOPBB
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
       WRITE( 6, 100     ) 'Scale to OTD-LIS avg flrte? : ', LOTDSCALE
       WRITE( 6, 100     ) 'Use OTD-LIS regional redist : ', LOTDREG
@@ -1545,10 +1657,12 @@
       WRITE( 6, 100     ) 'Use PRECON LIGHTNING Param? : ', LPRECON
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
-      WRITE( 6, 100     ) 'Turn on SHIP SO2 EMISSIONS? : ', LSHIPSO2
-      WRITE( 6, 100     ) 'Turn on EPA/NEI99 EMISSIONS?: ', LNEI99
+      WRITE( 6, 100     ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
+      WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
+      WRITE( 6, 100     ) 'Turn on Colbert SHIP SO2 ?  : ', LSHIPSO2
+      WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
-      
+
       ! FORMAT statements
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )

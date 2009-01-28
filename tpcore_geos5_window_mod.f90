@@ -1,4 +1,4 @@
-! $Id: tpcore_geos5_window_mod.f90,v 1.1 2008/11/07 19:30:32 bmy Exp $
+! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/01/28 19:59:14 bmy Exp $
 module TPCORE_GEOS5_WINDOW_MOD
 !
 !******************************************************************************
@@ -57,7 +57,8 @@ module TPCORE_GEOS5_WINDOW_MOD
 !        modified by Harvard more clear to discern. (bdf, bmy, 9/28/04)
 !  (5 ) Bug fix: Need to multiply ND25 N/S transport fluxes by the array 
 !        RGW_25 which accounts for the latitude factor (bdf, bmy, 10/29/04)
-!
+!  (6 ) Bug fix: In INIT_GEOS5_WINDOW, need to dimension COSE with JM+1 
+!        instead of JM.  (Xiaoguang Gu, bmy, 1/20/09)
 !******************************************************************************
 !
 ! The original module documentation header is listed here:
@@ -265,7 +266,12 @@ CONTAINS
 !----------------
 
  allocate ( cosp(jm) ) 
- allocate ( cose(jm) ) 
+ !------------------------------------------------------------------------
+ ! Prior to 1/20/09:
+ ! Bug fix: should be dimensioned with JM+1 (Xiaoguang Gu, bmy, 1/20/09)
+ !allocate ( cose(jm) ) 
+ !------------------------------------------------------------------------
+ allocate ( cose(jm+1) ) 
  allocate (   gw(jm) ) 
  allocate (  rgw(jm) ) 
  allocate ( dtdx5(jm) ) 

@@ -1,10 +1,10 @@
-! $Id: global_o3_mod.f,v 1.12 2008/08/08 17:20:35 bmy Exp $
+! $Id: global_o3_mod.f,v 1.13 2009/01/28 19:59:15 bmy Exp $
       MODULE GLOBAL_O3_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_O3_MOD contains variables and routines for reading the
 !  global monthly mean O3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 1/19/07)
+!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 1/14/09)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -30,6 +30,7 @@
 !  (4 ) Bug fixes in GET_GLOBAL_O3 (bmy, 12/1/05)
 !  (5 ) Now reads O3 from MERGE files, which include stratospheric O3 from
 !        COMBO, for GEOS-3 and GEOS-4 met fields (phs, 1/19/07)
+!  (6 ) Bug fix in GET_GLOBAL_O3 (bmy, 1/14/09)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -61,7 +62,7 @@
 !******************************************************************************
 !  Subroutine GET_GLOBAL_O3 reads monthly mean O3 data fields.  
 !  These are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 3/23/03, 2/7/07)
+!  (bmy, 3/23/03, 1/14/09)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -78,6 +79,7 @@
 !  (7 ) Modified to include stratospheric O3 -- Requires access to new
 !        MERGE.O3* files. (phs, 1/19/07)
 !  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
+!  (9 ) Bug fix: don't call TRANSFER_3D if you use GRIDREDUCED (bmy, 1/14/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -95,6 +97,7 @@
 
       ! Local variables
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*4               :: ARRAY2(IGLOB,JGLOB,LLPAR)
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -118,13 +121,29 @@
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
+      ! Echo some information to the standard output
+      WRITE( 6, 110 ) TRIM( FILENAME )
+ 110  FORMAT( '     - GET_GLOBAL_O3: Reading ', a )
+
+      ! Get the TAU0 value for the start of the given month
+      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
+      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
+
+      ! Read O3 data (v/v) from the binary punch file (tracer #51)
+      CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
+     &                 XTAU,      IGLOB,     JGLOB,      
+     &                 LLPAR,     ARRAY2,    QUIET=.TRUE. )
+
+      ! Assign data from ARRAY to the module variable O3
+      ! (don't have to fold layers in the stratosphere)
+      O3 = ARRAY2
+
 #else
+
       ! Filename for full vertical grid
       FILENAME = TRIM( DATA_DIR )                           // 
      &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -133,14 +152,17 @@
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
- 
+
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
      &                 XTAU,      IGLOB,     JGLOB,      
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
       ! Assign data from ARRAY to the module variable O3
+      ! (folding layers in the stratosphere)
       CALL TRANSFER_3D( ARRAY, O3 )
+
+#endif
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_O3

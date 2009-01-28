@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.6 2003/10/30 16:17:18 bmy Exp $
+! $Id: physproc.f,v 1.7 2009/01/28 19:59:14 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -21,6 +21,7 @@
 !  (3 ) LINUX has a problem putting a function call w/in a WRITE statement.  
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
+!  (4 ) Fixed case of small KULOOP (phs, 10/5/07)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
@@ -211,6 +212,19 @@ C
            IREMAIN           = IREMAIN - IUSESIZE
            JLOOPLO           = JLOOPLO + IUSESIZE
  200      CONTINUE
+
+          ! Added fix for small (1 to 3) KULOOP (10/5/07, phs)
+          IF (IREMAIN /= 0) THEN
+             DO WHILE ( IREMAIN /= 0 )
+                NBLOCKUSE          = NBLOCKUSE + 1
+                IUSESIZE           = MIN(IAVGSIZE,MAX(IREMAIN,0))
+                JLOWVAR(NBLOCKUSE) = JLOOPLO
+                KTLPVAR(NBLOCKUSE) = IUSESIZE
+                IREMAIN            = IREMAIN - IUSESIZE
+                JLOOPLO            = JLOOPLO + IUSESIZE
+             END DO
+          ENDIF
+
 C
 C *********************************************************************
 C                  NUMBER OF GRID BLOCKS AFTER REORDERING 

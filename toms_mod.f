@@ -1,10 +1,10 @@
-! $Id: toms_mod.f,v 1.9 2008/08/08 17:20:37 bmy Exp $
+! $Id: toms_mod.f,v 1.10 2009/01/28 19:59:14 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
 !  Module TOMS_MOD contains variables and routines for reading the TOMS/SBUV
 !  O3 column data from disk (for use w/ the FAST-J photolysis routines).
-!  (mje, bmy, 7/14/03, 12/5/07)
+!  (mje, bmy, 7/14/03, 1/14/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -43,6 +43,7 @@
 !  (4 ) Now always use 2002 TOMS O3 data for GCAP (swu, bmy, 10/3/06)
 !  (5 ) Now reads from TOMS_200701 directory, w/ updated data (bmy, 2/1/07)
 !  (6 ) Now don't replace any tokens in the DATA_DIR variable (bmy, 12/5/07)
+!  (7 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -84,7 +85,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TOMS reads in TOMS O3 column data from a binary punch
-!  file for the given grid, month and year. (mje, bmy 12/10/02, 2/12/07)
+!  file for the given grid, month and year. (mje, bmy 12/10/02, 1/14/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -101,6 +102,7 @@
 !        use 1979 data prior to 1979 or 2005 data after 2005. (bmy, 2/12/07)
 !  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's 
 !        file path has replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
+!  (8 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -192,12 +194,23 @@
          YEAR = 1979
       ENDIF
 
-      ! Use 2005 data after 2005
-      IF ( YEAR > 2005 ) THEN
+      !-------------------------------------
+      ! Prior to 1/14/09:
+      ! Latest year is now 2007 (bmy, 1/14/2009)
+      !! Use 2005 data after 2005
+      !IF ( YEAR > 2005 ) THEN
+      !   WRITE( 6, 105 ) YEAR
+      !   YEAR = 2005
+      !ENDIF
+      !-------------------------------------
+
+      ! Use 2007 data after 2007
+      IF ( YEAR > 2007 ) THEN
          WRITE( 6, 105 ) YEAR
-         YEAR = 2005
+         YEAR = 2007
       ENDIF
       
+
       ! FORMAT statemetns
  100  FORMAT( '     - READ_TOMS: No data for ',i4,', using 1979!' )
  105  FORMAT( '     - READ_TOMS: No data for ',i4,', using 2005!' )

@@ -1,4 +1,4 @@
-! $Id: bravo_mod.f,v 1.3 2006/09/08 19:20:51 bmy Exp $
+! $Id: bravo_mod.f,v 1.4 2009/01/28 19:59:16 bmy Exp $
       MODULE BRAVO_MOD
 !
 !******************************************************************************
@@ -42,6 +42,8 @@
 !
 !  NOTES: 
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  (2 ) Now scale emissions using int-annual scale factors (amv, 08/24/07)
+!  (3 ) Now accounts for FSCLYR (phs, 3/17/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -172,18 +174,23 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,    ONLY : LFUTURE
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
+      USE LOGICAL_MOD,      ONLY : LFUTURE
+      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
+      USE TIME_MOD,         ONLY : GET_YEAR
 
 #     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_O3"         ! 
 
       ! Local variables
       LOGICAL, SAVE           :: FIRST = .TRUE.
+      INTEGER                 :: SCALEYEAR
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
+      REAL*8                  :: SC_1x1(I1x1,J1x1)
       REAL*8                  :: TAU0
       CHARACTER(LEN=255)      :: FILENAME
       
@@ -201,9 +208,16 @@
       ! Read data from disk
       !=================================================================
 
-      ! Use 1999 for BRAVO emission files
+      ! Use 1999 for BRAVO emission files (BASE YEAR)
       TAU0  = GET_TAU0( 1, 1, 1999 )
         
+      ! Get emissions year
+      IF ( FSCALYR < 0 ) THEN
+         SCALEYEAR = GET_YEAR()
+      ELSE
+         SCALEYEAR = FSCALYR
+      ENDIF
+
       !---------------------
       ! Read and regrid NOx
       !---------------------
@@ -226,6 +240,10 @@
 
       ! Regrid NOx [molec/cm2/s] to GEOS 1x1 GRID
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
+
+      ! Get/Apply annual scalar factor (amv 08/21/2007)
+      CALL GET_ANNUAL_SCALAR_1x1( 71, 1999, SCALEYEAR, SC_1x1 )
+      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
 
       ! Regrid NOx [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_NOx )
@@ -252,6 +270,10 @@
       ! Regrid CO [molec/cm2/s] to GEOS 1x1 GRID
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
+      ! Get/Apply annual scalar factor (amv 08/21/2007)
+      CALL GET_ANNUAL_SCALAR_1x1( 72, 1999, SCALEYEAR, SC_1x1 )
+      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+
       ! Regrid CO [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_CO )
 
@@ -277,6 +299,10 @@
       ! Regrid SO2 [molec/cm2/s] to GEOS 1x1 GRID
       CALL DO_REGRID_G2G_1x1( 'molec/cm2/s', GEN_1x1, GEOS_1x1(:,:,1) )
 
+      ! Get/Apply annual scalar factor (amv 08/21/2007)
+      CALL GET_ANNUAL_SCALAR_1x1( 73, 1999, SCALEYEAR, SC_1x1 )
+      GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+
       ! Regrid SO2 [molec/cm2/s] to current model resolution
       CALL DO_REGRID_1x1( 'molec/cm2/s', GEOS_1x1, BRAVO_SO2 )
 
@@ -290,7 +316,7 @@
       !=================================================================
       ! Print emission totals
       !=================================================================
-      CALL TOTAL_ANTHRO_TG
+      CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
       ! Return to calling program
       END SUBROUTINE EMISS_BRAVO
@@ -347,13 +373,14 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE TOTAL_ANTHRO_TG
+      SUBROUTINE TOTAL_ANTHRO_TG( YEAR )
 !
 !******************************************************************************
 !  Subroutine TOTAL_ANTHRO_TG prints the amount of BRAVO anthropogenic 
 !  emissions that are emitted each month,(rjp, kfb, bmy, 6/26/06)
 !  
 !  NOTES:
+!    (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -361,6 +388,9 @@
       USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
+
+      ! argument
+      INTEGER, INTENT(IN) :: YEAR
 
       ! Local variables
       INTEGER               :: I, J
@@ -374,7 +404,8 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100  )
- 100  FORMAT( 'B R A V O   M E X I C A N   E M I S S I O N S', / )
+ 100  FORMAT( 'B R A V O   M E X I C A N   E M I S S I O N S', /,
+     &        'Base year : 1999' )
       
       !----------------
       ! Sum emissions
@@ -414,10 +445,12 @@
       !----------------
 
       ! Print totals in [kg]
-      WRITE( 6, 110   ) 'NOx', NOx, ' N'
-      WRITE( 6, 110   ) 'CO ', CO,  '  '
-      WRITE( 6, 110   ) 'SO2', SO2, ' S'
- 110  FORMAT( 'BRAVO anthropogenic ', a3, ': ', f9.4, ' Tg', a2 )
+      WRITE( 6, 110   ) 'NOx ', YEAR, NOx, ' N'
+      WRITE( 6, 110   ) 'CO  ', YEAR, CO,  '  '
+      WRITE( 6, 110   ) 'SO2 ', YEAR, SO2, ' S'
+
+ 110  FORMAT( 'BRAVO anthropogenic ', a4, 
+     &        'for year ', i4, ': ', f9.4, ' Tg', a2 )
 
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

@@ -1,10 +1,10 @@
-! $Id: edgar_mod.f,v 1.4 2006/09/08 19:20:55 bmy Exp $
+! $Id: edgar_mod.f,v 1.5 2009/01/28 19:59:16 bmy Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
 !  Module EDGAR_MOD contains variables and routines to read anthropogenic 
 !  emissions from the EDGAR inventory for NOx, CO and SO2. 
-!  (avd, bmy, 7/14/06, 8/9/06)
+!  (avd, bmy, phs, 7/14/06, 3/10/08)
 !
 !  Module Routines:
 !  ============================================================================
@@ -20,14 +20,13 @@
 !  (10) SEASCL_EDGAR_SHIP_SO2 : Applies monthy scale factors to ship SO2
 !  (11) READ_EDGAR_DATA       : Reads an EDGAR data file for a given sector
 !  (12) ADD_EDGAR_DATA        : Sums EDGAR data for several sectors
-!  (13) READ_EDGAR_SCALE      : Reads an EDGAR int'annual scale factor file
-!  (14) GET_EDGAR_NOx         : Returns NOx      emissions at grid box (I,J)
-!  (15) GET_EDGAR_CO          : Returns CO       emissions at grid box (I,J)
-!  (16) GET_EDGAR_ANTH_SO2    : Returns SOx anth emissions at grid box (I,J)
-!  (17) GET_EDGAR_SHIP_SO2    : Returns SOx ship emissions at grid box (I,J)
-!  (18) GET_EDGAR_TODN        : Returns NOx time-of-day scale factors at (I,J)
-!  (19) INIT_EDGAR            : Allocates and zeroes module arrays
-!  (20) CLEANUP_EDGAR         : Deallocates module arrays
+!  (13) GET_EDGAR_NOx         : Returns NOx      emissions at grid box (I,J)
+!  (14) GET_EDGAR_CO          : Returns CO       emissions at grid box (I,J)
+!  (15) GET_EDGAR_ANTH_SO2    : Returns SOx anth emissions at grid box (I,J)
+!  (16) GET_EDGAR_SHIP_SO2    : Returns SOx ship emissions at grid box (I,J)
+!  (17) GET_EDGAR_TODN        : Returns NOx time-of-day scale factors at (I,J)
+!  (18) INIT_EDGAR            : Allocates and zeroes module arrays
+!  (19) CLEANUP_EDGAR         : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by "edgar_mod.f"
 !  ============================================================================
@@ -40,9 +39,15 @@
 !  (7 ) logical_mod.f         : Module w/ GEOS-CHEM logical switches!  
 !  (8 ) regrid_1x1_mod.f      : Module w/ routines to regrid 1x1 data
 !  (9 ) time_mod.f            : Module w/ routines for computing time and date
+!  (10) scale_anthro_mod.f    : Module w/ routines to get annual scale factor
 !
 !  NOTES:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!  (2 ) Replaced READ_EDGAR_SCALE with GET_ANNUAL_SCALAR and
+!        GET_ANNAUL_SCALAR_1x1 from SCALE_ANTHRO_MOD (amv, phs, 3/10/08)
+!  (3 ) Added EDGAR_NOx_SHIP and EDGAR_CO_SHIP variables. Added SHIP flag
+!        to GET_EDGAR_NOx and GET_EDGAR_CO, so they can be accessed from
+!        outside the module (5/13/08, phs)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -90,6 +95,8 @@
       REAL*8,  ALLOCATABLE :: EDGAR_CO(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_SO2(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_SO2_SHIP(:,:)
+      REAL*8,  ALLOCATABLE :: EDGAR_NOx_SHIP(:,:)
+      REAL*8,  ALLOCATABLE :: EDGAR_CO_SHIP(:,:)
       REAL*8,  ALLOCATABLE :: EDGAR_TODN(:,:,:)
 
       !=================================================================
@@ -185,7 +192,7 @@
 
          ! CO
          IF ( LEDGARCO ) THEN
-            CALL COMPUTE_EDGAR_CO( YEAR, EDGAR_CO )
+            CALL COMPUTE_EDGAR_CO( YEAR, EDGAR_CO, EDGAR_CO_SHIP )
          ENDIF
 
          ! Reset YEAR_SAVE
@@ -199,10 +206,16 @@
       !=================================================================
       IF ( MONTH /= MONTH_SAVE ) THEN
 
-         ! NOx
-         IF ( LEDGARNOx ) THEN
-            CALL COMPUTE_EDGAR_NOX( YEAR, MONTH, EDGAR_NOx )
-         ENDIF
+!---------------
+! prior 3/10/08
+!         ! NOx
+!         IF ( LEDGARNOx ) THEN
+!            CALL COMPUTE_EDGAR_NOX( YEAR, MONTH, EDGAR_NOx )
+!         ENDIF
+!---------------
+         ! Now always read NOX to get TODN (amv, phs, 3/10/08)
+         CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
+     &                           EDGAR_NOx, EDGAR_NOx_SHIP )
          
          ! SO2
          IF ( LEDGARSOx ) THEN
@@ -229,7 +242,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR, MONTH, E_NOx )
+      SUBROUTINE COMPUTE_EDGAR_NOx( YEAR, MONTH, E_NOx, E_NOx_SHIP )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_EDGAR_NOx computes the total EDGAR NOx emissions 
@@ -246,25 +259,30 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (3 ) E_NOX (REAL*4 ) : EDGAR NOx emissions [kg NO2/season]
+!  (3 ) E_NOX      (REAL*4 ) : EDGAR NOx emissions      [kg NO2/season]
+!  (4 ) E_NOX_SHIP (REAL*4 ) : EDGAR NOx ship emissions [kg NO2/season]
 !
 !  NOTES:
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
+      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
+      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE TIME_MOD,          ONLY : EXPAND_DATE
+      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
 #     include "CMN_SIZE"       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR, MONTH
       REAL*8,  INTENT(OUT)    :: E_NOX(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT)    :: E_NOX_SHIP(IIPAR,JJPAR)
 
       ! Local variables
       INTEGER                 :: I, J, H, YYYYMMDD
       REAL*8                  :: E_NOX_1x1(I1x1,J1x1)
+      REAL*8                  :: E_NOX_SHIP_1x1(I1x1,J1x1)
       REAL*8                  :: E_NOX_HRLY_1x1(I1x1,J1x1,N_HOURS)
       REAL*8                  :: SC_NOx_1x1(I1x1,J1x1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
@@ -286,15 +304,15 @@
       ! Read NOx data from disk
       !----------------------------------
 
-      ! Read EDGAR total NOx and hourly NOx [kg NO2/yr]
-      CALL READ_EDGAR_NOx( E_NOx_1x1, E_NOx_HRLY_1x1 )
+      ! Read EDGAR anthro and ship NOx, and hourly NOx [kg NO2/yr]
+      CALL READ_EDGAR_NOx( E_NOx_1x1, E_NOX_SHIP_1x1, E_NOx_HRLY_1x1 )
 
       !----------------------------------
       ! Compute NOx hourly scale factors
       ! (these average out to 1.0)
       !----------------------------------
 
-      ! Regrid total emissions to current resolution
+      ! Regrid anthro emissions to current resolution
       GEOS_1x1(:,:,1) = E_NOx_1x1(:,:)
       CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, TEMP_TOT )  
 
@@ -320,23 +338,26 @@
       !----------------------------------
       ! Scale NOx from 2000 -> this year
       !----------------------------------
- 
-      ! Skip scaling if it's 2000
-      IF ( YEAR /= 2000 ) THEN
-
-         ! Scale factor file
-         NAME     = 'NOxScalar-YYYY-2000'
-
-         ! YYYYMMDD date
-         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
-
-         ! Replace YYYY with year 
-         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-
-         ! Read NOx scale file 
-         CALL READ_EDGAR_SCALE( NAME, 71, 2000, SC_NOx_1x1 )
-
-      ENDIF 
+!------------------
+! prior to 3/4/08 
+!      ! Skip scaling if it's 2000
+!      IF ( YEAR /= 2000 ) THEN
+!
+!         ! Scale factor file
+!         NAME     = 'NOxScalar-YYYY-2000'
+!
+!         ! YYYYMMDD date
+!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
+!
+!         ! Replace YYYY with year 
+!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
+!
+!         ! Read NOx scale file 
+!         CALL READ_EDGAR_SCALE( NAME, 71, 2000, SC_NOx_1x1 )
+!
+!      ENDIF 
+!
+      CALL GET_ANNUAL_SCALAR_1x1( 71, 2000, YEAR, SC_NOx_1x1 )
 
       ! Apply scale factors at 1x1
       GEOS_1x1(:,:,1) = E_NOx_1x1(:,:) * SC_NOx_1x1(:,:)
@@ -348,12 +369,29 @@
       ! Regrid NOx emissions to current model resolution [kg/yr]
       CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOx )
 
+      !----------------------------------
+      ! Scale ship NOX and regrid
+      !----------------------------------
+
+      IF ( LEDGARSHIP ) THEN
+
+         ! Re-initialize
+         GEOS_1x1(:,:,:) = 0d0
+
+         ! Apply scale factors at 1x1
+         GEOS_1x1(:,:,1) = E_NOX_SHIP_1x1(:,:) * SC_NOX_1x1(:,:)
+
+         ! Regrid NOX emissions to current model resolution [kg/yr]
+         CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_NOX_SHIP )
+
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_NOx
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_EDGAR_NOx( E_1x1, E_HRLY_1x1 )
+      SUBROUTINE READ_EDGAR_NOx( E_1x1, E_SHIP_1x1, E_HRLY_1x1 )
 !
 !******************************************************************************
 !  Subroutine READ_EDGAR_NOx reads EDGAR NOx emissions for the various sectors
@@ -363,7 +401,8 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) E_1x1      (REAL*8 ) : Total  NOx on GEOS 1x1 grid [kg NO2/season]
+!  (1 ) E_1x1      (REAL*8 ) : Anthro NOx on GEOS 1x1 grid [kg NO2/season]
+!  (2 ) E_SHIP_1x1 (REAL*8 ) : Ship   NOx on GEOS 1x1 grid [kg NO2/season]
 !  (2 ) E_HRLY_1x1 (REAL*8 ) : Hourly NOx on GEOS 1x1 grid [kg NO2/season]
 !
 !  NOTES:
@@ -378,6 +417,7 @@
 
       ! Arguments
       REAL*8,  INTENT(OUT)    :: E_1x1(I1x1,J1x1)
+      REAL*8,  INTENT(OUT)    :: E_SHIP_1x1(I1x1,J1x1)
       REAL*8,  INTENT(OUT)    :: E_HRLY_1x1(I1x1,J1x1,N_HOURS)
                               
       ! Local variables       
@@ -385,6 +425,7 @@
       REAL*4                  :: E_IN(I1x1,J1x1)
       REAL*8                  :: SC(N_HOURS)    
       REAL*8                  :: T_1x1(I1x1,J1x1-1)
+      REAL*8                  :: T_SHIP_1x1(I1x1,J1x1-1)
       REAL*8                  :: T_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
 
       !=================================================================
@@ -395,8 +436,10 @@
       SC         = 0e0
       E_IN       = 0e0
       E_1x1      = 0d0
+      E_SHIP_1x1 = 0d0
       E_HRLY_1x1 = 0d0
       T_1x1      = 0d0
+      T_SHIP_1x1 = 0d0
       T_HRLY_1x1 = 0d0
 
       !-----------------------------------------------------------------
@@ -521,7 +564,11 @@
          CALL READ_EDGAR_DATA( 'f5800nox(IEA)', 1, E_IN )
 
          ! Add into cumulative arrays
-         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+!-------------------------------------------
+! prior to 5/13/08
+!         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
+!------------------------------------------
+         CALL ADD_EDGAR_DATA( E_IN, T_SHIP_1x1 )
       ENDIF
 
       !-----------------------------------------------------------------
@@ -613,14 +660,15 @@
       !-----------------------------------------------------------------
 
       ! Convert [kg NO2/yr] to [kg NO2/season]
-      CALL SEASCL_EDGAR_NOx( T_1x1, T_HRLY_1x1 )
+      CALL SEASCL_EDGAR_NOx( T_1x1, T_SHIP_1x1, T_HRLY_1x1 )
 
       !-----------------------------------------------------------------
       ! Regrid from GENERIC 1x1 grid to GEOS 1x1 grid
       !-----------------------------------------------------------------
 
       ! Total NOx [kg NO2/season]
-      CALL DO_REGRID_G2G_1x1( 'kg/season', T_1x1, E_1x1 )
+      CALL DO_REGRID_G2G_1x1( 'kg/season', T_1x1,      E_1x1 )
+      CALL DO_REGRID_G2G_1x1( 'kg/season', T_SHIP_1x1, E_SHIP_1x1 )
       
       ! Hourly NOx [kg NO2/season]
       DO H = 1, N_HOURS
@@ -633,7 +681,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE SEASCL_EDGAR_NOx( E_NOx_1x1, E_NOx_HRLY_1x1 )
+      SUBROUTINE SEASCL_EDGAR_NOx( E_NOx_1x1,     E_NOx_SHIP_1x1, 
+     &                             E_NOx_HRLY_1x1 )
 !
 !******************************************************************************
 !  Subroutine SEASCL_EDGAR_NOx applies seasonal scale factors (computed
@@ -646,13 +695,15 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) E_NOx_1x1 (REAL*8 ) : Anthro NOx 1x1        array [kg NO2/yr]
-!  (2 ) E_NOx_1x1 (REAL*8 ) : Anthro NOx 1x1 hourly array [kg NO2/yr]
+!  (1 ) E_NOx_1x1      (REAL*8 ) : Anthro NOx 1x1        array [kg NO2/yr]
+!  (2 ) E_NOx_1x1      (REAL*8 ) : Anthro NOx 1x1 hourly array [kg NO2/yr]
+!  (3 ) E_NOx_SHIP_1x1 (REAL*8 ) : Ship   NOx 1x1        array [kg NO2/yr]
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (1 ) E_NOx_1x1 (REAL*8 ) : Anthro NOx 1x1        array [kg NO2/season]
-!  (2 ) E_NOx_1x1 (REAL*8 ) : Anthro NOx 1x1 hourly array [kg NO2/season]
+!  (1 ) E_NOx_1x1      (REAL*8 ) : Anthro NOx 1x1        array [kg NO2/season]
+!  (2 ) E_NOx_1x1      (REAL*8 ) : Anthro NOx 1x1 hourly array [kg NO2/season]
+!  (3 ) E_NOx_SHIP_1x1 (REAL*8 ) : Ship   NOx 1x1        array [kg NO2/yr]
 !
 !  NOTES:
 !******************************************************************************
@@ -665,6 +716,7 @@
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_NOx_1x1(I1x1,J1x1-1)
+      REAL*8,  INTENT(INOUT) :: E_NOx_SHIP_1x1(I1x1,J1x1-1)
       REAL*8,  INTENT(INOUT) :: E_NOx_HRLY_1x1(I1x1,J1x1-1,N_HOURS)
       
       ! Local variables
@@ -692,8 +744,9 @@
      &                 1,           ARRAY,     QUIET=.TRUE. ) 
 
       
-      ! Apply seasonal scale factors to total anthro NOx
-      E_NOx_1x1(:,:) = E_NOx_1x1(:,:) * ARRAY(:,:,1)
+      ! Apply seasonal scale factors to anthro and ship NOx
+      E_NOx_1x1(:,:)      = E_NOx_1x1(:,:)      * ARRAY(:,:,1)
+      E_NOx_SHIP_1x1(:,:) = E_NOx_SHIP_1x1(:,:) * ARRAY(:,:,1)
 
       ! Apply seasonal scale factors to hourly anthro NOx
       DO H = 1, N_HOURS
@@ -705,7 +758,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE COMPUTE_EDGAR_CO( YEAR, E_CO )
+      SUBROUTINE COMPUTE_EDGAR_CO( YEAR, E_CO, E_CO_SHIP )
 !
 !******************************************************************************
 !  Subroutine COMPUTE_EDGAR_CO computes the total EDGAR CO emissions, summing 
@@ -720,24 +773,30 @@
 !
 !  Arguments as Output:
 !  ============================================================================
-!  (2 ) E_CO (REAL*4 ) : EDGAR CO emissions [kg CO/year]
+!  (2 ) E_CO      (REAL*4 ) : EDGAR CO emissions          [kg CO/year]
+!  (3 ) E_CO_SHIP (REAL*4 ) : EDGAR CO shipping emissions [kg CO/year]
 !
 !  NOTES:
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
+      USE LOGICAL_MOD,      ONLY : LEDGARSHIP
+      USE TIME_MOD,         ONLY : EXPAND_DATE
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
 
 #     include "CMN_SIZE"       ! Size parameters
 
       ! Arguments
+      INTEGER, INTENT(IN)     :: YEAR
       REAL*8, INTENT(OUT)     :: E_CO(IIPAR,JJPAR)
+      REAL*8, INTENT(OUT)     :: E_CO_SHIP(IIPAR,JJPAR)
 
       ! Local variables
-      INTEGER                 :: I, J, H, YEAR, YYYYMMDD
+      INTEGER                 :: I, J, H, YYYYMMDD
       REAL*8                  :: E_CO_1x1(I1x1,J1x1)
+      REAL*8                  :: E_CO_SHIP_1x1(I1x1,J1x1)
       REAL*8                  :: SC_CO_1x1(I1x1,J1x1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: NAME
@@ -755,28 +814,31 @@
       !----------------------------------
 
       ! Read EDGAR total NOx and hourly NOx [kg/yr]
-      CALL READ_EDGAR_CO( E_CO_1x1 )
+      CALL READ_EDGAR_CO( E_CO_1x1, E_CO_SHIP_1x1 )
 
       !----------------------------------
       ! Scale CO from 2000 -> this year
       !----------------------------------
-
-      ! Skip scaling if it's 2000
-      IF ( YEAR /= 2000 ) THEN
-
-         ! Scale factor file
-         NAME     = 'COScalar-YYYY-2000'
-
-         ! YYYYMMDD date
-         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
-
-         ! Replace YYYY with year 
-         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-
-         ! Read CO scale file
-         CALL READ_EDGAR_SCALE( NAME, 72, 2000, SC_CO_1x1 )
-
-      ENDIF
+!-------------------
+! prior 3/4/08
+!      ! Skip scaling if it's 2000
+!      IF ( YEAR /= 2000 ) THEN
+!
+!         ! Scale factor file
+!         NAME     = 'COScalar-YYYY-2000'
+!
+!         ! YYYYMMDD date
+!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
+!
+!         ! Replace YYYY with year 
+!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
+!
+!         ! Read CO scale file
+!         CALL READ_EDGAR_SCALE( NAME, 72, 2000, SC_CO_1x1 )
+!
+!      ENDIF
+!-------------------
+      CALL GET_ANNUAL_SCALAR_1x1( 72, 2000, YEAR, SC_CO_1x1 )
 
       ! Apply scale factors at 1x1
       GEOS_1x1(:,:,1) = E_CO_1x1(:,:) * SC_CO_1x1(:,:)
@@ -788,12 +850,30 @@
       ! Regrid CO emissions to current model resolution [kg/yr]
       CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO )
 
+
+      !----------------------------------
+      ! Scale ship CO and regrid
+      !----------------------------------
+
+      IF ( LEDGARSHIP ) THEN
+
+         ! Re-initialize
+         GEOS_1x1(:,:,:) = 0d0
+
+         ! Apply scale factors at 1x1
+         GEOS_1x1(:,:,1) = E_CO_SHIP_1x1(:,:) * SC_CO_1x1(:,:)
+
+         ! Regrid CO emissions to current model resolution [kg/yr]
+         CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO_SHIP )
+
+      ENDIF
+
       ! Return to calling program
       END SUBROUTINE COMPUTE_EDGAR_CO
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_EDGAR_CO( E_CO_1x1 )
+      SUBROUTINE READ_EDGAR_CO( E_CO_1x1, E_CO_SHIP_1x1 )
 !
 !******************************************************************************
 !  Subroutine READ_EDGAR_CO reads EDGAR CO emissions for the various sectors
@@ -817,19 +897,23 @@
 
       ! Arguments
       REAL*8, INTENT(OUT)     :: E_CO_1x1(I1x1,J1x1)
+      REAL*8, INTENT(OUT)     :: E_CO_SHIP_1x1(I1x1,J1x1)
 
       ! Local variables
       REAL*4                  :: E_IN(I1x1,J1x1-1)
       REAL*8                  :: T_CO_1x1(I1x1,J1x1-1)
+      REAL*8                  :: T_CO_SHIP_1x1(I1x1,J1x1-1)
 
       !=================================================================
       ! READ_EDGAR_CO begins here!
       !=================================================================
 
       ! Initialize
-      E_IN     = 0e0
-      E_CO_1x1 = 0d0
-      T_CO_1x1 = 0d0
+      E_IN          = 0e0
+      E_CO_1x1      = 0d0
+      E_CO_SHIP_1x1 = 0d0
+      T_CO_1x1      = 0d0
+      T_CO_SHIP_1x1 = 0d0
 
       !------------------------------------------------
       ! Compute total CO for all sectors
@@ -866,7 +950,7 @@
       ! F58 - Shipping (fossil fuel combustion)
       IF ( LEDGARSHIP ) THEN
          CALL READ_EDGAR_DATA( 'f5800co', 4, E_IN )
-         CALL ADD_EDGAR_DATA( E_IN, T_CO_1x1 )
+         CALL ADD_EDGAR_DATA( E_IN, T_CO_SHIP_1x1 )
       ENDIF
 
       ! F80 - Oil Production (fossil fuel combustion)
@@ -893,8 +977,11 @@
       ! Regrid from GENERIC 1x1 GRID to GEOS 1x1 GRID
       !------------------------------------------------
 
-      ! Total CO [kg/yr] 
+      ! Anthro CO [kg/yr] 
       CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_1x1, E_CO_1x1 )
+
+      ! Ship CO [kg/yr] 
+      CALL DO_REGRID_G2G_1x1( 'kg/yr', T_CO_SHIP_1x1, E_CO_SHIP_1x1 )
 
       ! Return to calling program
       END SUBROUTINE READ_EDGAR_CO
@@ -926,10 +1013,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE LOGICAL_MOD,    ONLY : LEDGARSHIP
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
-      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
+      USE LOGICAL_MOD,       ONLY : LEDGARSHIP
+      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE TIME_MOD,          ONLY : EXPAND_DATE
+      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
 #     include "CMN_SIZE"       ! Size parameters
 
@@ -964,23 +1052,26 @@
       !----------------------------------
       ! Scale SO2 from 2000 -> this year
       !----------------------------------
+!----------------
+! prior to 3/10/08
+!      ! Skip scaling if it's 2000
+!      IF ( YEAR /= 2000 ) THEN
+!
+!         ! Scale factor file
+!         NAME     = 'SOxScalar-YYYY-2000'
+!
+!         ! YYYYMMDD date
+!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1998 ) * 10000 ) + 0101 
+!
+!         ! Replace YYYY with year 
+!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
+!
+!         ! Read SO2 scale file
+!         CALL READ_EDGAR_SCALE( NAME, 73, 2000, SC_SO2_1x1 )
+!
+!      ENDIF 
 
-      ! Skip scaling if it's 2000
-      IF ( YEAR /= 2000 ) THEN
-
-         ! Scale factor file
-         NAME     = 'SOxScalar-YYYY-2000'
-
-         ! YYYYMMDD date
-         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1998 ) * 10000 ) + 0101 
-
-         ! Replace YYYY with year 
-         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-
-         ! Read SO2 scale file
-         CALL READ_EDGAR_SCALE( NAME, 73, 2000, SC_SO2_1x1 )
-
-      ENDIF 
+      CALL GET_ANNUAL_SCALAR_1x1( 73, 2000, YEAR, SC_SO2_1x1 ) 
 
       !----------------------------------
       ! Scale anthro SO2 and regrid
@@ -1432,84 +1523,87 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_EDGAR_SCALE( NAME, TRACER, YEAR, S_1x1 )
+!!              ######### OBSOLETE (phs, 3/10/08) #########  
+!!
+!      SUBROUTINE READ_EDGAR_SCALE( NAME, TRACER, YEAR, S_1x1 )
+!!
+!!******************************************************************************
+!!  Subroutine READ_EDGAR_SCALE reads interannual scale factor data from disk.
+!!  (avd, bmy, 7/14/06)
+!!
+!!  Arguments as Input:
+!!  ============================================================================
+!!  (1 ) FILENAME (CHARACTER) : String with EDGAR inventory filename
+!!  (2 ) TRACER   (INTEGER  ) : Tracer number
+!!  (3 ) YEAR     (INTEGER  ) : Current year
+!!  (4 ) S_1x1    (REAL*4   ) : Array to hold scale factors
+!!
+!!  NOTES: ######### OBSOLETE (phs, 3/10/08) #########  
+!!******************************************************************************
+!!
+!      ! References to F90 modules
+!      USE DIRECTORY_MOD,        ONLY : DATA_DIR_1x1
+!      USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
 !
-!******************************************************************************
-!  Subroutine READ_EDGAR_SCALE reads interannual scale factor data from disk.
-!  (avd, bmy, 7/14/06)
+!#     include "CMN_SIZE"             ! Size parameters
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FILENAME (CHARACTER) : String with EDGAR inventory filename
-!  (2 ) TRACER   (INTEGER  ) : Tracer number
-!  (3 ) YEAR     (INTEGER  ) : Current year
-!  (4 ) S_1x1    (REAL*4   ) : Array to hold scale factors
+!      ! Arguments
+!      CHARACTER(LEN=*), INTENT(IN)  :: NAME
+!      INTEGER,          INTENT(IN)  :: TRACER, YEAR
+!      REAL*8,           INTENT(OUT) :: S_1x1(I1x1,J1x1)
 !
-!  NOTES:
-!******************************************************************************
+!      ! Local variables
+!      REAL*4                        :: T_1x1(I1x1,J1x1)
+!      REAL*8                        :: TAU0
+!      CHARACTER(LEN=255)            :: FILENAME
 !
-      ! References to F90 modules
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR_1x1
-      USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
-
-#     include "CMN_SIZE"             ! Size parameters
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN)  :: NAME
-      INTEGER,          INTENT(IN)  :: TRACER, YEAR
-      REAL*8,           INTENT(OUT) :: S_1x1(I1x1,J1x1)
-
-      ! Local variables
-      REAL*4                        :: T_1x1(I1x1,J1x1)
-      REAL*8                        :: TAU0
-      CHARACTER(LEN=255)            :: FILENAME
-
-      !=================================================================
-      ! READ_EDGAR_SCALE begins here!
-      !=================================================================
-
-      ! Filename
-      IF ( TRACER == 71 ) THEN
-
-         ! NOx
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/NOx/EDGAR.' // 
-     &              TRIM( NAME         ) // '.geos.1x1'
-         
-      ELSE IF ( TRACER == 72 ) THEN
-
-         ! CO
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/CO/EDGAR.'  // 
-     &              TRIM( NAME         ) // '.geos.1x1'
-
-      ELSE IF ( TRACER == 73 ) THEN
-
-         ! SO2
-         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/SOx/EDGAR.' // 
-     &              TRIM( NAME         ) // '.geos.1x1'
-
-      ENDIF
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_EDGAR_SCALE: Reading ', a )
-
-      ! Use TAU0 for the current year
-      TAU0 = GET_TAU0( 1, 1, YEAR )
-
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'EDGAR-2D', TRACER, 
-     &                 TAU0,      I1x1,      J1x1,     
-     &                 1,         T_1x1,     QUIET=.TRUE. ) 
-
-      ! Convert to REAL*8 and return
-      S_1x1(:,:) = T_1x1(:,:)
-
-      ! Return to calling program
-      END SUBROUTINE READ_EDGAR_SCALE
-
-!------------------------------------------------------------------------------
-
-      FUNCTION GET_EDGAR_NOx( I, J, KG_S, MOLEC_CM2_S ) RESULT( NOx )
+!      !=================================================================
+!      ! READ_EDGAR_SCALE begins here!
+!      !=================================================================
+!
+!      ! Filename
+!      IF ( TRACER == 71 ) THEN
+!
+!         ! NOx
+!         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/NOx/EDGAR.' // 
+!     &              TRIM( NAME         ) // '.geos.1x1'
+!         
+!      ELSE IF ( TRACER == 72 ) THEN
+!
+!         ! CO
+!         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/CO/EDGAR.'  // 
+!     &              TRIM( NAME         ) // '.geos.1x1'
+!
+!      ELSE IF ( TRACER == 73 ) THEN
+!
+!         ! SO2
+!         FILENAME = TRIM( DATA_DIR_1x1 ) // 'EDGAR_200607/SOx/EDGAR.' // 
+!     &              TRIM( NAME         ) // '.geos.1x1'
+!
+!      ENDIF
+!
+!      ! Echo info
+!      WRITE( 6, 100 ) TRIM( FILENAME )
+! 100  FORMAT( '     - READ_EDGAR_SCALE: Reading ', a )
+!
+!      ! Use TAU0 for the current year
+!      TAU0 = GET_TAU0( 1, 1, YEAR )
+!
+!      ! Read data
+!      CALL READ_BPCH2( FILENAME, 'EDGAR-2D', TRACER, 
+!     &                 TAU0,      I1x1,      J1x1,     
+!     &                 1,         T_1x1,     QUIET=.TRUE. ) 
+!
+!      ! Convert to REAL*8 and return
+!      S_1x1(:,:) = T_1x1(:,:)
+!
+!      ! Return to calling program
+!      END SUBROUTINE READ_EDGAR_SCALE
+!
+!!------------------------------------------------------------------------------
+!
+      FUNCTION GET_EDGAR_NOx( I, J, KG_S, MOLEC_CM2_S, SHIP ) 
+     &         RESULT( NOx )
 !
 !******************************************************************************
 !  Function GET_EDGAR_NOx returns the EDGAR NOx emissions at grid box (I,J)
@@ -1523,6 +1617,7 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  (1 ) Added the SHIP switch (phs, 5/13/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1531,7 +1626,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
-      LOGICAL, INTENT(IN), OPTIONAL :: KG_S,   MOLEC_CM2_S 
+      LOGICAL, INTENT(IN), OPTIONAL :: KG_S,   MOLEC_CM2_S, SHIP 
 
       ! Local variables
       LOGICAL                       :: DO_KGS, DO_MCS
@@ -1550,7 +1645,15 @@
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
       ! Get NOx [kg NOx/season]
-      NOx = EDGAR_NOx(I,J)
+      IF ( PRESENT( SHIP ) ) THEN
+         IF ( SHIP ) THEN
+            NOx = EDGAR_NOx_SHIP(I,J)
+         ELSE
+            NOx = EDGAR_NOx(I,J)
+         ENDIF
+      ELSE
+         NOx = EDGAR_NOx(I,J)
+      ENDIF
 
       ! Apply scale factor for future emissions (if necessary)
       IF ( LFUTURE ) THEN
@@ -1575,7 +1678,8 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_EDGAR_CO( I, J, KG_S, MOLEC_CM2_S ) RESULT( CO )
+      FUNCTION GET_EDGAR_CO( I, J, KG_S, MOLEC_CM2_S, SHIP ) 
+     &         RESULT( CO )
 !
 !******************************************************************************
 !  Function GET_EDGAR_CO returns the EDGAR CO emissions at grid box (I,J)
@@ -1589,6 +1693,7 @@
 !  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL - Return data in [molec/cm2/s]
 !
 !  NOTES:
+!  (1 ) Added the SHIP switch (phs, 5/13/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1597,7 +1702,7 @@
 
       ! Arguments
       INTEGER, INTENT(IN)           :: I,      J
-      LOGICAL, INTENT(IN), OPTIONAL :: KG_S,   MOLEC_CM2_S
+      LOGICAL, INTENT(IN), OPTIONAL :: KG_S,   MOLEC_CM2_S, SHIP
 
       ! Local variables
       LOGICAL                       :: DO_KGS, DO_MCS
@@ -1616,7 +1721,15 @@
       IF ( PRESENT( MOLEC_CM2_S ) ) DO_MCS = MOLEC_CM2_S
 
       ! Get CO [kg/yr]
-      CO = EDGAR_CO(I,J)
+      IF ( PRESENT( SHIP ) ) THEN
+         IF ( SHIP ) THEN
+            CO = EDGAR_CO_SHIP(I,J)
+         ELSE
+            CO = EDGAR_CO(I,J)
+         ENDIF
+      ELSE
+         CO = EDGAR_CO(I,J)
+      ENDIF
 
       ! Apply scale factor for future emissions (if necessary)
       IF ( LFUTURE ) THEN
@@ -1830,6 +1943,7 @@
 
       ! Local variables
       REAL*8              :: T_NOx, T_CO, T_SO2an, T_SO2sh
+      REAL*8              :: T_NOxSh, T_COsh
 
       !=================================================================
       ! EDGAR_TOTAL_Tg begins here!
@@ -1837,7 +1951,9 @@
 
       ! Compute totals [Tg/yr]
       T_NOx   = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9   ! Tg N
+      T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9   ! Tg N
       T_CO    = SUM( EDGAR_CO       )                 / 1d9   ! Tg CO
+      T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9   ! Tg CO
       T_SO2an = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9   ! Tg S
       T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9   ! Tg S
 
@@ -1845,7 +1961,9 @@
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'E D G A R   E M I S S I O N S'
       WRITE( 6, 100     ) YEAR, SEASON_NAME, T_NOx
+      WRITE( 6, 105     ) YEAR, SEASON_NAME, T_NOxSh
       WRITE( 6, 110     ) YEAR,              T_CO
+      WRITE( 6, 115     ) YEAR,              T_COSh
       WRITE( 6, 120     ) YEAR, SEASON_NAME, T_SO2an
       WRITE( 6, 130     ) YEAR, MONTH_NAME,  T_SO2sh
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
@@ -1853,7 +1971,11 @@
       ! FORMAT statements
  100  FORMAT( 'NOx        for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg N    ]' )
+ 105  FORMAT( 'NOx Ship   for year ', i4, ' and season ', a3, 
+     &         ' : ', f10.4, ' [Tg N    ]' )
  110  FORMAT( 'CO         for year ', i4, ' (annual total)',
+     &         ' : ', f10.4, ' [Tg CO/yr]' )
+ 115  FORMAT( 'CO Ship    for year ', i4, ' (annual total)',
      &         ' : ', f10.4, ' [Tg CO/yr]' )
  120  FORMAT( 'Anthro SO2 for year ', i4, ' and season ', a3, 
      &         ' : ', f10.4, ' [Tg S    ]' )
@@ -1999,6 +2121,7 @@
 !      ! Return to calling program
 !      END SUBROUTINE OUTPUT_TOTAL_2D
 !
+
 !------------------------------------------------------------------------------
 
       SUBROUTINE INIT_EDGAR
@@ -2008,11 +2131,13 @@
 !  (avd, bmy, 7/14/06)
 !
 !  NOTES:
+!  (1 ) Now allocates SHIP arrays only if LEDGARSHIP is TRUE (5/13/08)
 !******************************************************************************
 !
       ! Reference to F90 modules
-      USE GRID_MOD,  ONLY : GET_AREA_CM2
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE GRID_MOD,    ONLY : GET_AREA_CM2
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LEDGARSHIP
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -2035,9 +2160,21 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
 
-      ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2_SHIP' )
-      EDGAR_SO2_SHIP = 0d0
+      IF ( LEDGARSHIP ) THEN
+
+         ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2_SHIP' )
+         EDGAR_SO2_SHIP = 0d0
+
+         ALLOCATE( EDGAR_NOx_SHIP( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_NOx_SHIP' )
+         EDGAR_NOx_SHIP = 0d0
+
+         ALLOCATE( EDGAR_CO_SHIP( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_CO_SHIP' )
+         EDGAR_CO_SHIP = 0d0
+ 
+      ENDIF
 
       ALLOCATE( EDGAR_TODN( IIPAR, JJPAR, N_HOURS ), STAT=AS )
       IF (AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_TODN' )
@@ -2075,6 +2212,8 @@
       IF ( ALLOCATED( EDGAR_CO       ) ) DEALLOCATE( EDGAR_CO       )
       IF ( ALLOCATED( EDGAR_SO2      ) ) DEALLOCATE( EDGAR_SO2      )
       IF ( ALLOCATED( EDGAR_SO2_SHIP ) ) DEALLOCATE( EDGAR_SO2_SHIP )
+      IF ( ALLOCATED( EDGAR_CO_SHIP  ) ) DEALLOCATE( EDGAR_CO_SHIP  )
+      IF ( ALLOCATED( EDGAR_NOX_SHIP ) ) DEALLOCATE( EDGAR_NOx_SHIP )
       IF ( ALLOCATED( EDGAR_TODN     ) ) DEALLOCATE( EDGAR_TODN     )
 
       ! Return to calling program

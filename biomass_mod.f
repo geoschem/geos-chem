@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.16 2008/12/15 15:55:16 bmy Exp $
+! $Id: biomass_mod.f,v 1.17 2009/01/28 19:59:16 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -151,6 +151,8 @@
 !        2001.  Also remove obsolete BIOMASS_SAVE array. (bmy, 9/28/06)
 !  (2 ) Reference ITS_A_H2HD_SIM from "tracer_mod.f" to deal with ND29
 !        (phs, 9/18/07)
+!  (3 ) Now make a more general call to GFED2 reader to account for all
+!        four options (phs, 17/12/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -162,6 +164,7 @@
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB
+      USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -176,6 +179,7 @@
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
+      LOGICAL, SAVE              :: USE_GFED
       INTEGER                    :: I,       J,       N,      N_BIOB
       REAL*8                     :: BXHT_CM, DTSRCE
       
@@ -189,7 +193,8 @@
          ! First-time initialization
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
-            FIRST = .FALSE.
+            FIRST    = .FALSE.
+            USE_GFED = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
          ENDIF
          
          ! Define diagnostic flags
@@ -198,69 +203,80 @@
          DO_ND32 = ( ND32 > 0 )
 
          !==============================================================
-         ! Read biomass emissions at the start of a new month
+         ! GFED2 updates BIOMASS if needed (phs, 12/17/08)
          !==============================================================
-         IF ( ITS_A_NEW_MONTH() ) THEN
+         IF ( USE_GFED ) THEN
+
+            ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
+            CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
+               
+            
+         !==============================================================
+         ! Read GC biomass emissions at the start of a new month
+         !==============================================================
+         ELSE IF ( ITS_A_NEW_MONTH() ) THEN
 
             ! Zero the array for biomass burning
             BIOMASS = 0d0
+!----------------------------------------------------------------------
+! prior 12/17/08 (phs)
+! Now test for GFED2 above            
+!            ! Test for type of biomass emissions
+!            IF ( LGFED2BB ) THEN
+!            
+!               !---------------------------------
+!               ! GFED2 biomass inventory for
+!               ! gas-phase, aerosols, and CO2
+!               !---------------------------------
+!
+!               ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
+!               CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
+!
+!            ELSE
+!----------------------------------------------------------------------
+            ! Test if it's a CO2 simulation
+            IF ( ITS_A_CO2_SIM() ) THEN
 
-            ! Test for type of biomass emissions
-            IF ( LGFED2BB ) THEN
-            
-               !---------------------------------
-               ! GFED2 biomass inventory for
-               ! gas-phase, aerosols, and CO2
-               !---------------------------------
-
-               ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
-               CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
-
+               !------------------------------
+               ! CO2 emissions (based on 
+               ! Duncan et al 2001 CO)
+               !------------------------------
+               
+               ! Get CO2 emissions [molec/cm2/s]
+               CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
+     &                                   BIOMASS(:,:,IDBCO2) )
             ELSE
 
-               ! Test if it's a CO2 simulation
-               IF ( ITS_A_CO2_SIM() ) THEN
+               !------------------------------
+               ! Default GEOS-Chem inventory
+               ! (Bryan Duncan et al 2001)
+               !------------------------------
 
-                  !------------------------------
-                  ! CO2 emissions (based on 
-                  ! Duncan et al 2001 CO)
-                  !------------------------------
-                  
-                  ! Get CO2 emissions [molec/cm2/s]
-                  CALL GC_READ_BIOMASS_CO2( YEAR, MONTH,
-     &                                      BIOMASS(:,:,IDBCO2) )
-               ELSE
+               ! Get emissions of gas-phase species
+               ! in [molec/cm2/s] or [atoms C/cm2/s]
+               CALL GC_COMPUTE_BIOMASS( YEAR, MONTH, 
+     &                                  BIOMASS(:,:,1:NBIOMAX_GAS) )
 
-                  !------------------------------
-                  ! Default GEOS-Chem inventory
-                  ! (Bryan Duncan et al 2001)
-                  !------------------------------
+               ! Get biomass SO2 [molec/cm2/s]
+               IF ( IDTSO2 > 0 ) THEN
+                  CALL GC_READ_BIOMASS_SO2( YEAR, MONTH, 
+     &                                      BIOMASS(:,:,IDBSO2) )
+               ENDIF
 
-                  ! Get emissions of gas-phase species
-                  ! in [molec/cm2/s] or [atoms C/cm2/s]
-                  CALL GC_COMPUTE_BIOMASS( YEAR, MONTH, 
-     &                                     BIOMASS(:,:,1:NBIOMAX_GAS) )
+               ! Get biomass NH3 [molec/cm2/s]
+               IF ( IDTNH3 > 0 ) THEN
+                  CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
+     &                                      BIOMASS(:,:,IDBNH3) )
+               ENDIF
 
-                  ! Get biomass SO2 [molec/cm2/s]
-                  IF ( IDTSO2 > 0 ) THEN
-                     CALL GC_READ_BIOMASS_SO2( YEAR, MONTH, 
-     &                                         BIOMASS(:,:,IDBSO2) )
-                  ENDIF
-
-                  ! Get biomass NH3 [molec/cm2/s]
-                  IF ( IDTNH3 > 0 ) THEN
-                     CALL GC_READ_BIOMASS_NH3( YEAR, MONTH,
-     &                                         BIOMASS(:,:,IDBNH3) )
-                  ENDIF
-
-                  ! Get biomass BC & OC [molec/cm2/s]
-                  IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
-                     CALL GC_READ_BIOMASS_BCOC( YEAR, MONTH,
-     &                                          BIOMASS(:,:,IDBBC), 
-     &                                          BIOMASS(:,:,IDBOC) ) 
-                  ENDIF
+               ! Get biomass BC & OC [molec/cm2/s]
+               IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
+                  CALL GC_READ_BIOMASS_BCOC( YEAR, MONTH,
+     &                                       BIOMASS(:,:,IDBBC), 
+     &                                       BIOMASS(:,:,IDBOC) ) 
                ENDIF
             ENDIF
+!            ENDIF
          ENDIF
 
          !==============================================================
@@ -282,7 +298,10 @@
             
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
-               IF ( ITS_A_H2HD_SIM() .and. (.not. LGFED2BB ) ) THEN
+!----------------------------------------------------------------------
+! prior 1/5/09 (phs)
+!               IF ( ITS_A_H2HD_SIM() .and. (.not. LGFED2BB ) ) THEN
+               IF ( ITS_A_H2HD_SIM() .and. (.not. USE_GFED ) ) THEN
                   AD29(I,J,2) = AD29(I,J,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0
                ELSE

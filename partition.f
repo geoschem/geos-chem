@@ -1,10 +1,10 @@
-! $Id: partition.f,v 1.10 2008/08/08 17:20:36 bmy Exp $
+! $Id: partition.f,v 1.11 2009/01/28 19:59:15 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03, 2/26/08)
+!  (bdf, bmy, 4/1/03, 1/7/09)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -24,6 +24,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Resize CSAVE to save local memory, for SUN compiler. (bmy, 7/14/06)
 !  (6 ) Now do safe division to eliminate FP errors (phs, bmy, 2/26/08)
+!  (7 ) Now change error stop 30000 into a warning (phs, ccc, bmy, 1/7/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -285,9 +286,24 @@
                ! Get NOx concentration from STT
                CONCNOX = STT(I,J,L,IDTNOX)
 
-               ! Stop w/ error
+               ! Error test
                IF ( CONCNOX - SUM1 < 0.d0 ) THEN
-                  CALL ERROR_STOP( 'STOP 30000', 'partition.f' )
+                  !------------------------------------------------------
+                  ! Prior to 1/7/09
+                  ! Don't stop w/ error, but just print warning msg.
+                  ! Sometimes the new TPCORE can cause this error to 
+                  ! trap if there CONCNOX = 0, but that can be purely 
+                  ! a numerical condition and not really an error. 
+                  ! (phs, ccc, bmy, 1/7/09)
+                  !CALL ERROR_STOP( 'STOP 30000', 'partition.f' )
+                  !------------------------------------------------------
+!$OMP CRITICAL 
+                  PRINT*, '### In partition.f: CONCNOX - SUM1 < 0'
+                  PRINT*, '### If CONCNOX = 0 and SUM1 ~ 1e-99 it is OK'
+                  PRINT*, '### I, J, L : ', I, J, L
+                  PRINT*, '### CONCNOX : ', CONCNOX
+                  PRINT*, '### SUM1    : ', SUM1
+!$OMP END CRITICAL
                ENDIF
 
                ! Loop over member species in NOx

@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.21 2008/02/14 18:23:49 bmy Exp $
+! $Id: emissions_mod.f,v 1.22 2009/01/28 19:59:16 bmy Exp $
       MODULE EMISSIONS_MOD
 !
 !******************************************************************************
@@ -52,6 +52,8 @@
 !  (15) Now references "streets_anthro_mod.f" (yxw, bmy, 8/18/06)
 !  (16) Now references "h2_hd_mod.f" (lyj, phs, 9/18/07)
 !  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/14/08)
+!  (18) Now references "cac_anthro_mod.f" (amv, phs, 03/11/08)
+!  (19) Now references "vistas_anthro_mod.f" (amv, 12/02/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -96,37 +98,47 @@
 !  (16) Now references EMISS_STREETS_ANTHRO from "streets_anthro_mod.f"
 !        (yxw, bmy, 8/17/06)
 !  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/18/08)
+!  (18) Now references EMISS_CAC_ANTHRO from "cac_anthro_mod.f"
+!        (amv, phs, 3/11/08)
+!  (19) Now references EMISS_ARCTAS_SHIP from "arctas_ship_emiss_mod.f"
+!        (phs, 5/12/08)
+!  (20) Now references EMISS_VISTAS_ANTHR from "vistas_anthro_mod.f". Call
+!        EMEP, and Streets every month (amv, 12/2/08)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,        ONLY : NBIOMAX
-      USE BIOMASS_MOD,        ONLY : COMPUTE_BIOMASS_EMISSIONS
-      USE BRAVO_MOD,          ONLY : EMISS_BRAVO
-      USE C2H6_MOD,           ONLY : EMISSC2H6
-      USE CARBON_MOD,         ONLY : EMISSCARBON
-      USE CH3I_MOD,           ONLY : EMISSCH3I
-      USE CO2_MOD,            ONLY : EMISSCO2
-      USE DUST_MOD,           ONLY : EMISSDUST
-      USE EDGAR_MOD,          ONLY : EMISS_EDGAR
-      USE EMEP_MOD,           ONLY : EMISS_EMEP
-      USE EPA_NEI_MOD,        ONLY : EMISS_EPA_NEI
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
-      USE H2_HD_MOD,          ONLY : EMISS_H2_HD
-      USE HCN_CH3CN_MOD,      ONLY : EMISS_HCN_CH3CN
-      USE Kr85_MOD,           ONLY : EMISSKr85
-      USE LOGICAL_MOD            
-      USE MERCURY_MOD,        ONLY : EMISSMERCURY
-      USE RnPbBe_MOD,         ONLY : EMISSRnPbBe
-      USE SEASALT_MOD,        ONLY : EMISSSEASALT
-      USE STREETS_ANTHRO_MOD, ONLY : EMISS_STREETS_ANTHRO
-      USE SULFATE_MOD,        ONLY : EMISSSULFATE 
-      USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD             
-      USE TAGGED_CO_MOD,      ONLY : EMISS_TAGGED_CO
+      USE BIOMASS_MOD,            ONLY : NBIOMAX
+      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
+      USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
+      USE BRAVO_MOD,              ONLY : EMISS_BRAVO
+      USE C2H6_MOD,               ONLY : EMISSC2H6
+      USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
+      USE CARBON_MOD,             ONLY : EMISSCARBON
+      USE CH3I_MOD,               ONLY : EMISSCH3I
+      USE CO2_MOD,                ONLY : EMISSCO2
+      USE DUST_MOD,               ONLY : EMISSDUST
+      USE EDGAR_MOD,              ONLY : EMISS_EDGAR
+      USE EMEP_MOD,               ONLY : EMISS_EMEP
+      USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
+      USE ERROR_MOD,              ONLY : DEBUG_MSG
+      USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
+      USE H2_HD_MOD,              ONLY : EMISS_H2_HD
+      USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
+      USE Kr85_MOD,               ONLY : EMISSKr85
+      USE LOGICAL_MOD                
+      USE MERCURY_MOD,            ONLY : EMISSMERCURY
+      USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
+      USE SEASALT_MOD,            ONLY : EMISSSEASALT
+      USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
+      USE SULFATE_MOD,            ONLY : EMISSSULFATE 
+      USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD                 
+      USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
+      USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 
 #     include "CMN_SIZE"           ! Size parameters
+#     include "CMN_O3"             ! FSCLYR
 
       ! Local Variables
       INTEGER                     :: MONTH, YEAR
@@ -137,12 +149,19 @@
       !=================================================================
 
       ! Get year and month
-      YEAR  = GET_YEAR()
       MONTH = GET_MONTH()
+
+      ! check if emissions year differs from met field year
+      IF ( FSCALYR < 0 ) THEN
+         YEAR = GET_YEAR()
+      ELSE
+         YEAR = FSCALYR
+      ENDIF
+
 
       ! Get biomass burning emissions for use below
       IF ( LBIOMASS ) THEN
-         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
+         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
       ENDIF
          
       ! Test by simulation type
@@ -153,23 +172,40 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_STREETS_ANTHRO
          ENDIF
 
-         ! Read EDGAR emissions once per month
-         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+         ! Read EDGAR emissions once per month to get, at least 
+         ! the NOx diurnal scale factors, and the EDGAR emissions 
+         ! if necessary (amv, phs, 3/11/08)
+!----------------
+! prior to 3/11/08
+!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+         IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
+         ! Read VISTAS (USA) emissions once per month
+         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) 
+     &        CALL EMISS_VISTAS_ANTHRO
+
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EMEP (Europe) emissions once per year
-         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+         IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) CALL EMISS_EMEP
+
+         ! Read CAC (Canada) emissions
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) CALL EMISS_CAC_ANTHRO
+
+         ! Read SO2 ARCTAS emissions
+         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
+     $        CALL EMISS_ARCTAS_SHIP( YEAR )
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
@@ -187,12 +223,24 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+!----------------
+! prior to 12/9/08
+!         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_STREETS_ANTHRO
          ENDIF
 
+         ! Read CAC emissions
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_CAC_ANTHRO
+         ENDIF
+
          ! Read EDGAR emissions once per month
-         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+! prior to 3/11/08
+!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+         IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
 
@@ -245,8 +293,17 @@
             CALL EMISS_STREETS_ANTHRO
          ENDIF
 
+         ! Read CAC emissions
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+            CALL EMISS_CAC_ANTHRO
+         ENDIF
+
          ! Read EDGAR emissions once per month
-         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+! prior to 3/11/08
+!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+         IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
 
@@ -308,6 +365,10 @@
             CALL EMISS_STREETS_ANTHRO
          ENDIF
 
+         ! Read CO2 ARCTAS SHIP emissions
+         IF ( LARCSHIP .and. ITS_A_NEW_YEAR() )
+     $        CALL EMISS_ARCTAS_SHIP( YEAR )
+
          ! Emit CO2
          CALL EMISSCO2
 
@@ -323,9 +384,16 @@
          ENDIF
 
          ! Read EDGAR emissions once per month
-         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+! prior to 3/11/08
+!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
+!----------------
+         IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
+
+         ! Read CAC (Canada) emissions
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) CALL EMISS_CAC_ANTHRO
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI

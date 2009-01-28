@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.22 2008/12/15 15:55:14 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.23 2009/01/28 19:59:14 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -408,20 +408,23 @@
 !        are now done in EMISSDR. Remove references to BIOFUEL_BURN and
 !        all routines from GEIA_MOD. (jaf, mak, bmy, 2/14/08)
 !  (22) Bug fix: Now use IDECO to be consistent (phs, bmy, 6/30/08)
+!  (23) Now distribute CO biomass burning source through the PBL
+!        (yc, phs, 12/23/08)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL
-      USE BIOMASS_MOD,  ONLY : BIOMASS,     IDBCO
+      USE BIOMASS_MOD,  ONLY : BIOMASS,       IDBCO
       USE DAO_MOD,      ONLY : SUNCOS
-      USE DIAG_MOD,     ONLY : AD29,        AD46
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET, GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LSPLIT,      LANTHRO
-      USE LOGICAL_MOD,  ONLY : LBIOMASS,    LBIOFUEL
-      USE TIME_MOD,     ONLY : GET_MONTH,   GET_TAU 
-      USE TIME_MOD,     ONLY : GET_YEAR,    GET_TS_EMIS  
+      USE DIAG_MOD,     ONLY : AD29,          AD46
+      USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
+      USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
+      USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
+      USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
+      USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
+      USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO,      IDECO
+      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO
       
       IMPLICIT NONE
 
@@ -432,14 +435,14 @@
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER                :: I, J, L, N, I0, J0
-      INTEGER                :: AS, IREF, JREF, IJLOOP
+      INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE          :: LASTMONTH = -999
 
       ! For now these are defined in CMN_O3
       !REAL*4                 :: EMISTCO(IGLOB,JGLOB)
       !REAL*4                 :: FLIQCO2(IGLOB,JGLOB)
 
-      REAL*8                 :: TMMP, EMXX, EMX,    EMMO 
+      REAL*8                 :: TMMP, EMXX, EMX,    EMMO,    F_OF_PBL 
       REAL*8                 :: EMAC, E_CO, DTSRCE, AREA_CM2
       
       ! External functions
@@ -553,11 +556,13 @@
       ! (2) ND29 diagnostics are saved within routine BIOBURN.
       !      (bmy, 1/3/01)
       !=================================================================
+      PBL_MAX = GET_PBL_MAX_L()
+
       IF ( LBIOMASS ) THEN
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( E_CO, I, J, N, AREA_CM2 )
+!$OMP+PRIVATE( E_CO, I, J, L, F_OF_PBL, N, AREA_CM2 )
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -572,14 +577,24 @@
             E_CO = ( BIOMASS(I,J,IDBCO) / XNUMOL_CO ) *
      &             ( AREA_CM2           * DTSRCE    ) 
 
-            ! Add biomass burning to tracer #1 -- total CO [kg CO]
-            STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+            DO L = 1, PBL_MAX
+           
+               F_OF_PBL = GET_FRAC_OF_PBL (I,J,L) 
 
+               ! Add biomass burning to tracer #1 -- total CO [kg CO]
+!-- prior to 12/23/08
+!               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
+               STT(I,J,L,1) = STT(I,J,L,1) + E_CO * F_OF_PBL
+            
                ! Split BB CO into geographic regions -- Tracers #6 - #11
-            IF ( LSPLIT ) THEN
-               N            = BB_REGION(I,J)
-               STT(I,J,1,N) = STT(I,J,1,N) + E_CO
-            ENDIF
+               IF ( LSPLIT ) THEN
+                  N            = BB_REGION(I,J)
+!-- prior to 12/23/08
+!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
+                  STT(I,J,L,N) = STT(I,J,L,N) + E_CO * F_OF_PBL                  
+               ENDIF
+
+         ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

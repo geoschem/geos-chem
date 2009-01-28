@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.20 2008/11/07 19:30:35 bmy Exp $
+! $Id: cleanup.f,v 1.21 2009/01/28 19:59:16 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -78,16 +78,21 @@
 !        from "lightning_nox_nl_mod.f (hup, phs, bmy, 10/2/07)
 !  (38) Now calls GEOS5_EXIT_TPCORE_WINDOW to finalize the TPCORE for
 !        GEOS-5 nested window simulations (yxw, dan, bmy, 11/6/08)
+!  (39) Now references CLEANUP_CAC_ANTHRO (amv, phs, 3/10/08)
+!  (40) Now references CLEANUP_ARCTAS_SHIP (phs, 3/10/08)
+!  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE ACETONE_MOD,             ONLY : CLEANUP_ACETONE
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE AIRCRAFT_NOX_MOD,        ONLY : CLEANUP_AIRCRAFT_NOX
+      USE ARCTAS_SHIP_EMISS_MOD,   ONLY : CLEANUP_ARCTAS_SHIP
       USE BIOMASS_MOD,             ONLY : CLEANUP_BIOMASS
       USE BIOFUEL_MOD,             ONLY : CLEANUP_BIOFUEL
       USE BRAVO_MOD,               ONLY : CLEANUP_BRAVO
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
+      USE CAC_ANTHRO_MOD,          ONLY : CLEANUP_CAC_ANTHRO
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
@@ -137,6 +142,7 @@
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
       USE TROPOPAUSE_MOD,          ONLY : CLEANUP_TROPOPAUSE
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
+      USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
       IMPLICIT NONE
@@ -155,10 +161,12 @@
       CALL CLEANUP_ACETONE
       CALL CLEANUP_AEROSOL
       CALL CLEANUP_AIRCRAFT_NOX
+      CALL CLEANUP_ARCTAS_SHIP
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
       CALL CLEANUP_C2H6
+      CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
@@ -206,6 +214,7 @@
       CALL CLEANUP_TRACER
       CALL CLEANUP_TROPOPAUSE
       CALL CLEANUP_UVALBEDO
+      CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )

@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.14 2008/12/15 15:55:16 bmy Exp $
+! $Id: biofuel_mod.f,v 1.15 2009/01/28 19:59:16 bmy Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -174,6 +174,8 @@
 !  (21) Now references LFUTURE from "logical_mod.f".  
 !  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
 !        (phs, 9/18/07)
+!  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
+!        accounting for FSCLYR from CMN_O3 (phs,3/17/08) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -183,8 +185,9 @@
       USE DIAG_MOD,             ONLY : AD29,    AD32_bf, AD34
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
-      USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99
-      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK
+      USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
+      USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
+      USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
       USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
       USE TRACERID_MOD,         ONLY : IDBFCO,  IDBFNOX, IDTACET
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
@@ -196,12 +199,14 @@
       
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_DIAG"             ! ND29, ND32, ND34
+#     include "CMN_O3"               ! FSCLYR
       
       ! Local variables
       LOGICAL                       :: WEEKDAY
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       LOGICAL, SAVE                 :: DO_ND29, DO_ND32, DO_ND34
       INTEGER                       :: AS, I, J, N, NN, DAY_NUM
+      INTEGER                       :: SIM_YEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
       REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
@@ -569,6 +574,15 @@
       ! Is it a weekday?
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
+      ! get emissions year to test Streets
+      IF ( FSCALYR < 0 ) THEN
+         SIM_YEAR = GET_YEAR()
+      ELSE
+         SIM_YEAR = FSCALYR
+      ENDIF
+
+
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
@@ -608,6 +622,22 @@
                   
                ENDIF
             ENDIF
+
+            !-----------------------------------------------------------
+            ! If we are over SE ASIA and are using Streets 2006 (that is
+            ! emission year is GE 2006), set BIOFUEL to zero since they
+            ! are already accounted for (phs, 3/17/08)
+            !-----------------------------------------------------------
+            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
+
+               ! If we are over the SE Asia region
+               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
+
 
             ! ND34 -- archive biofuel burning species [molec/cm2/s]
             IF ( DO_ND34 ) THEN

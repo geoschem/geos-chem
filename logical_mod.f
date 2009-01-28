@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.16 2007/11/05 16:16:21 bmy Exp $
+! $Id: logical_mod.f,v 1.17 2009/01/28 19:59:15 bmy Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -65,7 +65,15 @@
 !  (56) LVARTROP  (LOGICAL) : ON/OFF switch for Variable Tropopause
 !  (57) LOTDREG   (LOGICAL) : ON/OFF switch for OTD-LIS regional redistribution
 !  (57) LOTDLOC   (LOGICAL) : ON/OFF switch for OTD-LIS local    redistribution
-!  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology
+!  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology      
+!  (59) LCAC      (LOGICAL) : ON/OFF switch for CAC Canadian anthro emissions
+!  (60) LARCSHIP  (LOGICAL) : ON/OFF switch for ARCTAS ship SO2 emissions
+!  (61) LEMEPSHIP (LOGICAL) : ON/OFF switch for EMEP ship emissions
+!  (62) LVISTAS   (LOGICAL) : ON/OFF switch for VISTAS NOX anthro emissions
+!  (63) L8DAYBB   (LOGICAL) : ON/OFF switch for 8-day GFED BB emissions
+!  (64) L3HRBB    (LOGICAL) : ON/OFF switch for 3-hr GFED BB emissions
+!  (65) LSYNOPBB  (LOGICAL) : ON/OFF switch for synoptic GFED BB emissions
+!  (66) LICARTT   (LOGICAL) : ON/OFF switch for modified NEI99-EPA
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -84,6 +92,12 @@
 !  (13) Added LOTDREG, LOTDLOC for regional or local OTD-LIS redistribution
 !        of lightning flashes. (bmy, 1/31/07)
 !  (14) Added LOTDSCALE (ltm, bmy, 9/24/07)
+!  (15) Added LCAC, LARCSHIP, LEMEPSHIP (amv, phs, 3/8/08)
+!  (16) Added LVISTAS (amv, 11/24/08)
+!  (17) Added L8DAYBB, L3HRBB and LSYNOPBB for 8-day and 3-hr GFED BB
+!        emissions (yc, phs, 02/12/07)
+!  (18) Added LICARTT to account for Hudman corrections to EPA/NEI99
+!        (phs, 1/26/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -126,6 +140,7 @@
       LOGICAL :: LBIOMASS 
       LOGICAL :: LBIOFUEL
       LOGICAL :: LBIOGENIC
+      LOGICAL :: LCAC
       LOGICAL :: LBRAVO
       LOGICAL :: LEDGAR
       LOGICAL :: LEDGARNOx
@@ -137,6 +152,7 @@
       LOGICAL :: LFFNOX                 
       LOGICAL :: LFOSSIL    ! <-- deprecated: replace w/ LANTHRO soon
       LOGICAL :: LSTREETS
+      LOGICAL :: LICARTT
       LOGICAL :: LLIGHTNOX
       LOGICAL :: LOTDREG
       LOGICAL :: LOTDLOC
@@ -154,6 +170,12 @@
       LOGICAL :: LAVHRRLAI
       LOGICAL :: LGFED2BB
       LOGICAL :: LFUTURE
+      LOGICAL :: LARCSHIP 
+      LOGICAL :: LEMEPSHIP
+      LOGICAL :: LVISTAS
+      LOGICAL :: L8DAYBB
+      LOGICAL :: L3HRBB
+      LOGICAL :: LSYNOPBB
 
       ! Transport and strat BC's
       LOGICAL :: LFILL

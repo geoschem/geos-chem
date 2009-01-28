@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.7 2006/06/06 14:26:01 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.8 2009/01/28 19:59:16 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -89,6 +89,12 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 !  (5 ) Now modified for IPCC future emissions (swu, bmy, 5/30/06)
+!  (6 ) Now use int'annual scalars (amv, 08/24/07)
+!  (7 ) Now can use ICARTT-based modifications from Hudman (phs, 1/26/09)
+!        (a) Hudman et al., 2007, J. Geophys. Res., 112, D12S05, 
+!             doi:10.1029/2006JD007912
+!        (b) Hudman et al., 2008, Geophys. Res. Lett., 35, L04801, 
+!             doi:10.1029/2007GL032393
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -207,7 +213,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LFUTURE, LICARTT
       USE TIME_MOD,             ONLY : EXPAND_DATE,     GET_MONTH
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -255,10 +261,17 @@
       !=================================================================
 
       ! Weekday anthro file name
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'EPA_NEI_200411/wkday_avg_an.YYYYMM.'    //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
-
+      IF ( LICARTT ) THEN
+         
+        FILENAME = TRIM( DATA_DIR )                         // 
+     &             'EPA_NEI_200806/wkday_avg_an.YYYYMM.'    //
+     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+      ELSE
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'EPA_NEI_200708/wkday_avg_an.YYYYMM.'    //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+      ENDIF
+         
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
@@ -273,15 +286,22 @@
       ! Read EPA weekend average anthropogenic emissions
       !=================================================================
 
-      ! Weekend anthro file name
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'EPA_NEI_200411/wkend_avg_an.YYYYMM.'    //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      ! Weekday anthro file name
+      IF ( LICARTT ) THEN
+         
+        FILENAME = TRIM( DATA_DIR )                         // 
+     &             'EPA_NEI_200806/wkend_avg_an.YYYYMM.'    //
+     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+      ELSE
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'EPA_NEI_200708/wkend_avg_an.YYYYMM.'    //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+      ENDIF
 
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-      ! Read weekday data 
+      ! Read weekend data 
       CALL READ_EPA( FILENAME,       
      &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4, 
      &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE, 
@@ -519,14 +539,19 @@
 !  (13) SO4      (REAL*4   ) : Array for SO4  anthro or biomass data 
 !
 !  NOTES:
+!    (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
+!    (2 ) Now accounts for FSCLYR (phs, 3/17/08)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_READ
-      USE FILE_MOD,     ONLY : IU_FILE, IOERROR
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
+      USE FILE_MOD,         ONLY : IU_FILE, IOERROR
+      USE TRANSFER_MOD,     ONLY : TRANSFER_2D
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE TIME_MOD,         ONLY : GET_YEAR
    
 #     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_O3"               ! FSCLYR
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
@@ -549,9 +574,11 @@
       INTEGER                         :: HALFPOLAR, CENTER180
       INTEGER                         :: NI,        NJ,        NL
       INTEGER                         :: IFIRST,    JFIRST,    LFIRST
+      INTEGER                         :: SCALEYEAR
       REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
       REAL*4                          :: LONRES,    LATRES
       REAL*8                          :: ZTAU0,     ZTAU1
+      REAL*4                          :: SC(IIPAR,JJPAR)
       CHARACTER(LEN=20)               :: MODELNAME
       CHARACTER(LEN=40)               :: CATEGORY
       CHARACTER(LEN=40)               :: UNIT     
@@ -632,6 +659,26 @@
       ! Close file
       CLOSE( IU_FILE )
 
+
+      ! Get/Apply annual scalar factor (amv, 08/24/07)
+      IF ( FSCALYR < 0 ) THEN
+         SCALEYEAR = GET_YEAR()
+      ELSE
+         SCALEYEAR = FSCALYR
+      ENDIF
+
+      CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC)
+      NOx(:,:) = NOx(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC)
+      CO(:,:) = CO(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
+      SO2(:,:) = SO2(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
+      SO4(:,:) = SO4(:,:) * SC(:,:)
+
       ! Return to calling program
       END SUBROUTINE READ_EPA
 
@@ -647,11 +694,21 @@
 !  NOTES:
 !  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
+!       regional inventories are used. From README file:
+!       "the mask files have been updated to deal correctly with the boxes on
+!       the border. They are simply set to include boxes where EPA emissions
+!       are non-zero. We assume that BRAVO and CAC are also used when EPA is
+!       used. If you use neither BRAVO nor CAC, you should use the older masks
+!       to avoid double counting emissions along the borders. Masks for the
+!       case that either BRAVO or CAC (but not both) is used w/ EPA have not
+!       been produced" (phs, 12/23/08)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
@@ -660,16 +717,27 @@
       ! Local variables
       REAL*4             :: ARRAY(IGLOB,JGLOB,1)
       REAL*8             :: XTAU
-      CHARACTER(LEN=255) :: FILENAME 
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=14 ) :: MASK_DIR
 
       !=================================================================
       ! READ_USA_MASK begins here!
       !=================================================================
 
       ! File name
-      FILENAME = TRIM( DATA_DIR )           //
-     &           'EPA_NEI_200411/usa_mask.' // GET_NAME_EXT_2D() //
-     &           '.'                        // GET_RES_EXT()
+      IF ( LCAC .AND. LBRAVO ) THEN
+         MASK_DIR = 'EPA_NEI_200806'
+      ELSE IF ( LCAC .OR. LBRAVO ) THEN
+         WRITE( 6, * ) '!! WARNING !! : WITH EPA, EITHER NONE OR ' //
+     $        ' BOTH BRAVO AND CAC INVENTORIES SHOULD BE USED !!!'
+         MASK_DIR = 'EPA_NEI_200806'
+      ELSE
+         MASK_DIR = 'EPA_NEI_200411'
+      ENDIF
+         
+      FILENAME = TRIM( DATA_DIR )         //
+     &           MASK_DIR // '/usa_mask.' // GET_NAME_EXT_2D() //
+     &           '.'                      // GET_RES_EXT()
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )

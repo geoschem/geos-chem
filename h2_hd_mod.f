@@ -1,4 +1,4 @@
-! $Id: h2_hd_mod.f,v 1.1 2007/11/05 16:16:19 bmy Exp $
+! $Id: h2_hd_mod.f,v 1.2 2009/01/28 19:59:15 bmy Exp $
       MODULE H2_HD_MOD
 !
 !******************************************************************************
@@ -123,6 +123,7 @@
 !  (lyj, phs, bmy, 9/18/07)
 !
 !  NOTES:
+!    (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -133,14 +134,15 @@
       USE GEIA_MOD,      ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
       USE GEIA_MOD,      ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET,   GET_AREA_CM2
-      USE LOGICAL_MOD,   ONLY : LANTHRO,     LGFED2BB
-      USE LOGICAL_MOD,   ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
-      USE LOGICAL_MOD,   ONLY : LSTREETS,    LEDGAR,        LBRAVO
-      USE TIME_MOD,      ONLY : GET_MONTH,   GET_TAU 
-      USE TIME_MOD,      ONLY : GET_YEAR,    GET_TS_EMIS  
-      USE TRACER_MOD,    ONLY : STT
-      USE TRACERID_MOD,  ONLY : IDBFCO,      IDTH2,         IDTHD
-      USE TAGGED_CO_MOD, ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
+      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB
+      USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
+      USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
+      USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
+      USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
+      USE TRACER_MOD,       ONLY : STT
+      USE TRACERID_MOD,     ONLY : IDBFCO,      IDTH2,         IDTHD
+      USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
       IMPLICIT NONE
 
@@ -234,18 +236,27 @@
       ! If FSCALYR < 0 then use this year (JYEAR) for scaling the
       ! fossil fuel emissions.  Otherwise, use the value of FSCALYR 
       ! as specified in 'input.ctm'.
+      !
+      ! Modified to use new scaling factor (phs, 3/11/08)
       !=================================================================
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
-
-         ! Cap SCALEYEAR at 1998 for now (bmy, 1/13/03) 
-         IF ( SCALEYEAR > 1998 ) SCALEYEAR = 1998
+!------------------
+! prior to 3/11/08
+!         ! Cap SCALEYEAR at 1998 for now (bmy, 1/13/03) 
+!         IF ( SCALEYEAR > 1998 ) SCALEYEAR = 1998
+!------------------
       ELSE
          SCALEYEAR = FSCALYR
       ENDIF
 
       IF ( SCALEYEAR /= LASTYEAR ) THEN
-         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
+!------------------
+! prior to 3/11/08
+!         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
+!-----------------
+         ! now use updated scalars (phs, 3/11/08)
+         CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )
          LASTYEAR = SCALEYEAR
       ENDIF
 

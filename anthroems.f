@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.9 2006/08/14 17:58:00 bmy Exp $
+! $Id: anthroems.f,v 1.10 2009/01/28 19:59:16 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -85,6 +85,7 @@
 !  (27) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05)
 !  (28) Modified for IPCC future emissions scale factors (swu, bmy, 5/30/06)
 !  (29) Extend max value for FSCALYR to 2002 (bmy, 7/18/06)
+!  (30) Use updated int'annual scale factors for 1985-2003 (amv, 08/24/07)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -109,6 +110,7 @@
       USE TRACERID_MOD,         ONLY : IDECO,        IDEMEK
       USE TRACERID_MOD,         ONLY : IDENOX,       IDEPRPE
       USE TRACERID_MOD,         ONLY : NEMANTHRO
+      USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 
       IMPLICIT NONE
 
@@ -152,12 +154,26 @@
       !
       ! Do not let SCALEYEAR exceed 1998 for now, since this is the 
       ! latest year for which we have data from CDIAC. (bmy, 1/13/03)
+      !
+      ! Do not limit default SCALEYEAR - this is done in 
+      !  GET_ANNUAL_SCALAR. Allow users to force the scaling year
+      !  as before with a value GT 0 in input.geos (phs, 3/11/08)
       !=================================================================
+!------------------
+! prior to 3/11/08
+!      IF ( FSCALYR < 0 ) THEN
+!         SCALEYEAR = MIN( GET_YEAR(), 2002 )
+!      ELSE
+!         SCALEYEAR = FSCALYR
+!      ENDIF
+!------------------
       IF ( FSCALYR < 0 ) THEN
-         SCALEYEAR = MIN( GET_YEAR(), 2002 )
+         SCALEYEAR = GET_YEAR()
       ELSE
          SCALEYEAR = FSCALYR
       ENDIF
+
+
 
       !=================================================================      
       ! Do the following only on the very first call to ANTHROEMS...
@@ -251,14 +267,19 @@
       IF ( FIRST .or. SCALEYEAR /= LASTYEAR ) THEN
 
          WRITE( 6, * )
-
-         ! Read in scale factors based on total fuel CO2 
-         ! (relative to baseline year 1985) -- used for NOx
-         CALL READ_TOTCO2( SCALEYEAR, FTOTCO2 )
-
-         ! Read in scale factors based on liquid fuel CO2 
-         ! (relative to baseline year 1985) -- used for CO, HC's
-         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
+!------------------
+! prior to 3/11/08
+!         ! Read in scale factors based on total fuel CO2 
+!         ! (relative to baseline year 1985) -- used for NOx
+!         CALL READ_TOTCO2( SCALEYEAR, FTOTCO2 )
+!
+!         ! Read in scale factors based on liquid fuel CO2 
+!         ! (relative to baseline year 1985) -- used for CO, HC's
+!         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
+!-----------------
+         ! now use updated scalars (amv, phs, 3/11/08)
+         CALL GET_ANNUAL_SCALAR( 71, 1985, SCALEYEAR, FTOTCO2 )
+         CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )
 
          ! Set SCALEYEAR to this YEAR
          LASTYEAR = SCALEYEAR

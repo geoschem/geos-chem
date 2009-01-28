@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.40 2008/12/15 15:55:14 bmy Exp $
+! $Id: sulfate_mod.f,v 1.41 2009/01/28 19:59:14 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -98,7 +98,7 @@
 !  (29) READ_ANTHRO_SOx   : Reads anthropogenic SO2 and SO4 emissions
 !  (30) READ_OCEAN_DMS    : Reads biogenic DMS emissions from oceans
 !  (31) READ_SST          : Reads monthly mean sea-surface temperatures
-!  (32) READ_BIOMASS_SO2  : Reads SO2 emissions from biomass burning
+!  (32) READ_BIOFUEL_SO2  : Reads SO2 emissions from biomass burning
 !  (33) READ_AIRCRAFT_SO2 : Reads SO2 emissions from aircraft exhaust
 !  (34) READ_SHIP_SO2     : Reads SO2 emissions from ship exhaust
 !  (35) READ_ANTHRO_NH3   : Reads NH3 emissions from anthropogenic sources
@@ -207,9 +207,11 @@
 !  (35) Now references "bravo_mod.f" (rjp, kfb, bmy, 6/26/06)
 !  (36) Now references "streets_anthro_mod.f" (yxw, bmy, 8/17/06)
 !  (37) Now references "biomass_mod.f" (bmy, 9/27/06)
-!  (38) Now prevent seg fault error in READ_BIOMASS_SO2 (bmy, 11/3/06)
+!  (38) Now prevent seg fault error in READ_BIOFUEL_SO2 (bmy, 11/3/06)
 !  (39) Bug fix in SEASALT_CHEM (havala, bec, bmy, 12/8/06)
 !  (40) Extra error check for low RH in GRAV_SETTLING (phs, 6/11/08)
+!  (41) Now references "cac_anthro_mod.f".  And apply SO2 yearly scale factor
+!        to SO2 from GEIA (amv, phs, 3/11/08)  
 !  (41) Bug fixes in reading EDGAR data w/ the right tracer number, 
 !        when we are doing offline or nonstd simulations (dkh, 10/31/08)
 !******************************************************************************
@@ -270,7 +272,7 @@
       REAL*8,  ALLOCATABLE :: PSO4_SO2(:,:,:)
       REAL*8,  ALLOCATABLE :: PSO4_SS(:,:,:)
       REAL*8,  ALLOCATABLE :: PNITs(:,:,:)
-      REAL*8,  ALLOCATABLE :: SOx_SCALE(:,:)
+      REAL*4,  ALLOCATABLE :: SOx_SCALE(:,:)
       REAL*8,  ALLOCATABLE :: SSTEMP(:,:)
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
@@ -3697,16 +3699,19 @@
 !        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !  (9 ) Now references GET_YEAR from "time_mod.f". (bmy, 8/1/05)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (11) Now check if GFED2 has been updated (yc, phs, 12/23/08)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2
-      USE TIME_MOD,     ONLY : GET_SEASON, GET_MONTH
-      USE TIME_MOD,     ONLY : GET_YEAR,   ITS_A_NEW_MONTH
-      USE TRACER_MOD,   ONLY : STT,        ITS_AN_AEROSOL_SIM
-      USE TRACERID_MOD, ONLY : IDTNITs,    IDTSO4s
-      USE TRACERID_MOD, ONLY : IDTDMS,     IDTSO2 
-      USE TRACERID_MOD, ONLY : IDTSO4,     IDTNH3
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,       ONLY : LSHIPSO2,   LPRT
+      USE TIME_MOD,          ONLY : GET_SEASON, GET_MONTH
+      USE TIME_MOD,          ONLY : GET_YEAR,   ITS_A_NEW_MONTH
+      USE TRACER_MOD,        ONLY : STT,        ITS_AN_AEROSOL_SIM
+      USE TRACERID_MOD,      ONLY : IDTNITs,    IDTSO4s
+      USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
+      USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
+      USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3760,18 +3765,32 @@
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
          CALL READ_AIRCRAFT_SO2( MONTH )
-         CALL READ_BIOMASS_SO2( MONTH )
+!-- prior 12/23/08            
+!         CALL READ_BIOMASS_SO2( MONTH )
+         CALL READ_BIOFUEL_SO2( MONTH )
          CALL READ_ANTHRO_SOx( MONTH, NSEASON )
          CALL READ_ANTHRO_NH3( MONTH )
-         CALL READ_BIOMASS_NH3( MONTH )
+!-- prior 12/23/08            
+!         CALL READ_BIOMASS_NH3( MONTH )
+         CALL READ_BIOFUEL_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
      
          ! Also read ship exhaust SO2 if necessary 
-         IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
+!-- prior 12/23/08            
+!         IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
+         CALL READ_SHIP_SO2( MONTH )
 
          ! Read oxidants for the offline simulation only
          IF ( ITS_AN_AEROSOL_SIM() ) CALL READ_OXIDANT( MONTH )
 
+      ENDIF
+
+      IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
+         CALL GET_BIOMASS_SO2
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
+         
+         CALL GET_BIOMASS_NH3
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_NH3')         
       ENDIF
 
       !=================================================================
@@ -4024,25 +4043,30 @@
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (9 ) Now references GET_BRAVO_ANTHRO and GET_BRAVO_MASK from "bravo_mod.f" 
 !        for BRAVO Mexican emissions. (rjp, kfb, bmy, 6/26/06)
+!  (10) Bug fix: EPA emissions were overwritten by regular ones when both BRAVO
+!         and EPA were used. (phs, 10/4/07)
+!  (11) Now use CAC Canadian emissions, if necessary (amv, 1/10/08)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE BRAVO_MOD,    ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
-      USE DIAG_MOD,     ONLY : AD13_SO2_an,      AD13_SO2_ac
-      USE DIAG_MOD,     ONLY : AD13_SO2_bb,      AD13_SO2_nv
-      USE DIAG_MOD,     ONLY : AD13_SO2_ev,      AD13_SO2_bf
-      USE DIAG_MOD,     ONLY : AD13_SO2_sh
-      USE DAO_MOD,      ONLY : BXHEIGHT, PBL
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
-      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LBRAVO, LNEI99,   LSHIPSO2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
-      USE TIME_MOD,     ONLY : GET_TS_EMIS,      GET_DAY_OF_YEAR 
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTSO2
+      USE BRAVO_MOD,      ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
+      USE DIAG_MOD,       ONLY : AD13_SO2_an,      AD13_SO2_ac
+      USE DIAG_MOD,       ONLY : AD13_SO2_bb,      AD13_SO2_nv
+      USE DIAG_MOD,       ONLY : AD13_SO2_ev,      AD13_SO2_bf
+      USE DIAG_MOD,       ONLY : AD13_SO2_sh
+      USE DAO_MOD,        ONLY : BXHEIGHT, PBL
+      USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,    ONLY : LBRAVO, LNEI99,   LSHIPSO2
+      USE LOGICAL_MOD,    ONLY : LCAC
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
+      USE TIME_MOD,       ONLY : GET_TS_EMIS,      GET_DAY_OF_YEAR 
+      USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK
+      USE TRACER_MOD,     ONLY : XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13, LD13 (for now)
@@ -4226,6 +4250,23 @@
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
       ! Overwrite MEXICO w/ BRAVO     (anthro only   ) SO2 emissions
+      ! Overwrite CANADA w/ CAC       (anthro only   ) SO2 emissions
+      !-----------------------------------------------------------------
+      ! Note that we:
+      ! Overwrite ASIA   w/ STREETS   (anthro only if year LE 2005 )
+      !  in READ_ANTHRO_SOx.
+      !
+      ! The difference is on the way SO4 is determined: 
+      !  - in READ_ANTHRO_SOx, SO4 is a fraction of provided SO2 if 
+      !     EDGAR, else it is GEIA default value
+      !  - here, SO4 is either provided (like for EPA), or it is EDGAR
+      !     or GEIA (like we do for BRAVO)
+      !
+      ! In the second case, we can still get SO4 as a fraction of SO2
+      ! provided locally (like CAC). This is done then in SRCSO4.
+      ! (This specific treatment for CAC is to allow for CAC+EPA on the 
+      !  border)
+      ! (amv, phs, 3/12/08)
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4241,81 +4282,163 @@
          AREA_CM2 = GET_AREA_CM2(J)
 
          DO I = 1, IIPAR
-         
+!------- Prior to 3/8/07 (phs)         
+            !!-----------------------------------------------------------
+            !! If we are using EPA/NEI99 (anthro + biofuel) ...
+            !!-----------------------------------------------------------
+            !IF ( LNEI99 ) THEN
+            !
+            !   ! If we are over the USA ...
+            !   IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
+            !      AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
+            !      BF           = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
+            !   
+            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+            !      ! Place all anthro SO2 into surface layer
+            !      SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+            !      SO2an(I,J,2) = 0d0
+            !   
+            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+            !      SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
+            !
+            !   ELSE
+            !
+            !      ! If we are not over the USA, then just use the regular 
+            !      ! emissions from ESO2_an and ESO2_bf (bmy, 11/16/04)
+            !      SO2an(I,J,1) = ESO2_an(I,J,1)
+            !      SO2an(I,J,2) = ESO2_an(I,J,2)
+            !      SO2bf(I,J)   = ESO2_bf(I,J)
+            !
+            !   ENDIF
+            !
+            !ELSE
+            ! 
+            !   ! If we are not using EPA/NEI99 emissions, then just copy 
+            !   ! ESO2_an and ESO2_bf into local arrays (bmy, 11/16/04)
+            !   SO2an(I,J,1) = ESO2_an(I,J,1)
+            !   SO2an(I,J,2) = ESO2_an(I,J,2)
+            !   SO2bf(I,J)   = ESO2_bf(I,J)
+            !
+            !ENDIF
+            !
+            !!-----------------------------------------------------------
+            !! If we are using BRAVO emissions over Mexico ...
+            !!-----------------------------------------------------------
+            !IF ( LBRAVO ) THEN
+            !
+            !   ! If we are over Mexico ...
+            !   IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+            !
+            !      ! Read BRAVO SO2 emissions in [molec/cm2/s]
+            !      AN           = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
+            !   
+            !      ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+            !      ! Place all anthro SO2 into surface layer
+            !      SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+            !      SO2an(I,J,2) = 0d0
+            !
+            !   ELSE
+            !
+            !      ! If we are not over MEXICO, then just use 
+            !      ! the regular emissions from ESO2_an
+            !      SO2an(I,J,1) = ESO2_an(I,J,1)
+            !      SO2an(I,J,2) = ESO2_an(I,J,2)
+            !
+            !   ENDIF
+            !
+            !ELSE
+            ! 
+            !   ! If we are not using BRAVO emissions, then just copy 
+            !   ! ESO2_an and ESO2_bf into local arrays
+            !   SO2an(I,J,1) = ESO2_an(I,J,1)
+            !   SO2an(I,J,2) = ESO2_an(I,J,2)
+            !   SO2bf(I,J)   = ESO2_bf(I,J)
+            !
+            !ENDIF
+
             !-----------------------------------------------------------
-            ! If we are using EPA/NEI99 (anthro + biofuel) ...
+            ! Default SO2 from GEIA or EDGAR (w/ optional STREETS for 
+            ! ASIA, and EMEP for Europe)
+            !-----------------------------------------------------------
+            SO2an(I,J,1) = ESO2_an(I,J,1)
+            SO2an(I,J,2) = ESO2_an(I,J,2)
+            SO2bf(I,J)   = ESO2_bf(I,J)
+
+            !-----------------------------------------------------------
+            ! If we are using EPA/NEI99 over the USA (anthro + biofuel)
             !-----------------------------------------------------------
             IF ( LNEI99 ) THEN
-
-               ! If we are over the USA ...
-               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+            IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             
-                  ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
-                  AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
-                  BF           = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
+               ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
+               AN           = GET_EPA_ANTHRO( I, J, IDTSO2, WEEKDAY )
+               BF           = GET_EPA_BIOFUEL(I, J, IDTSO2, WEEKDAY )
                
-                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-                  ! Place all anthro SO2 into surface layer
-                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-                  SO2an(I,J,2) = 0d0
+               ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+               ! Place all anthro SO2 into surface layer
+               SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+               SO2an(I,J,2) = 0d0
                
-                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-                  SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
+               ! Convert biofuel SO2 from [molec/cm2/s] to [kg/box/s] 
+               SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
 
-               ELSE
-
-                  ! If we are not over the USA, then just use the regular 
-                  ! emissions from ESO2_an and ESO2_bf (bmy, 11/16/04)
-                  SO2an(I,J,1) = ESO2_an(I,J,1)
-                  SO2an(I,J,2) = ESO2_an(I,J,2)
-                  SO2bf(I,J)   = ESO2_bf(I,J)
-        
-               ENDIF
-
-            ELSE
-             
-               ! If we are not using EPA/NEI99 emissions, then just copy 
-               ! ESO2_an and ESO2_bf into local arrays (bmy, 11/16/04)
-               SO2an(I,J,1) = ESO2_an(I,J,1)
-               SO2an(I,J,2) = ESO2_an(I,J,2)
-               SO2bf(I,J)   = ESO2_bf(I,J)
-
+            ENDIF
             ENDIF
 
             !-----------------------------------------------------------
-            ! If we are using BRAVO emissions over Mexico ...
+            ! If we are using BRAVO emissions over Mexico (anthro)
             !-----------------------------------------------------------
-            IF ( LBRAVO ) THEN
-
-               ! If we are over Mexico ...
-               IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+            IF ( LBRAVO )  THEN 
+            IF ( GET_BRAVO_MASK( I, J ) > 0d0 )  THEN
             
-                  ! Read BRAVO SO2 emissions in [molec/cm2/s]
-                  AN           = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
+               ! Read BRAVO SO2 emissions in [molec/cm2/s]
+               AN           = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
                
-                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
-                  ! Place all anthro SO2 into surface layer
-                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-                  SO2an(I,J,2) = 0d0
+               ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+               ! Place all anthro SO2 into surface layer.
+               ! Add to USA emissions if on the border. 
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
 
+                  SO2an(I,J,1) = SO2an(I,J,1) + 
+     &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
                ELSE
-
-                  ! If we are not over MEXICO, then just use 
-                  ! the regular emissions from ESO2_an
-                  SO2an(I,J,1) = ESO2_an(I,J,1)
-                  SO2an(I,J,2) = ESO2_an(I,J,2)
-        
+                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
                ENDIF
 
-            ELSE
-             
-               ! If we are not using BRAVO emissions, then just copy 
-               ! ESO2_an and ESO2_bf into local arrays
-               SO2an(I,J,1) = ESO2_an(I,J,1)
-               SO2an(I,J,2) = ESO2_an(I,J,2)
-               SO2bf(I,J)   = ESO2_bf(I,J)
+               SO2an(I,J,2) = 0d0
 
             ENDIF
+            ENDIF
+
+
+            !-----------------------------------------------------------
+            ! If we are using CAC emissions over Canada ...
+            !-----------------------------------------------------------
+            IF ( LCAC ) THEN
+            IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Read CAC SO2 emissions in [molec/cm2/s]
+               AN           = GET_CAC_ANTHRO( I, J, IDTSO2,
+     &                            MOLEC_CM2_s=.TRUE. )
+
+               ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
+               ! Place all anthro SO2 into surface layer.
+               ! Add to USA emissions if on the border. 
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+
+                  SO2an(I,J,1) = SO2an(I,J,1) + 
+     &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+               ELSE
+                  SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
+               ENDIF
+
+               SO2an(I,J,2) = 0d0
+
+            ENDIF
+            ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -4342,7 +4465,8 @@
          TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
 
          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
-         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
+!         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
+         TSO2 = TSO2 + ESO2_sh(I,J)
         
          ! Zero SO2SRC
          SO2SRC = 0d0
@@ -4375,7 +4499,9 @@
 
             ! Also add ship exhaust SO2 into surface if necessary 
             ! (bec, bmy, 5/20/04)
-            IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
+!-- prior 6/08 (phs)
+!            IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
+            SO2(1) = SO2(1) + ESO2_sh(I,J)
 
          ENDIF 
 
@@ -4484,20 +4610,23 @@
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
 !        file CMN. (bmy, 2/22/05)
 !  (6 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (7 ) Now overwrite CAC emissions over Canada, if necessary (amv,  1/10/08)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE DAO_MOD,      ONLY : PBL
-      USE DIAG_MOD,     ONLY : AD13_SO4_an,     AD13_SO4_bf
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
-      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LNEI99
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTSO4
+      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK
+      USE CAC_ANTHRO_MOD, ONLY : GET_CAC_ANTHRO
+      USE DAO_MOD,        ONLY : PBL
+      USE DIAG_MOD,       ONLY : AD13_SO4_an,     AD13_SO4_bf
+      USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,     ONLY : XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13 (for now)
@@ -4512,6 +4641,7 @@
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
+      REAL*8                 :: CAC_AN
       REAL*8                 :: SO4an(IIPAR,JJPAR,2)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
 
@@ -4532,7 +4662,8 @@
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
       !=================================================================
-      ! Overwrite USA w/ EPA/NEI99 SO4 emissions (if necessary)
+      ! Overwrite USA    w/ EPA/NEI99 SO4 emissions       (if necessary)
+      ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
       ! Store emissions into local arrays SO4an, SO4bf
       !=================================================================
 !$OMP PARALLEL DO
@@ -4545,11 +4676,19 @@
 
          DO I = 1, IIPAR
 
-            ! If we are using EPA/NEI99 emissions
-            IF ( LNEI99 ) THEN
+            !-----------------------------------------------------------
+            ! Default SO4 from GEIA, or (as a fraction of SO2) from 
+            ! EDGAR w/ optional STREETS for S.E.-ASIA, and optional
+            ! EMEP for Europe
+            !-----------------------------------------------------------
+            SO4an(I,J,1) = ESO4_an(I,J,1)
+            SO4an(I,J,2) = ESO4_an(I,J,2)
+            SO4bf(I,J)   = 0d0
 
-               ! If we are over the USA ...
-               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+            ! If we are using EPA/NEI99 emissions and over the USA
+            IF ( LNEI99 ) THEN
+            IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
             
                   ! Read SO4 emissions in [molec/cm2/s]
                   EPA_AN       = GET_EPA_ANTHRO( I, J, IDTSO4, WEEKDAY )
@@ -4563,27 +4702,34 @@
                   ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
                   SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
 
+            ENDIF
+            ENDIF
+
+            ! If we are using CAC emissions and over CANADA ...
+            IF ( LCAC ) THEN
+            IF ( GET_CANADA_MASK( I, J) < 0d0 ) THEN
+
+               ! Read SO4 emissions in [molec/cm2/s]
+               CAC_AN       = GET_CAC_ANTHRO( I, J, IDTSO2, 
+     &                                        MOLEC_CM2_S=.TRUE. )
+
+               ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
+               ! [kg/box/s]
+               ! Place all CAC anthro SO4 into surface layer
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+                  SO4an(I,J,1) = SO4an(I,J,1) + CAC_AN * 0.014/ 0.986 
+     &                           * AREA_CM2 / XNUMOL(IDTSO4)
                ELSE
-
-                  ! If we are not over the USA, then just use the regular 
-                  ! emissions from ESO4_an.  Also set biofuel SO4 to zero
-                  ! since we currently don't read this in. (bmy, 11/16/04)
-                  SO4an(I,J,1) = ESO4_an(I,J,1)
-                  SO4an(I,J,2) = ESO4_an(I,J,2)
+                  SO4an(I,J,1) = CAC_AN * 0.014 / 0.986 * AREA_CM2 
+     &                           / XNUMOL(IDTSO4)
                   SO4bf(I,J)   = 0d0
-
                ENDIF
 
-            ELSE
-             
-               ! If we are not using EPA/NEI99 emissions, then just copy 
-               ! ESO4_an into ESO4 array.  Also set biofuel SO4 to zero
-               ! since we currently don't read this in. (bmy, 11/16/04)
-               SO4an(I,J,1) = ESO4_an(I,J,1)
-               SO4an(I,J,2) = ESO4_an(I,J,2)
-               SO4bf(I,J)   = 0d0
+               SO4an(I,J,2) = 0d0
 
             ENDIF
+            ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -4717,18 +4863,20 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD13_NH3_an, AD13_NH3_bb
-      USE DIAG_MOD,     ONLY : AD13_NH3_bf, AD13_NH3_na
-      USE DAO_MOD,      ONLY : PBL
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE EPA_NEI_MOD,  ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
-      USE EPA_NEI_MOD,  ONLY : GET_USA_MASK
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LNEI99
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTNH3
+      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK
+      USE CAC_ANTHRO_MOD, ONLY : GET_CAC_ANTHRO
+      USE DIAG_MOD,       ONLY : AD13_NH3_an, AD13_NH3_bb
+      USE DIAG_MOD,       ONLY : AD13_NH3_bf, AD13_NH3_na
+      USE DAO_MOD,        ONLY : PBL
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,     ONLY : XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13
@@ -4742,6 +4890,7 @@
       INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
       REAL*8                 :: FEMIS,    DTSRCE,  TNH3    
       REAL*8                 :: AREA_CM2, EPA_AN,  EPA_BF
+      REAL*8                 :: CAC_AN
       REAL*8                 :: NH3an(IIPAR,JJPAR)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
 
@@ -4779,7 +4928,7 @@
          ! until further notice.  Comment out the lines below until 
          ! further notice.  (bmy, 11/17/04) 
          !! Grid box surface area [cm2]
-         !AREA_CM2 = GET_AREA_CM2( J )
+         AREA_CM2 = GET_AREA_CM2( J )
          !-------------------------------------------------------------------
 
          DO I = 1, IIPAR
@@ -4828,6 +4977,21 @@
             ! further notice.  (bmy, 11/17/04) 
             !ENDIF
             !-----------------------------------------------------------------
+
+            ! If we are using CAC emissions and over CANADA
+            IF ( LCAC ) THEN
+            IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Read NH3 anthro emissions in [molec NH3/cm2/s]
+               CAC_AN = GET_CAC_ANTHRO( I, J, IDTNH3, 
+     &                                  MOLEC_CM2_S=.TRUE.)
+
+               ! Convert from [molec NH3/cm2/c] to [kg NH3/box/sec]
+               NH3an(I,J) = CAC_AN * AREA_CM2 / XNUMOL(IDTNH3)
+
+            ENDIF
+            ENDIF
+
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -5499,6 +5663,7 @@
 !  (6 ) Now computes future SOx emissions (swu, bmy, 5/30/06)
 !  (7 ) Now can read either EDGAR or GEIA emissions (avd, bmy, 7/14/06)
 !  (8 ) Now overwrite David Streets' SO2, if necessary (yxw, bmy, 8/14/06)
+!  (9 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  (9 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
@@ -5509,17 +5674,20 @@
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EDGAR_MOD,            ONLY : GET_EDGAR_ANTH_SO2
+      USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
+      USE EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE GRID_MOD,             ONLY : GET_XMID,        GET_YMID
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LEDGARSOx
-      USE LOGICAL_MOD,          ONLY : LSTREETS
+      USE LOGICAL_MOD,          ONLY : LSTREETS,        LEMEP
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,             ONLY : GET_YEAR
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_O3"               ! FSCALYR
@@ -5530,6 +5698,7 @@
       ! Local variables             
       INTEGER                       :: I, J, L, IX, JX, IOS
       INTEGER, SAVE                 :: LASTYEAR = -99
+      INTEGER                       :: SCALEYEAR
       REAL*4                        :: E_SOx(IGLOB,JGLOB,2)
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: XTAU, Fe, X, Y, AREA_CM2
@@ -5540,6 +5709,13 @@
       !=================================================================
       ! READ_ANTHRO_SOx begins here!
       !=================================================================
+         
+      IF ( FSCALYR < 0 ) THEN
+         SCALEYEAR = GET_YEAR()
+      ELSE
+         SCALEYEAR = FSCALYR
+      ENDIF
+
 
       IF ( LEDGARSOx ) THEN
 
@@ -5588,7 +5764,30 @@
                      ! Overwrite EDGAR SO2 w/ David Streets' [kg SO2/s]
                      EDG_SO2 = GET_STREETS_ANTHRO( I,      J, 
      &                                             IDTSO2, KG_S=.TRUE. )
+                     
+                     ! Streets 2006 includes biofuels.
+                     IF ( SCALEYEAR >= 2005 ) ESO2_bf(I,J) = 0d0
+
                   ENDIF
+               ENDIF
+
+               ! If we are using EMEP over Europe...
+               IF ( LEMEP ) THEN
+
+                  IF (GET_EUROPE_MASK(I,J) > 0d0) THEN
+
+!-----------------------------------------------------------------------------
+! Prior to 11/14/08:
+! BUG FIX: Using tracer #26 in the call to GET_EMEP_ANTHRO can cause 
+! problems when adding or removing species.  Replace w/ IDTSO2. 
+! (phs, 11/14/08) 
+!                     EDG_SO2 = GET_EMEP_ANTHRO( I, J, 26, KG_S=.TRUE. )
+!-----------------------------------------------------------------------------
+                     EDG_SO2 = GET_EMEP_ANTHRO( I,      J,
+     $                                          IDTSO2, KG_S=.TRUE. )
+
+                  ENDIF
+
                ENDIF
 
                ! Compute SO4/SOx fraction for EUROPE
@@ -5655,31 +5854,36 @@
          ! Read in yearly SO2 scale factors here
          ! (For now we only have 1998, deal w/ other years later)
          !=================================================================
-         IF ( LASTYEAR < 0 ) THEN
+!-- prior to 3/11/08
+         !IF ( LASTYEAR < 0 ) THEN
+         !
+         !   ! put in SOX scale year here (hardwired to 1998 for now)
+         !   SYEAR    = '1998'
+         !   FILENAME = TRIM( DATA_DIR )                    // 
+         !&                 'sulfate_sim_200508/scalefoss.SOx.' //  
+         !&                 GET_RES_EXT()  // '.' // SYEAR
+         !
+         !   ! Echo output
+         !   WRITE( 6, 100 ) TRIM( FILENAME )
+         !
+         !   ! Get TAU value (use Jan 1, 1998 for scale factors)
+         !   XTAU = GET_TAU0( 1, 1, 1998 )
+         !
+         !   ! Read anthropogenic SOx [molec/cm2/s] 
+         !   CALL READ_BPCH2( FILENAME, 'SCALFOSS', 3, 
+         !&                       XTAU,      IGLOB,     JGLOB,     
+         !&                       1,         ARRAY,     QUIET=.TRUE. )
+         !
+         !   ! Cast from REAL*4 to REAL*8
+         !   CALL TRANSFER_2D( ARRAY(:,:,1), SOx_SCALE )
+         !
+         !   ! Reset LASTYEAR
+         !   LASTYEAR = GET_YEAR()
+         !ENDIF
 
-            ! put in SOX scale year here (hardwired to 1998 for now)
-            SYEAR    = '1998'
-            FILENAME = TRIM( DATA_DIR )                    // 
-     &                 'sulfate_sim_200508/scalefoss.SOx.' //  
-     &                 GET_RES_EXT()  // '.' // SYEAR
-        
-            ! Echo output
-            WRITE( 6, 100 ) TRIM( FILENAME )
 
-            ! Get TAU value (use Jan 1, 1998 for scale factors)
-            XTAU = GET_TAU0( 1, 1, 1998 )
-
-            ! Read anthropogenic SOx [molec/cm2/s] 
-            CALL READ_BPCH2( FILENAME, 'SCALFOSS', 3, 
-     &                       XTAU,      IGLOB,     JGLOB,     
-     &                       1,         ARRAY,     QUIET=.TRUE. )
-
-            ! Cast from REAL*4 to REAL*8
-            CALL TRANSFER_2D( ARRAY(:,:,1), SOx_SCALE )
-         
-            ! Reset LASTYEAR
-            LASTYEAR = GET_YEAR()
-         ENDIF
+         ! Get annual scalar factor (amv, 08/24/07)
+         CALL GET_ANNUAL_SCALAR( 73, 1985, SCALEYEAR, SOx_SCALE )
 
          !==============================================================
          ! Partition SOx into SO2 and SO4, according to the following
@@ -5742,6 +5946,7 @@
      &                          AREA_CM2 / XNUMOL(IDTSO2)            
 
                ! If we are using David Streets' emissions
+               ! Remember: those include BF if Year is GE 2005
                IF ( LSTREETS ) THEN
 
                   ! If we are over the SE Asia region
@@ -5757,10 +5962,28 @@
                   ENDIF
                ENDIF
 
-               ! Compute SO4 (tracer #3) from SOx
-               ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
-               ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
-     &                          AREA_CM2 / XNUMOL(IDTSO4)
+               IF ( LEMEP ) THEN
+
+                  IF (GET_EUROPE_MASK(I,J) > 0d0 ) THEN
+
+                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, 26,
+     &                                                KG_S=.TRUE. ) 
+
+                     ESO2_an(I,J,2) = 0d0
+ 
+                  ENDIF
+
+               ENDIF
+
+!--- prior 6/23/08
+!      Now calculate SO4 from SO2, since SOx not available with STREETS and EMEP
+!               ! Compute SO4 (tracer #3) from SOx
+!               ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
+!               ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
+!     &                          AREA_CM2 / XNUMOL(IDTSO4)
+
+                ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
+
             ENDDO
          ENDDO
          ENDDO
@@ -5943,12 +6166,12 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_BIOMASS_SO2( THISMONTH )
+      SUBROUTINE READ_BIOFUEL_SO2( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine READ_BIOMASS_SO2 reads monthly mean biomass burning 
+!  Subroutine READ_BIOFUEL_SO2 reads monthly mean biomass burning 
 !  emissions for SO2.  SOx is read in, and converted to SO2. 
-!  (rjp, bdf, bmy, 1/16/03, 10/3/06)
+!  (rjp, bdf, bmy, phs, 1/16/03, 12/23/08)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -5975,6 +6198,8 @@
 !        (bmy, 9/27/06)
 !  (10) Now prevent seg fault if BIOMASS emissions are turned off.
 !        (bmy, 10/3/06)
+!  (11) Renamed READ_BIOFUEL_SO2, and move all biomass code to GET_BIOMASS_SO2
+!        to account for several GFED2 products (yc, phs, 12/23/08)   
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5999,7 +6224,9 @@
       INTEGER                       :: I, J, THISYEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: BIOCO(IIPAR,JJPAR)
-      REAL*8                        :: CONV, XTAU
+!-- prior 12/23/08            
+!      REAL*8                        :: CONV, XTAU
+      REAL*8                        :: XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
                                     
@@ -6008,7 +6235,7 @@
      &                         31d0, 31d0, 30d0, 31d0, 30d0, 31d0/)
 
       !=================================================================
-      ! READ_BIOMASS_SO2 begins here!
+      ! READ_BIOFUEL_SO2 begins here!
       !=================================================================
 
       !=================================================================
@@ -6024,7 +6251,7 @@
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOMASS_SO2: Reading ', a )
+ 100  FORMAT( '     - READ_BIOFUEL_SO2: Reading ', a )
 
       ! Get TAU0 value (use generic year 1985)
       XTAU = GET_TAU0( 1, 1, 1985 )
@@ -6048,19 +6275,21 @@
       ! Loop over longitudes
       DO J = 1, JJPAR
 
-         ! Conversion factor for [cm2 * kg/molec]
-         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
+!-- prior 12/23/08            
+!         ! Conversion factor for [cm2 * kg/molec]
+!         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
 
          ! Loop over latitudes
          DO I = 1, IIPAR
 
-            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
-            ! NOTE: Future scale has already been applied by this point
-            IF ( LBIOMASS ) THEN
-               ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
-            ELSE
-               ESO2_bb(I,J) = 0d0
-            ENDIF
+!-- prior 12/23/08            
+!            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
+!            ! NOTE: Future scale has already been applied by this point
+!            IF ( LBIOMASS ) THEN
+!               ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
+!            ELSE
+!               ESO2_bb(I,J) = 0d0
+!            ENDIF
 
             ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
             ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
@@ -6076,7 +6305,66 @@
 !$OMP END PARALLEL DO
 
       ! Return to calling program
-      END SUBROUTINE READ_BIOMASS_SO2
+      END SUBROUTINE READ_BIOFUEL_SO2
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GET_BIOMASS_SO2
+!
+!******************************************************************************
+!  Subroutine GET_BIOMASS_SO2 retrieve monthly/8-day/3hr biomass burning 
+!  emissions for SO2.  (yc, phs, 12/23/08)
+!
+!  Arguments as input:
+!  ===========================================================================
+!  (1 ) 
+!
+!  NOTES:
+!  (1 ) Extracted from old module subroutine READ_BIOMASS_SO2
+!        (yc, phs, 12/23/08)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTSO2
+      USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      
+#     include "CMN_SIZE"             ! Size parameters
+                                    
+      ! Local variables             
+      INTEGER                       :: I, J
+      REAL*8                        :: CONV
+                                    
+      !=================================================================
+      ! GET_BIOMASS_SO2 begins here!
+      !=================================================================
+      ! Unit conversion to [kg SO2/s]
+  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, CONV )
+
+      ! Loop over longitudes
+      DO J = 1, JJPAR
+
+         ! Conversion factor for [cm2 * kg/molec]
+         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
+
+         ! Loop over latitudes
+         DO I = 1, IIPAR
+
+            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
+            ! NOTE: Future scale has already been applied by this point
+            ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE GET_BIOMASS_SO2
 
 !------------------------------------------------------------------------------
 
@@ -6237,16 +6525,22 @@
 !  (5 ) Now get EDGAR ship SO2 emissions if necessary.  Also apply future
 !        emissions scale factors to the default Corbett et al ship emissions.
 !        (avd, bmy, 7/14/06)
+!  (6 ) Now references GET_ARCTAS_HIP from 'arctas_ship_emiss_mod.f" and
+!        GET_EMEP_ANTHRO to get ARCTAS and EMEP SO2 ship emissions (phs, 12/5/08)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE ARCTAS_SHIP_EMISS_MOD,ONLY : GET_ARCTAS_SHIP
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR 
       USE EDGAR_MOD,            ONLY : GET_EDGAR_SHIP_SO2
+      USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
       USE GRID_MOD,             ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE
+      USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
+     &                                 LARCSHIP,        LSHIPSO2,
+     $                                 LEMEPSHIP
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
@@ -6267,30 +6561,42 @@
       ! READ_SHIP_SO2 begins here!
       !=================================================================
 
-      ! Test for EDGAR ship emissions
-      IF ( LEDGARSHIP ) THEN 
+      ! Reset
+      ESO2_sh = 0D0
 
-         !----------------------------------------
-         ! Use EDGAR ship SO2 emissions
-         !----------------------------------------
 
-         ! Get EDGAR ship SO2 [kg SO2/box/s]
-         ! NOTE: Future emissions have already been applied! 
+      ! Test for EDAGR last, since this is default inventory by design.
+      ! So we can still use EDGAR SHIP to get ship-NOX and CO, and
+      ! overwrite ship-SO2 with ARCTAS or Colbert (phs, 12/5/08)
+
+      !-----------------------------------------------------------
+      ! Use ARCTAS SHIP emissions (EDGAR 2006 update) 
+      !-----------------------------------------------------------
+      IF ( LARCSHIP ) THEN
+            
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            ESO2_sh(I,J) = GET_EDGAR_SHIP_SO2( I, J, KG_S=.TRUE. )
+
+         ! Read ARCTAS SO2 emissions in [kg SO2/BOX/s]
+         ESO2_sh(I,J) = GET_ARCTAS_SHIP( I, J, IDTSO2,  KG_S=.TRUE. )
+               
+            IF ( LEMEPSHIP ) THEN
+               IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $                                          SHIP=.TRUE.)
+            ENDIF
+
          ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
 
-      ELSE
-
-         !----------------------------------------
-         ! Use Corbett et al ship SO2 emissions
-         !----------------------------------------
+      !----------------------------------------
+      ! Or Corbett et al ship SO2 emissions
+      !----------------------------------------
+      ELSE IF ( LSHIPSO2 ) THEN
 
          ! Filename
          FILENAME = TRIM( DATA_DIR )           // 
@@ -6323,15 +6629,50 @@
             
                ! Convert [molec SO2/cm2/s] to [kg SO2/box/s]
                ESO2_sh(I,J) = SHIPSO2(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
-              
+
                ! Apply future emissions (if necessary)
                IF ( LFUTURE ) THEN
                    ESO2_sh(I,J) = ESO2_sh(I,J) *
      &                            GET_FUTURE_SCALE_SO2ff( I, J ) 
                ENDIF
+
+               IF ( LEMEPSHIP ) THEN
+                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26,
+     $                                         KG_S=.TRUE., SHIP=.TRUE.)
+               ENDIF               
+
             ENDDO 
          ENDDO
 
+      !-----------------------------------------------------------
+      ! Test for EDGAR ship emissions
+      !-----------------------------------------------------------
+      ELSE IF ( LEDGARSHIP ) THEN 
+
+         !----------------------------------------
+         ! Use EDGAR ship SO2 emissions
+         !----------------------------------------
+
+         ! Get EDGAR ship SO2 [kg SO2/box/s]
+         ! NOTE: Future emissions have already been applied! 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ESO2_sh(I,J) = GET_EDGAR_SHIP_SO2( I, J, KG_S=.TRUE. )
+
+            IF ( LEMEPSHIP ) THEN
+               IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $                                          SHIP=.TRUE.)
+            ENDIF
+         ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+         
       ENDIF
 
       ! Return to calling program
@@ -6366,14 +6707,18 @@
 !  (8 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
+!  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)      
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE EMEP_MOD,             ONLY : GET_EMEP_ANTHRO
+      USe EMEP_MOD,             ONLY : GET_EUROPE_MASK
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an
       USE LOGICAL_MOD,          ONLY : LFUTURE,         LSTREETS
+      USE LOGICAL_MOD,          ONLY : LEMEP
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,   ONLY : GET_STREETS_ANTHRO
       USE TRACERID_MOD,         ONLY : IDTNH3
@@ -6393,6 +6738,7 @@
      &                                      31d0, 30d0, 31d0, 31d0, 
      &                                      30d0, 31d0, 30d0, 31d0 /)
       CHARACTER(LEN=255)            :: FILENAME
+      REAL*8                        :: STREETS
 
       !=================================================================
       ! READ_ANTHRO_NH3 begins here!
@@ -6428,6 +6774,13 @@
          ENH3_an(I,J) = ENH3_an(I,J) * ( 17.d0 / 14.d0 ) 
      &                / ( NMDAY(THISMONTH) * 86400.d0 )
 
+         ! Compute future NH3an emissions, if necessary
+         ! Moved here since Streets and EMEP should have already
+         ! applied FUTURE scale factors if needed 
+         IF ( LFUTURE ) THEN
+            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
+         ENDIF
+
          ! If we are using David Streets' emissions ...
          IF ( LSTREETS ) THEN
 
@@ -6435,15 +6788,26 @@
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
                ! Overwrite with David Streets emissions [kg NH3/s]
-               ENH3_an(I,J) = GET_STREETS_ANTHRO( I,      J, 
-     &                                            IDTNH3, KG_S=.TRUE.)
+!------------------------------------------------------------------------------
+! Prior to 12/10/08:
+! Now check first that NH3 is available (phs, 12/10/08)               
+!               ENH3_an(I,J) = GET_STREETS_ANTHRO( I,      J, 
+!     &                                            IDTNH3, KG_S=.TRUE.)
+               STREETS = GET_STREETS_ANTHRO( I,      J, 
+     &                                       IDTNH3, KG_S=.TRUE.)
+
+               IF ( .not. ( STREETS < 0d0 ) )
+     $              ENH3_an(I,J) = STREETS
+               
             ENDIF
          ENDIF
 
-         ! Compute future NH3an emissions, if necessary
-         IF ( LFUTURE ) THEN
-            ENH3_an(I,J) = ENH3_an(I,J) * GET_FUTURE_SCALE_NH3an( I, J )
+         IF ( LEMEP ) THEN
+            IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
+               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,30,KG_S=.TRUE.)
+            ENDIF
          ENDIF
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -6525,12 +6889,12 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_BIOMASS_NH3( THISMONTH ) 
+      SUBROUTINE READ_BIOFUEL_NH3( THISMONTH ) 
 !
 !******************************************************************************
-!  Subroutine READ_BIOMASS_NH3 reads the monthly mean biomass NH3 
+!  Subroutine READ_BIOFUEL_NH3 reads the monthly mean biomass NH3 
 !  and biofuel emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 11/3/06)
+!  (rjp, bdf, bmy, phs, 9/20/02, 12/23/08)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6563,6 +6927,8 @@
 !        "gc_biomass_mod.f" for compatibility with GFED2 biomass emissions
 !        (bmy, 9/27/06)
 !  (11) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
+!  (12) Renamed READ_BIOFUEL_NH3, and move all biomass code to GET_BIOMASS_NH3
+!        to account for several GFED2 products (yc, phs, 12/23/08)   
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6586,7 +6952,7 @@
       ! Local variables
       INTEGER                       :: I, J, THISYEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                        :: XTAU, DMASS, CONV
+      REAL*8                        :: XTAU, DMASS!, CONV
       REAL*8                        :: NMDAY(12) = (/31d0, 28d0, 31d0, 
      &                                               30d0, 31d0, 30d0, 
      &                                               31d0, 31d0, 30d0, 
@@ -6595,7 +6961,7 @@
       CHARACTER(LEN=255)            :: FILENAME
 
       !=================================================================
-      ! READ_BIOMASS_NH3 begins here!
+      ! READ_BIOFUEL_NH3 begins here!
       !=================================================================
 
       !=================================================================
@@ -6609,7 +6975,7 @@
    
       ! Echo output
       WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOMASS_NH3: Reading ', a )
+ 100  FORMAT( '     - READ_BIOFUEL_NH3: Reading ', a )
 
       ! Get TAU0 value for 1998
       XTAU  = GET_TAU0( THISMONTH, 1, 1998 )
@@ -6636,19 +7002,21 @@
       ! Loop over latitudes
       DO J = 1, JJPAR
  
-         ! Conversion factor for [cm2 * kg/molec]
-         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
+!-- prior 12/23/08            
+!         ! Conversion factor for [cm2 * kg/molec]
+!         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
 
          ! Loop over longitudes
          DO I = 1, IIPAR
 
-            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
-            ! NOTE: Future scale is applied by this point (if necessary)
-            IF ( LBIOMASS ) THEN
-               ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
-            ELSE
-               ENH3_bb(I,J) = 0d0
-            ENDIF
+!-- prior 12/23/08            
+!            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
+!            ! NOTE: Future scale is applied by this point (if necessary)
+!            IF ( LBIOMASS ) THEN
+!               ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
+!            ELSE
+!               ENH3_bb(I,J) = 0d0
+!            ENDIF
 
             ! Scale biofuel NH3 to IPCC future scenario (if necessary)
             IF ( LFUTURE ) THEN
@@ -6660,8 +7028,66 @@
 !$OMP END PARALLEL DO
       
       ! Return to calling program
-      END SUBROUTINE READ_BIOMASS_NH3
+      END SUBROUTINE READ_BIOFUEL_NH3
 
+!------------------------------------------------------------------------------
+
+      SUBROUTINE GET_BIOMASS_NH3
+!
+!******************************************************************************
+!  Subroutine GET_BIOMASS_NH3 retrieve the monthly/8days/3hr mean biomass NH3 
+!  (yc, phs, 12/23/08)
+!
+!  Arguments as input:
+!  ===========================================================================
+!  (1 ) 
+!
+!  NOTES:
+!  (1 ) Extracted from old module subroutine READ_BIOMASS_NH3
+!        (yc, phs, 12/23/08)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTNH3
+
+#     include "CMN_SIZE"             ! Size parameters
+
+      ! Local variables
+      INTEGER                       :: I, J
+      REAL*8                        :: CONV
+      
+      !=================================================================
+      ! READ_BIOMASSBURN_NH3 begins here!
+      !=================================================================
+      ! Convert units
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, CONV )
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+ 
+         ! Conversion factor for [cm2 * kg/molec]
+         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
+            ! NOTE: Future scale is applied by this point (if necessary)
+            ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      
+      ! Return to calling program
+      END SUBROUTINE GET_BIOMASS_NH3
+      
 !------------------------------------------------------------------------------
 
       SUBROUTINE READ_OXIDANT( MONTH )

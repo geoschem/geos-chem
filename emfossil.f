@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.22 2008/12/15 15:55:16 bmy Exp $
+! $Id: emfossil.f,v 1.23 2009/01/28 19:59:16 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -58,27 +58,39 @@
 !        (bmy, 2/14/08)
 !  (27) Use more robust test to only screen out "missing" values in EMEP,
 !        BRAVO, and David Streets emissions. (avd, phs, bmy, 11/19/08)   
+!  (28) Ship NOx is emitted as HNO3+10*O3  (phs, 3/4/08)
+!  (29) Apply spatially-varying diurnal scalars for NOx (amv, 08/24/07)
+!  (30) Now apply CAC Canadian emissions if necessary (amv, 01/09/08)
+!  (31) Moved down BRAVO parts and add BRAVO and EPA emissions where they 
+!        overlap (phs, 5/7/08)
+!  (32) Now overwrite USA NOx with VISTAS if necessary (amv, 12/02/08)
 !******************************************************************************
 !          
       ! References to F90 modules
-      USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
-      USE DIAG_MOD,           ONLY : AD29,   AD32_an,  AD36
-      USE EDGAR_MOD,          ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
-      USE EDGAR_MOD,          ONLY : GET_EDGAR_TODN
-      USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
-      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
-      USE GRID_MOD,           ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
-      USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
-      USE LOGICAL_MOD,        ONLY : LSTREETS
-      USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
-      USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
-      USE TIME_MOD,           ONLY : GET_HOUR
-      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,         ONLY : XNUMOL
-      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDTCO
-  
+      USE BRAVO_MOD,             ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,        ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
+      USE DAO_MOD,               ONLY : IS_WATER
+      USE DIAG_MOD,              ONLY : AD29,   AD32_an,  AD36
+      USE EDGAR_MOD,             ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
+      USE EDGAR_MOD,             ONLY : GET_EDGAR_TODN
+      USE EMEP_MOD,              ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
+      USE EPA_NEI_MOD,           ONLY : GET_EPA_ANTHRO,  GET_USA_MASK
+      USE GRID_MOD,              ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,           ONLY : LBRAVO, LEMEP,    LNEI99
+      USE LOGICAL_MOD,           ONLY : LEDGARNOx,        LEDGARCO
+      USE LOGICAL_MOD,           ONLY : LSTREETS,         LCAC
+      USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
+      USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
+      USE STREETS_ANTHRO_MOD,    ONLY : GET_SE_ASIA_MASK
+      USE STREETS_ANTHRO_MOD,    ONLY : GET_STREETS_ANTHRO
+      USE TIME_MOD,              ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
+      USE TIME_MOD,              ONLY : GET_HOUR
+      USE TRACER_MOD,            ONLY : ITS_A_TAGCO_SIM
+      USE TRACER_MOD,            ONLY : XNUMOL
+      USE TRACERID_MOD,          ONLY : IDENOX, IDEOX,    IDEHNO3
+      USE TRACERID_MOD,          ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE VISTAS_ANTHRO_MOD,     ONLY : GET_VISTAS_ANTHRO
+
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -97,6 +109,7 @@
       REAL*8                :: XEMISR
       REAL*8                :: XEMISRN(NOXLEVELS)
       REAL*8                :: BRAVO, EPA_NEI, EMEP, EDGAR, STREETS
+      REAL*8                :: CAC,   SHIP,    VISTAS
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -111,7 +124,7 @@
       ! GMT hour of day
       HOUR     = GET_HOUR()
 
-      ! Flag for weekday or weekend for NEI emissions
+      ! Flag for weekday or weekend for NEI/VISTAS emissions
       DOW      = GET_DAY_OF_WEEK()
       WEEKDAY  = ( DOW > 0 .and. DOW < 6 )
 
@@ -137,8 +150,14 @@
          ! Initialize work variables
          EMX(:)  = 0d0
 
-         ! Time of day factor for NOx
-         TODX = TODN(IHOUR)
+!---------------
+! prior to 3/11/08
+!         TODX = TODN(IHOUR)
+!---------------
+         ! Use spatially varying diurnal scale factors 
+         ! from EDGAR (amv, phs, 3/10/08)
+         TODX = GET_EDGAR_TODN(I,J,HOUR)
+
          
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
          DO LL = 1, NOXLEVELS
@@ -148,7 +167,7 @@
             ! Get NOx from the EDGAR inventory (global)
             !-----------------------------------------------------------
 
-            ! If we are using EPA/NEI emissions
+            ! If we are using EDGAR emissions
             IF ( LEDGARNOx ) THEN
 
                ! Put all emissions into 1st level
@@ -184,7 +203,7 @@
                   IF ( LL == 1 ) THEN
             
                      ! Get EMEP emissions for NOx 
-                     EMEP    = GET_EMEP_ANTHRO( I, J, NN )
+                     EMEP    = GET_EMEP_ANTHRO( I, J, NN, KG_S=.FALSE. )
 
                      ! Apply time-of-day factor
                      EMEP    = EMEP * TODX
@@ -199,40 +218,12 @@
                      EMX(LL) = 0d0                   
                   
                   ENDIF
+
                ENDIF
             ENDIF
 
             !-----------------------------------------------------------
-            ! Get NOx from BRAVO inventory over MEXICO
-            !-----------------------------------------------------------
-
-            ! If we are using BRAVO ...
-            IF ( LBRAVO ) THEN
-
-               ! If we are over the Mexican region ...
-               IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
-
-                  IF ( LL == 1 ) THEN
-
-                     ! Get BRAVO emissions for NOx 
-                     ! (and apply time-of-day factor)
-                     BRAVO   = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
-
-                     ! Replace GEIA with BRAVO emissions at surface
-                     EMX(LL) = BRAVO * ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
-                  
-                  ELSE 
-            
-                     ! Zero GEIA emissions in the 2nd level 
-                     ! where the BRAVO emissions are nonzero
-                     EMX(LL) = 0d0                   
-                  
-                  ENDIF
-               ENDIF
-            ENDIF
-
-            !-----------------------------------------------------------
-            ! Get NOx from EPA/NEI inventory over the USA 
+            ! Get NOx from EPA/NEI or VISTAS inventory over the USA 
             !-----------------------------------------------------------
 
             ! If we are using EPA/NEI emissions
@@ -259,6 +250,31 @@
                      ! where the EPA/NEI emissions are nonzero
                      EMX(LL) = 0d0                   
                   
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            IF ( LVISTAS ) THEN
+
+               ! If we are over the USA ...
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+
+                  IF ( LL == 1 ) THEN
+
+                     ! Get VISTAS emissions for NOx 
+                     VISTAS = GET_VISTAS_ANTHRO( I, J, NN, WEEKDAY )
+
+                     ! Apply time-of-day factor
+                     VISTAS = VISTAS * TODX
+
+                     ! Replace with VISTAS emissions at surface
+                     EMX(LL) = VISTAS * 
+     &                         ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+                  ELSE 
+
+                     EMX(LL) = 0d0
+
                   ENDIF
                ENDIF
             ENDIF
@@ -295,6 +311,148 @@
                   ENDIF
                ENDIF
             ENDIF
+
+
+            !-----------------------------------------------------------
+            ! Get NOx from BRAVO inventory over MEXICO
+            !-----------------------------------------------------------
+
+            ! If we are using BRAVO ...
+            IF ( LBRAVO ) THEN
+
+               ! If we are over the Mexican region ...
+               IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
+
+                  IF ( LL == 1 ) THEN
+
+                     ! Get BRAVO emissions for NOx 
+                     ! (and apply time-of-day factor)
+                     BRAVO   = GET_BRAVO_ANTHRO( I, J, NN ) * TODX
+
+                     ! Replace GEIA with BRAVO emissions at surface
+                     ! Now, if on border, add to NEI99 emissions (phs, 5/7/08)
+                     IF ( ( LNEI99 ) .AND. 
+     &                    ( GET_USA_MASK( I, J ) > 0d0 ) ) THEN
+
+                        EMX(LL) = EMX(LL) + BRAVO * 
+     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+                     ELSE
+                        EMX(LL) = BRAVO * 
+     &                            ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
+
+                     ENDIF
+
+                  ELSE 
+            
+                     ! Zero GEIA emissions in the 2nd level 
+                     ! where the BRAVO emissions are nonzero
+                     EMX(LL) = 0d0                   
+                  
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Get NOx from the CAC inventory (Canada)
+            !-----------------------------------------------------------
+
+            ! If we are using CAC emissions
+            IF ( LCAC ) THEN
+
+               ! If we are over the SE Asia region
+               IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+                  ! Put all emissions into 1st level
+                  IF ( LL == 1 ) THEN
+
+                     ! Get CAC emissions for NOx [molec/cm2/s]
+                     CAC = GET_CAC_ANTHRO( I, J, NN,
+     &                                             MOLEC_CM2_S=.TRUE. )
+
+                     ! Apply time-of-day factor
+                     CAC = CAC * TODX
+
+                     IF ( LNEI99 ) THEN
+
+                        ! If on border, add to NEI99 emissions (which has
+                        ! no Canadian component)
+                        IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+                           EMX(LL) = EMX(LL) + CAC *
+     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                        ELSE
+                           EMX(LL) = CAC *
+     &                               ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                        ENDIF
+                     ELSE
+
+                        ! Replace base emissions with CAC
+                        EMX(LL) = CAC *
+     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ENDIF
+
+                  ELSE
+
+                     ! Zero CAC emissions in the 2nd level
+                     EMX(LL) = 0d0
+
+                  ENDIF
+               ENDIF
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Add ship emissions emitted as HNO3 and 10*O3,
+            ! i.e., ozone production efficiency (OPE)=10.
+            ! See : Chen, G., et al. (2005), An investigation of the 
+            ! chemistry of ship emission plumes during ITCT 2002, 
+            ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
+            ! (djj, phs, 3/4/08)
+            ! Now alse process EMEP NOx ship emissions, available
+            ! from 1990 with EMEP 2005 (phs, 6/08)
+            !-----------------------------------------------------------
+            ! DO it only once (1st level)
+            IF ( LL == 1 ) THEN
+
+               IF ( LEDGARSHIP ) THEN 
+
+                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
+                  SHIP = GET_EDGAR_NOx( I, J, 
+     &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
+
+                  ! Convert
+                  SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                  
+               ELSE IF ( LEMEPSHIP .AND.
+     $                 ( GET_EUROPE_MASK( I, J ) > 0d0 ) ) THEN
+
+                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+                  SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+
+               ELSE
+                  
+                  SHIP=0D0
+                  
+               ENDIF
+         
+               ! Store as HNO3 and O3
+               EMISRR(I,J,IDEHNO3) = SHIP * XNUMOL(IDTHNO3) / DTSRCE
+               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * 
+     &                               XNUMOL(IDTOX) / DTSRCE
+               
+               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
+               ! and convert to [molec/cm2/s] in DIAG3.F
+               IF ( ND36 > 0 ) THEN
+
+                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * 
+     &                                XNUMOL(IDTHNO3) / AREA_CM2
+
+                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + SHIP * 
+     &                              10D0 * XNUMOL(IDTOX) / AREA_CM2
+                  
+               ENDIF
+               
+            ENDIF
+
 
             !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics
@@ -355,6 +513,11 @@
             ! Get EDGAR CO
             EDGAR  = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE. )
 
+            ! Add ship emissions
+            IF ( LEDGARSHIP ) 
+     &           EDGAR = EDGAR + GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE.,
+     &                                         SHIP=.TRUE.)
+
             ! Apply time of day factor
             EDGAR  = EDGAR * TODX
          
@@ -376,6 +539,11 @@
          
                ! Get EMEP emissions 
                EMEP = GET_EMEP_ANTHRO( I, J, NN )
+
+
+               IF ( LEMEPSHIP .AND. NN == IDTCO )
+     $              EMEP = EMEP + GET_EMEP_ANTHRO( I, J, NN,
+     $                                             SHIP=.TRUE.)
          
                ! -1 indicates tracer NN does not have EMEP emissions
                IF ( .not. ( EMEP < 0d0 ) ) THEN
@@ -391,32 +559,6 @@
             ENDIF
          ENDIF
 
-         !--------------------------------------------------------------
-         ! Get CO from BRAVO inventory over Europe
-         !--------------------------------------------------------------
-
-         ! If we are using BRAVO emissions ...
-         IF ( LBRAVO ) THEN
-
-            ! If we are over the Mexican region ...
-            IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
-         
-               ! Get BRAVO emissions 
-               BRAVO = GET_BRAVO_ANTHRO( I, J, NN )
-         
-               ! -1 indicates tracer NN does not have BRAVO emissions
-               IF ( .not. ( BRAVO < 0d0 ) ) THEN
-
-                  ! Apply time-of-day factor
-                  BRAVO  = BRAVO * TODX
-
-                  ! Convert from molec/cm2/s to kg/box/timestep in order
-                  ! to be in the proper units for EMISRR array
-                  EMX(1) = BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-
-               ENDIF
-            ENDIF
-         ENDIF
 
          !--------------------------------------------------------------
          ! Get CO & Hydrocarbons from EPA/NEI inventory over the USA 
@@ -467,6 +609,100 @@
             ENDIF
          ENDIF
 
+
+         !--------------------------------------------------------------
+         ! Get CO from BRAVO inventory over MEXICO
+         !--------------------------------------------------------------
+
+         ! If we are using BRAVO emissions ...
+         IF ( LBRAVO ) THEN
+
+            ! If we are over the Mexican region ...
+            IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN
+         
+               ! Get BRAVO emissions 
+               BRAVO = GET_BRAVO_ANTHRO( I, J, NN )
+         
+               ! -1 indicates tracer NN does not have BRAVO emissions
+               !-----------------------------------------------------------
+               ! Prior to 11/19/08:
+               ! Use more robust test to only screen out -1 values
+               ! and not zero values (which could be valid emissions)
+               ! (avd, phs, bmy, 11/19/08)               
+               !IF ( BRAVO > 0d0 ) THEN
+               !-----------------------------------------------------------
+               IF ( .not. ( BRAVO < 0d0 ) ) THEN
+
+                  ! Apply time-of-day factor
+                  BRAVO  = BRAVO * TODX
+
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array.
+                  ! Now, if on border, add to NEI99 emissions (phs, 5/7/08)
+                  IF ( ( LNEI99 ) .AND. 
+     &                 ( GET_USA_MASK( I, J ) > 0d0 ) ) THEN
+
+                     EMX(1) = EMX(1) + 
+     &                        BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+                  ELSE
+
+                     EMX(1) = BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+                  ENDIF
+
+               ENDIF
+            ENDIF
+         ENDIF
+
+
+         !--------------------------------------------------------------
+         ! Get CAC other emissions over Canada
+         !--------------------------------------------------------------
+
+         ! If we are using CAC emissions ...
+         IF ( LCAC ) THEN
+
+            ! If we are over the China region ...
+            IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
+
+               ! Get CAC emissions 
+               CAC = GET_CAC_ANTHRO( I, J, NN, MOLEC_CM2_S=.TRUE. )
+         
+               ! -1 indicates tracer NN does not have CAC emissions
+               !-----------------------------------------------------------
+               ! Prior to 11/19/08:
+               ! Use more robust test to only screen out -1 values
+               ! and not zero values (which could be valid emissions)
+               ! (avd, phs, bmy, 11/19/08)               
+               !IF ( CAC > 0d0 ) THEN
+               !-----------------------------------------------------------
+               IF ( .not. ( CAC < 0d0 ) ) THEN
+
+                  ! Apply time-of-day factor
+                  CAC = CAC * TODX
+
+                  IF ( LNEI99 ) THEN
+                     ! If on border, add to NEI99 emissions (which contain
+                     ! no Canadian component)
+                     IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+                        EMX(1) = EMX(1) + CAC *
+     &                           ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ELSE
+                        EMX(1) = CAC *
+     &                           ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                     ENDIF
+                  ELSE
+
+                    ! Else replace base emissions with CAC
+                     EMX(1) = CAC *
+     &                        ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+                  ENDIF
+
+               ENDIF
+            ENDIF
+         ENDIF
+
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------
@@ -485,6 +721,7 @@
             AD36(I,J,N) = AD36(I,J,N) + 
      &           ( EMX(1) * XNUMOL(NN) / AREA_CM2 ) 
          ENDIF    
+
       ENDIF
 
       !=================================================================

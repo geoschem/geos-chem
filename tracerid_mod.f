@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.22 2008/08/08 17:20:37 bmy Exp $
+! $Id: tracerid_mod.f,v 1.23 2009/01/28 19:59:13 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -171,6 +171,7 @@
 !  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
 !  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
 !  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
+!  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -223,7 +224,8 @@
       ! GEOS-CHEM emission ID's
       INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
-      INTEGER            :: IDEALD2, IDECH2O,  NEMBIOG, NEMANTHRO
+      INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
+      INTEGER            :: NEMBIOG, NEMANTHRO
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
@@ -268,6 +270,7 @@
 !  (15) Now define IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
 !  (16) To satisfy IF statement in EMISSDR for using EMFOSSIL, we need 
 !        to set IDECO=1 instead of IDECO=2. (jaf, mak, bmy, 2/14/08)
+!  (17) Increase NEMANTHRO from 10 to 12 and set IDEOX and IDEHNO3 (phs, 3/4/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -726,9 +729,10 @@
       ! they are in the same order as the old emissions code.  The 
       ! order should be: 1 4 18 19 5 21 9 10 11 20 6.  Think of a 
       ! better way to implement this later on. (bmy, 12/20/04)
+      ! Added HNO3 and Ox to deal with ship NOx emissions (3/4/08, phs)
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         NEMANTHRO = 10
+         NEMANTHRO = 12 !phs - replaces 10
          NEMBIOG   = 1
          IDENOX    = 1
          IDECO     = 2
@@ -740,7 +744,9 @@
          IDEMEK    = 8
          IDEALD2   = 9
          IDECH2O   = 10
-         IDEISOP   = 11
+         IDEOX     = 11 !PHS
+         IDEHNO3   = 12 !PHS
+         IDEISOP   = 13 ! not used TO EMIT ANTHRO but should be #11 is we use it
       ENDIF
       
       !=================================================================
@@ -760,6 +766,8 @@
       IF ( IDEMEK  /= 0 ) IDEMS(IDEMEK ) = IDTMEK
       IF ( IDEALD2 /= 0 ) IDEMS(IDEALD2) = IDTALD2
       IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
+      IF ( IDEOX   /= 0 ) IDEMS(IDEOX  ) = IDTOX    ! PHS
+      IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
 
       ! Echo anthro & biogenic emitted tracers
       WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
@@ -1235,6 +1243,7 @@
 !  (7 ) Now allocate ID_Hg0, ID_Hg2, ID_HgP (bmy, 12/16/05)
 !  (8 ) Now zero IDTSOG4, IDTSOA4 (dkh, bmy, 5/18/06)
 !  (9 ) Now zero IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
+!  (10) Now zero IDEHNO3 (PHS, 3/4/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1369,6 +1378,7 @@
       IDEALD2   = 0
       IDEISOP   = 0
       IDECH2O   = 0 
+      IDEHNO3   = 0 !phs (3/4/08)
       
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0

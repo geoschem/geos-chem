@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.31 2008/11/07 19:30:35 bmy Exp $
+! $Id: carbon_mod.f,v 1.32 2009/01/28 19:59:16 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -148,6 +148,7 @@
 !  (16) Corrected typos in SOA_LUMP.  Now also save GPROD and APROD to disk
 !        for each new diagnostic interval. (dkh, tmv, havala, bmy, 2/6/07)
 !  (17) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!  (18) Now account for various GFED2 products (yc, phs, 12/23/08) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2636,15 +2637,18 @@ c
 !        with imposed seasonality from R. Park [2003].  (bmy, 12/1/04)
 !  (5 ) Now remove THISMONTH from the arg list to BIOMASS_CARB_GEOS 
 !        (bmy, 9/25/06)
+!  (6 ) Now check that GFED2 has been updated if we do not use the annual
+!        Bond Biomass emission (phs, yc, 12/18/08)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,    ONLY : AD07
-      USE DAO_MOD,     ONLY : PBL
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LSOA,      LPRT
-      USE TIME_MOD,    ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,  ONLY : STT
+      USE DIAG_MOD,          ONLY : AD07
+      USE DAO_MOD,           ONLY : PBL
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,       ONLY : LSOA,      LPRT
+      USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD,        ONLY : STT
+      USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       !USE TRACERID_MOD
 
 #     include "CMN_SIZE"    ! Size parameters
@@ -2723,9 +2727,9 @@ c
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: after OHNO3TIME' )
       ENDIF
       
-      !--------------------------
-      ! Read monthly-mean data
-      !--------------------------
+      !------------------------------
+      ! Read monthly-mean ANTHRO data
+      !------------------------------
       IF ( ITS_A_NEW_MONTH() ) THEN
       
          ! Current month
@@ -2737,14 +2741,30 @@ c
          CALL ANTHRO_CARB_COOKE( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
 
-         ! Read monthly mean biomass emissions
-         IF ( USE_MONTHLY_BIOB ) THEN
-            CALL BIOMASS_CARB_GEOS
-            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_COOKE' )
-         ENDIF
+!-----------------------------------
+! Prior to 12/18/08
+!         ! Read monthly mean biomass emissions
+!         IF ( USE_MONTHLY_BIOB ) THEN
+!            CALL BIOMASS_CARB_GEOS
+!            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_COOKE' )
+!         ENDIF
+!-----------------------------------
 
       ENDIF
 
+      !-----------------------------------
+      ! Read monthly/8-day/3-hr mean biomass emissions
+      !-----------------------------------
+      IF ( USE_MONTHLY_BIOB ) THEN
+
+         IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
+            CALL BIOMASS_CARB_GEOS
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
+         ENDIF
+            
+      ENDIF
+
+           
       !--------------------------
       ! Compute biogenic OC
       !--------------------------
