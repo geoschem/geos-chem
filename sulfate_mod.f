@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.41 2009/01/28 19:59:14 bmy Exp $
+! $Id: sulfate_mod.f,v 1.42 2009/01/28 20:27:05 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -6270,8 +6270,12 @@
   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, CONV )
-
+!----------------------------------------------------------------------
+! Prior to 1/28/09:
+! Need to remove CONV from the PRIVATE statement (bmy, 1/28/09)
+!!$OMP+PRIVATE( I, J, CONV )
+!----------------------------------------------------------------------
+!$OMP+PRIVATE( I, J )
       ! Loop over longitudes
       DO J = 1, JJPAR
 
@@ -6997,7 +7001,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, CONV )
+!------------------------------------------------------------------
+! Prior to 1/28/09:
+! Need to remove CONV from the PRIVATE statement (bmy, 1/28/09)
+!!$OMP+PRIVATE( I, J, CONV )
+!------------------------------------------------------------------
+!$OMP+PRIVATE( I, J )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
