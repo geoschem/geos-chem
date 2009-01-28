@@ -1,110 +1,103 @@
-! $Id: vistas_anthro_mod.f,v 1.1 2009/01/28 19:59:00 bmy Exp $
+! $Id: vistas_anthro_mod.f,v 1.2 2009/01/28 21:56:56 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: VISTAS_ANTHRO_MOD
+!
+! !DESCRIPTION: Module VISTAS\_ANTHRO\_MOD contains variables and routines 
+!  to read the  VISTAS anthropogenic emissions. (amv, 11/24/2008)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE VISTAS_ANTHRO_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module VISTAS_ANTHRO_MOD contains variables and routines to read the 
-!  VISTAS anthropogenic emissions 
-!  (amv, 11/24/2008)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) VISTAS_WD_NOx (REAL*8 ) : Anthopogenic Weekday NOx emission [molec/cm2/s]
-!  (1 ) VISTAS_WE_NOx (REAL*8 ) : Anthopogenic Weekend NOx emission [molec/cm2/s]
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_VISTAS_ANTHRO     : Gets emissions at (I,J) for emissions species 
-!  (2 ) EMISS_VISTAS_ANTHRO   : Reads VISTAS emissions from disk
-!  (3 ) VISTAS_SCALE_FUTURE   : Applies IPCC future scale factors to emissions
-!  (4 ) INIT_VISTAS_ANTHRO    : Allocates and zeroes module arrays
-!  (5 ) CLEANUP_VISTAS_ANTHRO : Dealocates module arrays
-!  (6 ) TOTAL_ANTHRO_TG       : Computes the annual total emissions
-!
-!  GEOS-Chem modules referenced by "vistas_anthro_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
-!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (5 ) grid_mod.f             : Module w/ horizontal grid information
-!  (6 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (7 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
-!  (8 ) time_mod.f             : Module w/ routines for computing time & date
-!  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
-!
-!  References:
-!  ============================================================================
-!  (1 ) Visibility Improvment State and Tribal Association of the Southeast.
-!     See: http://www.vistas-sesarm.org/index.asp
-!
-!
-!  NOTES: 
-!******************************************************************************
-!
-
-      USE EPA_NEI_MOD,          ONLY : GET_USA_MASK
+      USE EPA_NEI_MOD, ONLY : GET_USA_MASK
 
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "cac_anthro_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
-
-      ! ... except these routines
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC :: CLEANUP_VISTAS_ANTHRO
       PUBLIC :: EMISS_VISTAS_ANTHRO
       PUBLIC :: GET_VISTAS_ANTHRO
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!     
+      PRIVATE :: INIT_VISTAS_ANTHRO
+      PRIVATE :: VISTAS_SCALE_FUTURE
+      PRIVATE :: TOTAL_ANTHRO_Tg
+!
+! !REVISION HISTORY:
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!
+! !PRIVATE DATA MEMBERS:
 
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Arrays
+      ! Arrays for weekday & weekend emissions
       REAL*8,  ALLOCATABLE :: VISTAS_WD_NOx(:,:)
       REAL*8,  ALLOCATABLE :: VISTAS_WE_NOx(:,:)
+
+      ! Array for surface area
       REAL*8,  ALLOCATABLE :: A_CM2(:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_VISTAS_ANTHRO( I,    J,     N,  WEEKDAY,
-     &                         MOLEC_CM2_S, KG_S ) RESULT( VALUE )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Function GET_VISTAS_ANTHRO returns the VISTAS emission for 
+! !IROUTINE: GET_VISTAS_ANTHRO
+!
+! !DESCRIPTION: Function GET\_VISTAS\_ANTHRO returns the VISTAS emission for 
 !  GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in
-!  units of [kg/s] or [molec/cm2/s].  (amv, 1/09/08)
+!  units of [kg/s] or [molec/cm2/s]. (amv, phs, 1/28/09) 
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I           (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J           (INTEGER) : GEOS-Chem latitude index
-!  (3 ) N           (INTEGER) : GEOS-Chem tracer number
-!  (4 ) WEEKDAY     (LOGICAL) : is it a weekday?
-!  (5 ) KG_S        (LOGICAL) : OPTIONAL -- return emissions in [kg/s]
-!  
-!  NOTES:
-!******************************************************************************
+      FUNCTION GET_VISTAS_ANTHRO( I,        J,           N,  
+     &                            WEEKDAY,  MOLEC_CM2_S, KG_S ) 
+     &  RESULT( VALUE )
 !
-      ! References to F90 modules
-      USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNOx
-
-      ! Arguments
+! !USES:
+!
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACERID_MOD, ONLY : IDTNOx
+!
+! !INPUT PARAMETERS: 
+!
+      ! Longitude, latitude, and tracer indices
       INTEGER, INTENT(IN)           :: I, J, N
+
+      ! Return weekday or weekend emissions
       LOGICAL, INTENT(IN)           :: WEEKDAY
+
+      ! OPTIONAL -- return emissions in [molec/cm2/s]
       LOGICAL, INTENT(IN), OPTIONAL :: MOLEC_CM2_S
+
+      ! OPTIONAL -- return emissions in [kg/s]
       LOGICAL, INTENT(IN), OPTIONAL :: KG_S
-      
-      ! Local variables
+!
+! !RETURN VALUE:
+!     
+      ! Emissions output
+      REAL*8                        :: VALUE    
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL                       :: DO_KGS
       REAL*8                        :: VALUE
 
@@ -148,21 +141,25 @@
 
       ! Return to calling program
       END FUNCTION GET_VISTAS_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: EMISS_VISTAS_ANTHRO
+!
+! !DESCRIPTION: Subroutine EMISS\_VISTAS\_ANTHRO reads the VISTAS emission 
+!  fields at 1x1 resolution and regrids them to the current model resolution.
+!  (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_VISTAS_ANTHRO
 !
-!******************************************************************************
-!  Subroutine EMISS_VISTAS_ANTHRO reads the VISTAS emission 
-!  fields at 1x1 resolution and regrids them to the current model resolution.
-!  (amv, 11/24/2008)
-!  
-!  NOTES:
-!  (1 )
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
@@ -172,8 +169,15 @@
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_O3"            ! FSCALYR
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J, THISYEAR
       INTEGER                    :: MN, SNo, ScNo
@@ -322,28 +326,40 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_VISTAS_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: VISTAS_SCALE_FUTURE
+!
+! !DESCRIPTION: Subroutine VISTAS\_SCALE\_FUTURE applies the IPCC future scale 
+!  factors to  the VISTAS anthropogenic emissions. (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE VISTAS_SCALE_FUTURE
 !
-!******************************************************************************
-!  Subroutine VISTAS_SCALE_FUTURE applies the IPCC future scale factors to 
-!  the VISTAS anthropogenic emissions.
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
 
 #     include "CMN_SIZE"             ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
 
       !=================================================================
-      ! STREETS_SCALE_FUTURE begins here!
+      ! VISTAS_SCALE_FUTURE begins here!
       !=================================================================
 
 !$OMP PARALLEL DO
@@ -364,34 +380,50 @@
 
       ! Return to calling program
       END SUBROUTINE VISTAS_SCALE_FUTURE
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE TOTAL_ANTHRO_TG ( YEAR, THISMONTH )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine TOTAL_ANTHRO_TG prints the totals for the anthropogenic
-!  emissions of NOx. (bmy, phs, 3/11/08)
+! !IROUTINE: TOTAL_ANTHRO_TG
 !
-!  NOTES:
-!******************************************************************************
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the totals for the 
+!  anthropogenic emissions of NOx. (phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
 !
+      SUBROUTINE TOTAL_ANTHRO_TG( YEAR, THISMONTH )
+!
+! !USES:
+! 
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTNOX
 
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! argument
+!
+! !INPUT PARAMETERS:
+!
+      ! Year and month of data for which to compute totals
       INTEGER, INTENT(IN) :: YEAR, THISMONTH
-
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!
+! !REMARKS:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I,     J
       REAL*8              :: WD_NOX, WE_NOX, F_NOX, A
       CHARACTER(LEN=3)    :: UNIT
 
-     ! Days per month
+      ! Days per month
       INTEGER             :: D(12) = (/ 31, 28, 31, 30, 31, 30,
      &                                  31, 31, 30, 31, 30, 31 /)
 
@@ -441,25 +473,41 @@
 
       ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_Tg
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: INIT_VISTAS_ANTHRO 
+!
+! !DESCRIPTION: Subroutine INIT\_VISTAS\_ANTHRO allocates and zeroes all 
+!  module arrays. (phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_VISTAS_ANTHRO
 !
-!******************************************************************************
-!  Subroutine INIT_VISTAS_ANTHRO allocates and zeroes all module arrays.
-!
-!  NOTES:
-!******************************************************************************
-!
+! !USES:
+! 
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!
+! !REMARKS:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: AS, J
 
       !=================================================================
@@ -496,17 +544,27 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_VISTAS_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CLEANUP_VISTAS_ANTHRO
+!
+! !DESCRIPTION: Subroutine CLEANUP\_VISTAS\_ANTHRO deallocates all module 
+!  arrays. (phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_VISTAS_ANTHRO
 !
-!******************************************************************************
-!  Subroutine CLEANUP_VISTAS_ANTHRO deallocates all module arrays 
-!
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
@@ -521,3 +579,4 @@
 
       ! End of module
       END MODULE VISTAS_ANTHRO_MOD
+!EOC

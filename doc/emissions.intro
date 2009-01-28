@@ -1,0 +1,11 @@
+! $Id: emissions.intro,v 1.1 2009/01/28 21:56:56 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOI
+! !TITLE: The GEOS-Chem Emissions Module
+! !AUTHORS: Philippe Le Sager, Bob Yantosca, and Claire Carouge
+! !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
+! !DATE: January 28, 2009
+!EOI
+!------------------------------------------------------------------------------

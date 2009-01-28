@@ -1,14 +1,14 @@
-# $Id: Makefile,v 1.2 2008/12/17 15:34:01 bmy Exp $
+# $Id: Makefile,v 1.3 2009/01/28 21:56:56 bmy Exp $
 #==============================================================================
 # Makefile: to create PDF and PS documentation from the ProTeX headers
-#           contained in GEOS-Chem F90 module files. (bmy, 12/17/08)
+#           contained in GEOS-Chem F90 module files. (bmy, 12/17/08, 1/28/09)
 #==============================================================================
 
 # List of "phony" targets (i.e. targets not associated with files)
 .PHONY: all docclean
 
 # Make all documentation
-all: tpcore
+all: tpcore emissions
 
 # Remove all Latex, PS, PDF files
 clean:
@@ -19,7 +19,11 @@ clean:
 #---------------------------
 
 # Documentation files
-TPCORE_F90 = tpcore_fvdas.intro ../tpcore_fvdas_mod.f90 ../pjc_pfix_mod.f 
+TPCORE_F90 =             \
+tpcore_fvdas.intro       \
+../tpcore_fvdas_mod.f90  \
+../pjc_pfix_mod.f 
+
 TPCORE_TEX = tpcore_fvdas.tex
 TPCORE_DVI = tpcore_fvdas.dvi
 TPCORE_PDF = tpcore_fvdas.pdf
@@ -34,4 +38,33 @@ tpcore:
 	latex $(TPCORE_TEX)
 	dvipdf $(TPCORE_DVI) $(TPCORE_PDF)
 	dvips $(TPCORE_DVI) -o $(TPCORE_PS)
+	rm -f *.aux *.dvi *.log *.toc
+
+
+#---------------------------
+# Emissions document
+#---------------------------
+
+# Documentation files
+EMISS_F90 =                  \
+emissions.intro              \
+../arctas_ship_emiss_mod.f   \
+../cac_anthro_mod.f          \
+../scale_anthro_mod.f        \
+../vistas_anthro_mod.f 
+
+EMISS_TEX = emissions.tex
+EMISS_DVI = emissions.dvi
+EMISS_PDF = emissions.pdf
+EMISS_PS  = emissions.ps
+
+# Build LaTeX, *.pdf, and *.ps documentation
+emissions: 
+	rm -f $(EMISS_TEX)
+	protex -sf $(EMISS_F90) > $(EMISS_TEX)
+	latex $(EMISS_TEX)
+	latex $(EMISS_TEX)
+	latex $(EMISS_TEX)
+	dvipdf $(EMISS_DVI) $(EMISS_PDF)
+	dvips $(EMISS_DVI) -o $(EMISS_PS)
 	rm -f *.aux *.dvi *.log *.toc

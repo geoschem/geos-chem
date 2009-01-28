@@ -1,108 +1,97 @@
-! $Id: cac_anthro_mod.f,v 1.1 2009/01/28 19:59:00 bmy Exp $
+! $Id: cac_anthro_mod.f,v 1.2 2009/01/28 21:56:56 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: CAC_ANTHRO_MOD
+!
+! !DESCRIPTION: Module CAC\_ANTHRO\_MOD contains variables and routines to 
+!  read the  Criteria Air Contaminant Canadian anthropogenic emissions 
+!  (amv, phs, 1/28/2009)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE CAC_ANTHRO_MOD
-!
-!******************************************************************************
-!  Module CAC_ANTHRO_MOD contains variables and routines to read the 
-!  Criteria Air Contaminant Canadian anthropogenic emissions 
-!  (amv, 1/09/2008)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) A_CM2          (REAL*8 ) : Array for grid box surface area [cm2]
-!  (2 ) MASK_CANADA_1x1(INTEGER) : Mask for the Canadian region at 1x1 
-!  (3 ) MASK_CANADA    (REAL*8)  : Mask for the Canadian region
-!  (4 ) NOx            (REAL*8)  : Streets anthro NOx emissions [kg/yr]
-!  (5 ) CO             (REAL*8)  : Streets anthro CO  emissions [kg/yr]
-!  (6 ) SO2            (REAL*8)  : Streets anthro SO2 emissions [kg/yr]
-!  (7 ) NH3            (REAL*8)  : Streets anthro NH3 emissions [kg/yr]       
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_CANADA_MASK     : Gets the Canadian mask value at (I,J) 
-!  (3 ) GET_CAC_ANTHRO      : Gets emissions at (I,J) for emissions species 
-!  (4 ) EMISS_CAC_ANTHRO    : Reads CAC emissions from disk
-!  (5 ) CAC_SCALE_FUTURE    : Applies IPCC future scale factors to emissions
-!  (6 ) READ_CANADA_MASK    : Reads mask info from disk
-!  (7 ) INIT_CAC_ANTHRO     : Allocates and zeroes module arrays
-!  (8 ) CLEANUP_CAC_ANTHRO  : Dealocates module arrays
-!  (9 ) TOTAL_ANTHRO_TG     : Computes the annual total emissions
-!
-!  GEOS-Chem modules referenced by "streets_anthro_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
-!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (5 ) grid_mod.f             : Module w/ horizontal grid information
-!  (6 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (7 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
-!  (8 ) time_mod.f             : Module w/ routines for computing time & date
-!  (9 ) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
-!
-!  References:
-!  ============================================================================
-!  (1 ) http://www.ec.gc.ca/pdb/cac/cac_home_e.cfm  
-!
-!
-!  NOTES: 
-!******************************************************************************
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "cac_anthro_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
-
-      ! ... except these routines
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC :: CLEANUP_CAC_ANTHRO
       PUBLIC :: EMISS_CAC_ANTHRO
       PUBLIC :: GET_CANADA_MASK
       PUBLIC :: GET_CAC_ANTHRO
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CAC_SCALE_FUTURE
+      PRIVATE :: READ_CANADA_MASK
+      PRIVATE :: INIT_CAC_ANTHRO
+      PRIVATE :: TOTAL_ANTHRO_TG
+!
+! !REVISION HISTORY:
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!
+! !PRIVATE DATA MEMBERS:
+!
 
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Arrays
+      ! Arrays for data masks
       INTEGER, ALLOCATABLE :: MASK_CANADA_1x1(:,:)
-      REAL*8,  ALLOCATABLE :: A_CM2(:)
       REAL*8,  ALLOCATABLE :: MASK_CANADA(:,:)
+      
+      ! Array for surface area
+      REAL*8,  ALLOCATABLE :: A_CM2(:)
+
+      ! Arrays for emissions
       REAL*8,  ALLOCATABLE :: NOx(:,:)
       REAL*8,  ALLOCATABLE :: CO(:,:)
       REAL*8,  ALLOCATABLE :: SO2(:,:)
       REAL*8,  ALLOCATABLE :: NH3(:,:)
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Parameters
       REAL*8,  PARAMETER   :: SEC_IN_YEAR  = 86400d0 * 365.25d0
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+      END FUNCTION GET_ARCTAS_SHIP
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_CANADA_MASK
+!
+! !DESCRIPTION: Function GET\_CANADA\_MASK returns the value of the Canadian 
+!  geographic mask at grid box (I,J).  MASK=1 if (I,J) is within Canada, 
+!  MASK=0 otherwise. (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CANADA_MASK( I, J ) RESULT( THISMASK )
 !
-!******************************************************************************
-!  Function GET_CANADA_MASK returns the value of the Canadian mask at grid box
-!  (I,J).  MASK=1 if (I,J) is within Canada, MASK=0 otherwise. (amv, 1/09/08)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-Chem longitude index 
-!  (2 ) J (INTEGER) : GEOS-Chem latitude  index 
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
+      ! Longitude and latitude indices
       INTEGER, INTENT(IN) :: I, J
-
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       REAL*8              :: THISMASK
 
@@ -113,40 +102,54 @@
 
       ! Return to calling program
       END FUNCTION GET_CANADA_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_CAC_ANTHRO
+!
+! !DESCRIPTION: Function GET\_CAC\_ANTHRO returns the Critical Air Contaminants
+!  emission for GEOS-Chem grid box (I,J) and tracer N.  Emissions can be 
+!  returned in units of [kg/s] or [molec/cm2/s].  (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CAC_ANTHRO( I,    J,     N, 
      &                         MOLEC_CM2_S, KG_S ) RESULT( VALUE )
 !
-!******************************************************************************
-!  Function GET_CAC_ANTHRO returns the Critical Air Contaminants emission for 
-!  GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in
-!  units of [kg/s] or [molec/cm2/s].  (amv, 1/09/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I           (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J           (INTEGER) : GEOS-Chem latitude index
-!  (3 ) N           (INTEGER) : GEOS-Chem tracer number
-!  (4 ) MOLEC_CM2_S (LOGICAL) : OPTIONAL -- return emissions in [molec/cm2/s]
-!  (5 ) KG_S        (LOGICAL) : OPTIONAL -- return emissions in [kg/s]
-!  
-!  NOTES:
-!******************************************************************************
+      USE TRACER_MOD,   ONLY : XNUMOL
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 !
-      ! References to F90 modules
-      USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
-
-      ! Arguments
+! !INPUT PARAMETERS: 
+!
+      ! Longitude, latitude, and tracer indices
       INTEGER, INTENT(IN)           :: I, J, N
-      LOGICAL, INTENT(IN), OPTIONAL :: MOLEC_CM2_S
+
+      ! OPTIONAL -- return emissions in [molec/cm2/s]
+      LOGICAL, INTENT(IN), OPTIONAL :: MOLEC_CM2_S  
+
+      ! OPTIONAL -- return emissions in [kg/s]
       LOGICAL, INTENT(IN), OPTIONAL :: KG_S
-      
-      ! Local variables
+!
+! !RETURN VALUE:
+!     
+      ! Emissions output
+      REAL*8                        :: VALUE     
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL                       :: DO_KGS, DO_MCS
-      REAL*8                        :: VALUE
 
       !=================================================================
       ! GET_CAC_ANTHRO begins here!
@@ -206,23 +209,25 @@
 
       ! Return to calling program
       END FUNCTION GET_CAC_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: EMISS_CAC_ANTHRO
+!
+! !DESCRIPTION: Subroutine EMISS\_CAC\_ANTHRO reads the Critical Air 
+!  Contaminants emission fields at 1x1 resolution and regrids them to the 
+!  current model resolution. (amv, phs, 1/28/2009)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_CAC_ANTHRO
 !
-!******************************************************************************
-!  Subroutine EMISS_CAC_ANTHRO reads the Critical Air Contaminants emission 
-!  fields at 1x1 resolution and regrids them to the current model resolution.
-!  (amv, 1/09/2008)
-!  
-!  NOTES:
-!  (1 ) Emissions are read for a year b/w 2002-2005, and scaled (except NH3)
-!         between 1985-2003 if needed (phs, 3/10/08)
-!  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,       ONLY : LFUTURE
@@ -232,8 +237,20 @@
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_O3"            ! FSCALYR
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!
+! !REMARKS:
+!  (1 ) Emissions are read for a year b/w 2002-2005, and scaled
+!        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
+!  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
@@ -402,27 +419,40 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_CAC_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CAC_SCALE_FUTURE
+!
+! !DESCRIPTION: Subroutine CAC\_SCALE\_FUTURE applies the IPCC future scale 
+!  factors to the Criteria Air Contaminant anthropogenic emissions.
+!  (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
 
       SUBROUTINE CAC_SCALE_FUTURE
 !
-!******************************************************************************
-!  Subroutine CAC_SCALE_FUTURE applies the IPCC future scale factors to 
-!  the Criteria Air Contaminant anthropogenic emissions.
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
 
 #     include "CMN_SIZE"             ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
 
       !=================================================================
@@ -453,24 +483,38 @@
 
       ! Return to calling program
       END SUBROUTINE CAC_SCALE_FUTURE
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE TOTAL_ANTHRO_TG ( YEAR )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine TOTAL_ANTHRO_TG prints the totals for the anthropogenic
-!  emissions of NOx, CO, SO2 and NH3. (bmy, phs, 3/11/08)
+! !IROUTINE: TOTAL_ANTHRO_TG
 !
-!  NOTES:
-!******************************************************************************
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the totals for the 
+!  anthropogenic emissions of NOx, CO, SO2 and NH3. (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
 !
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! argument
-      INTEGER, INTENT(IN) :: YEAR
-
-      ! Local variables
+      SUBROUTINE TOTAL_ANTHRO_TG( YEAR )
+!
+! !USES:
+! 
+#     include "CMN_SIZE"            ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: YEAR   ! Year of data to compute totals
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I,     J
       REAL*8              :: T_NOX, T_CO,  T_SO2,  T_NH3
       CHARACTER(LEN=3)    :: UNIT
@@ -512,25 +556,38 @@
       
       ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_Tg
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_CANADA_MASK
+!
+! !DESCRIPTION: Subroutine READ\_CANADA\_MASK reads and regrids the Canadian 
+!  geographic mask from disk. (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CANADA_MASK
 !
-!******************************************************************************
-!  Subroutine READ_CANADA_MASK reads and regrids the Canadian mask
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
 
 #     include "CMN_SIZE"       ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
       REAL*8                  :: TAU2000
@@ -569,25 +626,38 @@
 
       ! Return to calling program
       END SUBROUTINE READ_CANADA_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: INIT_CAC_ANTHRO
+!
+! !DESCRIPTION: Subroutine INIT\_CAC\_ANTHRO allocates and zeroes all 
+!  module arrays. (phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_CAC_ANTHRO
 !
-!******************************************************************************
-!  Subroutine INIT_CAC_ANTHRO allocates and zeroes all module arrays.
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LCAC
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: AS, J
 
       !=================================================================
@@ -647,17 +717,27 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_CAC_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CLEANUP_CAC_ANTHRO
+!
+! !DESCRIPTION: Subroutine CLEANUP\_CAC\_ANTHRO deallocates all module 
+!  arrays. (phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_CAC_ANTHRO
 !
-!******************************************************************************
-!  Subroutine CLEANUP_CAC_ANTHRO deallocates all module arrays 
-!
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_STREETS begins here!
       !=================================================================
@@ -676,3 +756,4 @@
 
       ! End of module
       END MODULE CAC_ANTHRO_MOD
+!EOC
