@@ -1,7 +1,7 @@
 #=============================================================================
-# $Id: Makefile.compaq,v 1.46 2008/12/17 15:34:18 bmy Exp $
+# $Id: Makefile.compaq,v 1.47 2009/01/28 20:22:06 bmy Exp $
 #
-# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Wed Dec 12 10:27:00 2008)
+# GEOS-Chem Makefile for COMPAQ/Alpha (bmy, Wed Jan 28 15:09:02 2009)
 #
 # NOTE: For GEOS-CHEM v5-07-08, we must compile everything -fast except 
 #       "calcrate.f", which must be compiled -O2.  (hamid, bmy, 10/10/03)
@@ -26,10 +26,12 @@ OBJS =                        \
 CO_strat_pl.o                 \
 airmas.o                      \
 anthroems.o                   \
+arctas_ship_emiss_mod.o       \
 arsl1k.o                      \
 backsub.o                     \
 biofit.o                      \
 boxvl.o                       \
+cac_anthro_mod.o              \
 calcrate.o                    \
 chemdr.o                      \
 cleanup.o                     \
@@ -73,6 +75,7 @@ readchem.o                    \
 reader.o                      \
 readlai.o                     \
 ruralbox.o                    \
+scale_anthro_mod.o            \
 schem.o                       \
 setbase.o                     \
 setemdep.o                    \
@@ -91,6 +94,7 @@ tcorr.o                       \
 tpcore_fvdas_mod.o            \
 tropopause.o                  \
 update.o                      \
+vistas_anthro_mod.o           \
 xltmmp.o                      
 
 FJ =                          \
@@ -160,11 +164,15 @@ diag_oh_mod.o                 \
 diag_pl_mod.o                 \
 ocean_mercury_mod.o           \
 drydep_mod.o                  \
-bravo_mod.o                   \
+scale_anthro_mod.o            \
 edgar_mod.o                   \
+bravo_mod.o                   \
 emep_mod.o                    \
 epa_nei_mod.o                 \
 streets_anthro_mod.o          \
+arctas_ship_emiss_mod.o       \
+cac_anthro_mod.o              \
+vistas_anthro_mod.o           \
 geia_mod.o                    \
 global_ch4_mod.o              \
 global_hno3_mod.o             \
@@ -229,10 +237,8 @@ gamap_mod.o                   \
 input_mod.o
 
 #=============================================================================
-#  Executables and Documentation
+#  Executables and Documenation
 #=============================================================================
-
-# Build GEOS-Chem executable
 geos:   $(MODS) $(OBJS) $(FJ)
 	$(F90)  $(Fopt) $(MODS) $(OBJS) $(FJ) $(ZLIB) -o geos
 
@@ -243,6 +249,7 @@ doc:
 # Remove all *.tex, *.ps, and *.pdf files from the doc subdirectory
 docclean: 
 	@$(MAKE) -C doc clean
+
 
 #==============================================================================
 #  Dependencies Listing
@@ -275,16 +282,18 @@ aerosol_mod.o                  : aerosol_mod.f                  CMN_DIAG CMN_SIZ
 aircraft_nox_mod.o             : aircraft_nox_mod.f             CMN CMN_DIAG CMN_SIZE define.h 
 airmas.o                       : airmas.f                       
 anthroems.o                    : anthroems.f                    CMN_O3 CMN_SIZE define.h comode.h 
+arctas_ship_emiss_mod.o        : arctas_ship_emiss_mod.f        CMN_SIZE define.h 
 arsl1k.o                       : arsl1k.f                       
 backsub.o                      : backsub.f                      CMN_SIZE define.h comode.h 
 benchmark_mod.o                : benchmark_mod.f                CMN_SIZE define.h 
 biofit.o                       : biofit.f                       CMN_DEP CMN_SIZE define.h 
-biofuel_mod.o                  : biofuel_mod.f                  CMN_DIAG CMN_SIZE define.h 
+biofuel_mod.o                  : biofuel_mod.f                  CMN_DIAG CMN_O3 CMN_SIZE define.h 
 biomass_mod.o                  : biomass_mod.f                  CMN_DIAG CMN_SIZE define.h 
 boxvl.o                        : boxvl.f                        
 bpch2_mod.o                    : bpch2_mod.f                    CMN_SIZE define.h define.h 
-bravo_mod.o                    : bravo_mod.f                    CMN_SIZE define.h 
+bravo_mod.o                    : bravo_mod.f                    CMN_O3 CMN_SIZE define.h 
 c2h6_mod.o                     : c2h6_mod.f                     CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
+cac_anthro_mod.o               : cac_anthro_mod.f               CMN_O3 CMN_SIZE define.h 
 calcrate.o                     : calcrate.f                     CMN CMN_DIAG CMN_SIZE define.h comode.h 
 carbon_mod.o                   : carbon_mod.f                   CMN CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h comode.h 
 ch3i_mod.o                     : ch3i_mod.f                     CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
@@ -318,16 +327,16 @@ drydep_mod.o                   : drydep_mod.f                   CMN_DEP CMN_DIAG
 dust_dead_mod.o                : dust_dead_mod.f                CMN_GCTM CMN_SIZE define.h 
 dust_mod.o                     : dust_mod.f                     CMN_DIAG CMN_GCTM CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h comode.h jv_cmn.h 
 edgar_mod.o                    : edgar_mod.f                    CMN_SIZE define.h 
-emep_mod.o                     : emep_mod.f                     CMN_SIZE define.h 
+emep_mod.o                     : emep_mod.f                     CMN_O3 CMN_SIZE define.h 
 emf_scale.o                    : emf_scale.f                    CMN_O3 CMN_SIZE define.h comode.h 
 emfossil.o                     : emfossil.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h comode.h 
 emisop.o                       : emisop.f                       CMN_ISOP CMN_SIZE define.h CMN_VEL 
 emisop_grass.o                 : emisop_grass.f                 CMN_ISOP CMN_SIZE define.h CMN_VEL 
 emisop_mb.o                    : emisop_mb.f                    CMN_ISOP CMN_SIZE define.h CMN_VEL 
 emissdr.o                      : emissdr.f                      CMN CMN_DIAG CMN_MONOT CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
-emissions_mod.o                : emissions_mod.f                CMN_SIZE define.h 
+emissions_mod.o                : emissions_mod.f                CMN_O3 CMN_SIZE define.h 
 emmonot.o                      : emmonot.f                      CMN_MONOT CMN_SIZE define.h CMN_VEL 
-epa_nei_mod.o                  : epa_nei_mod.f                  CMN_SIZE define.h 
+epa_nei_mod.o                  : epa_nei_mod.f                  CMN_O3 CMN_SIZE define.h 
 error_mod.o                    : error_mod.f                    define.h 
 fast_j.o                       : fast_j.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 fertadd.o                      : fertadd.f                      CMN_SIZE define.h commsoil.h 
@@ -405,6 +414,7 @@ regrid_1x1_mod.o               : regrid_1x1_mod.f               CMN_GCTM CMN_SIZ
 restart_mod.o                  : restart_mod.f                  CMN_SIZE define.h 
 rpmares_mod.o                  : rpmares_mod.f                  CMN_SIZE define.h 
 ruralbox.o                     : ruralbox.f                     CMN_SIZE define.h comode.h 
+scale_anthro_mod.o             : scale_anthro_mod.f             CMN_SIZE define.h 
 schem.o                        : schem.f                        CMN_SIZE define.h 
 seasalt_mod.o                  : seasalt_mod.f                  CMN_DIAG CMN_GCTM CMN_SIZE define.h 
 set_aer.o                      : set_aer.f                      cmn_fj.h CMN_SIZE define.h jv_cmn.h 
@@ -420,7 +430,7 @@ soilcrf.o                      : soilcrf.f                      CMN_DEP CMN_SIZE
 soilnoxems.o                   : soilnoxems.f                   CMN_DEP CMN_DIAG CMN_NOX CMN_SIZE define.h commsoil.h 
 soiltemp.o                     : soiltemp.f                     CMN_SIZE define.h commsoil.h 
 soiltype.o                     : soiltype.f                     CMN_SIZE define.h commsoil.h 
-streets_anthro_mod.o           : streets_anthro_mod.f           CMN_SIZE define.h 
+streets_anthro_mod.o           : streets_anthro_mod.f           CMN_O3 CMN_SIZE define.h 
 subfun.o                       : subfun.f                       CMN_SIZE define.h comode.h 
 sulfate_mod.o                  : sulfate_mod.f                  CMN_DIAG CMN_GCTM CMN_O3 CMN_SIZE define.h cmn_fj.h CMN_SIZE define.h 
 sunparam.o                     : sunparam.f                     
@@ -430,9 +440,9 @@ tcorr.o                        : tcorr.f
 time_mod.o                     : time_mod.f                     CMN_DIAG CMN_SIZE define.h define.h 
 toms_mod.o                     : toms_mod.f                     CMN_SIZE define.h 
 tpcore_bc_mod.o                : tpcore_bc_mod.f                CMN CMN_SIZE define.h 
-tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             
-	$(F90) -c -check nobounds -freeform $*.f90
-tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90
+tpcore_fvdas_mod.o             : tpcore_fvdas_mod.f90             CMN_GCTM 
+	$(F90) -c -r8 -check nobounds $*.f90
+tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90      
 	$(F90) -c -r8 -check nobounds $*.f90
 tpcore_mod.o                   : tpcore_mod.f                   CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
 	$(F90) -c -r8 -check nobounds $*.f
@@ -448,6 +458,7 @@ unix_cmds_mod.o                : unix_cmds_mod.f
 upbdflx_mod.o                  : upbdflx_mod.f                  CMN_GCTM CMN_SIZE define.h 
 update.o                       : update.f                       CMN_SIZE define.h comode.h 
 uvalbedo_mod.o                 : uvalbedo_mod.f                 CMN_SIZE define.h 
+vistas_anthro_mod.o            : vistas_anthro_mod.f            CMN_O3 CMN_SIZE define.h 
 wetscav_mod.o                  : wetscav_mod.f                  CMN_DIAG CMN_SIZE define.h 
 xltmmp.o                       : xltmmp.f                       CMN_SIZE define.h 
 xtra_read_mod.o                : xtra_read_mod.f                CMN_DIAG CMN_SIZE define.h 
