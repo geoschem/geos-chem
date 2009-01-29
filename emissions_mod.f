@@ -1,39 +1,29 @@
-! $Id: emissions_mod.f,v 1.22 2009/01/28 19:59:16 bmy Exp $
+! $Id: emissions_mod.f,v 1.23 2009/01/29 15:35:50 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: EMISSIONS_MOD
+!
+! !DESCRIPTION: Module EMISSIONS\_MOD is used to call the proper emissions 
+!  subroutines for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE EMISSIONS_MOD
-!
-!******************************************************************************
-!  Module EMISSIONS_MOD is used to call the proper emissions subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_EMISSIONS     : Driver which calls various emissions routines
+! !USES:
 !
-!  GEOS-CHEM modules referenced by emissions_mod.f
-!  ============================================================================
-!  (1 ) bravo_mod.f      :
-!  (2 ) c2h6_mod.f       : Module w/ routines for C2H6 chemistry
-!  (3 ) carbon_mod.f     : Module w/ routines for carbon arsl emissions
-!  (4 ) ch3i_mod.f       : Module w/ routines for CH3I chemistry
-!  (5 ) co2_mod.f        : Module w/ routines for CO2 chemistry
-!  (6 ) dust_mod.f       : Module w/ routines for dust aerosol emissions
-!  (7 ) emep_mod.f       : Module w/ routines to read EMEP (Europe) emissions
-!  (8 ) epa_nei_mod.f    : Module w/ routines to read EPA/NEI99 (USA) emissions
-!  (9 ) error_mod.f      : Module w/ NaN and other error checks
-!  (10) global_ch4_mod.f : Module w/ routines for CH4 emissions
-!  (11) h2_hd_mod.f      : Module w/ routines for H2 and HD chemistry
-!  (12) hcn_ch3cn_mod.f  : Module w/ routines for HCN and CH3CN emissions 
-!  (13) Kr85_mod.f       : Module w/ routines for Kr85 emissions
-!  (14) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (15) mercury_mod.f    : Module w/ routines for mercury chemistry
-!  (16) RnPbBe_mod.f     : Module w/ routines for Rn-Pb-Be emissions
-!  (17) tagged_co_mod.f  : Module w/ routines for Tagged CO emissions
-!  (18) time_mod.f       : Module w/ routines to compute date & time
-!  (19) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (20) seasalt_mod.f    : Module w/ routines for seasalt emissions
-!  (21) sulfate_mod.f    : Module w/ routines for sulfate emissions
+      IMPLICIT NONE
+      PRIVATE
 !
-!  NOTES:
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: DO_EMISSIONS
+!
+! !REVISION HISTORY:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
 !  (2 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (3 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/2/04)
@@ -54,25 +44,63 @@
 !  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !  (18) Now references "cac_anthro_mod.f" (amv, phs, 03/11/08)
 !  (19) Now references "vistas_anthro_mod.f" (amv, 12/02/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
+!EOP
+!------------------------------------------------------------------------------
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
       CONTAINS
 
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DO_EMISSIONS
+!
+! !DESCRIPTION: Subroutine DO\_EMISSIONS is the driver routine which calls 
+!  the appropriate emissions subroutine for the various GEOS-CHEM simulations. 
+!  (bmy, 2/11/03, 2/14/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_EMISSIONS
 !
-!******************************************************************************
-!  Subroutine DO_EMISSIONS is the driver routine which calls the appropriate
-!  emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 2/14/08)
+! !USES:
 !
-!  NOTES:
+      USE BIOMASS_MOD,            ONLY : NBIOMAX
+      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
+      USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
+      USE BRAVO_MOD,              ONLY : EMISS_BRAVO
+      USE C2H6_MOD,               ONLY : EMISSC2H6
+      USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
+      USE CARBON_MOD,             ONLY : EMISSCARBON
+      USE CH3I_MOD,               ONLY : EMISSCH3I
+      USE CO2_MOD,                ONLY : EMISSCO2
+      USE DUST_MOD,               ONLY : EMISSDUST
+      USE EDGAR_MOD,              ONLY : EMISS_EDGAR
+      USE EMEP_MOD,               ONLY : EMISS_EMEP
+      USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
+      USE ERROR_MOD,              ONLY : DEBUG_MSG
+      USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
+      USE H2_HD_MOD,              ONLY : EMISS_H2_HD
+      USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
+      USE Kr85_MOD,               ONLY : EMISSKr85
+      USE LOGICAL_MOD                
+      USE MERCURY_MOD,            ONLY : EMISSMERCURY
+      USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
+      USE SEASALT_MOD,            ONLY : EMISSSEASALT
+      USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
+      USE SULFATE_MOD,            ONLY : EMISSSULFATE 
+      USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
+      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
+      USE TRACER_MOD                 
+      USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
+      USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+
+#     include "CMN_SIZE"               ! Size parameters
+#     include "CMN_O3"                 ! FSCLYR
+!
+! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !  (2 ) Now calls Kr85 emissions if NSRCX == 12 (jsw, bmy, 8/20/03)
 !  (3 ) Now calls EMISSCARBON and EMISSDUST for carbon aerosol and dust
@@ -104,43 +132,12 @@
 !        (phs, 5/12/08)
 !  (20) Now references EMISS_VISTAS_ANTHR from "vistas_anthro_mod.f". Call
 !        EMEP, and Streets every month (amv, 12/2/08)
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BIOMASS_MOD,            ONLY : NBIOMAX
-      USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
-      USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
-      USE BRAVO_MOD,              ONLY : EMISS_BRAVO
-      USE C2H6_MOD,               ONLY : EMISSC2H6
-      USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
-      USE CARBON_MOD,             ONLY : EMISSCARBON
-      USE CH3I_MOD,               ONLY : EMISSCH3I
-      USE CO2_MOD,                ONLY : EMISSCO2
-      USE DUST_MOD,               ONLY : EMISSDUST
-      USE EDGAR_MOD,              ONLY : EMISS_EDGAR
-      USE EMEP_MOD,               ONLY : EMISS_EMEP
-      USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
-      USE ERROR_MOD,              ONLY : DEBUG_MSG
-      USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
-      USE H2_HD_MOD,              ONLY : EMISS_H2_HD
-      USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
-      USE Kr85_MOD,               ONLY : EMISSKr85
-      USE LOGICAL_MOD                
-      USE MERCURY_MOD,            ONLY : EMISSMERCURY
-      USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
-      USE SEASALT_MOD,            ONLY : EMISSSEASALT
-      USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
-      USE SULFATE_MOD,            ONLY : EMISSSULFATE 
-      USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
-      USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
-      USE TRACER_MOD                 
-      USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
-      USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
-
-#     include "CMN_SIZE"           ! Size parameters
-#     include "CMN_O3"             ! FSCLYR
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER                     :: MONTH, YEAR
       REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
@@ -419,3 +416,4 @@
 
       ! End of module
       END MODULE EMISSIONS_MOD
+!EOC

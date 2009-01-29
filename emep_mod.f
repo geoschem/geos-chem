@@ -1,89 +1,73 @@
-! $Id: emep_mod.f,v 1.7 2009/01/28 19:59:16 bmy Exp $
+! $Id: emep_mod.f,v 1.8 2009/01/29 15:35:50 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: EMEP_MOD
+!
+! !DESCRIPTION: \subsection*{Overview}
+!  Module EMEP\_MOD contains variables and routines to read the 
+!  EMEP European anthropogenic emission inventory for CO, NOz, and some 
+!  NMVOCs.  The EMEP files come from Marion Auvray and Isabelle Bey at EPFL. 
+!  (bdf, bmy, amv, phs, 11/1/05, 1/28/09)
+!
+!\subsection*{References}
+! \begin{enumerate}
+!     \item Vestreng, V., and H. Klein (2002), \emph{Emission data reported 
+!           to UNECE/EMEP: Quality insurance and trend analysis and 
+!           presentation of Web-Dab}, \underline{MSC-W Status Rep}. 2002:, 
+!           101 pp., Norw. Meteorol. Inst., Oslo, Norway.  This paper is 
+!           on the EMEP web site:
+!           http://www.emep.int/mscw/mscw_publications.html
+!           http://www.emep.int/publ/reports/2002/mscw_note_1_2002.pdf
+!     \item Auvray, M., and I. Bey, \emph{Long-Range Transport to Europe: 
+!           Seasonal Variations and Implications for the European Ozone 
+!           Budget}, \underline{J. Geophys. Res.}, \textbf{110}, D11303, 
+!           doi: 10.1029/2004JD005503, 2005.
+! \end{enumerate}
+!
+! !INTERFACE: 
+!
       MODULE EMEP_MOD
-!
-!******************************************************************************
-!  Module EMEP_MOD contains variables and routines to read the EMEP European 
-!  anthropogenic emission inventory for CO, NOz, and some NMVOCs.  The EMEP 
-!  files come from Marion Auvray and Isabelle Bey at EPFL. 
-!  (bdf, bmy, 11/1/05, 10/18/06)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) EUROPE_MASK   (REAL*8) : Array used to mask out the Europe region
-!  (2 ) EMEP_EMISS_AN (REAL*8) : EMEP anthropogenic emissions [molec/cm2/s]
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_EUROPE_MASK        : Gets the value of the Europe mask at (I,J) 
-!  (2 ) GET_EMEP_ANTHRO        : Gets emissions at (I,J) for EMEP species 
-!  (3 ) EMISS_EMEP             : Reads EMEP emissions from disk once per year
-!  (4 ) EMEP_SCALE_FUTURE      : Applies IPCC future scale factors to EMEP
-!  (5 ) READ_EUROPE_MASK       : Reads the Europe mask for EMEP emissions
-!  (6 ) INIT_EMEP              : Allocates and zeroes module arrays
-!  (7 ) CLEANUP_EMEP           : Dealocates module arrays
+! !USES:
 !
-!  GEOS-CHEM modules referenced by "emep_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
-!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (4 ) file_mod.f             : Module w/ file unit numbers and error checks
-!  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (6 ) grid_mod.f             : Module w/ horizontal grid information
-!  (7 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
-!  (8 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
-!  (9 ) time_mod.f             : Module w/ routines for computing time & date
-!  (10) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
+      IMPLICIT NONE
+      PRIVATE
 !
-!  References:
-!  ============================================================================
-!  (1 ) Vestreng, V., and H. Klein (2002), "Emission data reported to UNECE/
-!        EMEP: Quality insurance and trend analysis and presentation of Web-
-!        Dab, MSC-W Status Rep. 2002", 101 pp., Norw. Meteorol. Inst., Oslo,
-!        Norway.  This paper is on the EMEP web site:
-!         http://www.emep.int/mscw/mscw_publications.html
-!         http://www.emep.int/publ/reports/2002/mscw_note_1_2002.pdf
-!  (2 ) Auvray, M., and I. Bey, "Long-Range Transport to Europe: Seasonal 
-!        Variations and Implications for the European Ozone Budget", 
-!        J. Geophys. Res., 110, D11303, doi: 10.1029/2004JD005503, 2005.
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES: 
+      PUBLIC  :: EMISS_EMEP
+      PUBLIC  :: CLEANUP_EMEP
+      PUBLIC  :: GET_EUROPE_MASK
+      PUBLIC  :: GET_EMEP_ANTHRO
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!     
+      PRIVATE :: EMEP_SCALE_FUTURE
+      PRIVATE :: READ_EUROPE_MASK 
+      PRIVATE :: INIT_EMEP        
+!
+! !REVISION HISTORY:
 !  (1 ) Now only print totals for defined tracers (bmy, 2/6/06)
 !  (2 ) Now modified for IPCC future emissions (swu, bmy, 5/30/06)
 !  (3 ) Now yearly scale factors can be applied (phs, amv, 3/17/08)
 !  (4 ) Now include emep SOx and emep emissions to 2005 (amv, 06/08)
 !  (5 ) Modify to access SHIP emissions from outside (phs, 06/08)
 !  (6 ) Account for monthly variations (amv, 12/9/08)
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "emep_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: EMISS_EMEP
-      PUBLIC :: CLEANUP_EMEP
-      PUBLIC :: GET_EUROPE_MASK
-      PUBLIC :: GET_EMEP_ANTHRO
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Arrays
+! !PRIVATE DATA MEMBERS:
+!
+      ! Array for geographic mask
       REAL*8,  ALLOCATABLE :: EUROPE_MASK(:,:)
+
+      ! Arrays for ground-based emissions
       REAL*8,  ALLOCATABLE :: EMEP_NOx(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_CO(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_SO2(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_SO2_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_CO_SHIP(:,:)
-      REAL*8,  ALLOCATABLE :: EMEP_NOx_SHIP(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_NH3(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_ALK4(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_MEK(:,:)
@@ -91,35 +75,46 @@
       REAL*8,  ALLOCATABLE :: EMEP_PRPE(:,:)
       REAL*8,  ALLOCATABLE :: EMEP_C2H6(:,:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
+      ! Arrays for ship emissions
+      REAL*8,  ALLOCATABLE :: EMEP_CO_SHIP(:,:)
+      REAL*8,  ALLOCATABLE :: EMEP_SO2_SHIP(:,:)
+      REAL*8,  ALLOCATABLE :: EMEP_NOx_SHIP(:,:)
+
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_EUROPE_MASK
+!
+! !DESCRIPTION: Function GET\_EUROPE\_MASK returns the value of the EUROPE 
+!  mask for EMEP emissions at grid box (I,J).  MASK=1 if (I,J) is in the 
+!  European region, or MASK=0 otherwise. (bdf, bmy, 11/1/05)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_EUROPE_MASK( I, J ) RESULT( EUROPE )
-
 !
-!******************************************************************************
-!  Function GET_EUROPE_MASK returns the value of the EUROPE mask for EMEP
-!  emissions at grid box (I,J).  MASK=1 if (I,J) is in the European region, 
-!  or MASK=0 otherwise. (bdf, bmy, 11/1/05)
+! !INPUT ARGUMENTS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index 
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude  index 
+      INTEGER, INTENT(IN) :: I        ! Longitude index
+      INTEGER, INTENT(IN) :: J        ! Latitude  index
 !
-!  NOTES:
-!******************************************************************************
+! RETURN VALUE:
+! 
+      REAL*8              :: EUROPE   ! Returns the mask value @ (I,J)
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Function return value
-      REAL*8              :: EUROPE
-
+! !REVISION HISTORY: 
+!  01 Nov 2005 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       !=================================================================
       ! GET_EUROPE_MASK begins here!
       !=================================================================
@@ -127,45 +122,53 @@
 
       ! Return to calling program
       END FUNCTION GET_EUROPE_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_EMEP_ANTHRO
+!
+! !DESCRIPTION: Function GET\_EMEP\_ANTHRO returns the EMEP emission for 
+!  GEOS-CHEM grid box (I,J) and tracer N. (bdf, bmy, 11/1/05)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_EMEP_ANTHRO( I, J, N, KG_S, SHIP ) RESULT( EMEP )
 !
-!******************************************************************************
-!  Function GET_EMEP_ANTHRO returns the EMEP emission for GEOS-CHEM grid box 
-!  (I,J) and tracer N. (bdf, bmy, 11/1/05)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-CHEM longitude index
-!  (2 ) J (INTEGER) : GEOS-CHEM latitude index
-!  (3 ) N (INTEGER) : GEOS-CHEM tracer number
-!  (4 ) KG_S        (LOGICAL) : OPTIONAL -- return emissions in [kg/s]
-!  (5 ) SHIP        (LOGICAL) : OPTIONAL -- return ship emissions
-!  
-!  NOTES:a
-!  (1 ) added SOx, SOx ship and NH3 emissions, plus optional kg/s output
-!       (amv, 06/2008)
-!  (2 ) Now returns ship emissions if requested (phs, 6/08)
-!  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
       USE TRACER_MOD,   ONLY : XNUMOL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I, J, N
-      LOGICAL, INTENT(IN), OPTIONAL :: KG_S, SHIP
-
-      ! Function return value
-      REAL*8                        :: EMEP
-
-      ! Local variables
+!
+! !INPUT ARGUMENTS:
+!
+      INTEGER, INTENT(IN)           :: I       ! Longitude index
+      INTEGER, INTENT(IN)           :: J       ! Latitude index
+      INTEGER, INTENT(IN)           :: N       ! Tracer number
+      LOGICAL, INTENT(IN), OPTIONAL :: KG_S    ! Return emissions in [kg/s]
+      LOGICAL, INTENT(IN), OPTIONAL :: SHIP    ! Return ship emissions
+!
+! RETURN VALUE:
+! 
+      REAL*8                        :: EMEP    ! Returns emissions at (I,J)
+!
+! !REVISION HISTORY: 
+!  (1 ) added SOx, SOx ship and NH3 emissions, plus optional kg/s output
+!       (amv, 06/2008)
+!  (2 ) Now returns ship emissions if requested (phs, 6/08)
+!  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL                       :: DO_KGS, IS_SHIP
       INTEGER                       :: NN,     HAS_SHIP(3)
       
@@ -257,22 +260,25 @@
 
       ! Return to calling program
       END FUNCTION GET_EMEP_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SUBROUTINE EMISS_EMEP
+!
+! !DESCRIPTION: Subroutine EMISS\_EMEP reads the EMEP emission fields at 
+!  1x1 resolution and regrids them to the current model resolution.
+!  (bdf, bmy, 11/1/05, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_EMEP
 !
-!******************************************************************************
-!  Subroutine EMISS_EMEP reads the EMEP emission fields at 1x1 
-!  resolution and regrids them to the current model resolution.
-!  (bdf, bmy, 11/1/05, 5/30/06)
-!
-!  NOTES:
-!  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
-!        "logical_mod.f". (bmy, 5/30/06)
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,     OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE,      IOERROR
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
@@ -284,8 +290,16 @@
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_O3"         ! SCALEYEAR
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
+!        "logical_mod.f". (bmy, 5/30/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE           :: FIRST = .TRUE.
       INTEGER                 :: EMEP_NYMD, EMEP_YEAR
       REAL*8                  :: EMEP_TAU,  TAU0
@@ -470,18 +484,24 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_EMEP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: EMEP_SCALE_FUTURE
+!
+! !DESCRIPTION: Subroutine EMEP\_SCALE\_FUTURE applies the IPCC future 
+!  scale factors to the EMEP anthropogenic emissions. (swu, bmy, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMEP_SCALE_FUTURE
 !
-!******************************************************************************
-!  Subroutine EMEP_SCALE_FUTURE applies the IPCC future scale factors to 
-!  the EMEP anthropogenic emissions. (swu, bmy, 5/30/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! !USES:
+! 
       ! References to F90 modules
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
@@ -492,8 +512,15 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
 
 #     include "CMN_SIZE"             ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  30 May 2006 - S. Wu & R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
 
       !=================================================================
@@ -539,31 +566,25 @@
 
       ! Return to calling program
       END SUBROUTINE EMEP_SCALE_FUTURE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TOTAL_ANTHRO_TG
+!
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of EMEP 
+!  anthropogenic emissions that are emitted each month in Tg or Tg C. 
+!  (rch, bmy, 11/10/04, 2/6/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TOTAL_ANTHRO_TG( EMEP_YEAR, EMISS_YEAR, EMEP_MONTH )
 !
-!******************************************************************************
-!  Subroutine TOTAL_ANTHRO_TG prints the amount of EMEP anthropogenic
-!  emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 2/6/06)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) EMEP_YEAR  (INTEGER) : Base Year
-!  (2 ) EMISS_YEAR (INTEGER) : Simulated Year
-!  (3 ) EMEP_MONTH (INTEGER) : Simulated Month
-!
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (2 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
-!  (3 ) Now only print totals of defined tracers; other totals will be
-!        printed as zeroes. (bmy, 2/6/06)
-!  (4 ) Now emissions and base year are arguments. Output in Tg/month
-!        since this is called monthly (phs, 12/9/08)
-!******************************************************************************
-!
+! !USES:
+! 
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LEMEPSHIP
@@ -573,12 +594,26 @@
       USE TRACERID_MOD, ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)   :: EMEP_YEAR, EMISS_YEAR
-      INTEGER, INTENT(IN)   :: EMEP_MONTH
-
-      ! Local variables
+!
+! !INPUT ARGUMENTS:
+!
+      INTEGER, INTENT(IN)   :: EMEP_YEAR    ! EMEP base year
+      INTEGER, INTENT(IN)   :: EMISS_YEAR   ! Current simulated year
+      INTEGER, INTENT(IN)   :: EMEP_MONTH   ! Current simulated month
+!
+! !REVISION HISTORY: 
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
+!  (3 ) Now only print totals of defined tracers; other totals will be
+!        printed as zeroes. (bmy, 2/6/06)
+!  (4 ) Now emissions and base year are arguments. Output in Tg/month
+!        since this is called monthly (phs, 12/9/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER               :: I, J
       REAL*8                :: A,   B(9), NOX,  CO,  ALK4
       REAL*8                :: MEK, ALD2, PRPE, C2H6, SO2
@@ -680,28 +715,39 @@
 
       ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_TG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_EUROPE_MASK
+!
+! !DESCRIPTION: Subroutine READ\_EUROPE\_MASK reads and regrids the 
+!  Europe mask for the EMEP anthropogenic emissions.  (bmy, 10/18/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_EUROPE_MASK
 !
-!******************************************************************************
-!  Subroutine READ_EUROPE_MASK reads and regrids the Europe mask for the
-!  EMEP anthropogenic emissions. (bmy, 10/18/06)
-!
-!  NOTES:
-!  (1 ) Now read the Europe mask from a disk file instead of defining it as 
-!        a rectangular box (bmy, 10/18/06)
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,      ONLY : READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
 #     include "CMN_SIZE"       ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  (1 ) Now read the Europe mask from a disk file instead of defining it as 
+!        a rectangular box (bmy, 10/18/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       CHARACTER(LEN=255)      :: FILENAME
 
@@ -727,36 +773,53 @@
 
       ! Return to calling program
       END SUBROUTINE READ_EUROPE_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_EMEP_UPDATED
+!
+! !DESCRIPTION: Subroutine READ\_EMEP\_UPDATED reads updated EMEP emissions 
+!  from the year 1990 including SOx emissions.  These are regridded to the 
+!  simulation resolution. Ship emissions can also be included. 
+!  (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_EMEP_UPDATED( TRACER, EMEP_YEAR, ARRAY, wSHIP )
 !
-!******************************************************************************
-!  Subroutine READ_EMEP_UPDATED reads updated EMEP emissions from the year 1990
-!  including SOx emissions.  These are regridded to the simulation resolution.
-!  Ship emissions can also be included. (amv, 06/2008)
-!
-!  NOTES:
-!   (1 ) Now account for LEMEPSHIP (phs, 6/08)
-!  
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,        ONLY : READ_BPCH2, GET_TAU0
-      USE TIME_MOD,         ONLY : EXPAND_DATE, GET_MONTH
-      USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
-      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_1x1
-      USE LOGICAL_MOD,      ONLY : LEMEPSHIP
+! !USES:
+! 
+      USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
+      USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE LOGICAL_MOD,    ONLY : LEMEPSHIP
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_O3"         ! SCALEYEAR
-
-      ! Arguments
-      INTEGER,          INTENT(IN)  :: TRACER, EMEP_YEAR, wSHIP
-      REAL*8,           INTENT(OUT) :: ARRAY(IIPAR,JJPAR)
-
-      ! Local variables
+!
+! !INPUT ARGUMENTS:
+!
+      INTEGER, INTENT(IN)  :: TRACER              ! Tracer number
+      INTEGER, INTENT(IN)  :: EMEP_YEAR           ! Year of emissions to read
+      INTEGER, INTENT(IN)  :: wSHIP               ! Use ground, ship, or both?
+!
+! !OUTPUT ARGUMENTS:
+!
+      REAL*8,  INTENT(OUT) :: ARRAY(IIPAR,JJPAR)  ! Output array
+!
+! !REVISION HISTORY: 
+!  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4                        :: ARRAY_1x1(I1x1,J1x1,1)
       REAL*4                        :: ARRAY_1x1_SHIP(I1x1,J1x1,1)
       REAL*4                        :: ARRAY_1x1_LAND(I1x1,J1x1,1)
@@ -892,30 +955,41 @@
       IF ( TRACER .eq. 26 ) ARRAY(:,:) = ARRAY(:,:) * 0.95d0
 
       END SUBROUTINE READ_EMEP_UPDATED
-
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: INIT_EMEP
+!
+! !DESCRIPTION: Subroutine INIT\_EMEP allocates and zeroes EMEP module 
+!  arrays, and also creates the mask which defines the European region.
+!  (bdf, bmy, 11/1/05, 10/18/06) 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_EMEP
 !
-!******************************************************************************
-!  Subroutine INIT_EMEP allocates and zeroes EMEP module arrays, and 
-!  also creates the mask which defines the European region.
-!  (bdf, bmy, 11/1/05, 10/18/06) 
-!
-!  NOTES:
-!  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
-!        instead of just defining it as a rectangular box. (bmy, 10/18/06)
-!******************************************************************************
-!
+! !USES:
+! 
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
       USE LOGICAL_MOD, ONLY : LEMEP
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
+!        instead of just defining it as a rectangular box. (bmy, 10/18/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: AS, I, J, X, Y
 
       !=================================================================
@@ -985,17 +1059,27 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_EMEP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CLEANUP_EMEP
+!
+! !DESCRIPTION: Subroutine CLEANUP\_EMEP deallocates all module arrays 
+!   (bmy, 11/1/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_EMEP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_EMEP deallocates all module arrays (bmy, 11/1/05)
-!
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  1 Nov 2005 - R. Yantosca - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_EMEP begins here!
       !=================================================================
@@ -1020,3 +1104,4 @@
 
       ! End of module
       END MODULE EMEP_MOD
+!EOC

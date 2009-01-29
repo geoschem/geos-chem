@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.11 2008/12/15 16:20:47 bmy Exp $
+! $Id: megan_mod.f,v 1.12 2009/01/29 15:35:49 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -1385,7 +1385,7 @@
 
       ! 1x1 file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &           'MEGAN_200510/MEGAN_AEF_ISOP.geos.1x1'
+     &           'MEGAN_200510/MEGAN_AEF_ISOP.updated_200708.geos.1x1'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )

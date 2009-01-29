@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.57 2008/12/16 14:52:46 bmy Exp $
+! $Id: diag3.f,v 1.58 2009/01/29 15:35:50 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -2598,7 +2598,7 @@
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
 
                   WHERE( CTO3 /= 0 )
-                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N) /
+                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TRACERS+1) /
      $                    FLOAT( CTO3 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD45) = 0.

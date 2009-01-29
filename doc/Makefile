@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2009/01/28 21:56:56 bmy Exp $
+# $Id: Makefile,v 1.4 2009/01/29 15:35:49 bmy Exp $
 #==============================================================================
 # Makefile: to create PDF and PS documentation from the ProTeX headers
 #           contained in GEOS-Chem F90 module files. (bmy, 12/17/08, 1/28/09)
@@ -48,8 +48,10 @@ tpcore:
 # Documentation files
 EMISS_F90 =                  \
 emissions.intro              \
+../emissions_mod.f           \
 ../arctas_ship_emiss_mod.f   \
 ../cac_anthro_mod.f          \
+../emep_mod.f                \
 ../scale_anthro_mod.f        \
 ../vistas_anthro_mod.f 
 

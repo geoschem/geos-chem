@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.28 2008/11/07 19:30:36 bmy Exp $
+! $Id: CMN_SIZE,v 1.29 2009/01/29 15:35:50 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
       !
@@ -50,6 +50,7 @@
       ! (28) Reset vertical coordinates for GEOS-5.  Also renamed GRID30LEV
       !       to GRIDREDUCED (bmy, 4/3/07)
       ! (29) New parameters for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+      ! (30) NEMPARA set to 12 to emit O3 and HNO3 (phs, 4/3/08)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -423,7 +424,11 @@
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
       INTEGER, PARAMETER :: NNPAR   = 54
-      INTEGER, PARAMETER :: NEMPARA = 10
+!----------------------------------------------------
+! Prior to 3/4/08:
+!      INTEGER, PARAMETER :: NEMPARA = 10
+!----------------------------------------------------
+      INTEGER, PARAMETER :: NEMPARA = 12 ! new emissions HNO3 and O3 (phs)
       INTEGER, PARAMETER :: NEMPARB = 1
 
       !=================================================================

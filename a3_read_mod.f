@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.22 2008/11/05 19:45:45 bmy Exp $
+! $Id: a3_read_mod.f,v 1.23 2009/01/29 15:35:50 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -1417,7 +1417,7 @@
  120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!' )
 
-         WRITE( 6, '(a)' ) '### STOP in A3_CHECK (dao_read_mod.f)'
+         WRITE( 6, '(a)' ) '### STOP in A3_CHECK (a3_read_mod.f)'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
          ! Deallocate arrays and stop (bmy, 10/15/02)

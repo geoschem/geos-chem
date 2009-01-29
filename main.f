@@ -1,5 +1,9 @@
-! $Id: main.f,v 1.56 2008/12/15 21:21:12 bmy Exp $
+! $Id: main.f,v 1.57 2009/01/29 15:35:50 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.57  2009/01/29 15:35:50  bmy
+! Added protex header to emep_mod.f.  Also some last-minute changes from
+! Philippe, and a couple of typo fixes. (bmy, 1/29/09)
+!
 ! Revision 1.56  2008/12/15 21:21:12  bmy
 ! Added various updates of diagnostics. (bmy, 12/15/08)
 !
@@ -936,7 +940,7 @@
             CALL DIAG1
          
             ! ND41: save PBL height in 1200-1600 LT (amf)
-            ! (for comparison w/ Holzworth, 1967
+            ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
          
             ! ND42: SOA concentrations [ug/m3]
