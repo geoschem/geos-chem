@@ -1,4 +1,4 @@
-! $Id: vistas_anthro_mod.f,v 1.2 2009/01/28 21:56:56 bmy Exp $
+! $Id: vistas_anthro_mod.f,v 1.3 2009/01/29 16:13:30 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -48,6 +48,7 @@
       REAL*8,  ALLOCATABLE :: A_CM2(:)
 
       CONTAINS
+
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -99,7 +100,6 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL                       :: DO_KGS
-      REAL*8                        :: VALUE
 
       !=================================================================
       ! GET_VISTA_ANTHRO begins here!
