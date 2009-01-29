@@ -1,4 +1,4 @@
-! $Id: scale_anthro_mod.f,v 1.2 2009/01/28 21:56:56 bmy Exp $
+! $Id: scale_anthro_mod.f,v 1.3 2009/01/29 15:57:20 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -9,7 +9,6 @@
 ! !DESCRIPTION: Module SCALE\_ANTHRO\_MOD contains routines to scale 
 !  anthropogenic emissions from a base year to a simulation year 
 !  (avm, phs, 1/29/08)
-(phs, 1/28/09)
 !\\
 !\\
 ! !INTERFACE: 
