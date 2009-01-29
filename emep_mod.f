@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.8 2009/01/29 15:35:50 bmy Exp $
+! $Id: emep_mod.f,v 1.9 2009/01/29 15:37:23 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -19,8 +19,8 @@
 !           presentation of Web-Dab}, \underline{MSC-W Status Rep}. 2002:, 
 !           101 pp., Norw. Meteorol. Inst., Oslo, Norway.  This paper is 
 !           on the EMEP web site:
-!           http://www.emep.int/mscw/mscw_publications.html
-!           http://www.emep.int/publ/reports/2002/mscw_note_1_2002.pdf
+!           http://www.emep.int/mscw/mscw\_publications.html
+!           http://www.emep.int/publ/reports/2002/mscw\_note\_1\_2002.pdf
 !     \item Auvray, M., and I. Bey, \emph{Long-Range Transport to Europe: 
 !           Seasonal Variations and Implications for the European Ozone 
 !           Budget}, \underline{J. Geophys. Res.}, \textbf{110}, D11303, 
