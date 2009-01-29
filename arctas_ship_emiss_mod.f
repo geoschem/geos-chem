@@ -1,4 +1,4 @@
-! $Id: arctas_ship_emiss_mod.f,v 1.2 2009/01/28 21:56:57 bmy Exp $
+! $Id: arctas_ship_emiss_mod.f,v 1.3 2009/01/29 15:50:26 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -375,8 +375,6 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
-!
-! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -458,8 +456,6 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
-!
-! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
 !BOC

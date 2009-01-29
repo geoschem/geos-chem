@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.9 2009/01/29 15:37:23 bmy Exp $
+! $Id: emep_mod.f,v 1.10 2009/01/29 15:50:26 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -19,8 +19,10 @@
 !           presentation of Web-Dab}, \underline{MSC-W Status Rep}. 2002:, 
 !           101 pp., Norw. Meteorol. Inst., Oslo, Norway.  This paper is 
 !           on the EMEP web site:
-!           http://www.emep.int/mscw/mscw\_publications.html
-!           http://www.emep.int/publ/reports/2002/mscw\_note\_1\_2002.pdf
+!\begin{verbatim}
+!  http://www.emep.int/mscw/mscw\_publications.html
+!  http://www.emep.int/publ/reports/2002/mscw\_note\_1\_2002.pdf
+!\end{verbatim}
 !     \item Auvray, M., and I. Bey, \emph{Long-Range Transport to Europe: 
 !           Seasonal Variations and Implications for the European Ozone 
 !           Budget}, \underline{J. Geophys. Res.}, \textbf{110}, D11303, 
@@ -98,12 +100,12 @@
 !
       FUNCTION GET_EUROPE_MASK( I, J ) RESULT( EUROPE )
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN) :: I        ! Longitude index
       INTEGER, INTENT(IN) :: J        ! Latitude  index
 !
-! RETURN VALUE:
+! !RETURN VALUE:
 ! 
       REAL*8              :: EUROPE   ! Returns the mask value @ (I,J)
 !
@@ -146,7 +148,7 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)           :: I       ! Longitude index
       INTEGER, INTENT(IN)           :: J       ! Latitude index
@@ -595,7 +597,7 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)   :: EMEP_YEAR    ! EMEP base year
       INTEGER, INTENT(IN)   :: EMISS_YEAR   ! Current simulated year
@@ -802,13 +804,13 @@
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_O3"         ! SCALEYEAR
 !
-! !INPUT ARGUMENTS:
+! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: TRACER              ! Tracer number
       INTEGER, INTENT(IN)  :: EMEP_YEAR           ! Year of emissions to read
       INTEGER, INTENT(IN)  :: wSHIP               ! Use ground, ship, or both?
 !
-! !OUTPUT ARGUMENTS:
+! !OUTPUT PARAMETERS:
 !
       REAL*8,  INTENT(OUT) :: ARRAY(IIPAR,JJPAR)  ! Output array
 !
