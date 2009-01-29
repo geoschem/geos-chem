@@ -1,4 +1,4 @@
-! $Id: cac_anthro_mod.f,v 1.2 2009/01/28 21:56:56 bmy Exp $
+! $Id: cac_anthro_mod.f,v 1.3 2009/01/29 16:02:55 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -57,11 +57,9 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! Parameters
       REAL*8,  PARAMETER   :: SEC_IN_YEAR  = 86400d0 * 365.25d0
 
       CONTAINS
-      END FUNCTION GET_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
