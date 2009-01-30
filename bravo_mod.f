@@ -1,105 +1,93 @@
-! $Id: bravo_mod.f,v 1.4 2009/01/28 19:59:16 bmy Exp $
-      MODULE BRAVO_MOD
+! $Id: bravo_mod.f,v 1.5 2009/01/30 20:03:36 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Module BRAVO_MOD contains variables and routines to read the BRAVO 
+! !MODULE: BRAVO_MOD
+!
+! !DESCRIPTION: \subsection*{Overview}
+!  Module BRAVO\_MOD contains variables and routines to read the BRAVO 
 !  Mexican anthropogenic emission inventory for NOx, CO, and SO2. 
-!  (rjp, kfb, bmy, 6/22/06, 8/9/06)
+!  (rjp, kfb, bmy, 6/22/06, 1/30/09)
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) BRAVO_CO   (REAL*8)    : BRAVO anthro CO  emissions [molec/cm2/s]
-!  (2 ) BRAVO_MASK (REAL*8)    : Array used to mask out the Europe region
-!  (3 ) BRAVO_NOx  (REAL*8)    : BRAVO anthro NOx emissions [molec/cm2/s]
-!  (4 ) BRAVO_SO2  (REAL*8)    : BRAVO anthro SO2 emissions [molec/cm2/s]
+! \subsection*{References}
+! \begin{enumerate}
+! \item Kuhns, H., M. Green, and Etyemezian, V, \emph{Big Bend Regional 
+!       Aerosol and Visibility Observational (BRAVO) Study Emissions 
+!       Inventory}, Desert Research Institute, 2003.
+! \end{enumerate}
+!
+! !INTERFACE: 
+!
+      MODULE BRAVO_MOD
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_BRAVO_MASK         : Gets the value of the Mexico mask at (I,J) 
-!  (2 ) GET_BRAVO_ANTHRO       : Gets emissions at (I,J) for BRAVO species 
-!  (3 ) EMISS_BRAVO            : Reads BRAVO emissions from disk once per year
-!  (4 ) BRAVO_SCALE_FUTURE     : Applies IPCC future scale factors to BRAVO
-!  (5 ) INIT_BRAVO             : Allocates and zeroes module arrays
-!  (6 ) CLEANUP_BRAVO          : Dealocates module arrays
+! !USES:
 !
-!  GEOS-CHEM modules referenced by "bravo_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-Chem data & met field dirs
-!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (6 ) grid_mod.f             : Module w/ horizontal grid information
-!  (7 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (8 ) regrid_1x1_mod.f       : Module w/ routines to regrid 1x1 data  
-!  (9 ) time_mod.f             : Module w/ routines for computing time & date
-!  (10) tracerid_mod.f         : Module w/ pointers to tracers & emissions  
+      IMPLICIT NONE
+      PRIVATE
 !
-!  References:
-!  ============================================================================
-!  (1 ) Kuhns, H., M. Green, and Etyemezian, V, "Big Bend Regional Aerosol and
-!        Visibility Observational (BRAVO) Study Emissions Inventory", Desert
-!        Research Institute, 2003.
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES: 
+      PUBLIC  :: CLEANUP_BRAVO
+      PUBLIC  :: EMISS_BRAVO
+      PUBLIC  :: GET_BRAVO_MASK
+      PUBLIC  :: GET_BRAVO_ANTHRO
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!     
+      PRIVATE :: BRAVO_SCALE_FUTURE
+      PRIVATE :: INIT_BRAVO 
+      PRIVATE :: READ_BRAVO_MASK
+!
+! !REVISION HISTORY:
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !  (2 ) Now scale emissions using int-annual scale factors (amv, 08/24/07)
 !  (3 ) Now accounts for FSCLYR (phs, 3/17/08)
-!******************************************************************************
+!  (4 ) Added ProTeX headers (bmy, 1/30/09)
+!EOP
+!------------------------------------------------------------------------------
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "bravo_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CLEANUP_BRAVO
-      PUBLIC :: EMISS_BRAVO
-      PUBLIC :: GET_BRAVO_MASK
-      PUBLIC :: GET_BRAVO_ANTHRO
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
+! !PRIVATE DATA MEMBERS:
+! 
       ! Arrays
       REAL*8,  ALLOCATABLE :: BRAVO_MASK(:,:)
       REAL*8,  ALLOCATABLE :: BRAVO_NOx(:,:)
       REAL*8,  ALLOCATABLE :: BRAVO_CO(:,:)
       REAL*8,  ALLOCATABLE :: BRAVO_SO2(:,:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_BRAVO_MASK
+!
+! !DESCRIPTION: Function GET\_BRAVO\_MASK returns the value of the Mexico 
+!  mask for BRAVO emissions at grid box (I,J).  MASK=1 if (I,J) is in the 
+!  BRAVO Mexican region, or MASK=0 otherwise. (rjp, kfb, bmy, 6/22/06)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_BRAVO_MASK( I, J ) RESULT( MASK )
 !
-!******************************************************************************
-!  Function GET_BRAVO_MASK returns the value of the Mexico mask for BRAVO
-!  emissions at grid box (I,J).  MASK=1 if (I,J) is in the BRAVO Mexican
-!  region, or MASK=0 otherwise. (rjp, kfb, bmy, 6/22/06)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-Chem longitude index 
-!  (2 ) J (INTEGER) : GEOS-Chem latitude  index 
+      INTEGER, INTENT(IN) :: I        ! Longitude index
+      INTEGER, INTENT(IN) :: J        ! Latitude  index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
+! 
+      REAL*8              :: MASK     ! Returns the mask value @ (I,J)
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Function return value
-      REAL*8              :: MASK
-
+! !REVISION HISTORY: 
+!  22 Jun 2006 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_BRAVO_MASK begins here!
       !=================================================================
@@ -107,33 +95,45 @@
 
       ! Return to calling program
       END FUNCTION GET_BRAVO_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_BRAVO_ANTHRO
+!
+! !DESCRIPTION: Function GET\_BRAVO\_ANTHRO returns the BRAVO emission 
+!  for GEOS-Chem grid box (I,J) and tracer N.  Units are [molec/cm2/s]. 
+!  (rjp, kfb, bmy, 6/22/06)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_BRAVO_ANTHRO( I, J, N ) RESULT( BRAVO )
 !
-!******************************************************************************
-!  Function GET_BRAVO_ANTHRO returns the BRAVO emission for GEOS-Chem grid box
-!  (I,J) and tracer N.  Units are [molec/cm2/s]. (rjp, kfb, bmy, 6/22/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J (INTEGER) : GEOS-Chem latitude  index
-!  (3 ) N (INTEGER) : GEOS-Chem tracer    number
-!  
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
-
-      ! Arguments
-      INTEGER, INTENT(IN)   :: I, J, N
-
-      ! Function return value
-      REAL*8                :: BRAVO
-      
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I       ! Longitude index
+      INTEGER, INTENT(IN) :: J       ! Latitude index
+      INTEGER, INTENT(IN) :: N       ! Tracer number
+!
+! RETURN VALUE:
+! 
+      REAL*8              :: BRAVO   ! Returns emissions at (I,J)
+!
+! !REVISION HISTORY: 
+!  (1 ) added SOx, SOx ship and NH3 emissions, plus optional kg/s output
+!       (amv, 06/2008)
+!  (2 ) Now returns ship emissions if requested (phs, 6/08)
+!  (3 ) Added checks to avoid calling unavailable ship emissions (phs, 6/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_BRAVO_ANTHRO begins here!
       !=================================================================
@@ -159,21 +159,25 @@
 
       ! Return to calling program
       END FUNCTION GET_BRAVO_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE EMISS_BRAVO
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine EMISS_BRAVO reads the BRAVO emission fields at 1x1 
+! !IROUTINE: EMISS_BRAVO
+!
+! !DESCRIPTION: Subroutine EMISS\_BRAVO reads the BRAVO emission fields at 1x1 
 !  resolution and regrids them to the current model resolution. 
 !  (rjp, kfb, bmy, 6/22/06, 8/9/06)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-!******************************************************************************
+      SUBROUTINE EMISS_BRAVO
 !
-      ! References to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,        ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,    ONLY : DATA_DIR_1x1 
       USE LOGICAL_MOD,      ONLY : LFUTURE
@@ -181,10 +185,17 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
       USE TIME_MOD,         ONLY : GET_YEAR
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_O3"         ! 
-
-      ! Local variables
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_O3"           ! 
+!
+! !REVISION HISTORY: 
+!  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE           :: FIRST = .TRUE.
       INTEGER                 :: SCALEYEAR
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
@@ -320,26 +331,38 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_BRAVO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: BRAVO_SCALE_FUTURE
+!
+! !DESCRIPTION: Subroutine BRAVO\_SCALE\_FUTURE applies the IPCC future 
+!  scale factors to the BRAVO anthropogenic emissions. (swu, bmy, 5/30/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE BRAVO_SCALE_FUTURE
 !
-!******************************************************************************
-!  Subroutine BRAVO_SCALE_FUTURE applies the IPCC future scale factors to 
-!  the BRAVO anthropogenic emissions. (swu, bmy, 5/30/06)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
 
 #     include "CMN_SIZE"             ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  30 May 2006 - S. Wu & R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: I, J
 
       !=================================================================
@@ -370,29 +393,43 @@
 
       ! Return to calling program
       END SUBROUTINE BRAVO_SCALE_FUTURE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TOTAL_ANTHRO_TG
+!
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of BRAVO 
+!  anthropogenic emissions that are emitted each year.
+!  (rjp, kfb, bmy, 6/26/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TOTAL_ANTHRO_TG( YEAR )
 !
-!******************************************************************************
-!  Subroutine TOTAL_ANTHRO_TG prints the amount of BRAVO anthropogenic 
-!  emissions that are emitted each month,(rjp, kfb, bmy, 6/26/06)
-!  
-!  NOTES:
-!    (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
-!******************************************************************************
-!
+! !USES:
+! 
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
-
-      ! argument
-      INTEGER, INTENT(IN) :: YEAR
-
-      ! Local variables
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)   :: YEAR
+!
+! !REVISION HISTORY: 
+!  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER               :: I, J
       REAL*8                :: A, B(3), NOx, CO, SO2
       CHARACTER(LEN=3)      :: UNIT
@@ -457,21 +494,25 @@
 
       ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_TG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_BRAVO_MASK
+!
+! !DESCRIPTION: Subroutine READ\_BRAVO\_MASK reads the Mexico mask from 
+!  disk.  The Mexico mask is the fraction of the grid box (I,J) which lies 
+!  w/in the BRAVO Mexican emissions region. (rjp, kfb, bmy, 6/22/06, 8/9/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_BRAVO_MASK
 !
-!******************************************************************************
-!  Subroutine READ_BRAVO_MASK reads the Mexico mask from disk.  The Mexico
-!  mask is the fraction of the grid box (I,J) which lies w/in the BRAVO
-!  Mexican emissions region. (rjp, kfb, bmy, 6/22/06, 8/9/06)
-!
-!  NOTES:
-!  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
-!******************************************************************************
-!
-      ! Reference to F90 modules
+! !USES:
+! 
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
@@ -479,8 +520,15 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"       ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
       REAL*8                  :: GEN_1x1(I1x1,J1x1-1)
       REAL*8                  :: GEOS_1x1(I1x1,J1x1,1)
@@ -518,26 +566,39 @@
 
       ! Return to calling program
       END SUBROUTINE READ_BRAVO_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: INIT_BRAVO
+!
+! !DESCRIPTION: Subroutine INIT\_BRAVO allocates and zeroes BRAVO module 
+!  arrays, and also creates the mask which defines the Mexico region 
+!  (rjp, kfb, bmy, 6/26/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_BRAVO
 !
-!******************************************************************************
-!  Subroutine INIT_BRAVO allocates and zeroes BRAVO module arrays, and also
-!  creates the mask which defines the Mexico region (rjp, kfb, bmy, 6/26/06)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
+! !USES:
+! 
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
       USE LOGICAL_MOD, ONLY : LBRAVO
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  18 Oct 2006 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: AS
 
       !=================================================================
@@ -576,18 +637,27 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_BRAVO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CLEANUP_BRAVO
+!
+! !DESCRIPTION: Subroutine CLEANUP\_BRAVO deallocates all BRAVO module arrays.
+!  (rjp, kfb, bmy, 6/26/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_BRAVO
 !
-!******************************************************************************
-!  Subroutine CLEANUP_BRAVO deallocates all BRAVO module arrays.
-!  (rjp, kfb, bmy, 6/26/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  1 Nov 2005 - R. Yantosca - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_BRAVO begins here!
       !=================================================================
@@ -603,3 +673,4 @@
 
       ! End of module
       END MODULE BRAVO_MOD
+!EOC
