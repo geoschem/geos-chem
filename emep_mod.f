@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.10 2009/01/29 15:50:26 bmy Exp $
+! $Id: emep_mod.f,v 1.11 2009/01/30 19:27:30 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -578,7 +578,7 @@
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of EMEP 
 !  anthropogenic emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 2/6/06)
+!  (rch, bmy, 11/10/04, 1/30/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -590,6 +590,7 @@
       ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LEMEPSHIP
+      USE TIME_MOD,     ONLY : ITS_A_LEAPYEAR
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTMEK
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
@@ -610,6 +611,7 @@
 !        printed as zeroes. (bmy, 2/6/06)
 !  (4 ) Now emissions and base year are arguments. Output in Tg/month
 !        since this is called monthly (phs, 12/9/08)
+!  (5 ) Bug fix, now print out correct monthly EMEP totals (bmy, 1/30/09)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -621,6 +623,12 @@
       REAL*8                :: MEK, ALD2, PRPE, C2H6, SO2
       REAL*8                :: NH3
       CHARACTER(LEN=3)      :: UNIT
+
+      ! Days per month
+      REAL*8                :: DAYS_IN_MONTH
+      REAL*8                :: DMON(12) = (/ 31d0, 28d0, 31d0, 30d0,
+     &                                       31d0, 30d0, 31d0, 31d0,
+     &                                       30d0, 31d0, 30d0, 31d0 /) 
 
       !=================================================================
       ! TOTAL_ANTHRO_TG begins here!
@@ -643,19 +651,25 @@
       ! Sum emissions
       !----------------
       
+      ! Get the proper # of days in the month for totaling
+      IF ( EMEP_MONTH == 2 .and. ITS_A_LEAPYEAR( EMISS_YEAR ) ) THEN
+         DAYS_IN_MONTH = DMON(EMEP_MONTH) + 1
+      ELSE
+         DAYS_IN_MONTH = DMON(EMEP_MONTH)
+      ENDIF
+      
       ! Define conversion factors for kg/molec
       ! (Undefined tracers will be zero)
       B(:) = 0d0
-      IF ( IDTNOx  > 0 ) B(1) = 1d0 / ( 6.0225d23 / 14d-3 )  ! Tg N
-      IF ( IDTCO   > 0 ) B(2) = 1d0 / XNUMOL(IDTCO  )
-      IF ( IDTALK4 > 0 ) B(3) = 1d0 / XNUMOL(IDTALK4)
-      IF ( IDTMEK  > 0 ) B(4) = 1d0 / XNUMOL(IDTMEK )
-      IF ( IDTALD2 > 0 ) B(5) = 1d0 / XNUMOL(IDTALD2)
-      IF ( IDTPRPE > 0 ) B(6) = 1d0 / XNUMOL(IDTPRPE)
-      IF ( IDTC2H6 > 0 ) B(7) = 1d0 / XNUMOL(IDTC2H6)
-      IF ( IDTSO2  > 0 ) B(8) = 1d0 / ( 6.0225d23 / 32d-3 )  ! Tg S
-      IF ( IDTNH3  > 0 ) B(9) = 1d0 / XNUMOL(IDTNH3)
-
+      IF ( IDTNOx  > 0 ) B(1) = 14d-3 / 6.0225d23        ! Tg N
+      IF ( IDTCO   > 0 ) B(2) = 1d0   / XNUMOL(IDTCO  )
+      IF ( IDTALK4 > 0 ) B(3) = 1d0   / XNUMOL(IDTALK4)
+      IF ( IDTMEK  > 0 ) B(4) = 1d0   / XNUMOL(IDTMEK )
+      IF ( IDTALD2 > 0 ) B(5) = 1d0   / XNUMOL(IDTALD2)
+      IF ( IDTPRPE > 0 ) B(6) = 1d0   / XNUMOL(IDTPRPE)
+      IF ( IDTC2H6 > 0 ) B(7) = 1d0   / XNUMOL(IDTC2H6)
+      IF ( IDTSO2  > 0 ) B(8) = 32d-3 / 6.0225d23        ! Tg S
+      IF ( IDTNH3  > 0 ) B(9) = 1d0   / XNUMOL(IDTNH3)
 
       ! Summing variables
       NOX      = 0d0   
@@ -673,7 +687,12 @@
             
          ! Surface area [cm2] * seconds in this year 
          ! Multiply by 1d-9 to convert from [kg] to [Tg]
-         A = GET_AREA_CM2( J ) * 365.25d0 * 86400d0 * 1d-9 
+         !-------------------------------------------------------------
+         ! Prior to 1/30/09:
+         ! Now print out correct monthly totals (bmy, 1/30/09)
+         !A = GET_AREA_CM2( J ) * 365.25d0 * 86400d0 * 1d-9 
+         !-------------------------------------------------------------
+         A = GET_AREA_CM2( J ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
          
          ! Loop over longitudes
          DO I = 1, IIPAR
@@ -681,7 +700,7 @@
             ! Sum emissions (list NOx as Tg N)
             NOX  = NOX  + ( EMEP_NOX (I,J) + EMEP_NOX_SHIP(I,J) )
      $           * A * B(1)
-            CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J) )
+            CO   = CO   + ( EMEP_CO  (I,J) + EMEP_CO_SHIP(I,J)  )
      $           * A * B(2) 
             SO2  = SO2  + ( EMEP_SO2 (I,J) + EMEP_SO2_SHIP(I,J) )
      $           * A * B(8) 
@@ -700,16 +719,16 @@
       !----------------
 
       ! Print totals in [kg/month]
-      WRITE( 6, 110   ) 'NOx ', EMISS_YEAR, EMEP_MONTH, NOx/12d0,  ' N'
-      WRITE( 6, 110   ) 'CO  ', EMISS_YEAR, EMEP_MONTH, CO/12d0,   '  '
-      WRITE( 6, 110   ) 'SO2 ', EMISS_YEAR, EMEP_MONTH, SO2/12d0,  ' S'
-      WRITE( 6, 110   ) 'NH3 ', EMISS_YEAR, EMEP_MONTH, NH3/12d0,  '  '
-      WRITE( 6, 110   ) 'ALK4', EMISS_YEAR, EMEP_MONTH, ALK4/12d0, ' C'
-      WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK/12d0,  ' C'
-      WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2/12d0, ' C'
-      WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE/12d0, ' C'
-      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6/12d0, ' C'
- 110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2,
+      WRITE( 6, 110   ) 'NOx ', EMISS_YEAR, EMEP_MONTH, NOx,  ' N'
+      WRITE( 6, 110   ) 'CO  ', EMISS_YEAR, EMEP_MONTH, CO,   '  '
+      WRITE( 6, 110   ) 'SO2 ', EMISS_YEAR, EMEP_MONTH, SO2,  ' S'
+      WRITE( 6, 110   ) 'NH3 ', EMISS_YEAR, EMEP_MONTH, NH3,  '  '
+      WRITE( 6, 110   ) 'ALK4', EMISS_YEAR, EMEP_MONTH, ALK4, ' C'
+      WRITE( 6, 110   ) 'MEK ', EMISS_YEAR, EMEP_MONTH, MEK,  ' C'
+      WRITE( 6, 110   ) 'ALD2', EMISS_YEAR, EMEP_MONTH, ALD2, ' C'
+      WRITE( 6, 110   ) 'PRPE', EMISS_YEAR, EMEP_MONTH, PRPE, ' C'
+      WRITE( 6, 110   ) 'C2H6', EMISS_YEAR, EMEP_MONTH, C2H6, ' C'
+ 110  FORMAT( 'EMEP anthropogenic ', a4, ' for ', i4, '/', i2.2,
      &        ': ', f13.6, ' Tg', a2 )
 
       ! Fancy output

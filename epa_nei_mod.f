@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.8 2009/01/28 19:59:16 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.9 2009/01/30 19:27:30 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -546,6 +546,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE, IOERROR
+      USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
@@ -574,7 +575,7 @@
       INTEGER                         :: HALFPOLAR, CENTER180
       INTEGER                         :: NI,        NJ,        NL
       INTEGER                         :: IFIRST,    JFIRST,    LFIRST
-      INTEGER                         :: SCALEYEAR
+      INTEGER                         :: SCALEYEAR, BASEYEAR
       REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
       REAL*4                          :: LONRES,    LATRES
       REAL*8                          :: ZTAU0,     ZTAU1
@@ -667,10 +668,13 @@
          SCALEYEAR = FSCALYR
       ENDIF
 
-      CALL GET_ANNUAL_SCALAR( 71, 1999, SCALEYEAR, SC)
+      BASEYEAR = 1999
+      IF ( LICARTT ) BASEYEAR = 2004
+      
+      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
       NOx(:,:) = NOx(:,:) * SC(:,:)
 
-      CALL GET_ANNUAL_SCALAR( 72, 1999, SCALEYEAR, SC)
+      CALL GET_ANNUAL_SCALAR( 72, BASEYEAR, SCALEYEAR, SC)
       CO(:,:) = CO(:,:) * SC(:,:)
 
       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
