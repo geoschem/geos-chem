@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.12 2009/01/29 15:35:49 bmy Exp $
+! $Id: megan_mod.f,v 1.13 2009/02/10 16:50:06 bmy Exp $
       MODULE MEGAN_MOD
 !
 !******************************************************************************
@@ -355,7 +355,7 @@
       ! Convert from [kg/box] to [atoms C/box]
       EMMONOT  = EMMONOT * XNUMOL
 
-      ! return to calling program
+      ! Return to calling program
       END FUNCTION GET_EMMONOT_MEGAN
 
 !------------------------------------------------------------------------------
@@ -410,7 +410,7 @@
 
       ! Function return value
       REAL*8              :: EMMBO
-            
+
       !=================================================================
       ! GET_EMMBO_MEGAN begins here!
       !================================================================= 
@@ -463,7 +463,7 @@
 
          ! Convert from [atoms C/box] to [kg/box]
          EMMBO = EMMBO * XNUMOL
-         
+
       ENDIF
 
       ! Return to calling program

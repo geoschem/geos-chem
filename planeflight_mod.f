@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.25 2007/11/05 16:16:23 bmy Exp $
+! $Id: planeflight_mod.f,v 1.26 2009/02/10 16:50:06 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -697,6 +697,7 @@
 !  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
 !  (3 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Bug fix: PO3 should be PO2 (tmf, bmy, 4/23/07)
+!  (5 ) NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -726,11 +727,12 @@
 
          ! If we have found an RO2 compoent, add its species # to
          ! the PRO2 global array, and increment counter
+         ! NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
          SELECT CASE( TRIM( NAMEGAS(M) ) )
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
-     &             'MCO3', 'MRO2', 'PO3',  'RIO2', 'VRO2' ) 
+     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2' ) 
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M
 

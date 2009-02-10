@@ -1,11 +1,14 @@
 REVISIONS (v8-01-04)  
-27 Jan 2009
+10 Feb 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
 Changed in v8-01-04:
 -------------------------------------------------------------------------------
+
+aerosol_conc		-- Now set OCF=2.1 for consistency w/ carbon_mod.f
+("aerosol_mod.f")
 
 get_global_o3		-- Bug fix: don't call TRANSFER_3D if you use 
 ("global_o3_mod.f")        GRIDREDUCED
@@ -21,9 +24,15 @@ partition.f		-- Now change error stop 30000 into a warning
 
 physproc.f              -- add fix for small (1 to 3) KULOOP
 
+read_diagnostic_menu    -- Now dimension TINDEX(45) with PD45 instead
+("input_mod.f")            of N_TRACERS.  Minor bug discovered by May Fu.
+
 read_toms.f		-- Latest year of TOMS data is now 2007
 ("toms_mod.f")
 
+
+ro2_setup 		-- NOTE: PO3 was a bug, that should have been PO2
+("planeflight_mod.f")
 
 
 =====================================================================

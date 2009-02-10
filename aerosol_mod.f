@@ -1,10 +1,10 @@
-! $Id: aerosol_mod.f,v 1.13 2006/09/14 17:03:43 bmy Exp $
+! $Id: aerosol_mod.f,v 1.14 2009/02/10 16:50:08 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
 !  Module AEROSOL_MOD contains variables and routines for computing optical
 !  properties for aerosols which are needed for both the FAST-J photolysis
-!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 9/14/06)
+!  and ND21 optical depth diagnostics.  (bmy, 7/20/04, 2/10/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -49,6 +49,8 @@
 !  (4 ) Now add contribution of SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Add support for variable tropopause (bdf, phs, 9/14/06)
+!  (7 ) Now set OCF=2.1 in AEROSOL_CONC for consistency w/ carbon_mod.f
+!       (tmf, 2/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -272,7 +274,7 @@
 !  Subroutine AEROSOL_CONC computes aerosol concentrations in kg/m3 from
 !  the tracer mass in kg in the STT array.  These are needed to compute
 !  optical properties for photolysis and for the optical depth diagnostics.
-!  (bmy, 7/20/04, 5/18/06)
+!  (bmy, 7/20/04, 2/10/09)
 !  
 !  This code was originally included in "chemdr.f", but the same computation 
 !  also needs to be done for offline aerosol simulations.  Therefore, we have 
@@ -282,6 +284,7 @@
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
+!  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -303,7 +306,13 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      REAL*8,  PARAMETER :: OCF = 1.4d0
+      !-----------------------------------------------------------------
+      ! Prior to 2/10/09:
+      ! Now change OCF to 2.1 to be consistent w/ "carbon_mod.f"
+      ! (tmf, 2/10/09)
+      !REAL*8,  PARAMETER :: OCF = 1.4d0
+      !-----------------------------------------------------------------
+      REAL*8,  PARAMETER :: OCF = 2.1d0
 
       !=================================================================
       ! AEROSOL_CONC begins here!

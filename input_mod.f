@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.53 2009/01/28 19:59:15 bmy Exp $
+! $Id: input_mod.f,v 1.54 2009/02/10 16:50:07 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 11/18/08)
+!  (bmy, 7/20/04, 2/10/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -129,6 +129,7 @@
 !        grids (yxw, bmy, dan, 11/6/08)
 !  (23) Now read LCAC switch for CAC emissions (amv, 1/09/2008)
 !  (24) Move the call to NDXX_SETUP (phs, 11/18/08)
+!  (25) Minor bug fix in READ_DIAGNOSTIC_MENU (tmf, 2/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2221,7 +2222,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/11/08)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/10/09)
 !
 !  NOTES:
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
@@ -2244,6 +2245,8 @@
 !  (10) Bug fix: Should use ND52 in call to SET_TINDEX (cdh, bmy, 2/11/08)
 !  (11) Remove call to NDXX_SETUP; this is now called in READ_INPUT_FILE.
 !        (phs, 11/18/08)
+!  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
+!        (tmf, 2/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2641,7 +2644,13 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
-      CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, N_TRACERS )
+      !---------------------------------------------------------------------
+      ! Prior to 2/10/09:
+      ! Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS,
+      ! Minor bug fix discovered by May Fu. (tmf, bmy, 2/10/09)
+      !CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, N_TRACERS )
+      !---------------------------------------------------------------------
+      CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, PD45 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 
       READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
