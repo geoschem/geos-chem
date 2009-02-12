@@ -1,5 +1,5 @@
 REVISIONS (v8-01-04)  
-10 Feb 2009
+12 Feb 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -19,6 +19,9 @@ gfed2_compute_biomass	-- 2007 is now the last year of available data
 
 init_geos5_window	-- Need to dimension COSE with JM+1 instead of JM
 ("tpcore_geos5_window_mod.f90")
+
+open_a6_fields		-- Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD 
+("a6_read_mod.f")
 
 partition.f		-- Now change error stop 30000 into a warning 
 

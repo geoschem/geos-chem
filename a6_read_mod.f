@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.24 2008/11/05 19:45:45 bmy Exp $
+! $Id: a6_read_mod.f,v 1.25 2009/02/12 14:49:48 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -311,7 +311,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
+!  time NHMS. (bmy, bdf, 6/15/98, 2/12/09)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -331,6 +331,7 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  (10) Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD (jmao, bmy, 2/12/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -435,7 +436,15 @@
 
          ! The last 2 digits of the ident string
          ! is the # of fields contained in the file
-         READ( IDENT(7:8), '(i2.2)' ) N_A6_FIELDS    
+         READ( IDENT(7:8), '(i2.2)' ) N_A6_FIELDS
+
+#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD ) 
+         !%%% KLUDGE: set N_A6_FIELDS=21 when using the reprocessed
+         !%%% GEOS-5 met.   This accounts for CMFMC (which doesn't seem
+         !%%% to get counted) as well as for MOISTQ, which is an extra
+         !%%% derived field.  (jmao, bmy, 2/12/09)
+         N_A6_FIELDS = 21
+#endif
 
 #endif
 

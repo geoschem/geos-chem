@@ -1,4 +1,4 @@
-! $Id: transfer_mod.f,v 1.9 2008/11/07 19:30:32 bmy Exp $
+! $Id: transfer_mod.f,v 1.10 2009/02/12 14:49:48 bmy Exp $
       MODULE TRANSFER_MOD
 !
 !******************************************************************************
@@ -553,12 +553,12 @@
       ! %%% PLE defined on the edges is CMFMC and that is always zero 
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
-
+      
 #if   defined( GEOS_5 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, INCOL )
+!$OMP+PRIVATE( I, J )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
