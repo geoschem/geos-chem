@@ -1,10 +1,10 @@
-! $Id: transport_mod.f,v 1.20 2008/11/07 19:30:32 bmy Exp $
+! $Id: transport_mod.f,v 1.21 2009/02/17 20:56:16 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
 !  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
 !  GEOS-3, GEOS-4, GEOS-5, or GCAP nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 11/8/08)
+!  (yxw, bmy, 3/10/03, 2/17/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -70,6 +70,8 @@
 !        into separate subroutines.  Also removed some obsolete module
 !        variables. (bmy, 10/30/07)
 !  (14) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (15) Bug fix in mass balance in GCAP_GLOBAL_ADV and GEOS4_GEOS5_GLOBAL_ADV.
+!        (ccc, 2/17/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -181,12 +183,14 @@
 !     
 !******************************************************************************
 !  Subroutine GEOS4_GEOS_5_GLOBAL_ADV is the driver routine for TPCORE with 
-!  the GMAO GEOS-4 or GEOS-5 met fields. (bmy, 10/30/07, 11/6/08)
+!  the GMAO GEOS-4 or GEOS-5 met fields. (bmy, 10/30/07, 2/17/09)
 !     
 !  NOTES:
 !  (1 ) Split off the GEOS-4 & GEOS-5 relevant parts from the previous 
 !        routine DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
 !  (2 ) Activate the call to SAVE_GLOBAL_TPCORE_BC (yxw, dan, bmy, 11/6/08)
+!  (3 ) Bug fix in mass balance: only account for cells of STT with non-zero
+!        concentrations when doing the computation (ccc, bmy, 2/17/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -219,6 +223,9 @@
       REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
       REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
+
+      ! Variable to ensure mass conservation (ccc, 2/17/09)
+      REAL*8                    :: SUMADA
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
@@ -333,7 +340,12 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 )
 
       ! Adjust tracer to correct residual non-conservation of mass
+      ! This was changed to be applied only for cells with tracer 
+      ! concentration. (ccc, 11/20/08) 
       DO N = 1, N_TRACERS
+
+         ! Zero summing variable
+         SUMADA = 0.d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -349,6 +361,14 @@
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+
+            ! We apply mass conservation only on cells w/
+            ! nonzero tracer (ccc, 2/17/09)
+            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+!$OMP CRITICAL
+               SUMADA = SUMADA + AD_A(I,J,L)
+!$OMP END CRITICAL
+            ENDIF
          ENDDO
          ENDDO
          ENDDO
@@ -358,7 +378,13 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+         !-------------------------------------------------------------------
+         ! Prior to 2/17/09:
+         ! This was changed to take into account only cells 
+         ! w/ nonzero tracer. (ccc, 2/17/09)
+         ! TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+         !-------------------------------------------------------------------
+         TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
 !$OMP PARALLEL DO
@@ -367,7 +393,16 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF               
+
+            !------------------------------------------------------------------
+            ! Prior to 2/17/09:
+            ! Only apply change to cells w/ nonzero tracer (ccc, 2/17/09)
+            ! STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            !------------------------------------------------------------------
+            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            ENDIF
+
             STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
          ENDDO
          ENDDO
@@ -514,11 +549,13 @@
 !
 !******************************************************************************
 !  Subroutine GCAP_GLOBAL_ADV is the driver routine for TPCORE with the 
-!  GCAP / GISS met fields. (bmy, 10/30/07)
+!  GCAP / GISS met fields. (bmy, 10/30/07, 2/17/09)
 !     
 !  NOTES:
 !  (1 ) Split off the GCAP relevant parts from the previous routine
 !        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!  (2 ) Bug fix in mass balance: only account for cells of STT with non-zero
+!        concentrations when doing the computation (ccc, bmy, 2/17/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -550,6 +587,9 @@
       REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
       REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
+
+      ! Variable to ensure mass conservation (ccc, 20/11/08)
+      REAL*8                    :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -666,7 +706,12 @@
       CALL SET_FLOATING_PRESSURE( P_TP2 + PTOP )
 
       ! Adjust tracer to correct residual non-conservation of mass
+      ! This was changed to be applied only for cells with tracer 
+      ! concentration. (ccc, 11/20/08) 
       DO N = 1, N_TRACERS
+
+         ! Zero summing variable
+         SUMADA = 0.d0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -682,6 +727,14 @@
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
+
+            ! We apply mass conservation only on cells with 
+            ! nonzero tracer. (ccc, 11/20/08)
+            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+!$OMP CRITICAL
+               SUMADA = SUMADA + AD_A(I,J,L)
+!$OMP END CRITICAL
+            ENDIF
          ENDDO
          ENDDO
          ENDDO
@@ -691,7 +744,13 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+         !-------------------------------------------------------------------
+         ! Prior to 2/17/09:
+         ! This was changed to take into account only cells w/
+         ! nonzero tracer. (ccc, 2/17/09)
+         ! TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
+         !-------------------------------------------------------------------
+         TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
 !$OMP PARALLEL DO
@@ -700,13 +759,23 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF               
+
+            !----------------------------------------------------------------
+            ! Prior to 2/17/09:
+            ! This was changed to take into account only cells 
+            ! w/ nonzero tracer. (ccc, 2/17/09)
+            ! STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            !----------------------------------------------------------------
+            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+               STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
+            ENDIF
+
             STT(I,J,L,N) = MAX( STT(I,J,L,N), 0d0 )
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-         ENDDO
+      ENDDO
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
