@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.34 2009/02/19 18:47:04 bmy Exp $
+! $Id: carbon_mod.f,v 1.35 2009/02/19 18:50:05 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3786,7 +3786,7 @@ c
                                     
       INTEGER               :: I,       J
       REAL*8                :: A_CM2,   BIOBC,   BIOOC
-      REAL*8                :: CONV_BC, CONV_OC, DTSRCE
+      REAL*8                :: CONV_BC, CONV_OC, DTSRCE, FUT_SCL
       CHARACTER(LEN=255)    :: BC_FILE, OC_FILE
 
       !=================================================================
