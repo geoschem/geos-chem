@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.32 2009/01/28 19:59:16 bmy Exp $
+! $Id: carbon_mod.f,v 1.33 2009/02/19 18:41:28 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 11/6/08)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 2/19/09)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -149,6 +149,7 @@
 !        for each new diagnostic interval. (dkh, tmv, havala, bmy, 2/6/07)
 !  (17) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (18) Now account for various GFED2 products (yc, phs, 12/23/08) 
+!  (19) Now add future scaling to BIOMASS_CARB_GEOS (hotp, swu, 2/19/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3735,7 +3736,7 @@ c
 !  Subroutine BIOMASS_CARB_GEOS computes monthly mean biomass burning 
 !  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.  
 !  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
-!  (rjp, bmy, 4/2/04, 11/3/06)
+!  (rjp, bmy, 4/2/04, 2/19/09)
 !
 !  Emissions are contained in the BIOMASS array of "biomass_mod.f", and will 
 !  contain biomass emissions from either the Duncan et al [2001] inventory or 
@@ -3758,17 +3759,20 @@ c
 !        which will contain either GFED2 or default emissions.  Also move
 !        file-reading code to gc_biomass_mod.f. (bmy, 9/25/06)
 !  (7 ) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
+!  (8 ) Now apply future emissions if necessary (hotp, swu, bmy, 2/19/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,  ONLY : BIOMASS, IDBBC, IDBOC
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LBIOMASS
-      USE TIME_MOD,     ONLY : GET_TS_EMIS
-      USE TRACER_MOD,   ONLY : XNUMOL
-      USE TRACERID_MOD, ONLY : IDTBCPO, IDTOCPO
+      USE BIOMASS_MOD,          ONLY : BIOMASS,  IDBBC, IDBOC
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,          ONLY : LBIOMASS, LFUTURE
+      USE TIME_MOD,             ONLY : GET_TS_EMIS
+      USE TRACER_MOD,           ONLY : XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTBCPO,  IDTOCPO
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_SIZE"             ! Size parameters
 
       !-------------------
       ! Local variables
@@ -3830,6 +3834,19 @@ c
             ! Hydrophobic ORGANIC CARBON from biomass [kg C/timestep]
             BIOB_ORGC(I,J,2) = ( 1.D0 - FHO ) * BIOOC
 
+            ! Apply future emissions for GCAP (if necessary)
+            IF ( LFUTURE ) THEN
+
+               ! Compute future emissions of ORGANIC CARBON
+               FUT_SCL        = GET_FUTURE_SCALE_OCbb( I, J )
+               BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
+               BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
+
+               ! Compute future emissions of BLACK CARBON
+               FUT_SCL          = GET_FUTURE_SCALE_BCbb( I, J )
+               BIOB_BLKC(I,J,1) = BIOB_BLKC(I,J,1) * FUT_SCL
+               BIOB_BLKC(I,J,2) = BIOB_BLKC(I,J,2) * FUT_SCL
+            ENDIF 
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO  
