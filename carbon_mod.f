@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.33 2009/02/19 18:41:28 bmy Exp $
+! $Id: carbon_mod.f,v 1.34 2009/02/19 18:47:04 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3802,7 +3802,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2 )
+!$OMP+PRIVATE( I, J, BIOBC, BIOOC, A_CM2, FUT_SCL )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -3838,7 +3838,7 @@ c
             IF ( LFUTURE ) THEN
 
                ! Compute future emissions of ORGANIC CARBON
-               FUT_SCL        = GET_FUTURE_SCALE_OCbb( I, J )
+               FUT_SCL          = GET_FUTURE_SCALE_OCbb( I, J )
                BIOB_ORGC(I,J,1) = BIOB_ORGC(I,J,1) * FUT_SCL
                BIOB_ORGC(I,J,2) = BIOB_ORGC(I,J,2) * FUT_SCL
 
