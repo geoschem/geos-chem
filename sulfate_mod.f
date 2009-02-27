@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.42 2009/01/28 20:27:05 bmy Exp $
+! $Id: sulfate_mod.f,v 1.43 2009/02/27 16:25:15 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 10/31/08)
+!  (rjp, bdf, bmy, 6/22/00, 2/27/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -214,6 +214,7 @@
 !        to SO2 from GEIA (amv, phs, 3/11/08)  
 !  (41) Bug fixes in reading EDGAR data w/ the right tracer number, 
 !        when we are doing offline or nonstd simulations (dkh, 10/31/08)
+!  (42) Bug fix for AD13_SO2_sh in SRCSO2 (phs, 2/27/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -4012,7 +4013,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 6/26/06)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 2/27/09)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4046,6 +4047,8 @@
 !  (10) Bug fix: EPA emissions were overwritten by regular ones when both BRAVO
 !         and EPA were used. (phs, 10/4/07)
 !  (11) Now use CAC Canadian emissions, if necessary (amv, 1/10/08)
+!  (12) Bug fix: Always fill the diagnostic array AD13_SO2_sh because it 
+!        is allocated anyway (phs, 2/27/09) 
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4552,10 +4555,10 @@
      &                              ( SO2bf(I,J)   * S_SO2 * DTSRCE )
 
             ! SO2 from ship emissions (bec, bmy, 5/20/04)
-            IF ( LSHIPSO2 ) THEN
-               AD13_SO2_sh(I,J)   = AD13_SO2_sh(I,J) +
+            ! Always fill the diagnostic array since
+            ! it is allocated anyway (phs, 2/27/09) 
+            AD13_SO2_sh(I,J)      = AD13_SO2_sh(I,J) +
      &                              ( ESO2_sh(I,J) * S_SO2 * DTSRCE )
-            ENDIF
 
             ! Loop thru LD13 levels
             DO L = 1, LD13 
