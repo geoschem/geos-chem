@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.58 2009/01/29 15:35:50 bmy Exp $
+! $Id: diag3.f,v 1.59 2009/03/06 20:23:39 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -93,6 +93,7 @@
 !  (77) Bug fix: Select the right index of AD34 to write.  Pick the right 
 !         tracer field from AD22 if only a subset of tracers are requested 
 !         to be printed out. (ccc, 12/15/08)
+!  (78) Updated test on ship emissions flag for AD13 (phs, 3/3/09)     
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -140,7 +141,8 @@
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT   
+      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
+      USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
@@ -998,8 +1000,11 @@
 
          !==============================================================
          ! Ship SO2     bec (5/17/04)
+         ! New test on logical flag (phs, 3/2/09)
          !==============================================================
-         IF ( LSHIPSO2 ) THEN
+         IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
+     $        LEMEPSHIP ) THEN
+            
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)
             N            = IDTSO2

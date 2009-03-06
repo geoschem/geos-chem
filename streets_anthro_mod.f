@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.6 2009/01/28 19:59:14 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.7 2009/03/06 20:23:37 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -294,13 +294,15 @@
             ! SO2 [kg/yr]
             VALUE = SO2(I,J)
 
-            IS_NMVOC =.FALSE.       !PHS
+            IS_NMVOC =.FALSE.   !PHS
 
          ELSE IF ( N == IDTNH3 ) THEN
 
             ! NH3 [kg/yr]
             VALUE = NH3(I,J)
 
+            IS_NMVOC =.FALSE.   !PHS (bug fix, 3/2/09)
+            
          !========= start VOC modifications (phs, 3/7/08)
          ELSE IF ( N == IDTALK4 ) THEN
 
@@ -468,21 +470,23 @@
       TAUMONTH_2004 = GET_TAU0( MONTH, 1, 2004 )
 
       !-------------------------------------------------------------------------
-      !     Base Year & Yearly Scale Factors
+      !     Base Year & Yearly Scale Factors used
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! %%% To simulate 2020 :                                                 %
-      ! %%%             set BASE_YEAR = 2020 (hardwired, see below)            %
+      ! %%%         you set BASE_YEAR = 2020 (hardwired, see below)            %
       ! %%%                                                                    %
-      ! %%% To simulate 2006 and after:                                        %
-      ! %%%      BASE_YEAR = 2006     for all species.                         %
+      ! %%% To simulate 2006 and after, the program sets:                      %
+      ! %%%      BASE_YEAR = 2006     for all species                          %
+      ! %%%      NH3 is not emitted                                            %
       ! %%%                                                                    %
-      ! %%% To simulate 2005 and before:                                       %
-      ! %%%      BASE_YEAR = 2004     for NOx                                  %
-      ! %%%      BASE_YEAR = 2001     for CO in China                          %
-      ! %%%      BASE_YEAR = 2000     for CO outside China, CH4, and CO2       %
+      ! %%% To simulate 2005 and before, it sets:                              %
+      ! %%%     BASE_YEAR = 2004     for NOx                                   %
+      ! %%%     BASE_YEAR = 2001     for CO in China                           %
+      ! %%%     BASE_YEAR = 2000     for CO outside China, NH3, SO2, CH4 & CO2 %
+      ! %%%     & VOC are not emitted -                                        %
       ! %%%                                                                    %
-      ! %%% YEARLY SCALE FACTOR  applied to get 1985-2005 estimates            %
-      ! %%%                      from BASE_YEAR=2000/1/4 (for NOx, CO, SO2)    %
+      ! %%%     & YEARLY SCALE FACTOR are applied to get 1985-2005 estimates   %
+      ! %%%           of NOx, CO, SO2 if BASE_YEAR in 2000-4                   %
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !-------------------------------------------------------------------------
 
@@ -501,9 +505,11 @@
          BASE_YEAR = 2000
       ENDIF
 
-      ! %%%%  To simulate 2020 estimate, uncomment following two lines %%%%
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! %%%%    To simulate 2020 estimate, uncomment following two lines    %%%%
       !BASE_YEAR = 2020
       !IS_2006 = .TRUE.
+      ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! define data directory and number of sources
       IF ( IS_2006 ) THEN
@@ -1161,18 +1167,19 @@
       !     Base Year & Yearly Scale Factors
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! %%% To simulate 2020 :                                                 %
-      ! %%%             set BASE_YEAR = 2020 (hardwired, see below)            %
+      ! %%%         you must set BASE_YEAR = 2020 (hardwired, see below)       %
       ! %%%                                                                    %
       ! %%% To simulate 2006 and after, we use:                                %
-      ! %%%      BASE_YEAR = 2006     for all species.                         %
+      ! %%%      BASE_YEAR = 2006     for all species. NH3 is not emitted      %
       ! %%%                                                                    %
       ! %%% To simulate 2005 and before, we use:                               %
-      ! %%%      BASE_YEAR = 2001     for CO in China                          %
-      ! %%%      BASE_YEAR = 2000     for CO outside China, NOx, CH4, and CO2  %
+      ! %%%      BASE_YEAR = 2001   for CO in China                            %
+      ! %%%      BASE_YEAR = 2000   for CO outside China, NOx, SO2, CH4, & CO2 %
+      ! %%%     & VOC are not emitted -                                        %
       ! %%%                                                                    %
       ! %%% YEARLY SCALE FACTOR  (**** NOT AVAILABLE YET ****)                 %
       ! %%%      to be applied to get 1985-2005 estimates                      %
-      ! %%%                      from BASE_YEAR=2000/1 (for NOx, CO, SO2)      %
+      ! %%%              of NOx, CO and SO2 if BASE_YEAR is 2000/1             %
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !-------------------------------------------------------------------------
 
@@ -1787,7 +1794,17 @@
          ! Other simulations
          !-----------------------
 #if   !defined( GRID05x0666 )
-         IF ( .NOT. IS_2006 ) WRITE( 6, * ) '(Base year for NOx : 2004)'
+         IF ( .NOT. IS_2006 ) THEN
+            WRITE( 6, * ) 'NOTES: '
+            WRITE( 6, * ) '(1) Base year for NOx : 2004'
+            WRITE( 6, * ) '(2) Annual scale factors applied to' //
+     $                       ' NOx, CO & SO2'
+            WRITE( 6, * ) '(3) Monthly variations applied to NOx & CO'
+         ELSE
+            WRITE( 6, * ) 'NOTES: '
+            WRITE( 6, * ) '(1) Include ANTH and BIOFUEL'
+            WRITE( 6, * ) '(2) Monthly variations applied to NOx & CO'
+         ENDIF
 #endif
          
          ! Total NOx [Tg N]

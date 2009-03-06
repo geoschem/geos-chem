@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.66 2008/12/16 14:52:46 bmy Exp $
+ ! $Id: define.h,v 1.67 2009/03/06 20:23:39 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -132,7 +132,7 @@
 ! commented will cause a "quick fix" (i.e. multiplying the optical depth
 ! by the cloud fracton) to be applied, which should be a good enough fix
 ! in the meantime. (bmy, hyl, 10/24/08)
-!#define IN_CLOUD_OD  'IN_CLOUD_OD'
+#define IN_CLOUD_OD  'IN_CLOUD_OD'
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
