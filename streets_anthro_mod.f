@@ -1,10 +1,10 @@
-! $Id: streets_anthro_mod.f,v 1.7 2009/03/06 20:23:37 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.8 2009/03/11 19:02:48 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
 !  Module STREETS_ANTHRO_MOD contains variables and routines to read the 
 !  David Streets et al Asian anthropogenic emissions for NOx and CO. 
-!  (yxw, bmy, 8/16/06, 11/6/08)
+!  (yxw, bmy, 8/16/06, 3/11/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -73,6 +73,8 @@
 !                              2006/2020 = NOx, CO, SO2, all VOC  
 !  (4 ) Now scale emissions using int'annual scale factors (amv, 08/24/07)
 !  (5 ) Implemented monthly variations (phs, 4/12/08)
+!  (6 ) Bug fix: call READ_STREETS_05x0666 in routine 
+!        EMISS_STREETS_ANTHRO_05x0666 (ccarouge, 3/11/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1095,6 +1097,7 @@
 !     emissions in a future release. (bmy, 11/6/08)
 !     (2) Now read 2006 inventory (including VOCs) if needed. Apply monthly
 !     variations for NOx
+!     (3) Bug fixe : we call only read_streets_05x0666. (ccc, 3/11/09)
 !
 !  NOTES:
 !******************************************************************************
@@ -1515,7 +1518,8 @@
                FILENAME  = TRIM( STREETS_DIR ) // 'Streets_ACET_'// 
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 9, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 9, 
+     &                                    TAU, TEMP )
       
                ACET = ACET + TEMP * ONOFF( NSOURCE ) 
      &                            * SCALE2020( NSOURCE )
@@ -1531,7 +1535,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 21, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 21, 
+     &                                    TAU, TEMP )
       
                C2H6 = C2H6 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1547,7 +1552,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 20, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 20, 
+     &                                    TAU, TEMP )
       
                CH2O = CH2O + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1562,7 +1568,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
    
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 19, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 19, 
+     &                                    TAU, TEMP )
 
                C3H8 = C3H8 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1578,7 +1585,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 18, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 18, 
+     &                                    TAU, TEMP )
          
                PRPE = PRPE + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1594,7 +1602,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 11, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 11, 
+     &                                    TAU, TEMP )
          
                ALD2 = ALD2 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
@@ -1611,7 +1620,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 10, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 10, 
+     &                                    TAU, TEMP )
    
                MEK = MEK + TEMP * ONOFF( NSOURCE )
      &                          * SCALE2020( NSOURCE )
@@ -1627,7 +1637,8 @@
      &                     SOURCES( NSOURCE ) // '_2006.geos5.05x0666'
 
                ! Read data [atom C/yr]
-               CALL READ_STREETS( FILENAME, 'ANTHSRCE', 5, TAU, TEMP )
+               CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 5, 
+     &                                    TAU, TEMP )
       
                ALK4 = ALK4 + TEMP * ONOFF( NSOURCE )
      &                            * SCALE2020( NSOURCE )
