@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.44 2009/03/06 20:23:34 bmy Exp $
+! $Id: sulfate_mod.f,v 1.45 2009/04/01 17:45:39 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -5968,8 +5968,8 @@
 
                   IF (GET_EUROPE_MASK(I,J) > 0d0 ) THEN
 
-                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, 26,
-     &                                                KG_S=.TRUE. ) 
+                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, IDTSO2,
+     &                                                 KG_S=.TRUE. ) 
 
                      ESO2_an(I,J,2) = 0d0
  
@@ -6591,7 +6591,8 @@
                
             IF ( LEMEPSHIP ) THEN
                IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                                          KG_S=.TRUE.,
      $                                          SHIP=.TRUE.)
             ENDIF
 
@@ -6644,7 +6645,7 @@
 
                IF ( LEMEPSHIP ) THEN
                   IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26,
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2,
      $                                         KG_S=.TRUE., SHIP=.TRUE.)
                ENDIF               
 
@@ -6672,7 +6673,8 @@
 
             IF ( LEMEPSHIP ) THEN
                IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                                          KG_S=.TRUE.,
      $                                          SHIP=.TRUE.)
             ENDIF
          ENDDO 
@@ -6810,7 +6812,7 @@
 
          IF ( LEMEP ) THEN
             IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
-               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,30,KG_S=.TRUE.)
+               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
             ENDIF
          ENDIF
 
