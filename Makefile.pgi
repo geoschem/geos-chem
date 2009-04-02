@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.pgi,v 1.35 2009/01/28 20:22:06 bmy Exp $
+# $Id: Makefile.pgi,v 1.36 2009/04/02 17:00:32 bmy Exp $
 #
 # GEOS-Chem Makefile for LINUX/PGI (bmy, Wed Jan 28 15:09:03 2009)
 #
@@ -27,12 +27,10 @@ OBJS =                        \
 CO_strat_pl.o                 \
 airmas.o                      \
 anthroems.o                   \
-arctas_ship_emiss_mod.o       \
 arsl1k.o                      \
 backsub.o                     \
 biofit.o                      \
 boxvl.o                       \
-cac_anthro_mod.o              \
 calcrate.o                    \
 chemdr.o                      \
 cleanup.o                     \
@@ -76,7 +74,6 @@ readchem.o                    \
 reader.o                      \
 readlai.o                     \
 ruralbox.o                    \
-scale_anthro_mod.o            \
 schem.o                       \
 setbase.o                     \
 setemdep.o                    \
@@ -92,10 +89,8 @@ soiltype.o                    \
 subfun.o                      \
 sunparam.o                    \
 tcorr.o                       \
-tpcore_fvdas_mod.o            \
 tropopause.o                  \
 update.o                      \
-vistas_anthro_mod.o           \
 xltmmp.o                      
 
 FJ =                          \
