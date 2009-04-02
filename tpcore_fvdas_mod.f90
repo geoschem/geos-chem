@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.9 2008/12/15 15:55:14 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.10 2009/04/02 16:57:14 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -144,7 +144,7 @@ MODULE Tpcore_FvDas_Mod
   PRIVATE ::  Calc_Advec_Cross_Terms
   PRIVATE ::  Qckxyz
   PRIVATE ::  Set_Lmts
-  PRIVATE ::  Set_Press_Terms
+  PRIVATE ::  Set_Press_Terms/home/ccarouge/Code.v8-01-03/tpcore_fvdas_mod.f90
   PRIVATE ::  Calc_Courant
   PRIVATE ::  Calc_Divergence
   PRIVATE ::  Do_Divergence_Pole_Sum
@@ -174,9 +174,7 @@ MODULE Tpcore_FvDas_Mod
   REAL*8, ALLOCATABLE, SAVE :: cosp(:)
   REAL*8, ALLOCATABLE, SAVE :: cose(:)
   REAL*8, ALLOCATABLE, SAVE :: gw(:)
-  REAL*8, ALLOCATABLE, SAVE :: rgw(:)
   REAL*8, ALLOCATABLE, SAVE :: DLAT(:)
-  REAL*8, ALLOCATABLE, SAVE :: RGW_25(:) 
 !
 ! !AUTHOR:
 ! Original code from Shian-Jiann Lin, GMAO 
@@ -194,6 +192,10 @@ MODULE Tpcore_FvDas_Mod
 !                             Declare all REAL variables as REAL*8.  Added
 !                             OpenMP parallel loops in various routines (and
 !                             made some modifications to facilitate OpenMP).
+! 01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
+!                             loops over vertical levels outside the 
+!                             horizontal transport routines for reducing
+!                             processing time.
 !EOP
 !------------------------------------------------------------------------------
 
@@ -276,11 +278,9 @@ CONTAINS
     ALLOCATE( cosp  ( JM ) ) 
     ALLOCATE( cose  ( JM ) ) 
     ALLOCATE( gw    ( JM ) ) 
-    ALLOCATE( rgw   ( JM ) ) 
     ALLOCATE( dtdx5 ( JM ) ) 
     ALLOCATE( dtdy5 ( JM ) ) 
     ALLOCATE( DLAT  ( JM ) )    ! For PJC pressure-fixer 
-    ALLOCATE( RGW_25( JM ) )    ! Latitude factor, for PJC pressure-fixer
     
     !----------------------------------------
     ! Prior to 12/12/08:
@@ -325,8 +325,6 @@ CONTAINS
     do j=1,jm
        gw(j)     = sine(j+1) - sine(j)
        cosp(j)   = gw(j) / dlat(j)
-       rgw(j)    = 1.0d0 / gw(j)
-       RGW_25(J) = 1.0d0 / ( SINE_25(J+1) - SINE_25(J) )
 
        dtdx5(j)  = 0.5d0 * dt / (dlon*ae*cosp(j))
        dtdy5(j)  = 0.5d0 * dt / (ae*dlat(j))
@@ -371,8 +369,6 @@ CONTAINS
     IF ( ALLOCATED( COSP   ) ) DEALLOCATE( COSP   ) 
     IF ( ALLOCATED( COSE   ) ) DEALLOCATE( COSE   ) 
     IF ( ALLOCATED( GW     ) ) DEALLOCATE( GW     ) 
-    IF ( ALLOCATED( RGW    ) ) DEALLOCATE( RGW    ) 
-    IF ( ALLOCATED( RGW_25 ) ) DEALLOCATE( RGW_25 )  ! (bdf, bmy, 10/29/04)
     IF ( ALLOCATED( DTDX5  ) ) DEALLOCATE( DTDX5  ) 
     IF ( ALLOCATED( DTDY5  ) ) DEALLOCATE( DTDY5  ) 
     IF ( ALLOCATED( DLAT   ) ) DEALLOCATE( DLAT   )
@@ -508,6 +504,11 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
+!                               loops over vertical levels outside the 
+!                               horizontal transport routines for reducing
+!                               processing time.
+!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -536,22 +537,31 @@ CONTAINS
     REAL*8             :: delpm(im, jm, km)
     REAL*8             :: pu   (im, jm, km)
     REAL*8             :: dpi(im, jm, km)
-    REAL*8             :: geofac  (jm)
-    REAL*8             :: geofac_pc
+    REAL*8             :: geofac  (jm)     ! geometrical factor for meridional
+                                           ! advection; geofac uses correct 
+                                           ! spherical geometry, and replaces 
+                                           ! RGW_25. (ccc, 4/1/09)
+    REAL*8             :: geofac_pc        ! geometrical gactor for poles.
     REAL*8             :: dp
     REAL*8             :: dps_ctm(im,jm)
     REAL*8             :: ua (im, jm, km)
     REAL*8             :: va (im, jm, km)
     REAL*8             :: wz(im, jm, km)
-    REAL*8             :: dq1(im,jfirst-ng:jlast+ng,km)  
-    REAL*8             :: qqu(im, jm, km)
-    REAL*8             :: qqv(im, jm, km)
-    REAL*8             :: adx(im, jm, km)
-    REAL*8             :: ady(im, jm, km)
-    REAL*8             :: fx (im, jm, km)
-    REAL*8             :: fy (im, jm+1, km)           ! one more for edges
-    REAL*8             :: fz  (im, jm, km)
-    REAL*8             :: qtemp (im, jm, km)
+    REAL*8             :: dq1(im,jfirst-ng:jlast+ng,km)
+    
+    ! qqu, qqv, adx and ady are now 2d arrays for parallelization purposes.
+    !(ccc, 4/1/08)  
+    REAL*8             :: qqu(im, jm)
+    REAL*8             :: qqv(im, jm)
+    REAL*8             :: adx(im, jm)
+    REAL*8             :: ady(im, jm)
+
+    ! fx, fy, fz and qtemp are now 4D arrays for parallelization purposes.
+    ! (ccc, 4/1/09) 
+    REAL*8             :: fx (im, jm, km, nq)
+    REAL*8             :: fy (im, jm+1, km, nq)           ! one more for edges
+    REAL*8             :: fz  (im, jm, km, nq)
+    REAL*8             :: qtemp (im, jm, km, nq)
     REAL*8             :: DTC(IM,JM,KM)               ! up/down flux temp array
     REAL*8             :: TRACE_DIFF                  ! up/down flux variable
                        
@@ -608,12 +618,19 @@ CONTAINS
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
       
+
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED   )&
+!$OMP PRIVATE( IK, IQ )
+    do ik=1,km
+
   ! ====================
     call Set_Press_Terms  &
   ! ====================
-         (dap, dbk, ps1, ps2, delp1, delpm, pu, &
+         (dap(ik), dbk(ik), ps1, ps2, delp1(:,:,ik), delpm(:,:,ik), &
+         pu(:,:,ik), &
          1, jm, 1, im, 1, jm, &
-         j1p, j2p, 1, im, 1, jm, 1, km)
+         j1p, j2p, 1, im, 1, jm)
     !
     !...intent(in)  dap - difference in ai across layer (mb)
     !...intent(in)  dbk - difference in bi across layer (mb)
@@ -623,45 +640,49 @@ CONTAINS
     !...intent(out) delpm - pressure thickness at t1+tdt/2 (mb)
     !...intent(out) pu - pressure at edges of box for "u" (mb)
     !
-    
+
     if (j1p /= 1+1) then
        
        do iq = 1, nq
-          
        !  ========================
           call Average_Const_Poles  &
        !  ========================
-               (dap, dbk, area_m2, ps1, q(:,:,:,iq), &
+               (dap(ik), dbk(ik), area_m2, ps1, q(:,:,ik,iq), &
                1, jm, im, &
-               1, im, 1, jm, 1, km, 1, im, 1, jm)
+               1, im, 1, jm, 1, im, 1, jm)
           
-       end do
+      end do
        
     end if
-    
+
     
   ! =================
     call Calc_Courant  &
   ! =================
-         (cose, delpm, pu, xmass, ymass, cx, cy, &
+         (cose, delpm(:,:,ik), pu(:,:,ik), xmass(:,:,ik), ymass(:,:,ik),&
+         cx(:,:,ik), cy(:,:,ik), &
          j1p, j2p, &
-         1, jm, 1, im, 1, jm, 1, im, 1, jm, 1, km)
+         1, jm, 1, im, 1, jm, 1, im, 1, jm)
     
   ! ====================
     call Calc_Divergence  &
   ! ====================
-         (.true., geofac_pc, geofac, dpi, xmass, ymass, &
+         (.true., geofac_pc, geofac, dpi(:,:,ik), xmass(:,:,ik), &
+         ymass(:,:,ik), &
          j1p, j2p, 1, im, &
-         1, jm, 1, im, 1, jm, 1, im, 1, jm, 1, km)
-    
-    dps_ctm(:,:) = Sum (dpi(:,:,:), dim=3)
+         1, jm, 1, im, 1, jm, 1, im, 1, jm)
     
   ! ====================
     call Set_Cross_Terms  &
   ! ====================
-         (cx, cy, ua, va, &
+         (cx(:,:,ik), cy(:,:,ik), ua(:,:,ik), va(:,:,ik), &
          j1p, j2p, 1, im, 1, jm, &
-         1, im, 1, jm, 1, im, 1, jm, 1, km, CROSS)
+         1, im, 1, jm, 1, im, 1, jm, CROSS)
+    
+    end do
+!$OMP END PARALLEL DO
+
+    dps_ctm(:,:) = Sum (dpi(:,:,:), dim=3)
     
   ! ========================
     call Calc_Vert_Mass_Flux  &
@@ -672,8 +693,7 @@ CONTAINS
     !.sds2.. have all mass flux here: east-west(xmass), 
     !        north-south(ymass), vertical(wz)
     !.sds2.. save omega (vertical flux) as diagnostic
-      
-    
+
   ! ==============
     call Set_Jn_Js  &
   ! ==============
@@ -682,16 +702,100 @@ CONTAINS
            1, im, 1, jm, 1, km)
     
     
-    !.sds.. convert to "mass"
+    if (advec_consrv_opt == 0) then
+          
+       !----------------------------------------------------------------
+       ! Prior to 12/5/08:
+       ! Replace these with explicit DO loops to facilitate
+       ! OpenMP parallelization (bmy, 12/5/08)
+       !do ik = 1, km
+       !   
+       !   delp2(:,:,ik) =  &
+       !        dap(ik) +  &
+       !        (dbk(ik) * (ps1(:,:) +  &
+       !        dps_ctm(:,:)))
+       !     
+       !end do
+       !----------------------------------------------------------------
+          
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( IK, IJ, IL )
+       do ik = 1, km
+       do ij = 1, jm
+       do il = 1, im
+          delp2(il,ij,ik) =  &
+               dap(ik) +  &
+               (dbk(ik) * (ps1(il,ij) +  &
+               dps_ctm(il,ij)))
+            
+       end do
+       end do
+       end do
+       !$OMP END PARALLEL DO
+
+    else if ((advec_consrv_opt == 1) .or.  &
+         (advec_consrv_opt == 2)) then
+        
+       !----------------------------------------------------------------
+       ! Prior to 12/5/08:
+       ! Replace these with explicit DO loops to facilitate
+       ! OpenMP parallelization (bmy, 12/5/08)
+       !do il = 1, im
+       !   
+       !   delp2(:,:,ik) =  &
+       !        dap(ik) +  &
+       !        (dbk(ik) * ps2(:,:))
+       !   
+       !end do
+       !----------------------------------------------------------------
+
+       !$OMP PARALLEL DO           &
+       !$OMP DEFAULT( SHARED     ) &
+       !$OMP PRIVATE( IK, IJ, IL )
+       do ik = 1, km
+       do ij = 1, jm
+       do il = 1, im
+             
+          delp2(il,ij,ik) =  &
+               dap(ik) +  &
+               (dbk(ik) * ps2(il,ij))
+             
+       end do
+       end do
+       end do
+       !$OMP END PARALLEL DO
+            
+    end if
+
+    ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
+    ps = ak(1)+sum(delp2,dim=3)
+         
+
+!--------------------------------------------------------
+! For time optimization : we parallelize over tracers and
+! we loop over the levels outside horizontal transport 
+! subroutines. (ccc, 4/1/09)
+!--------------------------------------------------------
+!$OMP PARALLEL DO        &
+!$OMP DEFAULT( SHARED   )&
+!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
     do iq = 1, nq
-       dq1(:,:,:) = q(:,:,:,iq) * delp1(:,:,:)
+
+       do ik = 1, km
+
+       !.sds.. convert to "mass"
+       dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
        
+
+          
      ! ===========================
        call Calc_Advec_Cross_Terms  &
      ! ===========================
-            (jn, js, q(:,:,:,iq), qqu, qqv, ua, va, &
+            (jn(ik), js(ik), q(:,:,ik,iq), qqu, qqv, &
+            ua(:,:,ik), va(:,:,ik), &
             j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, 1, km, CROSS)
+            1, im, 1, jm, CROSS)
 
        !.sds.. notes on arrays
        !  q (in)    - species mixing ratio
@@ -709,9 +813,10 @@ CONTAINS
      ! ==============
        call Xadv_Dao2  &
      ! ==============
-            (2, jn, js, adx, qqv, ua, &
+            (2, jn(ik), js(ik), adx, qqv, &
+            ua(:,:,ik), &
             1, im, 1, jm, 1, jm, j1p, j2p, &
-            1, im, 1, jm, 1, km)
+            1, im, 1, jm)
        !.sds notes on output arrays
        !  adx (out)- cross term due to E-W advection (mixing ratio)
        !  qqv (in) - concentration contribution from N-S 
@@ -726,9 +831,9 @@ CONTAINS
      ! ==============
        call Yadv_Dao2  &
      ! ==============
-            (2, ady, qqu, va, &
+            (2, ady, qqu, va(:,:,ik), &
             1, im, 1, jm, &
-            j1p, j2p, 1, im, 1, jm, 1, im, 1, jm, 1, km)
+            j1p, j2p, 1, im, 1, jm, 1, im, 1, jm)
 
        !.sds notes on output arrays
        !  ady (out)- cross term due to N-S advection (mixing ratio)
@@ -744,15 +849,16 @@ CONTAINS
        
        !... update constituent array qq1 by adding in cross terms 
        !           - use in fzppm
-       q(:,:,:,iq) = q(:,:,:,iq) + ady + adx
-       
+       q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
+
        
      ! ========
        call Xtp  &
      ! ========
-            (ilmt, jn, js, pu, cx, dq1, qqv, xmass, fx, &
+            (ilmt, jn(ik), js(ik), pu(:,:,ik), cx(:,:,ik), &
+            dq1(:,:,ik), qqv, xmass(:,:,ik), fx(:,:,ik,iq), &
             j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, 1, km, IORD)
+            1, im, 1, jm, IORD)
        
        !.sds notes on output arrays
        !  pu  (in)    - pressure at edges in "u" (mb)
@@ -764,13 +870,14 @@ CONTAINS
        !  xmass(in)   - horizontal mass flux in E-W direction (mb)
        !  fx  (out)   - species E-W mass flux
        !.sds
-         
+
      ! ========
        call Ytp  &
      ! ========
-            (jlmt, geofac_pc, geofac, cy, dq1, qqu, qqv, ymass, fy, &
+            (jlmt, geofac_pc, geofac, cy(:,:,ik), dq1(:,:,ik), &
+            qqu, qqv, ymass(:,:,ik), fy(:,:,ik,iq), &
             j1p, j2p, 1, im, 1, jm, im, &
-            1, im, 1, jm, 1, im, 1, jm, 1, km, jord)
+            1, im, 1, jm, 1, im, 1, jm, jord)
          
        !.sds notes on output arrays
        !  cy (in)     - Courant number in N-S direction
@@ -784,11 +891,15 @@ CONTAINS
        !  fy  (out)   - species N-S mass flux (need to mult by geofac)
        !.sds
          
-       qtemp(:,:,:) = q(:,:,:,iq)
+        end do
+
+       qtemp(:,:,:,iq) = q(:,:,:,iq)
+
+
      ! ==========
        call Fzppm  &
      ! ==========
-            (klmt, delp1, dpi, wz, dq1, q(:,:,:,iq), fz, &
+            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
             j1p, 1, jm, 1, im, 1, jm, &
             im, km, 1, im, 1, jm, 1, km)
          
@@ -799,6 +910,7 @@ CONTAINS
        !.sds
          
          
+
        if (FILL) then
         ! ===========
           call Qckxyz  &
@@ -808,76 +920,6 @@ CONTAINS
                1, im, 1, jm, 1, im, 1, jm, 1, km)
        end if
        
-       if (advec_consrv_opt == 0) then
-          
-          !----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! Replace these with explicit DO loops to facilitate
-          ! OpenMP parallelization (bmy, 12/5/08)
-          !do ik = 1, km
-          !   
-          !   delp2(:,:,ik) =  &
-          !        dap(ik) +  &
-          !        (dbk(ik) * (ps1(:,:) +  &
-          !        dps_ctm(:,:)))
-          !     
-          !end do
-          !----------------------------------------------------------------
-          
-          !$OMP PARALLEL DO           &
-          !$OMP DEFAULT( SHARED     ) &
-          !$OMP PRIVATE( IK, IJ, IL )
-          do ik = 1, km
-          do ij = 1, jm
-          do il = 1, im
-             delp2(il,ij,ik) =  &
-                  dap(ik) +  &
-                  (dbk(ik) * (ps1(il,ij) +  &
-                  dps_ctm(il,ij)))
-               
-          end do
-          end do
-          end do
-          !$OMP END PARALLEL DO
-
-       else if ((advec_consrv_opt == 1) .or.  &
-            (advec_consrv_opt == 2)) then
-          
-          !----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! Replace these with explicit DO loops to facilitate
-          ! OpenMP parallelization (bmy, 12/5/08)
-          !do il = 1, im
-          !   
-          !   delp2(:,:,ik) =  &
-          !        dap(ik) +  &
-          !        (dbk(ik) * ps2(:,:))
-          !   
-          !end do
-          !----------------------------------------------------------------
-
-          !$OMP PARALLEL DO           &
-          !$OMP DEFAULT( SHARED     ) &
-          !$OMP PRIVATE( IK, IJ, IL )
-          do ik = 1, km
-          do ij = 1, jm
-          do il = 1, im
-             
-             delp2(il,ij,ik) =  &
-                  dap(ik) +  &
-                  (dbk(ik) * ps2(il,ij))
-             
-          end do
-          end do
-          end do
-          !$OMP END PARALLEL DO
-            
-       end if
-       
-       ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
-       ps = ak(1)+sum(delp2,dim=3)
-         
-         
        q(:,:,:,iq) =  &
             dq1 / delp2
          
@@ -888,6 +930,10 @@ CONTAINS
           q(:,jm-1,:,iq)  = q(:,jm,:,iq)
             
        end if
+    ENDDO
+!$OMP END PARALLEL DO
+
+    DO iq=1,nq
        
        ! Calculate fluxes for diag. (ccc, 11/20/08)
        !--------------------------------------------------------------
@@ -927,7 +973,7 @@ CONTAINS
           DO I = 1,     IM
 
              ! Compute mass flux
-             DTC(I,J,K)         = ( FX(I,J,K)  * AREA_M2(J)  * 100.d0 ) / &
+             DTC(I,J,K)         = ( FX(I,J,K,IQ)  * AREA_M2(J)  * 100.d0 ) / &
                                   ( TCVV(IQ)   * DT          * 9.8d0  )
 
              ! Save into MASSFLEW diagnostic array
@@ -947,8 +993,8 @@ CONTAINS
        ! (bdf, bmy, 9/28/04, ccarouge 12/12/08)
        !
        ! NOTE, the unit conversion is the same as desciribed above for the
-       ! ND24 E-W diagnostics.  However, we also need to multiply by the 
-       ! RGW_25 area factor.
+       ! ND24 E-W diagnostics.  The geometrical factor was already applied to
+       ! fy in Ytp. (ccc, 4/1/09)
        !======================================================================
        IF ( ND25 > 0 ) THEN
 
@@ -963,7 +1009,7 @@ CONTAINS
           DO I = 1, IM 
 
              ! Compute mass flux
-             DTC(I,J,K)    = ( FY(I,J,K) * AREA_M2(J) * RGW_25(J) * 1d2 ) / & 
+             DTC(I,J,K)    = ( FY(I,J,K,IQ) * AREA_M2(J) * 1d2 ) / & 
                              ( TCVV(IQ)  * DT         * 9.8d0           ) 
 
              ! Save into MASSFLNS diagnostic array
@@ -1011,7 +1057,7 @@ CONTAINS
 
              ! Compute mass flux
              DTC(I,J,K)         = ( Q(I,J,K,IQ)  * DELP1(I,J,K)   -   &
-                                    QTEMP(I,J,K) * DELP2(I,J,K)  ) *  &
+                                    QTEMP(I,J,K,IQ) * DELP2(I,J,K)  ) *  &
                                   (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
                 
              ! top layer should have no residual.  the small residual is 
@@ -1038,7 +1084,7 @@ CONTAINS
 
                 ! Compute tracer difference
                 TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                                       QTEMP(I,J,K) * DELP2(I,J,K) ) *  &
+                                       QTEMP(I,J,K,IQ) * DELP2(I,J,K) ) *  &
                                        (100D0) * AREA_M2(J) /           &
                                        ( 9.8D0* TCVV(IQ) )
                 
@@ -1054,8 +1100,7 @@ CONTAINS
 
           ENDDO
        ENDIF
-    ENDDO
-      
+    ENDDO      
   END SUBROUTINE Tpcore_FvDas
 !EOC  
 !------------------------------------------------------------------------------
@@ -1074,7 +1119,7 @@ CONTAINS
 !
   SUBROUTINE Average_Const_Poles( dap ,   dbk,   rel_area, pctm1, const1, &
                                   JU1_GL, J2_GL, I2_GL,    I1,    I2,     &
-                                  JU1,    J2,    K1,       K2,    ILO,    &
+                                  JU1,    J2,    ILO,    &
                                   IHI,    JULO,  JHI )
 !
 ! !INPUT PARAMETERS: 
@@ -1088,17 +1133,16 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)   :: I1,  I2
     INTEGER, INTENT(IN)   :: JU1, J2
-    INTEGER, INTENT(IN)   :: K1,  K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)   :: ILO,  IHI
     INTEGER, INTENT(IN)   :: JULO, JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL*8,  INTENT(IN)   :: dap(K1:K2)
+    REAL*8,  INTENT(IN)   :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)   :: dbk(K1:K2)
+    REAL*8,  INTENT(IN)   :: dbk
 
     ! Relative surface area of grid box [fraction]
     REAL*8,  INTENT(IN)   :: rel_area(JU1:J2)
@@ -1109,7 +1153,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species concentration, known at zone center [mixing ratio]
-    REAL*8, INTENT(INOUT) :: const1( I1:I2, JU1:J2, K1:K2 )
+    REAL*8, INTENT(INOUT) :: const1( I1:I2, JU1:J2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1142,8 +1186,8 @@ CONTAINS
 !            hydrostatic system at t1 (mb)
 !   -----------------------------------------------------------------
 
-    REAL*8  :: delp1n(i1:i2, j2-1:j2,    k1:k2)
-    REAL*8  :: delp1s(i1:i2,  ju1:ju1+1, k1:k2)
+    REAL*8  :: delp1n(i1:i2, j2-1:j2)
+    REAL*8  :: delp1s(i1:i2,  ju1:ju1+1)
 
 
 !   ----------------
@@ -1154,37 +1198,30 @@ CONTAINS
     if (ju1 == ju1_gl) then
 !   =================
 
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED )                   &
-       !$OMP PRIVATE( IL, IK, SUM1, SUM2, MEANQ )
-       do ik = k1, k2
+       delp1s(i1:i2,ju1:ju1+1) =                &
+            dap +                             &
+            (dbk * pctm1(i1:i2,ju1:ju1+1))
+       
+       sum1=0.0d0
+       sum2=0.0d0
+       do il = i1, i2
+          sum1 = sum1 +                            &
+               Sum (const1  (il,ju1:ju1+1) *  &
+               delp1s  (il,ju1:ju1+1) *  &
+               rel_area(ju1:ju1+1))         &
+               / (sum(rel_area) * i2_gl)
           
-          delp1s(i1:i2,ju1:ju1+1,ik) =                &
-               dap(ik) +                             &
-               (dbk(ik) * pctm1(i1:i2,ju1:ju1+1))
-          
-          sum1=0.0d0
-          sum2=0.0d0
-          do il = i1, i2
-             sum1 = sum1 +                            &
-                    Sum (const1  (il,ju1:ju1+1,ik) *  &
-                         delp1s  (il,ju1:ju1+1,ik) *  &
-                         rel_area(ju1:ju1+1))         &
-                  / (sum(rel_area) * i2_gl)
+          sum2 = sum2 +                           &
+               Sum (delp1s  (il,ju1:ju1+1) * & 
+               rel_area(ju1:ju1+1))        &
+               / (sum(rel_area) * i2_gl) 
+       enddo
 
-             sum2 = sum2 +                           &
-                     Sum (delp1s  (il,ju1:ju1+1,ik) * & 
-                       rel_area(ju1:ju1+1))        &
-                  / (sum(rel_area) * i2_gl) 
-          enddo
-
-          meanq = sum1 / sum2
-
-          const1(:,ju1:ju1+1,ik) = meanq
-
-       end do
-       !$OMP END PARALLEL DO
-
+       meanq = sum1 / sum2
+       
+       const1(:,ju1:ju1+1) = meanq
+       
+       
     end if
 
 
@@ -1192,38 +1229,30 @@ CONTAINS
     if (j2 == j2_gl) then
 !   ================
 
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED )                   &
-       !$OMP PRIVATE( IL, IK, SUM1, SUM2, MEANQ )
-       do ik = k1, k2
+       delp1n(i1:i2,j2-1:j2) =               &
+            dap +                           &
+            (dbk * pctm1(i1:i2,j2-1:j2))
+       
+       sum1=0.0d0
+       sum2=0.0d0
+       do il = i1, i2
+          sum1 = sum1 +                         & 
+               Sum (const1  (il,j2-1:j2) * & 
+               delp1n  (il,j2-1:j2) * & 
+               rel_area(j2-1:j2))        & 
+               / (sum(rel_area) * i2_gl)
+          
+          sum2 = sum2 +                         &
+               Sum (delp1n  (il,j2-1:j2) * & 
+               rel_area(j2-1:j2))        &
+               / (sum(rel_area) * i2_gl)      
+       enddo
+       
 
-          delp1n(i1:i2,j2-1:j2,ik) =               &
-               dap(ik) +                           &
-               (dbk(ik) * pctm1(i1:i2,j2-1:j2))
-            
-          sum1=0.0d0
-          sum2=0.0d0
-          do il = i1, i2
-             sum1 = sum1 +                         & 
-                    Sum (const1  (il,j2-1:j2,ik) * & 
-                         delp1n  (il,j2-1:j2,ik) * & 
-                         rel_area(j2-1:j2))        & 
-                  / (sum(rel_area) * i2_gl)
-            
-             sum2 = sum2 +                         &
-                    Sum (delp1n  (il,j2-1:j2,ik) * & 
-                         rel_area(j2-1:j2))        &
-                  / (sum(rel_area) * i2_gl)      
-          enddo
-
-
-          meanq = sum1 / sum2
-
-          const1(:,j2-1:j2,ik) = meanq
-
-       end do
-       !$OMP END PARALLEL DO
-         
+       meanq = sum1 / sum2
+       
+       const1(:,j2-1:j2) = meanq
+       
     end if
 
   END SUBROUTINE Average_Const_Poles
@@ -1244,7 +1273,7 @@ CONTAINS
   SUBROUTINE Set_Cross_Terms( crx,   cry,   ua, va, J1P,   J2P,   &
                               I1_GL, I2_GL, JU1_GL, J2_GL, ILO,   &
                               IHI,   JULO,  JHI,    I1,    I2,    &
-                              JU1,   J2,    K1,     K2,    CROSS )
+                              JU1,   J2,    CROSS )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1260,17 +1289,16 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)   :: I1,     I2
     INTEGER, INTENT(IN)   :: JU1,    J2
-    INTEGER, INTENT(IN)   :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)   :: ILO,    IHI
     INTEGER, INTENT(IN)   :: JULO,   JHI
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN) :: crx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN) :: crx(ILO:IHI, JULO:JHI)
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN) :: cry(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN) :: cry(ILO:IHI, JULO:JHI)
 
     ! Logical switch.  If CROSS=T then cross-terms will be computed.
     LOGICAL, INTENT(IN) :: CROSS
@@ -1278,10 +1306,10 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Average of Courant numbers from il and il+1
-    REAL*8, INTENT(OUT) :: ua(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT) :: ua(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8, INTENT(OUT) :: va(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1297,6 +1325,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1305,7 +1334,7 @@ CONTAINS
 !     
 
     ! Grid box indices for lon & lat
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     
     !     ----------------
     !     Begin execution.
@@ -1314,67 +1343,30 @@ CONTAINS
     
     if (.not. CROSS) then
        
-       ua(:,:,:) = 0.0d0
-       va(:,:,:) = 0.0d0
+       ua(:,:) = 0.0d0
+       va(:,:) = 0.0d0
        
     else
        
-       !---------------------------------------------------------------------
-       ! Prior to 12/4/08:
-       ! Rewrite DO loop to parallelize over vertical levels (bmy, 12/4/08)
-       !do ij = j1p, j2p
-       !   do il = i1, i2-1
-       !      
-       !      ua(il,ij,:) = 0.5d0 * (crx(il,ij,:) + crx(il+1,ij,:))
-       !      
-       !   end do
-       !   ua(i2,ij,:) = 0.5d0 * (crx(i2,ij,:) + crx(1,ij,:))
-       !
-       !end do
-       !
-       !
-       !do ij = j1p, j2p
-       !   do il = i1, i2
-       !      
-       !      va(il,ij,:) = 0.5d0 * (cry(il,ij,:) + cry(il,ij+1,:))
-       !      
-       !   end do
-       !end do
-       !---------------------------------------------------------------------
-       
-       !$OMP PARALLEL DO            &
-       !$OMP DEFAULT( SHARED )      &
-       !$OMP PRIVATE( IL, IJ, IK )
-       do ik = k1, k2
-
-          do ij = j1p, j2p
-             do il = i1, i2-1
+       do ij = j1p, j2p
+          do il = i1, i2-1
              
-                ua(il,ij,ik) = 0.5d0 * (crx(il,ij,ik) + crx(il+1,ij,ik))
+             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
              
-             end do
-             ua(i2,ij,ik) = 0.5d0 * (crx(i2,ij,ik) + crx(1,ij,ik))
-
+             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
           end do
-       
-       
-          do ij = j1p, j2p
-             do il = i1, i2
-             
-                va(il,ij,ik) = 0.5d0 * (cry(il,ij,ik) + cry(il,ij+1,ik))
-             
-             end do
-          end do
+          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
+          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1))
 
-       enddo
-       !$OMP END PARALLEL DO
+       end do
+       
        
 !      =============================
        call Do_Cross_Terms_Pole_I2d2  &
 !      =============================
             (cry, va, &
              i1_gl, i2_gl, ju1_gl, j2_gl, j1p,  &
-             ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+             ilo, ihi, julo, jhi, i1, i2, ju1, j2)
        
        
     end if
@@ -1661,7 +1653,7 @@ CONTAINS
                                      ua,     va,    J1P,  J2P,  I2_GL, &
                                      JU1_GL, J2_GL, ILO,  IHI,  JULO,  &
                                      JHI,    I1,    I2,   JU1,  J2,    &
-                                     K1,     K2,    CROSS )
+                                     CROSS )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1677,7 +1669,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -1685,20 +1676,20 @@ CONTAINS
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Jn(K1:K2)
+    INTEGER, INTENT(IN)  :: Jn
 
     ! Southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Js(K1:K2)
+    INTEGER, INTENT(IN)  :: Js
 
     ! Species concentration (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua (ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: ua (ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va (ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: va (ILO:IHI, JULO:JHI)
 
     ! Logical switch: If CROSS=T then cross-terms are being computed
     LOGICAL, INTENT(IN)  :: CROSS
@@ -1706,10 +1697,10 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: qqu(ILO:IHI, JULO:JHI)
 
     ! concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -1725,17 +1716,19 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel do loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
+!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !    
-    INTEGER :: i, imp, il, ij, ik, iu
+    INTEGER :: i, imp, il, ij, iu
     INTEGER :: jv, iuw, iue
     REAL*8  :: ril, rij, riu
     REAL*8  :: ru
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi, k1:k2)
+    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
     
     !     ----------------
     !     Begin execution.
@@ -1756,125 +1749,104 @@ CONTAINS
     !do il = i2+1,i2+i2/3
     !   qtmp(il,:,:) = qq1(il-i2,:,:)
     !enddo
+    ! IK loop was removed. (ccc, 4/1/09)
     !----------------------------------------------------------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ )
-    do ik = k1,   k2
     do ij = julo, jhi
        do i = 1, i2
-          qtmp(i,ij,ik) = qq1(i,ij,ik)
+          qtmp(i,ij) = qq1(i,ij)
        enddo
     
        do il = -i2/3, 0
-          qtmp(il,ij,ik) = qq1(i2+il,ij,ik)
+          qtmp(il,ij) = qq1(i2+il,ij)
        enddo
     
        do il = i2+1,i2+i2/3
-          qtmp(il,ij,ik) = qq1(il-i2,ij,ik)
+          qtmp(il,ij) = qq1(il-i2,ij)
        enddo
     enddo
-    enddo
-    !$OMP END PARALLEL DO
 
 !   ================
     if (.not. CROSS) then
 !   ================
        
-       qqu(:,:,:) = qq1(:,:,:)
-       qqv(:,:,:) = qq1(:,:,:)
+       qqu(:,:) = qq1(:,:)
+       qqv(:,:) = qq1(:,:)
        
        
 !   ====
     else
 !   ====
 
-       qqu(:,:,:) = 0.0d0
-       qqv(:,:,:) = 0.0d0
+       qqu(:,:) = 0.0d0
+       qqv(:,:) = 0.0d0
        
-       !$OMP PARALLEL DO                            &
-       !$OMP DEFAULT( SHARED )                      &
-       !$OMP PRIVATE( IL, IJ, IK, IU, RIU, RU, RIL )
-       do ik = k1, k2
-          do ij = j1p, j2p
+       do ij = j1p, j2p
              
-             if ((ij <= js(ik)) .or. (ij >= jn(ik))) then
+          if ((ij <= js) .or. (ij >= jn)) then
 
-!             ----------------------------------------------------------
-!             In Polar area, so need to deal with large courant numbers.
-!             ----------------------------------------------------------
+!          ----------------------------------------------------------
+!          In Polar area, so need to deal with large courant numbers.
+!          ----------------------------------------------------------
 
-                do il = i1, i2
+             do il = i1, i2
                    
 !c?
-                   iu  = ua(il,ij,ik)
-                   riu = iu
-                   ru  = ua(il,ij,ik) - riu
-                   iu  = il - iu
-                   
-                   if (ua(il,ij,ik) >= 0.0d0) then
-                      
-                      qqu(il,ij,ik) =  &
-                           qtmp(iu,ij,ik) +  &
-                           ru * (qtmp(iu-1,ij,ik) - qtmp(iu,ij,ik))
-                      
-                   else
-                      
-                      qqu(il,ij,ik) =  &
-                           qtmp(iu,ij,ik) +  &
-                           ru * (qtmp(iu,ij,ik) - qtmp(iu+1,ij,ik))
-                      
-                   end if
-                   
-                   qqu(il,ij,ik) = qqu(il,ij,ik) - qtmp(il,ij,ik)
-                   
-                end do
+                iu  = ua(il,ij)
+                riu = iu
+                ru  = ua(il,ij) - riu
+                iu  = il - iu
                 
-             else  ! js < ij < jn
-                
-                !             ---------------------------
-                !             Do interior area (use PPM).
-                !             ---------------------------
-                
-                do il = i1, i2
+                if (ua(il,ij) >= 0.0d0) then
                    
-                   ril = il
-                   iu  = ril - ua(il,ij,ik)
+                   qqu(il,ij) =  &
+                        qtmp(iu,ij) +  &
+                        ru * (qtmp(iu-1,ij) - qtmp(iu,ij))
                    
-                   qqu(il,ij,ik) =  &
-                        ua(il,ij,ik) *  &
-                        (qtmp(iu,ij,ik) - qtmp(iu+1,ij,ik))
+                else
                    
-                end do
+                   qqu(il,ij) =  &
+                        qtmp(iu,ij) +  &
+                        ru * (qtmp(iu,ij) - qtmp(iu+1,ij))
+                   
+                end if
                 
-             end if
-
-          end do
-          
-       end do
-       !$OMP END PARALLEL DO
-
-       !$OMP PARALLEL DO                   &
-       !$OMP DEFAULT( SHARED )             &
-       !$OMP PRIVATE( IL, IJ, IK, RIJ, JV )
-       do ik = k1, k2
-          do ij = j1p, j2p
+                qqu(il,ij) = qqu(il,ij) - qtmp(il,ij)
+                
+             end do
+             
+          else  ! js < ij < jn
+             
+             !             ---------------------------
+             !             Do interior area (use PPM).
+             !             ---------------------------
+             
              do il = i1, i2
                 
-!c?
-                rij = ij
-                jv  = rij - va(il,ij,ik)
+                ril = il
+                iu  = ril - ua(il,ij)
                 
-                qqv(il,ij,ik) =  &
-                     va(il,ij,ik) *  &
-                     (qtmp(il,jv,ik) - qtmp(il,jv+1,ik))
-
+                qqu(il,ij) =  &
+                     ua(il,ij) *  &
+                     (qtmp(iu,ij) - qtmp(iu+1,ij))
+                
              end do
+             
+          end if
+
+          do il = i1, i2
+             
+!c?
+             rij = ij
+             jv  = rij - va(il,ij)
+             
+             qqv(il,ij) =  &
+                  va(il,ij) *  &
+                  (qtmp(il,jv) - qtmp(il,jv+1))
+
           end do
        end do
-       !$OMP END PARALLEL DO
-
+          
        !----------------------------------------------------------------
        ! Prior to 12/5/08
        ! Now add explicit IJ and IK loops for OpenMP parallelization
@@ -1884,23 +1856,18 @@ CONTAINS
        !
        !qqv(i1:i2,ju1:j2,:) =  &
        !     qtmp(i1:i2,ju1:j2,:) + (0.5d0 * qqv(i1:i2,ju1:j2,:))
+       ! IK loop was removed. (ccc, 4/1/09)
        !----------------------------------------------------------------
 
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED )     &
-       !$OMP PRIVATE( IK, IJ, IL )
-       do ik = k1,  k2
        do ij = ju1, j2
        do il = i1,  i2
-          qqu(il,ij,ik) =  &
-               qtmp(il,ij,ik) + (0.5d0 * qqu(il,ij,ik))
+          qqu(il,ij) =  &
+               qtmp(il,ij) + (0.5d0 * qqu(il,ij))
        
-          qqv(il,ij,ik) =  &
-               qtmp(il,ij,ik) + (0.5d0 * qqv(il,ij,ik))
+          qqv(il,ij) =  &
+               qtmp(il,ij) + (0.5d0 * qqv(il,ij))
        enddo
        enddo
-       enddo
-       !$OMP END PARALLEL DO
        
 !   ======
     end if
@@ -2213,7 +2180,7 @@ CONTAINS
   SUBROUTINE Set_Press_Terms( dap,   dbk,  pres1,  pres2, delp1,   &
                               delpm, pu,   JU1_GL, J2_GL, ILO,     &
                               IHI,   JULO, JHI,    J1P,   J2P,     &
-                              I1,    I2,   JU1,    J2,    K1,  K2 )
+                              I1,    I2,   JU1,    J2)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2228,17 +2195,16 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL*8,  INTENT(IN)  :: dap(K1:K2)
+    REAL*8,  INTENT(IN)  :: dap
 
     ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)  :: dbk(K1:K2)
+    REAL*8,  INTENT(IN)  :: dbk
 
     ! Surface pressure at t1 [hPa]
     REAL*8,  INTENT(IN)  :: pres1(ILO:IHI, JULO:JHI)
@@ -2250,14 +2216,14 @@ CONTAINS
 !
     ! Pressure thickness, the pseudo-density in a 
     ! hydrostatic system at t1 [hPa]
-    REAL*8, INTENT(OUT) :: delp1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT) :: delp1(ILO:IHI, JULO:JHI)
 
     ! Pressure thickness, the pseudo-density in a 
     ! hydrostatic system at t1+tdt/2 (approximate) [hPa]
-    REAL*8, INTENT(OUT) :: delpm(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT) :: delpm(ILO:IHI, JULO:JHI)
 
     ! Pressure at edges in "u" [hPa]
-    REAL*8, INTENT(OUT) :: pu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT) :: pu(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -2273,44 +2239,34 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK     ) 
-    do ik = k1, k2
+
+       delp1(:,:) = dap + (dbk * pres1(:,:))
     
-       delp1(:,:,ik) = dap(ik) + (dbk(ik) * pres1(:,:))
+       delpm(:,:) =  &
+                dap+  &
+                (dbk * 0.5d0 * (pres1(:,:) + pres2(:,:)))
     
-       delpm(:,:,ik) =  &
-                dap(ik) +  &
-                (dbk(ik) * 0.5d0 * (pres1(:,:) + pres2(:,:)))
-    
-    end do
-    !$OMP END PARALLEL DO
-    
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IL, IJ ) 
     do ij = j1p, j2p
-       pu(1,ij,:) = 0.5d0 * (delpm(1,ij,:) + delpm(i2,ij,:))
+       pu(1,ij) = 0.5d0 * (delpm(1,ij) + delpm(i2,ij))
        do il = i1+1, i2
           
-          pu(il,ij,:) = 0.5d0 * (delpm(il,ij,:) + delpm(il-1,ij,:))
+          pu(il,ij) = 0.5d0 * (delpm(il,ij) + delpm(il-1,ij))
     
        end do
     end do
-    !$OMP END PARALLEL DO
 
 
   END SUBROUTINE Set_Press_Terms
@@ -2330,7 +2286,7 @@ CONTAINS
 !
   SUBROUTINE Calc_Courant( cose, delpm, pu,     xmass, ymass, crx, cry,  & 
                            J1P,  J2P,   JU1_GL, J2_GL, ILO,   IHI, JULO, &
-                           JHI,  I1,    I2,     JU1,   J2,    K1,  K2 )
+                           JHI,  I1,    I2,     JU1,   J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2345,7 +2301,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -2356,20 +2311,20 @@ CONTAINS
 
     ! Pressure thickness, the pseudo-density in a hydrostatic system
     ! at t1+tdt/2 (approximate) (mb)
-    REAL*8,  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
 
     ! pressure at edges in "u"  (mb)
-    REAL*8,  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
 
     ! horizontal mass flux in E-W and N-S directions [hPa]
-    REAL*8,  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8,  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
+    REAL*8,  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Courant numbers in E-W and N-S directions
-    REAL*8,  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8,  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
+    REAL*8,  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO) 
@@ -2384,20 +2339,21 @@ CONTAINS
 !                               Declare all REAL variables as REAL*8.  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: ij, ik
+    INTEGER :: ij
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    crx(:,:,:) = 0.0d0
-    cry(:,:,:) = 0.0d0
+    crx(:,:) = 0.0d0
+    cry(:,:) = 0.0d0
 
 !-----------------------------------------------------------------------------
 ! Prior to 12/4/08:
@@ -2427,50 +2383,30 @@ CONTAINS
 !            (delpm(:,ij,:) + delpm(:,ij-1,:)))
 !       
 !    end do
+! The IK loop was moved outside the subroutine. (ccc, 4/1/09)
 !-----------------------------------------------------------------------------
 
 
-    ! Rewrite DO loops above so that we can parallelize them.  Add the
-    ! outer loop over IK and then parallelize over that. (bmy, 12/4/08)
-    !
-    ! NOTE: in the N-S mass flux loop, note that we have an index of
-    ! an array that is IJ-1.  This is not allowed if IJ is the outermost
-    ! loop and the loop we are parallelizing over.  However, if we 
-    ! parallelize the higher-level IK loop then this is allowed. 
-    ! (bmy, 12/4/08)
-
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IJ, IK )
-    do ik = k1, k2
-
-!      -----------------------------------
-!      Calculate E-W horizontal mass flux.
-!      -----------------------------------
+!      ---------------------------------------------
+!      Calculate E-W and N-S horizontal mass fluxes.
+!      ---------------------------------------------
 
        do ij = j1p, j2p
     
-          crx(:,ij,ik) =  &
-               xmass(:,ij,ik) / pu(:,ij,ik)
+          crx(:,ij) =  &
+               xmass(:,ij) / pu(:,ij)
     
-       end do
-
-
-!      -----------------------------------
-!      Calculate N-S horizontal mass flux.
-!      -----------------------------------
-
-       do ij = j1p, j2p+1
-       
-          cry(:,ij,ik) =  &
-               ymass(:,ij,ik) /  &
+          cry(:,ij) =  &
+               ymass(:,ij) /  &
                ((0.5d0 * cose(ij)) *  &
-               (delpm(:,ij,ik) + delpm(:,ij-1,ik)))
-       
+               (delpm(:,ij) + delpm(:,ij-1)))
        end do
-       
-    enddo
-    !$OMP END PARALLEL DO
+
+       cry(:,j2p+1) =  &
+               ymass(:,j2p+1) /  &
+               ((0.5d0 * cose(j2p+1)) *  &
+               (delpm(:,j2p+1) + delpm(:,j2p)))
+
 
 
   END SUBROUTINE Calc_Courant
@@ -2492,8 +2428,7 @@ CONTAINS
                               xmass,        ymass,     J1P,    J2P,   &
                               I1_GL,        I2_GL,     JU1_GL, J2_GL, &
                               ILO,          IHI,       JULO,   JHI,   &
-                              I1,           I2,        JU1,    J2,    &
-                              K1,           K2 )
+                              I1,           I2,        JU1,    J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2509,7 +2444,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -2528,13 +2462,13 @@ CONTAINS
     REAL*8 , INTENT(IN)  :: geofac(JU1_GL:J2_GL)
 
     ! Horizontal mass flux in E/W and N/S directions [hPa]
-    REAL*8 , INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8 , INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8 , INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
+    REAL*8 , INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL*8,  INTENT(OUT) :: dpi(I1:I2, JU1:J2, K1:K2)
+    REAL*8,  INTENT(OUT) :: dpi(I1:I2, JU1:J2)
 !      
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2550,13 +2484,14 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
 
 !   ----------------
 !   Begin execution.
@@ -2595,21 +2530,8 @@ CONTAINS
 !            dpi(i2,ij,:) +  &
 !            xmass(i2,ij,:) - xmass(1,ij,:)
 !    end do
+! IK loop was moved outside the subroutine (ccc, 4/1/09)
 !------------------------------------------------------------------------------
-
-    ! Rewrite DO loops above so that we can parallelize them.  Add the
-    ! outer loop over IK and then parallelize over that. (bmy, 12/4/08)
-    !
-    ! NOTE: in the N-S mass flux loop, note that we have an index of
-    ! an array that is IJ+1.  This is not allowed if IJ is the outermost
-    ! loop and the loop we are parallelizing over.  However, if we 
-    ! parallelize the higher-level IK loop then this is allowed. 
-    ! (bmy, 12/4/08)
-
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( IL, IJ, IK )
-    do ik = k1, k2
 
 !      -------------------------
 !      Calculate N-S divergence.
@@ -2617,39 +2539,34 @@ CONTAINS
        
        do ij = j1p, j2p
 
-          dpi(:,ij,ik) =  &
-               (ymass(:,ij,ik) - ymass(:,ij+1,ik)) *  &
+          dpi(:,ij) =  &
+               (ymass(:,ij) - ymass(:,ij+1)) *  &
                geofac(ij)
-
-       end do
 
 !      -------------------------
 !      Calculate E-W divergence.
 !      -------------------------
 
-       do ij = j1p, j2p
           do il = i1, i2-1
           
-             dpi(il,ij,ik) =  &
-                  dpi(il,ij,ik) +  &
-                  xmass(il,ij,ik) - xmass(il+1,ij,ik)
+             dpi(il,ij) =  &
+                  dpi(il,ij) +  &
+                  xmass(il,ij) - xmass(il+1,ij)
 
           end do
 
-          dpi(i2,ij,ik) =  &
-               dpi(i2,ij,ik) +  &
-               xmass(i2,ij,ik) - xmass(1,ij,ik)
+          dpi(i2,ij) =  &
+               dpi(i2,ij) +  &
+               xmass(i2,ij) - xmass(1,ij)
        end do
-    enddo
-    !$OMP END PARALLEL DO
-    
+
 
 !   ===========================
     call Do_Divergence_Pole_Sum  &
 !   ===========================
          (do_reduction, geofac_pc, dpi, ymass, &
          i1_gl, i2_gl, j1p, j2p, &
-         ju1_gl, j2_gl, ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+         ju1_gl, j2_gl, ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
 
     if (j1p /= ju1_gl+1) then
@@ -2664,17 +2581,11 @@ CONTAINS
        ! Preserve original code here! (bmy, 12/4/08)
        !dpi(:,ju1+1,:) = dpi(:,ju1,:)
        !dpi(:,j2-1,:)  = dpi(:,j2,:)
+       ! IK loop was moved outside the subroutine (ccc, 4/1/09)
        !--------------------------------------------------------------
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK     )
-       do ik = k1, k2
-          dpi(:,ju1+1,ik) = dpi(:,ju1,ik)
-          dpi(:,j2-1,ik)  = dpi(:,j2,ik)
-       enddo
-       !$OMP END PARALLEL DO
-
+          dpi(:,ju1+1) = dpi(:,ju1)
+          dpi(:,j2-1)  = dpi(:,j2)
     end if
 
 
@@ -2697,7 +2608,7 @@ CONTAINS
                                      I1_GL,        I2_GL,     J1P, J2P,   &
                                      JU1_GL,       J2_GL,     ILO, IHI,   &
                                      JULO,         JHI,       I1,  I2,    &
-                                     JU1,          J2,        K1,  K2 )
+                                     JU1,          J2)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2713,7 +2624,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -2727,12 +2637,12 @@ CONTAINS
     REAL*8,  INTENT(in)   :: geofac_pc
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL*8,  INTENT(IN)   :: ymass(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)   :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL*8,  INTENT(OUT)  :: dpi(I1:I2, JU1:J2, K1:K2)
+    REAL*8,  INTENT(OUT)  :: dpi(I1:I2, JU1:J2)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2748,18 +2658,19 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent. Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: il, ik
+    INTEGER :: il
     REAL*8  :: ri2
-    REAL*8  :: mean_np(k1:k2)
-    REAL*8  :: mean_sp(k1:k2)
-    REAL*8  :: sumnp  (k1:k2)
-    REAL*8  :: sumsp  (k1:k2)
+    REAL*8  :: mean_np
+    REAL*8  :: mean_sp
+    REAL*8  :: sumnp
+    REAL*8  :: sumsp
    
 
 !   ----------------
@@ -2773,38 +2684,22 @@ CONTAINS
     if (ju1 == ju1_gl) then
 !   ==================
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
-
-          sumsp(ik) = 0.0d0
+          sumsp = 0.0d0
 
           do il = i1, i2
 
-             sumsp(ik) = sumsp(ik) + ymass(il,j1p,ik)
+             sumsp = sumsp + ymass(il,j1p)
 
           end do
 
-       end do
-       !$OMP END PARALLEL DO
-       
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
-          
-          mean_sp(ik) = -sumsp(ik) / ri2 * geofac_pc
+          mean_sp = -sumsp / ri2 * geofac_pc
 
           do il = i1, i2
 
-             dpi(il,ju1,ik) = mean_sp(ik)
+             dpi(il,ju1) = mean_sp
              
           end do
           
-       end do
-       !$OMP END PARALLEL DO
-
 !   ======
     end if
 !   ======
@@ -2814,37 +2709,21 @@ CONTAINS
     if (j2 == j2_gl) then
 !   ================
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
-
-          sumnp(ik) = 0.0d0
+          sumnp = 0.0d0
 
           do il = i1, i2
 
-             sumnp(ik) = sumnp(ik) + ymass(il,j2p+1,ik)
+             sumnp = sumnp + ymass(il,j2p+1)
             
           end do
 
-       end do
-       !$OMP END PARALLEL DO
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
-
-          mean_np(ik) = sumnp(ik) / ri2 * geofac_pc
+          mean_np = sumnp / ri2 * geofac_pc
 
           do il = i1, i2
 
-             dpi(il,j2,ik) = mean_np(ik)
+             dpi(il,j2) = mean_np
 
           end do
-
-       end do
-       !$OMP END PARALLEL DO
 
 !   ======
     end if
@@ -2866,8 +2745,7 @@ CONTAINS
 !
   SUBROUTINE Do_Cross_Terms_Pole_I2d2( cry,   va,  I1_GL, I2_GL, JU1_GL, &
                                        J2_GL, J1P, ILO,   IHI,   JULO,   &
-                                       JHI,   I1,  I2,    JU1,   J2,     &
-                                       K1,    K2 )
+                                       JHI,   I1,  I2,    JU1,   J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2883,19 +2761,18 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(OUT) :: va(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -2910,6 +2787,7 @@ CONTAINS
 !                               Declare all REAL variables as REAL*8.  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2917,7 +2795,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     INTEGER :: i2d2
-    INTEGER :: il, ik
+    INTEGER :: il
 
 !   ----------------
 !   Begin execution.
@@ -2977,10 +2855,8 @@ CONTAINS
 !!   ======
 !    end if
 !!   ======
+! The IK loop was moved outside the subroutine (ccc, 4/1/09)
 !------------------------------------------------------------------------------
-
-       ! Add outermost IK loops so that we can parallelize
-       ! (bmy, 12/4/08) 
 
 !      ---------------------------------------------
 !      Polar Cap NOT Enlarged:
@@ -2991,20 +2867,14 @@ CONTAINS
        if (ju1 == ju1_gl) then
 !      ==================
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( IK, IL )
-          do ik = k1, k2
           do il = i1, i2d2
 
-             va(il,ju1,ik) =  &
-                  0.5d0 * (cry(il,ju1+1,ik) - cry(il+i2d2,ju1+1,ik))
+             va(il,ju1) =  &
+                  0.5d0 * (cry(il,ju1+1) - cry(il+i2d2,ju1+1))
 
-             va(il+i2d2,ju1,ik) = -va(il,ju1,ik)
+             va(il+i2d2,ju1) = -va(il,ju1)
 
           end do
-          end do
-          !$OMP END PARALLEL DO
 
 !      ======
        end if
@@ -3015,20 +2885,14 @@ CONTAINS
        if (j2 == j2_gl) then
 !      ================
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( IK, IL )
-          do ik = k1, k2
           do il = i1, i2d2
 
-             va(il,j2,ik) =  &
-                  0.5d0 * (cry(il,j2,ik) - cry(il+i2d2,j2-1,ik))
+             va(il,j2) =  &
+                  0.5d0 * (cry(il,j2) - cry(il+i2d2,j2-1))
 
-             va(il+i2d2,j2,ik) = -va(il,j2,ik)
+             va(il+i2d2,j2) = -va(il,j2)
 
           end do
-          end do
-          !$OMP END PARALLEL DO
 
 !      ======
        end if
@@ -3057,7 +2921,7 @@ CONTAINS
   SUBROUTINE Xadv_Dao2( iad,    jn,    js,  adx,  qqv, &
                         ua,     ILO,   IHI, JULO, JHI, &
                         JU1_GL, J2_GL, J1P, J2P,  I1,  &
-                        I2,     JU1,   J2,  K1,   K2 )
+                        I2,     JU1,   J2)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3072,7 +2936,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -3084,22 +2947,22 @@ CONTAINS
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: jn(K1:K2)
+    INTEGER, INTENT(IN)  :: jn
 
     ! southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: js(K1:K2)
+    INTEGER, INTENT(IN)  :: js
  
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3115,6 +2978,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3122,7 +2986,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik, iu
+    INTEGER :: il, ij, iu
     INTEGER :: imp, iue, iuw
     REAL*8  :: a1, b1, c1
     REAL*8  :: rdiff
@@ -3130,7 +2994,7 @@ CONTAINS
     real*8  :: ru
     
     ! Arrays
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi, k1:k2)
+    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
       
     !     ----------------
     !     Begin execution.
@@ -3154,28 +3018,23 @@ CONTAINS
     !do il=i2+1,i2+i2/3
     !   qtmp(il,:,:) = qqv(il-i2,:,:)
     !enddo
+    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
     !-----------------------------------------------------------------------
 
-    !$OMP PARALLEL DO          &
-    !$OMP DEFAULT( SHARED )    &
-    !$OMP PRIVATE( IK, IJ, IL )
-    do ik = k1, k2
        do ij = julo, jhi
   
           do il=1,i2
-             qtmp(il,ij,ik) = qqv(il,ij,ik)
+             qtmp(il,ij) = qqv(il,ij)
           enddo
           
           do il=-i2/3,0
-             qtmp(il,ij,ik) = qqv(i2+il,ij,ik)
+             qtmp(il,ij) = qqv(i2+il,ij)
           enddo
           
           do il=i2+1,i2+i2/3
-             qtmp(il,ij,ik) = qqv(il-i2,ij,ik)
+             qtmp(il,ij) = qqv(il-i2,ij)
           enddo
        enddo
-    enddo
-    !$OMP END PARALLEL DO
 
 !   =============
     if (iad == 1) then
@@ -3185,14 +3044,10 @@ CONTAINS
        !       1st order.
        !       ----------
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IJ, IL, IU, RIU, RU, RDIFF, RIL )
-       do ik = k1, k2
           do ij = j1p, j2p
                
 
-             if ((ij <= js(ik)) .or. (ij >= jn(ik))) then
+             if ((ij <= js) .or. (ij >= jn)) then
                   
                 !             --------------
                 !             In Polar area.
@@ -3200,18 +3055,18 @@ CONTAINS
                   
                 do il = i1, i2
                      
-                   iu  = ua(il,ij,ik)
+                   iu  = ua(il,ij)
                    riu = iu
-                   ru  = ua(il,ij,ik) - riu
+                   ru  = ua(il,ij) - riu
                    iu  = il - iu
                      
-                   if (ua(il,ij,ik) >= 0.0d0) then
-                      rdiff = qtmp(iu-1,ij,ik) - qtmp(iu,ij,ik)
+                   if (ua(il,ij) >= 0.0d0) then
+                      rdiff = qtmp(iu-1,ij) - qtmp(iu,ij)
                    else
-                      rdiff = qtmp(iu,ij,ik)   - qtmp(iu+1,ij,ik)
+                      rdiff = qtmp(iu,ij)   - qtmp(iu+1,ij)
                    end if
                      
-                   adx(il,ij,ik) = (qtmp(iu,ij,ik) - qtmp(il,ij,ik)) +  &
+                   adx(il,ij) = (qtmp(iu,ij) - qtmp(il,ij)) +  &
                                    (ru * rdiff)
                      
                 end do
@@ -3225,33 +3080,26 @@ CONTAINS
                 do il = i1, i2
                      
                    ril = il
-                   iu  = ril - ua(il,ij,ik)
+                   iu  = ril - ua(il,ij)
                      
-                   adx(il,ij,ik) = ua(il,ij,ik) *  &
-                        (qtmp(iu,ij,ik) - qtmp(iu+1,ij,ik))
+                   adx(il,ij) = ua(il,ij) *  &
+                        (qtmp(iu,ij) - qtmp(iu+1,ij))
                      
                 end do
                   
              end if
                
           end do
-       end do
-       !$OMP END PARALLEL DO
-         
          
 !   ==================
     else if (iad == 2) then
 !   ==================
          
 
-       !$OMP PARALLEL DO                                   &
-       !$OMP DEFAULT( SHARED )                             &
-       !$OMP PRIVATE( IK, IJ, IL, IU, RIU, RU, A1, B1, C1 )
-       do ik = k1, k2
           do ij = j1p, j2p
                
 
-             if ((ij <= js(ik)) .or. (ij >= jn(ik))) then
+             if ((ij <= js) .or. (ij >= jn)) then
                   
                 !             --------------
                 !             In Polar area.
@@ -3259,19 +3107,19 @@ CONTAINS
                   
                 do il = i1, i2
                      
-                   iu  = Nint (ua(il,ij,ik))
+                   iu  = Nint (ua(il,ij))
                    riu = iu
-                   ru  = riu - ua(il,ij,ik)
+                   ru  = riu - ua(il,ij)
                    iu  = il - iu
                      
-                   a1 = 0.5d0 * (qtmp(iu+1,ij,ik) + qtmp(iu-1,ij,ik)) -  &
-                                 qtmp(iu,ij,ik)
+                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                                 qtmp(iu,ij)
                      
-                   b1 = 0.5d0 * (qtmp(iu+1,ij,ik) - qtmp(iu-1,ij,ik))
+                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
                      
-                   c1 = qtmp(iu,ij,ik) - qtmp(il,ij,ik)
+                   c1 = qtmp(iu,ij) - qtmp(il,ij)
                      
-                   adx(il,ij,ik) = (ru * ((a1 * ru) + b1)) + c1
+                   adx(il,ij) = (ru * ((a1 * ru) + b1)) + c1
                      
                 end do
                   
@@ -3283,28 +3131,25 @@ CONTAINS
                   
                 do il = i1, i2
                    
-                   iu  = Nint (ua(il,ij,ik))
+                   iu  = Nint (ua(il,ij))
                    riu = iu
-                   ru  = riu - ua(il,ij,ik)
+                   ru  = riu - ua(il,ij)
                    iu  = il - iu
                      
-                   a1 = 0.5d0 * (qtmp(iu+1,ij,ik) + qtmp(iu-1,ij,ik)) -  &
-                                 qtmp(iu,ij,ik)
+                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
+                                 qtmp(iu,ij)
                    
-                   b1 = 0.5d0 * (qtmp(iu+1,ij,ik) - qtmp(iu-1,ij,ik))
+                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
                      
-                   c1 = qtmp(iu,ij,ik) - qtmp(il,ij,ik)
+                   c1 = qtmp(iu,ij) - qtmp(il,ij)
                      
-                   adx(il,ij,ik) = (ru * ((a1 * ru) + b1)) + c1
+                   adx(il,ij) = (ru * ((a1 * ru) + b1)) + c1
                      
                 end do
                   
              end if
                
           end do
-       end do
-       !$OMP END PARALLEL DO
-         
 !   ======
     end if
 !   ======
@@ -3323,24 +3168,17 @@ CONTAINS
        !   adx(i1:i2,ju1+1,:) = 0.0d0
        !     
        !end if
+       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
        !---------------------------------------------------------------
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK     )
-       do ik = k1, k2
-
-          adx(i1:i2,ju1,ik) = 0.0d0
+          adx(i1:i2,ju1) = 0.0d0
          
           if (j1p /= ju1_gl+1) then
             
-             adx(i1:i2,ju1+1,ik) = 0.0d0
+             adx(i1:i2,ju1+1) = 0.0d0
             
           end if
           
-       enddo
-       !$OMP END PARALLEL DO
-  
     end if
       
       
@@ -3357,23 +3195,16 @@ CONTAINS
        !   adx(i1:i2,j2-1,:) = 0.0d0
        !     
        !end if
+       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
        !---------------------------------------------------------------
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK     )
-       do ik = k1, k2
-
-          adx(i1:i2,j2,ik) = 0.0d0
+          adx(i1:i2,j2) = 0.0d0
          
           if (j1p /= ju1_gl+1) then
             
-             adx(i1:i2,j2-1,ik) = 0.0d0
+             adx(i1:i2,j2-1) = 0.0d0
             
           end if
-
-       enddo
-       !$OMP END PARALLEL DO
 
     end if
       
@@ -3396,7 +3227,7 @@ CONTAINS
   SUBROUTINE Yadv_Dao2( iad,   ady,    qqu,   va,  I1_GL, &
                         I2_GL, JU1_GL, J2_GL, J1P, J2P,   &
                         ILO,   IHI,    JULO,  JHI, I1,    &
-                        I2,    JU1,    J2,    K1,  K2 )
+                        I2,    JU1,    J2)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3412,7 +3243,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -3423,15 +3253,15 @@ CONTAINS
     INTEGER, INTENT(IN)  :: iad
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 
     ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL*8,  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
 
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3446,6 +3276,7 @@ CONTAINS
 !                               Declare all REAL variables as REAL*8.  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3453,7 +3284,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     INTEGER :: jv
     REAL*8  :: a1, b1, c1
     REAL*8  :: rij, rjv
@@ -3462,7 +3293,7 @@ CONTAINS
     ! Arrays 
     ! We may need a small ghost zone depending 
     ! on the polar cap used
-    REAL*8  :: qquwk(ilo:ihi, julo-2:jhi+2, k1:k2)   
+    REAL*8  :: qquwk(ilo:ihi, julo-2:jhi+2)   
                                                        
 !     ----------------
 !     Begin execution.
@@ -3473,7 +3304,7 @@ CONTAINS
 
     ! Make work array
     do ij = julo, jhi
-       qquwk(:,ij,:) = qqu(:,ij,:)
+       qquwk(:,ij) = qqu(:,ij)
     end do
 
 
@@ -3486,7 +3317,7 @@ CONTAINS
 !   ======================
          (qqu, qquwk, &
           i1_gl, i2_gl, ju1_gl, j2_gl, j1p, &
-          ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+          ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
       
 !   =============
@@ -3497,54 +3328,42 @@ CONTAINS
        !       1st order.
        !       ----------
          
-       !$OMP PARALLEL DO                   &
-       !$OMP DEFAULT( SHARED )             &
-       !$OMP PRIVATE( IK, IJ, IL, RIJ, JV ) 
-       do ik = k1, k2
           do ij = j1p-1, j2p+1
              do il = i1, i2
 !c?
                 rij = ij
-                jv  = rij - va(il,ij,ik)
+                jv  = rij - va(il,ij)
                   
-                ady(il,ij,ik) = va(il,ij,ik) *  &
-                     (qquwk(il,jv,ik) - qquwk(il,jv+1,ik))
+                ady(il,ij) = va(il,ij) *  &
+                     (qquwk(il,jv) - qquwk(il,jv+1))
                   
              end do
           end do
-       end do
-       !$OMP END PARALLEL DO
          
          
 !   ==================
     else if (iad == 2) then
 !   ==================
          
-       !$OMP PARALLEL DO                                   &
-       !$OMP DEFAULT( SHARED )                             &
-       !$OMP PRIVATE( IK, IJ, IL, JV, RJV, RV, A1, B1, C1 )
-       do ik = k1, k2
           do ij = j1p-1, j2p+1
              do il = i1, i2
 !c?
-                jv  = Nint (va(il,ij,ik))
+                jv  = Nint (va(il,ij))
                 rjv = jv
-                rv  = rjv - va(il,ij,ik)
+                rv  = rjv - va(il,ij)
                 jv  = ij - jv
                   
-                a1 = 0.5d0 * (qquwk(il,jv+1,ik) + qquwk(il,jv-1,ik)) -  &
-                              qquwk(il,jv,ik)
+                a1 = 0.5d0 * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
+                              qquwk(il,jv)
                   
-                b1 = 0.5d0 * (qquwk(il,jv+1,ik) - qquwk(il,jv-1,ik))
+                b1 = 0.5d0 * (qquwk(il,jv+1) - qquwk(il,jv-1))
                   
-                c1 = qquwk(il,jv,ik) - qquwk(il,ij,ik)
+                c1 = qquwk(il,jv) - qquwk(il,ij)
                   
-                ady(il,ij,ik) = (rv * ((a1 * rv) + b1)) + c1
+                ady(il,ij) = (rv * ((a1 * rv) + b1)) + c1
                   
              end do
           end do
-       end do
-       !$OMP END PARALLEL DO
          
     end if
       
@@ -3554,7 +3373,7 @@ CONTAINS
 !   =====================
          ( ady, &
            i1_gl, i2_gl, ju1_gl, j2_gl, j1p, &
-           ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+           ilo, ihi, julo, jhi, i1, i2, ju1, j2)
       
 
   END SUBROUTINE Yadv_Dao2
@@ -3573,7 +3392,7 @@ CONTAINS
 !
   SUBROUTINE Do_Yadv_Pole_I2d2 ( qqu, qquwk, I1_GL, I2_GL, JU1_GL, J2_GL, &
                                  J1P, ILO,   IHI,   JULO,  JHI,    I1,    &
-                                 I2,  JU1,   J2,    K1,    K2  )
+                                 I2,  JU1,   J2  )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3589,19 +3408,18 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
       
     ! concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! qqu working array [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2, K1:K2)
+    REAL*8,  INTENT(OUT) :: qquwk(ILO:IHI, JULO-2:JHI+2)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3617,6 +3435,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3625,7 +3444,7 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: i2d2
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     INTEGER :: inb
       
       
@@ -3660,22 +3479,17 @@ CONTAINS
           !       
           !   end do
           !end do
+          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
           !-----------------------------------------------------------------
 
-          !$OMP PARALLEL DO            &
-          !$OMP DEFAULT( SHARED      ) &    
-          !$OMP PRIVATE( IK, IL, INB ) 
-          do ik = k1, k2
           do il = i1, i2d2
              do inb = 1, 2
                  
-                qquwk(il,     ju1-inb,ik) = qqu(il+i2d2,ju1+inb,ik)
-                qquwk(il+i2d2,ju1-inb,ik) = qqu(il,     ju1+inb,ik)
+                qquwk(il,     ju1-inb) = qqu(il+i2d2,ju1+inb)
+                qquwk(il+i2d2,ju1-inb) = qqu(il,     ju1+inb)
                  
              end do
           end do
-          end do
-          !$OMP END PARALLEL DO
 
 
 !      ======
@@ -3699,22 +3513,17 @@ CONTAINS
           !       
           !   end do
           !end do
+          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
           !-----------------------------------------------------------------
 
-          !$OMP PARALLEL DO            &
-          !$OMP DEFAULT( SHARED      ) &    
-          !$OMP PRIVATE( IK, IL, INB ) 
-          do ik = k1, k2
           do il = i1, i2d2
              do inb = 1, 2
                  
-                qquwk(il,     j2+inb,ik) = qqu(il+i2d2,j2-inb,ik)
-                qquwk(il+i2d2,j2+inb,ik) = qqu(il,     j2-inb,ik)
+                qquwk(il,     j2+inb) = qqu(il+i2d2,j2-inb)
+                qquwk(il+i2d2,j2+inb) = qqu(il,     j2-inb)
                  
              end do
           end do
-          end do
-          !$OMP END PARALLEL DO
 
 
 !      ======
@@ -3743,7 +3552,7 @@ CONTAINS
 !
   SUBROUTINE Do_Yadv_Pole_Sum( ady, I1_GL, I2_GL, JU1_GL, J2_GL, J1P, &
                                ILO, IHI,   JULO,  JHI,    I1,    I2,  &
-                               JU1, J2,    K1,    K2 )
+                               JU1, J2)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3759,7 +3568,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
     INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
@@ -3768,7 +3576,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Cross term due to N-S advection (mixing ratio)
-    REAL*8,  INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: ady(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -3785,6 +3593,7 @@ CONTAINS
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.  Also make a logical
 !                               to test if we are using an extended polar cap.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3793,11 +3602,11 @@ CONTAINS
 ! 
 
     ! Scalars
-    INTEGER :: il, ik
+    INTEGER :: il
       
     ! Arrays
-    REAL*8  :: sumnp(k1:k2)
-    REAL*8  :: sumsp(k1:k2)
+    REAL*8  :: sumnp
+    REAL*8  :: sumsp
       
     ! Add 
     LOGICAL :: IS_EXT_POLAR_CAP
@@ -3816,16 +3625,8 @@ CONTAINS
     !  South Pole
     ! ------------
 
-!   ==================
-    if (ju1 == ju1_gl) then
-!   ==================
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-            
-          sumsp(ik) = 0.0d0
+          sumsp = 0.0d0
+          sumnp = 0.0d0
             
           !------------------------------
           ! Prior to 12/11/08:
@@ -3836,7 +3637,8 @@ CONTAINS
              ! For a 2-latitude polar cap (S. Pole + next Northward latitude)
              do il = i1, i2
                   
-                sumsp(ik) = sumsp(ik) + ady(il,ju1+1,ik)
+                sumsp = sumsp + ady(il,ju1+1)
+                sumnp = sumnp + ady(il,j2-1)
                   
              end do
                
@@ -3845,21 +3647,15 @@ CONTAINS
              ! For a 1-latitude polar cap (S. Pole only)
              do il = i1, i2
                   
-                sumsp(ik) = sumsp(ik) + ady(il,ju1,ik)
+                sumsp = sumsp + ady(il,ju1)
+                sumnp = sumnp + ady(il,j2)
                   
              end do
                
           end if
             
-       end do
-       !$OMP END PARALLEL DO
-         
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-
-          sumsp(ik) = sumsp(ik) / i2_gl
+          sumsp = sumsp / i2_gl
+          sumnp = sumnp / i2_gl
           
           !------------------------------
           ! Prior to 12/11/08:
@@ -3870,8 +3666,10 @@ CONTAINS
              ! For a 2-latitude polar cap (S. Pole + next Northward latitude)
              do il = i1, i2
                 
-                ady(il,ju1+1,ik) = sumsp(ik)
-                ady(il,ju1,ik)   = sumsp(ik)
+                ady(il,ju1+1) = sumsp
+                ady(il,ju1)   = sumsp
+                ady(il,j2-1) = sumnp
+                ady(il,j2)   = sumnp
                   
              end do
                
@@ -3880,101 +3678,13 @@ CONTAINS
              ! For a 1-latitude polar cap (S. Pole only)
              do il = i1, i2
                   
-                ady(il,ju1,ik) = sumsp(ik)
+                ady(il,ju1) = sumsp
+                ady(il,j2) = sumnp
                   
              end do
                
           end if
             
-       end do
-       !$OMP END PARALLEL DO
-  
-!   ======
-    end if
-!   ======
-
-    ! ------------
-    !  North Pole
-    ! ------------
-
-!   ================
-    if (j2 == j2_gl) then
-!   ================
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-            
-          sumnp(ik) = 0.0d0
-
-          !-------------------------------
-          ! Prior to 12/11/08:
-          !if (j1p /= ju1_gl+1) then
-          !-------------------------------
-          if ( IS_EXT_POLAR_CAP ) then
-               
-             ! For a 2-latitude polar cap (N. Pole + next Southward latitude)
-             do il = i1, i2
-                  
-                sumnp(ik) = sumnp(ik) + ady(il,j2-1,ik)
-                  
-             end do
-               
-          else
-               
-             ! For a 1-latitude polar cap (N. Pole only)
-             do il = i1, i2
-                  
-                sumnp(ik) = sumnp(ik) + ady(il,j2,ik)
-                  
-             end do
-               
-          end if
-            
-       end do
-       !$OMP END PARALLEL DO
-         
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-            
-          sumnp(ik) = sumnp(ik) / i2_gl
-            
-          !-------------------------------
-          ! Prior to 12/11/08:
-          !if (j1p /= ju1_gl+1) then
-          !-------------------------------
-          if ( IS_EXT_POLAR_CAP ) then
-
-             ! For a 2-latitude polar cap (N. Pole + next Southward latitude)
-             do il = i1, i2
-                  
-                ady(il,j2-1,ik) = sumnp(ik)
-                ady(il,j2,ik)   = sumnp(ik)
-                  
-             end do
-               
-          else
-               
-             ! For a 1-latitude polar cap (N. Pole only)
-             do il = i1, i2
-                  
-                ady(il,j2,ik) = sumnp(ik)
-                  
-             end do
-               
-          end if
-            
-       end do
-       !$OMP END PARALLEL DO
-         
-!   ======
-    end if
-!   ======
-
-
   END SUBROUTINE Do_Yadv_Pole_Sum
 !EOC 
 !------------------------------------------------------------------------------
@@ -3991,7 +3701,7 @@ CONTAINS
 !
   SUBROUTINE Xtp( ilmt, jn,  js,    pu,     crx,   dq1, qqv, xmass, fx,  &
                   J1P,  J2P, I2_GL, JU1_GL, J2_GL, ILO, IHI, JULO,  JHI, &
-                  I1,   I2,  JU1,   J2,     K1,    K2,  iord )
+                  I1,   I2,  JU1,   J2,  iord )
 
 !
 ! !INPUT PARAMETERS: 
@@ -4008,7 +3718,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
     INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
@@ -4019,36 +3728,36 @@ CONTAINS
 
     ! Northward of latitude index = jn, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: jn(K1:K2)
+    INTEGER, INTENT(IN)    :: jn
 
     ! Southward of latitude index = js, Courant numbers could be > 1,
     ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: js(K1:K2)
+    INTEGER, INTENT(IN)    :: js
 
     ! Option for E-W transport scheme.  See module header for more info.
     INTEGER, INTENT(IN)    :: iord
 
     ! pressure at edges in "u" [hPa]
-    REAL*8,  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in E-W direction [hPa]
-    REAL*8,  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4064,6 +3773,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4071,7 +3781,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik, ic
+    INTEGER :: il, ij, ic
     INTEGER :: iu, ix, iuw, iue, imp
     INTEGER :: jvan
     REAL*8  :: rc
@@ -4079,16 +3789,16 @@ CONTAINS
 
     ! Arrays
     INTEGER :: isav(i1:i2)
-    REAL*8  :: dcx(-i2/3:i2+i2/3, julo:jhi, k1:k2)
-    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi, k1:k2)
+    REAL*8  :: dcx(-i2/3:i2+i2/3, julo:jhi)
+    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
 
 
     !     ----------------
     !     Begin execution.
     !     ----------------
 
-    dcx(:,:,:) = 0.0d0
-    fx(:,:,:) = 0.0d0
+    dcx(:,:) = 0.0d0
+    fx(:,:) = 0.0d0
     
     imp = i2+1
     
@@ -4096,29 +3806,29 @@ CONTAINS
 
     !!ccc Populate qtmp
     do il=i1,i2
-       qtmp(il,:,:) = qqv(il,:,:)
+       qtmp(il,:) = qqv(il,:)
     enddo
     
     do il = -i2/3,0
-       qtmp(il,:,:) = qqv(i2+il,:,:)
+       qtmp(il,:) = qqv(i2+il,:)
     enddo
     
     do il = i2+1,i2+i2/3
-       qtmp(il,:,:) = qqv(il-i2,:,:)
+       qtmp(il,:) = qqv(il-i2,:)
     enddo
 
     if (IORD /= 1) then
-       qtmp(i1-1,:,:) = qqv(i2,:,:)
-       qtmp(i1-2,:,:) = qqv(i2-1,:,:)
-       qtmp(i2+1,:,:) = qqv(i1,:,:)
-       qtmp(i2+2,:,:) = qqv(i1+1,:,:)
+       qtmp(i1-1,:) = qqv(i2,:)
+       qtmp(i1-2,:) = qqv(i2-1,:)
+       qtmp(i2+1,:) = qqv(i1,:)
+       qtmp(i2+2,:) = qqv(i1+1,:)
 
 !      ==========
        call Xmist &
 !      ==========
             (dcx, qtmp, &
              j1p, j2p, i2_gl, ju1_gl, j2_gl, ilo, ihi, julo, jhi, &
-             i1, i2, ju1, j2, k1, k2)
+             i1, i2, ju1, j2)
     end if
 
 
@@ -4126,15 +3836,11 @@ CONTAINS
 
 
 !   ==============
-    !$OMP PARALLEL DO                                          &
-    !$OMP DEFAULT( SHARED )                                    &
-    !$OMP PRIVATE( IK, IJ, IL, RIL, IU, IC, ISAV, RIC, RC, IX )
-    do ik = k1, k2
        do ij = j1p, j2p
 !      =================
 
 !         ======================================
-          if ((ij > js(ik)) .and. (ij < jn(ik))) then
+          if ((ij > js) .and. (ij < jn)) then
 !         ======================================
 
 !           ------------------------------------------------------
@@ -4146,9 +3852,9 @@ CONTAINS
                   
                 do il = i1, i2
                    ril = il
-                   iu  = ril - crx(il,ij,ik)
+                   iu  = ril - crx(il,ij)
                    
-                   fx(il,ij,ik) = qtmp(iu,ij,ik)
+                   fx(il,ij) = qtmp(iu,ij)
                 end do
                   
              else
@@ -4158,20 +3864,20 @@ CONTAINS
                      
                    do il = i1, i2
                       ril = il
-                      iu  = ril - crx(il,ij,ik)
+                      iu  = ril - crx(il,ij)
                       
-                      fx(il,ij,ik) =  &
-                           qtmp(iu,ij,ik) +  &
-                           (dcx(iu,ij,ik) *  &
-                           (Sign (1.0d0, crx(il,ij,ik)) - crx(il,ij,ik)))
+                      fx(il,ij) =  &
+                           qtmp(iu,ij) +  &
+                           (dcx(iu,ij) *  &
+                           (Sign (1.0d0, crx(il,ij)) - crx(il,ij)))
                    end do
                      
                 else
 
 !                  ==========
                    call Fxppm  &
-                        (ij, ik, ilmt, crx, dcx, fx, qtmp, &
-                        -i2/3, i2+i2/3, julo, jhi, i1, i2, k1, k2)
+                        (ij, ilmt, crx, dcx, fx, qtmp, &
+                        -i2/3, i2+i2/3, julo, jhi, i1, i2)
 !  qtmp (inout) - can be updated
 !                  ==========
 
@@ -4187,7 +3893,7 @@ CONTAINS
              !fx(i1:i2,ij,ik) = fx(i1:i2,ij,ik) * xmass(i1:i2,ij,ik)
              !---------------------------------------------------------------
              do il = i1, i2  
-                fx(il,ij,ik) = fx(il,ij,ik) * xmass(il,ij,ik)
+                fx(il,ij) = fx(il,ij) * xmass(il,ij)
              enddo
 
 !         ====
@@ -4203,46 +3909,46 @@ CONTAINS
                   (ij == j1p) .or. (ij == j2p)) then
 
                 do il = i1, i2
-                   ic       = crx(il,ij,ik)
+                   ic       = crx(il,ij)
                    isav(il) = il - ic
                    ril      = il
-                   iu       = ril - crx(il,ij,ik)
+                   iu       = ril - crx(il,ij)
                    ric      = ic
-                   rc       = crx(il,ij,ik) - ric
+                   rc       = crx(il,ij) - ric
                    
-                   fx(il,ij,ik) = rc * qtmp(iu,ij,ik)
+                   fx(il,ij) = rc * qtmp(iu,ij)
                 end do
                 
              else
                   
                 do il = i1, i2
-                   ic       = crx(il,ij,ik)
+                   ic       = crx(il,ij)
                    isav(il) = il - ic
                    ril      = il
-                   iu       = ril - crx(il,ij,ik)
+                   iu       = ril - crx(il,ij)
                    ric      = ic
-                   rc       = crx(il,ij,ik) - ric
+                   rc       = crx(il,ij) - ric
                      
-                   fx(il,ij,ik) =  &
+                   fx(il,ij) =  &
                         rc *  &
-                        (qtmp(iu,ij,ik) +  &
-                        (dcx(iu,ij,ik) * (Sign (1.0d0, rc) - rc)))
+                        (qtmp(iu,ij) +  &
+                        (dcx(iu,ij) * (Sign (1.0d0, rc) - rc)))
                 end do
 
              end if
                
              do il = i1, i2
                   
-                if (crx(il,ij,ik) > 1.0d0) then
+                if (crx(il,ij) > 1.0d0) then
 
                    do ix = isav(il), il - 1
-                      fx(il,ij,ik) = fx(il,ij,ik) + qtmp(ix,ij,ik)
+                      fx(il,ij) = fx(il,ij) + qtmp(ix,ij)
                    end do
 
-                else if (crx(il,ij,ik) < -1.0d0) then
+                else if (crx(il,ij) < -1.0d0) then
                                         
                    do ix = il, isav(il) - 1
-                      fx(il,ij,ik) = fx(il,ij,ik) - qtmp(ix,ij,ik)
+                      fx(il,ij) = fx(il,ij) - qtmp(ix,ij)
                    end do
                      
                 end if
@@ -4257,7 +3963,7 @@ CONTAINS
              !fx(i1:i2,ij,ik) = pu(i1:i2,ij,ik) * fx(i1:i2,ij,ik)
              !---------------------------------------------------------------
              do il = i1, i2
-                fx(il,ij,ik) = pu(il,ij,ik) * fx(il,ij,ik)
+                fx(il,ij) = pu(il,ij) * fx(il,ij)
              enddo
 
 !         ======
@@ -4266,20 +3972,18 @@ CONTAINS
 
 !      ======
        end do
-    end do
-    !$OMP END PARALLEL DO
 !   ======
 
     ! NOTE: This loop does not parallelize well (bmy, 12/5/08)
     do ij = j1p, j2p
        do il = i1, i2-1
             
-          dq1(il,ij,:) = dq1(il,ij,:) +  &
-                         (fx(il,ij,:) - fx(il+1,ij,:))
+          dq1(il,ij) = dq1(il,ij) +  &
+                         (fx(il,ij) - fx(il+1,ij))
     
        end do
-       dq1(i2,ij,:) = dq1(i2,ij,:) +  &
-                      (fx(i2,ij,:) - fx(i1,ij,:))
+       dq1(i2,ij) = dq1(i2,ij) +  &
+                      (fx(i2,ij) - fx(i1,ij))
     end do
     
   END SUBROUTINE Xtp
@@ -4298,7 +4002,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Xmist( dcx,  qqv, J1P, J2P, I2_GL, JU1_GL, J2_GL, ILO, IHI, &
-                    JULO, JHI, I1,  I2,  JU1,   J2,     K1,    K2 )
+                    JULO, JHI, I1,  I2,  JU1,   J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4314,19 +4018,18 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4342,6 +4045,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4349,7 +4053,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     REAL*8  :: pmax, pmin
     REAL*8  :: r24
     REAL*8  :: tmp
@@ -4361,32 +4065,26 @@ CONTAINS
 
     r24 = 1.0d0 / 24.0d0
 
-    !$OMP PARALLEL DO                            &
-    !$OMP DEFAULT( SHARED )                      &
-    !$OMP PRIVATE( IK, IJ, IL, TMP, PMAX, PMIN )
-    do ik = k1, k2
        do ij = j1p+1, j2p-1
           do il = i1, i2
 
              tmp =  &
-                  ((8.0d0 * (qqv(il+1,ij,ik) - qqv(il-1,ij,ik))) +  &
-                  qqv(il-2,ij,ik) - qqv(il+2,ij,ik)) *  &
+                  ((8.0d0 * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
+                  qqv(il-2,ij) - qqv(il+2,ij)) *  &
                   r24
 
              pmax =  &
-                  Max (qqv(il-1,ij,ik), qqv(il,ij,ik), qqv(il+1,ij,ik)) -  &
-                  qqv(il,ij,ik)
+                  Max (qqv(il-1,ij), qqv(il,ij), qqv(il+1,ij)) -  &
+                  qqv(il,ij)
 
              pmin =  &
-                  qqv(il,ij,ik) -  &
-                  Min (qqv(il-1,ij,ik), qqv(il,ij,ik), qqv(il+1,ij,ik))
+                  qqv(il,ij) -  &
+                  Min (qqv(il-1,ij), qqv(il,ij), qqv(il+1,ij))
 
-             dcx(il,ij,ik) = Sign (Min (Abs (tmp), pmax, pmin), tmp)
+             dcx(il,ij) = Sign (Min (Abs (tmp), pmax, pmin), tmp)
 
           end do
        end do
-    end do
-    !$OMP END PARALLEL DO
 
     !--------------------------------------------------------------------
     ! Prior to 12/4/08:
@@ -4400,27 +4098,22 @@ CONTAINS
     !do il = i2+1, i2+i2/3
     !   dcx(il,:,:) = dcx(il-i2,:,:)
     !enddo
+    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
     !--------------------------------------------------------------------
 
     ! Populate ghost zones of dcx (ccc, 11/20/08)
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( IK, IJ, IL ) 
-    do ik = k1,   k2
     do ij = julo, jhi
 
        do il = -i2/3, 0
-          dcx(il,ij,ik) = dcx(i2+il,ij,ik)
+          dcx(il,ij) = dcx(i2+il,ij)
        enddo
       
        do il = i2+1, i2+i2/3
-          dcx(il,ij,ik) = dcx(il-i2,ij,ik)
+          dcx(il,ij) = dcx(il-i2,ij)
 
        enddo
     enddo
-    enddo
-    !$OMP END PARALLEL DO
 
   END SUBROUTINE Xmist
 !EOC 
@@ -4438,40 +4131,39 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Fxppm( ij,  ik,  ilmt, crx, dcx, fx, qqv,     &
-                    ILO, IHI, JULO, JHI, I1,  I2, K1,  K2 )
+  SUBROUTINE Fxppm( ij,  ilmt, crx, dcx, fx, qqv,     &
+                    ILO, IHI, JULO, JHI, I1,  I2 )
 !
 ! !INPUT PARAMETERS: 
 !
     ! Local min & max longitude (I) and altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
     INTEGER, INTENT(IN)    :: JULO,   JHI
 
     ! Latitude (IJ) and altitude (IK) indices
-    INTEGER, INTENT(IN)    :: ij,     ik
+    INTEGER, INTENT(IN)    :: ij
 
     ! Controls various options in E-W advection
     INTEGER, INTENT(IN)    :: ilmt
 
     ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(I1:I2, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: crx(I1:I2, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in E-W direction (mixing ratio)
-    REAL*8,  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
 
     ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(I1:I2, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4492,6 +4184,7 @@ CONTAINS
 !                               with the "D" double-precision exponent.
 !                               Also remove the allocatable arrays, which
 !                               interfere w/ OpenMP parallelization.
+!   01 Apr 2009 - C. Carouge  - The input arrays are now 2D only.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4588,8 +4281,8 @@ CONTAINS
 
     do il = ilo + 1, ihi
        
-       rval = 0.5d0 * (qqv(il-1,ij,ik) + qqv(il,ij,ik)) +  &
-                      (dcx(il-1,ij,ik) - dcx(il,ij,ik)) * r13
+       rval = 0.5d0 * (qqv(il-1,ij) + qqv(il,ij)) +  &
+                      (dcx(il-1,ij) - dcx(il,ij)) * r13
 
        al(il)   = rval
        ar(il-1) = rval
@@ -4599,7 +4292,7 @@ CONTAINS
 
     do il = ilo + 1, ihi - 1
        a6(il) = 3.0d0 *  &
-                (qqv(il,ij,ik) + qqv(il,ij,ik) - (al(il) + ar(il)))
+                (qqv(il,ij) + qqv(il,ij) - (al(il) + ar(il)))
     end do
 
 
@@ -4624,8 +4317,8 @@ CONTAINS
           al1(lenx)   = al(il)
           ar1(lenx)   = ar(il)
             
-          dcxi1(lenx) = dcx(il,ij,ik)
-          qqvi1(lenx) = qqv(il,ij,ik)
+          dcxi1(lenx) = dcx(il,ij)
+          qqvi1(lenx) = qqv(il,ij)
             
        end do
          
@@ -4644,20 +4337,20 @@ CONTAINS
           al(il)   = al1(lenx)
           ar(il)   = ar1(lenx)
             
-          dcx(il,ij,ik) = dcxi1(lenx)
-          qqv(il,ij,ik) = qqvi1(lenx)
+          dcx(il,ij) = dcxi1(lenx)
+          qqv(il,ij) = qqvi1(lenx)
             
        end do
 
        ! Populate ghost zones of qqv and dcx with new values (ccc, 11/20/08)
        do il = -i2/3,0
-          dcx(il,ij,ik) = dcx(i2+il,ij,ik)
-          qqv(il,ij,ik) = qqv(i2+il,ij,ik)
+          dcx(il,ij) = dcx(i2+il,ij)
+          qqv(il,ij) = qqv(i2+il,ij)
        enddo
 
        do il = i2+1, i2+i2/3
-          dcx(il,ij,ik) = dcx(il-i2,ij,ik)
-          qqv(il,ij,ik) = qqv(il-i2,ij,ik)            
+          dcx(il,ij) = dcx(il-i2,ij)
+          qqv(il,ij) = qqv(il-i2,ij)            
        enddo
          
     end if
@@ -4665,46 +4358,46 @@ CONTAINS
       
     do il = i1+1, i2
          
-       if (crx(il,ij,ik) > 0.0d0) then
+       if (crx(il,ij) > 0.0d0) then
           
           ilm1 = il - 1
             
-          fx(il,ij,ik) =  &
+          fx(il,ij) =  &
                ar(ilm1) +  &
-               0.5d0 * crx(il,ij,ik) *  &
+               0.5d0 * crx(il,ij) *  &
                (al(ilm1) - ar(ilm1) +  &
-               (a6(ilm1) * (1.0d0 - (r23 * crx(il,ij,ik)))))
+               (a6(ilm1) * (1.0d0 - (r23 * crx(il,ij)))))
             
        else
             
-          fx(il,ij,ik) =  &
+          fx(il,ij) =  &
                al(il) -  &
-               0.5d0 * crx(il,ij,ik) *  &
+               0.5d0 * crx(il,ij) *  &
                (ar(il) - al(il) +  &
-               (a6(il) * (1.0d0 + (r23 * crx(il,ij,ik)))))
+               (a6(il) * (1.0d0 + (r23 * crx(il,ij)))))
             
        end if
          
     end do
 
     ! First box case (ccc, 11/20/08)
-    if (crx(i1,ij,ik) > 0.0d0) then
+    if (crx(i1,ij) > 0.0d0) then
          
        ilm1 = i2
        
-       fx(i1,ij,ik) =  &
+       fx(i1,ij) =  &
             ar(ilm1) +  &
-            0.5d0 * crx(i1,ij,ik) *  &
+            0.5d0 * crx(i1,ij) *  &
             (al(ilm1) - ar(ilm1) +  &
-            (a6(ilm1) * (1.0d0 - (r23 * crx(i1,ij,ik)))))
+            (a6(ilm1) * (1.0d0 - (r23 * crx(i1,ij)))))
          
     else
          
-       fx(i1,ij,ik) =  &
+       fx(i1,ij) =  &
             al(i1) -  &
-            0.5d0 * crx(i1,ij,ik) *  &
+            0.5d0 * crx(i1,ij) *  &
             (ar(i1) - al(i1) +  &
-            (a6(i1) * (1.0d0 + (r23 * crx(i1,ij,ik)))))
+            (a6(i1) * (1.0d0 + (r23 * crx(i1,ij)))))
          
     end if
       
@@ -4923,7 +4616,7 @@ CONTAINS
   SUBROUTINE Ytp( jlmt,  geofac_pc, geofac, cry,  dq1,   qqu,    qqv,    &
                   ymass, fy,        J1P,    J2P,  I1_GL, I2_GL,  JU1_GL, &
                   J2_GL, ilong,     ILO,    IHI,  JULO,  JHI,    I1,     &
-                  I2,    JU1,       J2,     K1,   K2,    jord )
+                  I2,    JU1,       J2,    jord )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4939,7 +4632,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
     INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
@@ -4963,26 +4655,26 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: geofac(JU1_GL:J2_GL)
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
     
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
 
     ! Horizontal mass flux in N-S direction [hPa]
-    REAL*8,  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! N-S flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1, K1:K2)
+    REAL*8,  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -4998,6 +4690,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5005,20 +4698,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     INTEGER :: jv
     REAL*8  :: rj1p
 
     ! Arrays
-    REAL*8  :: dcy(ilo:ihi, julo:jhi, k1:k2)
+    REAL*8  :: dcy(ilo:ihi, julo:jhi)
 
 
 !   ----------------
 !   Begin execution.
 !   ----------------
 
-    dcy(:,:,:) = 0.0d0
-    fy(:,:,:) = 0.0d0
+    dcy(:,:) = 0.0d0
+    fy(:,:) = 0.0d0
 
     rj1p = j1p
       
@@ -5027,21 +4720,15 @@ CONTAINS
     if (JORD == 1) then
 !   ==============
 
-       !$OMP PARALLEL DO              &
-       !$OMP DEFAULT( SHARED )        &
-       !$OMP PRIVATE( IK, IJ, IL, JV )
-       do ik = k1, k2
           do ij = j1p, j2p+1
              do il = i1, i2
 !c?
-                jv = rj1p - cry(il,ij,ik)
+                jv = rj1p - cry(il,ij)
                   
-                qqv(il,ij,ik) = qqu(il,jv,ik)
+                qqv(il,ij) = qqu(il,jv)
                   
              end do
           end do
-       end do
-       !$OMP END PARALLEL DO
 
 !   ====
     else
@@ -5052,7 +4739,7 @@ CONTAINS
 !     ==========
             (4, dcy, qqu, &
              i1_gl, i2_gl, ju1_gl, j2_gl, j1p, &
-             ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+             ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
 
        if ((JORD <= 0) .or. (JORD >= 3)) then
@@ -5062,29 +4749,22 @@ CONTAINS
 !         ==========
                (jlmt, cry, dcy, qqu, qqv, &
                 j1p, j2p, i1_gl, i2_gl, ju1_gl, j2_gl, ilong, &
-                ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+                ilo, ihi, julo, jhi, i1, i2, ju1, j2)
             
        else
 
-          !$OMP PARALLEL DO               &
-          !$OMP DEFAULT( SHARED )         &
-          !$OMP PRIVATE( IK, IJ, IL, JV )
-          do ik = k1, k2
              do ij = j1p, j2p+1
                 do il = i1, i2
 !c?
-                   jv = rj1p - cry(il,ij,ik)
+                   jv = rj1p - cry(il,ij)
                      
-                   qqv(il,ij,ik) =  &
-                        qqu(il,jv,ik) +  &
-                        ((Sign (1.0d0, cry(il,ij,ik)) - cry(il,ij,ik)) *  &
-                        dcy(il,jv,ik))
+                   qqv(il,ij) =  &
+                        qqu(il,jv) +  &
+                        ((Sign (1.0d0, cry(il,ij)) - cry(il,ij)) *  &
+                        dcy(il,jv))
 
                 end do
              end do
-          end do
-          !$OMP END PARALLEL DO
-          
        end if
          
     end if
@@ -5096,28 +4776,17 @@ CONTAINS
     !do ij = j1p, j2p+1
     !   qqv(i1:i2,ij,:) = qqv(i1:i2,ij,:) * ymass(i1:i2,ij,:)
     !end do
+    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
     !-----------------------------------------------------------------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ )
-    do ik = k1,  k2
     do ij = j1p, j2p+1
-       qqv(i1:i2,ij,ik) = qqv(i1:i2,ij,ik) * ymass(i1:i2,ij,ik)
+       qqv(i1:i2,ij) = qqv(i1:i2,ij) * ymass(i1:i2,ij)
     end do
-    end do
-    !$OMP END PARALLEL DO
 
     !.sds.. save N-S species flux as diagnostic
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ )
-    do ik = k1,k2
        do ij = i1,i2
-          fy(ij,j1p:j2p+1,ik) = qqv(ij,j1p:j2p+1,ik) * geofac(j1p:j2p+1)
+          fy(ij,j1p:j2p+1) = qqv(ij,j1p:j2p+1) * geofac(j1p:j2p+1)
        enddo
-    enddo
-    !$OMP END PARALLEL DO
 
     !--------------------------------------------------------------------
     ! Prior to 12/5/08:
@@ -5131,29 +4800,24 @@ CONTAINS
     !        (qqv(i1:i2,ij,:) - qqv(i1:i2,ij+1,:)) * geofac(ij)
     !     
     !end do
+    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
     !--------------------------------------------------------------------
 
     !... meridional flux update
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ ) 
-    do ik = k1,  k2
     do ij = j1p, j2p
          
-       dq1(i1:i2,ij,ik) =  &
-            dq1(i1:i2,ij,ik) +  &
-            (qqv(i1:i2,ij,ik) - qqv(i1:i2,ij+1,ik)) * geofac(ij)
+       dq1(i1:i2,ij) =  &
+            dq1(i1:i2,ij) +  &
+            (qqv(i1:i2,ij) - qqv(i1:i2,ij+1)) * geofac(ij)
          
     end do
-    end do
-    !$OMP END PARALLEL DO
 
 !   ====================
     call Do_Ytp_Pole_Sum  &
 !   ====================
          (geofac_pc, dq1, qqv, fy, &
           i1_gl, i2_gl, ju1_gl, j2_gl, j1p, j2p, &
-          ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+          ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
   END SUBROUTINE Ytp
 !EOC 
@@ -5172,7 +4836,7 @@ CONTAINS
 !
   SUBROUTINE Ymist( id,    dcy, qqu, I1_GL, I2_GL, JU1_GL, &
                     J2_GL, J1P, ILO, IHI,   JULO,  JHI,    &
-                    I1,    I2,  JU1, J2,    K1,    K2 )
+                    I1,    I2,  JU1, J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5188,7 +4852,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -5199,12 +4862,12 @@ CONTAINS
     INTEGER, INTENT(IN)  :: id
 
     ! Concentration contribution from E-W advection (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5220,6 +4883,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5227,7 +4891,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     REAL*8  :: pmax, pmin
     REAL*8  :: r24
     REAL*8  :: tmp
@@ -5237,7 +4901,7 @@ CONTAINS
     ! I suppose the values for these indexes are 0. 
     ! It should work as the pole values are re-calculated in the 
     ! pole functions.
-    REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2,k1:k2)
+    REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2)
 
 !   ----------------
 !   Begin execution.
@@ -5248,36 +4912,30 @@ CONTAINS
     !ccc Populate qtmp
     qtmp = 0.
     do ij=ju1,j2
-       qtmp(:,ij,:) = qqu(:,ij,:)
+       qtmp(:,ij) = qqu(:,ij)
     enddo
 
 !   ============
     if (id == 2) then
 !   ============
 
-       !$OMP PARALLEL DO                           &
-       !$OMP DEFAULT( SHARED )                     &
-       !$OMP PRIVATE( IK, IJ, IL, TMP, PMAX, PMIN )
-       do ik = k1, k2
           do ij = ju1 - 1, j2 - 1
              do il = i1, i2
 
-                tmp  = 0.25d0 * (qtmp(il,ij+2,ik) - qtmp(il,ij,ik))
+                tmp  = 0.25d0 * (qtmp(il,ij+2) - qtmp(il,ij))
                   
                 pmax =  &
-                  Max (qtmp(il,ij,ik), qtmp(il,ij+1,ik), qtmp(il,ij+2,ik)) -  &
-                  qtmp(il,ij+1,ik)
+                  Max (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2)) -  &
+                  qtmp(il,ij+1)
                 
                 pmin =  &
-                     qtmp(il,ij+1,ik) -  &
-                     Min (qtmp(il,ij,ik), qtmp(il,ij+1,ik), qtmp(il,ij+2,ik))
+                     qtmp(il,ij+1) -  &
+                     Min (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2))
 
-                dcy(il,ij+1,ik) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
+                dcy(il,ij+1) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
 
              end do
           end do
-       end do
-       !$OMP END PARALLEL DO
 
 !   ====
     else
@@ -5288,33 +4946,27 @@ CONTAINS
 !      ========================
             (dcy, qtmp, &
              i1_gl, i2_gl, ju1_gl, j2_gl, &
-             ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+             ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
-       !$OMP PARALLEL DO                           &
-       !$OMP DEFAULT( SHARED )                     &
-       !$OMP PRIVATE( IK, IJ, IL, TMP, PMAX, PMIN )
-       do ik = k1, k2
           do ij = ju1 - 2, j2 - 2
              do il = i1, i2
                   
-                tmp  = ((8.0d0 * (qtmp(il,ij+3,ik) - qtmp(il,ij+1,ik))) +  &
-                         qtmp(il,ij,ik) - qtmp(il,ij+4,ik)) *  &
+                tmp  = ((8.0d0 * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
+                         qtmp(il,ij) - qtmp(il,ij+4)) *  &
                          r24
 
                 pmax =  &
-                  Max (qtmp(il,ij+1,ik), qtmp(il,ij+2,ik), qtmp(il,ij+3,ik))  &
-                       - qtmp(il,ij+2,ik)
+                  Max (qtmp(il,ij+1), qtmp(il,ij+2), qtmp(il,ij+3))  &
+                       - qtmp(il,ij+2)
 
                 pmin =  &
-                     qtmp(il,ij+2,ik) -  &
-                     Min (qtmp(il,ij+1,ik), qtmp(il,ij+2,ik), qtmp(il,ij+3,ik))
+                     qtmp(il,ij+2) -  &
+                     Min (qtmp(il,ij+1), qtmp(il,ij+2), qtmp(il,ij+3))
 
-                dcy(il,ij+2,ik) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
+                dcy(il,ij+2) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
                   
              end do
           end do
-       end do
-       !$OMP END PARALLEL DO
 
     end if
 
@@ -5324,7 +4976,7 @@ CONTAINS
 !   ========================
          (dcy, qtmp, &
           i1_gl, i2_gl, ju1_gl, j2_gl, j1p, &
-          ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+          ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
 
   END SUBROUTINE Ymist
@@ -5343,7 +4995,7 @@ CONTAINS
 !
   SUBROUTINE Do_Ymist_Pole1_I2d2( dcy,   qqu, I1_GL, I2_GL, JU1_GL,   &
                                   J2_GL, ILO, IHI,   JULO,  JHI,      &
-                                  I1,    I2,  JU1,   J2,    K1,   K2 )
+                                  I1,    I2,  JU1,   J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5356,19 +5008,18 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8, INTENT(OUT)  :: dcy(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8, INTENT(OUT)  :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5384,6 +5035,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5391,7 +5043,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     INTEGER :: i2d2
-    INTEGER :: il, ik
+    INTEGER :: il
     REAL*8  :: pmax, pmin
     REAL*8  :: r24
     REAL*8  :: tmp
@@ -5410,57 +5062,45 @@ CONTAINS
     if (ju1 == ju1_gl) then
 !   ==================
 
-       !$OMP PARALLEL DO                       &
-       !$OMP DEFAULT( SHARED )                 &
-       !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN ) 
-       do ik = k1, k2
           do il = i1, i2d2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,ju1+2,ik) - qqu(il,ju1,ik))) +  &
-                  qqu(il+i2d2,ju1+1,ik) - qqu(il,ju1+3,ik)) *  &
+                  ((8.0d0 * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  qqu(il+i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
                
-             pmax = Max (qqu(il,ju1,ik), qqu(il,ju1+1,ik),  &
-                  qqu(il,ju1+2,ik)) -  &
-                  qqu(il,ju1+1,ik)
+             pmax = Max (qqu(il,ju1), qqu(il,ju1+1),  &
+                  qqu(il,ju1+2)) -  &
+                  qqu(il,ju1+1)
              
-             pmin = qqu(il,ju1+1,ik) -  &
-                  Min (qqu(il,ju1,ik), qqu(il,ju1+1,ik),  &
-                  qqu(il,ju1+2,ik))
+             pmin = qqu(il,ju1+1) -  &
+                  Min (qqu(il,ju1), qqu(il,ju1+1),  &
+                  qqu(il,ju1+2))
                
-             dcy(il,ju1+1,ik) =  &
+             dcy(il,ju1+1) =  &
                   Sign (Min (Abs (tmp), pmin, pmax), tmp)
                
           end do
-       end do
-       !$OMP END PARALLEL DO
-        
-       !$OMP PARALLEL DO                       &
-       !$OMP DEFAULT( SHARED )                 &
-       !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN ) 
-        do ik = k1, k2
+
           do il = i1 + i2d2, i2
              
              tmp  =  &
-                  ((8.0d0 * (qqu(il,ju1+2,ik) - qqu(il,ju1,ik))) +  &
-                  qqu(il-i2d2,ju1+1,ik) - qqu(il,ju1+3,ik)) *  &
+                  ((8.0d0 * (qqu(il,ju1+2) - qqu(il,ju1))) +  &
+                  qqu(il-i2d2,ju1+1) - qqu(il,ju1+3)) *  &
                   r24
              
-             pmax = Max (qqu(il,ju1,ik), qqu(il,ju1+1,ik),  &
-                  qqu(il,ju1+2,ik)) -  &
-                  qqu(il,ju1+1,ik)
+             pmax = Max (qqu(il,ju1), qqu(il,ju1+1),  &
+                  qqu(il,ju1+2)) -  &
+                  qqu(il,ju1+1)
              
-             pmin = qqu(il,ju1+1,ik) -  &
-                  Min (qqu(il,ju1,ik), qqu(il,ju1+1,ik),  &
-                  qqu(il,ju1+2,ik))
+             pmin = qqu(il,ju1+1) -  &
+                  Min (qqu(il,ju1), qqu(il,ju1+1),  &
+                  qqu(il,ju1+2))
              
-             dcy(il,ju1+1,ik) =  &
+             dcy(il,ju1+1) =  &
                   Sign (Min (Abs (tmp), pmin, pmax), tmp)
                
           end do
-       end do
-       !$OMP END PARALLEL DO
 
 !   ======
     end if
@@ -5471,57 +5111,45 @@ CONTAINS
     if (j2 == j2_gl) then
 !   ================
 
-       !$OMP PARALLEL DO                       &
-       !$OMP DEFAULT( SHARED )                 &
-       !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN ) 
-       do ik = k1, k2
           do il = i1, i2d2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,j2,ik) - qqu(il,j2-2,ik))) +  &
-                  qqu(il,j2-3,ik) - qqu(il+i2d2,j2-1,ik)) *  &
+                  ((8.0d0 * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  qqu(il,j2-3) - qqu(il+i2d2,j2-1)) *  &
                   r24
                
-             pmax = Max (qqu(il,j2-2,ik), qqu(il,j2-1,ik),  &
-                  qqu(il,j2,ik)) -  &
-                  qqu(il,j2-1,ik)
+             pmax = Max (qqu(il,j2-2), qqu(il,j2-1),  &
+                  qqu(il,j2)) -  &
+                  qqu(il,j2-1)
                
-             pmin = qqu(il,j2-1,ik) -  &
-                  Min (qqu(il,j2-2,ik), qqu(il,j2-1,ik),  &
-                  qqu(il,j2,ik))
+             pmin = qqu(il,j2-1) -  &
+                  Min (qqu(il,j2-2), qqu(il,j2-1),  &
+                  qqu(il,j2))
                
-             dcy(il,j2-1,ik) =  &
+             dcy(il,j2-1) =  &
                   Sign (Min (Abs (tmp), pmin, pmax), tmp)
                
           end do
-       end do
-       !$OMP END PARALLEL DO
 
-       !$OMP PARALLEL DO                       &
-       !$OMP DEFAULT( SHARED )                 &
-       !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN ) 
-       do ik = k1, k2
-          do il = i1 + i2d2, i2
+         do il = i1 + i2d2, i2
                
              tmp  =  &
-                  ((8.0d0 * (qqu(il,j2,ik) - qqu(il,j2-2,ik))) +  &
-                  qqu(il,j2-3,ik) - qqu(il-i2d2,j2-1,ik)) *  &
+                  ((8.0d0 * (qqu(il,j2) - qqu(il,j2-2))) +  &
+                  qqu(il,j2-3) - qqu(il-i2d2,j2-1)) *  &
                   r24
              
-             pmax = Max (qqu(il,j2-2,ik), qqu(il,j2-1,ik),  &
-                  qqu(il,j2,ik)) -  &
-                  qqu(il,j2-1,ik)
+             pmax = Max (qqu(il,j2-2), qqu(il,j2-1),  &
+                  qqu(il,j2)) -  &
+                  qqu(il,j2-1)
                
-             pmin = qqu(il,j2-1,ik) -  &
-                  Min (qqu(il,j2-2,ik), qqu(il,j2-1,ik),  &
-                  qqu(il,j2,ik))
+             pmin = qqu(il,j2-1) -  &
+                  Min (qqu(il,j2-2), qqu(il,j2-1),  &
+                  qqu(il,j2))
                
-             dcy(il,j2-1,ik) =  &
+             dcy(il,j2-1) =  &
                   Sign (Min (Abs (tmp), pmin, pmax), tmp)
              
           end do
-       end do
-       !$OMP END PARALLEL DO
 
 !   ======
     end if
@@ -5544,8 +5172,7 @@ CONTAINS
 !
   SUBROUTINE Do_Ymist_Pole2_I2d2( dcy,   qqu, I1_GL, I2_GL, JU1_GL, &
                                   J2_GL, J1P, ILO,   IHI,   JULO,   &
-                                  JHI,   I1,  I2,    JU1,   J2,     &
-                                  K1,    K2 )
+                                  JHI,   I1,  I2,    JU1,   J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5561,19 +5188,18 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
     INTEGER, INTENT(IN)  :: JULO,   JHI
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO-2:JHI+2)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5589,6 +5215,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5597,7 +5224,7 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: i2d2
-    INTEGER :: il, ik
+    INTEGER :: il
     REAL*8  :: pmax, pmin
     REAL*8  :: tmp
 
@@ -5614,7 +5241,7 @@ CONTAINS
          
        if (j1p /= ju1_gl+1) then
             
-          dcy(i1:i2,ju1,:) = 0.0d0
+          dcy(i1:i2,ju1) = 0.0d0
             
        else
 
@@ -5622,32 +5249,26 @@ CONTAINS
 !         Determine slope in South Polar cap for scalars.
 !         -----------------------------------------------
 
-          !$OMP PARALLEL DO                        &
-          !$OMP DEFAULT( SHARED )                  &
-          !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN )
-          do ik = k1, k2
              do il = i1, i2d2
                   
                 tmp  =  &
                      0.25d0 *  &
-                     (qqu(il,ju1+1,ik) - qqu(il+i2d2,ju1+1,ik))
+                     (qqu(il,ju1+1) - qqu(il+i2d2,ju1+1))
 
                 pmax =  &
-                     Max (qqu(il,ju1+1,ik), qqu(il,ju1,ik),  &
-                     qqu(il+i2d2,ju1+1,ik)) -  &
-                     qqu(il,ju1,ik)
+                     Max (qqu(il,ju1+1), qqu(il,ju1),  &
+                     qqu(il+i2d2,ju1+1)) -  &
+                     qqu(il,ju1)
                 
                 pmin =  &
-                     qqu(il,ju1,ik) -  &
-                     Min (qqu(il,ju1+1,ik), qqu(il,ju1,ik),  &
-                     qqu(il+i2d2,ju1+1,ik))
+                     qqu(il,ju1) -  &
+                     Min (qqu(il,ju1+1), qqu(il,ju1),  &
+                     qqu(il+i2d2,ju1+1))
 
-                dcy(il,ju1,ik) =  &
+                dcy(il,ju1) =  &
                      Sign (Min (Abs (tmp), pmax, pmin), tmp)
                 
              end do
-          end do
-          !$OMP END PARALLEL DO
 
           !----------------------------------------------------------------
           ! Prior to 12/5/08:
@@ -5656,17 +5277,12 @@ CONTAINS
           !do il = i1 + i2d2, i2
           !   dcy(il,ju1,:) = -dcy(il-i2d2,ju1,:)
           !end do
+          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
           !----------------------------------------------------------------
           
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( IK, IL )
-          do ik = k1,        k2
           do il = i1 + i2d2, i2
-             dcy(il,ju1,ik) = -dcy(il-i2d2,ju1,ik)
+             dcy(il,ju1) = -dcy(il-i2d2,ju1)
           end do
-          end do
-          !$OMP END PARALLEL DO
 
        end if
 
@@ -5681,7 +5297,7 @@ CONTAINS
 
        if (j1p /= ju1_gl+1) then
 
-          dcy(i1:i2,j2,:) = 0.0d0
+          dcy(i1:i2,j2) = 0.0d0
             
        else
 
@@ -5689,32 +5305,26 @@ CONTAINS
 !         Determine slope in North Polar cap for scalars.
 !         -----------------------------------------------
 
-          !$OMP PARALLEL DO                        &
-          !$OMP DEFAULT( SHARED )                  &
-          !$OMP PRIVATE( IK, IL, TMP, PMAX, PMIN )
-          do ik = k1, k2
              do il = i1, i2d2
                  
                 tmp  =  &
                      0.25d0 *  &
-                     (qqu(il+i2d2,j2-1,ik) - qqu(il,j2-1,ik))
+                     (qqu(il+i2d2,j2-1) - qqu(il,j2-1))
                 
                 pmax =  &
-                     Max (qqu(il+i2d2,j2-1,ik), qqu(il,j2,ik),  &
-                     qqu(il,j2-1,ik)) -  &
-                     qqu(il,j2,ik)
+                     Max (qqu(il+i2d2,j2-1), qqu(il,j2),  &
+                     qqu(il,j2-1)) -  &
+                     qqu(il,j2)
 
                 pmin =  &
-                     qqu(il,j2,ik) -  &
-                     Min (qqu(il+i2d2,j2-1,ik), qqu(il,j2,ik),  &
-                     qqu(il,j2-1,ik))
+                     qqu(il,j2) -  &
+                     Min (qqu(il+i2d2,j2-1), qqu(il,j2),  &
+                     qqu(il,j2-1))
 
-                dcy(il,j2,ik) =  &
+                dcy(il,j2) =  &
                      Sign (Min (Abs (tmp), pmax, pmin), tmp)
 
              end do
-          end do
-          !$OMP END PARALLEL DO
 
           !----------------------------------------------------------------
           ! Prior to 12/5/08:
@@ -5723,17 +5333,12 @@ CONTAINS
           !do il = i1 + i2d2, i2
           !   dcy(il,j2,:) = -dcy(il-i2d2,j2,:)
           !end do
+          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
           !----------------------------------------------------------------
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( IK, IL )!
-          do ik = k1,        k2
           do il = i1 + i2d2, i2
-             dcy(il,j2,ik) = -dcy(il-i2d2,j2,ik)
+             dcy(il,j2) = -dcy(il-i2d2,j2)
           end do
-          end do
-          !$OMP END PARALLEL DO
 
        end if
 
@@ -5760,7 +5365,7 @@ CONTAINS
 !
   SUBROUTINE Fyppm( jlmt,  cry,   dcy,    qqu,   qqv,   j1p, j2p,    &
                     i1_gl, i2_gl, ju1_gl, j2_gl, ilong, ilo, ihi,    &
-                    julo,  jhi,   i1,     i2,    ju1,   j2,  k1, k2 )
+                    julo,  jhi,   i1,     i2,    ju1,   j2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5776,7 +5381,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)  :: I1,     I2
     INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)  :: ILO,    IHI
@@ -5789,18 +5393,18 @@ CONTAINS
     INTEGER, INTENT(IN)  :: jlmt
 
     ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
 
     ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
 
     ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
 !
 ! !OUTPUT PARAMETERS:
 !
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -5816,6 +5420,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5824,7 +5429,7 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: ijm1
-    INTEGER :: il, ij, ik
+    INTEGER :: il, ij
     INTEGER :: lenx
     REAL*8  :: r13, r23
 
@@ -5834,9 +5439,9 @@ CONTAINS
     REAL*8  :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
     REAL*8  :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
     REAL*8  :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: a6(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8  :: al(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8  :: ar(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8  :: a6(ILO:IHI, JULO:JHI)
+    REAL*8  :: al(ILO:IHI, JULO:JHI)
+    REAL*8  :: ar(ILO:IHI, JULO:JHI)
    
     ! NOTE: The code was writtein with I1:I2 as the first dimension of AL,
     ! AR, A6, AL1, A61, AR1.  However, the limits should really should be 
@@ -5849,7 +5454,7 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-    a6(:,:,:) = 0.0d0; al(:,:,:) = 0.0d0; ar(:,:,:) = 0.0d0
+    a6(:,:) = 0.0d0; al(:,:) = 0.0d0; ar(:,:) = 0.0d0
 
 
     r13 = 1.0d0 / 3.0d0
@@ -5864,21 +5469,17 @@ CONTAINS
     !        0.5d0 * (qqu(i1:i2,ij-1,:) + qqu(i1:i2,ij,:)) +  &
     !        (dcy(i1:i2,ij-1,:) - dcy(i1:i2,ij,:)) * r13
     !end do
+    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
     !-----------------------------------------------------------------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ )
-    do ik = k1,     k2
     do ij = julo+1, jhi
     do il = ilo,    ihi
-       al(il,ij,ik) =  &
-            0.5d0 * (qqu(il,ij-1,ik) + qqu(il,ij,ik)) +  &
-            (dcy(il,ij-1,ik) - dcy(il,ij,ik)) * r13
+       al(il,ij) =  &
+            0.5d0 * (qqu(il,ij-1) + qqu(il,ij)) +  &
+            (dcy(il,ij-1) - dcy(il,ij)) * r13
+       ar(il,ij-1) = al(il,ij)
     end do
     end do
-    end do
-    !$OMP END PARALLEL DO
 
     !-------------------------------------------------------------------------
     ! Prior to 12/5/08:
@@ -5890,24 +5491,12 @@ CONTAINS
     !end do
     !-------------------------------------------------------------------------
 
-    !$OMP PARALLEL DO           &
-    !$OMP DEFAULT( SHARED     ) &
-    !$OMP PRIVATE( IK, IJ, IL )
-    do ik = k1,   k2
-    do ij = julo, jhi-1
-    do il = ilo,  ihi
-       ar(il,ij,ik) = al(il,ij+1,ik)
-    end do
-    end do
-    end do
-    !$OMP END PARALLEL DO
-
 !   =======================
     call Do_Fyppm_Pole_I2d2 &
 !   =======================
          (al, ar, &
           i1_gl, i2_gl, ju1_gl, j2_gl, &
-          ilo, ihi, julo, jhi, i1, i2, ju1, j2, k1, k2)
+          ilo, ihi, julo, jhi, i1, i2, ju1, j2)
 
     !-----------------------------------------------------------------------
     ! Prior to 12/5/08:
@@ -5921,33 +5510,24 @@ CONTAINS
     !        (al(i1:i2,ij,:) + ar(i1:i2,ij,:)))
     !   
     !end do
+    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
     !-----------------------------------------------------------------------
 
-    !$OMP PARALLEL DO       &  
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IK, IJ )
-    do ik = k1,     k2
     do ij = julo+1, jhi-1
     do il = ilo,    ihi
 
-       a6(il,ij,ik) =  &
+       a6(il,ij) =  &
             3.0d0 *  &
-            (qqu(il,ij,ik) + qqu(il,ij,ik) -  &
-            (al(il,ij,ik) + ar(il,ij,ik)))
+            (qqu(il,ij) + qqu(il,ij) -  &
+            (al(il,ij) + ar(il,ij)))
        
     end do
     end do
-    end do
-    !$OMP END PARALLEL DO
 
 !   ==============
     if (jlmt <= 2) then
 !   ==============
        
-       !$OMP PARALLEL DO                                           &
-       !$OMP DEFAULT( SHARED )                                     &
-       !$OMP PRIVATE( IK, LENX, IJ, IL, A61, AL1, AR1, DCY1, QQU1 )
-       do ik = k1, k2
 
           lenx = 0
 
@@ -5958,11 +5538,11 @@ CONTAINS
 
                 lenx = lenx + 1
 
-                a61 (lenx) = a6 (il,ij,ik)
-                al1 (lenx) = al (il,ij,ik)
-                ar1 (lenx) = ar (il,ij,ik)
-                dcy1(lenx) = dcy(il,ij,ik)
-                qqu1(lenx) = qqu(il,ij,ik)
+                a61 (lenx) = a6 (il,ij)
+                al1 (lenx) = al (il,ij)
+                ar1 (lenx) = ar (il,ij)
+                dcy1(lenx) = dcy(il,ij)
+                qqu1(lenx) = qqu(il,ij)
 
              end do
           end do
@@ -5981,23 +5561,17 @@ CONTAINS
 
                 lenx = lenx + 1
                   
-                a6(il,ij,ik) = a61(lenx)
-                al(il,ij,ik) = al1(lenx)
-                ar(il,ij,ik) = ar1(lenx)
+                a6(il,ij) = a61(lenx)
+                al(il,ij) = al1(lenx)
+                ar(il,ij) = ar1(lenx)
 
              end do
           end do
 
-       end do
-       !$OMP END PARALLEL DO
 
     end if
 
 
-    !$OMP PARALLEL DO                &
-    !$OMP DEFAULT( SHARED )          &
-    !$OMP PRIVATE( IK, IJ, IJM1, IL )
-    do ik = k1, k2
        do ij = j1p, j2p+1
 
           ijm1 = ij - 1
@@ -6006,29 +5580,27 @@ CONTAINS
           !do il = i1, i2
           do il = ilo, ihi
 
-             if (cry(il,ij,ik) > 0.0d0) then
+             if (cry(il,ij) > 0.0d0) then
 
-                qqv(il,ij,ik) =  &
-                     ar(il,ijm1,ik) +  &
-                     0.5d0 * cry(il,ij,ik) *  &
-                     (al(il,ijm1,ik) - ar(il,ijm1,ik) +  &
-                     (a6(il,ijm1,ik) * (1.0d0 - (r23 * cry(il,ij,ik)))))
+                qqv(il,ij) =  &
+                     ar(il,ijm1) +  &
+                     0.5d0 * cry(il,ij) *  &
+                     (al(il,ijm1) - ar(il,ijm1) +  &
+                     (a6(il,ijm1) * (1.0d0 - (r23 * cry(il,ij)))))
 
              else
 
-                qqv(il,ij,ik) =  &
-                     al(il,ij,ik) -  &
-                     0.5d0 * cry(il,ij,ik) *  &
-                     (ar(il,ij,ik) - al(il,ij,ik) +  &
-                     (a6(il,ij,ik) * (1.0d0 + (r23 * cry(il,ij,ik)))))
+                qqv(il,ij) =  &
+                     al(il,ij) -  &
+                     0.5d0 * cry(il,ij) *  &
+                     (ar(il,ij) - al(il,ij) +  &
+                     (a6(il,ij) * (1.0d0 + (r23 * cry(il,ij)))))
 
              end if
 
           end do
 
        end do
-    end do
-    !$OMP END PARALLEL DO
 
 
   END SUBROUTINE Fyppm
@@ -6048,7 +5620,7 @@ CONTAINS
 !
   SUBROUTINE Do_Fyppm_Pole_I2d2( al,  ar,  I1_GL, I2_GL, JU1_GL, J2_GL, &
                                  ILO, IHI, JULO,  JHI,   I1,     I2,    &
-                                 JU1, J2,  K1,    K2 )
+                                 JU1, J2 )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6059,7 +5631,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
     INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
@@ -6068,8 +5639,8 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Left (al) and right (ar) edge values of the test parabola
-    REAL*8,  INTENT(INOUT) :: al(ILO:IHI, JULO:JHI, K1:K2)
-    REAL*8,  INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: al(ILO:IHI, JULO:JHI)
+    REAL*8,  INTENT(INOUT) :: ar(ILO:IHI, JULO:JHI)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -6085,6 +5656,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6093,7 +5665,7 @@ CONTAINS
 ! 
     ! Scalars
     INTEGER :: i2d2
-    INTEGER :: il, ik
+    INTEGER :: il
 
 
 !   ----------------
@@ -6103,11 +5675,8 @@ CONTAINS
     i2d2 = i2_gl / 2
 
 
-!   ==================
-    if (ju1 == ju1_gl) then
-!   ==================
 
-       !---------------------------------------------------------
+       !-----------------------------------------------------------
        ! Prior to 12/5/08:
        ! We need to add an IK loop for OpenMP parallelization.
        ! Preserve original code here. (bmy, 12/5/08)
@@ -6115,52 +5684,16 @@ CONTAINS
        !   al(il,     ju1,:) = al(il+i2d2,ju1+1,:)
        !   al(il+i2d2,ju1,:) = al(il,     ju1+1,:)
        !end do
-       !---------------------------------------------------
+       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
+       !-----------------------------------------------------------
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
        do il = i1, i2d2
-          al(il,     ju1,ik) = al(il+i2d2,ju1+1,ik)
-          al(il+i2d2,ju1,ik) = al(il,     ju1+1,ik)
+          al(il,     ju1) = al(il+i2d2,ju1+1)
+          al(il+i2d2,ju1) = al(il,     ju1+1)
+          ar(il,     j2)  = ar(il+i2d2,j2-1)
+          ar(il+i2d2,j2)  = ar(il,     j2-1)
        end do
-       end do
-       !$OMP END PARALLEL DO
 
-!   ======
-    end if
-!   ======
-
-
-!   ================
-    if (j2 == j2_gl) then
-!   ================
-
-       !---------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! We need to add an IK loop for OpenMP parallelization.
-       ! Preserve original code here. (bmy, 12/5/08)
-       !do il = i1, i2d2
-       !   ar(il,     j2,:)  = ar(il+i2d2,j2-1,:)
-       !   ar(il+i2d2,j2,:)  = ar(il,     j2-1,:)
-       !end do
-       !---------------------------------------------------------
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL ) 
-       do ik = k1, k2
-       do il = i1, i2d2
-          ar(il,     j2,ik)  = ar(il+i2d2,j2-1,ik)
-          ar(il+i2d2,j2,ik)  = ar(il,     j2-1,ik)
-       end do
-       end do
-      !$OMP END PARALLEL DO
-
-!   ======
-    end if
-!   ======
 
 
   END SUBROUTINE Do_Fyppm_Pole_I2d2
@@ -6180,9 +5713,9 @@ CONTAINS
   SUBROUTINE Do_Ytp_Pole_Sum( geofac_pc, dq1,    qqv,   fy,  I1_GL,  &
                               I2_GL,     JU1_GL, J2_GL, J1P, J2P,    &
                               ILO,       IHI,    JULO,  JHI, I1,     &
-                              I2,        JU1,    J2,    K1,  K2 )
+                              I2,        JU1,    J2 )
 !
-! !INPUT PARAMETERS: 
+! !input PARAMETERS: 
 !
     ! Global latitude indices at the edges of the S/N polar caps
     ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
@@ -6196,7 +5729,6 @@ CONTAINS
     ! Local min & max longitude (I), latitude (J), altitude (K) indices
     INTEGER, INTENT(IN)    :: I1,     I2
     INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
 
     ! Local min & max longitude (I) and latitude (J) indices
     INTEGER, INTENT(IN)    :: ILO,    IHI
@@ -6206,15 +5738,15 @@ CONTAINS
     REAL*8,  INTENT(IN)    :: geofac_pc
 
     ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(IN)    :: qqv(ILO:IHI, JULO:JHI)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
+    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
 
     ! N-S mass flux [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1, K1:K2)
+    REAL*8,  INTENT(INOUT) :: fy (ILO:IHI, JULO:JHI+1)
 !
 ! !AUTHOR:
 !   Original code from Shian-Jiann Lin, DAO 
@@ -6230,6 +5762,7 @@ CONTAINS
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.  Added
 !                               OpenMP parallel DO loops.
+!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6241,11 +5774,11 @@ CONTAINS
     REAL*8  :: ri2
 
     ! Arrays
-    REAL*8  :: dq_np(K1:K2)
-    REAL*8  :: dq_sp(K1:K2)
-    REAL*8  :: dqik (K1:K2)
-    REAL*8  :: sumnp(K1:K2)
-    REAL*8  :: sumsp(K1:K2)
+    REAL*8  :: dq_np
+    REAL*8  :: dq_sp
+    REAL*8  :: dqik(2)  ! 2 elements array for each pole value.
+    REAL*8  :: sumnp
+    REAL*8  :: sumsp
 
 
 !   ----------------
@@ -6256,114 +5789,47 @@ CONTAINS
 
     dqik(:) = 0.0d0
 
-!... Do south pole
-!   ==================
-    if (ju1 == ju1_gl) then
-!   ==================
 
 !... Integrate N-S flux around polar cap lat circle for each level
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-          sumsp(ik) = 0.0d0
+          sumsp = 0.0d0
+          sumnp = 0.0d0
             
           do il = i1, i2
-             sumsp(ik) = sumsp(ik) + qqv(il,j1p,ik)
+             sumsp = sumsp + qqv(il,j1p)
+             sumnp = sumnp + qqv(il,j2p+1)
           enddo
             
-       enddo
-       !$OMP END PARALLEL DO
 
 !... wrap in E-W direction
        if (i1 == i1_gl) then
-          dqik(:) = dq1(i1,ju1,:)
+          dqik(1) = dq1(i1,ju1)
+          dqik(2) = dq1(i1,j2)
        endif
 
 !... normalize and set inside polar cap
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-
-          dq_sp(ik) = dqik(ik) - (sumsp(ik) / ri2 * geofac_pc)
+          dq_sp = dqik(1) - (sumsp / ri2 * geofac_pc)
+          dq_np = dqik(2) + (sumnp / ri2 * geofac_pc)
 
           do il = i1, i2
-             dq1(il,ju1,ik) = dq_sp(ik)
+             dq1(il,ju1) = dq_sp
+             dq1(il,j2) = dq_np
 !... save polar flux
-             fy(il,ju1,ik) = - (sumsp(ik) / ri2 * geofac_pc)
+             fy(il,ju1) = - (sumsp / ri2 * geofac_pc)
+             fy(il,j2+1) = (sumnp / ri2* geofac_pc)
           enddo
 
           if (j1p /= ju1_gl+1) then
              do il = i1, i2
-                dq1(il,ju1+1,ik) = dq_sp(ik)
+                dq1(il,ju1+1) = dq_sp
+                dq1(il,j2-1) = dq_np
 !... save polar flux
-                fy(il,ju1+1,ik) = - (sumsp(ik) / ri2 * geofac_pc)
+                fy(il,ju1+1) = - (sumsp / ri2 * geofac_pc)
+                fy(il,j2) = (sumnp / ri2* geofac_pc)
              enddo
 
           endif
-
-       enddo
-       !$OMP END PARALLEL DO
-
-!   ======
-    endif
-!   ======
-
-
-!... Do north pole
-!   ================
-    if (j2 == j2_gl) then
-!   ================
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-          sumnp(ik) = 0.0d0
-
-          do il = i1, i2
-             sumnp(ik) = sumnp(ik) + qqv(il,j2p+1,ik)
-          enddo
-
-       enddo
-       !$OMP END PARALLEL DO
-
-       if (i1 == i1_gl) then
-          dqik(:) = dq1(i1,j2,:)
-       endif
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IK, IL )
-       do ik = k1, k2
-
-          dq_np(ik) = dqik(ik) + (sumnp(ik) / ri2 * geofac_pc)
-
-          do il = i1, i2
-             dq1(il,j2,ik) = dq_np(ik)
-!... save polar flux
-             fy(il,j2+1,ik) = (sumnp(ik) / ri2* geofac_pc)
-          enddo
-
-          if (j1p /= ju1_gl+1) then
-
-             do il = i1, i2
-                dq1(il,j2-1,ik) = dq_np(ik)
-!... save polar flux
-                fy(il,j2,ik) = (sumnp(ik) / ri2* geofac_pc)
-             enddo
-
-          endif
-
-       enddo
-       !$OMP END PARALLEL DO
-
-!   ======
-    endif
-!   ======
 
 
   END SUBROUTINE Do_Ytp_Pole_Sum
@@ -6392,7 +5858,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Fzppm( klmt,  delp1,  dpi,   wz,  dq1, qq1,  fz,      &
+  SUBROUTINE Fzppm( klmt,  delp1,  wz,  dq1, qq1,  fz,      &
                     J1P,   JU1_GL, J2_GL, ILO, IHI, JULO, JHI,     &
                     ILONG, IVERT,  I1,    I2,  JU1, J2,   K1,  K2 )
 !
@@ -6439,9 +5905,6 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    ! Work array 
-    REAL*8,  INTENT(OUT)   :: dpi(I1:I2, JU1:J2, K1:K2)
-
     ! Vertical flux [mixing ratio]
     REAL*8,  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
 
@@ -6494,6 +5957,9 @@ CONTAINS
     REAL*8  :: qq1a (i1:i2, k1:k2)
     REAL*8  :: wza  (i1:i2, k1:k2)
     REAL*8  :: dc   (i1:i2, ju1:j2, k1:k2)
+    ! Work array 
+    REAL*8  :: dpi(I1:I2, JU1:J2, K1:K2)
+
 
 
 !     ----------------
@@ -6529,12 +5995,6 @@ CONTAINS
 
     do ik = k1p1, k2m1
 
-       ! NOTE: We can't parallelize over IK because there are IK-1 and IK+1 
-       ! terms in the loop below.  Parallelize over IJ instead. (bmy, 12/5/08)
-
-       !$OMP PARALLEL DO                                   &
-       !$OMP DEFAULT( SHARED )                             &
-       !$OMP PRIVATE( IJ, IL, C0, C1, C2, TMP, QMAX, QMIN )
        do ij = ju1, j2
           do il = i1, i2
 
@@ -6568,7 +6028,6 @@ CONTAINS
 
           end do
        end do
-       !$OMP END PARALLEL DO
 
     end do
 
@@ -6579,12 +6038,6 @@ CONTAINS
 !   -------------------------------------
 
 !   =======================
-    !$OMP PARALLEL DO                                                 &
-    !$OMP DEFAULT( SHARED )                                           &
-    !$OMP PRIVATE( IL,   IJ,   IK,    DCA,  WZA,  DLP1A, QQ1A, FAC1 ) &
-    !$OMP PRIVATE( FAC2, AA,   BB,    AL,   AR,   C1,    C2,   A1   ) &
-    !$OMP PRIVATE( A2,   LENX, A6,    QMP,  LAC,  QMIN,  QMAX, AL1  ) &
-    !$OMP PRIVATE( AR1,  DCA1, QQ1A1, A61,  CM,   CP                ) 
     ijloop: do ij = ju1, j2
 !   =======================
 
@@ -6953,7 +6406,6 @@ CONTAINS
        !     
        !end do
        !-----------------------------------------------------------------
-
        do ik = k1, k2m1
        do il = i1, i2
           dca(il,ik+1) = wza(il,ik) * dca(il,ik+1)
@@ -6975,10 +6427,8 @@ CONTAINS
             
        end do
        end do
-
 !   =============
     end do ijloop
-    !$OMP END PARALLEL DO
 !   =============
 
 
@@ -7052,30 +6502,6 @@ CONTAINS
     !Begin execution.
     !----------------
   
-!    ! Calculate rel_area for each lat. (ccc, 11/20/08)
-!    DO J = JU1, J2
-!       REL_AREA(J) = AREA_1D(J) / ( SUM( AREA_1D ) * I2 )
-!    ENDDO
-!
-!    ! Average pressure in the S. Polar zone
-!    meanp = 0.0d0
-!    DO I = i1,i2
-!       meanp = meanp + SUM( rel_area(JU1:JU1+1)  * press(I,JU1:JU1+1) )
-!    ENDDO
-!    meanp = meanp / ( SUM( rel_area(JU1:JU1+1) ) * I2 )
-!      
-!    press(i1:i2,ju1:ju1+1) = meanp
-!
-!    ! Average pressures in the N. Polar zone
-!    meanp = 0.0d0
-!    DO I = i1,i2
-!       meanp = meanp + SUM( rel_area(J2-1:J2)  * press(I,J2-1:J2) )
-!    ENDDO
-!    meanp = meanp / ( SUM( rel_area(J2-1:J2) ) * I2 )
-!
-!    press(I1:I2,J2-1:J2) = meanp
-
-
     ! Compute the sum of surface area 
     SUM_AREA = SUM( AREA_1D ) * DBLE( I2 )
 
