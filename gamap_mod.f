@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.30 2009/05/06 15:33:25 phs Exp $
+! $Id: gamap_mod.f,v 1.31 2009/05/06 19:14:38 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -2230,8 +2230,6 @@
 
             ! Number of tracers
             ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            ! (tmf, 5/5/09) 
-!            NTRAC(28) = 14
             NTRAC(28) = 23
 
             ! Loop over tracers
