@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.58 2009/04/02 17:00:32 bmy Exp $
+# $Id: Makefile.sparc,v 1.59 2009/05/06 14:45:12 ccarouge Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -54,6 +54,7 @@ emmonot.o                     \
 fertadd.o                     \
 findmon.o                     \
 fyrno3.o                      \
+fyhoro.o                      \
 gasconc.o                     \
 get_global_ch4.o              \
 getifsun.o                    \
@@ -108,6 +109,7 @@ EFOLD.o                       \
 FLINT.o                       \
 GAUSSP.o                      \
 GEN.o                         \
+fjx_acet_mod.o                \
 JRATET.o                      \
 JVALUE.o                      \
 LEGND0.o                      \
@@ -132,6 +134,7 @@ set_aer.o                     \
 set_prof.o                    
 
 MODS =                        \
+fjx_acet_mod.o                \
 charpak_mod.o                 \
 error_mod.o                   \
 logical_mod.o                 \
@@ -264,6 +267,7 @@ EFOLD.o                        : EFOLD.f
 FLINT.o                        : FLINT.f                        
 GAUSSP.o                       : GAUSSP.f                       
 GEN.o                          : GEN.f                          jv_mie.h 
+fjx_acet_mod.o                 : fjx_acet_mod.f                 cmn_fj.h jv_cmn.h
 JRATET.o                       : JRATET.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 JVALUE.o                       : JVALUE.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 Kr85_mod.o                     : Kr85_mod.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 
@@ -349,6 +353,7 @@ fjfunc.o                       : fjfunc.f                       cmn_fj.h CMN_SIZ
 future_emissions_mod.o         : future_emissions_mod.f         CMN_SIZE define.h 
 fvdas_convect_mod.o            : fvdas_convect_mod.f            CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                       : fyrno3.f                       
+fyhoro.o                       : fyhoro.f  
 gamap_mod.o                    : gamap_mod.f                    CMN_DIAG CMN_SIZE define.h 
 	f90 -fpp -stackvar -O0 -xfilebyteorder=big16:%all $(FARCH) -c $*.f
 gasconc.o                      : gasconc.f                      CMN_SIZE define.h comode.h 

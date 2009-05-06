@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.8 2009/03/11 19:02:48 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.9 2009/05/06 14:45:11 ccarouge Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -407,6 +407,7 @@
 !       (phs,3/07/08)
 !  (3 ) Added int'annual scale factors (amv, 08/24/07)
 !  (4 ) Now accounts for FSCALYR and monthly variation (phs, 3/17/08)
+!  (5 ) Now NH3 2000 is used for all simulation years (phs, 2/27/09)  
 !******************************************************************************
 !
       ! References to F90 modules
@@ -423,7 +424,8 @@
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
-      CHARACTER(LEN=255)         :: FILENAME,        STREETS_DIR
+      CHARACTER(LEN=255)         :: FILENAME,        STREETS_DIR,
+     $                              STREETS_DIR_2000
 
       ! to loop over the sources
       INTEGER, PARAMETER         :: NSRCE = 10
@@ -478,8 +480,8 @@
       ! %%%         you set BASE_YEAR = 2020 (hardwired, see below)            %
       ! %%%                                                                    %
       ! %%% To simulate 2006 and after, the program sets:                      %
-      ! %%%      BASE_YEAR = 2006     for all species                          %
-      ! %%%      NH3 is not emitted                                            %
+      ! %%%      BASE_YEAR = 2006     for all species, except NH3              %
+      ! %%%      BASE_YEAR = 2000     for NH3                                  %
       ! %%%                                                                    %
       ! %%% To simulate 2005 and before, it sets:                              %
       ! %%%     BASE_YEAR = 2004     for NOx                                   %
@@ -514,6 +516,8 @@
       ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! define data directory and number of sources
+      STREETS_DIR_2000 = TRIM( DATA_DIR_1x1 ) // 'Streets_200607/'
+      
       IF ( IS_2006 ) THEN
          NTSOURCE1   = 4
          NTSOURCE2   = 10
@@ -756,16 +760,16 @@
 
 
          !---------------------------------------------
-         ! Read NH3 only if base year is 2000
+         ! Read NH3 only available for base year 2000
          !---------------------------------------------
-         IF ( IS_2006 ) THEN
-
-            NH3 = -1D0
-
-         ELSE
+!         IF ( IS_2006 ) THEN
+!
+!            NH3 = -1D0
+!
+!         ELSE
             
             ! File name
-            FILENAME  = TRIM( STREETS_DIR ) // 
+            FILENAME  = TRIM( STREETS_DIR_2000 ) // 
      &                 'Streets_NH3_FF_2000.generic.1x1'
 
             ! Old file has NH3 as tracer #30
@@ -774,7 +778,7 @@
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 )
 
-         ENDIF
+!         ENDIF
 
          
          !---------------------------------------------
@@ -1743,6 +1747,8 @@
 !     (1 ) Now both simulation and base years are input. Output totals in
 !          Tg/month instead of Tg/yr, except for CO2 and CH4 offline
 !          simulations (phs, 12/9/08)
+!     (2 ) Updated information output. Account for NH3 2000 used for all
+!          simulation years (phs, 2/27/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1814,7 +1820,8 @@
          ELSE
             WRITE( 6, * ) 'NOTES: '
             WRITE( 6, * ) '(1) Include ANTH and BIOFUEL'
-            WRITE( 6, * ) '(2) Monthly variations applied to NOx & CO'
+            WRITE( 6, * ) '(2) Base year for NH3 : 2000'
+            WRITE( 6, * ) '(3) Monthly variations applied to NOx & CO'
          ENDIF
 #endif
          
@@ -1827,7 +1834,9 @@
          ! Total SO2 [Tg S]
          T_SO2 = SUM( SO2 ) * 1d-9 * ( 32d0 / ( 12d0 * 64d0 ) )
 
-
+         ! Total NH3 [Tg NH3]
+         T_NH3 = SUM( NH3 ) * 1d-9 / 12d0
+         
          IF ( IS_2006 ) THEN
 
             AFACTOR = 12d-12 / 6.0225d23 ! for C atom, units=Tg/yr
@@ -1843,10 +1852,11 @@
             T_MEK  = SUM(MEK)   * AFACTOR
             T_PRPE = SUM(PRPE)  * AFACTOR
 
-         ELSE
-
-            ! Total NH3 [Tg NH3]
-            T_NH3 = SUM( NH3 ) * 1d-9 / 12d0
+!-- prior 2/27/09
+!         ELSE
+!
+!            ! Total NH3 [Tg NH3]
+!            T_NH3 = SUM( NH3 ) * 1d-9 / 12d0
 
          ENDIF
 
@@ -1855,6 +1865,7 @@
          WRITE( 6, 110 ) 'NOx  ', YEAR, MONTH, T_NOx,  '[Tg N   ]'
          WRITE( 6, 110 ) 'CO   ', YEAR, MONTH, T_CO,   '[Tg CO  ]'
          WRITE( 6, 110 ) 'SO2  ', YEAR, MONTH, T_SO2,  '[Tg S   ]'
+         WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'
 
          IF ( IS_2006 ) THEN
 
@@ -1867,9 +1878,10 @@
             WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
 
-         ELSE
-            
-            WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'
+!-- prior 2/27/09
+!         ELSE
+!            
+!            WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'
 
          ENDIF
 

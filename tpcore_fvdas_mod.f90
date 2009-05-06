@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.11 2009/04/02 18:55:39 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.12 2009/05/06 14:45:11 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -3804,7 +3804,7 @@ CONTAINS
     
     ! NOTE: these loops do not parallelize well (bmy, 12/5/08)
 
-    !!ccc Populate qtmp
+    ! Populate qtmp
     do il=i1,i2
        qtmp(il,:) = qqv(il,:)
     enddo
@@ -4900,7 +4900,8 @@ CONTAINS
     !ccc Test for indexes going further than poles : 
     ! I suppose the values for these indexes are 0. 
     ! It should work as the pole values are re-calculated in the 
-    ! pole functions.
+
+    ! pole functions. (ccc)
     REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2)
 
 !   ----------------
@@ -4909,7 +4910,7 @@ CONTAINS
 
     r24  = 1.0d0 / 24.0d0
 
-    !ccc Populate qtmp
+    ! Populate qtmp
     qtmp = 0.
     do ij=ju1,j2
        qtmp(:,ij) = qqu(:,ij)

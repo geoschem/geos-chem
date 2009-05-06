@@ -1,12 +1,403 @@
 REVISIONS (v8-02-01)  
-11 Mar 2009
+6 May 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
 New in v8-02-01:
--------------------------------------------------------------------------------
 
+=====================================================================
+     Revisions Logs for bug fixes put into v8-02-01
+                       Claire 
+=====================================================================
+
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+
+NEW FUNCTION :
+-------------
+
+MODIFIED:
+---------
+
+emission_mod.f           -- add choice for 0.5x0.667 grid for Streets emissions
+
+emiss_streets_anthro_05x0666	-- Bug fix : Here we need to call 
+("streets_anthro_mod.f")           READ_STREETS_05X0666 instead of
+			           READ_STREETS	
+
+carbon_mod.f             -- add LANTHRO switch to effectively turn off 
+                            anthropo. emissions when asked in input.geos
+
+fertadd.f                -- add LANTHRO switch to effectively turn off
+                            anthropo. emissions when asked in input.geos
+
+sulfate_mod.f            -- add LANTHRO switch to effectively turn off 
+                            anthropo. emissions when asked in input.geos
+
+geia_mod.f               -- GET_IHOUR should use NINT and not INT (only used 
+                             in offline h2/hd and hcn/ch3cn simulations)
+
+Makefile.sparc           -- delete double declaration of some modules 
+                            introduced in v8-01-04.
+
+Makefile.ifort           -- added a lign for using the profiler
+
+define.h                 -- force compile error if GCAP or GEOS3-4 used 
+                            along IN_CLOUD_OD
+
+edgar_mod.f              -- commented code to emit ship NOx as NOx. 
+                            We need to keep that so users can revert to 
+                            the old mechanism.
+
+emep_mod.f              -- commented code to emit ship NOx as NOx. 
+                            We need to keep that so users can revert to 
+                            the old mechanism.
+
+emissions_mod.f         -- fix to read Streets every month for CH4, CO, CO2, 
+                           and H2/HD simulations.
+
+error_mod.f             -- updated SAFE_DIV
+
+gamap_mod.f             -- minor fix for un-initialized variable (?)
+
+input_mod.f             -- couple of typo & default anthro emissions for 
+                           nested china at 0.5x0.666
+
+ndxx_setup.f            -- always allocate mass flux diagnostic arrays
+
+streets_anthro_mod.f    -- update NH3 and verbose
+
+convection_mod.f        -- add a check for negative values at the end of 
+                           the convection
+
+========================================================================
+     Revisions Logs for updated chemistry with Fast-JX put into v8-02-01
+                             (JMao)
+========================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+fjx_acet_mod.f         -- contains functions for the new temp-pressure
+	                  dependency for acetone photolysis
+
+NEW FUNCTION :
+-------------
+
+
+MODIFIED:
+---------
+
+calcrate.f             -- add calculation for 2 reactions
+
+JRATET.f               -- add new pres-temp dependency for each
+                          acetone reaction (2 reactions now)
+
+
+=====================================================================
+     Revisions Logs for HO2 reaction on aerosols put into v8-01-05
+                             (Lyatt)
+=====================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+
+NEW FUNCTION :
+-------------
+
+HO2                    -- calculates GAMMA for HO2 self-reaction on aerosols
+(in "calcrate.f")
+
+
+MODIFIED:
+---------
+
+CMN_DIAG               -- add PD52 and LD52
+
+calcrate.f             -- calculate GAMMA for HO2 self-reaction on aerosols
+
+comode.h               -- add NKHO2 to /CHEM4/
+
+diag1.f                -- change comment for ND52
+
+diag3.f                -- add output for ND52
+
+diag_mod.f             -- add definition for AD52
+
+gamap_mod.f            -- add ND52 definition
+
+initialize.f           -- add initialization ND52
+
+input_mod.f            -- change comment for ND52
+
+ndxx_setup.f           -- add ND52
+
+readchem.f             -- add HO2 as specie in 'K' rxn
+
+
+=====================================================================
+     Revisions Logs for scaling CO put into v8-01-05
+		     	(Jenny)
+=====================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+
+NEW FUNCTION :
+-------------
+
+
+MODIFIED:
+---------
+
+biomass_mod.f          -- add biomass CO scaling
+
+emfossil.f             -- move lines for scaling CO for tagged_CO
+                          add the 39% scaling if over the USA and 
+                          using ICARTT results
+
+gc_biomass_mod.f       -- remove biomass CO scaling
+
+
+
+=====================================================================
+     Revisions Logs for saving CSPEC_FULL in a restart file into v8-01-05
+		     	    (Daven & Havala)
+=====================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+
+NEW FUNCTION :
+-------------
+
+make_cpsec_file         -- creates GEOS-CHEM checkpt files of 
+(in "restart_mod.f")       species concentrations.
+
+READ_CSPEC_FILE         -- initializes GEOS-CHEM species concentrations
+(in "restart_mod.f")       from a checkpoint file
+
+
+MODIFIED:
+---------
+
+chemdr.f                -- change call to GASCONC.
+		           copy CSPEC to CSPEC_FULL if we want to create 
+                           a CSPEC_FULL restart file.
+                           read CSPEC_FULL restart file.
+
+gasconc.f               -- add input argument READ_CSPEC.
+                           change call to COPY_FULL_TROP. 
+
+input_mod.f             -- read new switch in input.geos
+		        
+		        
+logical_mod.f           -- define new switch LSVCSPEC
+		        
+		        
+main.f                  -- call make_cspec_file to create cspec_full restart
+		        
+		        
+restart_mod.f           -- add routines read_cspec_file and make_cspec_file
+
+
+
+=====================================================================
+     Revisions Logs for GLYX chemistry put into v8-01-05
+		      (May)
+=====================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+NEW FUNCTION :
+-------------
+
+fyhoro.f                     -- returns the branching ratio between 
+                                HOC2H4O oxidation and dissociation:
+
+read_aromatics               -- read EDGARv2 aromatics emissions. 
+(in edgar_mod.f)                Modified to read GEOS 1x1 emission files
+
+
+read_c2h4                    -- read EDGARv2 C2H4 emissions.
+(in edgar_mod.f)                Modified to read GEOS 1x1 emission files
+
+
+read_c2h2                    -- read EDGARv2 C2H2 emissions.
+(in edgar_mod.f)                Modified to read GEOS 1x1 emission files
+
+
+read_aromatics_05x0666       -- read EDGARv2 aromatics emissions on 
+(in edgar_mod.f)                0.5x0.666 grid, cut too China region. 
+
+
+read_c2h4_05x0666            -- read EDGARv2 C2H4 emissions on 
+(in edgar_mod.f)                0.5x0.666 grid, cut too China region.
+
+
+read_c2h2_05x0666            -- read EDGARv2 C2H2 emissions on 
+(in edgar_mod.f)                0.5x0.666 grid, cut too China region.
+
+
+
+MODIFIED:
+---------
+
+CMN_DIAG                     -- increase size of some diagnostics 
+                                to save more tracers.
+
+CMN_O3                       -- Add emissions for BENZ, TOLU, XYLE, C2H2, C2H4.
+
+
+CMN_SIZE                     -- change NNPAR, NEMPARA, NEMPARB.
+
+
+Makefiles                    -- add fyhoro.f compilation.
+
+
+RD_TJPL.f                    -- add pressure dependency selector.
+                                add pressure dependency for MGLYX.
+
+anthroems.f                  -- add emissions for aromatics, C2H2 and C2H4.
+                                Add regridding emissions when not on 0.5x0.666
+
+
+biofuel_mod.f                -- add 9 species
+
+
+biomass_mod.f                -- add 9 species
+
+
+bpch2_mod.f                  -- add file name in error messages
+
+
+calcrate.f                   -- add new branching ratios
+
+
+carbon_mod.f                 -- change LMEGAN to LMEGANMONO.
+                                added SOA production from dicarbonyls.
+                                cleanup ORVC_TERP and ORVC_SESQ.
+
+cmn_fj.h                     -- Increase photolysis rxns JPMAX = 79.
+
+
+comode.h                     -- Increase parameter values.
+                                Add new variables.
+
+comode_mod.f                 -- Add WTAREA and WERADIUS.
+
+diag3.f                      -- Add AD07_SAOGM, J-values for GLYX and MGLY 
+                                in AD22.
+
+diag42_mod.f                 -- Add diag for SOAG and SOAM.
+
+
+diag48_mod.f                 -- archive O3, NO, NOy as tracers 89, 90, 91
+
+diag49_mod.f                 -- archive O3, NO, NOy as tracers 89, 90, 91
+
+diag50_mod.f                 -- archive O3, NO, NOy as tracers 89, 90, 91
+
+diag51_mod.f                 -- archive O3, NO, NOy as tracers 89, 90, 91
+
+diag_mod.f                   -- save out GLYX, MGLY in ND33, ND43, ND45, ND47.
+                                save out GLYX production of SOAG in ND07
+
+drydep_mod.f                 -- Added 15 more dry deposition species
+
+dust_mod.f                   -- archive only hydrophilic aerosol/aqueous 
+                                dust surface area.
+
+emf_scale.f                  -- change scaling weekend/weekdays
+
+emissdr.f                    -- add LMEGANMONO switch
+
+gamap_mod.f                  -- add gamap info for dicarbonyl simulation
+				(ND07 and ND28).
+                                add C2H4 in ND46.
+
+gc_biomass_mod.f             -- add 9 biomass burning species
+
+gfed2_biomass_mod.f          -- add 9 biomass burning species.
+                                !!!! Change the gfed emission factor file.
+
+initialize.f                 -- add changes for AD07
+
+input_mod.f                  -- add LMEGANMONO line reading
+
+jv_cmn.h                     -- add pressure dependency variables
+
+logical_mod.f                -- add LMEGANMONO switch
+
+ndxx_setup.f                 -- Add AD07_SOAGM
+
+planeflight_mod.f            -- Set very small values to zero.
+                                Add new RO2 species according 
+                                to 'globchem.dat'.
+ 
+readchem.f                   -- Add flags for some relations
+
+smvgear.f                    -- Change error message
+
+tracerid_mod.f               -- Add all the new tracers. 
+                                !!! Warning to check because Philippe 
+                                added 2 new tracers in the mean time...
+
+wetscav_mod.f                -- Add wet scavenging of GLYX, MGLY, GLYC, 
+                                SOAG, SOAM.
+
+
+
+=====================================================================
+     Revisions Logs for Acetone scale factors put into v8-01-05
+		                (May)
+=====================================================================
+
+REMOVED:
+-------
+
+
+NEW MODULES:
+------------
+
+NEW FUNCTION :
+-------------
+
+MODIFIED:
+---------
+
+acetone_mod.f                 -- Add scale factors for new grids.=======
 
 Removed in v8-02-01:
 -------------------------------------------------------------------------------

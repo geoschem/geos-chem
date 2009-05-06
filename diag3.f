@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.59 2009/03/06 20:23:39 bmy Exp $
+! $Id: diag3.f,v 1.60 2009/05/06 14:45:11 ccarouge Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -93,7 +93,11 @@
 !  (77) Bug fix: Select the right index of AD34 to write.  Pick the right 
 !         tracer field from AD22 if only a subset of tracers are requested 
 !         to be printed out. (ccc, 12/15/08)
-!  (78) Updated test on ship emissions flag for AD13 (phs, 3/3/09)     
+!  (78) Added ND52 for gamma(HO2) (jaegle, 02/26/09)
+!  (79) Updated test on ship emissions flag for AD13 (phs, 3/3/09)     
+!  (80) Add AD07_SOAGM for dicarbonyl SOA formation (tmf, 3/6/09)
+!  (81) Add output in AD22 for dicarbonyl photolysis J values (tmf, 3/6/09)
+!  (82) Add output in AD46 for biogenic C2H4 emissions (tmf, 3/6/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -102,6 +106,7 @@
       USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
       USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,     ONLY : AD07_SOAGM
       USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
       USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
       USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
@@ -127,6 +132,7 @@
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,     ONLY : AD52
       USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
@@ -165,6 +171,8 @@
       USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
       USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
       USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
+      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO, IDTC2H4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
@@ -594,7 +602,7 @@
 
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
-            ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ
+            ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ, 4:ISOP
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
@@ -616,6 +624,37 @@
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
             
             ENDDO
+
+            !-----------------------------------------------
+            ! SOA Production from GLYX and MGLY [kg]
+            ! 1: SOAG <- GLYX;  2: SOAM <- MGLY   IN AEROSOL
+            ! 3: SOAG <- GLYX;  4: SOAM <- MGLY   INCLOUD
+            ! (tmf, 1/7/09)
+	    ! Test if SOAG and SOAM tracers are valid before 
+            ! saving them. (ccc, 1/7/09)
+            !-----------------------------------------------
+	    IF ( IDTSOAG /= 0 .AND. IDTSOAM /= 0 ) THEN
+               CATEGORY     = 'SOAGM=$'
+
+               DO N = 1, 4
+
+                  IF ( N == 1 ) NN = 91
+                  IF ( N == 2 ) NN = 92
+                  IF ( N == 3 ) NN = 93
+                  IF ( N == 4 ) NN = 94
+
+                  DO L = 1, LD07
+                     ARRAY(:,:,L) = AD07_SOAGM(:,:,L,N) 
+                  ENDDO
+
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+            
+               ENDDO
+            ENDIF
          ENDIF
       ENDIF   
 !
@@ -1446,6 +1485,8 @@
 !  (4  ) JCH2O : CH2O  J-Value                 : s-1   : SCALE_JV
 !  (5  ) JO3   : O3    J-Value                 : s-1   : SCALE_JV
 !  (6  ) POH   : OH-source from O3 photolysis  : s-1   : SCALE_JV
+!  (7  ) JGLYX : GLYX  J-Value                 : s-1   : SCALE
+!  (8  ) JMGLY : MGLY  J-Value                 : s-1   : SCALE
 !  (71 ) JCH3I : CH3I  J-value (s^-1)          : s-1   : SCALE_JV
 !  (81 ) JHCN  : HCN   J-value (s^-1)          : s-1   : SCALE_JV
 !
@@ -1455,6 +1496,7 @@
 !       H2O2, CH2O, O3, and POH photo rates.
 !  (2) Pick the right tracer field from AD22 if only a subset of tracers
 !       are requested to be printed out. (ccc, 12/15/08)
+!  (3) Add GLYX and MGLY tracers (tmf, 3/6/09)
 !******************************************************************************
 !
       IF ( ND22 > 0 ) THEN
@@ -1479,6 +1521,8 @@
             ! 7           = HNO3
             ! 8           = H2O2
             ! 20          = CH2O
+            ! 55          = GLYX
+            ! 56          = MGLY
             ! N_TRACERS+1 = O3 & OH
             !
             ! (ccc, bmy, 12/15/08)
@@ -1495,6 +1539,10 @@
                      MM = 3
                   CASE ( 'CH2O' )
                      MM = 4
+                  CASE ( 'GLYX' )
+                     MM = 7
+                  CASE ( 'MGLY' )
+                     MM = 8
                   CASE DEFAULT
                      MM = 0
                END SELECT
@@ -2630,6 +2678,7 @@
 !  (3)  PRPE  : Propene        : atoms C/cm2/s : SCALE3
 !  (4)  MONOT : Monoterpenes   : atoms C/cm2/s : SCALE3
 !  (5)  MBO   : Methyl Butenol : atoms C/cm2/s : SCALE3
+!  (6)  C2H4  : Ethene         : atoms C/cm2/s : SCALE3
 !  
 !  NOTES:
 !  (1) ND46 now uses allocatable array AD46 instead of AIJ (bmy, 3/16/00)
@@ -2639,6 +2688,7 @@
 !  (3) Added monoterpenes as tracer #4.  This requires updated versions
 !       of "tracerinfo.dat" and "diaginfo.dat" for GAMAP. (bmy, 1/2/01)
 !  (4) Added MBO as tracer #5. (tmf, bmy, 10/20/05)
+!  (5) Added C2H4 as tracer #6. (tmf, 1/20/09)
 !******************************************************************************
 !
       IF ( ND46 > 0 ) THEN
@@ -2654,6 +2704,9 @@
             IF ( N == 1 .and. IDTISOP == 0 ) CYCLE
             IF ( N == 2 .and. IDTACET == 0 ) CYCLE
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
+            IF ( N == 4 .and. IDTMONX == 0 ) CYCLE
+            IF ( N == 5 .and. IDTMBO  == 0 ) CYCLE
+            IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
             
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
@@ -2722,6 +2775,33 @@
             ENDIF
          ENDDO
       ENDIF
+
+!******************************************************************************
+!  ND52: gamma HO2 and aerosol radius (jaegle 02/26/09)
+!   # Category 
+!   # : Field     : Description                      : Units     : Scale factor
+!  ----------------------------------------------------------------------------
+!  (1): GAMMAHO2  : Uptake coef for HO2              : unitless  : SCALECHEM
+!
+!******************************************************************************
+      IF ( ND52 > 0 ) THEN
+        CATEGORY  = 'GAMMA'
+        UNIT      = 'unitless'
+
+        DO L = 1, LD52
+            ARRAY(:,:,L) = AD52(:,:,L) / SCALECHEM
+        ENDDO
+
+        ! Save to disk
+        CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
+     &                    HALFPOLAR,  CENTER180, CATEGORY, 1,
+     &                    UNIT,       DIAGb,     DIAGe,    RESERVED,
+     &                    IIPAR,      JJPAR,     LD52,     IFIRST,
+     &                    JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
+
+      ENDIF
+
+
 !
 !******************************************************************************
 !  ND54: Time-in-the-Troposphere diagnostic
