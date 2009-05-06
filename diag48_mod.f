@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.15 2008/12/15 15:55:16 bmy Exp $
+! $Id: diag48_mod.f,v 1.16 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -31,9 +31,6 @@
 !  ND48 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  71            : Pure O3 (not Ox) concentration           [v/v      ]
-!  72            : NO concentration                         [v/v      ]
-!  73            : NOy concentration                        [v/v      ]
 !  74            : OH concentration                         [molec/cm3]
 !  75            : NO2 concentration                        [v/v      ]
 !  76            : PBL heights                              [m        ]
@@ -49,7 +46,10 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 93       : RESERVED FOR FUTURE USE
+!  89            : Pure O3 (not Ox) concentration           [v/v      ]
+!  90            : NO concentration                         [v/v      ]
+!  91            : NOy concentration                        [v/v      ]
+!  92            : RESERVED FOR FUTURE USE
 !  93            : Grid box heights                         [m        ]
 !  94            : Relative humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
@@ -66,6 +66,7 @@
 !  (4 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (5 ) Minor bug fixes in DIAG48 (cdh, bmy, 2/11/08)
 !  (6 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
+!  (7 ) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 10/22/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -252,7 +253,7 @@
                Q(L) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 71 .and. IS_Ox ) THEN
+         ELSE IF ( N == 89 .and. IS_Ox ) THEN
  
             !------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -266,7 +267,7 @@
      &                AD(I,J,L)        * FRACO3(I,J,L)
             ENDDO
                
-         ELSE IF ( N == 72 .and. IS_NOx ) THEN
+         ELSE IF ( N == 90 .and. IS_NOx ) THEN
 
             !------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -280,7 +281,7 @@
      &                FRACNO(I,J,L)     / AD(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 73 .and. IS_NOy ) THEN
+         ELSE IF ( N == 91 .and. IS_NOy ) THEN
 
             !-------------------------------------
             ! NOy CONCENTRATION [v/v]

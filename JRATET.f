@@ -1,4 +1,4 @@
-C $Id: JRATET.f,v 1.1 2003/06/30 20:26:03 bmy Exp $
+C $Id: JRATET.f,v 1.2 2009/05/06 14:14:47 ccarouge Exp $
       SUBROUTINE JRATET( T, IDAY )
 C-----------------------------------------------------------------------
 c  Calculate and print J-values. Note that the loop in this routine 
@@ -18,9 +18,21 @@ c     SOLF   Solar distance factor, for scaling; normally given by:
 c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
 c     TQQ    Temperatures at which QQQ cross sections supplied
 c
+c  NOTES
+c  (1 ) Added a pressure-dependancy function selector 'pdepf' 
+c        in 'jv_spec.dat'. (tmf, 1/7/09)
+c  (2 ) Added pressure dependency for MGLY. (tmf, 1/7/09)
+c  (3 ) Updated pressure dependency algorithm for ACET. (tmf, 1/7/09)
+c  (4 ) Added pressure dependancy for MeCOVi, EtCOMe, MeCOCHO. Rewritten 
+c        pressure dependancy for Acetone according to FAST-JX v6.4.
+c        See more detailed documentation for Acetone in fjx_acet_mod.f.
+c        (ccc, 4/20/09)
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
 
+      USE FJX_ACET_MOD
+
+      IMPLICIT NONE
+      
 #     include "cmn_fj.h"
 #     include "jv_cmn.h"
 
@@ -29,7 +41,23 @@ C=============== INPUT PARAMETERS ======================================
       INTEGER, INTENT(IN) :: IDAY
 
 C=============== LOCAL VARIABLES =======================================
-      integer i, j, k, l
+
+C     Add Pressure dependancy function selector PF. (tmf, 1/7/09) 
+      integer i, j, k, l, PF
+      real*8 qptemp
+
+C     For new pressure-dependency algorithm: (tmf, 1/7/09) 
+      real*8 xp, xa, xb, xc
+
+C     For new pressure dependency algo. for acetone
+C     All variables "*_F" are results from external functions from
+C     fjx_acet_mod.f (ccc, 4/20/09)
+      real*8 TFACA
+      real*8 TFAC0
+      real*8 TFAC1, TFAC2
+      real*8 QQQA , QQ1A , QQ1B
+      real*8 QQ2
+
       real*8 qo2tot, qo3tot, qo31d, qo33p, qqqt
       real*8 xseco2, xseco3, xsec1d, solf, tfact
 
@@ -66,13 +94,33 @@ C------Calculate remaining J-values with T-dep X-sections
          VALJ(J) = 0.d0
          TFACT = 0.d0
          L = jpdep(J)
+
+C        To choose different forms of pres. dependancy. (ccc, 4/20/09)
+         if ( L.ne.0 ) PF = pdepf(L)
+
          if(TQQ(2,J).gt.TQQ(1,J)) TFACT = max(0.d0,min(1.d0,
      $        (T(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
+
+C        FAST_JX introduces a new pres. dependancy for acetone (ccc, 4/20/09)
+C        Special calculations for the temperature interpolation factors
+         if ( PF.eq.2 ) then
+            TFACA=TFACA_F(dble(T(I)), J      )
+            TFAC0=TFAC0_F(dble(T(I)), J+1    )
+            TFAC1=TFAC_F (dble(T(I)), NJVAL+1)
+            TFAC2=TFAC_F (dble(T(I)), NJVAL+2)
+         else if ( PF.eq.3 ) then
+            TFACA=TFACA_F(dble(T(I)), J-1    )
+            TFAC0=TFAC0_F(dble(T(I)), J      )
+         endif
+
          do K=NW1,NW2
            QQQT = QQQ(K,1,J-3) + (QQQ(K,2,J-3) - QQQ(K,1,J-3))*TFACT
            if(L.eq.0) then
              VALJ(J) = VALJ(J) + QQQT*FFF(K,I)
            else
+
+              ! Select pressure dependancy function (tmf, 1/31/06)
+              if (PF .eq. 1) then
 C----------------------------------------------------------------------
 C Prior to 9/17/99
 C Original form for acetaldehyde P-dep -- believed to be incorrect (pjc)
@@ -92,6 +140,47 @@ C----------------------------------------------------------------------
      $                 (zpdep(K,L)*Na*1d-6 /(R*T(I))) * 
      $                 (pj(i)+pj(i+1))*0.5d0*1d2)
 
+             else if ( PF .eq. 4 ) then
+C-----------------------------------------------------------------------
+C For MGLY
+C       y = a + ( b * exp(-p/c) )
+C    where y is the ratio between Omega(p) / Omega(p=0);
+C          x is the atmospheric pressure [Pa]
+C          a,b,c are MGLYPDEP(:,1), MGLYPDEP(:,2), MGLYPDEP(:,3)
+C-----------------------------------------------------------------------
+                 xp = (pj(i)+pj(i+1))*0.5d0*1.d2   ! pressure [Pa]
+                 xa = mglypdep( K, 1 )
+                 xb = mglypdep( K, 2 )
+                 xc = mglypdep( K, 3 )
+                 qptemp = 1.0d0
+
+                 if ( abs( xc ) .ge. 1.d-10 ) then
+                    qptemp = xa + ( xb * exp(-xp/xc) )
+                 endif
+
+                 VALJ(J) = VALJ(J) + QQQT*FFF(K,I)*qptemp
+
+              else if ( PF.eq.2 ) then
+C             Acetone pressure dependency from FAST-JX (ccc, 4/20/09)
+C             J1(acetone-a) ==> CH3CO + CH3
+C             Special values for Xsect
+                 QQQA = QQ1_F (TFACA, J      , K            )
+                 QQ2  = QQ2_F (TFAC0, J+1    , K, dble(T(I)))
+                 QQ1A = QQ1_F (TFAC1, NJVAL+1, K            )
+                 QQ1B = QQ1_F (TFAC2, NJVAL+2, K            ) * 4.d-20
+
+                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA *
+     &            (1.d0-QQ2)/(QQ1A + (QQ1B*Na*1d-6 /(R*T(I))) * 
+     $            (pj(i)+pj(i+1))*0.5d0*1d2)
+              else if ( PF.eq.3 ) then
+C             Second acetone pressure dependency from FAST-JX (ccc, 4/20/09)
+C             J2(acetone-b) ==> CH3 + CO + CH3
+C             Special values for Xsect
+                 QQQA = QQ1_F (TFACA, J-1    , K            )
+                 QQ2  = QQ2_F (TFAC0, J      , K, dble(T(I)))
+
+                 VALJ(J) = VALJ(J) + FFF(K,L)*QQQA*QQ2
+              endif
            endif
          enddo
        enddo

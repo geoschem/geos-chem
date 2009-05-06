@@ -1,4 +1,4 @@
-! $Id: biofuel_mod.f,v 1.15 2009/01/28 19:59:16 bmy Exp $
+! $Id: biofuel_mod.f,v 1.16 2009/05/06 14:14:47 ccarouge Exp $
       MODULE BIOFUEL_MOD
 !
 !******************************************************************************
@@ -73,6 +73,9 @@
 !  (18) Modified for IPCC future emissions scale factors.  Added private
 !        routine SCALE_FUTURE. (swu, bmy, 5/30/06)
 !  (19) Modified for VOC-scaling of CO emissions for H2/HD sim (phs, 5/16/07)
+!  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
+!        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
+!  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -100,7 +103,7 @@
       !=================================================================     
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER  :: NBFMAX = 10
+      INTEGER, PARAMETER  :: NBFMAX = 19
 
       INTEGER             :: NBFTRACE
       INTEGER             :: BFTRACE(NBFMAX) 
@@ -193,6 +196,9 @@
       USE TRACERID_MOD,         ONLY : IDTALD2, IDTALK4, IDTC2H6
       USE TRACERID_MOD,         ONLY : IDTC3H8, IDTCH2O, IDTCO
       USE TRACERID_MOD,         ONLY : IDTMEK,  IDTNOX,  IDTPRPE 
+      USE TRACERID_MOD,         ONLY : IDTGLYX, IDTMGLY, IDTBENZ
+      USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
+      USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
       IMPLICIT NONE
@@ -214,6 +220,8 @@
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
+
+      REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
@@ -321,6 +329,9 @@
 
                ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
                CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+
+               ! Save BF_CO before scaling (tmf, 6/15/07) 
+               CALL TRANSFER_2D( ARRAY(:,:,1), BF_CO(:,:) )         
 
                ! Scale CO to account for oxidation of extra VOC's
                CALL SCALE_BIOFUEL_CO( BIOFUEL_KG(N,:,:) )
@@ -524,6 +535,10 @@
 
             ELSE IF ( NN == IDTC2H6 ) THEN
 
+               !----------------
+               ! Biofuel C2H6
+               !----------------
+
                ! Read biofuel C2H6 emissions in [kg/box/yr] -- tracer #21
                CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 21, 
      &                          0d0,       IGLOB,     JGLOB,      
@@ -543,6 +558,161 @@
                
                ! Define MOLWT for use below
                MOLWT(N) = 12d-3
+
+            ELSE IF ( NN == IDTGLYX ) THEN
+
+               !----------------
+               ! Biofuel GLYX
+               !----------------
+
+               ! Emission ratio GLYX/CO = 6.62d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 58d-3 * 6.62d-3      ! [kg/box/yr]
+
+               ! Compute total GLYX
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'GLYX', TOTAL, '[Tg/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 58d-3
+
+ 
+            ELSE IF ( NN == IDTMGLY ) THEN
+
+               !----------------
+               ! Biofuel MGLY
+               !----------------
+
+               ! Emission ratio MGLY/CO = 3.47d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 72d-3 * 3.47d-3      ! [kg/box/yr]
+
+               ! Compute total MGLY
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'MGLY', TOTAL, '[Tg/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 72d-3
+
+            ELSE IF ( NN == IDTBENZ ) THEN
+
+               !----------------
+               ! Biofuel BENZ
+               !----------------
+
+               ! Emission ratio BENZ/CO = 4.06d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 12d-3 * 6d0 * 4.06d-3      ! [kg C/box/yr]
+
+               ! Compute total BENZ
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'BENZ', TOTAL, '[Tg C/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
+
+            ELSE IF ( NN == IDTTOLU ) THEN
+
+               !----------------
+               ! Biofuel TOLU
+               !----------------
+
+               ! Emission ratio TOLU/CO = 2.01d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 12d-3 * 7d0 * 2.01d-3      ! [kg C/box/yr]
+
+               ! Compute total TOLU
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'TOLU', TOTAL, '[Tg C/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
+            ELSE IF ( NN == IDTXYLE ) THEN
+
+               !----------------
+               ! Biofuel XYLE
+               !----------------
+
+               ! Emission ratio XYLE/CO = 0.82d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 12d-3 * 8d0 * 0.82d-3      ! [kg C/box/yr]
+
+               ! Compute total XYLE
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'XYLE', TOTAL, '[Tg C/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
+            ELSE IF ( NN == IDTC2H4 ) THEN
+
+               !----------------
+               ! Biofuel C2H4
+               !----------------
+
+               ! Emission ratio C2H4/CO = 15.7d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 12d-3 * 2d0 * 15.7d-3      ! [kg C/box/yr]
+
+               ! Compute total C2H4
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'C2H4', TOTAL, '[Tg C/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
+            ELSE IF ( NN == IDTC2H2 ) THEN
+
+               !----------------
+               ! Biofuel C2H2
+               !----------------
+
+               ! Emission ratio C2H2/CO = 19d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 12d-3 * 2d0 * 19d-3      ! [kg C/box/yr]
+
+               ! Compute total C2H2
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'C2H2', TOTAL, '[Tg C/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
+            ELSE IF ( NN == IDTGLYC ) THEN
+
+               !----------------
+               ! Biofuel GLYC
+               !----------------
+
+               ! Emission ratio GLYC/CO = 3.66d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 60d-3 * 3.66d-3      ! [kg/box/yr]
+
+               ! Compute total GLYC
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'GLYC', TOTAL, '[Tg/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 60d-3
+
+            ELSE IF ( NN == IDTHAC  ) THEN
+
+               !----------------
+               ! Biofuel HAC
+               !----------------
+
+               ! Emission ratio HAC/CO = 3.31d-3 [mole/mole]
+               BIOFUEL_KG(N,:,:) = 
+     &          BF_CO(:,:) / 28d-3 * 74d-3 * 3.31d-3      ! [kg/box/yr]
+
+               ! Compute total HAC
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'HAC', TOTAL, '[Tg/yr]'
+
+               ! Define MOLWT for use below
+               MOLWT(N) = 74d-3
 
             ENDIF
          ENDDO
@@ -614,12 +784,22 @@
                   ! Get GEOS-CHEM tracer number
                   NN      = BFTRACE(N)
 
-                  ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
-                  EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+                  ! We do not have EPA/NEI biofuel emission.  
+                  ! Use default emission for the newly added species. 
+                  ! (tmf, 1/8/08) 
+                  IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
+     &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
+     &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
+     &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.             
+     &                 (NN /= IDTHAC ) ) THEN
 
-                  ! Convert [molec/cm2/s] to [molec/cm3/s]
-                  BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+                     ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+                     EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+
+                     ! Convert [molec/cm2/s] to [molec/cm3/s]
+                     BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
                   
+                  ENDIF
                ENDIF
             ENDIF
 
@@ -864,6 +1044,12 @@
       USE TRACERID_MOD, ONLY : IDTALK4,  IDTC2H6,  IDTC3H8,  IDTCH2O
       USE TRACERID_MOD, ONLY : IDTCO,    IDTMEK,   IDTNOX,   IDTPRPE 
 
+      USE TRACERID_MOD, ONLY : IDBFGLYX, IDBFMGLY, IDBFBENZ, IDBFTOLU
+      USE TRACERID_MOD, ONLY : IDBFXYLE, IDBFC2H4, IDBFC2H2, IDBFGLYC
+      USE TRACERID_MOD, ONLY : IDBFHAC
+      USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
+      USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTHAC
       !=================================================================
       ! SET_BFTRACE begins here!
       !=================================================================
@@ -882,6 +1068,15 @@
       IF ( IDBFC3H8 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFCH2O /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFC2H6 /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFGLYX /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFMGLY /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFBENZ /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFTOLU /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFXYLE /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFC2H4 /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFC2H2 /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFGLYC /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
       IF ( IDBFNOX  /= 0 ) BFTRACE(IDBFNOX ) = IDTNOX
@@ -894,6 +1089,15 @@
       IF ( IDBFC3H8 /= 0 ) BFTRACE(IDBFC3H8) = IDTC3H8
       IF ( IDBFCH2O /= 0 ) BFTRACE(IDBFCH2O) = IDTCH2O  
       IF ( IDBFC2H6 /= 0 ) BFTRACE(IDBFC2H6) = IDTC2H6  
+      IF ( IDBFGLYX /= 0 ) BFTRACE(IDBFGLYX) = IDTGLYX
+      IF ( IDBFMGLY /= 0 ) BFTRACE(IDBFMGLY) = IDTMGLY
+      IF ( IDBFBENZ /= 0 ) BFTRACE(IDBFBENZ) = IDTBENZ
+      IF ( IDBFTOLU /= 0 ) BFTRACE(IDBFTOLU) = IDTTOLU
+      IF ( IDBFXYLE /= 0 ) BFTRACE(IDBFXYLE) = IDTXYLE
+      IF ( IDBFC2H4 /= 0 ) BFTRACE(IDBFC2H4) = IDTC2H4
+      IF ( IDBFC2H2 /= 0 ) BFTRACE(IDBFC2H2) = IDTC2H2
+      IF ( IDBFGLYC /= 0 ) BFTRACE(IDBFGLYC) = IDTGLYC
+      IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
 
       ! Echo biofuel tracer information
       WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )

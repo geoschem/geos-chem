@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.14 2008/12/15 15:55:16 bmy Exp $
+! $Id: calcrate.f,v 1.15 2009/05/06 14:14:47 ccarouge Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -48,25 +48,43 @@
 !        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is
 !        the # of drydep species in GEOS-Chem.  The two values may not be the 
 !        same. (dbm, phs, 11/19/08)
+!  (10) Now use new gamma(HO2) based on Thornton, Jaegle, and McNeill
+!       (JGR, 2008) (jaegle, 02/26/09)
+!  (11) Added branching ratio for C2H4 oxidation and photolysis (tmf, 12/14/06)
+!  (12) Outputs GLYX and MGLY J-values. (tmf, 1/31/06)
+!  (13) Modified the dry deposition rate reference, such that gas tracers 
+!         which appear after the depositing aerosols will be referenced 
+!         correctly. (tmf, 11/08/06)
 !******************************************************************************
 !
       ! References to F90 modules 
+      ! Add CSPEC to extract HO2 concentration (jaegle 2/26/09)
       USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS, ERADIUS, IXSAVE, 
      &                            IYSAVE, IZSAVE,  JLOP,    PRESS3,  
-     &                            REMIS,  T3,      TAREA
-      USE DIAG_MOD,        ONLY : AD22,   LTJV
+     &                            REMIS,  T3,      TAREA,    CSPEC
+      ! Add AD52 for gamma_ho2 diagnostic (jaegle 02/26/09)
+      USE DIAG_MOD,        ONLY : AD22,   LTJV, AD52
       USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP
-      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      ! Add CHECK_VALUE (jaegle 2/26/09)
+      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP,CHECK_VALUE
       USE GRID_MOD,        ONLY : GET_YMID
-      USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
+      ! Add GET_PBL_TOP_L (jaegle 02/26/09)
+      USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
       USE PLANEFLIGHT_MOD, ONLY : ARCHIVE_RXNS_FOR_PF
+      ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
+      USE TRACERID_MOD,    ONLY : IDHO2
+      USE DAO_MOD,         ONLY : IS_ICE
+
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, etc
 #     include "comode.h"  ! SMVGEAR II arrays
-#     include "CMN_DIAG"  ! ND22, LD22
+      ! added LD52 and ND52 (jaegle 2/26/09)
+#     include "CMN_DIAG"  ! ND22, LD22, ND52, LD52
+      ! added FRCLND (jaegle 02/26/09)
+#     include "CMN_DEP"  ! FRCLND
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
@@ -79,9 +97,11 @@
       REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
       REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
       REAL*8  :: TK,     CONSEXP, VPRESH2O
-
+      ! New variables for new reations (jmao, 4/20/09)
+      REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
+      REAL*8  :: FEXP2,KCO1,KCO2,KCO
       ! External functions
-      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC
+      REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
 
       CHARACTER*4      :: SPECNAME
 
@@ -89,6 +109,10 @@
       LOGICAL          :: HETCHEM
       INTEGER          :: N
       REAL*8           :: SUMAREA, TOTAREA, DUMMY2(KBLOOP)
+
+      ! Added for HO2 het uptake (jaegle, 2/26/09)
+      REAL*8           :: HO2_MOLEC_CM3, DUMMY3(KBLOOP)
+      INTEGER          :: CONTINENTAL_PBL
 
       ! For grid-box latitude (bnd, bmy, 7/1/03)
       REAL*8           :: YLAT
@@ -296,6 +320,7 @@ C find reaction number for emission of tracer NN
             IF (NK.NE.0) THEN
                DO KLOOP = 1,KTLOOP
                   JLOOP = LREORDER(KLOOP+JLOOPLO)
+                  RRATE(KLOOP,NK) = 0.d0
                   RRATE(KLOOP,NK) = REMIS(JLOOP,I)
                ENDDO
             ENDIF
@@ -497,6 +522,26 @@ C ---  K = K1*[O2]/(2*[O2]+3.5D18)  --- GLCO3 branch of GLYX+OH/NO3
      +              (CONCO2(KLOOP))/(2.D0*CONCO2(KLOOP)+3.5D18)
             ENDDO
          ENDDO
+C Add branching ratio for HOC2H4O for C2H4 oxidation (tmf, 12/14/06) 
+C
+C ---  KF = K*(1-FYHORO(M,T))  ---  HOC2H4O ------> HO2 + 2CH2O 
+         DO I          = 1, NNADDF(NCS)
+            NK         = NKSPECF( I,NCS )
+            DO KLOOP   = 1, KTLOOP
+               RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
+     $              (1.D0 - FYHORO(DENAIR(KLOOP), T3K(KLOOP)))
+            ENDDO
+         ENDDO
+C
+C ---  KH = K*FYHORO(M,T)  ---  HOC2H4O --O2--> HO2 + GLYC
+         DO I          = 1, NNADDH(NCS)
+            NK         = NKSPECH( I,NCS )
+            DO KLOOP   = 1, KTLOOP
+               RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * 
+     +              FYHORO(DENAIR(KLOOP), T3K(KLOOP))
+
+            ENDDO
+         ENDDO
 C
 C ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
          IF (NKSPECX(NCS).GT.0) THEN
@@ -517,6 +562,22 @@ C    CONSTC includes a factor to convert PRESS3 from (dyn cm-2) to (atm)
                JLOOP           = LREORDER(JLOOPLO + KLOOP)
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
      1              (1.D0 + CONSTC*PRESS3(JLOOP))
+c new OH+CO rate from JPL2006.
+C Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
+               KLO1=5.9D-33*(300*T3I(KLOOP))**(1.4D0) 
+               KHI1=1.1D-12*(300*T3I(KLOOP))**(-1.3D0)
+               XYRAT1=KLO1*DENAIR(KLOOP)/KHI1
+               BLOG1=LOG10(XYRAT1)
+               FEXP1=1.D0/(1.D0+BLOG1*BLOG1)
+               KCO1=KLO1*DENAIR(KLOOP)*0.6**FEXP1/(1.d0+XYRAT1)
+               KLO2=1.5D-13*(300*T3I(KLOOP))**(-0.6D0)
+               KHI2=2.1D09 *(300*T3I(KLOOP))**(-6.1D0)
+               XYRAT2=KLO2*DENAIR(KLOOP)/KHI2
+               BLOG2=LOG10(XYRAT2)
+               FEXP2=1.D0/(1.D0+BLOG2*BLOG2)
+               KCO2=KLO2*0.6**FEXP2/(1.d0+XYRAT2)
+               KCO=KCO1+KCO2
+               RRATE(KLOOP,NK)=KCO
             ENDDO
          ENDIF
 C
@@ -562,6 +623,13 @@ C  dependence of HO2/NO3 + HO2 on water vapor
          ! 1-D grid box index
          JLOOP = LREORDER(JLOOPLO+KLOOP)
 
+         ! Added I-J-L indices to archive diagnostic AD52
+         ! jaegle (2/26/09)
+         ! I-J-L indices
+         IX = IXSAVE(JLOOP)
+         IY = IYSAVE(JLOOP)
+         IZ = IZSAVE(JLOOP)
+
          IF ( HETCHEM ) THEN
 
             !===========================================================
@@ -578,11 +646,13 @@ C  dependence of HO2/NO3 + HO2 on water vapor
                ! Initialize
                RRATE(KLOOP,NK) = 0d0
                DUMMY2(KLOOP)   = 0d0
+               ! Initialize DUMMY3 (jaegle, 2/26/09)
+               DUMMY3(KLOOP)   = 0d0
 
                ! Sum up total surface area for all aerosol types
                ! so that we can use it for the planeflight diagnostic
                ! (mje, bmy, 8/7/03)
-               IF ( NK == NKN2O5 ) THEN
+               IF ( NK == NKN2O5 .or. NK == NKHO2 ) THEN
                   TOTAREA = 0.d0
                   DO N = 1, NDUST + NAER
                      TOTAREA = TOTAREA + TAREA(JLOOP,N)
@@ -594,6 +664,9 @@ C  dependence of HO2/NO3 + HO2 on water vapor
 
                   ! Surface area of aerosol [cm2 aerosol/cm3 air]
                   XAREA = TAREA(JLOOP,N) 
+
+                  ! Radius for aerosol size bin N (jaegle 2/26/09)
+                  XRADIUS = ERADIUS(JLOOP,N) 
                   
                   ! Test if N2O5 hydrolysis rxn
                   IF ( NK == NKN2O5 ) THEN
@@ -606,20 +679,61 @@ C  dependence of HO2/NO3 + HO2 on water vapor
                      DUMMY2(KLOOP) = DUMMY2(KLOOP) +
      &                               ( XAREA / TOTAREA * XSTKCF )
                     
-                  ELSE
-                     
+                  ! Test if HO2 het uptake reaction
+                  ELSE IF ( NK == NKHO2 ) THEN
+                     ! Calculate GAMMA for HO2 self-reaction on aerosols, 
+                     ! which is a function of aerosol type, radius, 
+                     ! temperature, air density, and HO2 concentration 
+                     ! (jaegle - 02/26/09)
+
+                     HO2_MOLEC_CM3 = CSPEC(JLOOP,IDHO2)
+
+                     ! Find out whether we are in the continental
+                     ! boundary layer and set the CONTINENTAL_PBL
+                     ! flag to 1 (also assume that there is no ice/snow)
+                     IF (  IZ <= GET_PBL_TOP_L( IX , IY ) .and.
+     &                     FRCLND(IX,IY) >= 0.5 .and.
+     &                     (.not. IS_ICE(IX,IY) ) ) THEN 
+                        CONTINENTAL_PBL=1 
+                     ELSE
+                        CONTINENTAL_PBL=0
+                     ENDIF
+
+                     XSTKCF = HO2( XRADIUS, T3K(KLOOP), XDENA, XSQM,
+     &                             HO2_MOLEC_CM3, N , CONTINENTAL_PBL)
+
+                     ! Now call CHECK_VALUE to make sure that XSTKCF is 
+                     ! not a NaN or an infinity
+                     CALL CHECK_VALUE( XSTKCF, (/KLOOP,0,0,0/),
+     &                                 'GAMMA_HO2', 'at calcrate')
+
+                     ! Archive gamma HO2 for ND52 diagnostic
+                     DUMMY3(KLOOP) = DUMMY3(KLOOP) +
+     &                               ( XAREA / TOTAREA * XSTKCF )
+
+
+                  ELSE 
+
                      ! Get GAMMA for species other than N2O5
                      XSTKCF = BRR(NK,NCS)
 
                   ENDIF
 
+                  !----------------------------------------------------
+                  ! Prior to 2/26/09: (move higher up) jaegle
                   ! Radius for dust size bin N
-                  XRADIUS = ERADIUS(JLOOP,N) 
+                  !XRADIUS = ERADIUS(JLOOP,N) 
+                  !----------------------------------------------------
 
                   ! Reaction rate for dust size bin N
                   RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 
      $                 ARSL1K(XAREA,XRADIUS,XDENA,XSTKCF,XSTK,XSQM)
                ENDDO
+               IF ( ND52 > 0 ) THEN
+                  ! Archive gamma HO2 in AD52
+                   AD52(IX,IY,IZ) =
+     &                 AD52(IX,IY,IZ) + DUMMY3(KLOOP)
+               ENDIF
             ENDDO
          ELSE
 
@@ -776,6 +890,39 @@ C
          ENDIF
 
          !==============================================================
+         ! HARDWIRE the effect of branching ratio of HOC2H4O in EP photolysis
+         !   HOC2H4O ------> HO2 + 2CH2O    : marked as I in P column of 
+         !                                    'globchem.dat'
+         !   HOC2H4O --O2--> HO2 + GLYC     : marked as J in P column of 
+         !                                    'globchem.dat'
+         !
+         ! Add NCS index to NKHOROI and HKHOROJ for SMVGEAR II (tmf, 12/16/06)
+         !==============================================================
+         IF ( NKHOROI(NCS) > 0 ) THEN
+
+            ! Put J(EP) in correct spot for SMVGEAR II
+            PHOTVAL = NKHOROI(NCS) - NRATES(NCS)
+            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+
+            DO KLOOP=1,KTLOOP
+               RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
+     +            ( 1.D0-FYHORO(DENAIR(KLOOP), T3K(KLOOP)) )
+            ENDDO
+         ENDIF
+
+         IF ( NKHOROJ(NCS) > 0 ) THEN
+
+            ! Put J(EP) in correct spot for SMVGEAR II
+            PHOTVAL = NKHOROJ(NCS) - NRATES(NCS)
+            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+
+            DO KLOOP=1,KTLOOP
+               RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) *
+     +            FYHORO(DENAIR(KLOOP), T3K(KLOOP)) 
+            ENDDO
+         ENDIF
+
+         !==============================================================
          ! SPECIAL TREATMENT FOR O3+hv -> OH+OH
          ! [O1D]ss=J[O3]/(k[H2O]+k[N2]+k[O2])
          ! SO, THE EFFECTIVE J-VALUE IS J*k[H2O]/(k[H2O]+k[N2]+k[O2])
@@ -807,12 +954,17 @@ C
                ! OH Production Rate'.  One of the RSC Journals
                ! (mje 4/5/04)
                !========================================================
+c Updated from JPL2006, the difference is pretty small.(jmao,02/26/2009)
                RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
-     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-     $            2.14d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
-
+     $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
+     $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+     $            2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
+     $            3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+c               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
+c     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
+c     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
+c     $            2.14d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
+c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
 
             ENDDO
          ENDIF
@@ -851,6 +1003,10 @@ C
                   INDEX = 4
                CASE ( 'O3'   )
                   INDEX = 5
+               CASE ( 'GLYX' )
+                  INDEX = 7
+               CASE ( 'MGLY' )
+                  INDEX = 8
                CASE DEFAULT
                   INDEX = 0
             END SELECT
@@ -1046,6 +1202,198 @@ C
          
       ! Return to CALCRATE
       END FUNCTION N2O5
+
+C *********************************************************************
+
+      FUNCTION HO2( RADIUS, TEMP, DENAIR, SQM, HO2DENS,
+     &              AEROTYPE, CONTINENTAL_PBL ) RESULT( GAMMA )
+
+      !=================================================================
+      ! Internal function HO2 computes the GAMMA reaction probability
+      ! for HO2 loss in aerosols based on the recommendation of 
+      ! Thornton, Jaegle, and McNeill, 
+      ! "Assessing Known Pathways For HO2 Loss in Aqueous Atmospheric
+      !  Aerosols: Regional and Global Impacts on Tropospheric Oxidants"
+      !  J. Geophys. Res.,  doi:10.1029/2007JD009236, 2008  
+      !
+      ! gamma(HO2) is a function of aerosol type, radius, temperature
+      !
+      ! jaegle 01/22/2008
+      ! 
+      ! Arguments as Input:
+      ! ----------------------------------------------------------------
+      ! (1 ) RADIUS   (REAL*8 ) : Aerosol radius [cm]
+      ! (2 ) TEMP     (REAL*8 ) : Temperature [K]
+      ! (3 ) DENAIR   (REAL*8 ) : Air Density [molec/cm3]
+      ! (4 ) HO2DENS  (REAL*8 ) : HO2 Number Density [molec/cm3]
+      ! (5 ) SQM      (REAL*8 ) : Square root of molecular weight [g/mole]
+      ! (6 ) AEROTYPE (INTEGER) : # denoting aerosol type (cf FAST-J)
+      ! (7 ) CONTINENTAL_PBL (INTEGER)  : Flag set to 1 if the
+      !         box is located in the continenal boundary layer,
+      !         otherwise it is zero. Also check for ICE/SNOW (to
+      !         disable this at high latitudes)
+      !
+      ! NOTES:
+      !=================================================================
+      
+
+      ! Arguments
+      REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
+      INTEGER, INTENT(IN) :: AEROTYPE, CONTINENTAL_PBL
+
+      ! Local variables
+      REAL*8              :: ALPHA
+      REAL*8              :: delG, Keq, w, H_eff
+      REAL*8              :: A1, B1, k1, k2, A, B, C
+      REAL*8              :: kaq, kmt, o2_ss, fluxrxn, DFKG
+      REAL*8              :: TEST
+
+
+      ! Avogadro's number
+      REAL*8,  PARAMETER   :: Na = 6.022d23
+
+      ! Ideal gas constant [atm cm3/mol/K], Raq
+      REAL*8,  PARAMETER   :: Raq=82.d0
+
+      ! Function return value
+      REAL*8              :: GAMMA
+      
+      !=================================================================
+      ! HO2 begins here!
+      !=================================================================
+
+      ! Default value
+      GAMMA = 0.0d0
+
+      ! Special handling for various aerosols
+      SELECT CASE ( AEROTYPE )
+
+         !----------------
+         ! Dust 
+         !----------------
+         CASE ( 1, 2, 3, 4, 5, 6, 7 )      
+                                
+            ! Assume default gamma=0.1 on dust aerosols
+            ! This is tentative as no lab measurements presently exist
+            ! for gamma(HO2) on dust aerosols. We assume the rate to
+            ! be fast on dust aerosols as transition metal ion induced
+            ! chemistry is likely to occur in a thin aqueous surface layer.
+            GAMMA = 0.1d0
+
+         !----------------
+         ! For Sulfate(8), Black Carbon (9), Organic Carbon (10),
+         ! Sea-salt accum & coarse (11,12) calculate the 
+         ! reaction probability due to self reaction 
+         ! by using the algebraic expression in Thornton et al.  (2008)
+         ! (equation 7) which is a function of temperature, aerosol radius,
+         ! air density and HO2 concentration. 
+         !
+         ! Transition metal ions (such as copper and iron) in sea-salt and 
+         ! carbonaceous aerosols are complexed to ligands and/or exist at 
+         ! a concentration too low to catalyze HO2 loss efficiently, so we 
+         ! apply the HO2 self reaction expression directly for these aerosols.
+         ! 
+         ! In the case of sulfate aerosol, the aerosols likely
+         ! contain copper in the continental boundary layer and
+         ! HO2 uptake proceeds rapidly. To account for the metal catalyzed
+         ! uptake, we assume gamma(HO2)=0.07 (in the mid-range of the recommended
+         ! 0.04-0.1 by Thornton et al, based on observed copper concentrations
+         ! in the US boundary layer). Outside the continental boundary layer, we
+         ! use the HO2-only algebraic expression.
+         !
+         !----------------
+         CASE ( 8, 9, 10, 11, 12)  
+
+            ! Mean molecular speed [cm/s]
+            w = 14550.5d0 * sqrt(TEMP/(SQM*SQM))
+
+            ! DFKG = Gas phase diffusion coeff [cm2/s]
+            DFKG  = 9.45D17/DENAIR * SQRT(TEMP) * 
+     &              SQRT(3.472D-2 + 1.D0/(SQM*SQM))
+
+            !calculate T-dependent solubility and aq. reaction rate constants
+            ! hydronium ion concentration
+            ! A1 = 1.+(Keq/hplus) 
+            ! with Keq = 2.1d-5 [M], Equilibrium constant for 
+            ! HO2aq = H+ + O2- (Jacob, 2000)
+            !      hplus=10.d0^(-pH), with pH = 5
+            ! B1 = Req * TEMP
+            ! with Req = 1.987d-3 [kcal/K/mol], Ideal gas constant
+            ! Note that we assume a constant pH of 5.
+            A1 = 1.+ (2.1d-5 / (10.d0**(-5) ) )
+            B1 = 1.987d-3 * TEMP
+
+            ! Free energy change for solvation of HO2 (Hanson 1992, Golden 1991)
+            ! in [kcal/mol]:
+            ! delG = -4.9-(TEMP-298d0)*delS
+            ! with delS=-0.023  [kcal/mol/K],  Entropy change for solvation of HO2
+            delG  = -4.9d0 - (TEMP-298.d0) * (-0.023)
+            H_eff = exp( -delG / B1 ) * A1
+
+            ! Estimated temp dependent value for HO2 + O2- (k1) and 
+            ! HO2+HO2 (see Jacob 1989)
+            k1  =   1.58d10 * exp( -3. / B1 )
+            k2  =   2.4d9   * exp( -4.7 / B1 )
+            kaq = ( k1 * (A1 - 1.d0) + k 2) / (A1**2)
+
+            ! Calculate the mass transfer rate constant and s.s. conc. of 
+            ! total HO2 in the aqueous phase:
+            ! kmt = (RADIUS/DFKG + 4d0/w/alpha)^(-1)
+            ! with alpha = mass accomodation coefficient, assumed 
+            ! to be 1 (Thornton et al.)
+            kmt = 1.d0/( RADIUS/DFKG + 4d0/w/1. )
+
+            !use quadratic formula to obtain [O2-] in particle of radius RADIUS
+            A = -2d0 * kaq
+            B = -3d0 * kmt / RADIUS / (H_eff * 0.082 * TEMP)
+            C =  3d0 * kmt * HO2DENS * 1000d0 / RADIUS / Na
+
+            ! Error check that B^2-(4d0*A*C) is not negative
+            TEST= B**2-(4d0*A*C)
+            IF ( TEST < 0d0 ) THEN
+                GAMMA = 0d0
+            ELSE
+                ! Calculate the concentration of O2- in the aerosol
+                o2_ss= ( -B  -sqrt(B**2-(4d0*A*C)) )/(2d0*A)
+
+                ! Calculate the reactive flux
+                fluxrxn = kmt*HO2DENS - o2_ss*Na*kmt/H_eff/Raq/TEMP
+
+                IF ( fluxrxn <= 0d0 ) THEN
+                   GAMMA = 0d0
+                ELSE
+                   ! Gamma for HO2 at TEMP, ho2, and RADIUS given
+                   GAMMA = 1./( ( ( HO2DENS/fluxrxn ) - 
+     &                            ( RADIUS/DFKG ) ) * w / 4.d0 )
+                ENDIF
+            ENDIF
+            ! For sulfate aerosols, check whether we are in
+            ! the continental boundary layer, in which case
+            ! copper catalyzed HO2 uptake likely dominates and
+            ! speeds up the reaction: we assume gamma=0.07,
+            ! which is in the middle of the 0.04-0.1 range recommended
+            ! by Thornton et al. (2008)
+            !
+            IF ( AEROTYPE == 8 .and. CONTINENTAL_PBL == 1) THEN
+                GAMMA = 0.07
+            ENDIF 
+
+         !----------------
+         ! Default
+         !----------------
+         CASE DEFAULT
+            WRITE (6,*) 'Not a suitable aerosol surface '
+            WRITE (6,*) 'for HO2 uptake'
+            WRITE (6,*) 'AEROSOL TYPE =',AEROTYPE
+            CALL GEOS_CHEM_STOP
+
+      END SELECT
+     
+      ! If negative value is calculated, set it to zero
+      IF ( GAMMA  <= 0d0 ) GAMMA = 0d0
+
+      ! Return to CALCRATE
+      END FUNCTION HO2
 C
 C *********************************************************************
 C ******************** END OF SUBROUTINE CALCRATE *********************

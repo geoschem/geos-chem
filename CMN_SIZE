@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.29 2009/01/29 15:35:50 bmy Exp $
+! $Id: CMN_SIZE,v 1.30 2009/05/06 14:14:47 ccarouge Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
       !
@@ -51,6 +51,10 @@
       !       to GRIDREDUCED (bmy, 4/3/07)
       ! (29) New parameters for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
       ! (30) NEMPARA set to 12 to emit O3 and HNO3 (phs, 4/3/08)
+      ! (31) Add tracers to NNPAR = 73. (tmf, 1/7/09)
+      ! (32) NEMPARA set to 21 to emit new tracers for GLYX chemistry 
+      !      (tmf, ccc, 3/2/09)
+      ! (33) NEMPARB set to 3 to emit MBO, MONX (tmf, ccc, 3/2/09)
       !=======================================================================
 
       ! C Preprocessor #define statements for conditional compilation
@@ -423,13 +427,21 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-      INTEGER, PARAMETER :: NNPAR   = 54
+      INTEGER, PARAMETER :: NNPAR   = 73
 !----------------------------------------------------
 ! Prior to 3/4/08:
 !      INTEGER, PARAMETER :: NEMPARA = 10
 !----------------------------------------------------
-      INTEGER, PARAMETER :: NEMPARA = 12 ! new emissions HNO3 and O3 (phs)
-      INTEGER, PARAMETER :: NEMPARB = 1
+! new emissions HNO3 and O3 (phs)
+!  Add non-biogenic emission species:
+!  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
+      INTEGER, PARAMETER :: NEMPARA = 21 
+!----------------------------------------------------
+! Prior to 2/3/09:
+!      INTEGER, PARAMETER :: NEMPARB = 1
+!----------------------------------------------------
+      ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
+      INTEGER, PARAMETER :: NEMPARB = 3
 
       !=================================================================
       ! OTHER PARAMETERS 

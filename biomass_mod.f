@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.17 2009/01/28 19:59:16 bmy Exp $
+! $Id: biomass_mod.f,v 1.18 2009/05/06 14:14:47 ccarouge Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -34,7 +34,7 @@
 !  ----------------------------------------------------------------------------
 !  FOR CO2 SIMULATION ONLY
 !
-!   CO2        15         1          [molec CO2 /cm2/s]
+!   CO2        24         1          [molec CO2 /cm2/s]
 !
 !
 !  Module Variables:
@@ -51,8 +51,10 @@
 !  Module Routines:
 !  ============================================================================
 !  (1 ) COMPUTE_BIOMASS_EMISSIONS : Gets biomass emissions; updates diagnostics
-!  (2 ) INIT_BIOMASS              : Allocates & zeroes module arrays
-!  (3 ) CLEANUP_BIOMASS           : Deallocates module arrays
+!  (2 ) SCALE_BIOMASS_CO          : applies scale factors to CO for VOC 
+!                                   oxidation
+!  (3 ) INIT_BIOMASS              : Allocates & zeroes module arrays
+!  (4 ) CLEANUP_BIOMASS           : Deallocates module arrays
 ! 
 !  GEOS-Chem modules referenced by "biomass_mod.f"
 !  ============================================================================
@@ -73,6 +75,11 @@
 !        BIOMASS_SAVE array because we no longer need to convert the data
 !        to [molec/cm3/s] on each timestep (bmy, 9/28/06)
 !  (2 ) Modification for H2/HD simulation (phs, 9/18/07)
+!  (3 ) Added 9 gaseous emissions from biomass burning: BENZ, TOLU, XYLE
+!        C2H2, C2H4, GLYX, MGLY, GLYC, HAC  (tmf, 1/8/08)
+!  (4 ) Hard-wired IDBCO2 and BIOTRCE (tmf, 7/30/08)
+!  (5 ) Add CO scaling for VOC production. Routine SCALE_BIOMASS_CO 
+!        transfered from gc_biomass_mod.f (jaf, mak, 2/6/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -108,8 +115,8 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: NBIOMAX     = 15
-      INTEGER, PARAMETER   :: NBIOMAX_GAS = 10
+      INTEGER, PARAMETER   :: NBIOMAX     = 24
+      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
       INTEGER, PARAMETER   :: IDBNOX      = 1
       INTEGER, PARAMETER   :: IDBCO       = 2
       INTEGER, PARAMETER   :: IDBC2H6     = 10
@@ -117,7 +124,7 @@
       INTEGER, PARAMETER   :: IDBNH3      = 12
       INTEGER, PARAMETER   :: IDBBC       = 13
       INTEGER, PARAMETER   :: IDBOC       = 14
-      INTEGER, PARAMETER   :: IDBCO2      = 15
+      INTEGER, PARAMETER   :: IDBCO2      = 24
       
       ! Arrays
       INTEGER              :: BIOTRCE(NBIOMAX)
@@ -153,6 +160,7 @@
 !        (phs, 9/18/07)
 !  (3 ) Now make a more general call to GFED2 reader to account for all
 !        four options (phs, 17/12/08)
+!  (4 ) Add CO scaling for VOC production (jaf, mak, 2/6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -168,7 +176,10 @@
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,      ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
+      USE TRACERID_MOD,      ONLY : IDTCO
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic flags
@@ -279,6 +290,17 @@
 !            ENDIF
          ENDIF
 
+         ! Irrespective of inventory type, we need to scale biomass
+         ! CO to account for CO production from VOC's that are not
+         ! explicitly carried in the chemistry mechanisms. This used
+         ! to be done in gc_biomass_mod.f but then is not used for 
+         ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO)*1.05d0
+         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+            BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO)*1.11d0
+         ENDIF
+
          !==============================================================
          ! Do the following on every timestep:
          !
@@ -325,6 +347,55 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE SCALE_BIOMASS_CO( BBARRAY )
+!
+!******************************************************************************
+!  Subroutine SCALE_BIOMASS_CO multiplies the CO biomass emissions by scale 
+!  factors to account for CO production from VOC's that are not explicitly 
+!  carried in the chemistry mechanisms. (bnd, bmy, 8/21/01, 7/20/04)
+!  
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) BBARRAY (REAL*8) : Array containing biomass burning CO emissions
+!
+!  NOTES:
+!  (1 ) Scale factors were determined by Jennifer Logan (jal@io.harvard.edu),
+!       Bryan Duncan (bnd@io.harvard.edu) and Daniel Jacob (djj@io.harvard.edu)
+!  (2 ) Scale factors have been corrected to 5% and 11% (bnd, bmy, 8/21/01)
+!  (3 ) BBARRAY is now dimensioned (IIPAR,JJPAR) (bmy, 9/28/01)
+!  (4 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+!  (5 ) Now references ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM from "tracer_mod.f"
+!        (bmy, 7/20/04)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
+
+#     include "CMN_SIZE"    ! Size parameters
+
+      ! Arguments
+      REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
+
+      !=================================================================
+      ! SCALE_BIOMASS_CO begins here!
+      !=================================================================
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+         ! Full chemistry w/ SMVGEAR  -- enhance by 5%
+         BBARRAY = BBARRAY * 1.05d0
+         
+      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+
+         ! Tagged CO -- enhance by 11%
+         BBARRAY = BBARRAY * 1.11d0
+
+      ENDIF
+
+      ! Return to calling program  
+      END SUBROUTINE SCALE_BIOMASS_CO
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE INIT_BIOMASS
 !
 !******************************************************************************
@@ -334,6 +405,7 @@
 !  NOTES:
 !  (1 ) Now set BIOTRCE for 15 biomass species (bmy, 9/28/06)
 !  (2 ) Now remove BIOMASS_SAVE array, it's redundant (bmy, 9/28/06)
+!  (3 ) Now set BIOTRCE for 24 biomass species (tmf, 7/30/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -353,8 +425,9 @@
 
          ! Tracer numbers for each biomass species (CO2 is last)
          BIOTRCE(:) = (/ 1,  4,  5,  9,  10, 11, 18, 
-     &                   19, 20, 21, 26, 30, 34, 35, 1/)
-         
+     &                   19, 20, 21, 26, 30, 34, 35, 
+     &                   55, 56, 57, 58, 59, 63, 64, 
+     &                   66, 67, 1/)
          ! Allocate array to hold monthly biomass emissions
          ALLOCATE( BIOMASS( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS' )

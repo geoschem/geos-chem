@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.17 2009/01/28 19:59:15 bmy Exp $
+! $Id: logical_mod.f,v 1.18 2009/05/06 14:14:45 ccarouge Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -30,7 +30,9 @@
 !  (21) LCTH      (LOGICAL) : ON/OFF switch for CTH LIGHTNING PARAMETERIZATION
 !  (22) LMFLUX    (LOGICAL) : ON/OFF switch for MFLUX LIGHTNING PARAMETERIZ'N
 !  (23) LPRECON   (LOGICAL) : ON/OFF switch for PRECON LIGHTNING PARAMETERIZ'N
-!  (24) LMEGAN    (LOGICAL) : ON/OFF switch for MEGAN BIOGENIC EMISSIONS
+!  (24) LMEGAN    (LOGICAL): ON/OFF switch for MEGAN BIOGENIC EMISSIONS for ISOP
+!  (24) LMEGANMONO (LOGICAL): ON/OFF switch for MEGAN BIOGENIC EMISSIONS 
+!                             for MONO and MBO.
 !  (25) LMFCT     (LOGICAL) : Argument for TPCORE (transport)
 !  (26) LMONOT    (LOGICAL) : Scales acetone to monoterpene emission
 !  (27) LNEI99    (LOGICAL) : Toggles on EPA/NEI 99 emissions over cont. USA
@@ -65,7 +67,7 @@
 !  (56) LVARTROP  (LOGICAL) : ON/OFF switch for Variable Tropopause
 !  (57) LOTDREG   (LOGICAL) : ON/OFF switch for OTD-LIS regional redistribution
 !  (57) LOTDLOC   (LOGICAL) : ON/OFF switch for OTD-LIS local    redistribution
-!  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology      
+!  (58) LOTDSCALE (LOGICAL) : ON/OFF switch for scaling to OTD-LIS climatology
 !  (59) LCAC      (LOGICAL) : ON/OFF switch for CAC Canadian anthro emissions
 !  (60) LARCSHIP  (LOGICAL) : ON/OFF switch for ARCTAS ship SO2 emissions
 !  (61) LEMEPSHIP (LOGICAL) : ON/OFF switch for EMEP ship emissions
@@ -74,6 +76,11 @@
 !  (64) L3HRBB    (LOGICAL) : ON/OFF switch for 3-hr GFED BB emissions
 !  (65) LSYNOPBB  (LOGICAL) : ON/OFF switch for synoptic GFED BB emissions
 !  (66) LICARTT   (LOGICAL) : ON/OFF switch for modified NEI99-EPA
+!
+!  (67) LSVCSPEC  (LOGICAL) : ON/OFF switch for using CSPEC restart values     
+!
+!  (68) LDICARB   (LOGICAL) : ON/OFF switch for SOG condensation 
+!                             onto OC aerosols
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -98,6 +105,9 @@
 !        emissions (yc, phs, 02/12/07)
 !  (18) Added LICARTT to account for Hudman corrections to EPA/NEI99
 !        (phs, 1/26/09)
+!  (19) Added LSVCSPEC (dkh, 02/12/09) 
+!  (20) Added LMEGANMONO (ccc, tmf, 3/2/09)
+!  (21) Added LDICARB (ccc, tmf, 3/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -115,6 +125,7 @@
       LOGICAL :: LSULF
       LOGICAL :: LSOA
       LOGICAL :: LSSALT
+      LOGICAL :: LDICARB
 
       ! Chemistry
       LOGICAL :: LCHEM  
@@ -161,6 +172,7 @@
       LOGICAL :: LMFLUX
       LOGICAL :: LPRECON
       LOGICAL :: LMEGAN
+      LOGICAL :: LMEGANMONO
       LOGICAL :: LMONOT
       LOGICAL :: LNEI99    
       LOGICAL :: LSHIPSO2
@@ -194,6 +206,8 @@
 
       ! Restart file
       LOGICAL :: LSVGLB
+      LOGICAL :: LSVCSPEC
+  
 
       ! Tagged simulations
       LOGICAL :: LSPLIT 

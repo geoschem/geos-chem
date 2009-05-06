@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.18 2008/12/15 15:55:15 bmy Exp $
+! $Id: emissdr.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -61,6 +61,15 @@
 !        lightning_nox_mod.f.  Remove reference to old GEMISNOX array; this
 !        has been replaced by module arrays EMIS_LI_NOx and EMIS_AC_NOx, in 
 !        order to avoid common block errors. (ltm, bmy, phs, 10/3/07)
+!  (27) Add biogenic emission of MONX and C2H4. (tmf, 1/20/09)
+!  (28) Add a switch, LMEGANMONO, for monoterpene and MBO emission to choose
+!       between MEGAN and GEIA inventory indenpendantly from Isoprene.
+!      This is because although we did, at one time, got monoterpene
+!      emission factors from Alex Guenther, he never published it.
+!      So there is no reference for it. Use of those emission factors have
+!      caused much confusion among users, so we should probably not use it 
+!      for the time being. (tmf, 1/20/09)
+
 !******************************************************************************
 !
       ! References to F90 modules
@@ -75,7 +84,7 @@
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
       USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
-      USE LOGICAL_MOD,       ONLY : LMEGAN,        LBIOGENIC
+      USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
@@ -84,7 +93,9 @@
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,      ONLY : IDEACET,       IDTISOP,   IDEISOP   
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
-
+      USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
+      USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
+ 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -107,6 +118,9 @@
       REAL*8                 :: TMPVAL,  EMMB,     GRASS, BIO_ACET
       REAL*8                 :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)
       REAL*8                 :: SC, PDF, PDR
+
+      ! Add biogenic emission scale factor for ethene (tmf, 1/13/06)
+      REAL*8                 :: BIOSCALEC2H4
 
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
@@ -244,10 +258,12 @@
                ! Temperature
                TMMP  = XLTMMP(I,J,IJLOOP)
             
+               ! Modified to choose MEGAN/GEIA inventory indenpendantly 
+               ! for ISOP and MONX/MBO. (ccc, 1/20/09)
                IF ( LMEGAN ) THEN
 
                   !------------------
-                  ! MEGAN biogenics
+                  ! MEGAN Isoprene
                   !------------------
 
                   ! Cosine of solar zenith angle
@@ -260,6 +276,24 @@
                   ! Isoprene         
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
      &                                      XNUMOL_C, PDR, PDF )
+
+               ELSE  
+
+                  !------------------
+                  ! GEIA Isoprene 
+                  !------------------
+
+                  ! Isoprene
+                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
+
+               ENDIF
+
+
+               IF ( LMEGANMONO ) THEN
+
+                  !------------------
+                  ! MEGAN biogenics
+                  !------------------
 
                   ! Monoterpenes 
                   EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_C )
@@ -274,18 +308,17 @@
                   ! GEIA biogenics 
                   !------------------
 
-                  ! Isoprene
-                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
-
                   ! Monoterpenes
-                  EMMO = EMMONOT(        IJLOOP,         TMMP, XNUMOL_C)
+                  EMMO = EMMONOT(          IJLOOP,       
+     &                              TMMP, XNUMOL_C )
              
                   ! Methyl Butenol
-                  EMMB = EMISOP_MB(I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
+                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
+     &                              TMMP, XNUMOL_C )
 
                ENDIF
 
-               !--------------------------------------------------------------
+
                ! Isoprene emissions from grasslands (use GEIA always)
                !
                ! Note from May Fu (cetmfu@polyu.edu.hk), 02 Dec 2008:
@@ -345,6 +378,16 @@
      &                                     ( EMIS / DTSRCE )
                   ENDIF
                ENDIF
+
+            !=================================================================
+            ! save biogenic monoterpene emission for later use
+            ! EMISRR has units [atoms C/box/s] (tmf, 4/10/06)
+            !=================================================================
+            IF ( IDTMONX /= 0 ) THEN
+               EMISRR(I,J,IDEMONX) = EMISRR(I,J,IDEMONX) + 
+     &                               ( EMMO / DTSRCE )
+            ENDIF
+
 !------------------------------------------------------------------------------
 !
 !******************************************************************************
@@ -431,6 +474,25 @@
      &                                     ( EMIS / DTSRCE ) * BIOSCAL
                   ENDIF
                ENDIF
+
+!=======================================================================
+! Add biogenic emission of ethene (C2H4) --> scaled to isoprene
+!
+! Scale factor BIOSCALEC2H4 =
+!   ( 10 molec alkenes / 100 molec isop ) * ( 1 molec isop / 5 atoms C )
+!   * ( 4 molec ethene / 7 molec alkenes )
+!   * ( 2 atoms C / 1 molec ethene )
+!   = 0.022857d0  [atoms C / atoms C isop]
+! (tmf, 1/13/06)
+
+            BIOSCALEC2H4 = 0.022857d0
+
+            IF ( IDEC2H4 /= 0 ) THEN
+               EMISRR(I,J,IDEC2H4) = EMISRR(I,J,IDEC2H4) +
+     &            ( EMIS / DTSRCE ) * BIOSCALEC2H4
+            ENDIF
+!=======================================================================
+
 !
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
@@ -464,6 +526,10 @@
 
                   ! MBO emissions [atoms C/cm2/s] -- tracer #5
                   AD46(I,J,5) = AD46(I,J,5) + ( EMMB / AREA_CM2 /DTSRCE) 
+
+                  ! C2H4 emissions [atoms C/cm2/s] -- tracer #6 (tmf, 1/13/06)
+                  AD46(I,J,6) = AD46(I,J,6) + 
+     &            ( EMIS * BIOSCALEC2H4 / AREA_CM2 / DTSRCE )
                
                ENDIF  
             ENDIF

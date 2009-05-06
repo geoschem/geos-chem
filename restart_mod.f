@@ -1,4 +1,4 @@
-! $Id: restart_mod.f,v 1.14 2006/09/08 19:21:03 bmy Exp $
+! $Id: restart_mod.f,v 1.15 2009/05/06 14:14:45 ccarouge Exp $
       MODULE RESTART_MOD
 !
 !******************************************************************************
@@ -48,6 +48,8 @@
 !        (bmy, 6/28/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now pass TAU via the arg list in MAKE_RESTART_FILE (bmy, 12/15/05)
+!  (11) Add MAKE_CSPEC_FILE and READ_CSPEC_FILE routines to save and read
+!        CSPEC_FULL restart files (dkh, 02/12/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -64,6 +66,10 @@
       PUBLIC  :: MAKE_RESTART_FILE
       PUBLIC  :: READ_RESTART_FILE
       PUBLIC  :: SET_RESTART
+      PUBLIC  :: MAKE_CSPEC_FILE
+      PUBLIC  :: READ_CSPEC_FILE
+
+
 
       !=================================================================
       ! MODULE VARIABLES
@@ -713,5 +719,338 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
+!
+!******************************************************************************
+!  Subroutine MAKE_CSPEC_FILE creates GEOS-CHEM checkpt files of species
+!  concentrations. 
+!  (dkh, 8/27/04)!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) YYYYMMDD : Year-Month-Date 
+!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a checkpoint file       
+!
+!  Passed via CMN:
+!  ============================================================================
+!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
+!
+!  Passed via comode_mod
+!  ============================================================================
+!  (1 ) CSPEC	: Array of quantities to be checkpointed     
+!                      
+!
+!  NOTES:
+! (1) Based on MAKE_RESTART_FILE 
+!
+!******************************************************************************
+!     
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE ERROR_MOD,  ONLY : DEBUG_MSG,   ERROR_STOP
+      USE FILE_MOD,   ONLY : IU_RST,      IOERROR
+      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_TAU
+      USE COMODE_MOD, ONLY : CSPEC,       JLOP
+      ! write CSPEC_FULL hotp 2/25/09
+      USE COMODE_MOD,  ONLY : CSPEC_FULL
+      USE COMODE_MOD,  ONLY : IXSAVE, IYSAVE, IZSAVE
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN"        ! TAU , NSRCX, LSOILNOX
+#     include "comode.h"   ! IGAS
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
+
+      ! Local Variables      
+      INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
+      INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
+      CHARACTER(LEN=255)   :: FILENAME
+      CHARACTER(LEN=255)   :: OUTPUT_CHECKPT_FILE
+
+
+      ! Temporary storage arrays for checkpointed variables
+      REAL*4               :: TMP(ILONG, ILAT, IPVERT)
+
+      ! For binary punch file, version 2.0
+      REAL*4               :: LONRES, LATRES
+      ! make HALFPOLAR variable (hotp 2/25/09)
+      !INTEGER, PARAMETER   :: HALFPOLAR = 1
+      INTEGER              :: HALFPOLAR
+      INTEGER, PARAMETER   :: CENTER180 = 1
+
+      INTEGER 		   :: MAX_nitr_max
+      INTEGER 		   :: NSOFAR
+      
+      CHARACTER(LEN=20)    :: MODELNAME
+      CHARACTER(LEN=40)    :: CATEGORY
+      CHARACTER(LEN=40)    :: UNIT     
+      CHARACTER(LEN=40)    :: RESERVED = ''
+      CHARACTER(LEN=80)    :: TITLE 
+
+
+      !=================================================================
+      ! MAKE_CSPEC_FILE begins here!
+      !=================================================================
+
+      ! Hardwire output file for now
+      OUTPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+
+      ! Clear some arrays 
+      ! use minimum value instead of zero hotp 2/25/09
+      !TMP(:,:,:)   = 0e0
+      TMP(:,:,:)   = 1e-30
+
+
+      ! Define variables for BINARY PUNCH FILE OUTPUT
+      TITLE    = 'GEOS-CHEM Checkpoint File: ' // 
+     &           'Instantaneous Species Concentrations (#/cm3)'
+      CATEGORY = 'IJ-CHK-$'
+      LONRES   = DISIZE
+      LATRES   = DJSIZE
+      ! get value of HALFPOLAR hotp 2/25/09
+      HALFPOLAR = GET_HALFPOLAR()
+
+      ! Call GET_MODELNAME to return the proper model name for
+      ! the given met data being used (bmy, 6/22/00)
+      MODELNAME = GET_MODELNAME()
+
+      ! Get the nested-grid offsets
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      !=================================================================
+      ! Open the checkpoint file for output -- binary punch format
+      !=================================================================
+
+      ! Copy the output checkpoint file name into a local variable
+      FILENAME = TRIM( OUTPUT_CHECKPT_FILE )
+
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Add ADJ_DIR prefix to filename
+      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - MAKE_CSPEC_FILE: Writing ', a )
+
+      ! Open checkpoint file for output
+      CALL OPEN_BPCH2_FOR_WRITE( IU_RST, FILENAME, TITLE )
+
+      !=================================================================
+      ! Write each checkpointed quantity to the checkpoint file
+      !=================================================================
+
+      ! Checkpt additional values for full chem simulation
+  
+      ! Write the final species concetrations after full chemistry
+      UNIT = 'molec/cm3/box'
+          
+      ! replace NCS with 1 for safety hotp 2/25/09
+      !DO N = 1 , NTSPEC(NCS)
+      DO N = 1 , NTSPEC(1)
+ 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, IPVERT
+         DO J = 1, ILAT
+         DO I = 1, ILONG
+        
+            ! fix recommended by pls, save CSPEC_FULL (hotp 2/18/09)
+            ! now set conc no smalle than 1d-30
+            IF ( CSPEC_FULL(I,J,L,N) .LE. 1d-30 ) THEN
+                 TMP(I,J,L) = 1e-30
+            ELSE
+                 TMP(I,J,L) = CSPEC_FULL(I,J,L,N)
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+ 
+         CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY,  N,
+     &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
+     &               ILONG,     ILAT,      IPVERT,    I0+1,
+     &               J0+1,      1,         TMP(:,:,:) )
+ 
+      ENDDO
+
+      ! Close file
+      CLOSE( IU_RST )
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
+
+      ! Return to calling program
+      END SUBROUTINE MAKE_CSPEC_FILE
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_CSPEC_FILE( YYYYMMDD, HHMMSS, IT_EXISTS ) 
+!
+!******************************************************************************
+!  Subroutine READ_CSPEC_FILE initializes GEOS-CHEM species concentrations 
+!  from a checkpoint file (binary punch file format) 
+!  (dkh, 8/30/04)
+!
+!  Arguments as input:
+!  ============================================================================
+!  (1 ) YYYYMMDD : Year-Month-Day 
+!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
+!
+!  Passed via CMN:
+!  ============================================================================
+!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
+!
+!  Notes
+!  (1 ) Based on READ_RESTART
+!  
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+      USE ERROR_MOD,   ONLY : DEBUG_MSG, ERROR_STOP
+      USE FILE_MOD,    ONLY : IU_RST, IOERROR
+      USE FILE_MOD,    ONLY : FILE_EXISTS
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE COMODE_MOD,  ONLY : CSPEC_FULL, JLOP
+
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN"	   ! LPRT, NSRCX, LSOILNOX
+#     include "comode.h"   ! ITLOOP, IGAS
+
+      ! Arguments
+      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
+
+      ! Local Variables
+      INTEGER             :: I, IOS, J, L, N, JLOOP, NN, NTL
+      INTEGER             :: NCOUNT(NNPAR) 
+      REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
+      LOGICAL             :: IT_EXISTS 
+
+      REAL*8              :: SUMTC
+      CHARACTER(LEN=255)  :: FILENAME
+      CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
+     
+
+      ! For binary punch file, version 2.0
+      INTEGER             :: NI,     NJ,     NL
+      INTEGER             :: IFIRST, JFIRST, LFIRST
+      INTEGER             :: NTRACER,   NSKIP
+      INTEGER             :: HALFPOLAR, CENTER180
+      REAL*4              :: LONRES,    LATRES
+      REAL*8              :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)   :: MODELNAME
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT     
+      CHARACTER(LEN=40)   :: RESERVED
+
+      !=================================================================
+      ! READ_CSPEC_FILE begins here!
+      !=================================================================
+
+      ! Hardwire output file for now
+      INPUT_CHECKPT_FILE = 'restart.cspec.YYYYMMDDhh'
+
+      ! Initialize some variables
+      !TMP(:,:,:) = 0e0
+      ! use 1e-30 as min (hotp 2/25/09)
+      TMP(:,:,:) = 1e-30
+
+      !=================================================================
+      ! Open checkpoint file and read top-of-file header
+      !=================================================================
+      
+      ! Copy input file name to a local variable
+      FILENAME = TRIM( INPUT_CHECKPT_FILE )
+
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+
+      ! Add ADJ_DIR prefix to name
+      !FILENAME = TRIM( ADJ_DIR ) // TRIM( FILENAME )
+
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_CSPEC_FILE: Reading ', a )
+ 
+      ! Check to see if cspec restart file exists
+      IT_EXISTS = FILE_EXISTS( FILENAME )
+      IF ( .not. IT_EXISTS ) THEN 
+         RETURN
+      ENDIF 
+
+      ! Open the binary punch file for input
+      CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
+
+      ! force NCS to one (hotp 2/25/09)
+      !DO N = 1, NTSPEC(NCS)
+      DO N = 1, NTSPEC(1)
+
+         ! Read the values of CSPEC
+         READ( IU_RST, IOSTAT=IOS )
+     &       MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+
+         ! IOS < 0 is end-of-file, so exit
+         IF ( IOS < 0 ) GOTO 555
+
+         ! IOS > 0 is a real I/O error -- print error message
+         IF ( IOS > 0 ) 
+     &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:13' )
+
+         READ( IU_RST, IOSTAT=IOS )
+     &         CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
+     &         NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
+     &         NSKIP
+
+         IF ( IOS /= 0 ) 
+     &      CALL IOERROR(IOS,IU_RST,'read_cspec_file:14' )
+
+         READ( IU_RST, IOSTAT=IOS )
+     &       ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
+
+         IF ( IOS /= 0 ) 
+     &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:16' )
+
+         !==============================================================
+         ! Assign data from the TMP array to CSPEC
+         !==============================================================
+
+         ! Only process checkpoint data 
+         IF ( CATEGORY(1:8) == 'IJ-CHK-$' .and.
+     &        NTL           == ILONG      .and. 
+     &        NN            == ILAT       .and. 
+     &        NL            == IPVERT            ) THEN
+
+            CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
+
+
+         ELSE
+            CALL ERROR_STOP(' Restart data is not correct ', 
+     &                   ' reading CSPEC, restart_mod')
+
+         ENDIF
+ 
+      ENDDO ! N 
+
+ 555  CONTINUE
+
+      ! Close file
+      CLOSE( IU_RST )      
+
+
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )
+
+      ! Return to calling program
+      END SUBROUTINE READ_CSPEC_FILE
+
+!----------------------------------------------------------------------
       ! End of module
       END MODULE RESTART_MOD

@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sgi,v 1.52 2009/01/28 20:22:06 bmy Exp $
+# $Id: Makefile.sgi,v 1.53 2009/05/06 14:14:47 ccarouge Exp $
 #
 # GEOS-Chem Makefile for SGI/Origin (bmy, Wed Jan 28 15:09:01 2009)
 #=============================================================================
@@ -42,6 +42,7 @@ emmonot.o                     \
 fertadd.o                     \
 findmon.o                     \
 fyrno3.o                      \
+fyhoro.o                      \
 gasconc.o                     \
 get_global_ch4.o              \
 getifsun.o                    \
@@ -96,6 +97,7 @@ EFOLD.o                       \
 FLINT.o                       \
 GAUSSP.o                      \
 GEN.o                         \
+fjx_acet_mod.o                \
 JRATET.o                      \
 JVALUE.o                      \
 LEGND0.o                      \
@@ -120,6 +122,7 @@ set_aer.o                     \
 set_prof.o                    
 
 MODS =                        \
+fjx_acet_mod.o                \
 charpak_mod.o                 \
 error_mod.o                   \
 logical_mod.o                 \
@@ -253,6 +256,7 @@ EFOLD.o                        : EFOLD.f
 FLINT.o                        : FLINT.f                        
 GAUSSP.o                       : GAUSSP.f                       
 GEN.o                          : GEN.f                          jv_mie.h 
+fjx_acet_mod.o                 : fjx_acet_mod.f                 cmn_fj.h jv_cmn.h
 JRATET.o                       : JRATET.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 JVALUE.o                       : JVALUE.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 Kr85_mod.o                     : Kr85_mod.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 

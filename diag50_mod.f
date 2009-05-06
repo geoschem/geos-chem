@@ -1,4 +1,4 @@
-! $Id: diag50_mod.f,v 1.21 2008/12/15 15:55:16 bmy Exp $
+! $Id: diag50_mod.f,v 1.22 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
@@ -64,9 +64,6 @@
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  71            : Pure O3 (not Ox) concentration           [v/v      ]
-!  72            : NO concentration                         [v/v      ]
-!  73            : NOy concentration                        [v/v      ]
 !  74            : OH concentration                         [molec/cm3]
 !  75            : NO2 concentration                        [v/v      ]
 !  76            : PBL heights                              [m        ]
@@ -82,7 +79,10 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 92       : RESERVED FOR FUTURE USE
+!  89            : Pure O3 (not Ox) concentration           [v/v      ]
+!  90            : NO concentration                         [v/v      ]
+!  91            : NOy concentration                        [v/v      ]
+!  92            : RESERVED FOR FUTURE USE
 !  93            : Grid box height                          [m        ]
 !  94            : Relative humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
@@ -107,6 +107,7 @@
 !  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !  (12) Renumber RH diagnostic in WRITE_DIAG50 (bmy, 2/11/08)
 !  (13) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, 10/7/08)
+!  (14) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -352,7 +353,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
 
-            ELSE IF ( N == 71 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! PURE O3 CONCENTRATION [v/v]
@@ -362,7 +363,7 @@
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 72 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO CONCENTRATION [v/v]
@@ -372,7 +373,7 @@
      &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                        TCVV(IDTNOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 73 .and. IS_NOy ) THEN
+            ELSE IF ( N == 91 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy CONCENTRATION [v/v]
@@ -776,7 +777,7 @@
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
          SELECT CASE ( ND50_TRACERS(W) )
-            CASE( 71, 72, 74, 75 )
+            CASE( 89, 90, 74, 75 )
                DIVISOR = COUNT_CHEM3D
             CASE( 82:87 )
                DIVISOR = COUNT_CHEM
@@ -821,7 +822,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ( N == 71 ) THEN
+         ELSE IF ( N == 89 ) THEN
 
             !---------------------
             ! Pure O3
@@ -831,7 +832,7 @@
             GMNL     = ND50_NL
             GMTRC    = N_TRACERS + 1
 
-         ELSE IF ( N == 72 ) THEN
+         ELSE IF ( N == 90 ) THEN
 
             !---------------------
             ! Pure NO 
@@ -841,7 +842,7 @@
             GMNL     = ND50_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 73 ) THEN
+         ELSE IF ( N == 91 ) THEN
 
             !---------------------
             ! NOy 

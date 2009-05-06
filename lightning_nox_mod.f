@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.24 2009/02/18 15:35:37 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.25 2009/05/06 14:14:45 ccarouge Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,7 +7,7 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 2/18/09)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 4/29/09)  
 !
 !  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
 !  parameterizations have not yet been implemented.  These parameterizations
@@ -102,6 +102,7 @@
 !        and the GEOS-3 1x1 nested N. America grid in routine 
 !        GET_OTD_LIS_SCALE. (yxw, dan, ltm, bmy, 11/14/08)
 !  (8 ) Added quick fix for GEOS-5 reprocessed met fields (ltm, bmy, 2/18/09)
+!  (9 ) Added quick fix for GEOS-5 years 2004, 2005, 2008 (ltm, bmy, 4/29/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1637,7 +1638,14 @@
 !%%% GEOS-5 is reprocessed and the OTD-LIS redistribution files are recomputed.
 !%%%
 #if   defined( IN_CLOUD_OD ) 
-      FILENAME = TRIM( FILENAME ) // '.reprocessed_geos5_fix'
+      !----------------------------------------------------------------
+      ! NOTE: This OTD/LIS file is only for year 2008!
+      !FILENAME = TRIM( FILENAME ) // '.reprocessed_geos5_fix'
+      !----------------------------------------------------------------
+      ! NOTE: This OTD/LIS file is for years 2004, 2005, 2008!
+      FILENAME = TRIM( FILENAME ) // 
+     &           '.reprocessed_geos5_fix.2004_2005_2008'
+      !----------------------------------------------------------------
 #endif
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1744,6 +1752,7 @@
 !        and the GEOS-3 1x1 nested NA grid (yxw, dan, ltm, bmy, 11/14/08)
 !  (4 ) Added "quick fix" for reprocessed GEOS-5 met fields to be used when 
 !        the IN_CLOUD_OD switch is turned on. (ltm, bmy, 2/18/09)
+!  (5 ) Added "quick fix" for 2004, 2005, 2008 OTD/LIS (ltm, bmy, 4/29/09)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1808,7 +1817,15 @@
 #if   defined( IN_CLOUD_OD )
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 22.4383d0
+            !----------------------------------------------------------------
+            ! NOTE: This value is for 2008 statistics only!
+            ! (i.e. if using the "reprocessed_geos5_fix" file
+            !SCALE = ANN_AVG_FLASHRATE / 22.4383d0
+            !----------------------------------------------------------------
+            ! NOTE: This value is for 2004, 2005, 2008 statistics!
+            ! (i.e. if using the reprocessed_geos5_fix.2004_2005_2008" file
+            SCALE = ANN_AVG_FLASHRATE / 21.0357d0
+            !----------------------------------------------------------------
          ELSE
             SCALE = ANN_AVG_FLASHRATE / 18.3875d0
          ENDIF

@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.34 2008/08/08 17:20:35 bmy Exp $
+! $Id: drydep_mod.f,v 1.35 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -155,6 +155,7 @@
 !  (23) Add H2 and HD as drydep tracers. Added subroutine DRYFLXH2HD for H2HD
 !        offline sim (phs, 9/18/07)
 !  (24) Extra error check for small RH in AERO_SFCRII (phs, 6/11/08)
+!  (25) Added 15 more dry deposition species (tmf, 7/31/08)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -187,7 +188,7 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 39
+      INTEGER, PARAMETER   :: MAXDEP    = 50
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -2947,6 +2948,7 @@ C** Load array DVEL
 !        "IF ( IS_Hg ) THEN" statement. (dkh, bmy, 5/24/06)
 !  (12) Bug fix: fix TYPO in IF block for IDTSOA4 (dkh, bmy, 6/23/06)
 !  (13) Included H2/HD tracers for offline H2-HD sim (phs, 9/18/07)
+!  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2972,6 +2974,11 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
       USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
+      USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
+      USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
+      USE TRACERID_MOD, ONLY : IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
+      USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3143,6 +3150,107 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 6.0d+3
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 30d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! Add GLYX and MGLY dry deposition, 
+         ! using same algorithm as CH2O. (tmf, 5/25/06) 
+         ! GLYX 
+         ELSE IF ( N == IDTGLYX ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTGLYX
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'GLYX'
+            HSTAR(NUMDEP)   = 3.6d+5
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 58d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! MGLY 
+         ELSE IF ( N == IDTMGLY ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMGLY
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MGLY'
+            HSTAR(NUMDEP)   = 3.7d+3
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 72d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! GLYC
+         ELSE IF ( N == IDTGLYC ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTGLYC
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'GLYC'
+            HSTAR(NUMDEP)   = 4.1d+4
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 60d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! APAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTAPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTAPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'APAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ENPAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTENPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTENPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'ENPAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! GLPAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTGLPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTGLPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'GLPAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! GPAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTGPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTGPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'GPAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! MPAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTMPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'MPAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! NIPAN (uses same dep vel as PAN)
+         ELSE IF ( N == IDTNIPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTNIPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'NIPAN'           
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
          ! N2O5  (uses same dep vel as HNO3) 
@@ -3480,6 +3588,28 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 130d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! SOAG
+         ELSE IF ( N == IDTSOAG ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOAG
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOAG'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 58d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! SOAM
+         ELSE IF ( N == IDTSOAM ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOAM
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOAM'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .TRUE.
 
          !----------------------------------

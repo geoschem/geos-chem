@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.23 2009/01/28 19:59:16 bmy Exp $
+! $Id: emfossil.f,v 1.24 2009/05/06 14:14:46 ccarouge Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -64,6 +64,7 @@
 !  (31) Moved down BRAVO parts and add BRAVO and EPA emissions where they 
 !        overlap (phs, 5/7/08)
 !  (32) Now overwrite USA NOx with VISTAS if necessary (amv, 12/02/08)
+!  (33) Modified CO scaling (jaf, 2/25/09)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -81,6 +82,7 @@
       USE LOGICAL_MOD,           ONLY : LSTREETS,         LCAC
       USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
       USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
+      USE LOGICAL_MOD,           ONLY : LICARTT
       USE STREETS_ANTHRO_MOD,    ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,    ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,              ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
@@ -492,16 +494,18 @@
          ENDIF
 
          EMX(1) = TODX * EMISR(IREF,JREF,N) 
-
-         ! Account for CO production from anthropogenic VOC's
-         ! -> For Tagged CO, enhance CO production by 18.5%
-         ! -> For full-chem, enhance CO production by 2%
-         ! (bnd, bmy, 4/26/01; jaf, mak, bmy, 2/14/08)
-         IF ( ITS_A_TAGCO_SIM() ) THEN
-            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.185d0
-         ELSE
-            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
-         ENDIF
+ 
+!--------- Prior to 2/25/09, ccc --------------------------------
+!         ! Account for CO production from anthropogenic VOC's
+!         ! -> For Tagged CO, enhance CO production by 18.5%
+!         ! -> For full-chem, enhance CO production by 2%
+!         ! (bnd, bmy, 4/26/01; jaf, mak, bmy, 2/14/08)
+!         IF ( ITS_A_TAGCO_SIM() ) THEN
+!            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.185d0
+!         ELSE
+!            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
+!         ENDIF
+!----------------------------------------------------------------
          
          !--------------------------------------------------------------
          ! Get CO emissions from the EDGAR inventory (global)
@@ -701,6 +705,24 @@
 
                ENDIF
             ENDIF
+         ENDIF
+
+         ! Account for CO production from anthropogenic VOC's
+         ! -> For Tagged CO, enhance CO production by 18.5%
+         ! -> For full-chem, enhance CO production by 2%
+         ! (bnd, bmy, 4/26/01; jaf, mak, bmy, 2/14/08)
+         ! Scaling factor is now correctly applied after 
+         ! calculating emissions. (jaf, ccc, 2/25/09)
+         ! Modifications of the scaling using Rynda GRL 2008.
+         ! (jaf, ccc, 2/25/09)
+         IF ( ITS_A_TAGCO_SIM() ) THEN
+            IF (GET_USA_MASK(I,J) > 0.d0.and.LICARTT) THEN
+               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
+            ELSE
+               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+            ENDIF
+         ELSE
+            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
          ENDIF
 
          !--------------------------------------------------------------

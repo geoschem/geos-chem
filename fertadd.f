@@ -1,4 +1,4 @@
-! $Id: fertadd.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: fertadd.f,v 1.2 2009/05/06 14:14:46 ccarouge Exp $
       FUNCTION FERTADD( J, M, NN )
 !
 !******************************************************************************
@@ -24,11 +24,14 @@
 !        grid box latitudes.  Now use function GET_MONTH from "time_mod.f".
 !        Removed reference to header file CMN.  Updated comments, 
 !        cosmetic changes. (bmy, 2/11/03)
+!  (2 ) Add LANTHRO switch to correctly turn off anthropogenic emissions. 
+!        (ccc, 4/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_YMID
-      USE TIME_MOD, ONLY : GET_MONTH
+      USE GRID_MOD,     ONLY : GET_YMID
+      USE TIME_MOD,     ONLY : GET_MONTH
+      USE LOGICAL_MOD,  ONLY : LANTHRO
 
       IMPLICIT NONE
 
@@ -56,6 +59,9 @@
       ! Soil type 8 refers to different kinds of farmland
       ! Soil type 9 refers to rice paddies 
       IF ( NN /= 8 .and. NN /= 9 ) RETURN
+
+      ! Return if anthropogenic emissions are turned off (ccc, 4/15/09)
+      IF (.not.LANTHRO) RETURN 
 
       ! Latitude of grid box [degrees]
       Y = GET_YMID( J )

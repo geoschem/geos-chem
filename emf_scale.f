@@ -1,4 +1,4 @@
-! $Id: emf_scale.f,v 1.4 2005/10/20 14:03:24 bmy Exp $
+! $Id: emf_scale.f,v 1.5 2009/05/06 14:14:46 ccarouge Exp $
       SUBROUTINE EMF_SCALE( I,    J,    N,     NN, 
      &                      IREF, JREF, JSCEN, XEMISR, XEMISRN )       
 !
@@ -23,11 +23,15 @@
 !  (5 ) Now references "tracerid_mod.f" (bmy, 11/6/02)
 !  (6 ) Now references LFFNOX from "logical_mod.f" (bmy, 7/20/04)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Modified to add weekday/weekend scaling to aromatics,
+!        C2H4, C2H2 (tmf, 1/7/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TRACERID_MOD, ONLY : IDEALK4, IDEC3H8, IDEISOP, IDECO
-      USE TRACERID_MOD, ONLY : IDENOX,  IDEOX,   IDPRPE,  IDTNOX  
+      USE TRACERID_MOD, ONLY : IDTALK4, IDTC3H8, IDTISOP, IDTCO
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTOX,   IDTPRPE
+      USE TRACERID_MOD, ONLY : IDTMEK,  IDTC2H2, IDTC2H4, IDTACET
+      USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE, IDTC2H6
 
       IMPLICIT NONE
 
@@ -68,7 +72,7 @@
 !*****************************************************************************
 !
       ! NOx weekday/weekend emissions: Use SCNR89(1,JSCEN) as scale factor 
-      IF ( N == IDENOX ) THEN   
+      IF ( NN == IDTNOX ) THEN   
          SFAC89 = SCNR89(1,JSCEN) 
 
          EMISRN(IREF,JREF,1:NOXLEVELS) = 
@@ -79,14 +83,16 @@
       ! HC weekday/weekend emissions: Use SCNR89(3,JSCEN) as scale factor
       ! Otherwise:                    Use 1d0             as scale factor
       ELSE 
-         IF ( N == IDEOX ) THEN 
+         IF ( NN == IDTOX ) THEN 
             SFAC89 = SCNR89(1,JSCEN)
 
-         ELSE IF ( N == IDECO ) THEN
+         ELSE IF ( NN == IDTCO ) THEN
             SFAC89 = SCNR89(2,JSCEN)
 
-         ELSE IF ( N == IDEALK4 .or. N == IDEISOP .or. 
-     &             N == IDPRPE  .or. N == IDEC3H8 ) THEN
+         ELSE IF ( NN == IDTALK4 .or. NN == IDTC2H2 .or.
+     &             NN == IDTPRPE .or. NN == IDTC2H4 .or.
+     &             NN == IDTC3H8 .or. NN == IDTTOLU .or. 
+     &             NN == IDTXYLE ) THEN
             SFAC89 = SCNR89(3,JSCEN) 
 
          ELSE
@@ -94,8 +100,8 @@
 
          ENDIF
 
-            EMISR(IREF,JREF,N) = EMISR(IREF,JREF,N) * SFAC89
-         ENDIF
+         EMISR(IREF,JREF,N) = EMISR(IREF,JREF,N) * SFAC89
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMF_SCALE

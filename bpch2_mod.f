@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.13 2008/11/07 19:30:35 bmy Exp $
+! $Id: bpch2_mod.f,v 1.14 2009/05/06 14:14:47 ccarouge Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -137,13 +137,15 @@
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:1')
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
+     &               'open_bpch2_for_read:1' )
 
       ! Read file type identifier
       READ( IUNIT, IOSTAT=IOS ) FTI
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:2')
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
+     &               'open_bpch2_for_read:2' )
 
       ! Stop if this is not a binary punch file
       IF ( TRIM( FTI ) /= 'CTM bin 02' ) THEN
@@ -155,7 +157,8 @@
       READ( IUNIT, IOSTAT=IOS ) TMP_TITLE
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:3')
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
+     &               'open_bpch2_for_read:3' )
 
       ! Copy value of TMP_TITLE to TITLE for return 
       IF ( PRESENT( TITLE ) ) TITLE = TMP_TITLE

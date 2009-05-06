@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.21 2008/11/18 21:55:54 bmy Exp $
+! $Id: diag_mod.f,v 1.22 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -57,6 +57,9 @@
 !  (27) Added AD10 and AD10em arrays for ND10 H2-HD-sim diag (phs, 9/18/07)
 !  (28) Added CTO3_24h to account for time in the troposphere for O3 in
 !        ND47 (phs, 11/17/08)
+!  (29) Added AD52 for Gamma HO2 diagnostic. (jaegle, ccc, 2/26/09)
+!  (30) Updated to save out GLYX production of SOAG in ND07.
+!       (tmf, 3/6/09)
 !******************************************************************************
 !     
       !=================================================================
@@ -85,6 +88,7 @@
       REAL*4,  ALLOCATABLE :: AD07_BC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
+      REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
 
       ! For ND08 -- seasalt emission
       REAL*4,  ALLOCATABLE :: AD08(:,:,:)
@@ -235,6 +239,9 @@
       ! Dynamically allocatable array -- local only to DIAG50.F
       REAL*8,  ALLOCATABLE :: STT_TEMPO2(:,:,:,:)
 
+      ! For ND52 -- gamma HO2 diagnostic
+      REAL*4,  ALLOCATABLE :: AD52(:,:,:)
+
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
@@ -296,6 +303,7 @@
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )
       IF ( ALLOCATED( AD07_OC     ) ) DEALLOCATE( AD07_OC     )
       IF ( ALLOCATED( AD07_HC     ) ) DEALLOCATE( AD07_HC     )
+      IF ( ALLOCATED( AD07_SOAGM  ) ) DEALLOCATE( AD07_SOAGM  )
       IF ( ALLOCATED( AD08        ) ) DEALLOCATE( AD08        )
       IF ( ALLOCATED( AD09        ) ) DEALLOCATE( AD09        )
       IF ( ALLOCATED( AD09_em     ) ) DEALLOCATE( AD09_em     )
@@ -347,6 +355,7 @@
       IF ( ALLOCATED( AD45        ) ) DEALLOCATE( AD45        )
       IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
+      IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )

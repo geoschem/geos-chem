@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.18 2008/08/08 17:20:35 bmy Exp $
+! $Id: error_mod.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, 3/8/01, 6/11/08)
+!  Module ERROR_MOD contains error checking routines. (bmy, phs, 3/8/01, 4/14/09)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -60,6 +60,7 @@
 !  (19) Now use intrinsic functions for IFORT, remove C routines (bmy, 8/14/07)
 !  (20) Added routine SAFE_DIV (phs, bmy, 2/26/08)
 !  (21) Added routine IS_SAFE_DIV (phs, bmy, 6/11/08)
+!  (22) Updated routine SAFE_DIV (phs, 4/14/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -792,26 +793,44 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION SAFE_DIV( N, D, ALTV ) RESULT( Q )
-!
+      FUNCTION SAFE_DIV( N, D, ALT_NAN, ALT_OVER, ALT_UNDER )
+     &     RESULT( Q )
+!     
 !******************************************************************************
 !  Subroutine SAFE_DIV performs "safe division", that is to prevent overflow,
-!  underflow, NaN, or infinity errors.  An alternate value is returned if the 
-!  division cannot be performed. (bmy, 2/26/08)
-!
-!  For more information, see the discussion on: http://groups.google.com/group/comp.lang.fortran/browse_thread/thread/8b367f44c419fa1d/
-!
+!  underlow, NaN, or infinity errors.  An alternate value is returned if the 
+!  division cannot be performed. (bmy, phs, 2/26/08, 4/14/09)
+!  
+!  For more information, see the discussion on:
+!   http://groups.google.com/group/comp.lang.fortran/browse_thread/thread/8b367f44c419fa1d/
+!  
 !  Arguments as Input:
-!  ============================================================================
-!  (1 ) N    : Numerator for the division 
-!  (2 ) D    : Divisor for the division
-!  (3 ) ALTV : Alternate value to be returned if the division can't be done
+!  ========================================================================
+!  (1 ) N       : Numerator for the division 
+!  (2 ) D       : Divisor for the division
+!  (3 ) ALT_NAN : Alternate value to be returned if the division is either
+!                 NAN (0/0) or leads to overflow (ie, a too large number)
 !
-!  NOTES: 
+!  Optional Input:
+!  ========================================================================  
+!  (4 ) ALT_OVER  : Alternate value to be returned if the division
+!                    leads to overflow (default is ALT_NAN)
+!  (4 ) ALT_UNDER : Alternate value to be returned if the division
+!                    leads to underflow (default is 0, but you could 
+!                    use TINY() if you want non-zero result). 
+!  
+!  NOTES:
+!  (1) Now can return different alternate values if NAN (that is 0/0),
+!      overflow (that is a too large number), or too small (that is greater
+!      than 0 but less than smallest possible number). Default value is
+!      zero in case of underflow (phs, 4/14/09)
+!  (2) Some compiler options flush underflows to zero (-ftz for IFort).
+!       To think about it (phs, 4/14/09)
 !******************************************************************************
-!
+!     
       ! Arguments
-      REAL*8, INTENT(IN) :: N, D, ALTV
+      REAL*8,           INTENT(IN) :: N, D, ALT_NAN
+      REAL*8, OPTIONAL, INTENT(IN) :: ALT_OVER, ALT_UNDER
       
       ! Function value
       REAL*8             :: Q
@@ -819,10 +838,29 @@
       !==================================================================
       ! SAFE_DIV begins here!
       !==================================================================
-      IF ( EXPONENT(N) - EXPONENT(D) >= MAXEXPONENT(N) .or. D==0 ) THEN
-         Q = ALTV
+      IF ( N==0 .and. D==0 ) THEN
+
+         ! NAN
+         Q = ALT_NAN
+
+      ELSE IF ( EXPONENT(N) - EXPONENT(D) >= MAXEXPONENT(N) .OR.
+     &          D==0                                        ) THEN
+
+         ! OVERFLOW
+         Q = ALT_NAN
+         IF ( PRESENT(ALT_OVER) ) Q = ALT_OVER
+         
+      ELSE IF ( EXPONENT(N) - EXPONENT(D) <= MINEXPONENT(N) ) THEN
+
+         ! UNDERFLOW
+         Q = 0D0
+         IF ( PRESENT(ALT_UNDER) ) Q = ALT_UNDER         
+         
       ELSE
+
+         ! No problem
          Q = N / D
+         
       ENDIF
 
       ! Return to calling program
@@ -842,9 +880,11 @@
 !  (1 ) N              : Numerator for the division 
 !  (2 ) D              : Divisor for the division
 !  (3 ) R4 (optional)  : logical flag to use the limits of REAL*4 to define 
-!                        under/overflow
+!                        under/overflow. Extra defensive.
 !
-!  NOTES: 
+!  NOTES:
+!  (1) UnderFlow, OverFlow and NaN are tested for. If you need to
+!       differentiate between the three, use the SAFE_DIV (phs, 4/14/09)
 !******************************************************************************
 !
       ! Arguments

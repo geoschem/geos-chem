@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.23 2009/01/29 15:35:50 bmy Exp $
+! $Id: emissions_mod.f,v 1.24 2009/05/06 14:14:46 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -44,6 +44,8 @@
 !  (17) Now calls EMISSDR for tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !  (18) Now references "cac_anthro_mod.f" (amv, phs, 03/11/08)
 !  (19) Now references "vistas_anthro_mod.f" (amv, 12/02/08)
+!  (20) Bug fixe : add specific calls for Streets for the grid 0.5x0.666.
+!        (dan, ccc, 3/11/09)
 !EOP
 !------------------------------------------------------------------------------
 
@@ -90,6 +92,7 @@
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
+      USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO_05x0666
       USE SULFATE_MOD,            ONLY : EMISSSULFATE 
       USE TIME_MOD,               ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,               ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
@@ -170,7 +173,11 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month to get, at least 
@@ -224,7 +231,11 @@
 ! prior to 12/9/08
 !         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Read CAC emissions
@@ -286,8 +297,13 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         ! Bug fix: call every month now (pdk, phs, 3/17/09)
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Read CAC emissions
@@ -337,8 +353,13 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         ! Bug fix: call every month now (phs, 3/17/09)
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Emit CH4
@@ -358,8 +379,13 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         ! Bug fix: call every month now (phs, 3/17/09)         
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Read CO2 ARCTAS SHIP emissions
@@ -376,8 +402,13 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
+         ! Bug fix: call every month now (phs, 3/17/09)
+         IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#else
             CALL EMISS_STREETS_ANTHRO
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month

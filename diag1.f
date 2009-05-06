@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.20 2008/08/08 17:20:34 bmy Exp $
+! $Id: diag1.f,v 1.21 2009/05/06 14:14:46 ccarouge Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -259,7 +259,8 @@
 !                 SAVED IN BINARY PUNCH FILE FORMAT             
 !                 (get I,J,L,N from "timeseries.dat")
 !
-!  ND52   ----    Free Diagnostic  
+!  ND52  (I,J,L,N) HO2 aerosol uptake coefficient (gamma)     unitless
+!
 !  ND53   ----    Free Diagnostic 
 !
 !  ND54 (I,J,L)   Time in troposphere (fraction of total time) unitless

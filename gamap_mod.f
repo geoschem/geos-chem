@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.28 2008/08/08 17:20:35 bmy Exp $
+! $Id: gamap_mod.f,v 1.29 2009/05/06 14:14:45 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -82,6 +82,9 @@
 !  (13) Added ND10 diagnostic for H2/HD simulation. (phs, 9/18/07)
 !  (14) Change category name for ND31 diagnostic (bmy, 11/16/07)
 !  (15) Add to tracerinfo.dat file for timeseries and Rn-Pb-Be (bmy, 2/22/08)
+!  (16) Added ND52 diagnostic for gamma HO2 (jaegle 02/26/09)
+!  (17) Add gamap info for dicarbonyl simulation (tmf, 3/10/09)
+!  (18) Add C2H4 in ND46 (ccc, 3/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1163,6 +1166,11 @@
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
+      CATEGORY(N) = 'SOAGM=$'
+      DESCRIPT(N) = 'Dicarbonyl SOA production'
+      OFFSET(N)   = SPACING * 33
+
+      N           = N + 1
       CATEGORY(N) = 'HG-SRCE'
       DESCRIPT(N) = 'Hg emissions'
       OFFSET(N)   = SPACING * 34
@@ -1237,6 +1245,12 @@
       DESCRIPT(N) = 'H2 HD emissions'
       OFFSET(N)   = SPACING * 48
 
+      ! New ND52 diagnostic for gamma(HO2). (jaegle, 2/29/09)
+      N           = N + 1
+      CATEGORY(N) = 'GAMMA'
+      DESCRIPT(N) = 'gamma HO2'
+      OFFSET(N)   = SPACING * 49
+
       ! Number of categories
       NCATS = N
       
@@ -1260,7 +1274,8 @@
 !  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
 !  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
 !        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
-!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08) 
+!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
+!  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1285,6 +1300,7 @@
       USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
+      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
 
 #     include "CMN_SIZE"     ! Size parameters
@@ -1602,7 +1618,7 @@
 
          ! Number of tracers
          IF ( LSOA ) THEN
-            NTRAC(07) = 10
+            NTRAC(07) = 15
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -1610,6 +1626,11 @@
          ! Loop over tracers
          DO T = 1, NTRAC(07)
 
+            ! Define the default quantities
+            UNIT (T,07) = 'kg'
+            MOLC (T,07) = 1
+            MWT  (T,07) = 12e-3
+            SCALE(T,07) = 1e0
             ! Get name, long-name, tracern umber
             SELECT CASE( T )
                CASE( 1 )
@@ -1623,45 +1644,77 @@
                CASE( 3 )
                   NAME (T,07) = 'ALPH'
                   FNAME(T,07) = 'Alpha-Pinene'
+                  MWT  (T,07) = 136e-3
                   INDEX(T,07) = IDTALPH + ( SPACING * 33 )
                CASE( 4 )
                   NAME (T,07) = 'LIMO'
                   FNAME(T,07) = 'Limonene'
+                  MWT  (T,07) = 136e-3
                   INDEX(T,07) = IDTLIMO + ( SPACING * 33 )
                CASE( 5 )
                   NAME (T,07) = 'TERP'
                   FNAME(T,07) = 'Terpenes'
+                  MWT  (T,07) = 136e-3
                   INDEX(T,07) = IDTLIMO + 1 + ( SPACING * 33 )
                CASE( 6 )
                   NAME (T,07) = 'ALCO'
                   FNAME(T,07) = 'Alcohols'
+                  MWT  (T,07) = 142e-3     ! Actually carbon_mod.f uses 154.25
                   INDEX(T,07) = IDTLIMO + 2 + ( SPACING * 33 )
                CASE( 7 )
                   NAME (T,07) = 'SESQ'
                   FNAME(T,07) = 'Sesqterpene'
+                  MWT  (T,07) = 204e-3
                   INDEX(T,07) = IDTLIMO + 3 + ( SPACING * 33 )
                CASE( 8 )
                   NAME (T,07) = 'SOA1'
                   FNAME(T,07) = 'Aer prods of ALPH+LIMO+TERP ox'
+                  MWT  (T,07) = 150e-3
                   INDEX(T,07) = IDTSOA1 + ( SPACING * 33 )
                CASE( 9 )
                   NAME (T,07) = 'SOA2'
                   FNAME(T,07) = 'Aerosol prod of ALCO ox'
+                  MWT  (T,07) = 160e-3
                   INDEX(T,07) = IDTSOA2 + ( SPACING * 33 )
                CASE( 10 )
                   NAME (T,07) = 'SOA3'
                   FNAME(T,07) = 'Aerosol prod of SESQ ox'
+                  MWT  (T,07) = 220e-3
                   INDEX(T,07) = IDTSOA3 + ( SPACING * 33 )
+
+               CASE( 11 )
+                  NAME (T,07) = 'SOA4'
+                  FNAME(T,07) = 'Aerosol prod of ISOP ox'
+                  MWT  (T,07) = 130e-3
+                  INDEX(T,07) = IDTSOA4 + ( SPACING * 33 )
+               CASE( 12 )
+                  NAME (T,07) = 'SOAG'
+                  FNAME(T,07) = 'SOAG production in aq. aerosol'
+                  MWT  (T,07) = 58e-3
+                  INDEX(T,07) = IDTSOAG + ( SPACING * 33 )
+
+               CASE( 13 )
+                  NAME (T,07) = 'SOAM'
+                  FNAME(T,07) = 'SOAM production in aq. aerosol'
+                  MWT  (T,07) = 72e-3
+                  INDEX(T,07) = IDTSOAM + ( SPACING * 33 )
+
+               CASE( 14 )
+                  NAME (T,07) = 'SOAG'
+                  FNAME(T,07) = 'SOAG production in clouds'
+                  MWT  (T,07) = 58e-3
+                  INDEX(T,07) = 91 + ( SPACING * 33 )
+
+               CASE( 15 )
+                  NAME (T,07) = 'SOAM'
+                  FNAME(T,07) = 'SOAM production in clouds'
+                  MWT  (T,07) = 72e-3
+                  INDEX(T,07) = 92 + ( SPACING * 33 )
 
                CASE DEFAULT
                   ! Nothing
             END SELECT
 
-            ! Define the rest of the quantities
-            UNIT (T,07) = 'kg'
-            MOLC (T,07) = 1
-            MWT  (T,07) = 12e-3
-            SCALE(T,07) = 1e0
          ENDDO
       ENDIF
 
@@ -2078,7 +2131,7 @@
             !------------------
 
             ! Number of tracers
-            NTRAC(22) = 6
+            NTRAC(22) = 8
 
             ! Loop over tracers
             DO T = 1, NTRAC(22)
@@ -2097,7 +2150,12 @@
                      NAME(T,22) = 'JO3'
                   CASE( 6  )
                      NAME(T,22) = 'POH'
-                  CASE DEFAULT
+
+                  CASE( 7  )
+                     NAME(T,22) = 'JGLYX'
+                  CASE( 8  )
+                     NAME(T,22) = 'JMGLY'
+                 CASE DEFAULT
                   ! Nothing
                END SELECT
 
@@ -2171,7 +2229,10 @@
             !---------------------------
 
             ! Number of tracers
-            NTRAC(28) = 14
+            ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
+            ! (tmf, 5/5/09) 
+!            NTRAC(28) = 14
+            NTRAC(28) = 23
 
             ! Loop over tracers
             DO T = 1, NTRAC(28)
@@ -2262,6 +2323,60 @@
                      MWT  (T,28) = 12e-3
                      MOLC (T,28) = 1
                      UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 15 )
+                     NAME (T,28) = 'GLYX'
+                     INDEX(T,28) = 55 + ( SPACING * 45 )
+                     MWT  (T,28) = 58e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 16 )
+                     NAME (T,28) = 'MGLY'
+                     INDEX(T,28) = 56 + ( SPACING * 45 )
+                     MWT  (T,28) = 72e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 17 )
+                     NAME (T,28) = 'BENZ'
+                     INDEX(T,28) = 57 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 6
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 18 )
+                     NAME (T,28) = 'TOLU'
+                     INDEX(T,28) = 58 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 7
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 19 )
+                     NAME (T,28) = 'XYLE'
+                     INDEX(T,28) = 59 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 8
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 20 )
+                     NAME (T,28) = 'C2H4'
+                     INDEX(T,28) = 63 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 2
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 21 )
+                     NAME (T,28) = 'C2H2'
+                     INDEX(T,28) = 64 + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 2
+                     UNIT (T,28) = 'atoms C/cm2/s'
+                  CASE( 22 )
+                     NAME (T,28) = 'GLYC'
+                     INDEX(T,28) = 66 + ( SPACING * 45 )
+                     MWT  (T,28) = 60e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
+                  CASE( 23 )
+                     NAME (T,28) = 'HAC'
+                     INDEX(T,28) = 67 + ( SPACING * 45 )
+                     MWT  (T,28) = 74e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'molec/cm2/s'
                   CASE DEFAULT
                      ! Nothing
                END SELECT
@@ -2605,7 +2720,7 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 5
+         NTRAC(46) = 6
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -2627,6 +2742,9 @@
                CASE( 5 )
                   NAME(T,46) = 'MBO'
                   MOLC(T,46) = 5
+               CASE( 6 )
+                  NAME(T,46) = 'C2H4'
+                  MOLC(T,46) = 2
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2782,6 +2900,22 @@
             END SELECT
 
          ENDDO
+      ENDIF
+
+
+      !-----------------------------------
+      ! gamma HO2 (ND52) jaegle (02/26/09)
+      !-----------------------------------
+      IF ( ND52 > 0 ) THEN
+         T           = 1
+         NTRAC(52)   = T
+         NAME (T,52) = 'GAMMAHO2'
+         FNAME(T,52) = 'Gamma HO2'
+         UNIT (T,52) = 'unitless'
+         INDEX(T,52) = T + ( SPACING * 46 )
+         MOLC (T,52) = 1
+         MWT  (T,52) = 0e0
+         SCALE(T,52) = 1e0
       ENDIF
 
       !-------------------------------------      

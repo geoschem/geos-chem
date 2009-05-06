@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.17 2007/11/16 18:47:38 bmy Exp $
+! $Id: dust_mod.f,v 1.18 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -56,6 +56,9 @@
 !  (7 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (8 ) Updated output print statement in SRC_DUST_DEAD (bmy, 1/23/07)
 !  (9 ) Modifications for GEOS-5 (bmy, 1/24/07)
+!  (10) Modified to archive only hydrophilic aerosol/aqueous dust surface area
+!        (excluding BCPO and OCPO) for aqueous chemistry calculations 
+!        Dust surfaces are considered aqueous only when RH > 35% (tmf, 3/6/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1043,6 +1046,8 @@
 !  (1 ) Bundled into "dust_mod.f" (bmy, 4/1/04)
 !  (2 ) Now references DATA_DIR from "directory_mod.f".  Now parallelize over
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
+!  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
+!       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1053,6 +1058,8 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
+      USE DAO_MOD,       ONLY : RH
 
       IMPLICIT NONE
 
@@ -1067,6 +1074,11 @@
       ! Local variables
       INTEGER            :: I, J, JLOOP, L, N
       REAL*8             :: MSDENS(NDUST), XTAU
+      ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
+      ! (tmf, 3/6/09)
+      REAL*8             :: XRH
+      REAL*8             :: CRITRH      ! Critical RH [%], above which 
+                                        !  heteorogeneous chem takes place
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1080,6 +1092,9 @@
       MSDENS(5) = 2650.0d0
       MSDENS(6) = 2650.0d0
       MSDENS(7) = 2650.0d0
+
+      ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
+      CRITRH = 35.0d0   ! [%]
 
       !=================================================================     
       ! Convert concentration [kg/m3] to optical depth [unitless].
@@ -1131,7 +1146,7 @@
       !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
       DO N     = 1, NDUST
       DO JLOOP = 1, NTTLOOP
 
@@ -1144,6 +1159,18 @@
 
          TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
+
+         ! Archive WTAREA and WERADIUS when RH > 35%  (tmf, 6/13/07) 
+         ! Get RH  
+         XRH     = RH( I, J, L )   ![%]
+         WTAREA(JLOOP, N)   = 0.d0
+         WERADIUS(JLOOP, N) = 0.d0
+
+         IF ( XRH >= CRITRH ) THEN
+            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
+            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+         ENDIF
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -1259,6 +1286,8 @@
 !        the L-dimension for ND21 diagnostic. (bmy, 7/20/04)
 !  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
+!       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1271,6 +1300,8 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
+      USE DAO_MOD,       ONLY : RH
 
       IMPLICIT NONE
 
@@ -1289,6 +1320,12 @@
       REAL*8              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL*8              :: MSDENS(NDUST), XTAU
       CHARACTER (LEN=255) :: FILENAME
+
+      ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
+      ! (tmf, 3/6/09)
+      REAL*8             :: XRH
+      REAL*8             :: CRITRH      ! Critical RH [%], above which 
+                                        !  heteorogeneous chem takes place
 
       !=================================================================
       ! RDUST begins here!
@@ -1349,6 +1386,9 @@
          MSDENS(6) = 2650.0d0
          MSDENS(7) = 2650.0d0
 
+      ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
+      CRITRH = 35.0d0   ! [%]
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -1386,7 +1426,7 @@
          !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, JLOOP, L, N )
+!$OMP+PRIVATE( I, J, JLOOP, L, N, XRH )
          DO N     = 1, NDUST
          DO JLOOP = 1, NTTLOOP
 
@@ -1399,6 +1439,18 @@
 
             TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                         DUST(I,J,L,N) / MSDENS(N)  
+
+         ! Archive WTAREA and WERADIUS when RH > 35% (tmf, 6/13/07) 
+         ! Get RH  
+         XRH     = RH( I, J, L )   ![%]
+         WTAREA(JLOOP, N)   = 0.d0
+         WERADIUS(JLOOP, N) = 0.d0
+
+         IF ( XRH >= CRITRH ) THEN
+            WTAREA(JLOOP, N)   = TAREA(JLOOP, N)
+            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N)
+         ENDIF
+
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO

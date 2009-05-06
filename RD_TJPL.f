@@ -1,4 +1,4 @@
-C $Id: RD_TJPL.f,v 1.1 2003/06/30 20:26:09 bmy Exp $
+C $Id: RD_TJPL.f,v 1.2 2009/05/06 14:14:47 ccarouge Exp $
       SUBROUTINE RD_TJPL(NJ1,NAMFIL)
 C-----------------------------------------------------------------------
 c  Read in wavelength bins, solar fluxes, Rayleigh parameters, temperature-
@@ -33,6 +33,11 @@ c     zpdep    Pressure dependencies by wavelength bin
 c     jpdep    Index of cross sections requiring pressure dependence
 c     lpdep    Label for pressure dependence
 c
+c  NOTES:
+c  (1 ) Updated to include new pressure-dependancy function for GLYX and MGLY. 
+c        (tmf, 1/7/09)
+c  (2 ) Added a pressure-dependancy function selector 'pdepf'. 
+c        (tmf, ccc, 1/7/09)
 C-----------------------------------------------------------------------
       IMPLICIT NONE
 
@@ -40,7 +45,7 @@ C-----------------------------------------------------------------------
 #     include "jv_cmn.h"
 
       integer i, j, k, iw, nk, nqqq, nwww, nj1
-      character*7  lpdep(3)
+      character*7  lpdep(7)
       character*11 NAMFIL
       do J=1,NS
         do K=1,3
@@ -57,7 +62,11 @@ C-------------spectral data---------------------------------------------
         stop
       endif
 C------------NQQQ = no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
-      NQQQ = NJVAL-3
+C- NQQQ is changed to NJVAL-1 because there are 2 dummies species at the end
+C used for acetone pressure dependency only. (ccc, 4/20/09)
+C- prior to 4/20/09
+C      NQQQ = NJVAL-3
+      NQQQ = NJVAL-1
       read(NJ1,102) (WBIN(IW),IW=1,NWWW)
       read(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
       read(NJ1,102) (WL(IW),IW=1,NWWW)
@@ -90,10 +99,22 @@ c
 c---Pressure dependencies
       read(NJ1,104) npdep
       do k=1,npdep
-        read(NJ1,105) lpdep(k),(zpdep(iw,k),iw=1,nwww)
-        write(6,201)  lpdep(k),(zpdep(iw,k),iw=1,nwww)
+         read(NJ1,105) lpdep(k), pdepf(k), (zpdep(iw,k),iw=1,nwww)
+         write(6,201)  lpdep(k), pdepf(k), (zpdep(iw,k),iw=1,nwww)
+
+         !--------------------------------------
+         ! Special treatment for MGLY pressure dependency
+         ! (tmf, 11/16/06)
+         !--------------------------------------
+         if ( pdepf(k) .eq. 4 ) then           
+            ! pass zpdep to mglypdep
+            mglypdep(:,1) = zpdep(:,k)
+            read(NJ1,105) lpdep(k), pdepf(k), (mglypdep(iw,2),iw=1,nwww)
+            read(NJ1,105) lpdep(k), pdepf(k), (mglypdep(iw,3),iw=1,nwww)
+         endif
       enddo
       read(NJ1,'(A)') TITLE0
+
 c
 c---Zero index arrays
       do j=1,jppj
@@ -106,10 +127,10 @@ c
 C---Set mapping index
       do j=1,NJVAL
         do k=1,jppj
-          if(jlabel(k).eq.titlej(1,j)) jind(k)=j
+          if (jlabel(k).eq.titlej(1,j)) jind(k)=j
         enddo
         do k=1,npdep
-          if(lpdep(k).eq.titlej(1,j)) jpdep(j)=k
+          if (lpdep(k).eq.titlej(1,j)) jpdep(j)=k
         enddo
       enddo
       do k=1,jppj
@@ -143,15 +164,18 @@ c
         write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAA(K,J),K=1,NK)
       enddo
 C--------
+C Modify reading and writing formats 105 & 201 for pressure dependancy 
+c (ccc, 1/7/09)
+
   101 FORMAT(8E10.3)
   102 FORMAT(10X,7E10.3)
   103 FORMAT(A7,F3.0,7E10.3)
 c 103 FORMAT(A7,F3.0,7E10.3/(10X,7E10.3))
   104 FORMAT(13x,i2)
-  105 FORMAT(A7,3x,7E10.3)
+  105 FORMAT(A7,2x,I1,7E10.3)
   110 format(3x,a20)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
-  201 format(1x,' pr.dep:',a10,7(1pE10.3))
+  201 format(1x,' pr.dep:',a10,1x,I1,7(1pE10.3))
   300 format(' Number of x-sections supplied to Fast-J: ',i3,/,
      &       ' Maximum number allowed (NS) only set to: ',i3,
      &       ' - increase in jv_cmn.h')

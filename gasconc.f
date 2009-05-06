@@ -1,5 +1,6 @@
-! $Id: gasconc.f,v 1.16 2008/12/15 15:55:15 bmy Exp $
-      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND )
+! $Id: gasconc.f,v 1.17 2009/05/06 14:14:45 ccarouge Exp $
+      SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND,
+     &                    READ_CSPEC )
 !
 !******************************************************************************
 !  Subroutine GASCONC initializes gas concentrations for SMVGEAR II.
@@ -25,6 +26,9 @@
 !        species.  NDRYDEP is the # of rxns in "globchem.dat", and NUMDEP is 
 !        the # of drydep species in GEOS-Chem.  The two values may not be the 
 !        same. (dbm, phs, 11/19/08)
+!  (9 ) Add READ_SPEC in argument list (hotp, 2/26/09)
+!  (10) Now CSPEC_FULL is copied to CSPEC depending on 
+!       the READ_CSPEC value. (hotp, 2/26/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -49,6 +53,8 @@
       REAL*8,  INTENT(INOUT)  :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
       REAL*8,  INTENT(IN)     :: XNUMOL(NTRACER)
       REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
+      ! cspecrestart hotp 2/25/09
+      LOGICAL, INTENT(IN)     :: READ_CSPEC
 C
 C *********************************************************************
 C ************       WRITTEN BY MARK JACOBSON (1991-4)     ************
@@ -227,7 +233,11 @@ C
       ! concentrations from CSPEC_FULL into CSPEC.  We also need to do
       ! this on subsequent chemistry timesteps if the variable tropopause
       ! is turned on. (bdf, phs, bmy, 10/3/06)
-      IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
+      ! NOTE : 
+      ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
+      ! IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
+
+      IF ( LVARTROP .or. FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
 
 C  ********************************************************************
 C  *            Update starting concentrations for plumes             *

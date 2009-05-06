@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.9 2008/11/07 19:30:35 bmy Exp $
+! $Id: acetone_mod.f,v 1.10 2009/05/06 14:14:47 ccarouge Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -375,6 +375,9 @@
       ! in surface temperature and wind speed between the different
       ! GEOS met field versions and (2) to account for the different
       ! surface areas between the 1x1, 2x2.5 and 4x5 grid boxes.
+      !
+      ! The sacle factor for GEOS5 where calculated using 2005/07 to 
+      ! 2006/06. (tmf, 3/5/09)
       ! 
       ! Model  Res   ACET Produced    Target        Scale factor  
       ! ----------------------------------------------------------------
@@ -385,48 +388,67 @@
       ! GEOS-3 1x1                                            = 0.05
       ! GEOS-S 2x25                                           = 0.25
       ! GEOS-1 2x25                                           = 0.25
+      ! GEOS_5 4x5   17.5272 Tg C   16.74 Tg C  16.74/17.5272 = 0.9551
+      ! GEOS_5 4x5 NESTED_CH DOMAIN     produces ACET  2.16838 Tg C
+      ! GEOS_5 05x0666 NESTED_CH DOMAIN produces ACET 134.757 Tg C
+      ! GEOS_5 05X0666 scale factor = 0.9551 * (2.16838 / 134.757) = 0.01537
+      !     
       !
       !=================================================================
 #if   defined( GEOS_4 ) && defined( GRID4x5 )
-
+ 
       ! GEOS-4 4x5 
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.8765d0
-
+ 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
-
+ 
       ! GEOS-4 2 x 2.5 (accounts for 2x2.5 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
-
+ 
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
-
+ 
       ! GEOS-4 1 x 1.25: NOTE: NEED TO DEFINE THIS!! (bmy, 12/1/04)
       REAL*8, PARAMETER :: SCALE_FACTOR = ???
-
+ 
 #elif  defined( GEOS_3 ) && defined( GRID4x5 )
-
+ 
       ! GEOS-3 4x5 (accounts for higher surface temp in GEOS-3)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.83d0
-
+ 
 #elif defined( GEOS_3 ) && defined( GRID2x25 )
-
+ 
       ! GEOS-3 2 x 2.5 (also accounts for 2x2.5 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.2075d0
-
+ 
 #elif defined( GEOS_3 ) && defined( GRID1x1 )
-
+ 
       ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
-
- #elif defined( GEOS_5 ) && defined( GRID05x0666 )
-
+ 
+!-----------------------------------------------------------------------
+! Prior to 3/6/09
+! #elif defined( GEOS_5 ) && defined( GRID05x0666 )
+!-----------------------------------------------------------------------
+#elif defined( GEOS_5 ) 
+ 
+#if defined( GRID05x0666 ) && defined ( NESTED_CH )
+ 
       ! GEOS-5 0.5 x 0.667, scaled to 4x5 (dan, 11/6/08)
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.0008d0
-
+      ! This scale factor produces too little acetone. (tmf, 3/05/09)
+      !REAL*8, PARAMETER :: SCALE_FACTOR = 0.0008d0
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
+ 
+#elif defined( GRID4x5 )
+ 
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.9551d0
+ 
+#endif
+ 
 #else
       
       ! Otherwise set to 1
       REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
-
+ 
 #endif
 
       !=================================================================

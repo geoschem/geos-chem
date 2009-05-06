@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.27 2008/11/18 21:55:53 bmy Exp $
+! $Id: initialize.f,v 1.28 2009/05/06 14:14:45 ccarouge Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -169,12 +169,15 @@
 !        ND42 is turned on. (phs, bmy, 1/30/07)
 !  (40) Now zero AD10 and AD10em for H2HD simulation (phs, 9/18/07)
 !  (41) Now zero CTO3_24h (phs, 11/17/08)
+!  (42) Now zero AD52 for Gamma HO2 diag. (ccc, jaegle, 2/26/09)
+!  (43) Updated to diagnose GLYX production of SOAG in ND07. (tmf, 1/7/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE DIAG_MOD,    ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,    ONLY : AD06,        AD07,        AD07_BC
       USE DIAG_MOD,    ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,    ONLY : AD07_SOAGM
       USE DIAG_MOD,    ONLY : AD09,        AD09_em,     AD11
       USE DIAG_MOD,    ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
       USE DIAG_MOD,    ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
@@ -199,6 +202,7 @@
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,    ONLY : AD52
       USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
@@ -269,6 +273,7 @@
          IF ( ND45 > 0 ) AD45     = 0e0
          IF ( ND46 > 0 ) AD46     = 0e0
          IF ( ND47 > 0 ) AD47     = 0e0
+         IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
@@ -292,6 +297,8 @@
             AD07_BC  = 0e0
             AD07_OC  = 0e0
             AD07_HC  = 0e0
+            AD07_SOAGM = 0e0
+
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)

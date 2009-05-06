@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.5 2009/01/28 19:59:16 bmy Exp $
+! $Id: edgar_mod.f,v 1.6 2009/05/06 14:14:46 ccarouge Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -25,8 +25,17 @@
 !  (15) GET_EDGAR_ANTH_SO2    : Returns SOx anth emissions at grid box (I,J)
 !  (16) GET_EDGAR_SHIP_SO2    : Returns SOx ship emissions at grid box (I,J)
 !  (17) GET_EDGAR_TODN        : Returns NOx time-of-day scale factors at (I,J)
-!  (18) INIT_EDGAR            : Allocates and zeroes module arrays
-!  (19) CLEANUP_EDGAR         : Deallocates module arrays
+!  (18) READ_AROMATICS        : Reads EDGAR aromatics emissions from disk
+!  (19) READ_C2H4             : Reads EDGAR C2H4 emissions from disk
+!  (20) READ_C2H2             : Reads EDGAR C2H2 emissions from disk
+!  (21) READ_AROMATICS_05x0666: Reads EDGAR aromatics emissions from disk
+!                                for 0.5x0.666 resolution
+!  (22) READ_C2H4_05x0666     : Reads EDGAR C2H4 emissions from disk
+!                                for 0.5x0.666 resolution
+!  (23) READ_C2H2_05x0666     : Reads EDGAR C2H2 emissions from disk
+!                                for 0.5x0.666 resolution
+!  (24) INIT_EDGAR            : Allocates and zeroes module arrays
+!  (25) CLEANUP_EDGAR         : Deallocates module arrays
 !
 !  GEOS-CHEM modules referenced by "edgar_mod.f"
 !  ============================================================================
@@ -48,6 +57,12 @@
 !  (3 ) Added EDGAR_NOx_SHIP and EDGAR_CO_SHIP variables. Added SHIP flag
 !        to GET_EDGAR_NOx and GET_EDGAR_CO, so they can be accessed from
 !        outside the module (5/13/08, phs)
+!  (4 ) Added subroutines READ_AROMATICS, READ_C2H4 and READ_C2H2 for GLYX
+!        chemistry. They are PUBLIC routines as they are used by anthroems.f
+!        (ccc, 3/2/09)
+!  (5 ) Added subroutines READ_AROMATICS_05x0666, READ_C2H4_05x0666 and 
+!        READ_C2H2_05x0666 for 0.5x0.666 resolution emissions. 
+!        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -68,6 +83,12 @@
       PUBLIC :: GET_EDGAR_ANTH_SO2
       PUBLIC :: GET_EDGAR_SHIP_SO2
       PUBLIC :: GET_EDGAR_TODN
+      PUBLIC :: READ_AROMATICS
+      PUBLIC :: READ_C2H4
+      PUBLIC :: READ_C2H2
+      PUBLIC :: READ_AROMATICS_05x0666
+      PUBLIC :: READ_C2H4_05x0666
+      PUBLIC :: READ_C2H2_05x0666
 
       !=================================================================
       ! MODULE VARIABLES
@@ -1984,6 +2005,479 @@
 
       ! Return to calling program
       END SUBROUTINE EDGAR_TOTAL_Tg
+
+!------------------------------------------------------------------------------
+      SUBROUTINE READ_AROMATICS( E_BENZ, E_TOLU, E_XYLE )
+!
+!******************************************************************************
+!  Subroutine READ_AROMATICS now reads EDGARv2 inventory for Year 1985
+!   from a bpch file (tmf, 1/8/08).
+!
+!  Arguments as Output
+!  ============================================================================
+!  (1 ) E_BENZ (REAL*4) : EDGARv2 anthro BENZ for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!  (2 ) E_TOLU (REAL*4) : EDGARv2 anthro TOLU for year 1985 
+!                         (no seasonality, 1 level )
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!  (3 ) E_XYLE (REAL*4) : EDGARv2 anthro XYLE for year 1985 
+!                         (no seasonality, 1 level )
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_BENZ(IGLOB,JGLOB )
+      REAL*4, INTENT(OUT) :: E_TOLU(IGLOB,JGLOB )
+      REAL*4, INTENT(OUT) :: E_XYLE(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)            :: FILENAME
+      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
+      REAL*8 :: TEMP(IGLOB,JGLOB)
+
+      !=================================================================
+      ! READ_AROMATICS begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_BENZ = 0e0      
+      E_TOLU = 0e0      
+      E_XYLE = 0e0      
+
+      ! Define the binary punch file name
+
+      !=================================================================
+      ! Read BENZ (tracer #57): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'BENZ_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    57, 
+     &                 0.d0,       I1x1,        J1x1,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      ! Regrid BENZ from GEOS 1x1 to current model resolution
+      ! [atoms C/cm2/s] (ccc, 3/9/09)
+      GEOS1x1(:,:,1) = ARRAY(:,:)
+      CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
+
+      E_BENZ = TEMP
+
+      !=================================================================
+      ! Read TOLU (tracer #58): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'TOLU_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    58, 
+     &                 0.d0,       I1x1,        J1x1,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      ! Regrid TOLU from GEOS 1x1 to current model resolution
+      ! [atoms C/cm2/s] (ccc, 3/9/09)
+      GEOS1x1(:,:,1) = ARRAY(:,:)
+      CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
+
+      E_TOLU = TEMP
+
+      !=================================================================
+      ! Read XYLE (tracer #59): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'XYLE_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    59, 
+     &                 0.d0,       I1x1,        J1x1,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      ! Regrid XYLE from GEOS 1x1 to current model resolution
+      ! [atoms C/cm2/s] (ccc, 3/9/09)
+      GEOS1x1(:,:,1) = ARRAY(:,:)
+      CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
+
+      E_XYLE = TEMP
+
+
+ 100  FORMAT( 'READ_AROMATICS: Reading ', a )
+
+
+      ! Return to calling program
+      END SUBROUTINE READ_AROMATICS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_C2H4( E_C2H4 )
+!
+!******************************************************************************
+!  Subroutine READ_C2H4 now reads EDGARv2 inventory for Year 1985 from a bpch file 
+!  (tmf, 11/10/2006).
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) E_C2H4 (REAL*4) : EDGARv2 anthro C2H4 for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s] (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_C2H4(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)            :: FILENAME
+      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
+      REAL*8 :: TEMP(IGLOB,JGLOB)
+
+      !=================================================================
+      ! READ_C2H4 begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_C2H4 = 0e0      
+
+      ! Define the binary punch file name
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'C2H4_1985_FF_IND_EDGAR2.1x1geos.bpch'
+
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_C2H4: Reading ', a )
+
+      !=================================================================
+      ! Read C2H4 (tracer #63): aseasonal
+      !=================================================================
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    63, 
+     &                 0.d0,       I1x1,        J1x1,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+
+      ! Regrid C2H4 from GEOS 1x1 to current model resolution
+      ! [atoms C/cm2/s] (ccc, 3/9/09)
+      GEOS1x1(:,:,1) = ARRAY(:,:)
+      CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
+
+      E_C2H4 = TEMP
+
+
+      ! Return to calling program
+      END SUBROUTINE READ_C2H4
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_C2H2( E_C2H2 )
+!
+!******************************************************************************
+!  Subroutine READ_C2H2 now reads EDGARv2 C2H2 emissions for year 1985
+!     (tmf, 11/10/2006).
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) E_C2H2 (REAL*4) : EDGARv2 anthro C2H2 for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s] (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD  
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_C2H2(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(I1x1,J1x1 )
+      CHARACTER(LEN=255)            :: FILENAME
+      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
+      REAL*8 :: TEMP(IGLOB,JGLOB)
+
+      !=================================================================
+      ! READ_C2H2 begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_C2H2 = 0e0      
+
+      ! Define the binary punch file name
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'C2H2_1985_FF_IND_EDGAR2.1x1geos.bpch'
+
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_C2H2: Reading ', a )
+
+      !=================================================================
+      ! Read C2H2 (tracer #64): aseasonal
+      !=================================================================
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    64, 
+     &                 0.d0,       I1x1,        J1x1,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      ! Regrid C2H2 from GEOS 1x1 to current model resolution
+      ! [atoms C/cm2/s] (ccc, 3/9/09)
+      GEOS1x1(:,:,1) = ARRAY(:,:)
+      CALL DO_REGRID_1x1('atoms C/cm2/s', GEOS1x1, TEMP)
+
+      E_C2H2 = TEMP
+
+      ! Return to calling program
+      END SUBROUTINE READ_C2H2
+
+!------------------------------------------------------------------------------
+      SUBROUTINE READ_AROMATICS_05x0666( E_BENZ, E_TOLU, E_XYLE )
+!
+!******************************************************************************
+!  Subroutine READ_AROMATICS now reads EDGARv2 inventory for Year 1985
+!   from a bpch file (tmf, 1/8/08).
+!
+!  Arguments as Output
+!  ============================================================================
+!  (1 ) E_BENZ (REAL*4) : EDGARv2 anthro BENZ for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!  (2 ) E_TOLU (REAL*4) : EDGARv2 anthro TOLU for year 1985 
+!                         (no seasonality, 1 level )
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!  (3 ) E_XYLE (REAL*4) : EDGARv2 anthro XYLE for year 1985 
+!                         (no seasonality, 1 level )
+!                         [molec/cm2/s]  (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_BENZ(IGLOB,JGLOB )
+      REAL*4, INTENT(OUT) :: E_TOLU(IGLOB,JGLOB )
+      REAL*4, INTENT(OUT) :: E_XYLE(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(IGLOB,JGLOB )
+      CHARACTER(LEN=255)            :: FILENAME
+
+      !=================================================================
+      ! READ_AROMATICS begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_BENZ = 0e0      
+      E_TOLU = 0e0      
+      E_XYLE = 0e0      
+
+      ! Define the binary punch file name
+
+      !=================================================================
+      ! Read BENZ (tracer #57): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'BENZ_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    57, 
+     &                 0.d0,       IGLOB,        JGLOB,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      E_BENZ = ARRAY
+
+      !=================================================================
+      ! Read TOLU (tracer #58): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'TOLU_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    58, 
+     &                 0.d0,       IGLOB,        JGLOB,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      E_TOLU = ARRAY
+
+      !=================================================================
+      ! Read XYLE (tracer #59): aseasonal
+      !=================================================================
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'XYLE_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    59, 
+     &                 0.d0,       IGLOB,        JGLOB,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      E_XYLE = ARRAY
+
+ 100  FORMAT( 'READ_AROMATICS: Reading ', a )
+
+
+      ! Return to calling program
+      END SUBROUTINE READ_AROMATICS_05x0666
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_C2H4_05x0666( E_C2H4 )
+!
+!******************************************************************************
+!  Subroutine READ_C2H4 now reads EDGARv2 inventory for Year 1985 from a bpch file 
+!  (tmf, 11/10/2006).
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) E_C2H4 (REAL*4) : EDGARv2 anthro C2H4 for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s] (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_C2H4(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(IGLOB,JGLOB )
+      CHARACTER(LEN=255)            :: FILENAME
+
+      !=================================================================
+      ! READ_C2H4 begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_C2H4 = 0e0      
+
+      ! Define the binary punch file name
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'C2H4_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_C2H4: Reading ', a )
+
+      !=================================================================
+      ! Read C2H4 (tracer #63): aseasonal
+      !=================================================================
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    63, 
+     &                 0.d0,       IGLOB,        JGLOB,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      E_C2H4 = ARRAY
+
+
+      ! Return to calling program
+      END SUBROUTINE READ_C2H4_05x0666
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_C2H2_05x0666( E_C2H2 )
+!
+!******************************************************************************
+!  Subroutine READ_C2H2 now reads EDGARv2 C2H2 emissions for year 1985
+!     (tmf, 11/10/2006).
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (1 ) E_C2H2 (REAL*4) : EDGARv2 anthro C2H2 for year 1985 
+!                         (no seasonality, 1 level ) 
+!                         [molec/cm2/s] (tmf, 7/8/05)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TIME_MOD,      ONLY : GET_MONTH
+      USE BPCH2_MOD  
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+
+!      IMPLICIT NONE
+
+#     include "CMN_SIZE"            ! Size parameters
+
+      ! Arguments
+      REAL*4, INTENT(OUT) :: E_C2H2(IGLOB,JGLOB )
+
+      ! Local variables
+      INTEGER                       :: L
+      REAL*4                        :: ARRAY(IGLOB,JGLOB )
+      CHARACTER(LEN=255)            :: FILENAME
+
+      !=================================================================
+      ! READ_C2H2 begins here!
+      !=================================================================
+      ! Zero emission arrays
+      E_C2H2 = 0e0      
+
+      ! Define the binary punch file name
+      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
+     &        'C2H2_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+
+      ! Write file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_C2H2: Reading ', a )
+
+      !=================================================================
+      ! Read C2H2 (tracer #64): aseasonal
+      !=================================================================
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',    64, 
+     &                 0.d0,       IGLOB,        JGLOB,     
+     &                    1,         ARRAY,        QUIET=.TRUE. )
+         
+      E_C2H2 = ARRAY
+
+      ! Return to calling program
+      END SUBROUTINE READ_C2H2_05x0666
 
 !------------------------------------------------------------------------------
 ! NOTE: This should be for debugging... 

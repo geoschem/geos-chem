@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.57 2009/01/29 15:35:50 bmy Exp $
+! $Id: main.f,v 1.58 2009/05/06 14:14:45 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.58  2009/05/06 14:14:45  ccarouge
+! commits for v8-02-01 (ccarouge 5/6/09)
+!
 ! Revision 1.57  2009/01/29 15:35:50  bmy
 ! Added protex header to emep_mod.f.  Also some last-minute changes from
 ! Philippe, and a couple of typo fixes. (bmy, 1/29/09)
@@ -266,6 +269,9 @@
       USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
       USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
       USE ERROR_MOD,         ONLY : IT_IS_NAN, IT_IS_FINITE   !yxw
+      ! To save CSPEC_FULL restart (dkh, 02/12/09)
+      USE LOGICAL_MOD,       ONLY : LSVCSPEC
+      USE RESTART_MOD,       ONLY : MAKE_CSPEC_FILE
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -585,6 +591,11 @@
                IF ( LSOA .and. LCHEM ) THEN 
                   CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
                ENDIF
+
+               ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)
+               IF ( LCHEM .and. LSVCSPEC ) THEN 
+                  CALL MAKE_CSPEC_FILE( NYMD, NHMS )
+               ENDIF 
 
                !### Debug
                IF ( LPRT ) THEN
@@ -924,6 +935,7 @@
 
             ! Call the appropriate chemistry routine
             CALL DO_CHEMISTRY
+
          ENDIF 
  
          !==============================================================

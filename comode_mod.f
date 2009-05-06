@@ -1,4 +1,4 @@
-! $Id: comode_mod.f,v 1.5 2006/09/14 14:22:13 phs Exp $
+! $Id: comode_mod.f,v 1.6 2009/05/06 14:14:46 ccarouge Exp $
       MODULE COMODE_MOD
 !
 !******************************************************************************
@@ -51,6 +51,10 @@
 !  (7 ) Now references "error_mod.f" (bmy, 10/15/02)
 !  (8 ) Now add CSUMA, CSUMC, ERRMX2 arrays for SMVGEAR II (bmy, 7/18/03)
 !  (9 ) Now also references "tracer_mod.f" (bmy, 9/28/04)
+!  (10) Add WTAREA and WERADIUS variables. 
+!       For SOA production from reactive uptake of dicarbonyls, 
+!       archived WTAREA and WERADIUS should include dusts, 
+!       but excludes BCPO and OCPO (tmf, ccc, 1/7/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -75,6 +79,8 @@
       REAL*8,  ALLOCATABLE :: T3(:)      
       REAL*8,  ALLOCATABLE :: TAREA(:,:)
       REAL*8,  ALLOCATABLE :: VOLUME(:)      
+      REAL*8,  ALLOCATABLE :: WTAREA(:,:)
+      REAL*8,  ALLOCATABLE :: WERADIUS(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -185,6 +191,14 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VOLUME' )
          VOLUME = 0d0
 
+         ALLOCATE( WTAREA( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WTAREA' )
+         WTAREA = 0d0      
+
+         ALLOCATE( WERADIUS( ITLOOP, NDUST+NAER ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
+         WERADIUS = 0d0      
+
       ENDIF
 
       !----------------------------------
@@ -262,6 +276,8 @@
       IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3      )     
       IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA   )
       IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME  )  
+      IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA  )
+      IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_COMODE

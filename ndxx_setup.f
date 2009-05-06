@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.35 2008/12/18 20:25:41 bmy Exp $
+! $Id: ndxx_setup.f,v 1.36 2009/05/06 14:14:45 ccarouge Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -130,6 +130,8 @@
 !  (65) Allocate CTO3_24h (phs, 11/18/08)      
 !  (66) We don't need to set LD65=1 here anymore, we now call NDXX_SETUP!
 !        after DIAG_PL_MOD. (phs, bmy, 12/18/08)
+!  (67) Added ND52 for GAMMA HO2 diagnostic. (ccc, jaegle, 2/26/09)
+!  (68) Add AD07_SOAGM (tmf, 1/7/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -138,6 +140,7 @@
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
       USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
       USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
       USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
@@ -162,7 +165,7 @@
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,        ONLY : AD54
+      USE DIAG_MOD,        ONLY : AD52,        AD54
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
@@ -218,6 +221,7 @@
       LD43 = 1
       LD45 = 1
       LD47 = 1
+      LD52 = 1
       LD54 = 1
       LD64 = 1
       !-----------------------------------------------------------------
@@ -286,6 +290,10 @@
 
          ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
+
+         ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
+
       ENDIF  
 
       !================================================================
@@ -906,7 +914,17 @@
       ENDIF
 
       !=================================================================
-      ! ND52 - ND53: Free diagnostics
+      ! ND52: gamma HO2
+      !=================================================================
+      IF ( ND52 > 0 ) THEN
+         LD52 = MIN( ND52, LLPAR)
+
+         ALLOCATE( AD52( IIPAR, JJPAR, LD52 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD52' )
+      ENDIF
+
+      !=================================================================
+      ! ND53: Free diagnostics
       !
       ! ND54 - Time spend in the troposphere
       !        --> uses AD54 array (allocatable)

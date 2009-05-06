@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.18 2008/08/08 17:20:33 bmy Exp $
+! $Id: convection_mod.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -85,6 +85,9 @@
 
 #     include "CMN_SIZE"   ! Size parameters
 
+      ! Local variables
+      INTEGER :: I, J, L, N
+
 #if   defined( GCAP ) 
 
       !-------------------------
@@ -139,6 +142,7 @@
 !  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
 !        (bmy, 5/25/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !*****************************************************************************
 !     
       ! References to F90 modules
@@ -282,6 +286,23 @@
      &                    TCVV,   
      &                    INDEXSOL )
 
+
+      ! Add a check to set negative values in STT to TINY
+      ! (ccc, 4/15/09)
+!$OMP PARALLEL DO        
+!$OMP+DEFAULT( SHARED   )
+!$OMP+PRIVATE( N, L, J, I )
+      DO N = 1,N_TRACERS
+      DO L = 1,LLPAR
+      DO J = 1,JJPAR
+      DO I = 1,IIPAR
+         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1d0))
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
 
@@ -302,6 +323,7 @@
 !        (bmy, 5/25/05)
 !  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
 !        (swu, bmy, 11/1/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -444,6 +466,22 @@
      &                   UPDN     (:,:,LLPAR:1:-1  ),  
      &                   DNDN     (:,:,LLPAR:1:-1  ),
      &                   DETRAINN (:,:,LLPAR:1:-1  )  )
+
+      ! Add a check to set negative values in STT to TINY
+      ! (ccc, 4/15/09)
+!$OMP PARALLEL DO        
+!$OMP+DEFAULT( SHARED   )
+!$OMP+PRIVATE( N, L, J, I )
+      DO N = 1,N_TRACERS
+      DO L = 1,LLPAR
+      DO J = 1,JJPAR
+      DO I = 1,IIPAR
+         STT(I,J,L,N) = MAX(STT(I,J,L,N),TINY(1d0))
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
@@ -600,6 +638,7 @@
 !        NNPAR.  In many cases, NC is less than NNPAR and this will help to 
 !        save memory especially when running at 2x25 or greater resolution 
 !        (bmy, 1/31/08)
+!  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1132,6 +1171,22 @@
          ENDDO 
 !$OMP END PARALLEL DO
       ENDIF
+
+      ! Add a check to set negative values in Q to TINY
+      ! (ccc, 4/15/09)
+!$OMP PARALLEL DO 
+!$OMP+DEFAULT( SHARED   )
+!$OMP+PRIVATE( N, L, J, I )
+      DO N = 1,NC
+      DO L = 1,LLPAR
+      DO J = 1,JJPAR
+      DO I = 1,IIPAR
+         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY)
+      ENDDO
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE NFCLDMX

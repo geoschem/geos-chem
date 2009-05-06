@@ -1,4 +1,4 @@
-! $Id: diag42_mod.f,v 1.4 2007/11/05 16:16:15 bmy Exp $
+! $Id: diag42_mod.f,v 1.5 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
@@ -30,6 +30,7 @@
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
+!  (3 ) Add diagnostics for SOAG and SOAM (tmf, 1/7/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -50,7 +51,7 @@
       INTEGER              :: ND42, LD42
 
       ! Parameters
-      INTEGER, PARAMETER   :: PD42 = 8
+      INTEGER, PARAMETER   :: PD42 = 14
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD42(:,:,:,:)
@@ -79,6 +80,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTOCPI, IDTOCPO
+      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -139,14 +141,14 @@
      &                     STT(I,J,L,IDTSOA2) +  
      &                     STT(I,J,L,IDTSOA3) ) * FACTOR
 
-         ! Sum of all SOA [ug/m3] 
+         ! Sum of SOA1 to SOA4
          AD42(I,J,L,6) = AD42(I,J,L,6)        + 
      &                   ( STT(I,J,L,IDTSOA1) + 
      &                     STT(I,J,L,IDTSOA2) + 
      &                     STT(I,J,L,IDTSOA3) + 
      &                     STT(I,J,L,IDTSOA4) ) * FACTOR
 
-         ! Sum of all OC [ug C/m3] 
+         ! Sum of primary OC + SOA1 to SOA4 [ug C/m3] 
          ! Use higher ratio (2.1) of molecular weight of
          ! organic mass per carbon mass accounting for non-carbon
          ! components attached to OC [Turpin and Lim, 2001] 
@@ -158,9 +160,55 @@
      &                   + ( STT(I,J,L,IDTOCPO) + 
      &                       STT(I,J,L,IDTOCPI) ) ) * FACTOR
 
-         ! Sum of all OC [ug C/m3] at STP
+         ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/m3] at STP
          PRES          = GET_PCENTER( I, J, L )
          AD42(I,J,L,8) = AD42(I,J,L,7) * STD_VOL_FAC * T(I,J,L) / PRES
+
+!--------------------------------------------------------
+! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
+! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
+! Test if SOAG and SOAM are simulated (ccc, 12/18/08)
+!--------------------------------------------------------
+         IF ( IDTSOAG /= 0 .AND. IDTSOAM /=0 ) THEN
+            ! SOAG [ug total mass /m3]
+            AD42(I,J,L,9) = AD42(I,J,L,9)        + 
+     &                      ( STT(I,J,L,IDTSOAG) * 1.d0 * FACTOR )
+
+            ! SOAM [ug total mass /m3]
+            AD42(I,J,L,10) = AD42(I,J,L,10)        + 
+     &                      ( STT(I,J,L,IDTSOAM) * 1.d0 * FACTOR )
+
+
+            ! Sum of SOA1 to SOA4, SOAG, SOAM (tmf, 1/31/07)
+            AD42(I,J,L,11) = AD42(I,J,L,11)        + 
+     &                      ( STT(I,J,L,IDTSOA1) + 
+     &                        STT(I,J,L,IDTSOA2) + 
+     &                        STT(I,J,L,IDTSOA3) + 
+     &                        STT(I,J,L,IDTSOA4)  +
+     &                      ( STT(I,J,L,IDTSOAG) * 1.d0 ) +
+     &                      ( STT(I,J,L,IDTSOAM) * 1.d0 )) * FACTOR 
+
+            ! Sum of SOA1 to SOA4, SOAG, SOAM in carbon (tmf, 1/31/07) 
+            ! Except SOAG is 0.41 carbon, SOAM is 0.5 carbon
+            AD42(I,J,L,12) = AD42(I,J,L,12)          +
+     &                      ( ( STT(I,J,L,IDTSOA1) + 
+     &                          STT(I,J,L,IDTSOA2) + 
+     &                          STT(I,J,L,IDTSOA3) + 
+     &                          STT(I,J,L,IDTSOA4) )   / 2.1d0 +
+     &                         ( STT(I,J,L,IDTSOAG) * 0.41D0 ) +
+     &                         ( STT(I,J,L,IDTSOAM) * 0.50D0 ) +
+     &                        ( STT(I,J,L,IDTOCPO) + 
+     &                          STT(I,J,L,IDTOCPI) ) ) * FACTOR
+
+            ! Sum of SOA1 to SOA4, SOAG, SOAM at STP [ug/sm3 STP] (tmf, 1/31/07)  
+            PRES          = GET_PCENTER( I, J, L )
+            AD42(I,J,L,13) = AD42(I,J,L,11) * STD_VOL_FAC * T(I,J,L) 
+     &                       / PRES
+
+            ! Sum of all OC [ug C/sm3] at STP (including SOAG, SOAM)
+            AD42(I,J,L,14) = AD42(I,J,L,12) * STD_VOL_FAC * T(I,J,L) 
+     &                       / PRES
+         ENDIF
       ENDDO
       ENDDO
       ENDDO
@@ -280,6 +328,12 @@
             CASE( 7 )
                UNIT = 'ug C/m3'
             CASE( 8 )
+               UNIT = 'ug C/sm3'
+            CASE( 12 )
+               UNIT = 'ug C/m3'
+            CASE( 13 )
+               UNIT = 'ug/sm3'
+            CASE( 14 )
                UNIT = 'ug C/sm3'
             CASE DEFAULT
                UNIT = 'ug/m3'

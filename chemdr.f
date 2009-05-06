@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.29 2008/12/15 15:55:16 bmy Exp $
+! $Id: chemdr.f,v 1.30 2009/05/06 14:14:47 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -147,6 +147,7 @@
 !        emissions scale factors (swu, havala, bmy, 1/28/04)
 !  (31) Now call "save_full_trop" at the end to account for "do_diag_pl" 
 !        resetting some of CSPEC elements (phs, 6/3/08)
+!  (32) Reading the CSPEC_FULL restart file if asked.(dkh, hotp, ccc 2/26/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -170,6 +171,10 @@
       USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
       USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
+      ! To use CSPEC_FULL restart (dkh, 02/12/09
+      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
+      USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
+      USE LOGICAL_MOD,          ONLY : LSVCSPEC
 
       IMPLICIT NONE
 
@@ -185,6 +190,10 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+
+      
+      ! To use CSPEC_FULL restart (dkh, 02/12/09) 
+      LOGICAL                  :: IT_EXISTS 
 
       !=================================================================
       ! CHEMDR begins here!
@@ -349,8 +358,43 @@
       ! miscellaneous parameters.  GASCONC also calls PARTITION, which
       ! splits up family tracers like NOx and Ox into individual
       ! chemical species for SMVGEAR.
+      ! NOTE:
+      ! (1) The call to GASCONC is modified to use CSPEC_FULL restart 
+      !     file (dkh, hotp, ccc,2/26/09)
       !=================================================================
-      CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND )
+      IT_EXISTS = .FALSE.
+      IF ( FIRSTCHEM .AND. LSVCSPEC ) THEN 
+
+         CALL READ_CSPEC_FILE( GET_NYMD(), GET_NHMS(), IT_EXISTS ) 
+   
+         IF ( .not. IT_EXISTS ) THEN 
+             
+            ! Use default background values 
+            WRITE(6,*) 
+     &   '    - CHEMDR: CSPEC restart not found, use background values'
+ 
+            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+     &                    IT_EXISTS )
+      
+         ELSE 
+
+            ! Use default background values 
+            WRITE(6,*) 
+     &   '    - CHEMDR: using CSPEC values from restart file'                  
+
+            ! Call GASCONC but don't reset CSPEC values
+            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
+     &                    IT_EXISTS )
+
+         ENDIF 
+
+      ELSE 
+               
+         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+     &                 IT_EXISTS )
+
+      ENDIF 
+      IT_EXISTS = .FALSE.
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after GASCONC' )
@@ -465,10 +509,16 @@
       ! this if the variable troposphere is turned on. 
       ! (bdf, phs, bmy, 10/3/06)
       !
-      ! NOTE: This has to be placed at the end of CHEMDR, after the
-      ! call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
+      ! NOTE: 
+      ! (1) This has to be placed at the end of CHEMDR, after the
+      !     call to the ND65 diagnostic DO_DIAG_PL. (phs, 6/3/08)
+      ! (2) We also copy CSPEC to CSPEC_FULL if we want to write a 
+      !     CSPEC_FULL restart file. (ccc, 2/26/09) 
       !=================================================================
-      IF ( LVARTROP ) THEN
+!-----------------------------------------------------------------------
+! Prior to 2/26/09
+!      IF ( LVARTROP ) THEN
+      IF ( LVARTROP .or. LSVCSPEC ) THEN
          CALL SAVE_FULL_TROP
 
          !### Debug

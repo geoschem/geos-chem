@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.28 2008/12/15 15:55:16 bmy Exp $
+! $Id: diag51_mod.f,v 1.29 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -69,9 +69,6 @@
 !  ND51 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  71            : Pure O3 (not Ox) concentration           [v/v      ]
-!  72            : NO concentration                         [v/v      ]
-!  73            : NOy concentration                        [v/v      ]
 !  74            : OH concentration                         [molec/cm3]
 !  75            : NO2 concentration                        [v/v      ]
 !  76            : PBL heights                              [m        ]
@@ -87,7 +84,10 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 92       : RESERVED FOR FUTURE USE
+!  89            : Pure O3 (not Ox) concentration           [v/v      ]
+!  90            : NO concentration                         [v/v      ]
+!  91            : NOy concentration                        [v/v      ]
+!  92            : RESERVED FOR FUTURE USE
 !  93            : Grid box heights                         [m        ]
 !  94            : Relative Humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
@@ -113,7 +113,8 @@
 !  (12) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
 !  (13) Renumber RH in WRITE_DIAG50 (bmy, 2/11/08)
 !  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
-!  (15) Bug fix in GET_LOCAL_TIME (ccarouge, 12/10/08)
+!  (15) Bug fix in GET_LOCAL_TIME (ccc, 12/10/08)
+!  (16) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -469,7 +470,7 @@
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
 
-            ELSE IF ( N == 71 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! Pure O3 [v/v]
@@ -481,7 +482,7 @@
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD(I) )
 
-            ELSE IF ( N == 72 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
 
                !--------------------------------------
                ! NO [v/v]
@@ -493,7 +494,7 @@
      &                ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                  TCVV(IDTNOX)      / AD(I,J,L)     * GOOD(I) )
 
-            ELSE IF ( N == 73 .and. IS_NOy ) THEN
+            ELSE IF ( N == 91 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy [v/v]
@@ -949,8 +950,7 @@
 
          SELECT CASE( ND51_TRACERS(W) )
 
-            CASE( 71, 72, 74, 75 )
-
+            CASE( 89, 90, 74, 75 )
                !--------------------------------------------------------
                ! Avoid div by zero for tracers which are archived each
                ! chem timestep and only available in the troposphere
@@ -1011,7 +1011,7 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ( N == 71 ) THEN
+         ELSE IF ( N == 89 ) THEN
 
             !---------------------
             ! Pure O3
@@ -1021,8 +1021,7 @@
             GMNL     = ND51_NL
             GMTRC    = N_TRACERS + 1
 
-         ELSE IF ( N == 72 ) THEN
-
+         ELSE IF ( N == 90 ) THEN
             !---------------------
             ! Pure NO [v/v]
             !---------------------
@@ -1031,8 +1030,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 73 ) THEN
-
+         ELSE IF ( N == 91 ) THEN
             !---------------------
             ! NOy 
             !---------------------

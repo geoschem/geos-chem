@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.21 2009/02/17 20:56:16 bmy Exp $
+! $Id: transport_mod.f,v 1.22 2009/05/06 14:14:44 ccarouge Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -342,22 +342,23 @@
       ! Adjust tracer to correct residual non-conservation of mass
       ! This was changed to be applied only for cells with tracer 
       ! concentration. (ccc, 11/20/08) 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
       DO N = 1, N_TRACERS
 
          ! Zero summing variable
          SUMADA = 0.d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            IF ( N == 1 ) THEN
+! prior to 4/15/09 (ccc)
+!            IF ( N == 1 ) THEN
                AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-            ENDIF
+!            ENDIF
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
@@ -365,14 +366,11 @@
             ! We apply mass conservation only on cells w/
             ! nonzero tracer (ccc, 2/17/09)
             IF ( STT(I,J,L,N) > 0.d0 ) THEN
-!$OMP CRITICAL
                SUMADA = SUMADA + AD_A(I,J,L)
-!$OMP END CRITICAL
             ENDIF
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
 
          ! Residual mass difference [kg]: before - after
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
@@ -387,9 +385,6 @@
          TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -407,8 +402,8 @@
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
       ENDDO
+!$OMP END PARALLEL DO
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -708,22 +703,23 @@
       ! Adjust tracer to correct residual non-conservation of mass
       ! This was changed to be applied only for cells with tracer 
       ! concentration. (ccc, 11/20/08) 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
       DO N = 1, N_TRACERS
 
          ! Zero summing variable
          SUMADA = 0.d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-            IF ( N == 1 ) THEN
+! prior to 4/15/09 (ccc)
+!            IF ( N == 1 ) THEN
                AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-            ENDIF
+!            ENDIF
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
@@ -731,14 +727,11 @@
             ! We apply mass conservation only on cells with 
             ! nonzero tracer. (ccc, 11/20/08)
             IF ( STT(I,J,L,N) > 0.d0 ) THEN
-!$OMP CRITICAL
                SUMADA = SUMADA + AD_A(I,J,L)
-!$OMP END CRITICAL
             ENDIF
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
 
          ! Residual mass difference [kg]: before - after
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
@@ -753,9 +746,6 @@
          TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -774,8 +764,8 @@
          ENDDO
          ENDDO
          ENDDO
-!$OMP END PARALLEL DO
       ENDDO
+!$OMP END PARALLEL DO
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 

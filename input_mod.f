@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.54 2009/02/10 16:50:07 bmy Exp $
+! $Id: input_mod.f,v 1.55 2009/05/06 14:14:45 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -130,6 +130,8 @@
 !  (23) Now read LCAC switch for CAC emissions (amv, 1/09/2008)
 !  (24) Move the call to NDXX_SETUP (phs, 11/18/08)
 !  (25) Minor bug fix in READ_DIAGNOSTIC_MENU (tmf, 2/10/09)
+!  (26) Add LMEGANMONO switch in emission menu (ccc, 3/2/09)
+!  (27) Add LDICARB switch in aerosol menu (ccc, tmf, 3/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -820,11 +822,25 @@
                   ! 2nd character of name is a number
                   IF ( ISDIGIT( NAME(1:1) ) ) THEN
 
-                     ! Coefficient of emitted tracer
-                     READ( NAME(1:1), * ) TRACER_COEFF(T,C)
+                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
+                     ! If 3rd character of name is a number
+                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
 
-                     ! Get the rest of the name
-                     NAME = NAME( 2:LEN_TRIM( NAME ) )
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:2), * ) TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 3:LEN_TRIM( NAME ) )
+
+                     ELSE
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:1), * ) TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 2:LEN_TRIM( NAME ) )
+
+                     ENDIF
                   ENDIF
 
                   ! Tracer constituent name
@@ -841,11 +857,25 @@
                   ! 2nd character of name is a number
                   IF ( ISDIGIT( NAME(1:1) ) ) THEN
 
-                     ! Coefficient of emitted tracer
-                     READ( NAME(1:1), * ) TRACER_COEFF(T,C)
-                     
-                     ! Tracer constituent name
-                     NAME = NAME( 2:LEN_TRIM( NAME ) )
+                     ! Allow for tracers that contain >= 10C (tmf, 12/09/04) 
+                     ! If 3rd character of name is a number
+                     IF ( ISDIGIT( NAME(2:2) ) ) THEN
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:2), * ) TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 3:LEN_TRIM( NAME ) )
+
+                     ELSE
+
+                        ! Coefficient of emitted tracer
+                        READ( NAME(1:1), * ) TRACER_COEFF(T,C)
+
+                        ! Get the rest of the name
+                        NAME = NAME( 2:LEN_TRIM( NAME ) )
+
+                     ENDIF
 
                   ENDIF
 
@@ -971,12 +1001,15 @@
 !        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
+!  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
+!      (ccc, tmf, 3/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
+      USE LOGICAL_MOD,  ONLY : LDICARB
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,      SALC_REDGE_um
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
@@ -989,6 +1022,7 @@
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
       ! Local variables
       INTEGER            :: N, T, I
@@ -1047,8 +1081,14 @@
          READ( SUBSTRS(T), * ) SALC_REDGE_um(T)
       ENDDO
 
-      ! Separator line
+      ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
+      ! Use online dicarbonyl chemistry 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      READ( SUBSTRS(1:N), * ) LDICARB
+
+      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
 
       !=================================================================
       ! Error checks
@@ -1164,7 +1204,8 @@
       !---------------------------------
       I = IDTALPH + IDTLIMO + IDTALCO + 
      &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
-     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4
+     &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
+     &    IDTSOAG + IDTSOAM
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1269,6 +1310,8 @@
 !  (18) Now read LVISTAS (amv, 12/2/08)
 !  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
 !        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
+!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
+!       (ccc, 2/2/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1277,12 +1320,12 @@
       USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX   
       USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LEMEP,     LGFED2BB
+      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
       USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
       USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
       USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
       USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
-      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT 
+      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
@@ -1362,105 +1405,109 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
-      ! Use MEGAN biogenic emissions?
+      ! Use MEGAN biogenic emissions for ISOP?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
-      ! Include biomass emissions?
+      ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      READ( SUBSTRS(1:N), * ) LMEGANMONO
+
+      ! Include biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Scale lightning flash rate to OTD-LIS annual averate rate?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) LOTDSCALE
 
       ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LOTDREG
 
       ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Colbert emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
 
       !=================================================================
       ! Error check logical flags
@@ -1473,6 +1520,9 @@
 
       ! Set LMEGAN=F if emissions are turned off
       LMEGAN       = ( LMEGAN   .and. LEMIS )
+
+      ! Set LMEGANMONO=F if emissions are turned off (ccc, 1/20/09)
+      LMEGANMONO       = ( LMEGANMONO   .and. LEMIS )
 
       ! Set all GFED2 flags to F if emissions are turned off      
       LGFED2BB     = ( LGFED2BB .and. LEMIS )
@@ -1640,6 +1690,7 @@
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
+      WRITE( 6, 100     ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
@@ -1762,6 +1813,9 @@
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP 
       USE LOGICAL_MOD, ONLY : LCHEM, LEMBED
+      ! >> (dkh, 02/12/09) 
+      USE LOGICAL_MOD, ONLY : LSVCSPEC
+      ! << 
       USE TIME_MOD,    ONLY : SET_CT_CHEM
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -1797,8 +1851,15 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
 
-      ! Separator line
+      ! >> (dkh, 02/12/09) 
+      ! Read and save CSPEC ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      READ( SUBSTRS(1:N), * ) LSVCSPEC
+
+      ! Separator line
+      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      ! << 
 
       !=================================================================
       ! Print to screen
@@ -1810,6 +1871,10 @@
       WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
       WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
       WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
+      ! >> (dkh, 02/12/09) 
+      WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
+      ! << 
+     
       
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -2670,7 +2735,7 @@
       CALL SET_TINDEX( 47, ND47, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
-      ! ND52: Free
+      ! ND52: GAMMA HO2
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:51' )
       READ( SUBSTRS(1), * ) ND52
@@ -4337,6 +4402,7 @@
 !  (8 ) Now initialize the LVARTROP switch (phs, 9/14/06)
 !  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
 !  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
+!  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4359,12 +4425,15 @@
       USE LOGICAL_MOD,   ONLY : LTPFV,      LUPBD,      LWINDO     
       USE LOGICAL_MOD,   ONLY : LUNZIP,     LWAIT,      LTURB      
       USE LOGICAL_MOD,   ONLY : LSVGLB,     LSPLIT,     LWETD 
-      USE LOGICAL_MOD,   ONLY : LMEGAN,     LDYNOCEAN,  LEMEP
+      USE LOGICAL_MOD,   ONLY : LMEGAN,     LMEGANMONO, LDYNOCEAN
       USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE,    LEDGAR
       USE LOGICAL_MOD,   ONLY : LEDGARNOx,  LEDGARCO,   LEDGARSHIP
       USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
       USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
-      USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON
+      USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
+      ! >> (dkh, 02/12/09) 
+      USE LOGICAL_MOD,   ONLY : LSVCSPEC 
+      ! << 
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4422,6 +4491,7 @@
       LGFED2BB     = .FALSE.
       LLIGHTNOX    = .FALSE.
       LMEGAN       = .FALSE.
+      LMEGANMONO   = .FALSE.
       LMFLUX       = .FALSE.
       LMONOT       = .FALSE.
       LNEI99       = .FALSE.
@@ -4443,6 +4513,9 @@
       LWAIT        = .FALSE.
       LTURB        = .FALSE.
       LSVGLB       = .FALSE.
+      ! >> (dkh, 02/12/09) 
+      LSVCSPEC     = .FALSE.
+      ! << 
       LSPLIT       = .FALSE.
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.

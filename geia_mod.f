@@ -1,4 +1,4 @@
-! $Id: geia_mod.f,v 1.7 2008/11/07 19:30:34 bmy Exp $
+! $Id: geia_mod.f,v 1.8 2009/05/06 14:14:45 ccarouge Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
@@ -938,6 +938,8 @@
 !  (6 ) Now use function GET_LOCALTIME from the new "time_mod.f".  Remove
 !        IREF, NDYN, TOFDAY, DISIZE from arg list.  Add I to the arg list.
 !        Removed XLOCTM variable. (bmy, 2/10/03)
+!  (7 ) Modified to use NINT instead of INT to calculate the local time
+!        (ccc, 4/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -954,7 +956,10 @@
       !=================================================================
 
       ! IHOUR ranges from 1-6 
-      IHOUR = INT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+      ! Modified to use NINT instead of INT (ccc, 4/15/09)
+! prior to 4/15/09 ---------------------------------
+!      IHOUR = INT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+      IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
       IF ( IHOUR == 7 ) IHOUR = 1
 
       ! Return to calling program

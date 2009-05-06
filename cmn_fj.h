@@ -1,4 +1,4 @@
-! $Id: cmn_fj.h,v 1.3 2008/08/08 17:20:33 bmy Exp $
+! $Id: cmn_fj.h,v 1.4 2009/05/06 14:14:47 ccarouge Exp $
 !
 !******************************************************************************
 !  CMN_FJ.H -- Header file containing parameters and common
@@ -21,6 +21,7 @@
 !        anymore. (bmy, 8/23/02)
 !  (9 ) Removed ETAA and ETAB arrays.  We now compute PJ directly from the 
 !        GET_PEDGE routine. (bmy, 10/30/07)
+!  (10) Increase photolysis rxns JPMAX = 79 (tmf, 1/7/09)
 !
 !          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
 !******************************************************************************
@@ -33,7 +34,7 @@
       INTEGER, PARAMETER :: LPAR = LLPAR
 
       ! max # of photolysis rxns = 4 + IPHOT (see comode.h)
-      INTEGER, PARAMETER :: JPMAX = 55
+      INTEGER, PARAMETER :: JPMAX = 79
 
       ! Variables for number of layers and number of photolysis rxns
       INTEGER            :: JPNL, JPPJ       

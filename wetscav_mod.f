@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.30 2008/08/08 17:20:37 bmy Exp $
+! $Id: wetscav_mod.f,v 1.31 2009/05/06 14:14:44 ccarouge Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -121,6 +121,13 @@
 !  (23) Bug fixes in COMPUTE_F (bmy, 7/26/06)
 !  (24) Resize DSTT array in WETDEP to save memory.  Added fixes for GEOS-5
 !        wet deposition per Hongyu Liu's suggestions. (bmy, 3/5/08)
+!  (25) Add wet scavenging of GLYX, MGLY, GLYC, SOAG, SOAM (tmf, 1/7/09)
+!  (26) Effective Henry's law constant and coefficient from 
+!       Sander, R, 1999, Compilation of Henry's Law Constants for 
+!          Inorganic and Organic Species of Potential Importance in 
+!          Environmental Chemistry.
+!          http://www.mpch-mainz.mpg.de/~sander/res/henry.html
+!       (tmf, 1/7/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -151,7 +158,7 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: NSOLMAX = 33
+      INTEGER, PARAMETER   :: NSOLMAX = 38
       REAL*8,  PARAMETER   :: EPSILON = 1d-32
 
       ! Scalars
@@ -496,10 +503,10 @@
 !
 !  Arguments as Input:
 !  ============================================================================
-!  (1 ) Kstar298 (REAL*8) : Eff. Henry's law constant @ 298 K [moles/atm]
-!  (2 ) H298_R   (REAL*8) : Henry's law coefficient           [K]
-!  (3 ) TK       (REAL*8) : Temperature at grid box (I,J,L)   [K]
-!  (4 ) H2OLIQ   (REAL*8) : Liquid water content at (I,J,L)   [cm3 H2O/cm3 air]
+!  (1 ) Kstar298 (REAL*8) : Eff. Henry's law constant @ 298 K   [moles/atm]
+!  (2 ) H298_R   (REAL*8) : Molar heat of formation @ 298 K / R [K]
+!  (3 ) TK       (REAL*8) : Temperature at grid box (I,J,L)     [K]
+!  (4 ) H2OLIQ   (REAL*8) : Liquid water content at (I,J,L)     [cm3 H2O/cm3 air]
 !
 !  Arguments as Output:
 !  ============================================================================
@@ -626,6 +633,8 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
+      USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC      
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
       
 #     include "CMN_SIZE"    ! Size parameters
 
@@ -785,7 +794,170 @@
 
          ! ND38 index
          ISOL = GET_ISOL( N ) 
-  
+
+      ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06)  
+      !-------------------------------
+      ! GLYX (liquid phase only)
+      !-------------------------------
+      ELSE IF ( N == IDTGLYX ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for GLYX, using
+            ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
+            ! (2) Schweitzer et al. (1998) showed that the temperature dependence 
+            ! for CH2O works well for glyoxal, so we use the same H298_R as CH2O
+            CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of GLYX in liquid phase 
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! assume same retention factor as CH2O
+            ! Compute the rate constant K.  The retention factor 
+            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
+            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+
+            ELSE
+               K = 0d0
+
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of GLYX scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! MGLY (liquid phase only)
+      !-------------------------------
+      ELSE IF ( N == IDTMGLY ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for MGLY, using
+            ! the appropriate parameters for Henry's law
+            ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
+            ! H298_R = -7.5d3 K
+            CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of MGLY in liquid phase 
+            ! NOTE: CH2O does not exist in the ice phase!
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! assume same retention factor as CH2O
+            ! Compute the rate constant K.  The retention factor 
+            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
+            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+
+            ELSE
+               K = 0d0
+
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of MGLY scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
+      !-------------------------------
+      ! GLYC (liquid phase only)
+      !-------------------------------
+      ELSE IF ( N == IDTGLYC ) THEN 
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for GLYC, using
+            ! the appropriate parameters for Henry's law
+            ! from Betterton and Hoffman 1988): Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
+            CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
+     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of MGLY in liquid phase 
+            ! NOTE: CH2O does not exist in the ice phase!
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! assume same retention factor as CH2O
+            ! Compute the rate constant K.  The retention factor 
+            ! for liquid CH2O is 0.0 for T <= 248K and 0.02 for 
+            ! 248 K < T < 268 K. (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+
+            ELSE
+               K = 0d0
+
+            ENDIF
+
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+               
+            ! F is the fraction of MGLY scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N ) 
+
       !-------------------------------
       ! CH3OOH (liquid phase only)
       !-------------------------------
@@ -1239,6 +1411,25 @@
          ! ND38 index
          ISOL = GET_ISOL( N )
 
+
+      !------------------------------------------
+      ! SOAG, SOAM (aerosol)
+      ! Scavenging efficiency for SOA is 0.8
+      !------------------------------------------
+      ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
+         CALL F_AEROSOL( KC, F )
+
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            F(I,J,L) = 0.8d0 * F(I,J,L)
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
       !-------------------------------
       ! Hg2 (liquid phase only)
       !-------------------------------
@@ -1512,6 +1703,8 @@
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,  IS_HgP
+      USE TRACERID_MOD, ONLY : IDTGLYX, IDTMGLY,  IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
       IMPLICIT NONE
 
@@ -1644,6 +1837,117 @@
          ! Compute RAINFRAC, the fraction of rained-out CH2O
          ! (Eq. 10, Jacob et al, 2000)
          RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      ! Update GLYX and MGLY Henry's Law Const calculations (tmf, 9/13/06) 
+      !------------------------------
+      ! GLYX (liquid phase only)
+      !------------------------------     
+      ELSE IF ( N == IDTGLYX ) THEN 
+
+         ! Compute liquid to gas ratio for GLYX, using
+         ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
+         ! (2) Schweitzer et al. (1998) showed that the temperature dependence 
+         ! for CH2O works well for glyoxal, so we use the same H298_R as CH2O
+         CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+         ! Fraction of GLYX in liquid phase 
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! assume same retention factor as CH2O
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out GLYX
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      !------------------------------
+      ! MGLY (liquid phase only)
+      !------------------------------     
+      ELSE IF ( N == IDTMGLY ) THEN 
+
+         ! Compute liquid to gas ratio for MGLY, using
+         ! the appropriate parameters for Henry's law
+         ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
+         CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            
+         ! Fraction of MGLY in liquid phase 
+         ! NOTE: CH2O does not exist in the ice phase!
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! assume same retention factor as CH2O
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out MGLY
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
+      !------------------------------
+      ! GLYC (liquid phase only)
+      !------------------------------     
+      ELSE IF ( N == IDTGLYC ) THEN 
+
+         ! Compute liquid to gas ratio for GLYC, using
+         ! the appropriate parameters for Henry's law
+         ! from Betterton and Hoffman 1988): Kstar298 = 4.1d4 M/atm;  H298_R = -4.6d3 K
+         CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
+     &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            
+         ! Fraction of GLYC in liquid phase 
+         ! NOTE: CH2O does not exist in the ice phase!
+         ! (Eqs. 4, 5, Jacob et al, 2000)
+         C_TOT = 1d0 + L2G
+         F_L   = L2G / C_TOT
+
+         ! assume same retention factor as CH2O
+         ! Compute the rate constant K.  The retention factor  
+         ! for liquid CH2O is 0.02 for 248 K < T < 268 K, and 
+         ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+         IF ( TK >= 268d0 ) THEN
+            K = K_RAIN * F_L 
+
+         ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+            K = K_RAIN * ( 2d-2 * F_L )
+               
+         ELSE
+            K = 0d0
+
+         ENDIF
+
+         ! Compute RAINFRAC, the fraction of rained-out MGLY
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
   
       !------------------------------
       ! CH3OOH (liquid phase only)
@@ -1961,6 +2265,14 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
          RAINFRAC = RAINFRAC * 0.8d0
 
+      !--------------------------------------
+      ! SOAG and SOAM (aerosol)
+      ! Scavenging efficiency for SOA is 0.8
+      !--------------------------------------
+      ELSE IF ( N == IDTSOAG .OR. N == IDTSOAM ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+         RAINFRAC = RAINFRAC * 0.8d0
+
       !------------------------------
       ! Hg2 (liquid phase only)
       !------------------------------
@@ -2119,6 +2431,8 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,  IDTSOG2,  IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,   IS_HgP
+      USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -2176,6 +2490,42 @@
          AER      = .FALSE.
          WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
      &                                F,      DZ,    TK, K_WASH )
+
+      !------------------------------
+      ! GLYX (liquid & gas phases)
+      !------------------------------
+      ELSE IF ( N == IDTGLYX ) THEN 
+
+         ! Compute liquid to gas ratio for GLYX, using
+         ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
+         ! (2) Schweitzer et al. (1998) showed that the temperature dependence for CH2O works well for glyoxal,
+         !      so we use the same H298_R as CH2O
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
+
+      !------------------------------
+      ! MGLY (liquid & gas phases)
+      !------------------------------
+      ELSE IF ( N == IDTMGLY ) THEN 
+         ! Compute liquid to gas ratio for MGLY, using
+         ! the appropriate parameters for Henry's law
+         ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
+
+      !------------------------------
+      ! GLYC (liquid & gas phases)
+      !------------------------------
+      ELSE IF ( N == IDTGLYC ) THEN 
+         ! Compute liquid to gas ratio for GLYC, using
+         ! the appropriate parameters for Henry's law
+         ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  H298_R = -4.6d3 K
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
+
 
       !------------------------------
       ! MP (liquid & gas phases)
@@ -2322,10 +2672,17 @@
      &                                F,      DZ,      TK, K_WASH )
 
       !------------------------------
-      ! SOA[1,2,3] (aerosol)
+      ! SOA[1,2,3,4] (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      !------------------------------
+      ! SOAG and SOAM (aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
@@ -3664,6 +4021,8 @@
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,   IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOA1,   IDTSOA2,   IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IS_Hg2,    IS_HgP
+      USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY,   IDTGLYC
+      USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3709,6 +4068,18 @@
          ELSE IF ( N == IDTMP ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMP
+
+         ELSE IF ( N == IDTGLYX ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTGLYX
+
+         ELSE IF ( N == IDTMGLY ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTMGLY
+
+         ELSE IF ( N == IDTGLYC ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTGLYC
 
          !-----------------------------
          ! Sulfate aerosol tracers
@@ -3831,6 +4202,14 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTSOA4
 
+         ELSE IF ( N == IDTSOAG ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOAG
+
+         ELSE IF ( N == IDTSOAM ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTSOAM
+
          !-----------------------------
          ! Dust aerosol tracers
          !-----------------------------
@@ -3930,6 +4309,7 @@
       USE LOGICAL_MOD, ONLY : LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,  ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
 #     include "CMN_SIZE"   ! Size Parameters
 
@@ -3946,13 +4326,16 @@
          !-----------------------
          ! Fullchem simulation
          !-----------------------
-         NMAX = 4                               ! HNO3, H2O2, CH2O, MP
+         NMAX = 7                               ! HNO3, H2O2, CH2O, MP, 
+                                                ! GLYX, MGLY, GLYC
          IF ( LSULF )    NMAX = NMAX + 8        ! SO2, SO4, MSA, NH3, NH4, NIT
          IF ( LDUST  )   NMAX = NMAX + NDSTBIN  ! plus # of dust bins
          IF ( LSSALT )   NMAX = NMAX + 2        ! plus 2 seasalts
 
          IF ( LSOA ) THEN
             IF ( LCARB ) NMAX = NMAX + 15       ! carbon + SOA aerosols
+            IF ( IDTSOAG /= 0 ) NMAX = NMAX + 1 ! SOAG deposition
+            IF ( IDTSOAM /= 0 ) NMAX = NMAX + 1 ! SOAM deposition
          ELSE                                 
             IF ( LCARB ) NMAX = NMAX + 4        ! just carbon aerosols
          ENDIF

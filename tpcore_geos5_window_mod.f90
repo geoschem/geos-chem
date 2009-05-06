@@ -1,8 +1,8 @@
-! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/01/28 19:59:14 bmy Exp $
+! $Id: tpcore_geos5_window_mod.f90,v 1.3 2009/05/06 14:14:45 ccarouge Exp $
 module TPCORE_GEOS5_WINDOW_MOD
 !
 !******************************************************************************
-!  Module TPCORE_FVDAS_MOD contains routines for the GEOS-4/fvDAS 
+!  Module TPCORE_GES5_WINDOW_MOD contains routines for the GEOS-4/fvDAS 
 !  transport scheme.  Original code from S-J Lin and Kevin Yeh. 
 !  (bdf, bmy, 5/7/03, 10/29/04)
 !

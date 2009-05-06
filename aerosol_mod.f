@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.14 2009/02/10 16:50:08 bmy Exp $
+! $Id: aerosol_mod.f,v 1.15 2009/05/06 14:14:47 ccarouge Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -51,6 +51,12 @@
 !  (6 ) Add support for variable tropopause (bdf, phs, 9/14/06)
 !  (7 ) Now set OCF=2.1 in AEROSOL_CONC for consistency w/ carbon_mod.f
 !       (tmf, 2/10/09)
+!  (8 ) Add WTAREA and WERADIUS for dicarbonyl SOA production.  
+!       WTAREA is the same as TAREA, but excludes dry dust, BCPO and OCPO; 
+!       use same units as TAREA.
+!       WERADIUS is same as ERADIUS, but excludes dry dust, BCPO and OCPO;
+!       use same units as ERADIUS. (tmf, 3/2/09)
+!  (9 ) Add SOAG and SOAM species. (tmf, ccc, 3/2/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -296,6 +302,7 @@
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -314,6 +321,13 @@
       !-----------------------------------------------------------------
       REAL*8,  PARAMETER :: OCF = 2.1d0
 
+      ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
+      ! for now (tmf, 1/7/09)
+      REAL*8,  PARAMETER :: OCFG = 1.d0
+
+      ! For SOAM, assume the total aerosol mass/methylglyoxal mass = 1.d0 
+      ! for now (tmf, 1/7/09)
+      REAL*8,  PARAMETER :: OCFM = 1.d0
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
@@ -389,6 +403,16 @@
      &                     +   STT(I,J,L,IDTSOA3)
      &                     +   STT(I,J,L,IDTSOA4) ) / AIRVOL(I,J,L)
  
+               ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
+               IF ( IDTSOAG > 0 ) THEN
+                 OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                         STT(I,J,L,IDTSOAG) * OCFG / AIRVOL(I,J,L)
+               ENDIF
+
+               IF ( IDTSOAM ) THEN
+                 OCPI(I,J,L) = OCPI(I,J,L) + 
+     &                         STT(I,J,L,IDTSOAM) * OCFM / AIRVOL(I,J,L)
+               ENDIF
             ELSE
 
                ! Hydrophilic primary and SOA OC [kg/m3].   We need
@@ -516,6 +540,7 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE COMODE_MOD,    ONLY : ABSHUM, ERADIUS, IXSAVE
       USE COMODE_MOD,    ONLY : IYSAVE, IZSAVE,  TAREA 
+      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : BXHEIGHT
       USE DIAG_MOD,      ONLY : AD21
       USE DIRECTORY_MOD, ONLY : DATA_DIR
@@ -545,6 +570,7 @@
       REAL*4              :: TEMP(IGLOB,JGLOB,LGLOB)
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
+
 
       ! Mass of hydrophobic aerosol from Mian Chin
       REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
@@ -1080,6 +1106,19 @@
             I = IXSAVE(JLOOP)
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
+
+            !========================================================
+            ! NOTES:          
+            !    WAERSL   [ kg dry mass of wet aerosol m^-3 air ]
+            !    ERADIUS  [ cm wet aerosol radius ]
+            !    MSDENS   [ kg dry mass of aerosol m^-3 dry volume of aerosol ]
+            !    TAREA    [ cm^2 wet sfc area of aerosol cm^-3 air ]   
+            !    WTAREA   : same as TAREA, but excludes dry dust, BCPO and OCPO 
+            !               use same units as TAREA    (tmf, 4/18/07) 
+            !    WERADIUS : same as ERADIUS, but excludes dry dust, BCPO and OCPO
+            !               use same units as ERADIUS  (tmf, 4/18/07)
+            ! Wet dust WTAREA and WERADIUS are archived in dust_mod.f.
+            !========================================================
           
             ! Store aerosol surface areas in TAREA, and be sure
             ! to list them following the dust surface areas
@@ -1088,6 +1127,11 @@
      &                             SCALEVOL(I,J,L)          / 
      &                             ( ERADIUS(JLOOP,NDUST+N) * 
      &                               MSDENS(N) )  
+
+            WTAREA(JLOOP, N)   = TAREA(JLOOP, N+NDUST)
+            WERADIUS(JLOOP, N) = ERADIUS(JLOOP, N+NDUST)
+
+
          ENDDO
 !$OMP END PARALLEL DO
 

@@ -1,15 +1,18 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.30 2009/01/28 20:22:06 bmy Exp $
+# $Id: Makefile.ifort,v 1.31 2009/05/06 14:14:47 ccarouge Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Wed Jan 28 15:09:07 2009)
 #=============================================================================
 SHELL = /bin/sh
 
 # IFORT compilation options
-FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
+FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian 
  
 # IFORT compilation options (for debugging: no optimization)
-#FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback
+#FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback -CB
+
+# IFORT compilation options (for profiling: use 1 proc too)
+#FFLAGS = -cpp -w -noalign -convert big_endian -g -p
 
 # Compile command -- multiprocessor
 F90 = ifort $(FFLAGS) -openmp -Dmultitask
@@ -48,6 +51,7 @@ emmonot.o                     \
 fertadd.o                     \
 findmon.o                     \
 fyrno3.o                      \
+fyhoro.o                      \
 gasconc.o                     \
 get_global_ch4.o              \
 getifsun.o                    \
@@ -102,6 +106,7 @@ EFOLD.o                       \
 FLINT.o                       \
 GAUSSP.o                      \
 GEN.o                         \
+fjx_acet_mod.o                \
 JRATET.o                      \
 JVALUE.o                      \
 LEGND0.o                      \
@@ -126,6 +131,7 @@ set_aer.o                     \
 set_prof.o                    
 
 MODS =                        \
+fjx_acet_mod.o                \
 charpak_mod.o                 \
 error_mod.o                   \
 logical_mod.o                 \
@@ -258,6 +264,7 @@ EFOLD.o                        : EFOLD.f
 FLINT.o                        : FLINT.f                        
 GAUSSP.o                       : GAUSSP.f                       
 GEN.o                          : GEN.f                          jv_mie.h 
+fjx_acet_mod.o                 : fjx_acet_mod.f                 cmn_fj.h jv_cmn.h
 JRATET.o                       : JRATET.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 JVALUE.o                       : JVALUE.f                       cmn_fj.h CMN_SIZE define.h jv_cmn.h 
 Kr85_mod.o                     : Kr85_mod.f                     CMN_DIAG CMN_O3 CMN_SIZE define.h define.h 
@@ -343,6 +350,7 @@ fjfunc.o                       : fjfunc.f                       cmn_fj.h CMN_SIZ
 future_emissions_mod.o         : future_emissions_mod.f         CMN_SIZE define.h 
 fvdas_convect_mod.o            : fvdas_convect_mod.f            CMN_DIAG CMN_SIZE define.h 
 fyrno3.o                       : fyrno3.f                       
+fyhoro.o                       : fyhoro.f  
 gamap_mod.o                    : gamap_mod.f                    CMN_DIAG CMN_SIZE define.h 
 gasconc.o                      : gasconc.f                      CMN_SIZE define.h comode.h 
 gc_biomass_mod.o               : gc_biomass_mod.f               CMN_SIZE define.h 

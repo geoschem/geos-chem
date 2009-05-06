@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.11 2008/12/15 15:55:15 bmy Exp $
+! $Id: rpmares_mod.f,v 1.12 2009/05/06 14:14:45 ccarouge Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -1037,7 +1037,7 @@
      &           .AND. IS_SAFE_DIV( KNA, GAMANA*GAMANA, R4=.TRUE. ) 
      &           ) ) THEN
                
-               WRITE(6,*), 'RPMARES: not safe to divide...exit'
+               WRITE(6,*) 'RPMARES: not safe to divide...exit'
                CALL flush(6)
                GOTO 100
             ENDIF

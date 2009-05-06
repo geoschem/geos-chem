@@ -1,4 +1,4 @@
-! $Id: gfed2_biomass_mod.f,v 1.9 2009/01/28 19:59:16 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.10 2009/05/06 14:14:45 ccarouge Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
@@ -97,6 +97,9 @@
 !  (5 ) Add routines to check if GFED2 has been or must be updated. Added
 !        module variable UPDATED, DOY8DAY, and T3HR. Now choice between 3-hr,
 !        8-day or monthly data (phs, psk, yc, 12/18/08) 
+!  (6 ) Added 9 gaseous biomass burning emissions (tmf, 1/7/09)
+!  (7 ) The value of N_SPEC is now determined in INIT_GFED2_BIOMASS and depend
+!        on the tracers used in the simulation. (ccc, 4/23/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,13 +127,17 @@
       INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
       INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
       INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
+      INTEGER                       :: IDBBENZ, IDBTOLU, IDBXYLE
+      INTEGER                       :: IDBC2H2, IDBC2H4, IDBGLYX
+      INTEGER                       :: IDBMGLY, IDBGLYC, IDBHAC
       INTEGER                       :: DOY8DAY, T3HR
       LOGICAL                       :: UPDATED
       REAL*8                        :: SECONDS
 
       ! Parameters
       INTEGER,          PARAMETER   :: N_EMFAC = 3
-      INTEGER,          PARAMETER   :: N_SPEC  = 15
+!------------------------------------------------------------------------
+      INTEGER,          PARAMETER   :: N_SPEC  = 24
 
       ! Arrays
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
@@ -138,6 +145,7 @@
       REAL*8,           ALLOCATABLE :: GFED2_SPEC_MOLWT(:)
       CHARACTER(LEN=4), ALLOCATABLE :: GFED2_SPEC_NAME(:)
       CHARACTER(LEN=6), ALLOCATABLE :: GFED2_SPEC_UNIT(:)
+      REAL*8,           ALLOCATABLE :: GFED2_BIOMASS(:,:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -319,9 +327,9 @@
 #     include "CMN_SIZE"       ! Size parameters
 
       ! Arguments 
-      INTEGER, INTENT(IN)     :: THIS_YYYY
-      INTEGER, INTENT(IN)     :: THIS_MM
-      REAL*8,  INTENT(INOUT)  :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
+      INTEGER,             INTENT(IN)    :: THIS_YYYY
+      INTEGER,             INTENT(IN)    :: THIS_MM
+      REAL*8,              INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
 
       ! Local variables
       LOGICAL, SAVE           :: FIRST = .TRUE.
@@ -359,8 +367,9 @@
       CALL CHECK_GFED2( DOY, HH )
       
       IF ( UPDATED ) THEN
-         BIOM_OUT = 0D0
+         GFED2_BIOMASS  = 0D0
       ELSE
+         BIOM_OUT = GFED2_BIOMASS
          RETURN
       ENDIF
       
@@ -590,20 +599,23 @@
       ! Regrid from GEOS 1x1 grid to current grid.  (The unit 'molec/cm2' 
       ! is just used to denote that the quantity is per unit area.)
       CALL DO_REGRID_1x1( N_SPEC,       'molec/cm2', 
-     &                    BIOM_GEOS_1x1, BIOM_OUT ) 
+     &                    BIOM_GEOS_1x1, GFED2_BIOMASS ) 
 
       ! Compute future biomass emissions (if necessary)
       IF ( LFUTURE ) THEN
-         CALL GFED2_SCALE_FUTURE( BIOM_OUT )
+         CALL GFED2_SCALE_FUTURE( GFED2_BIOMASS )
       ENDIF
 
       ! Print totals in Tg/month
-      CALL GFED2_TOTAL_Tg( THIS_YYYY, THIS_MM, BIOM_OUT )
+      CALL GFED2_TOTAL_Tg( THIS_YYYY, THIS_MM )
 
       ! Convert from [molec/cm2/month], [molec/cm2/8day] or
       ! [molec/cm2/3hr] to [molec/cm2/s]
-      BIOM_OUT = BIOM_OUT / SECONDS
+      GFED2_BIOMASS = GFED2_BIOMASS / SECONDS
 
+      ! set output
+      BIOM_OUT = GFED2_BIOMASS
+      
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -715,7 +727,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GFED2_TOTAL_Tg( YYYY, MM, BIOMASS )
+      SUBROUTINE GFED2_TOTAL_Tg( YYYY, MM )
 !
 !******************************************************************************
 !  Subroutine TOTAL_BIOMASS_TG prints the amount of biomass burning emissions 
@@ -726,7 +738,6 @@
 !  ============================================================================
 !  (1 ) YYYY    (INTEGER) : Current year
 !  (2 ) MM      (INTEGER) : Currrent month
-!  (3 ) BIOMASS (REAL*8)  : Biomass burning emissions [molec/cm2/month]
 !
 !  NOTES:
 !******************************************************************************
@@ -738,7 +749,6 @@
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYY, MM
-      REAL*8,  INTENT(IN) :: BIOMASS(IIPAR,JJPAR,N_SPEC) 
 
       ! Local variables
       INTEGER             :: I,    J,     N
@@ -767,7 +777,7 @@
 
             ! Loop over longitudes
             DO I = 1, IIPAR
-               TOTAL = TOTAL + ( BIOMASS(I,J,N) * CONV )
+               TOTAL = TOTAL + ( GFED2_BIOMASS(I,J,N) * CONV )
             ENDDO
          ENDDO
      
@@ -792,6 +802,7 @@
 !  (1 ) Now initialize for BC, OC, SO2, NH3, CO2 (bmy, 9/25/06)
 !  (2 ) Bug fix: IDBSO2, IDBNH3, IDBOC, and IDBCO2 are correctly 
 !        set (phs, 3/18/08)
+!  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -799,6 +810,8 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE LOGICAL_MOD,   ONLY : LDICARB
+
 
 #     include "CMN_SIZE"      ! Size parameters
 
@@ -810,6 +823,11 @@
       !=================================================================
       ! INIT_GFED2_BIOMASS begins here!
       !=================================================================
+
+      ! Allocate array to hold emissions
+      ALLOCATE( GFED2_BIOMASS( IIPAR, JJPAR, N_SPEC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GFED2_BIOMASS' )
+      GFED2_BIOMASS = 0d0
 
       ! Allocate array for emission factors
       ALLOCATE( GFED2_EMFAC( N_SPEC, N_EMFAC ), STAT=AS )
@@ -846,7 +864,7 @@
      
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1) // 
-     &           'GFED2_200601/GFED2_emission_factors.txt'
+     &           'GFED2_200601/GFED2_emission_factors_73t.txt'
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -913,6 +931,15 @@
       IDBSO2  = 0
       IDBNH3  = 0
       IDBCO2  = 0
+      IDBGLYX = 0
+      IDBMGLY = 0
+      IDBBENZ = 0
+      IDBTOLU = 0   
+      IDBXYLE = 0
+      IDBC2H4 = 0
+      IDBC2H2 = 0 
+      IDBGLYC = 0
+      IDBHAC  = 0
  
       ! Save species # in IDBxxxx flags for future reference
       ! and also initialize arrays for mol wts and units
@@ -974,6 +1001,42 @@
                IDBOC = N
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'GLYX' )
+               IDBGLYX = N
+               GFED2_SPEC_MOLWT(N) = 58d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'MGLY' )
+               IDBMGLY = N
+               GFED2_SPEC_MOLWT(N) = 72d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'BENZ' )
+               IDBBENZ = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'TOLU' )
+               IDBTOLU = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'XYLE' )
+               IDBXYLE = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'C2H4' )
+               IDBC2H4 = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'C2H2' )
+               IDBC2H2 = N
+               GFED2_SPEC_MOLWT(N) = 12d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg C]'
+            CASE( 'GLYC' )
+               IDBGLYC = N
+               GFED2_SPEC_MOLWT(N) = 60d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
+            CASE( 'HAC' )
+               IDBHAC  = N
+               GFED2_SPEC_MOLWT(N) = 74d-3
+               GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CO2'  )
                IDBCO2 = N
                GFED2_SPEC_MOLWT(N) = 44d-3
@@ -1004,6 +1067,7 @@
       IF ( ALLOCATED( GFED2_SPEC_MOLWT ) ) DEALLOCATE( GFED2_SPEC_MOLWT)
       IF ( ALLOCATED( GFED2_SPEC_NAME  ) ) DEALLOCATE( GFED2_SPEC_NAME )
       IF ( ALLOCATED( VEG_GEN_1x1      ) ) DEALLOCATE( VEG_GEN_1x1     )
+      IF ( ALLOCATED( GFED2_BIOMASS    ) ) DEALLOCATE( GFED2_BIOMASS   )
       
       ! Return to calling program
       END SUBROUTINE CLEANUP_GFED2_BIOMASS

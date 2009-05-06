@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.18 2006/06/06 14:25:59 bmy Exp $
+! $Id: comode.h,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -49,6 +49,13 @@
 !        ONEPI, CONSVAP, SMAL1, SMAL2, SMAL3 from common blocks and declare 
 !        these as parameters. (bec, bmy, 3/29/06)
 !  (12) Added ILISOPOH, the index of ISOP lost to OH (dkh, bmy, 6/1/06)
+!  (13) Added NKHO2 to /CHEM4/ common block to flag HO2 aerosol uptake
+!        (jaegle 02/26/09)
+!  (14) Add NNADDF and NNADDH to /CHEM4/ for HOC2H4O rxns
+!       Add NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns in EP photolysis
+!       (tmf, 3/6/09)
+!  (15) Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
+!  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -145,11 +152,11 @@ C
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-      PARAMETER ( IGAS    = 125,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 360,               IPHOT   = 60          )
+      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
-      PARAMETER ( MAXGL   = 430,               MAXGL2  = 50          )
+      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
       PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
       PARAMETER ( MORDER  = 7                                        ) 
@@ -369,16 +376,23 @@ C
 
       ! Added NNADDG to /CHEM4/ for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Add NKN2O5 to /CHEM4/ to flag N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
+      ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
+      ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
+      ! (tmf, 3/6/09)
       INTEGER ::         NNADD1,      NNADDA,      NNADDB
       INTEGER ::         NNADDC,      NNADDD,      NNADDK
       INTEGER ::         NNADDV,      NNADDZ,      NKO3PHOT
       INTEGER ::         NNADDG,      NEMIS,       NDRYDEP
-      INTEGER ::         NKHNO4,      NKN2O5      
+      INTEGER ::         NKHNO4,      NKN2O5,      NKHO2
+      INTEGER ::         NNADDF,      NNADDH
+      INTEGER ::         NKHOROI,     NKHOROJ
       COMMON /CHEM4/     NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
      &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
      &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
      &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
-     &                   NKHNO4(ICS), NKN2O5
+     &                   NNADDF(ICS), NNADDH(ICS), 
+     &                   NKHOROI(ICS),NKHOROJ(ICS),
+     &                   NKHNO4(ICS), NKN2O5, NKHO2
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
       COMMON /SPECIES/   IH2O,        IOXYGEN,   MB1,      MB2
@@ -413,12 +427,15 @@ C
      &                  ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS)
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
+      ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
       INTEGER NMOTH,NTSPEC,JPHOTRAT,ISGAINR,ISPORL,NOGAINE,NOUSE
       INTEGER NSPEC,NTRATES,ISGAINE,NTLOOPNCS,NSPCSOLV,ISCHANG,NRATES
       INTEGER NM3BOD,ITWOR,ITHRR,INOREP,NRATCUR,NSURFACE,NPRESM,NMAIR
       INTEGER NMO2,NMN2,NNEQ,NARR,NABR,NACR,NABC,NKSPECW,NKSPECX
       INTEGER NKSPECY,NKSPECZ,NKSPECV,ISLOSSR,NKSPECA,NKSPECB,NKSPECC
       INTEGER NKSPECD,NKSPECK,NKSPECG
+      INTEGER NKSPECF, NKSPECH
+
       COMMON /IDICS/
      1  NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),
      3  ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),
@@ -431,7 +448,8 @@ C
      2  NKSPECY( ICS), NKSPECZ(ICS), NKSPECV(MAXGL2,ICS),ISLOSSR(ICS),
      3  NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),
      4  NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),
-     5  NKSPECG(MAXGL2,ICS)
+     5  NKSPECG(MAXGL2,ICS),
+     6  NKSPECF(MAXGL3,ICS), NKSPECH(MAXGL3,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
       INTEGER ::        NOLOSP,         NGNFRAC,         NOLOSRAT

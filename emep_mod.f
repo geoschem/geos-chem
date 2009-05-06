@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.11 2009/01/30 19:27:30 bmy Exp $
+! $Id: emep_mod.f,v 1.12 2009/05/06 14:14:46 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -203,6 +203,13 @@
          ELSE 
             EMEP = EMEP_NOx(I,J)
          ENDIF
+!%%%%%%%%%%%%%KLUDGE TO EMITT SHIP NOX AS NOX %%%%%%%%%%%%%%
+!         IF ( IS_SHIP ) THEN
+!            EMEP = 0d0
+!         ELSE 
+!            EMEP = EMEP_NOx(I,J) + EMEP_NOx_SHIP(I,J)
+!         ENDIF
+!%%%%%%%%%%%%% END KLUDGE %%%%%%%%%%%%%%
 
       ! CO
       ELSE IF ( N == IDTCO ) THEN

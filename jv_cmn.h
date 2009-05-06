@@ -1,4 +1,4 @@
-! $Id: jv_cmn.h,v 1.1 2003/06/30 20:26:03 bmy Exp $
+! $Id: jv_cmn.h,v 1.2 2009/05/06 14:14:45 ccarouge Exp $
 !
 !----jv_cmn.h---COMMON BLOCKS for new FAST-J code (wild/prather 7/99)
 !
@@ -56,6 +56,9 @@
 !  (10) Renamed cpp switch from DEC_COMPAQ to COMPAQ.  Also declare common
 !        blocks ATMOS, JVLOC, WLLOC, JVSUB as !$OMP THREADPRIVATE for
 !        all platforms. (bmy, 3/23/03)
+!  (11) Added new pressure denpendencies algorithm parameters 
+!         for MGLY. (tmf, 1/7/09)
+!  (12) Added 'pdepf' as pressure dependancy function selector. (tmf, 1/31/06)
 !-----------------------------------------------------------------------------
       INTEGER      NB, NC, NS, NW, NP, MX
       PARAMETER   (NB=LPAR+1, NC=2*NB, NS=51, NW=15, NP=56, MX=35)
@@ -66,10 +69,13 @@
       INTEGER NJVAL,NW1,NW2,MIEDX,NAA,NLBATM,npdep,jpdep(NS)
       REAL*8 TJ,PJ,DM,DO3,Z,AER,AMF,RAD,RFLECT,SZA,U0,TANHT,ZZHT
       REAL*8 WBIN,WL,FL,QO2,QO3,Q1D,QQQ,QRAYL,TQQ,FFF,VALJ,WAA,QAA,PAA
-      REAL*8 RAA,SSA,TREF,OREF,BREF,QBC,DBC,zpdep(NW,3)
+      REAL*8 RAA,SSA,TREF,OREF,BREF,QBC,DBC,zpdep(NW,7)
       REAL*8 dtaumax,szamax,zj(LPAR,JPMAX),jfacta(JPMAX)
       REAL*8 dtausub,dsubdiv
       REAL*8 ODMDUST,ODAER
+      INTEGER PDEPF(7)
+      REAL*8 MGLYPDEP(NW, 3)
+
 !-----------------------------------------------------------------------
 ! These common blocks MUST NOT be held local (bmy, 5/2/00)
       COMMON /TITLS/TITLE0,TITLEJ,TITLEA
@@ -81,7 +87,10 @@
       COMMON /CLIM/ TREF(51,18,12),OREF(51,18,12),BREF(51),             &
      &              ODMDUST(IPAR,JPAR,LPAR,NDUST),                      &
      &              ODAER(IPAR,JPAR,LPAR,NAER*NRH)
-      COMMON /JVALS/jfacta,zpdep,npdep,jpdep,jind,jlabel
+
+      COMMON /JVALS/jfacta,zpdep,npdep,jpdep,jind,jlabel,               &
+     &              pdepf,mglypdep
+
       COMMON /JVIDX/MIEDX(MX)
 !-----------------------------------------------------------------------
 ! These common blocks MUST be held local for the parallelization (bmy, 5/2/00)

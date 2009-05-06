@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.24 2008/12/15 15:55:16 bmy Exp $
+! $Id: diag49_mod.f,v 1.25 2009/05/06 14:14:46 ccarouge Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -54,9 +54,6 @@
 !  ND49 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  71            : Pure O3 (not Ox) concentration           [v/v      ]
-!  72            : NO concentration                         [v/v      ]
-!  73            : NOy concentration                        [v/v      ]
 !  74            : OH concentration                         [molec/cm3]
 !  75            : NO2 concentration                        [v/v      ]
 !  76            : PBL heights                              [m        ]
@@ -72,7 +69,10 @@
 !  86            : Coarse mode seasalt optical depth        [unitless ]
 !  87            : Total dust optical depth                 [unitless ]
 !  88            : Total seasalt tracer concentration       [unitless ]
-!  89 - 92       : RESERVED FOR FUTURE USE
+!  89            : Pure O3 (not Ox) concentration           [v/v      ]
+!  90            : NO concentration                         [v/v      ]
+!  91            : NOy concentration                        [v/v      ]
+!  92            : RESERVED FOR FUTURE USE
 !  93            : Grid box height                          [m        ]
 !  94            : Relative humidity                        [%        ]
 !  95            : Sea level pressure                       [hPa      ]
@@ -94,6 +94,7 @@
 !  (9 ) Bug fix: accumulate into Q(X,Y,K) for dust OD (qli, bmy, 4/30/07)
 !  (10) Minor bug fixes in DIAG49 (cdh, bmy, 2/11/08)
 !  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$"
+!  (12) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -297,7 +298,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 71 .and. IS_Ox ) THEN
+         ELSE IF ( N == 89 .and. IS_Ox ) THEN
 
             !-------------------------------------
             ! PURE O3 CONCENTRATION [v/v]
@@ -323,7 +324,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 72 .and. IS_NOx ) THEN
+         ELSE IF ( N == 90 .and. IS_NOx ) THEN
             
             !-------------------------------------
             ! NO CONCENTRATION [v/v]
@@ -349,7 +350,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 73 .and. IS_NOy ) THEN
+         ELSE IF ( N == 91 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]

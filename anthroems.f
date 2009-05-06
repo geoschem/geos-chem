@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.10 2009/01/28 19:59:16 bmy Exp $
+! $Id: anthroems.f,v 1.11 2009/05/06 14:14:47 ccarouge Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -86,31 +86,42 @@
 !  (28) Modified for IPCC future emissions scale factors (swu, bmy, 5/30/06)
 !  (29) Extend max value for FSCALYR to 2002 (bmy, 7/18/06)
 !  (30) Use updated int'annual scale factors for 1985-2003 (amv, 08/24/07)
+!  (31) As default, use EDGARv2.0 emission (fossil fuel + industry) 
+!        for year 1985, scale to target year with CO2 from liquid fuel, 
+!        for aromatics, C2H4, and C2H2. (tmf, 6/13/07)
 !******************************************************************************
 !      
       ! References to F90 modules
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff
-      USE GEIA_MOD,             ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
-      USE GEIA_MOD,             ONLY : READ_LIQCO2,  READ_TODX
-      USE GEIA_MOD,             ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
-      USE GRID_MOD,             ONLY : GET_AREA_CM2, GET_XOFFSET
-      USE GRID_MOD,             ONLY : GET_YOFFSET
-      USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE TIME_MOD,             ONLY : GET_TS_EMIS,  GET_YEAR
-      USE TIME_MOD,             ONLY : GET_SEASON
-      USE TRACER_MOD,           ONLY : TRACER_MW_KG
-      USE TRACERID_MOD,         ONLY : IDEACET,      IDEALK4
-      USE TRACERID_MOD,         ONLY : IDEC2H6,      IDEC3H8
-      USE TRACERID_MOD,         ONLY : IDECO,        IDEMEK
-      USE TRACERID_MOD,         ONLY : IDENOX,       IDEPRPE
-      USE TRACERID_MOD,         ONLY : NEMANTHRO
-      USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_ALK4ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C3H8ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_COff  
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_NOxff 
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_TONEff
+      USE GEIA_MOD,            ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
+      USE GEIA_MOD,            ONLY : READ_LIQCO2,  READ_TODX
+      USE GEIA_MOD,            ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
+      USE GRID_MOD,            ONLY : GET_AREA_CM2, GET_XOFFSET
+      USE GRID_MOD,            ONLY : GET_YOFFSET
+      USE LOGICAL_MOD,         ONLY : LFUTURE
+      USE TIME_MOD,            ONLY : GET_TS_EMIS,  GET_YEAR
+      USE TIME_MOD,            ONLY : GET_SEASON
+      USE TRACER_MOD,          ONLY : TRACER_MW_KG
+      USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
+      USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
+      USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
+      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
+      USE TRACERID_MOD,        ONLY : NEMANTHRO
+      USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
+      USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
+      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
+      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+      USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
+      USE EDGAR_MOD,           ONLY : READ_C2H2
+      USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
+      USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
+      USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
 
       IMPLICIT NONE
 
@@ -128,6 +139,13 @@
       INTEGER                       :: I, I0,  IREF, J, J0, JREF
       INTEGER                       :: K, L,   LL,   N, NN 
       REAL*8                        :: DTSRCE, AREA_CM2
+
+      REAL*4 :: E_BENZ(IGLOB,JGLOB), E_TOLU(IGLOB,JGLOB),
+     &          E_XYLE(IGLOB,JGLOB)
+      REAL*4 :: E_C2H4(IGLOB,JGLOB), E_C2H2(IGLOB,JGLOB)
+      REAL*8 :: GEOS1x1(I1x1,J1x1,1)
+      REAL*8 :: TEMP(IGLOB,JGLOB)
+
 
       !=================================================================
       ! ANTHROEMS begins here!
@@ -147,6 +165,16 @@
       I0     = GET_XOFFSET()
       J0     = GET_YOFFSET()
 
+      ! As of March 2009, the GEIA input files for GEOS_5, 0.5X0.666, 
+      ! NESTED_CHINA are already cropped to the nested grid domain.  
+      ! So there is no need for offsetting the emission data. 
+      ! Reset I0 = 0, J0 = 0. (tmf, 3/5/09)
+#if   defined( GRID05x0666 ) && defined( NESTED_CH )
+
+      I0 = 0
+      J0 = 0
+
+#endif
       !=================================================================
       ! If FSCALYR < 0 then use this year (JYEAR) for the scaling 
       ! factors.  Otherwise, use the value of FSCALYR as specified in 
@@ -191,6 +219,11 @@
          EMISTC2H6 = 0e0
          EMISTETHE = 0e0
          EMISTSOX  = 0e0
+         EMISTBENZ = 0e0
+         EMISTTOLU = 0e0
+         EMISTXYLE = 0e0
+         EMISTC2H4 = 0e0
+         EMISTC2H2 = 0e0
 
          ! Zero arrays for holding CO & Hydrocarbons
          EMIST = 0d0
@@ -210,6 +243,41 @@
          ! Read C3H8 and C2H6 emissions, scaled from Natural Gas emissions
          ! as computed by Yaping Xiao (xyp@io.harvard.edu)
          CALL READ_C3H8_C2H6_NGAS( E_C3H8=EMISTC3H8, E_C2H6=EMISTC2H6 )
+
+         !================================================================
+         ! Read EDGARv2 aromatics emission for 1985  (tmf, 7/30/08)
+         !================================================================
+#if defined(GRID05x0666) && defined( NESTED_CH )
+         CALL READ_AROMATICS_05x0666( E_BENZ, E_TOLU, E_XYLE )
+#else
+         CALL READ_AROMATICS( E_BENZ, E_TOLU, E_XYLE )
+#endif
+
+	 EMISTBENZ = E_BENZ
+	 EMISTTOLU = E_TOLU
+         EMISTXYLE = E_XYLE
+
+         !================================================================
+         ! Read EDGARv2 C2H4 emission for 1985   (tmf, 7/30/08)
+         !================================================================
+#if defined(GRID05x0666) && defined( NESTED_CH )
+         CALL READ_C2H4_05x0666( E_C2H4 )
+#else
+         CALL READ_C2H4( E_C2H4 )
+#endif
+
+	 EMISTC2H4 = E_C2H4
+
+         !================================================================
+         ! Read EDGARv2 C2H2 emission for 1985  (tmf, 7/30/08)
+         !================================================================
+#if defined(GRID05x0666) && defined( NESTED_CH )
+         CALL READ_C2H2_05x0666( E_C2H2 )
+#else
+         CALL READ_C2H2( E_C2H2 )
+#endif
+
+	 EMISTC2H2 = E_C2H2
 
          !============================================================== 
          ! Apply IPCC future scale factors to emissions (if necessary)
@@ -411,6 +479,96 @@
      &                            1,                  12d-3, 'C2H6' )
          ENDIF         
 
+         !=============================================================
+         ! Default emissions for BENZ, TOLU, XYLE, C2H2, C2H4 
+         !  are for year 1985 only.  Scale to target year
+         !=============================================================
+         ! BENZ: for year 1985
+         IF ( IDEBENZ /= 0 ) THEN
+            DO J = 1, JJPAR
+               JREF = J + J0
+               DO I = 1, IIPAR
+                  IREF = I + I0
+                  EMIST(I,J,IDEBENZ) = EMISTBENZ(IREF,JREF) * 
+     &               FLIQCO2(IREF, JREF) 
+!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
+               ENDDO
+            ENDDO
+         
+            ! Print total in Tg C
+            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDEBENZ), IIPAR, JJPAR, 
+     &                            1,                  12d-3, 'BENZ' )
+         ENDIF
+
+         ! TOLU: for year 1985
+         IF ( IDETOLU /= 0 ) THEN
+            DO J = 1, JJPAR
+               JREF = J + J0
+               DO I = 1, IIPAR
+                  IREF = I + I0
+                  EMIST(I,J,IDETOLU) = EMISTTOLU(IREF,JREF) *  
+     &               FLIQCO2(IREF, JREF) 
+!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
+               ENDDO
+            ENDDO
+         
+            ! Print total in Tg C
+            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDETOLU), IIPAR, JJPAR, 
+     &                            1,                  12d-3, 'TOLU' )
+         ENDIF
+
+         ! XYLE: for year 1985
+         IF ( IDEXYLE /= 0 ) THEN
+            DO J = 1, JJPAR
+               JREF = J + J0
+               DO I = 1, IIPAR
+                  IREF = I + I0
+                  EMIST(I,J,IDEXYLE) = EMISTXYLE(IREF,JREF) * 
+     &               FLIQCO2(IREF, JREF) 
+!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
+               ENDDO
+            ENDDO
+         
+            ! Print total in Tg C
+            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDEXYLE), IIPAR, JJPAR, 
+     &                            1,                  12d-3, 'XYLE' )
+         ENDIF
+
+         ! C2H4: for year 1985
+         IF ( IDEC2H4 /= 0 ) THEN
+            DO J = 1, JJPAR
+               JREF = J + J0
+               DO I = 1, IIPAR
+                  IREF = I + I0
+                  EMIST(I,J,IDEC2H4) = EMISTC2H4(IREF,JREF) *
+     &               FLIQCO2(IREF, JREF) 
+!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
+
+               ENDDO
+            ENDDO
+         
+            ! Print total in Tg C
+            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDEC2H4), IIPAR, JJPAR, 
+     &                            1,                  12d-3, 'C2H4' )
+         ENDIF
+
+         ! C2H2: for year 1985
+         IF ( IDEC2H2 /= 0 ) THEN
+            DO J = 1, JJPAR
+               JREF = J + J0
+               DO I = 1, IIPAR
+                  IREF = I + I0
+                  EMIST(I,J,IDEC2H2) = EMISTC2H2(IREF,JREF) *
+     &               FLIQCO2(IREF, JREF) 
+!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
+
+               ENDDO
+            ENDDO
+         
+            ! Print total in Tg C
+            CALL TOTAL_FOSSIL_TG( EMIST(:,:,IDEC2H2), IIPAR, JJPAR, 
+     &                            1,                  12d-3, 'C2H2' )
+         ENDIF
 
          !==============================================================
          ! Convert CO and hydrocarbon emissions from [molec (C)/cm2/s] 
@@ -426,6 +584,10 @@
 
             ! Skip NOx
             IF ( N == IDENOX ) CYCLE
+
+            ! Skip if some tracer is not present because there are more 
+            ! anthro. tracers for dicarbonyl chemistry. (ccc, 4/16/09)
+            IF ( NN == 0 ) CYCLE
 
             ! Convert units
             DO J = 1, JJPAR

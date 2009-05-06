@@ -1,4 +1,4 @@
-! $Id: gc_biomass_mod.f,v 1.3 2006/10/17 17:51:12 bmy Exp $
+! $Id: gc_biomass_mod.f,v 1.4 2009/05/06 14:14:45 ccarouge Exp $
       MODULE GC_BIOMASS_MOD
 !
 !******************************************************************************
@@ -24,13 +24,12 @@
 !  (4 ) GC_READ_BIOMASS_NH3  : reads biomass emissions of NH3
 !  (5 ) GC_READ_BIOMASS_SO2  : reads biomass emissions of SO2
 !  (6 ) READ_BIOMASS         : reads gas-phase biomass burning data from disk
-!  (7 ) SCALE_BIOMASS_CO     : applies scale factors to CO for VOC oxidation
-!  (8 ) SCALE_BIOMASS_ACET   : applies scale factors to ACET 
-!  (9 ) SCALE_FUTURE         : applies future scale factors to emissions
-!  (10) TOTAL_BIOMASS_TG     : prints monthly emission totals in [Tg (C)]
-!  (11) ADJUST_TO_TOMSAI     : wrapper for subroutine TOMSAI
-!  (12) TOMSAI               : adjusts BB for int'annual var'bilty w/ TOMS data
-!  (13) CLEANUP_BIOMASS      : deallocates BURNEMIS, BIOTRCE
+!  (7 ) SCALE_BIOMASS_ACET   : applies scale factors to ACET 
+!  (8 ) SCALE_FUTURE         : applies future scale factors to emissions
+!  (9 ) TOTAL_BIOMASS_TG     : prints monthly emission totals in [Tg (C)]
+!  (10) ADJUST_TO_TOMSAI     : wrapper for subroutine TOMSAI
+!  (11) TOMSAI               : adjusts BB for int'annual var'bilty w/ TOMS data
+!  (12) CLEANUP_BIOMASS      : deallocates BURNEMIS, BIOTRCE
 !
 !  GEOS-CHEM modules referenced by "gc_biomass_mod.f"
 !  ============================================================================
@@ -155,6 +154,10 @@
 !        routine SCALE_FUTURE. (swu, bmy, 5/30/06)
 !  (32) Added routines for reading BC, OC, SO2, NH3, CO2 biomass emissions.
 !        (bmy, 9/28/06)
+!  (33) Add 9 gaseous biomass burning emissions using emission ratios
+!       w.r.t. CO.  Details in Fu et al. [2008] (tmf, 1/7/09)
+!  (34) CO scaling for VOC production is transfered to biomass_mod.f.
+!        (jaf, 2/6/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -182,7 +185,7 @@
       ! Parameters
       ! NOTE: This is an internal declaration for the 
       ! gas-phase species only (bmy, 9/28/06)
-      INTEGER, PARAMETER   :: NBIOMAX = 10 
+      INTEGER, PARAMETER   :: NBIOMAX = 19
 
       ! TOMS AI interannual variability in biomass burning emissions
       INTEGER, PARAMETER   :: NAIREGIONS = 8
@@ -274,6 +277,7 @@
 !  (24) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (25) Renamed to GC_COMPUTE_BIOMASS.  Now takes YEAR, MONTH, BIOMASS 
 !        arguments. (bmy, 4/5/06)
+!  (26) Add 9 biomass burning species (ccc, 1/7/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -326,13 +330,22 @@
       !      C3H8      8          19        [molec C3H8/cm2/month]
       !      CH2O      9          20        [molec CH2O/cm2/month]
       !      C2H6      10         21        [molec C2H6/cm2/month]
+      !      GLYX      15         55        [molec GLYX/cm2/month]
+      !      MGLY      16         56        [molec MGLY/cm2/month]
+      !      BENZ      17         57        [molec C   /cm2/month]
+      !      TOLU      18         58        [molec C   /cm2/month]
+      !      XYLE      19         59        [molec C   /cm2/month]
+      !      C2H4      20         63        [molec C   /cm2/month]
+      !      C2H2      21         64        [molec C   /cm2/month]
+      !      GLYC      22         66        [molec GLYC/cm2/month]
+      !      HAC       23         67        [molec HAC /cm2/month]
       !
       ! Subsequent unit conversion is done on the following species:
       !      [molec ACET/cm2/month]  -->  [molec C/cm2/month]
       !      [molec C3H8/cm2/month]  -->  [molec C/cm2/month]
       !      [molec C2H6/cm2/month]  -->  [molec C/cm2/month]
       ! 
-      ! There are NBIOMAX=10 biomass burning species.
+      ! There are NBIOMAX=19 biomass burning species in this module.
       !
       ! Biomass burning emissions are first read from disk into the
       ! BIOMASS array.  After unit conversion to [molec/cm3/s] ( or
@@ -591,6 +604,11 @@
       INTEGER                       :: N
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
 
+      ! Add storage of CO emissions to calculate emissions 
+      ! of the 9 new species (tmf, 12/18/06) 
+      REAL*8   :: COEMIS(IIPAR, JJPAR)  ! CO emissions before scaling
+      REAL*8   :: TRCEMIS(IIPAR, JJPAR) ! Tracer emissions scaled from CO
+
       !=================================================================
       ! READ_BIOMASS begins here!
       !=================================================================
@@ -642,8 +660,15 @@
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
             CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
 
-            ! CO -- scale to account for oxidation of extra VOC's
-            CALL SCALE_BIOMASS_CO( BIOMASS(:,:,N)              )
+            ! Store CO emissions before scaling 
+            ! for new gaseous emissions (tmf, 1/7/09)
+            CALL TRANSFER_2D( ARRAY(:,:,1), COEMIS(:,:) )
+
+!------------------------------------------------------------------
+! Prior to 2/25/09, ccc 
+!           ! CO -- scale to account for oxidation of extra VOC's
+!            CALL SCALE_BIOMASS_CO( BIOMASS(:,:,N)              )
+!------------------------------------------------------------------
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
@@ -842,60 +867,161 @@
             ! Print totals in [Tg C]
             CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H6' )
 
+!-------------------------------------------------------------------------
+!  Add 9 gaseous BB emissions (tmf, 1/7/09)
+!-------------------------------------------------------------------------
+         ELSE IF ( N == 15 ) THEN
+
+            !----------
+            ! GLYX
+            !----------
+
+            ! Estimate GLYC emission by scaling CO emission
+            ! GLYX [mole] / CO [mole]  = 0.00662  (from Andreae 2005 update)
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00662d0     ! [molecule GLYX/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! GLYX -- [molecule GLYX/cm2/month]
+            ! Print totals in [Tg GLYX]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 58d-3, 'GLYX' )
+
+         ELSE IF ( N == 16 ) THEN
+
+            !----------
+            ! MGLY
+            !----------
+
+            ! Estimate MGLY emission by scaling CO emission
+            ! MGLY [mole] / CO [mole]  = 0.00347  (from Andreae 2005 update)
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00347d0     ! [molecule MGLY/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! MGLY -- [molecule MGLY/cm2/month]
+            ! Print totals in [Tg MGLY]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 72d-3, 'MGLY' )
+
+         ELSE IF ( N == 17 ) THEN
+
+            !----------
+            ! BENZ
+            !----------
+            ! Estimate BENZ emission by scaling CO emission
+            ! BENZ [mole] / CO [mole]  =  0.00233
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00233d0 * 6.0d0   ! [molec C/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! BENZ -- [molec C/cm2/month]
+            ! Print totals in [Tg C]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'BENZ' )
+
+
+         ELSE IF ( N == 18 ) THEN
+
+            !----------
+            ! TOLU
+            !----------
+            ! Estimate TOLU emission by scaling CO emission
+            ! TOLU [mole] / CO [mole]  =  0.00124
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00124d0 * 7.0d0   ! [molec C/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! TOLU -- [molec C/cm2/month]
+            ! Print totals in [Tg C]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'TOLU' )
+
+         ELSE IF ( N == 19 ) THEN
+
+            !----------
+            ! XYLE
+            !----------
+            ! Estimate XYLE emission by scaling CO emission
+            ! XYLE [mole] / CO [mole]  =  0.00048
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00048d0 * 8.0d0   ! [molec C/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! XYLE -- [molec C/cm2/month]
+            ! Print totals in [Tg C]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'XYLE' )
+
+         ELSE IF ( N == 20 ) THEN
+
+            !----------
+            ! C2H4
+            !----------
+            ! Estimate C2H4 emission by scaling CO emission
+            ! C2H4 [mole] / CO [mole]  =  0.01381
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.01381d0 * 2.0d0   ! [molec C/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! C2H4 -- [molec C/cm2/month]
+            ! Print totals in [Tg C]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H4' )
+
+         ELSE IF ( N == 21 ) THEN
+
+            !----------
+            ! C2H2
+            !----------
+            ! Estimate C2H2 emission by scaling CO emission
+            ! C2H2 [mole] / CO [mole]  =  0.004d0  from Xiao et al. [2007]
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.004d0 * 2.0d0   ! [molec C/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! C2H2 -- [molec C/cm2/month]
+            ! Print totals in [Tg C]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H2' )
+
+         ELSE IF ( N == 22 ) THEN
+
+            !----------
+            ! GLYC
+            !----------
+            ! Estimate GLYC emission by scaling CO emission
+            ! GLYC [mole] / CO [mole]  = 0.00477  (from Andreae 2005 update)
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00477d0     ! [molecule GLYC/cm2/month]
+            
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! GLYC -- [molecule GLYC/cm2/month]
+            ! Print totals in [Tg GLYC]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 60d-3, 'GLYC' )
+
+         ELSE IF ( N == 23 ) THEN
+
+            !----------
+            ! HAC
+            !----------
+            ! Estimate HAC emission by scaling CO emission
+            ! HAC [mole] / CO [mole]  = 0.00331d0 (from Christian et al. [2003] for African biomass)
+            TRCEMIS(:,:) = 
+     &         COEMIS(:,:) * 0.00331d0     ! [molecule HAC/cm2/month]
+
+            BIOMASS(:,:,N) = TRCEMIS(:,:)
+
+            ! HAC -- [molecule HAC/cm2/month]
+            ! Print totals in [Tg HAC]
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 74d-3, 'HAC' )
+
          ENDIF
       ENDDO
      
       ! Return to calling program
       END SUBROUTINE READ_BIOMASS
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE SCALE_BIOMASS_CO( BBARRAY )
-!
-!******************************************************************************
-!  Subroutine SCALE_BIOMASS_CO multiplies the CO biomass emissions by scale 
-!  factors to account for CO production from VOC's that are not explicitly 
-!  carried in the chemistry mechanisms. (bnd, bmy, 8/21/01, 7/20/04)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) BBARRAY (REAL*8) : Array containing biomass burning CO emissions
-!
-!  NOTES:
-!  (1 ) Scale factors were determined by Jennifer Logan (jal@io.harvard.edu),
-!       Bryan Duncan (bnd@io.harvard.edu) and Daniel Jacob (djj@io.harvard.edu)
-!  (2 ) Scale factors have been corrected to 5% and 11% (bnd, bmy, 8/21/01)
-!  (3 ) BBARRAY is now dimensioned (IIPAR,JJPAR) (bmy, 9/28/01)
-!  (4 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-!  (5 ) Now references ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM from "tracer_mod.f"
-!        (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
-
-      !=================================================================
-      ! SCALE_BIOMASS_CO begins here!
-      !=================================================================
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-
-         ! Full chemistry w/ SMVGEAR  -- enhance by 5%
-         BBARRAY = BBARRAY * 1.05d0
-         
-      ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-
-         ! Tagged CO -- enhance by 11%
-         BBARRAY = BBARRAY * 1.11d0
-
-      ENDIF
-
-      ! Return to calling program  
-      END SUBROUTINE SCALE_BIOMASS_CO
 
 !------------------------------------------------------------------------------
 
@@ -1044,6 +1170,7 @@
 !        box surface area in cm2.  Removed reference to CMN header file.
 !        Cosmetic changes. (bmy, 3/14/03)
 !  (4 ) Now report sums of NOx as Tg N instead of Tg NOx (bmy, 4/5/06)
+!  (5 ) Add unit choice for GLYX, MGLY, GLYC, HAC (tmf, 1/7/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1084,7 +1211,7 @@
       SELECT CASE( NAME )
          CASE( 'NOx' )
             UNIT = '[Tg N]'
-         CASE( 'CO', 'CH2O' )
+         CASE( 'CO', 'CH2O', 'GLYX', 'MGLY', 'GLYC', 'HAC' )
             UNIT = '[Tg  ]'
          CASE DEFAULT
             UNIT = '[Tg C]'

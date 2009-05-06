@@ -1,4 +1,4 @@
-! $Id: smvgear.f,v 1.7 2007/11/05 16:16:24 bmy Exp $
+! $Id: smvgear.f,v 1.8 2009/05/06 14:14:45 ccarouge Exp $
       SUBROUTINE SMVGEAR
 !
 !******************************************************************************
@@ -1668,16 +1668,18 @@ C
          ! (bmy, pip, 4/27/00)
          IF ( IT_IS_NAN( CNEW(KLOOP,JSPC) ) ) THEN
             DO NK = 1, NALLRAT(NCS)
-               WRITE( 6, 249 ) NK, RRATE(KSAVE,NK),TRATE(KSAVE,NK)
+               WRITE( 6, 249 ) NK, RRATE(KLOOP,NK),TRATE(KLOOP,NK),KLOOP
  249           FORMAT( 'Rxn #:', i5, ' RRATE = ', es13.6 ,
-     x              '  TRATE = ', es13.6 )
+     x              '  TRATE = ', es13.6, 'KLOOP = ', I6 )
             ENDDO
             write(6,*) 'sum of rrate = ',sum(rrate)
             PRINT*, 'SMVGEAR: CNEW is NaN!'
             PRINT*, 'Species index : ', JSPC
+            PRINT*, 'Species NAME : ', NAMEGAS(JSPC)
+
             PRINT*, 'Grid Box      : ', IXSAVE(KLOOP+JLOOPLO),
      &           IYSAVE(KLOOP+JLOOPLO), IZSAVE(KLOOP+JLOOPLO)
-            PRINT*, 'STOP in smvgear.f!'
+            PRINT*, 'STOP AT END OF smvgear.f!'
 
             ! Stop the run and deallocate all arrays 
             CALL GEOS_CHEM_STOP

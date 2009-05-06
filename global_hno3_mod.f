@@ -1,4 +1,4 @@
-! $Id: global_hno3_mod.f,v 1.10 2008/08/08 17:20:35 bmy Exp $
+! $Id: global_hno3_mod.f,v 1.11 2009/05/06 14:14:45 ccarouge Exp $
       MODULE GLOBAL_HNO3_MOD
 !
 !******************************************************************************
@@ -176,7 +176,7 @@
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
-#if   defined( GEOS_3 ) || defined( GEOS_4 ) 
+#if   defined( GEOS_3 ) || defined( GEOS_4 ) || defined( GEOS_5 )
 
       !-------------------------------------------------------
       ! GEOS-3 / GEOS-4 data come from the 30 level model run

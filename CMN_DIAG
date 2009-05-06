@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.22 2007/11/16 18:47:31 bmy Exp $
+! $Id: CMN_DIAG,v 1.23 2009/05/06 14:14:47 ccarouge Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -18,6 +18,15 @@
 ! (9 ) Added multi level LD54 to common CDIAG1 (phs, 9/22/06)
 ! (10) Added multi level LD10 to common CDIAG1. Set PD10 to 20.  Set
 !       PD66 to 6. (phs, 9/18/07)
+! (11) Added LD52 to common CDIAG1 (jaegle, 02/26/09)
+! (12) Add GLYX, MGLY, SOAG, SOAM, and a few other tracers to AD17, AD18 
+!       for archiving rainout and washout fraction. (tmf, 1/7/09)
+! (13) Add GLYX, MGLY J value archive. (tmf, 1/7/09)
+! (14) Add GLYX, MGLY, SOAG, SOAM, and a few other tracers to AD37, AD38, AD39 
+!       for archiving rainout and washout flux. (tmf, 1/7/09)
+! (15) Add GLYX, MGLY, GLYC, 6 PANs, SOAG, SOAM dry dep, 
+!       PD44 = 41.(tmf, 1/7/09)
+! (16) Add biogenic C2H4 emission, PD46 = 6. (tmf, 1/20/09)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -47,8 +56,16 @@
       ! Now set PD09 to 6 (bmy, 6/27/05)
       ! Removed PD04 -- now in "diag04_mod.f" (bmy, 7/26/05)
       ! Now set PD30 to 1 (bmy, 8/18/05)
-      ! Now set PD46 to 5 (tmf, bmy, 10/20/05)
+      ! Now set PD46 to 6 (tmf, 1/20/09)
       ! Now set PD10 to 20 (phs, 9/18/07)
+      ! Changed PD17 to 8 (tmf, 1/7/09)
+      ! Changed PD18 to 8 (tmf, 1/7/09)
+      ! Changed PD22 to 8 (tmf, 1/7/09)
+      ! Changed PD37 to 35 (tmf, 1/7/09)
+      ! Changed PD38 to 35 (tmf, 1/7/09)
+      ! Changed PD39 to 35 (tmf, 1/7/09)
+      ! Changed PD44 to 41 (tmf, 1/7/09)
+      ! Now set PD52 to 1 (jaegle 2/26/09)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD05=10        
@@ -62,13 +79,13 @@
       INTEGER, PARAMETER :: PD13=1            
       INTEGER, PARAMETER :: PD14=NNPAR       
       INTEGER, PARAMETER :: PD15=NNPAR      
-      INTEGER, PARAMETER :: PD16=2            
-      INTEGER, PARAMETER :: PD17=4           
-      INTEGER, PARAMETER :: PD18=4
+      INTEGER, PARAMETER :: PD16=2  
+      INTEGER, PARAMETER :: PD17=8           
+      INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
       INTEGER, PARAMETER :: PD21=20
-      INTEGER, PARAMETER :: PD22=6           
+      INTEGER, PARAMETER :: PD22=8
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        
       INTEGER, PARAMETER :: PD25=NNPAR       
@@ -83,20 +100,20 @@
       INTEGER, PARAMETER :: PD34=2           
       INTEGER, PARAMETER :: PD35=NNPAR 
       INTEGER, PARAMETER :: PD36=NNPAR        
-      INTEGER, PARAMETER :: PD37=10          
-      INTEGER, PARAMETER :: PD38=4 
-      INTEGER, PARAMETER :: PD39=4            
+      INTEGER, PARAMETER :: PD37=35        
+      INTEGER, PARAMETER :: PD38=35 
+      INTEGER, PARAMETER :: PD39=35            
       INTEGER, PARAMETER :: PD40=4       
-      INTEGER, PARAMETER :: PD43=5           
-      INTEGER, PARAMETER :: PD44=30
+      INTEGER, PARAMETER :: PD43=5  
+      INTEGER, PARAMETER :: PD44=41
       INTEGER, PARAMETER :: PD45=NNPAR+1      
-      INTEGER, PARAMETER :: PD46=5          
+      INTEGER, PARAMETER :: PD46=6
       INTEGER, PARAMETER :: PD47=NNPAR+1
       INTEGER, PARAMETER :: PD48=2            
       INTEGER, PARAMETER :: PD49=0                
       INTEGER, PARAMETER :: PD50=0            
       INTEGER, PARAMETER :: PD51=0           
-      INTEGER, PARAMETER :: PD52=0 
+      INTEGER, PARAMETER :: PD52=1 
       INTEGER, PARAMETER :: PD53=0            
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
@@ -127,15 +144,18 @@
 ! Added LD54 (phs, 9/22/06)
 ! Added LD10 (phs, 9/18/07)
 ! Added LD31 (bmy, 5/8/07)
+! Added LD52 (jaegle, 02/26/09)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
-     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31
+     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
+     &   LD52
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
-     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31
+     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
+     &   LD52
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

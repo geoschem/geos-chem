@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.23 2009/01/28 19:59:13 bmy Exp $
+! $Id: tracerid_mod.f,v 1.24 2009/05/06 14:14:44 ccarouge Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -172,12 +172,13 @@
 !  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
 !  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
+!  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !******************************************************************************
 !
       IMPLICIT NONE
 
       ! for CTM tracers
-      INTEGER, PARAMETER :: NNNTRID  = 59
+      INTEGER, PARAMETER :: NNNTRID  = 73
       INTEGER, PARAMETER :: MMMEMBER = 10
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
@@ -194,6 +195,15 @@
       INTEGER            :: IDISN2,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
       INTEGER            :: IDDMS,   IDSO2,    IDSO4,   IDMSA
       INTEGER            :: IDDRYO3, IDDRYPAN, IDDRYNO2, IDSO4s         
+      INTEGER            :: IDGLYX,  IDMGLY
+      INTEGER            :: IDBENZ,  IDTOLU,   IDXYLE,  IDMONX
+      INTEGER            :: IDDRYGLYX, IDDRYMGLY
+      INTEGER            :: IDC2H2, IDC2H4
+      INTEGER            :: IDMBO, IDGLYC
+      INTEGER            :: IDHAC
+      INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
+      INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
+      INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
 
       ! GEOS-CHEM tracer ID's
       INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
@@ -210,6 +220,14 @@
       INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
+      INTEGER            :: IDTBENZ,  IDTTOLU,   IDTXYLE,  IDTMONX
+      INTEGER            :: IDTGLYX, IDTMGLY
+      INTEGER            :: IDTSOAG, IDTSOAM
+      INTEGER            :: IDTC2H2, IDTC2H4
+      INTEGER            :: IDTMBO, IDTGLYC
+      INTEGER            :: IDTAPAN, IDTENPAN, IDTMPAN, IDTNIPAN
+      INTEGER            :: IDTGLPAN,  IDTGPAN
+      INTEGER            :: IDTHAC
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -226,12 +244,23 @@
       INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
       INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
       INTEGER            :: NEMBIOG, NEMANTHRO
+      INTEGER            :: IDEBENZ,  IDETOLU,   IDEXYLE,  IDEMONX
+      INTEGER            :: IDEC2H2, IDEC2H4
+      INTEGER            :: IDEMBO
+      INTEGER            :: IDEGLYC
+      INTEGER            :: IDEGLYX, IDEMGLY
+      INTEGER            :: IDEHAC
 
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
       INTEGER            :: IDBFCH2O, IDBFC2H6
-      
+      INTEGER            :: IDBFBENZ,  IDBFTOLU,   IDBFXYLE
+      INTEGER            :: IDBFC2H2, IDBFC2H4
+      INTEGER            :: IDBFGLYC
+      INTEGER            :: IDBFGLYX, IDBFMGLY
+      INTEGER            :: IDBFHAC
+
       CONTAINS
 
 !------------------------------------------------------------------------------
@@ -579,6 +608,111 @@
                IDTSALC  = N
 
             !--------------------------------
+            ! Dicarbonyls GLYX & MGLY
+            !--------------------------------
+            CASE ( 'GLYX' )
+               COUNT    = COUNT + 1
+               IDTGLYX  = N
+               IDBFGLYX = COUNT
+
+            CASE ( 'MGLY' )
+               COUNT    = COUNT + 1
+               IDTMGLY  = N
+               IDBFMGLY = COUNT
+
+            !--------------------------------
+            ! Aromatics tracers
+            !--------------------------------
+            CASE ( 'BENZ' )
+               COUNT    = COUNT + 1
+               IDTBENZ  = N
+               IDBFBENZ = COUNT
+
+            CASE ( 'TOLU' )
+               COUNT    = COUNT + 1
+               IDTTOLU  = N
+               IDBFTOLU = COUNT
+
+            CASE ( 'XYLE' )
+               COUNT    = COUNT + 1
+               IDTXYLE  = N
+               IDBFXYLE = COUNT
+
+            !--------------------------------
+            ! Monoterpene
+            !--------------------------------
+            CASE ( 'MONX' )
+               IDTMONX  = N
+
+            !--------------------------------
+            ! SOA from GLYX and MGLY
+            !--------------------------------
+            CASE ( 'SOAG' )
+               IDTSOAG  = N
+
+            CASE ( 'SOAM' )
+               IDTSOAM  = N
+
+            !--------------------------------
+            ! C2H4
+            !--------------------------------
+            CASE ( 'C2H4' )
+               COUNT    = COUNT + 1
+               IDTC2H4  = N
+               IDBFC2H4 = COUNT
+
+            !--------------------------------
+            ! C2H2
+            !--------------------------------
+            CASE ( 'C2H2' )
+               COUNT    = COUNT + 1
+               IDTC2H2  = N
+               IDBFC2H2 = COUNT
+
+            !--------------------------------
+            ! MBO
+            !--------------------------------
+            CASE ( 'MBO' )
+               IDTMBO   = N
+
+            !--------------------------------
+            ! GLYC
+            !--------------------------------
+            CASE ( 'GLYC' )
+               COUNT    = COUNT + 1
+               IDTGLYC  = N
+               IDBFGLYC = COUNT
+
+            !--------------------------------
+            ! HAC
+            !--------------------------------
+            CASE ( 'HAC' )
+               COUNT    = COUNT + 1
+               IDTHAC   = N
+               IDBFHAC  = COUNT
+
+            !--------------------------------
+            ! new PAN species
+            !--------------------------------
+            CASE ( 'APAN' )
+               IDTAPAN   = N
+
+            CASE ( 'ENPAN' )
+               IDTENPAN   = N
+
+            CASE ( 'GLPAN' )
+               IDTGLPAN   = N
+
+            CASE ( 'GPAN' )
+               IDTGPAN   = N
+
+            CASE ( 'MPAN' )
+               IDTMPAN   = N
+
+            CASE ( 'NIPAN' )
+               IDTNIPAN   = N
+
+            !--------------------------------
             ! Rn-Pb-Be tracers
             !--------------------------------
             CASE ( 'RN' )
@@ -732,8 +866,13 @@
       ! Added HNO3 and Ox to deal with ship NOx emissions (3/4/08, phs)
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-         NEMANTHRO = 12 !phs - replaces 10
-         NEMBIOG   = 1
+!-----------------------------------------------------------------
+! Prior to 3/2/09
+!         NEMANTHRO = 12 !phs - replaces 10
+!         NEMBIOG   = 1
+!-----------------------------------------------------------------
+         NEMANTHRO = 21 !phs - replaces 10
+         NEMBIOG   = 3
          IDENOX    = 1
          IDECO     = 2
          IDEPRPE   = 3
@@ -746,7 +885,19 @@
          IDECH2O   = 10
          IDEOX     = 11 !PHS
          IDEHNO3   = 12 !PHS
-         IDEISOP   = 13 ! not used TO EMIT ANTHRO but should be #11 is we use it
+         IDEGLYX   = 13
+         IDEMGLY   = 14
+         IDEBENZ   = 15
+         IDETOLU   = 16
+         IDEXYLE   = 17
+         IDEC2H4   = 18
+         IDEC2H2   = 19
+         IDEGLYC   = 20
+         IDEHAC    = 21
+         IDEISOP   = 22
+         IDEMONX   = 23
+         IDEMBO    = 24
+!ccc         IDEISOP   = 13 ! not used TO EMIT ANTHRO but should be #11 is we use it
       ENDIF
       
       !=================================================================
@@ -768,6 +919,17 @@
       IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
       IF ( IDEOX   /= 0 ) IDEMS(IDEOX  ) = IDTOX    ! PHS
       IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
+      IF ( IDEGLYX /= 0 ) IDEMS(IDEGLYX) = IDTGLYX
+      IF ( IDEMGLY /= 0 ) IDEMS(IDEMGLY) = IDTMGLY
+      IF ( IDEBENZ /= 0 ) IDEMS(IDEBENZ) = IDTBENZ
+      IF ( IDETOLU /= 0 ) IDEMS(IDETOLU) = IDTTOLU
+      IF ( IDEXYLE /= 0 ) IDEMS(IDEXYLE) = IDTXYLE
+      IF ( IDEMONX /= 0 ) IDEMS(IDEMONX) = IDTMONX
+      IF ( IDEC2H4 /= 0 ) IDEMS(IDEC2H4) = IDTC2H4
+      IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
+      IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
+      IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
+      IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
 
       ! Echo anthro & biogenic emitted tracers
       WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
@@ -861,6 +1023,30 @@
          IF ( NAMEGAS(I) == 'DRYNO2' ) IDDRYNO2 = I
          IF ( NAMEGAS(I) == 'DRYPAN' ) IDDRYPAN = I
          IF ( NAMEGAS(I) == 'DRYO3 ' ) IDDRYO3  = I
+         IF ( NAMEGAS(I) == 'BENZ'   ) IDBENZ   = I 
+         IF ( NAMEGAS(I) == 'TOLU'   ) IDTOLU   = I 
+         IF ( NAMEGAS(I) == 'XYLE'   ) IDXYLE   = I 
+         IF ( NAMEGAS(I) == 'MONX'   ) IDMONX   = I 
+         IF ( NAMEGAS(I) == 'GLYX'   ) IDGLYX   = I
+         IF ( NAMEGAS(I) == 'MGLY'   ) IDMGLY   = I
+         IF ( NAMEGAS(I) == 'DRYGLYX') IDDRYGLYX = I
+         IF ( NAMEGAS(I) == 'DRYMGLY') IDDRYMGLY = I
+         IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4    = I
+         IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2    = I
+         IF ( NAMEGAS(I) == 'MBO'    ) IDMBO     = I
+         IF ( NAMEGAS(I) == 'GLYC'   ) IDGLYC    = I
+         IF ( NAMEGAS(I) == 'HAC'    ) IDHAC     = I
+         IF ( NAMEGAS(I) == 'APAN'   ) IDAPAN    = I
+         IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
+         IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
+         IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+
+         IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
+         IF ( NAMEGAS(I) == 'DRYENPAN')  IDDRYENPAN = I
+         IF ( NAMEGAS(I) == 'DRYGLPAN')  IDDRYGLPAN = I
+         IF ( NAMEGAS(I) == 'DRYGPAN' )  IDDRYGPAN  = I
+         IF ( NAMEGAS(I) == 'DRYMPAN' )  IDDRYMPAN  = I
+         IF ( NAMEGAS(I) == 'DRYNIPAN')  IDDRYNIPAN = I
       ENDDO
 
       !=================================================================
@@ -1297,6 +1483,31 @@
       IDDRYO3   = 0
       IDDRYPAN  = 0
       IDDRYNO2  = 0       
+      IDBENZ    = 0
+      IDTOLU    = 0
+      IDXYLE    = 0
+      IDMONX    = 0
+      IDGLYX    = 0
+      IDMGLY    = 0
+      IDDRYGLYX = 0
+      IDDRYMGLY = 0
+      IDC2H4    = 0
+      IDC2H2    = 0
+      IDMBO     = 0
+      IDGLYC    = 0
+      IDHAC     = 0
+
+      IDAPAN    = 0
+      IDENPAN   = 0
+      IDMPAN    = 0
+      IDNIPAN   = 0
+
+      IDDRYAPAN  = 0
+      IDDRYENPAN = 0
+      IDDRYGLPAN = 0
+      IDDRYGPAN  = 0
+      IDDRYMPAN  = 0
+      IDDRYNIPAN = 0
 
       ! GEOS-CHEM Tracer ID #'s
       IDTNOX    = 0
@@ -1362,6 +1573,25 @@
       IDTRN     = 0
       IDTPB     = 0
       IDTBE7    = 0
+      IDTGLYX   = 0
+      IDTMGLY   = 0
+      IDTBENZ   = 0
+      IDTTOLU   = 0
+      IDTXYLE   = 0
+      IDTMONX   = 0
+      IDTSOAG   = 0
+      IDTSOAM   = 0
+      IDTC2H4   = 0
+      IDTC2H2   = 0
+      IDTMBO    = 0
+      IDTGLYC   = 0
+      IDTHAC    = 0
+      IDTAPAN   = 0
+      IDTENPAN  = 0
+      IDTGLPAN  = 0
+      IDTGPAN   = 0
+      IDTMPAN   = 0
+      IDTNIPAN  = 0
 
       ! GEOS-CHEM Emission ID #'s
       NEMANTHRO = 0
@@ -1379,6 +1609,17 @@
       IDEISOP   = 0
       IDECH2O   = 0 
       IDEHNO3   = 0 !phs (3/4/08)
+      IDEGLYX   = 0
+      IDEMGLY   = 0
+      IDEBENZ   = 0
+      IDETOLU   = 0
+      IDEXYLE   = 0
+      IDEMONX   = 0
+      IDEC2H4   = 0
+      IDEC2H2   = 0
+      IDEMBO    = 0
+      IDEGLYC   = 0
+      IDEHAC    = 0
       
       ! GEOS-CHEM Biofuel ID #'s
       IDBFNOX   = 0
@@ -1391,6 +1632,15 @@
       IDBFC3H8  = 0
       IDBFCH2O  = 0
       IDBFC2H6  = 0
+      IDBFBENZ  = 0
+      IDBFTOLU  = 0
+      IDBFXYLE  = 0
+      IDBFC2H2  = 0
+      IDBFC2H4  = 0
+      IDBFGLYC  = 0
+      IDBFGLYX  = 0
+      IDBFMGLY  = 0
+      IDBFHAC   = 0
 
       !-----------------------------------
       ! Initialize tagged Hg index arrays

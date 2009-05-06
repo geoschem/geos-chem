@@ -1,4 +1,4 @@
-! $Id: readchem.f,v 1.11 2006/09/08 19:21:02 bmy Exp $
+! $Id: readchem.f,v 1.12 2009/05/06 14:14:45 ccarouge Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
@@ -24,6 +24,15 @@
 !  (5 ) Now references SETJFAM & SETPL from "diag_pl_mod.f" (bmy, 7/20/04)
 !  (6 ) Now look up ILISOPOH, the index of ISOP lost to OH (dkh, bmy, 6/1/06)
 !  (7 ) Increase FORMAT 510 so that it has space for 14 products (bmy, 8/9/06)
+!  (8 ) Now flag the HO2 heterogeneous uptake rxn for later use  
+!        (jaegle, 02/26/09)
+!  (9 ) Added identifier to mark branching rxns for HOC2H4O (tmf, 1/7/09)
+!          HOC2H4O ------> HO2 + 2CH2O         : marked as 'F' in P column
+!          HOC2H4O --O2--> HO2 + GLYC          : marked as 'H' in P column
+!
+!       The same branching rxns are also implemented in EP photolysis
+!          HOC2H4O ------> HO2 + 2CH2O         : marked as 'I' in P column
+!          HOC2H4O --O2--> HO2 + GLYC          : marked as 'J' in P column
 !******************************************************************************
 !
       ! References to F90 modules
@@ -139,6 +148,9 @@ C
 C
       ! Initialize flag for N2O5 hydrolysis rxn (bmy, 8/7/03)
       NKN2O5         = 0
+
+      ! Initialize flag for HO2 hydrolysis rxn (jaegle, 02/26/09)
+      NKHO2          = 0
 
       DO 44 I            = 1, NMDEAD
        NAMD(I)           = ' '
@@ -756,6 +768,9 @@ C  NKDRY    = reaction numbers of dry deposition reactions
             NK                 = NRATCUR(NCS)
             IF (SPECL(1).EQ.'Q') NKO3PHOT(NCS)=NK !Flag O3 photolysis
             IF (SPECL(1).EQ.'T') NKHNO4(NCS)  =NK !Flag HNO4 photolysis (gcc)
+            IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
+            IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
+
          ENDIF
       ENDDO
 
@@ -841,6 +856,12 @@ C
                   IF ( XINP(1) == 'N2O5' ) THEN
                      NKN2O5 = NK
                   ENDIF
+
+                  ! Same for HO2 hydrolysis rxn (jaegle, 02/26/09)
+                  IF ( XINP(1) == 'HO2' ) THEN
+                     NKHO2 = NK
+                  ENDIF
+
                ENDIF
 C
                IF (SPECL(1).EQ.'D')  THEN
@@ -862,6 +883,19 @@ C
                    NNADDC(NCS)               = NNADDC(NCS) + 1
                    NKSPECC( NNADDC(NCS),NCS) = NK
                ENDIF
+
+               ! F: HOC2H4O ------> HO2 + 2CH2O
+               IF (SPECL(1).EQ.'F') THEN
+                   NNADDF(NCS)               = NNADDF(NCS) + 1
+                   NKSPECF( NNADDF(NCS),NCS) = NK
+               ENDIF
+
+               ! H: HOC2H4O --O2--> HO2 + GLYC
+               IF (SPECL(1).EQ.'H') THEN
+                   NNADDH(NCS)               = NNADDH(NCS) + 1
+                   NKSPECH( NNADDH(NCS),NCS) = NK
+               ENDIF
+
                IF (SPECL(1).EQ.'W') THEN
                   NKSPECW(NCS) = NK
                ENDIF

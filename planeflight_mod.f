@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.26 2009/02/10 16:50:06 bmy Exp $
+! $Id: planeflight_mod.f,v 1.27 2009/05/06 14:14:45 ccarouge Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -82,6 +82,8 @@
 !  (16) Bug fixes in READ_VARIABLES (bmy, 10/16/06)
 !  (17) Bug fix in PLANEFLIGHT (cdh, bmy, 12/12/06)
 !  (18) Bug fix in RO2_SETUP (tmf, bmy, 4/23/07)
+!  (19) Set very small values to zero.  (tmf, 1/7/09)
+!  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -112,7 +114,7 @@
       INTEGER,           PARAMETER   :: MAXVARS   = 95
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
-      INTEGER,           PARAMETER   :: MAXRO2    = 20
+      INTEGER,           PARAMETER   :: MAXRO2    = 45
 
       ! For specifying flight track points
       INTEGER                        :: NPOINTS           
@@ -697,7 +699,8 @@
 !  (2 ) Now replace NAMESPEC w/ NAMEGAS for SMVGEAR II (bmy, 8/1/03)
 !  (3 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (4 ) Bug fix: PO3 should be PO2 (tmf, bmy, 4/23/07)
-!  (5 ) NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09) 
+!  (5 ) NOTE: PO3 was a bug, that should have been PO2 (tmf, 2/10/09)
+!  (6 ) Add new RO2 species according to 'globchem.dat' (tmf, 3/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -732,7 +735,10 @@
 
             CASE ( 'HO2',  'MO2',  'A3O2', 'ATO2', 'B3O2', 
      &             'ETO2', 'GCO3', 'IAO2', 'KO2',  'MAO3', 
-     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2' ) 
+     &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2', 
+     &             'ACO3', 'EO2', 'ENCO3', 'ENO2', 'GLCO3', 
+     &             'IACO3', 'INO2', 'MACO3', 'NICO3', 'NIO2',
+     &             'VOHRO2', 'RIO1', 'C59O2') 
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M
 
@@ -810,6 +816,8 @@
       REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, S400nm
       REAL*8              :: VARI(NPVAR)
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0
+
+      REAL*8,  PARAMETER  :: TINY = 1.d-36   ! arbitary small number to avoid faulty output
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1050,6 +1058,8 @@
                      
                      ! Convert from [kg] --> [v/v]
                      VARI(V) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
+
+                     IF ( VARI(V) < TINY ) VARI(V) = 0.d0
 
                   !--------------------------
                   ! Otherwise it's an error!
