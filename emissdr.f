@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: emissdr.f,v 1.20 2009/05/06 15:33:26 phs Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -199,7 +199,9 @@
 
             ! Use function GET_LOCALTIME to get the local time at lon I
             ! Middle of time step is between 10pm-2am when IHOUR = 1
-            IHOUR = INT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+!--prior to 4/16/09 (jlin, phs)
+!            IHOUR = INT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
+            IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
             IF ( IHOUR .EQ. 7 ) IHOUR = 1
 
             !=================================================================

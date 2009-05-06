@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.55 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: input_mod.f,v 1.56 2009/05/06 15:33:25 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1494,7 +1494,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
-      ! Use ship SO2 Colbert emissions?
+      ! Use ship SO2 Corbett emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
@@ -1546,6 +1546,22 @@
       ENDIF
 
 
+      !=================================================================
+      ! Enforce emissions options for Nested China on native GEOS-5 grid
+      !=================================================================
+#if defined( GRID05x0666 ) || defined( NESTED_CH )
+
+      LEDGAR   = .FALSE.
+      LEMEP    = .FALSE.
+      LBRAVO   = .FALSE.
+      LCAC     = .FALSE.
+      LNEI99   = .FALSE.
+      LVISTAS  = .FALSE.
+      LICARTT  = .FALSE.
+
+#endif
+
+      
       !=================================================================
       ! Check SO2 ship emissions options
       !=================================================================
@@ -1684,6 +1700,7 @@
       WRITE( 6, 100     ) '  Use EMEP anthro emissions : ', LEMEP
       WRITE( 6, 100     ) '  Use BRAVO anthro emissions: ', LBRAVO
       WRITE( 6, 100     ) '  Use CAC anthro emissions  : ', LCAC
+      WRITE( 6, 100     ) '  Use STREETS anthro emiss. : ', LSTREETS
       WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
       WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
       WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT
@@ -1711,7 +1728,7 @@
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
       WRITE( 6, 100     ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
       WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
-      WRITE( 6, 100     ) 'Turn on Colbert SHIP SO2 ?  : ', LSHIPSO2
+      WRITE( 6, 100     ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
       WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
 

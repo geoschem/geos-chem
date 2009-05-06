@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.24 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: emissions_mod.f,v 1.25 2009/05/06 15:33:26 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -260,6 +260,10 @@
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+
+         ! Read SO2 ARCTAS emissions
+         IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
+     $        CALL EMISS_ARCTAS_SHIP( YEAR )
 
          ! Emissions for various aerosol types
          IF ( LSSALT            ) CALL EMISSSEASALT

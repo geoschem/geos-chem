@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.36 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: ndxx_setup.f,v 1.37 2009/05/06 15:33:24 phs Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -132,6 +132,7 @@
 !        after DIAG_PL_MOD. (phs, bmy, 12/18/08)
 !  (67) Added ND52 for GAMMA HO2 diagnostic. (ccc, jaegle, 2/26/09)
 !  (68) Add AD07_SOAGM (tmf, 1/7/09) 
+!  (69) Now always allocate Mass Flux arrays (phs, 4/15/09)      
 !******************************************************************************
 !
       ! References to F90 modules
@@ -556,37 +557,58 @@
       ! ND24: Eastward mass flux from transport [kg/s] 
       !       --> uses MASSFLEW array (allocatable)
       !=================================================================
-      IF ( ND24 > 0 ) THEN
-         LD24 = MIN( ND24,      LLPAR )
-         NMAX = MIN( N_TRACERS, NNPAR )
+!--   prior 4/15/09 (phs)
+!     IF ( ND24 > 0 ) THEN
+!         LD24 = MIN( ND24,      LLPAR )
+!         NMAX = MIN( N_TRACERS, NNPAR )
+!
+!         ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
+!      ENDIF
 
-         ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
-      ENDIF
+      IF ( ND24 > 0 ) LD24 = MIN( ND24, LLPAR )
+
+      NMAX = MIN( N_TRACERS, NNPAR )
+      
+      ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
 
       !=================================================================
       ! ND25: Northward mass flux from transport [kg/s] 
       !       --> uses MASSFLNS array (allocatable)
       !=================================================================
-      IF ( ND25 > 0 ) THEN
-         LD25 = MIN( ND25,      LLPAR )
-         NMAX = MIN( N_TRACERS, NNPAR )
+!--   prior 4/15/09 (phs)
+!      IF ( ND25 > 0 ) THEN
+!         LD25 = MIN( ND25,      LLPAR )
+!         NMAX = MIN( N_TRACERS, NNPAR )
+!
+!         ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
+!      ENDIF
+      IF ( ND25 > 0 ) LD25 = MIN( ND25, LLPAR )
 
-         ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
-      ENDIF
+      NMAX = MIN( N_TRACERS, NNPAR )
+
+      ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
 
       !=================================================================
       ! ND26: Vertical mass flux from transport [kg/s] 
       !       --> uses MASSFLUP array (allocatable)
       !=================================================================
-      IF ( ND26 > 0 ) THEN
-         LD26 = MIN( ND26,      LLPAR )
-         NMAX = MIN( N_TRACERS, NNPAR )
+!--   prior 4/15/09 (phs)
+!      IF ( ND26 > 0 ) THEN
+!         LD26 = MIN( ND26,      LLPAR )
+!         NMAX = MIN( N_TRACERS, NNPAR )
+!
+!         ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
+!      ENDIF
+      IF ( ND26 > 0 ) LD26 = MIN( ND26, LLPAR )
+      NMAX = MIN( N_TRACERS, NNPAR )
 
-         ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
-      ENDIF
+      ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
 
       !=================================================================
       ! ND28: Biomass burning diagnostic [molec/cm2/s]

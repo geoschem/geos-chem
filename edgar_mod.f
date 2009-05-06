@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.6 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: edgar_mod.f,v 1.7 2009/05/06 15:33:27 phs Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -1676,6 +1676,16 @@
          NOx = EDGAR_NOx(I,J)
       ENDIF
 
+!%%%%%%%%%%%%% KLUDGE TO EMITT SHIP NOX AS NOX %%%%%%%%%%%%%%
+!      ! Get NOx [kg NOx/season]
+!      IF ( PRESENT( SHIP ) ) THEN
+!         NOx = 0d0
+!      ELSE
+!         NOx = EDGAR_NOx(I,J) + EDGAR_NOx_SHIP(I,J)
+!      ENDIF
+!%%%%%%%%%%%%% END KLUDGE %%%%%%%%%%%%%%
+      
+      
       ! Apply scale factor for future emissions (if necessary)
       IF ( LFUTURE ) THEN
          NOx = NOx * GET_FUTURE_SCALE_NOxff( I, J )

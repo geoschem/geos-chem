@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.29 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: gamap_mod.f,v 1.30 2009/05/06 15:33:25 phs Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -1328,7 +1328,7 @@
          FNAME(T,45) = TRIM( NAME(T,45) ) // ' tracer'
          MOLC (T,45) = INT( TRACER_COEFF(T,1) )
          SCALE(T,45) = 1.0e+9
-         INDEX(T,45) = N
+         INDEX(T,45) = T   !changed from N (phs, 3/19/03)
 
          ! We usually report NOx as Tg N
          IF ( TRIM( NAME(T,45) ) == 'NOx'  .or. 

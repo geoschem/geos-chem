@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.31 2009/05/06 14:14:47 ccarouge Exp $
+# $Id: Makefile.ifort,v 1.32 2009/05/06 15:33:28 phs Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Wed Jan 28 15:09:07 2009)
 #=============================================================================
@@ -27,12 +27,10 @@ OBJS =                        \
 CO_strat_pl.o                 \
 airmas.o                      \
 anthroems.o                   \
-arctas_ship_emiss_mod.o       \
 arsl1k.o                      \
 backsub.o                     \
 biofit.o                      \
 boxvl.o                       \
-cac_anthro_mod.o              \
 calcrate.o                    \
 chemdr.o                      \
 cleanup.o                     \
@@ -77,7 +75,6 @@ readchem.o                    \
 reader.o                      \
 readlai.o                     \
 ruralbox.o                    \
-scale_anthro_mod.o            \
 schem.o                       \
 setbase.o                     \
 setemdep.o                    \
@@ -96,7 +93,6 @@ tcorr.o                       \
 tpcore_fvdas_mod.o            \
 tropopause.o                  \
 update.o                      \
-vistas_anthro_mod.o           \
 xltmmp.o                      
 
 FJ =                          \

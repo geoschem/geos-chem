@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.sparc,v 1.59 2009/05/06 14:45:12 ccarouge Exp $
+# $Id: Makefile.sparc,v 1.60 2009/05/06 15:33:27 phs Exp $
 #
 # GEOS-Chem Makefile for Sun Studio and Sun/SPARC compilers, including
 # compilation options for both SPARC v9 and AMD/Opteron chipsets
@@ -30,12 +30,10 @@ OBJS =                        \
 CO_strat_pl.o                 \
 airmas.o                      \
 anthroems.o                   \
-arctas_ship_emiss_mod.o       \
 arsl1k.o                      \
 backsub.o                     \
 biofit.o                      \
 boxvl.o                       \
-cac_anthro_mod.o              \
 calcrate.o                    \
 chemdr.o                      \
 cleanup.o                     \
@@ -80,7 +78,6 @@ readchem.o                    \
 reader.o                      \
 readlai.o                     \
 ruralbox.o                    \
-scale_anthro_mod.o            \
 schem.o                       \
 setbase.o                     \
 setemdep.o                    \
@@ -96,10 +93,8 @@ soiltype.o                    \
 subfun.o                      \
 sunparam.o                    \
 tcorr.o                       \
-tpcore_fvdas_mod.o            \
 tropopause.o                  \
 update.o                      \
-vistas_anthro_mod.o           \
 xltmmp.o                      
 
 FJ =                          \

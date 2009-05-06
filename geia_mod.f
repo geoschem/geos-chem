@@ -1,4 +1,4 @@
-! $Id: geia_mod.f,v 1.8 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: geia_mod.f,v 1.9 2009/05/06 15:33:25 phs Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
@@ -261,6 +261,9 @@
 !  (7 ) Added space in the #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
 !  (8 ) Now reads appropriate file for 0.5 x 0.666 nested grid simulations
 !        (yxw, dan, bmy, 11/6/08)
+!  (9) BUG: Jintai Lin reported issues with some of the data read here. The
+!       sum of TODB is not 6, which points to a problem. However this is not
+!       used in the code. (phs, 4/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
