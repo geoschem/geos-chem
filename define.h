@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.68 2009/05/06 14:45:12 ccarouge Exp $
+ ! $Id: define.h,v 1.69 2009/05/06 19:15:52 ccarouge Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -133,6 +133,15 @@
 ! by the cloud fracton) to be applied, which should be a good enough fix
 ! in the meantime. (bmy, hyl, 10/24/08)
 #define IN_CLOUD_OD  'IN_CLOUD_OD'
+
+!==============================================================================
+! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  
+!==============================================================================
+#if defined(GEOS_3) || defined(GEOS_4) || defined (GCAP)
+#if defined(IN_CLOUD_OD)
+#error "ERROR: IN_CLOUD_OD option set with GEOS_3, GEOS_4, or GCAP"
+#endif
+#endif
 
 !==============================================================================
 ! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  

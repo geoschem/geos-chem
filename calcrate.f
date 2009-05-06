@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.15 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: calcrate.f,v 1.16 2009/05/06 19:15:52 ccarouge Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -55,6 +55,7 @@
 !  (13) Modified the dry deposition rate reference, such that gas tracers 
 !         which appear after the depositing aerosols will be referenced 
 !         correctly. (tmf, 11/08/06)
+!  (14) Updated OH+CO and O(1D)+H2O rates. (jmao, 4/20/09)
 !******************************************************************************
 !
       ! References to F90 modules 

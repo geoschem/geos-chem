@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.9 2009/05/06 14:45:11 ccarouge Exp $
+! $Id: streets_anthro_mod.f,v 1.10 2009/05/06 19:14:38 ccarouge Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -74,7 +74,7 @@
 !  (4 ) Now scale emissions using int'annual scale factors (amv, 08/24/07)
 !  (5 ) Implemented monthly variations (phs, 4/12/08)
 !  (6 ) Bug fix: call READ_STREETS_05x0666 in routine 
-!        EMISS_STREETS_ANTHRO_05x0666 (ccarouge, 3/11/09)
+!        EMISS_STREETS_ANTHRO_05x0666 (ccc, 3/11/09)
 !******************************************************************************
 !
       IMPLICIT NONE

@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.37 2009/05/06 15:33:24 phs Exp $
+! $Id: ndxx_setup.f,v 1.38 2009/05/06 19:14:38 ccarouge Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -130,6 +130,8 @@
 !  (65) Allocate CTO3_24h (phs, 11/18/08)      
 !  (66) We don't need to set LD65=1 here anymore, we now call NDXX_SETUP!
 !        after DIAG_PL_MOD. (phs, bmy, 12/18/08)
+!  (67) Added ND52 for GAMMA HO2 diagnostic. (ccc, jaegle, 2/26/09)
+!  (68) Add AD07_SOAGM (tmf, 1/7/09) 
 !  (67) Added ND52 for GAMMA HO2 diagnostic. (ccc, jaegle, 2/26/09)
 !  (68) Add AD07_SOAGM (tmf, 1/7/09) 
 !  (69) Now always allocate Mass Flux arrays (phs, 4/15/09)      

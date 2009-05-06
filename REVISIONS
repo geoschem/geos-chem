@@ -117,13 +117,10 @@ REMOVED:
 NEW MODULES:
 ------------
 
-
 NEW FUNCTION :
 -------------
-
 HO2                    -- calculates GAMMA for HO2 self-reaction on aerosols
 (in "calcrate.f")
-
 
 MODIFIED:
 ---------
@@ -249,27 +246,20 @@ fyhoro.f                     -- returns the branching ratio between
 read_aromatics               -- read EDGARv2 aromatics emissions. 
 (in edgar_mod.f)                Modified to read GEOS 1x1 emission files
 
-
 read_c2h4                    -- read EDGARv2 C2H4 emissions.
 (in edgar_mod.f)                Modified to read GEOS 1x1 emission files
-
 
 read_c2h2                    -- read EDGARv2 C2H2 emissions.
 (in edgar_mod.f)                Modified to read GEOS 1x1 emission files
 
-
 read_aromatics_05x0666       -- read EDGARv2 aromatics emissions on 
 (in edgar_mod.f)                0.5x0.666 grid, cut too China region. 
-
 
 read_c2h4_05x0666            -- read EDGARv2 C2H4 emissions on 
 (in edgar_mod.f)                0.5x0.666 grid, cut too China region.
 
-
 read_c2h2_05x0666            -- read EDGARv2 C2H2 emissions on 
 (in edgar_mod.f)                0.5x0.666 grid, cut too China region.
-
-
 
 MODIFIED:
 ---------
@@ -397,16 +387,4 @@ NEW FUNCTION :
 MODIFIED:
 ---------
 
-acetone_mod.f                 -- Add scale factors for new grids.=======
-
-Removed in v8-02-01:
--------------------------------------------------------------------------------
-
-
-Changed in v8-02-01:
--------------------------------------------------------------------------------
-
-emiss_streets_anthro_05x0666	-- Bug fix : Here we need to call 
-("streets_anthro_mod.f")           READ_STREETS_05X0666 instead of
-			           READ_STREETS	
-
+acetone_mod.f                 -- Add scale factors for new grids.

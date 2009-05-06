@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.12 2009/05/06 14:45:11 ccarouge Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.13 2009/05/06 19:14:38 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1359,8 +1359,7 @@ CONTAINS
           va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1))
 
        end do
-       
-       
+
 !      =============================
        call Do_Cross_Terms_Pole_I2d2  &
 !      =============================
@@ -2252,13 +2251,12 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-
        delp1(:,:) = dap + (dbk * pres1(:,:))
     
        delpm(:,:) =  &
                 dap+  &
                 (dbk * 0.5d0 * (pres1(:,:) + pres2(:,:)))
-    
+
     do ij = j1p, j2p
        pu(1,ij) = 0.5d0 * (delpm(1,ij) + delpm(i2,ij))
        do il = i1+1, i2
@@ -4897,10 +4895,8 @@ CONTAINS
     REAL*8  :: tmp
 
     ! Arrays
-    !ccc Test for indexes going further than poles : 
     ! I suppose the values for these indexes are 0. 
     ! It should work as the pole values are re-calculated in the 
-
     ! pole functions. (ccc)
     REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2)
 
