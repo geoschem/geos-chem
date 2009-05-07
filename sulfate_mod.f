@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.47 2009/05/07 19:24:29 ccarouge Exp $
+! $Id: sulfate_mod.f,v 1.48 2009/05/07 19:46:17 ccarouge Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -214,6 +214,7 @@
 !        to SO2 from GEIA (amv, phs, 3/11/08)  
 !  (41) Bug fixes in reading EDGAR data w/ the right tracer number, 
 !        when we are doing offline or nonstd simulations (dkh, 10/31/08)
+!  (42) Bug fix for AD13_SO2_sh in SRCSO2 (phs, 2/27/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3700,6 +3701,9 @@
 !  (9 ) Now references GET_YEAR from "time_mod.f". (bmy, 8/1/05)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (11) Now check if GFED2 has been updated (yc, phs, 12/23/08)
+!  (12) Add LANTHRO switch to properly turn off the anthropogenic emissions,
+!        READ_AIRCRAFT_SO2, READ_ANTHRO_SOx, READ_ANTHRO_NH3 (ccc, 4/15/09)
+!
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3712,6 +3716,7 @@
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE LOGICAL_MOD,       ONLY : LANTHRO
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3764,17 +3769,22 @@
          ! Read monthly mean data
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
-         CALL READ_AIRCRAFT_SO2( MONTH )
 !-- prior 12/23/08            
 !         CALL READ_BIOMASS_SO2( MONTH )
          CALL READ_BIOFUEL_SO2( MONTH )
-         CALL READ_ANTHRO_SOx( MONTH, NSEASON )
-         CALL READ_ANTHRO_NH3( MONTH )
 !-- prior 12/23/08            
 !         CALL READ_BIOMASS_NH3( MONTH )
          CALL READ_BIOFUEL_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
-     
+
+         ! Add LANTHRO switch to turn off anthropogenic emissions.
+         ! (ccc, 4/15/09)
+         IF ( LANTHRO ) THEN
+            CALL READ_AIRCRAFT_SO2( MONTH )
+            CALL READ_ANTHRO_SOx( MONTH, NSEASON )
+            CALL READ_ANTHRO_NH3( MONTH )
+         ENDIF
+
          ! Also read ship exhaust SO2 if necessary 
 !-- prior 12/23/08            
 !         IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
@@ -4017,7 +4027,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 6/26/06)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 2/27/09)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4051,6 +4061,8 @@
 !  (10) Bug fix: EPA emissions were overwritten by regular ones when both BRAVO
 !         and EPA were used. (phs, 10/4/07)
 !  (11) Now use CAC Canadian emissions, if necessary (amv, 1/10/08)
+!  (12) Bug fix: Always fill the diagnostic array AD13_SO2_sh because it 
+!        is allocated anyway (phs, 2/27/09) 
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4559,10 +4571,8 @@
             ! SO2 from ship emissions (bec, bmy, 5/20/04)
             ! Always fill the diagnostic array since
             ! it is allocated anyway (phs, 2/27/09) 
-!            IF ( LSHIPSO2 ) THEN
-               AD13_SO2_sh(I,J)   = AD13_SO2_sh(I,J) +
+            AD13_SO2_sh(I,J)      = AD13_SO2_sh(I,J) +
      &                              ( ESO2_sh(I,J) * S_SO2 * DTSRCE )
-!            ENDIF
 
             ! Loop thru LD13 levels
             DO L = 1, LD13 
@@ -5973,8 +5983,8 @@
 
                   IF (GET_EUROPE_MASK(I,J) > 0d0 ) THEN
 
-                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, 26,
-     &                                                KG_S=.TRUE. ) 
+                     ESO2_an(I,J,1) = GET_EMEP_ANTHRO( I, J, IDTSO2,
+     &                                                 KG_S=.TRUE. ) 
 
                      ESO2_an(I,J,2) = 0d0
  
@@ -6596,7 +6606,8 @@
                
             IF ( LEMEPSHIP ) THEN
                IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                                          KG_S=.TRUE.,
      $                                          SHIP=.TRUE.)
             ENDIF
 
@@ -6649,7 +6660,7 @@
 
                IF ( LEMEPSHIP ) THEN
                   IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26,
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2,
      $                                         KG_S=.TRUE., SHIP=.TRUE.)
                ENDIF               
 
@@ -6677,7 +6688,8 @@
 
             IF ( LEMEPSHIP ) THEN
                IF ( GET_EUROPE_MASK(I,J) > 0d0 )
-     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                                          KG_S=.TRUE.,
      $                                          SHIP=.TRUE.)
             ENDIF
          ENDDO 
@@ -6815,7 +6827,7 @@
 
          IF ( LEMEP ) THEN
             IF ( GET_EUROPE_MASK(I,J) > 0d0) THEN
-               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,30,KG_S=.TRUE.)
+               ENH3_an(I,J) = GET_EMEP_ANTHRO(I,J,IDTNH3,KG_S=.TRUE.)
             ENDIF
          ENDIF
 
