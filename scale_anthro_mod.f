@@ -1,4 +1,4 @@
-! $Id: scale_anthro_mod.f,v 1.4 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: scale_anthro_mod.f,v 1.5 2009/05/07 21:15:42 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -32,6 +32,9 @@
 ! !REMARKS:
 !  (1 ) Add GET_ANNUAL_SCALAR_05x0666_NESTED_CH for nested grid simulations 
 !        over China. (tmf, 12/3/09)
+!  (2 ) Renamed consistently variables: name depends on relation of variable 
+!        to BASE or TARGET year. New data directory to account for updated
+!        scale factors for 1985-1989 (phs, 5/7/09)
 !EOP
 !------------------------------------------------------------------------------
 
@@ -45,13 +48,13 @@
 ! !IROUTINE: GET_ANNUAL_SCALAR
 !
 ! !DESCRIPTION: Subroutine GET\_ANNUAL\_SCALAR returns annual scale 
-!  factors to convert D\_YEAR (base year) to N\_YEAR (simulation year), 
+!  factors to convert B\_YEAR (base year) to T\_YEAR (simulation year), 
 !  on the current model resolution (avd, bmy, phs, 1/28/09)
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_ANNUAL_SCALAR( TRACER, D_YEAR, N_YEAR, AS )
+      SUBROUTINE GET_ANNUAL_SCALAR( TRACER, B_YEAR, T_YEAR, AS )
 !
 ! !USES:
 !
@@ -62,8 +65,8 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: TRACER           ! Tracer number
-      INTEGER, INTENT(IN)    :: D_YEAR           ! Base year of emissions
-      INTEGER, INTENT(IN)    :: N_YEAR           ! Target year of emissions
+      INTEGER, INTENT(IN)    :: B_YEAR           ! Base year of emissions
+      INTEGER, INTENT(IN)    :: T_YEAR           ! Target year of emissions
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -82,7 +85,7 @@
       REAL*8                        :: AS_R8(IIPAR,JJPAR)
 
       ! Read 1x1 scale factors
-      CALL GET_ANNUAL_SCALAR_1x1( TRACER, D_YEAR, N_YEAR, AS_1x1 )
+      CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
 
       ! Cast to REAL*8
       AS_1x1x1(:,:,1) = AS_1x1(:,:)
@@ -104,13 +107,13 @@
 ! !IROUTINE: GET_ANNUAL_SCALAR_1x1
 !
 ! !DESCRIPTION: Subroutine GET\_ANNUAL\_SCALAR\_1x1 returns annual scale 
-!  factors to convert D\_YEAR (base year) to N\_YEAR (target year), on the 1x1 
+!  factors to convert B\_YEAR (base year) to T\_YEAR (target year), on the 1x1 
 !  GEOS-Chem grid. (avd, bmy, phs, 1/28/09) 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_ANNUAL_SCALAR_1x1( TRACER, D_YEAR, N_YEAR, AS_1x1 )
+      SUBROUTINE GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
 !
 ! !USES:
 !
@@ -122,8 +125,8 @@
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)    :: TRACER             ! Tracer number
-      INTEGER, INTENT(IN)    :: D_YEAR             ! Base year of emissions
-      INTEGER, INTENT(IN)    :: N_YEAR             ! Target year of emissions
+      INTEGER, INTENT(IN)    :: B_YEAR             ! Base year of emissions
+      INTEGER, INTENT(IN)    :: T_YEAR             ! Target year of emissions
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -141,30 +144,30 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*4                        :: D_1x1(I1x1,J1x1)
-      REAL*4                        :: N_1x1(I1x1,J1x1)
+      REAL*4                        :: T_1x1(I1x1,J1x1)
+      REAL*4                        :: B_1x1(I1x1,J1x1)
       REAL*8                        :: TAU2000
-      CHARACTER(LEN=255)            :: FILENAME,     SCALE_DIR
-      CHARACTER(LEN=4)              :: DEN_YYYY_STR, NUM_YYYY_STR
-      INTEGER                       :: DEN_YEAR,     NUM_YEAR
+      CHARACTER(LEN=255)            :: FILENAME,      SCALE_DIR
+      CHARACTER(LEN=4)              :: BASE_YYYY_STR, TARG_YYYY_STR
+      INTEGER                       :: BASE_YEAR,     TARG_YEAR
       INTEGER                       :: I, J
 
       !=================================================================
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200811/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200905/'
 
       ! limit scaling between available years
-      DEN_YEAR = MAX( MIN( D_YEAR, 2005 ), 1985 )
-      NUM_YEAR = MAX( MIN( N_YEAR, 2005 ), 1985 )
+      BASE_YEAR = MAX( MIN( B_YEAR, 2005 ), 1985 )
+      TARG_YEAR = MAX( MIN( T_YEAR, 2005 ), 1985 )
 
-      WRITE( DEN_YYYY_STR, '(i4.4)' ) DEN_YEAR
-      WRITE( NUM_YYYY_STR, '(i4.4)' ) NUM_YEAR
+      WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
+      WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
 
-      IF ( DEN_YEAR == 2000 ) THEN
+      IF ( BASE_YEAR == 2000 ) THEN
 
-         N_1x1(:,:) = 1.d0
+         B_1x1(:,:) = 1.d0
 
       ELSE
 
@@ -173,19 +176,19 @@
 
             ! NOx
             FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' // 
-     &                 DEN_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 DEN_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
             FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' //
-     &                 DEN_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
 
          ENDIF
 
@@ -199,13 +202,13 @@
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
      &                    TAU2000,  I1x1,       J1x1,
-     &                    1,        N_1x1,      QUIET=.TRUE. )
+     &                    1,        B_1x1,      QUIET=.TRUE. )
 
       ENDIF
 
-      IF ( NUM_YEAR == 2000 ) THEN
+      IF ( TARG_YEAR == 2000 ) THEN
 
-         D_1x1(:,:) = 1.d0
+         T_1x1(:,:) = 1.d0
 
       ELSE
 
@@ -214,19 +217,19 @@
 
             ! NOx
             FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' //
-     &                 NUM_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 NUM_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
             FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' // 
-     &                 NUM_YYYY_STR // '-' // '2000.geos.1x1'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
 
          ENDIF
 
@@ -239,12 +242,12 @@
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
      &                    TAU2000,  I1x1,       J1x1,
-     &                    1,        D_1x1,      QUIET=.TRUE. )
+     &                    1,        T_1x1,      QUIET=.TRUE. )
 
       ENDIF
 
       ! Get scaling and cast as real*8
-      AS_1x1(:,:) = D_1x1(:,:) / N_1x1(:,:)
+      AS_1x1(:,:) = T_1x1(:,:) / B_1x1(:,:)
 
       ! Return to calling program
       END SUBROUTINE GET_ANNUAL_SCALAR_1x1
@@ -257,15 +260,15 @@
 ! !IROUTINE: GET_ANNUAL_SCALAR_05x0666_NESTED_CH
 !
 ! !DESCRIPTION:  Subroutine GET\_ANNUAL\_SCALAR\_05x0666\_NESTED\_CH 
-!  returns annual scale factors to convert D\_YEAR (base year) to 
-!  N\_YEAR (target year), on the 0.5x0.666 GEOS-Chem grid for nested China 
+!  returns annual scale factors to convert B\_YEAR (base year) to 
+!  T\_YEAR (target year), on the 0.5x0.666 GEOS-Chem grid for nested China 
 !  domain. (avd, bmy, phs, 3/10/08)
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED_CH
-     &                     ( TRACER, D_YEAR, N_YEAR, AS )
+     &                     ( TRACER, B_YEAR, T_YEAR, AS )
 ! !USES:
 !
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
@@ -277,8 +280,8 @@
 ! !INPUT PARAMETERS:
 !
       INTEGER, INTENT(IN)  :: TRACER
-      INTEGER, INTENT(IN)  :: D_YEAR
-      INTEGER, INTENT(IN)  :: N_YEAR
+      INTEGER, INTENT(IN)  :: B_YEAR
+      INTEGER, INTENT(IN)  :: T_YEAR
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -296,15 +299,15 @@
 !
 ! ! LOCAL VARIABLES:
 !
-      REAL*4                        :: D_05x0666(I05x0666,J05x0666)
-      REAL*4                        :: N_05x0666(I05x0666,J05x0666)
+      REAL*4                        :: T_05x0666(I05x0666,J05x0666)
+      REAL*4                        :: B_05x0666(I05x0666,J05x0666)
       REAL*8                        :: AS_05x0666(I05x0666,J05x0666)
       REAL*8                        :: AS_05x0666x1(I05x0666,J05x0666,1)
       REAL*8                        :: AS_R8(IIPAR, JJPAR)
       REAL*8                        :: TAU2000
-      CHARACTER(LEN=255)            :: FILENAME,     SCALE_DIR
-      CHARACTER(LEN=4)              :: DEN_YYYY_STR, NUM_YYYY_STR
-      INTEGER                       :: DEN_YEAR,     NUM_YEAR
+      CHARACTER(LEN=255)            :: FILENAME,      SCALE_DIR
+      CHARACTER(LEN=4)              :: BASE_YYYY_STR, TARG_YYYY_STR
+      INTEGER                       :: BASE_YEAR,     TARG_YEAR
       INTEGER                       :: I, J
 
 
@@ -315,15 +318,15 @@
       SCALE_DIR = TRIM( DATA_DIR ) // 'anth_scale_factors_200811/'
 
       ! limit scaling between available years
-      DEN_YEAR = MAX( MIN( D_YEAR, 2005 ), 1985 )
-      NUM_YEAR = MAX( MIN( N_YEAR, 2005 ), 1985 )
+      BASE_YEAR = MAX( MIN( B_YEAR, 2005 ), 1985 )
+      TARG_YEAR = MAX( MIN( T_YEAR, 2005 ), 1985 )
 
-      WRITE( DEN_YYYY_STR, '(i4.4)' ) DEN_YEAR
-      WRITE( NUM_YYYY_STR, '(i4.4)' ) NUM_YEAR
+      WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
+      WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
 
-      IF ( DEN_YEAR == 2000 ) THEN
+      IF ( BASE_YEAR == 2000 ) THEN
 
-         N_05x0666(:,:) = 1.0
+         B_05x0666(:,:) = 1.0
 
       ELSE
 
@@ -332,19 +335,19 @@
 
             ! NOx
             FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' // 
-     &                 DEN_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 DEN_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
             FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' //
-     &                 DEN_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ENDIF
 
@@ -358,14 +361,14 @@
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I05x0666,       J05x0666,
-     &                    1,        N_05x0666,      QUIET=.TRUE. )
+     &                    TAU2000,  I05x0666,   J05x0666,
+     &                    1,        B_05x0666,  QUIET=.TRUE. )
 
       ENDIF
 
-      IF ( NUM_YEAR == 2000 ) THEN
+      IF ( TARG_YEAR == 2000 ) THEN
 
-         D_05x0666(:,:) = 1.0
+         T_05x0666(:,:) = 1.0
 
       ELSE
 
@@ -374,19 +377,19 @@
 
             ! NOx
             FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' //
-     &                 NUM_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 NUM_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
             FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' // 
-     &                 NUM_YYYY_STR // '-' // '2000.geos.05x0666'
+     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
 
          ENDIF
 
@@ -398,13 +401,13 @@
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I05x0666,       J05x0666,
-     &                    1,        D_05x0666,      QUIET=.TRUE. )
+     &                    TAU2000,  I05x0666,   J05x0666,
+     &                    1,        T_05x0666,  QUIET=.TRUE. )
 
       ENDIF
 
       ! Get scaling and cast as real*8
-      AS_05x0666(:,:) = D_05x0666(:,:) / N_05x0666(:,:)
+      AS_05x0666(:,:) = T_05x0666(:,:) / B_05x0666(:,:)
 
       ! Recast as 3D array
       AS_05x0666x1(:,:,1) = AS_05x0666(:,:)
