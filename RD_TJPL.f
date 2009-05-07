@@ -1,4 +1,4 @@
-C $Id: RD_TJPL.f,v 1.2 2009/05/06 14:14:47 ccarouge Exp $
+C $Id: RD_TJPL.f,v 1.3 2009/05/07 19:24:30 ccarouge Exp $
       SUBROUTINE RD_TJPL(NJ1,NAMFIL)
 C-----------------------------------------------------------------------
 c  Read in wavelength bins, solar fluxes, Rayleigh parameters, temperature-
@@ -62,7 +62,7 @@ C-------------spectral data---------------------------------------------
         stop
       endif
 C------------NQQQ = no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
-C- NQQQ is changed to NJVAL-1 because there are 2 dummies species at the end
+C- NQQQ is changed to NJVAL-1 because there are 2 dummy species at the end
 C used for acetone pressure dependency only. (ccc, 4/20/09)
 C- prior to 4/20/09
 C      NQQQ = NJVAL-3

@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.15 2008/12/15 15:55:15 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.16 2009/05/07 19:24:29 ccarouge Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -561,7 +561,36 @@
       ! Copy data array
       OUTDATA = INDATA
 
+!prior to 5/5/09
+!#endif
+!New addition (win, 5/5/09)
+
+      !--------------------------------------------
+      ! Regrid GEOS 1x1 grid to nested China grid 0.5x0.667 res
+      !--------------------------------------------
+      
+      ! Bug fix for China nested 0.5x0.667 run (win, 5/1/09)
+      ! Prior to 5/1/09, there is no option for this and also
+      ! no #else statement below, which is bad b/c any non-matched
+      ! case would just slipped through and did not get any proper returning array
+#elif defined( GRID05x0666 ) && defined( NESTED_CH )
+
+      CALL REGRID_05x0666_NESTED( I1x1,  J1x1,  L1x1, UNIT, 
+     &                                INDATA, OUTDATA )
+
+
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+
+      CALL REGRID_05x0666_NESTED( I1x1,  J1x1,  L1x1, UNIT, 
+     &                                INDATA, OUTDATA )
+
+#else 
+
+      write(*,*) 'regrid_1x1_mod.f : no match in DO_THE_REGRIDDING '
+      STOP
+
 #endif
+!end new addition (win, 5/5/09)
 
       ! Return to calling program
       END SUBROUTINE DO_THE_REGRIDDING
@@ -680,6 +709,241 @@
       ! Return to calling program
       END SUBROUTINE DO_THE_REGRIDDING_05x0666_2D
 
+!------------------------------------------------------------------------------
+
+      SUBROUTINE REGRID_05x0666_NESTED( I1, J1, L1, UNIT, 
+     &                                  IN1x1,   OUTNEST )
+!
+!******************************************************************************
+!  Subroutine REGRID_05x0666_NESTED regrid 1x1 data to 0.5 x 0.667 data and
+!  can work with different /geos/u23/GC_DATA_/ctm/GEOS_1x1/anth_scale_factors_200811/NOxScalar-2005-2000.geos.1x1nested region (win, 5/5/09)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) I1      (INTEGER ) : Lon dimension for INDATA
+!  (2 ) J1      (INTEGER ) : Lat dimension for INDATA
+!  (3 ) L1      (INTEGER ) : Level dimension for INDATA and OUTDATA
+!  (4 ) UNIT    (CHAR*(*)) : String containing the units of INDATA & OUTDATA
+!  (5 ) IN1x1   (REAL*8  ) : Input data array on 1x1 grid
+!  
+!  Arguments as Output:
+!  ============================================================================
+!  (6 ) OUTNEST (REAL*8  ) : Output data array on 0.5x0.667 grid nested region
+!
+!  NOTES:
+!  (1 ) Currently the code is hard-wired for China and N.America regions
+!       so this needs modifications for other regions in the future (win, 5/5/09)
+!******************************************************************************
+!  
+
+#     include "CMN_SIZE"             ! Size parameters IIPAR, JJPAR
+
+      ! Arguments
+      INTEGER,          INTENT(IN) :: I1, J1, L1
+      REAL*8,           INTENT(IN) :: IN1x1(I1,J1,L1)
+      REAL*8,           INTENT(OUT):: OUTNEST(IIPAR,JJPAR,L1)
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT
+
+      ! Local variables
+      LOGICAL                      :: IS_CONC
+      INTEGER                      :: I, J, L, IX, X,Y
+      
+#if defined( NESTED_CH ) 
+
+      ! These parameters are taken from CMN_SIZE
+      INTEGER, PARAMETER           :: II_NEST = 81  !total lon box
+      INTEGER, PARAMETER           :: JJ_NEST = 67  !total lat box
+      INTEGER, PARAMETER           :: I1_NEST = 251 !1st 1x1 lon box
+      INTEGER, PARAMETER           :: I2_NEST = 331 !last 1x1 lon box
+      INTEGER, PARAMETER           :: J1_NEST = 80  !1st 1x1 lat box
+      INTEGER, PARAMETER           :: J2_NEST = 146 !last 1x1 lat box
+      LOGICAL                      :: check_reg = .TRUE.
+
+#elif defined ( NESTED_NA ) 
+
+      INTEGER, PARAMETER           :: II_NEST = 101
+      INTEGER, PARAMETER           :: JJ_NEST = 51
+      INTEGER, PARAMETER           :: I1_NEST = 41
+      INTEGER, PARAMETER           :: I2_NEST = 141
+      INTEGER, PARAMETER           :: J1_NEST = 101
+      INTEGER, PARAMETER           :: J2_NEST = 151
+      LOGICAL                      :: check_reg = .TRUE.
+
+#else
+      ! Note that these values are not really used!
+      INTEGER, PARAMETER           :: II_NEST = 101
+      INTEGER, PARAMETER           :: JJ_NEST = 51
+      INTEGER, PARAMETER           :: I1_NEST = 41
+      INTEGER, PARAMETER           :: I2_NEST = 141
+      INTEGER, PARAMETER           :: J1_NEST = 101
+      INTEGER, PARAMETER           :: J2_NEST = 151
+      ! this switch will stop the run for regions other than China or N.America
+      LOGICAL                      :: check_reg = .FALSE.
+#endif
+
+      REAL*8                       :: NESTED1x1(II_NEST,JJ_NEST)  !1x1 array for nested 
+
+      REAL*8                       :: FAC1, FAC2, FAC3
+      REAL*8                       :: FAC4, FAC5, FAC6
+
+      !==================================================================
+      ! REGRID_05x0666_NESTED begins here!
+      !==================================================================
+
+      IF ( .not. CHECK_REG ) THEN
+         write(*,*)'Terminate in REGRID_05x0666_NESTED: regrid_1x1mod.f'
+         stop
+      ENDIF
+         
+
+      ! Is this concentration data?
+      IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
+
+      IF ( IS_CONC ) THEN
+         FAC1 = 1d0
+         FAC2 = 0.25d0
+         FAC3 = 0.75d0
+         FAC4 = 0.50d0
+         FAC5 = 0.125d0
+         FAC6 = 0.375d0
+      ELSE      
+         FAC1 = 0.333333333d0
+         FAC2 = 0.083333333d0
+         FAC3 = 0.25000d0
+         FAC4 = 0.16666667d0
+         FAC5 = 0.041666667d0
+         FAC6 = 0.12500d0
+      ENDIF
+
+      IX = 1
+      IF ( MOD( II_NEST, 2 ) .eq. 0 ) IX = 2
+
+      ! Loop over levels
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, NESTED1x1 )
+      DO L = 1, L1
+
+         NESTED1x1(:,:) = IN1x1(I1_NEST:I2_NEST,J1_NEST:J2_NEST, L)
+         
+         Y = 1             ! counter for LAT box in 0.5x0.667 nested window
+
+         DO J = 1, JJ_NEST-1
+
+            X = 1          ! counter for LON box in 0.5x0.667 nested window
+
+            DO I = 1, II_NEST-IX, 2
+               ! The concept is:
+               !  - for all boxes before the last IX Lon box and 1 last Lat box
+               !  - every two 1x1 LON boxes make three 0.5x0.667 LON boxes
+               !  - every one 1x1 LAT box makes two 0.5x0.667 LAT boxes
+               ! So for each I and J loop, we make six 0.5x0.667 boxes
+            
+               ! CASE 1: 1x1 and 0.5x0.667 box have same grid center
+               OUTNEST(X,Y,L) = NESTED1x1(I,J) * FAC1
+               
+               ! CASE 2: Lon overlap 1/4 & 3/4 and same Lat
+               OUTNEST(X+1,Y,L) = NESTED1x1(I,J)* FAC2 + 
+     &                            NESTED1x1(I+1,J)* FAC3
+
+               ! CASE 3: Lon overlap 3/4 & 1/4 and same Lat
+               OUTNEST(X+2,Y,L) = NESTED1x1(I+1,J)* FAC3 + 
+     &                            NESTED1x1(I+2,J)* FAC2
+               ! CASE 4: like CASE1 but need 1:1 averaging of 2 Lat boxes
+               OUTNEST(X,Y+1,L) = NESTED1x1(I,J)*FAC4 + 
+     &                            NESTED1x1(I,J+1)*FAC4
+               
+               ! CASE 5: Averaging 1/8 LL & 3/8 LR & 3/8 UR & 1/8 UL
+               !         (LL = lower left, UR = upper right, etc.)
+               OUTNEST(X+1,Y+1,L) = NESTED1x1(I  ,J  )*FAC5 + 
+     &                              NESTED1x1(I+1,J  )*FAC6 + 
+     &                              NESTED1x1(I+1,J+1)*FAC6 + 
+     &                              NESTED1x1(I  ,J+1)*FAC5 
+
+               ! CASE 6: Averaging 3/8 LL & 1/8 LR & 1/8 UR & 3/8 UL
+               OUTNEST(X+2,Y+1,L) = NESTED1x1(I+1,J  )*FAC6 + 
+     &                              NESTED1x1(I+2,J  )*FAC5 + 
+     &                              NESTED1x1(I+2,J+1)*FAC5 + 
+     &                              NESTED1x1(I+1,J+1)*FAC6
+               X = X+3
+
+            ENDDO
+            
+            ! Now take care of the last Lon box(es)
+            X = (II_NEST-IX)/2*3 + 1
+            I = II_NEST-IX + 1
+            
+            ! CASE 1: 1x1 and 0.5x0.667 box have same grid center
+            OUTNEST(X,Y,L) = NESTED1x1(I,J)
+              
+            ! CASE 4: like CASE1 but need 1:1 averaging of 2 Lat boxes
+            OUTNEST(X,Y+1,L) = NESTED1x1(I,J)*0.5d0 + 
+     &                         NESTED1x1(I,J+1)*0.5d0
+
+            IF ( IX == 2 ) THEN 
+               ! CASE 2: Lon overlap 1/4 & 3/4 and same Lat
+               OUTNEST(X+1,Y,L) = NESTED1x1(I,J)*0.25d0 + 
+     &                            NESTED1x1(I+1,J)*0.75d0
+               ! CASE 5: Averaging 1/8 LL & 3/8 LR & 3/8 UR & 1/8 UL
+               !         (LL = lower left, UR = upper right, etc.)
+               OUTNEST(X+1,Y+1,L) = NESTED1x1(I  ,J  )*0.125d0 + 
+     &                              NESTED1x1(I+1,J  )*0.375d0 + 
+     &                              NESTED1x1(I+1,J+1)*0.375d0 + 
+     &                              NESTED1x1(I  ,J+1)*0.125d0 
+            ENDIF               
+
+
+            Y = Y+2
+
+         ENDDO
+         
+         
+         J = JJ_NEST
+         Y = JJ_NEST * 2 - 1
+         
+         X = 1                  ! counter for LON box in 0.5x0.667 nested window
+
+         DO I = 1, II_NEST-IX, 2
+            ! The concept is:
+            !  - for 1 last Lat band
+            !  - every two 1x1 LON boxes make three 0.5x0.667 LON boxes
+            
+            ! CASE 1: 1x1 and 0.5x0.667 box have same grid center
+            OUTNEST(X,Y,L) = NESTED1x1(I,J)
+               
+            ! CASE 2: Lon overlap 1/4 & 3/4 and same Lat
+            OUTNEST(X+1,Y,L) = NESTED1x1(I,J)*0.25d0 + 
+     &                         NESTED1x1(I+1,J)*0.75d0
+
+            ! CASE 3: Lon overlap 3/4 & 1/4 and same Lat
+            OUTNEST(X+2,Y,L) = NESTED1x1(I+1,J)*0.75d0 + 
+     &                         NESTED1x1(I+2,J)*0.25d0
+
+            X = X+3
+
+         ENDDO
+
+         ! Now take care of the last Lon box(es)
+         X = (II_NEST-IX)/2*3 + 1
+         I = II_NEST-IX + 1
+            
+         ! CASE 1: 1x1 and 0.5x0.667 box have same grid center
+         OUTNEST(X,Y,L) = NESTED1x1(I,J)
+              
+         IF ( IX == 2 ) THEN 
+            ! CASE 2: Lon overlap 1/4 & 3/4 and same Lat
+            OUTNEST(X+1,Y,L) = NESTED1x1(I,J)*0.25d0 + 
+     &                         NESTED1x1(I+1,J)*0.75d0
+        
+         ENDIF
+
+      ENDDO 
+!$OMP END PARALLEL DO
+
+      ! Return to calling program
+      END SUBROUTINE REGRID_05x0666_NESTED
+         
+      
 !------------------------------------------------------------------------------
 
       FUNCTION ITS_CONCENTRATION_DATA( UNIT ) RESULT( IS_CONC )

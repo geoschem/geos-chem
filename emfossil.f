@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.24 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: emfossil.f,v 1.25 2009/05/07 19:24:29 ccarouge Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -424,11 +424,18 @@
                   ! Convert
                   SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
                   
-               ELSE IF ( LEMEPSHIP .AND.
-     $                 ( GET_EUROPE_MASK( I, J ) > 0d0 ) ) THEN
+!Prior to 5/1/09 (win, 5/1/09)
+!               ELSE IF ( LEMEPSHIP  .AND.
+!     $                 ( GET_EUROPE_MASK( I, J ) > 0d0 ) ) THEN
+!
+!                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+!                  SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+               ELSE IF ( LEMEPSHIP ) THEN
+                 
+                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
 
                   ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-                  SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+     &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
 
                ELSE
                   
