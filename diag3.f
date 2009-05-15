@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.60 2009/05/06 14:45:11 ccarouge Exp $
+! $Id: diag3.f,v 1.61 2009/05/15 18:15:53 ccarouge Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1256,7 +1256,18 @@
 
             ! Tracer number 
             NN = GET_WETDEP_IDWETD( N )
- 
+
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(17) )
+               MMB = TINDEX(17,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
+
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSR-$'
                
@@ -1311,6 +1322,17 @@
 
             ! Tracer number
             NN = GET_WETDEP_IDWETD( N )
+
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(18) )
+               MMB = TINDEX(18,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
 
             ! Large-scale rainout/washout fractions
             CATEGORY = 'WD-LSW-$'
@@ -2296,17 +2318,25 @@
          ! Get actual # of soluble tracers
          NMAX = GET_WETDEP_NSOL()
 
-         DO M = 1, TMAX(37)
-            N = TINDEX(37,M)
-             
-            ! Cycle if N is too high
-            IF ( N > NMAX ) CYCLE
+         ! Loop over soluble tracers
+         DO N = 1, NMAX
 
-            ! Tracer number
+            ! Tracer number 
             NN = GET_WETDEP_IDWETD( N )
 
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(37) )
+               MMB = TINDEX(37,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
+
             DO L = 1, LD37
-               ARRAY(:,:,L) = AD37(:,:,L,M) / SCALECONV
+               ARRAY(:,:,L) = AD37(:,:,L,N) / SCALECONV
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2341,6 +2371,17 @@
             ! Tracer number
             NN = GET_WETDEP_IDWETD( N )
 
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(38) )
+               MMB = TINDEX(38,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
+
             ! Divide by # of convective timesteps
             DO L = 1, LD38
                ARRAY(:,:,L) = AD38(:,:,L,N) / SCALECONV
@@ -2374,6 +2415,17 @@
                
             ! Tracer number
             NN = GET_WETDEP_IDWETD( N )
+
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(39) )
+               MMB = TINDEX(39,MM)
+               MM  = MM + 1
+            ENDDO
+               
+            IF ( MMB /= NN ) CYCLE
 
             ! Divide by # of wetdep (= dynamic) timesteps
             DO L = 1, LD39
@@ -2566,6 +2618,17 @@
  
             ENDIF
 
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
+               MMB = TINDEX(44,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
+
             ! Save into ARRAY
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
@@ -2598,8 +2661,19 @@
          ! Loop over drydep tracers
          DO N = 1, M
 
-            ! Tracer number plus GAMAP offset
             NN           = NTRAIND(N)
+            ! To output only the species asked in input.geos 
+            ! (ccc, 5/15/09)
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
+               MMB = TINDEX(44,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            IF ( MMB /= NN ) CYCLE
+
+            ! Tracer number plus GAMAP offset
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
 
             ! Write to file
@@ -2704,8 +2778,6 @@
             IF ( N == 1 .and. IDTISOP == 0 ) CYCLE
             IF ( N == 2 .and. IDTACET == 0 ) CYCLE
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
-            IF ( N == 4 .and. IDTMONX == 0 ) CYCLE
-            IF ( N == 5 .and. IDTMBO  == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
             
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
