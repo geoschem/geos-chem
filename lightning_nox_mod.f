@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.25 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: lightning_nox_mod.f,v 1.26 2009/05/20 20:04:39 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1861,7 +1861,15 @@
 #if   defined( IN_CLOUD_OD )
       IF ( LCTH ) THEN
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 67.6701d0
+            !----------------------------------------------------------------
+            ! NOTE: This value is for 2008 statistics only!
+            ! (i.e. if using the "reprocessed_geos5_fix" file
+            !SCALE = ANN_AVG_FLASHRATE / 67.6701d0
+            !----------------------------------------------------------------
+            ! NOTE: This value is for 2004, 2005, 2008 statistics!
+            ! (i.e. if using the reprocessed_geos5_fix.2004_2005_2008" file
+            SCALE = ANN_AVG_FLASHRATE / 62.8215d0 
+            !----------------------------------------------------------------
          ELSE
             SCALE = ANN_AVG_FLASHRATE / 52.0135d0
          ENDIF
