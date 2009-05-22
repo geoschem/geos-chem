@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.11 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: anthroems.f,v 1.12 2009/05/22 15:33:57 ccarouge Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -115,6 +115,8 @@
       USE TRACERID_MOD,        ONLY : NEMANTHRO
       USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
       USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
+      USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
+      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
       USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED_CH
       USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
@@ -247,38 +249,41 @@
          !================================================================
          ! Read EDGARv2 aromatics emission for 1985  (tmf, 7/30/08)
          !================================================================
+!         IF ( IDTBENZ /= 0 .AND. IDTTOLU /= 0 .AND. IDTXYLE /= 0 ) THEN
 #if defined(GRID05x0666) && defined( NESTED_CH )
-         CALL READ_AROMATICS_05x0666( E_BENZ, E_TOLU, E_XYLE )
+            CALL READ_AROMATICS_05x0666( E_BENZ, E_TOLU, E_XYLE )
 #else
-         CALL READ_AROMATICS( E_BENZ, E_TOLU, E_XYLE )
+            CALL READ_AROMATICS( E_BENZ, E_TOLU, E_XYLE )
 #endif
 
-	 EMISTBENZ = E_BENZ
-	 EMISTTOLU = E_TOLU
-         EMISTXYLE = E_XYLE
-
+            EMISTBENZ = E_BENZ
+            EMISTTOLU = E_TOLU
+            EMISTXYLE = E_XYLE
+!         ENDIF
          !================================================================
          ! Read EDGARv2 C2H4 emission for 1985   (tmf, 7/30/08)
          !================================================================
+!         IF ( IDTC2H4 /= 0 ) THEN
 #if defined(GRID05x0666) && defined( NESTED_CH )
-         CALL READ_C2H4_05x0666( E_C2H4 )
+            CALL READ_C2H4_05x0666( E_C2H4 )
 #else
-         CALL READ_C2H4( E_C2H4 )
+            CALL READ_C2H4( E_C2H4 )
 #endif
 
-	 EMISTC2H4 = E_C2H4
-
+            EMISTC2H4 = E_C2H4
+!         ENDIF
          !================================================================
          ! Read EDGARv2 C2H2 emission for 1985  (tmf, 7/30/08)
          !================================================================
+!         IF ( IDTC2H2 /= 0 ) THEN
 #if defined(GRID05x0666) && defined( NESTED_CH )
-         CALL READ_C2H2_05x0666( E_C2H2 )
+            CALL READ_C2H2_05x0666( E_C2H2 )
 #else
-         CALL READ_C2H2( E_C2H2 )
+            CALL READ_C2H2( E_C2H2 )
 #endif
 
-	 EMISTC2H2 = E_C2H2
-
+            EMISTC2H2 = E_C2H2
+!         ENDIF
          !============================================================== 
          ! Apply IPCC future scale factors to emissions (if necessary)
          !==============================================================
@@ -484,6 +489,7 @@
          !  are for year 1985 only.  Scale to target year
          !=============================================================
          ! BENZ: for year 1985
+!         IF ( IDEBENZ /= 0 .AND. IDTBENZ /= 0 ) THEN
          IF ( IDEBENZ /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
@@ -501,6 +507,7 @@
          ENDIF
 
          ! TOLU: for year 1985
+!         IF ( IDETOLU /= 0 .AND. IDTTOLU /= 0 ) THEN
          IF ( IDETOLU /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
@@ -518,6 +525,7 @@
          ENDIF
 
          ! XYLE: for year 1985
+!         IF ( IDEXYLE /= 0 .AND. IDTXYLE /= 0 ) THEN
          IF ( IDEXYLE /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
@@ -535,7 +543,8 @@
          ENDIF
 
          ! C2H4: for year 1985
-         IF ( IDEC2H4 /= 0 ) THEN
+!         IF ( IDEC2H4 /= 0 .AND. IDTC2H4 /= 0 ) THEN
+         IF ( IDEC2H4 /= 0  ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
                DO I = 1, IIPAR
@@ -553,6 +562,7 @@
          ENDIF
 
          ! C2H2: for year 1985
+!         IF ( IDEC2H2 /= 0 .AND. IDTC2H2 /= 0 ) THEN
          IF ( IDEC2H2 /= 0 ) THEN
             DO J = 1, JJPAR
                JREF = J + J0
