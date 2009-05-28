@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.7 2009/05/06 15:33:27 phs Exp $
+! $Id: edgar_mod.f,v 1.8 2009/05/28 18:24:48 ccarouge Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -2040,7 +2040,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
@@ -2072,8 +2072,8 @@
       !=================================================================
       ! Read BENZ (tracer #57): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'BENZ_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      FILENAME = TRIM( DATA_DIR_1x1 )//
+                'EDGAR_200607/BENZ/BENZ_1985_FF_IND_EDGAR2.1x1geos.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -2091,8 +2091,8 @@
       !=================================================================
       ! Read TOLU (tracer #58): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'TOLU_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      FILENAME = TRIM( DATA_DIR_1x1 )//
+                'EDGAR_200607/TOLU/TOLU_1985_FF_IND_EDGAR2.1x1geos.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -2110,8 +2110,8 @@
       !=================================================================
       ! Read XYLE (tracer #59): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'XYLE_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      FILENAME = TRIM( DATA_DIR_1x1 )//
+                'EDGAR_200607/XYLE/XYLE_1985_FF_IND_EDGAR2.1x1geos.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
