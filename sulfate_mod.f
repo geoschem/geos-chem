@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.48 2009/05/07 19:46:17 ccarouge Exp $
+! $Id: sulfate_mod.f,v 1.49 2009/05/28 18:27:55 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 10/31/08)
+!  (rjp, bdf, bmy, 6/22/00, 5/27/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -215,6 +215,7 @@
 !  (41) Bug fixes in reading EDGAR data w/ the right tracer number, 
 !        when we are doing offline or nonstd simulations (dkh, 10/31/08)
 !  (42) Bug fix for AD13_SO2_sh in SRCSO2 (phs, 2/27/09)
+!  (43) Bug fix: need to add CAC_AN to PRIVATE statements (bmy, 5/27/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -4603,7 +4604,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO4 (originally from Mian Chin) computes SO4 emissions from 
-!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 10/25/05)
+!  anthropogenic sources (rjp, bdf, bmy, 6/2/00, 5/27/09)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4628,6 +4629,7 @@
 !        file CMN. (bmy, 2/22/05)
 !  (6 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (7 ) Now overwrite CAC emissions over Canada, if necessary (amv,  1/10/08)
+!  (8 ) Need to add CAC_AN to the PRIVATE statement (bmy, 5/27/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4685,7 +4687,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
       DO J = 1, JJPAR
          
          ! Grid box surface area [cm2]
@@ -4850,7 +4852,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCNH3 handles NH3 emissions into the GEOS-CHEM tracer array.
-!  (rjp, bmy, 12/17/01, 2/22/05)
+!  (rjp, bmy, 12/17/01, 5/27/09)
 !
 !  Arguments as Input/Output
 !  ============================================================================
@@ -4877,6 +4879,7 @@
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f".  Removed reference to header 
 !        file CMN. (bmy, 2/22/05)
 !  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (8 ) Need to add CAC_AN to the PRIVATE loop (bmy, 5/27/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4930,13 +4933,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!-----------------------------------------------------------------------------
-! NOTE: There seems to be some problems with the EPA/NEI NH3 emissions.  
-! Therefore we will use the existing emissions for NH3 until further notice.  
-! Comment out the lines below until further notice.  (bmy, 11/17/04)
-!!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF )
-!-----------------------------------------------------------------------------
-!$OMP+PRIVATE( I, J )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
       DO J = 1, JJPAR
          
          !-------------------------------------------------------------------
