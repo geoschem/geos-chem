@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.15 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: aerosol_mod.f,v 1.16 2009/05/29 14:31:07 ccarouge Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -409,7 +409,7 @@
      &                         STT(I,J,L,IDTSOAG) * OCFG / AIRVOL(I,J,L)
                ENDIF
 
-               IF ( IDTSOAM ) THEN
+               IF ( IDTSOAM > 0 ) THEN
                  OCPI(I,J,L) = OCPI(I,J,L) + 
      &                         STT(I,J,L,IDTSOAM) * OCFM / AIRVOL(I,J,L)
                ENDIF

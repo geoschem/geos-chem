@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.24 2009/05/06 14:14:44 ccarouge Exp $
+! $Id: tracerid_mod.f,v 1.25 2009/05/29 14:31:06 ccarouge Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -897,7 +897,6 @@
          IDEISOP   = 22
          IDEMONX   = 23
          IDEMBO    = 24
-!ccc         IDEISOP   = 13 ! not used TO EMIT ANTHRO but should be #11 is we use it
       ENDIF
       
       !=================================================================

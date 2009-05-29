@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.22 2009/05/06 14:14:44 ccarouge Exp $
+! $Id: transport_mod.f,v 1.23 2009/05/29 14:31:06 ccarouge Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -196,7 +196,7 @@
       ! References to F90 modules
       USE DAO_MOD,          ONLY : PSC2, UWND, VWND
       USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
+      USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
       USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
       USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
@@ -365,7 +365,7 @@
 
             ! We apply mass conservation only on cells w/
             ! nonzero tracer (ccc, 2/17/09)
-            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -382,7 +382,7 @@
          ! w/ nonzero tracer. (ccc, 2/17/09)
          ! TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
          !-------------------------------------------------------------------
-         TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
+         TR_DIFF = SAFE_DIV(TR_DIFF, SUMADA, 0.d0) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
          DO L = 1, LLPAR
@@ -394,7 +394,7 @@
             ! Only apply change to cells w/ nonzero tracer (ccc, 2/17/09)
             ! STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
             !------------------------------------------------------------------
-            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
                STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
             ENDIF
 
