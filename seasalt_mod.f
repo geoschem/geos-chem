@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.15 2008/12/15 15:55:15 bmy Exp $
+! $Id: seasalt_mod.f,v 1.16 2009/06/01 19:58:14 ccarouge Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -75,8 +75,12 @@
 !        bug in WET_SETTLING. (bec, bmy, 9/5/06)
 !  (8 ) Extra error check for low RH in WET_SETTLING (phs, 6/11/08)
 !  (9 ) Bug fix to remove a double-substitution in GET_ALK (bec, bmy, 7/18/08)
+!  (10) Save surface emissions separately (emis_save) for non-local scheme.
+!        (ccc, 5/14/09)
 !******************************************************************************
 !
+      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -548,6 +552,7 @@
       USE LOGICAL_MOD,  ONLY : LPRT
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
+      USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -596,6 +601,19 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
 
+      ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
+      ! (Lin, 06/09/08) 
+      IF (LNLPBL) THEN
+!$OMP PARALLEL DO
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            emis_save(I,J,IDTSALA) = ALK_EMIS(I,J,1,1)
+            emis_save(I,J,IDTSALC) = ALK_EMIS(I,J,1,2)
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
       ! Return to calling program
       END SUBROUTINE EMISSSEASALT
 
@@ -823,6 +841,11 @@
 
             ! Fraction of the PBL spanned by box (I,J,L) [unitless]
             FEMIS             = GET_FRAC_OF_PBL( I, J, L )
+
+            ! Move surface emis to vdiff_mod.f for non-local PBL mixing
+            ! --- emis is saved in emis_save(:,:,:) in SUBROUTINE EMISSSEASALT 
+            ! (Lin, 06/09/08) 
+            IF (LNLPBL) FEMIS = 0.D0
 
             ! Add seasalt emissions into box (I,J,L) [kg]
             TC(I,J,L)         = TC(I,J,L) + ( FEMIS * SALT(I,J) )

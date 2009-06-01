@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.25 2009/05/07 19:24:29 ccarouge Exp $
+! $Id: emfossil.f,v 1.26 2009/06/01 19:58:14 ccarouge Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -65,6 +65,7 @@
 !        overlap (phs, 5/7/08)
 !  (32) Now overwrite USA NOx with VISTAS if necessary (amv, 12/02/08)
 !  (33) Modified CO scaling (jaf, 2/25/09)
+!  (34) Add a test on existing emissions for EPA/NEI. (hotp, ccc, 5/29/09) 
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -583,12 +584,18 @@
          
                ! Get EPA/NEI emissions (and apply time-of-day factor)
                EPA_NEI = GET_EPA_ANTHRO( I, J, NN, WEEKDAY )
-               EPA_NEI = EPA_NEI * TODX
-         
-               ! Convert from molec/cm2/s to kg/box/timestep in order
-               ! to be in the proper units for EMISRR array
-               EMX(1)  = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
 
+               ! -1 indicates tracer NN does not have EPA/NEI emissions
+               IF ( .not. ( EPA_NEI < 0d0 ) ) THEN
+
+                  ! Apply time-of-day factor
+                  EPA_NEI = EPA_NEI * TODX
+         
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array
+                  EMX(1)  = EPA_NEI * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+               ENDIF
             ENDIF
          ENDIF
 

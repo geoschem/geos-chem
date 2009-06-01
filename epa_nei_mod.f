@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.9 2009/01/30 19:27:30 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.10 2009/06/01 19:58:14 ccarouge Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -1203,6 +1203,8 @@
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
 !        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
+!  (2 ) Default value changed to -1 to identify tracers without EPA/NEI 
+!        emissions. (hotp, ccc, 5/29/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1266,7 +1268,11 @@
             EPA_NEI = EPA_WD_AN_NH3(I,J)
 
          ELSE
-            EPA_NEI = 0d0
+!-- Prior to 5/29/09
+!            EPA_NEI = 0d0
+            ! Some anthropogenic species don't have EPA/NEI emissions. 
+            ! We need to keep background emissions. (hotp, ccc, 5/29/09)
+            EPA_NEI = -1d0
             
          ENDIF
 
@@ -1312,7 +1318,11 @@
             EPA_NEI = EPA_WE_AN_NH3(I,J)
 
          ELSE
-            EPA_NEI = 0d0
+!-- Prior to 5/29/09
+!            EPA_NEI = 0d0
+            ! Some anthropogenic species don't have EPA/NEI emissions. 
+            ! We need to keep background emissions. (hotp, ccc, 5/29/09)
+            EPA_NEI = -1d0
             
          ENDIF
 

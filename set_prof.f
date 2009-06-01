@@ -1,4 +1,4 @@
-! $Id: set_prof.f,v 1.5 2008/08/08 17:20:36 bmy Exp $
+! $Id: set_prof.f,v 1.6 2009/06/01 19:58:14 ccarouge Exp $
       SUBROUTINE SET_PROF( NLON, NLAT, YLAT,  MONTH,   DAY, 
      &                     T,    SA,   ODCOL, OPTDUST, OPTAER )
 !
@@ -292,9 +292,9 @@
       ENDIF
       
 !### Debug
-!      write (987,100) nlon,nlat,toms(nlon,nlat), profcol, daytoms,
-!     $     dtoms1(nlon,nlat), dtoms2(nlon,nlat), SUM( DO3(:) / 2.69d16 )
-! 100  format(i7,x,i7,x,6(f8.2,x))
+      write (*,100) nlon,nlat,toms(nlon,nlat), profcol, daytoms,
+     $     dtoms1(nlon,nlat), dtoms2(nlon,nlat), SUM( DO3(:) / 2.69d16 )
+ 100  format('DO3 debug ',i7,x,i7,x,6(f8.2,x))
 
       ! Return to calling program
       END SUBROUTINE SET_PROF

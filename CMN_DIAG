@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.23 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: CMN_DIAG,v 1.24 2009/06/01 19:58:15 ccarouge Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -27,6 +27,7 @@
 ! (15) Add GLYX, MGLY, GLYC, 6 PANs, SOAG, SOAM dry dep, 
 !       PD44 = 41.(tmf, 1/7/09)
 ! (16) Add biogenic C2H4 emission, PD46 = 6. (tmf, 1/20/09)
+! (17) Add one met field to ND67 (EFLUX). (ccc, 5/14/09)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -127,7 +128,7 @@
       INTEGER, PARAMETER :: PD64=0
       INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
       INTEGER, PARAMETER :: PD66=6           
-      INTEGER, PARAMETER :: PD67=22
+      INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
       INTEGER, PARAMETER :: PD69=1
       INTEGER, PARAMETER :: PD70=0

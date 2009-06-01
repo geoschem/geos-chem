@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.29 2008/12/15 15:55:16 bmy Exp $
+! $Id: dao_mod.f,v 1.30 2009/06/01 19:58:14 ccarouge Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -82,6 +82,7 @@
 !  (70) RH       (REAL*8 ) : Relative humidity                   [%]
 !  (71) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
 !  (72) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
+!  (73) EFLUX    (REAL*8 ) : Latent heat flux                    [W/m2]
 !
 !  Module Routines:
 !  ============================================================================
@@ -157,6 +158,7 @@
 !  (28) Add in extra fields for GEOS-5.  Updated COSSZA.  Now cap var trop 
 !        at 200hPa near poles in INTERP (bmy, phs, 9/18/07)
 !  (29) Bug fix in INIT_DAO for CMFMC array (bmy, jaf, 6/11/08)
+!  (30) Add heat flux EFLUX for GEOS5. (lin, ccc, 5/29/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -262,6 +264,7 @@
       REAL*8,  ALLOCATABLE :: ZMEU(:,:,:)
       REAL*8,  ALLOCATABLE :: ZMMD(:,:,:)
       REAL*8,  ALLOCATABLE :: ZMMU(:,:,:)
+      REAL*8,  ALLOCATABLE :: EFLUX(:,:)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -2156,6 +2159,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
       TTO3 = 0d0
 
+      ! Latent heat flux
+      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+      EFLUX = 0d0
+
 #elif defined( GCAP )
 
       !-----------------------------------------------------------------
@@ -2344,6 +2352,7 @@
       IF ( ALLOCATED( ZMEU     ) ) DEALLOCATE( ZMEU     )
       IF ( ALLOCATED( ZMMD     ) ) DEALLOCATE( ZMMD     )
       IF ( ALLOCATED( ZMMU     ) ) DEALLOCATE( ZMMU     )
+      IF ( ALLOCATED( EFLUX    ) ) DEALLOCATE( EFLUX    )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DAO

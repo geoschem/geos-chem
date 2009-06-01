@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.58 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: main.f,v 1.59 2009/06/01 19:58:14 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.59  2009/06/01 19:58:14  ccarouge
+! commit non-local PBL (ccc, 6/1/09)
+!
 ! Revision 1.58  2009/05/06 14:14:45  ccarouge
 ! commits for v8-02-01 (ccarouge 5/6/09)
 !
@@ -272,6 +275,9 @@
       ! To save CSPEC_FULL restart (dkh, 02/12/09)
       USE LOGICAL_MOD,       ONLY : LSVCSPEC
       USE RESTART_MOD,       ONLY : MAKE_CSPEC_FILE
+      ! Added (lin, 03/31/09)
+      USE LOGICAL_MOD,       ONLY : LNLPBL
+      USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -492,8 +498,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a RDLAND' )
 
       ! Initialize PBL quantities but do not do mixing
-      CALL DO_PBL_MIX( .FALSE. )
-      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+      ! Add option for non-local PBL (Lin, 03/31/09) 
+      IF (.NOT. LNLPBL) THEN
+        CALL DO_PBL_MIX( .FALSE. )
+        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+      ELSE
+        CALL DO_PBL_MIX_2( .FALSE. )
+        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL' )
+      ENDIF
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -864,6 +876,37 @@
             IF ( LCONV .or. LWETD ) CALL INIT_WETSCAV
          ENDIF
 
+
+         !-------------------------------
+         ! Test for emission timestep
+         !-------------------------------
+         IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
+
+            IF ( ITS_TIME_FOR_UNIT() )
+     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
+
+            ! Increment emission counter
+            CALL SET_CT_EMIS( INCREMENT=.TRUE. )
+
+            !========================================================
+            !         ***** D R Y   D E P O S I T I O N *****
+            !========================================================
+            !--------------------------------------------------------
+            ! Prior to 9/18/07:
+            !IF ( LDRYD ) CALL DO_DRYDEP
+            !--------------------------------------------------------
+            IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
+
+            !========================================================
+            !             ***** E M I S S I O N S *****
+            !========================================================
+            IF ( LEMIS ) CALL DO_EMISSIONS
+
+            IF ( ITS_TIME_FOR_UNIT() )
+     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
+
+         ENDIF
+
          !-------------------------------
          ! Test for convection timestep
          !-------------------------------
@@ -875,7 +918,14 @@
             !===========================================================
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
-            CALL DO_PBL_MIX( LTURB )
+            ! Add option for non-local PBL. (Lin, 03/31/09)
+            IF (.NOT. LNLPBL) THEN
+               CALL DO_PBL_MIX( LTURB )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
+            ELSE
+               CALL DO_PBL_MIX_2( LTURB )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL' )
+            ENDIF
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:2' )
@@ -904,8 +954,8 @@
          !-------------------------------
          ! Test for emission timestep
          !-------------------------------
-         IF ( ITS_TIME_FOR_EMIS() ) THEN
-               
+         IF ( ( .NOT. LNLPBL ) .AND. ITS_TIME_FOR_EMIS() ) THEN
+
             ! Increment emission counter
             CALL SET_CT_EMIS( INCREMENT=.TRUE. )
 

@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.25 2008/12/15 15:55:14 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.26 2009/06/01 19:58:13 ccarouge Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -441,6 +441,7 @@
       USE TRACER_MOD,   ONLY : STT,                   N_TRACERS, XNUMOL
       USE TRACERID_MOD, ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,  ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
 
@@ -568,6 +569,9 @@
                
                   ! Ox Drydep frequency [1/s]
                   FREQ = DEPSAV(I,J,1) * F_UNDER_TOP
+
+                  ! Add option for non-local PBL (Lin, 03/31/09)  
+                  IF (LNLPBL) FREQ = 0.D0
 
                   ! Only proceed if drydep frequency is nonzero
                   IF ( FREQ > 0d0 ) THEN

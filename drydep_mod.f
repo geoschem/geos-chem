@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.35 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: drydep_mod.f,v 1.36 2009/06/01 19:58:14 ccarouge Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -156,8 +156,12 @@
 !        offline sim (phs, 9/18/07)
 !  (24) Extra error check for small RH in AERO_SFCRII (phs, 6/11/08)
 !  (25) Added 15 more dry deposition species (tmf, 7/31/08)
+!  (26) Modify dry depostion to follow the non-local PBL scheme.
+!        (lin, ccc, 5/29/09)
 !******************************************************************************
 !
+      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -359,7 +363,9 @@
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
-         THIK    = MAX( ZH(IJLOOP), THIK )
+         ! Add option for non-local PBL mixing scheme: THIK must
+         ! be the first box height. (Lin, 03/31/09) 
+         IF (.NOT. LNLPBL) THIK    = MAX( ZH(IJLOOP), THIK )
 
          ! Loop over drydep species
          DO N = 1, NUMDEP
@@ -819,6 +825,10 @@
       ! Maximum extent of the PBL [model layers]
       PBL_MAX = GET_PBL_MAX_L() 
 
+      ! Add option for non-local PBL mixing scheme: only done at the surface
+      ! (Lin, 03/31/09) 
+      IF (LNLPBL) PBL_MAX = 1
+
       ! Loop over drydep species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -841,6 +851,10 @@
             ! FRACLOST is the fraction of tracer lost.  PBLFRAC is 
             ! the fraction of layer L located totally w/in the PBL.
             FRACLOST = DEPSAV(I,J,N) * F_UNDER_TOP * DTCHEM
+
+            ! add option for non-local PBL mixing scheme: only the surface
+            ! (Lin, 03/31/09) 
+            IF (LNLPBL) FRACLOST = DEPSAV(I,J,N) * DTCHEM
 
             !===========================================================
             ! Proceed as follows:
@@ -947,6 +961,10 @@
 
       ! Maximum extent of the PBL [model layers]
       PBL_MAX = GET_PBL_MAX_L() 
+
+      ! Add option for non-local PBL mixing scheme: only the surface
+      ! (Lin, 03/31/09) 
+      IF (LNLPBL) PBL_MAX = 1
 
       ! Need nested-grid offsets for soiltemp code
       I0 = GET_XOFFSET()
@@ -1068,14 +1086,18 @@
       
                   ! THIK = thickness of surface layer [m]
                   THIK    = BXHEIGHT(I,J,1)
-                  THIK    = MAX( MLD, THIK )
-
+                  ! Add option for non-local PBL mixing scheme: 
+                  ! only the surface (Lin, 03/31/09) 
+                  IF (.NOT. LNLPBL) THIK    = MAX( MLD, THIK ) 
                   
                   ! Dry deposition frequency [1/s]
                   DRYF    = ( SVEL / 100.d0 ) / THIK
 		  
 		  ! FRACLOST = Fraction of species lost to drydep [unitless]
                   FRACLOST = DRYF * DTCHEM * F_UNDER_TOP
+                  ! Add option for non-local PBL mixing scheme:
+                  ! only the surface (Lin, 03/31/29)
+                  IF (LNLPBL) FRACLOST = DRYF * DTCHEM
 
                   !========================================================
                   ! Proceed as follows:
@@ -1730,6 +1752,15 @@ C   The formulation of RB for gases is equation (12) of
 C   Walcek et al. [1986].  The parameterization for deposition of
 C   aerosols does not include an RB term so RB for aerosols is set
 C   to zero.
+C   Modify phi(x) according to the non-local mixing scheme by Holtslag 
+C   and Boville [1993] ( Lin, 07/18/08 )
+C   For unstable conditions,
+C          phi(x) = a/sqrt(1-bx)  where a=1.0, b=15.0
+C
+C   For stable conditions,
+C          phi(x) = a + bx
+C              where a=1.0, b=5.0 for 0 <= x <= 1, and
+C                    a=5.0, b=1.0 for x > 1.0 
 C*********************************************************************
             CKUSTR = XCKMAN*USTAR(IJLOOP)
 
@@ -1754,11 +1785,14 @@ C*********************************************************************
 #endif
 
             LRGERA(IJLOOP) = .FALSE.
-            IF (CORR1 .GT. 0.D0) THEN
-               IF (CORR1 .GT.  1.5D0) LRGERA(IJLOOP) = .TRUE.
-            ELSEIF(CORR1 .LE. 0.D0) THEN
-               IF (CORR1 .LE. -2.5D0) CORR1 = -2.5D0
-               CORR2 = LOG(-CORR1)
+            ! Add option for non-local PBL (Lin, 03/31/09) 
+            IF (.NOT. LNLPBL) THEN
+               IF (CORR1 .GT. 0.D0) THEN
+                  IF (CORR1 .GT.  1.5D0) LRGERA(IJLOOP) = .TRUE.
+               ELSEIF(CORR1 .LE. 0.D0) THEN
+                  IF (CORR1 .LE. -2.5D0) CORR1 = -2.5D0
+                  CORR2 = LOG(-CORR1)
+               ENDIF
             ENDIF
 C*                                 
             IF (CKUSTR.EQ.0.0D0) THEN
@@ -1791,33 +1825,65 @@ C  11/17/05: D. J. Jacob says to change the criterion for aerodynamically
 C  rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
             IF ( REYNO < 0.1d0 ) GOTO 220
 
+            ! Add option for non-local PBL (Lin, 03/31/09) 
+            IF (.NOT. LNLPBL) THEN
+
 C...aerodynamically rough surface.
 C*                                 
-            IF (CORR1.LE.0.0D0 .AND. Z0OBK .LT. -1.D0)THEN
+               IF (CORR1.LE.0.0D0 .AND. Z0OBK .LT. -1.D0)THEN
 C*... unstable condition; set RA to zero. (first implemented in V. 3.2)
-               RA = 0.D0
-            ELSEIF (CORR1.LE.0.0D0 .AND. Z0OBK .GE. -1.D0) THEN
+                  RA = 0.D0
+               ELSEIF (CORR1.LE.0.0D0 .AND. Z0OBK .GE. -1.D0) THEN
 C*... unstable conditions; compute Ra as described above.
-               DUMMY1 = (1.D0 - 9D0*CORR1)**0.5D0
-               DUMMY2 = (1.D0 - 9D0*Z0OBK)**0.5D0
-               DUMMY3 = ABS((DUMMY1 - 1.D0)/(DUMMY1 + 1.D0))
-               DUMMY4 = ABS((DUMMY2 - 1.D0)/(DUMMY2 + 1.D0))
-               RA = 0.74D0* (1.D0/CKUSTR) * LOG(DUMMY3/DUMMY4)
+                  DUMMY1 = (1.D0 - 9D0*CORR1)**0.5D0
+                  DUMMY2 = (1.D0 - 9D0*Z0OBK)**0.5D0
+                  DUMMY3 = ABS((DUMMY1 - 1.D0)/(DUMMY1 + 1.D0))
+                  DUMMY4 = ABS((DUMMY2 - 1.D0)/(DUMMY2 + 1.D0))
+                  RA = 0.74D0* (1.D0/CKUSTR) * LOG(DUMMY3/DUMMY4)
                                  
-            ELSEIF((CORR1.GT.0.0D0).AND.(.NOT.LRGERA(IJLOOP)))THEN
+               ELSEIF((CORR1.GT.0.0D0).AND.(.NOT.LRGERA(IJLOOP)))THEN
 C*...moderately stable conditions (z/zMO <1); compute Ra as described above
-               RA = (1D0/CKUSTR) * 
-     &              (.74D0*LOG(CORR1/Z0OBK) + 4.7D0*(CORR1-Z0OBK))
-            ELSEIF(LRGERA(IJLOOP)) THEN
+                  RA = (1D0/CKUSTR) * 
+     &                 (.74D0*LOG(CORR1/Z0OBK) + 4.7D0*(CORR1-Z0OBK))
+               ELSEIF(LRGERA(IJLOOP)) THEN
 C*... very stable conditions
-               RA = 1.D+04
-            ENDIF
+                  RA = 1.D+04
+               ENDIF
 C* check that RA is positive; if RA is negative (as occasionally
 C* happened in version 3.1) send a warning message.
+
+            ELSE
+
+               IF (CORR1.LT.0.0D0) THEN
+C*... unstable conditions; compute Ra as described above.
+                  !coef_a=1.d0
+                  !coef_b=15.d0
+                  DUMMY1 = (1.D0 - 15.D0*CORR1)**0.5D0
+                  DUMMY2 = (1.D0 - 15.D0*Z0OBK)**0.5D0
+                  DUMMY3 = ABS((DUMMY1 - 1.D0)/(DUMMY1 + 1.D0))
+                  DUMMY4 = ABS((DUMMY2 - 1.D0)/(DUMMY2 + 1.D0))
+                  RA = 1.D0 * (1.D0/CKUSTR) * LOG(DUMMY3/DUMMY4)
+               ELSEIF((CORR1.GE.0.0D0).AND.(CORR1.LE.1.0D0)) THEN
+                  !coef_a=1.d0
+                  !coef_b=5.d0
+                  RA = (1D0/CKUSTR) *
+     &                 (1.D0*LOG(CORR1/Z0OBK) + 5.D0*(CORR1-Z0OBK))
+               ELSE ! CORR1 .GT. 1.0D0
+                  !coef_a=5d0
+                  !coef_b=1.d0
+                  RA = (1D0/CKUSTR) *
+     &                 (5.D0*LOG(CORR1/Z0OBK) + 1.D0*(CORR1-Z0OBK))
+               ENDIF
+
+            ENDIF
+
+            RA = MIN(RA,1.D4)
+
 #if   defined( GCAP )
             ! Debug output for GISS/GCAP model (swu, bmy, 5/25/05)
             IF (RA .LT. 0.) THEN
                WRITE (6,1001) IJLOOP,RA,CZ,ZO(LDT),OBK(IJLOOP)
+               RA = 0.0D0
             ENDIF
 #else
             ! For GEOS-CTM, We use ZO(MAXIJ), and IJLOOP is the index.

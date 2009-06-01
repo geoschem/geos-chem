@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.10 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: acetone_mod.f,v 1.11 2009/06/01 19:58:15 ccarouge Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -441,6 +441,10 @@
 #elif defined( GRID4x5 )
  
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.9551d0
+ 
+#elif defined( GRID2x25 )
+ 
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
  
 #endif
  

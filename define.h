@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.69 2009/05/06 19:15:52 ccarouge Exp $
+ ! $Id: define.h,v 1.70 2009/06/01 19:58:14 ccarouge Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -143,14 +143,6 @@
 #endif
 #endif
 
-!==============================================================================
-! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  
-!==============================================================================
-#if defined(GEOS_3) || defined(GEOS_4) || defined (GCAP)
-#if defined(IN_CLOUD_OD)
-#error "ERROR: IN_CLOUD_OD option set with GEOS_3, GEOS_4, or GCAP"
-#endif
-#endif
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

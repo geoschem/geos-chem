@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.30 2008/04/02 17:03:14 bmy Exp $
+! $Id: chemistry_mod.f,v 1.31 2009/06/01 19:58:14 ccarouge Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -108,6 +108,8 @@
 !  (16) Now use DRYFLXH2HD and CHEM_H2_HD for H2/HD sim (lyj, phs, 9/18/07)
 !  (17) Bug fix: now hardwired to use RPMARES since ISORROPIA can return very
 !        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
+!  (18) The dry deposition diagnostic (ND44) is done in vdiff_mod if using non-
+!        local PBL (lin, ccc, 5/29/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -152,6 +154,7 @@
       USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
+      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
 #     include "CMN_SIZE"        ! Size parameters
 #     include "CMN_DIAG"        ! NDxx flags
@@ -221,7 +224,9 @@
             IF ( LDUST ) CALL CHEMDUST
 
             ! ND44 drydep fluxes
-            CALL DRYFLX     
+            ! The drydep fluxes diag. is done in vdiff_mod.f when non-local 
+            ! PBL is used ( Lin, 03/31/09) 
+            IF (.NOT. LNLPBL) CALL DRYFLX     
 
             ! ND43 chemical production
             CALL DIAGOH

@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.36 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: carbon_mod.f,v 1.37 2009/06/01 19:58:15 ccarouge Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -152,8 +152,11 @@
 !  (19) Now add future scaling to BIOMASS_CARB_GEOS (hotp, swu, 2/19/09)
 !  (20) Added SOA production from dicarbonyls (tmf, 3/2/09)
 !  (21) Bugfix: cleanup ORVC_TERP and ORVC_SESQ (tmf, 3/2/09)
+!  (22) Add option for non-local PBL scheme (lin, 06/09/08)
 !******************************************************************************
 !
+      USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
+
       IMPLICIT NONE
 
       !=================================================================
@@ -460,6 +463,7 @@
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (4 ) Add option for non-local PBL scheme (lin, 06/09/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -540,6 +544,9 @@
 
          ! Fraction of grid box underneath PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
+         IF (LNLPBL) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -694,6 +701,9 @@
          
          ! Fraction of grid box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L ) 
+
+         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08)
+         IF (LNLPBL) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -883,6 +893,9 @@
          ! Fraction of grid box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
+         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+         IF (LNLPBL) BL_FRAC = 0.D0
+
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
 
@@ -1036,6 +1049,10 @@
 
          ! Fraction of box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+         IF (LNLPBL) BL_FRAC = 0.D0
+
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -2961,6 +2978,7 @@ c
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
 !  (4 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) Add non-local PBL scheme option for dry deposition (lin, 06/09/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3023,6 +3041,9 @@ c
 
          ! Fraction of box under the PBL top [unitless]
          BL_FRAC = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+         ! Move drydep to vdiff_mod.f for non-local PBL mixing (Lin, 06/09/08) 
+         IF (LNLPBL) BL_FRAC = 0.D0
 
          ! Only apply drydep to boxes w/in the PBL
          IF ( BL_FRAC > 0d0 ) THEN
@@ -4347,13 +4368,16 @@ c
 !  (3 ) Remove references to "dao_mod.f", "pressure_mod.f", and "error_mod.f".
 !        Rewrote for computational expediency using routines from
 !        "pbl_mix_mod.f".  (bmy, 2/17/05)
+!  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
+!        (lin, 5/29/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
-      USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
-      USE TRACERID_MOD, ONLY : IDTALPH, IDTLIMO, IDTALCO
+      USE PBL_MIX_MOD,  ONLY  : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
+      USE TRACER_MOD,   ONLY  : STT
+      USE TRACERID_MOD, ONLY  : IDTBCPI, IDTBCPO, IDTOCPI, IDTOCPO
+      USE TRACERID_MOD, ONLY  : IDTALPH, IDTLIMO, IDTALCO
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -4379,6 +4403,39 @@ c
       IS_ALPH = ( IDTALPH > 0 )
       IS_LIMO = ( IDTLIMO > 0 )
       IS_ALCO = ( IDTALCO > 0 )
+
+      ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
+      ! (units: kg) (Lin, 06/09/08) 
+
+      IF (LNLPBL) THEN
+
+!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+   
+         IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
+         IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
+         IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
+         IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
+         IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
+         IF ( IS_LIMO ) THEN
+            EMIS_SAVE(:,:,IDTLIMO) = BIOG_LIMO(I,J)
+            ! lead to too much ORVC_TERP in the 1st layer?
+            ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
+         ENDIF
+         IF ( IS_ALCO ) THEN
+            EMIS_SAVE(:,:,IDTALCO) = BIOG_ALCO(I,J)
+            ! lead to too much ORVC_SESQ in the 1st layer?
+            ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
+         ENDIF
+   
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+         RETURN ! we don't need to use below
+
+      ENDIF
 
       ! Maximum extent of PBL [model levels]
       PBL_MAX = GET_PBL_MAX_L()

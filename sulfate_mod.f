@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.49 2009/05/28 18:27:55 bmy Exp $
+! $Id: sulfate_mod.f,v 1.50 2009/06/01 19:58:13 ccarouge Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -216,8 +216,13 @@
 !        when we are doing offline or nonstd simulations (dkh, 10/31/08)
 !  (42) Bug fix for AD13_SO2_sh in SRCSO2 (phs, 2/27/09)
 !  (43) Bug fix: need to add CAC_AN to PRIVATE statements (bmy, 5/27/09)
+!  (44) Constrain surface emissions to the first level and save them into
+!        emis_save (lin, 5/29/09)
 !******************************************************************************
 !
+      USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
+
       IMPLICIT NONE
       
       !=================================================================
@@ -1265,6 +1270,9 @@
          ! of grid box (I,J,L) that is located beneath the PBL top.
          FREQ  = DEPSAV(I,J,DRYH2O2) * GET_FRAC_UNDER_PBLTOP( I, J, L ) 
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQ = 0.D0
+
          ! 1-D grid box index for SUNCOS
          JLOOP = ( (J-1) * IIPAR ) + I
 
@@ -1513,6 +1521,9 @@
          ! SO2 drydep frequency [1/s].  Also accounts for the fraction
          ! of grid box (I,J,L) that is located beneath the PBL top.
          RK2    = DEPSAV(I,J,DRYSO2) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) RK2 = 0.D0
 
          ! RK: total reaction rate [1/s]
          RK     = ( RK1 + RK2 )
@@ -2553,6 +2564,9 @@
          ! of each vertical level that is located below the PBL top
          RKT  = DEPSAV(I,J,DRYSO4)  * GET_FRAC_UNDER_PBLTOP( I, J, L )
 
+         ! Add option for non-local PBL (Lin, 03/31/09) 
+         IF (LNLPBL) RKT = 0.D0
+
          ! RKT > 0 denotes that we have SO4 drydep occurring
          IF ( RKT > 0d0 ) THEN
             
@@ -2630,6 +2644,9 @@
          ! SO4s drydep frequency [1/s].   Also accounts for the fraction
          ! of each vertical level that is located below the PBL top
          RKTs = DEPSAV(I,J,DRYSO4s) * GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) RKTs = 0.D0
         
          ! RKTs > 0 indicates that SO4s drydep occurs
          IF ( RKTs > 0d0 ) THEN
@@ -2909,6 +2926,9 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) RKT = 0.D0
+
             ! RKT > 0 denotes that we have drydep occurring
             IF ( RKT > 0.d0 ) THEN
 
@@ -3069,6 +3089,9 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH3) * F_UNDER_TOP
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQ = 0.D0
+
             ! Only compute drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
 
@@ -3222,6 +3245,9 @@
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH4) * F_UNDER_TOP
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQ = 0.D0
+
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
 
@@ -3362,6 +3388,9 @@
             ! NH4 drydep frequency [1/s] -- PBLFRAC accounts for the fraction
             ! of each grid box (I,J,L) that is located beneath the PBL top
             FREQ = DEPSAV(I,J,DRYNH4aq) * F_UNDER_TOP
+
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQ = 0.D0
 
             ! Only apply drydep loss if FREQ is nonzero
             IF ( FREQ > 0d0 ) THEN
@@ -3545,6 +3574,9 @@
             ! of each vertical level that is located below the PBL top
             FREQ  = DEPSAV(I,J,DRYNIT)  * F_UNDER_TOP
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQ = 0.D0
+
             ! If there is drydep ...
             IF ( FREQ > 0d0 ) THEN
 
@@ -3577,6 +3609,9 @@
             ! NITs drydep frequency [1/s].  Also accounts for the fraction
             ! of each vertical level that is located below the PBL top
             FREQs = DEPSAV(I,J,DRYNITs) * F_UNDER_TOP
+
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FREQs = 0.D0
 
             ! If there is drydep ...
             IF ( FREQs > 0d0 ) THEN
@@ -3854,6 +3889,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,     ONLY : GET_TS_EMIS
+      USE TRACERID_MOD,   ONLY : IDTDMS ! (Lin, 03/31/09)
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13 (for now)
@@ -3997,6 +4033,9 @@
                ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
                FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (LNLPBL) FEMIS = 0.D0
+
                ! DMS in box (I,J,L) plus emissions [kg]
                TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
 
@@ -4008,6 +4047,10 @@
             DMSSRC = 0.d0
 
          ENDIF                  
+ 
+         ! Save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
+         ! (Lin, 06/09/08)
+         if (LNLPBL) emis_save(I,J,IDTDMS) = DMSSRC
 
          !==============================================================
          ! ND13 diagnostic:  DMS emissions [kg S/box/timestep]
@@ -4493,35 +4536,46 @@
          ! Partition the total anthro and biomass SO2 emissions thru
          ! the entire boundary layer (if PBL top is higher than level 2)
          !===============================================================
-         IF ( NTOP > 2 ) THEN
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (.NOT. LNLPBL) THEN
 
-            ! Loop thru levels in the PBL
-            DO L  = 1, NTOP
+            IF ( NTOP > 2 ) THEN
+   
+               ! Loop thru levels in the PBL
+               DO L  = 1, NTOP
                  
-               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+                  ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+                  FEMIS  = GET_FRAC_OF_PBL( I, J, L )
                  
-               ! Partition total SO2 into level K
-               SO2(L) = FEMIS * TSO2
+                  ! Partition total SO2 into level K
+                  SO2(L) = FEMIS * TSO2
 
-            ENDDO
+               ENDDO
 
-         !===============================================================
-         ! If PBL top occurs lower than or close to the top of level 2,
-         ! then then surface SO2 goes into level 1 and the smokestack
-         ! stack SO2 goes into level 2.
-         !===============================================================
-         ELSE
-            SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
-            SO2(2) = SO2an(I,J,2) 
+            !===============================================================
+            ! If PBL top occurs lower than or close to the top of level 2,
+            ! then then surface SO2 goes into level 1 and the smokestack
+            ! stack SO2 goes into level 2.
+            !===============================================================
+            ELSE
+               SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
+               SO2(2) = SO2an(I,J,2) 
 
-            ! Also add ship exhaust SO2 into surface if necessary 
-            ! (bec, bmy, 5/20/04)
+               ! Also add ship exhaust SO2 into surface if necessary 
+               ! (bec, bmy, 5/20/04)
 !-- prior 6/08 (phs)
-!            IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
-            SO2(1) = SO2(1) + ESO2_sh(I,J)
+!               IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
+               SO2(1) = SO2(1) + ESO2_sh(I,J)
 
-         ENDIF 
+            ENDIF 
+
+         ELSE
+
+            ! constrain surface emissions to the lowest model layer
+            ! (Lin, 04/28/08)
+            SO2(1) = TSO2
+
+         ENDIF
 
          ! Error check
          IF ( ABS( SUM( SO2 ) - TSO2 ) > 1.D-5 ) THEN
@@ -4546,8 +4600,18 @@
      &               ESO2_nv(I,J,L) + ESO2_ev(I,J,L) 
 
             ! Add SO2 to TC array [kg/box/timestep]
-            TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
-
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF (.NOT. LNLPBL) THEN
+               TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
+            ELSE
+               IF (L /= 1) then
+                  TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
+               ELSE
+               ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
+               ! (units: kg) (Lin, 06/09/08)
+                  emis_save(I,J,IDTSO2) = SO2SRC * DTSRCE
+               ENDIF
+            ENDIF
          ENDDO
 
          !==============================================================
@@ -4779,31 +4843,39 @@
          ! Partition the total anthro SO4 emissions thru the entire 
          ! boundary layer (if PBL top is higher than level 2)
          !==============================================================
-         IF ( NTOP > 2 ) THEN
-
-            ! Loop thru boundary layer
-            DO L = 1, NTOP
+         ! Add option for non-local PBL (Lin, 03/31/09)
+         IF (.NOT. LNLPBL) THEN
+            IF ( NTOP > 2 ) THEN
+   
+               ! Loop thru boundary layer
+               DO L = 1, NTOP
                  
-               ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               FEMIS  = GET_FRAC_OF_PBL( I, J, L )
-                 
-               ! Fraction of total SO4 in layer L
-               SO4(L) = FEMIS * TSO4
+                  ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+                  FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+                  
+                  ! Fraction of total SO4 in layer L
+                  SO4(L) = FEMIS * TSO4
 
-            ENDDO
+               ENDDO
 
-         !==============================================================
-         ! If PBL height is low and lower or similar to the second 
-         ! model layer then surface emission is emitted to the first
-         ! model layer and the stack emission goes to the second model
-         ! layer.  Also add biofuel SO4 into the surface layer.
-         !==============================================================
-         ELSE
+            !==============================================================
+            ! If PBL height is low and lower or similar to the second 
+            ! model layer then surface emission is emitted to the first
+            ! model layer and the stack emission goes to the second model
+            ! layer.  Also add biofuel SO4 into the surface layer.
+            !==============================================================
+            ELSE
 
-            SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
-            SO4(2) = SO4an(I,J,2) 
+               SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
+               SO4(2) = SO4an(I,J,2) 
             
-         ENDIF 
+            ENDIF 
+
+         ELSE
+         
+            SO4(1) = TSO4
+
+         ENDIF
 
          IF ( ABS( SUM( SO4 ) - TSO4 ) > 1.D-5 ) THEN
 !$OMP CRITICAL
@@ -4821,7 +4893,12 @@
          ! Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
          !=============================================================
          DO L = 1, LLPAR
-            TC(I,J,L) = TC(I,J,L) + ( SO4(L) * DTSRCE )
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF (.NOT. LNLPBL) THEN
+               TC(I,J,L) = TC(I,J,L) + ( SO4(L) * DTSRCE )
+            ELSE
+               emis_save(I,J,IDTSO4) = SO4(1) * DTSRCE
+            ENDIF
          ENDDO
 
          !==============================================================
@@ -5039,11 +5116,17 @@
 
             ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
             FEMIS     = GET_FRAC_OF_PBL( I, J, L )
+            ! Add option for non-local PBL (Lin, 03/31/09)
+	    IF (LNLPBL) FEMIS = 0.D0
 
             ! Add NH3 emissions into tracer array [kg NH3/timestep]
             TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
 
          ENDDO
+
+         ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
+         ! (Lin, 06/09/08) 
+         IF (LNLPBL) emis_save(I,J,IDTNH3) = TNH3 * DTSRCE
 
          !============================================================
          ! ND13 diagnostics: NH3 emissions [kg NH3/box/timestep]

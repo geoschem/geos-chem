@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.61 2009/05/15 18:15:53 ccarouge Exp $
+! $Id: diag3.f,v 1.62 2009/06/01 19:58:14 ccarouge Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -98,6 +98,9 @@
 !  (80) Add AD07_SOAGM for dicarbonyl SOA formation (tmf, 3/6/09)
 !  (81) Add output in AD22 for dicarbonyl photolysis J values (tmf, 3/6/09)
 !  (82) Add output in AD46 for biogenic C2H4 emissions (tmf, 3/6/09)
+!  (83) Modify ND17, ND18, ND37, ND38, ND44 to output the tracers selected 
+!        by the user. (ccc, 5/29/09)
+!  (84) Add EFLUX output information for ND67. (lin, ccc, 5/29/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -3180,6 +3183,7 @@
 !  (5 ) Added TSKIN, PARDF, PARDR, GWET for GEOS-4 (bmy, 6/23/03)
 !  (6 ) Fix SCALEX for ALBEDO: use I6 for GEOS-3 only, and A3 for other
 !     models (phs, 9/3/08)
+!  (7 ) add EFLUX for output. (lin, ccc 5/29/09)
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
@@ -3256,6 +3260,10 @@
                CASE ( 22 ) 
                   SCALEX = SCALE_A3
                   UNIT   = 'unitless'
+               CASE ( 23 )
+               ! add EFLUX ( Lin, 05/23/08) 
+                  SCALEX = SCALE_A3
+                  UNIT   = 'W/m2'
                CASE DEFAULT
                   CYCLE
             END SELECT

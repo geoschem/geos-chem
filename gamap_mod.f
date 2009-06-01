@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.32 2009/05/06 19:17:09 ccarouge Exp $
+! $Id: gamap_mod.f,v 1.33 2009/06/01 19:58:14 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -85,6 +85,7 @@
 !  (16) Added ND52 diagnostic for gamma HO2 (jaegle 02/26/09)
 !  (17) Add gamap info for dicarbonyl simulation (tmf, 3/10/09)
 !  (18) Add C2H4 in ND46 (ccc, 3/10/09)
+!  (19) Add EFLUX to ND67 (lin, ccc, 5/29/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1276,6 +1277,7 @@
 !        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
 !        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
 !  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
+!  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3080,7 +3082,7 @@
       IF ( ND67 > 0 .or. DO_TIMESERIES ) THEN 
 
          ! Number of tracers
-         NTRAC(67) = 22
+         NTRAC(67) = 23 ! (Lin, 03/31/09)
 
          ! Loop over tracers
          DO T = 1, NTRAC(67)
@@ -3157,6 +3159,10 @@
                CASE( 22 )
                   NAME(T,67) = 'GWET'
                   UNIT(T,67) = 'unitless'
+               CASE( 23 )
+                  ! Add EFLUX (Lin, 05/16/08)
+                  NAME(T,67) = 'EFLUX'
+                  UNIT(T,67) = 'W/m2'
                CASE DEFAULT
                   ! Nothing
             END SELECT

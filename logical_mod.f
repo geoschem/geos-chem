@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.18 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: logical_mod.f,v 1.19 2009/06/01 19:58:14 ccarouge Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -108,6 +108,7 @@
 !  (19) Added LSVCSPEC (dkh, 02/12/09) 
 !  (20) Added LMEGANMONO (ccc, tmf, 3/2/09)
 !  (21) Added LDICARB (ccc, tmf, 3/10/09)
+!  (22) Add LNLPBL, LARPBLH and LDEPBCK for non-local PBL scheme (lin, 5/29/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -203,6 +204,9 @@
 
       ! PBL mixing
       LOGICAL :: LTURB
+      LOGICAL :: LNLPBL
+      LOGICAL :: LARPBLH ! --> pblh_ar in vdiff_mod.f
+      LOGICAL :: LDEPBCK ! --> drydep_back_cons in vdiff_mod.f
 
       ! Restart file
       LOGICAL :: LSVGLB

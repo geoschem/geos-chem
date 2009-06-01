@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.16 2008/12/15 15:55:15 bmy Exp $
+! $Id: setemis.f,v 1.17 2009/06/01 19:58:13 ccarouge Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -92,7 +92,8 @@
 !        handled elsewhere.  (bdf, phs, bmy, 9/27/06)
 !  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
 !        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
-!  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08) 
+!  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
+!  (30) Limit emissions into the surface level only (lin, 5/29/09) 
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -109,6 +110,7 @@
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
       USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
+      USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
 
@@ -131,6 +133,13 @@
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
+
+      ! some ajdustments for non-local PBL (Lin, 03/31/09)
+      call flush(6)
+      IF (NCS == 0) THEN
+        REMIS(:,:)=0.
+        RETURN
+      ENDIF
 
       ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated
       IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
@@ -206,6 +215,9 @@
             TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
             IF ( TOP == 0 ) TOP = 1
 
+            ! Add option for non-local PBL (Lin, 03/31/09)
+            IF (LNLPBL) TOP = 1
+
             ! Pressure thickness of entire boundary layer [hPa]
             TOTPRES = GET_PEDGE(I,J,1) - GET_PEDGE(I,J,TOP+1)
 
@@ -232,6 +244,9 @@
 
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
 
                      ! Of the total anthro NOx, the fraction DELTPRES/TOTPRES
                      ! goes into level L, since that is the fraction of the
@@ -260,6 +275,9 @@
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
                      
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
+
                      ! Soil NOx is in [molec/cm3/s], so we need to multiply
                      ! by VOLUME(JLOP(I,J,1)) to convert it to [molec/box/s],
                      ! VOLUME(JLOP(I,J,1)) is the volume in cm3 of the surface
@@ -347,6 +365,9 @@
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
+
                      ! Of the total tracer, the fraction DELTPRES/TOTPRES
                      ! goes into level L, since that is the fraction of the
                      ! boundary layer occupied by level L.  Also divide the
@@ -377,6 +398,9 @@
 
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
  
                      ! Grid box area [cm2]
                      A_CM2    = GET_AREA_CM2( IYSAVE(JLOOP) )
@@ -416,6 +440,9 @@
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
 
+                     ! Add option for non-local PBL (Lin, 03/31/09)
+                     IF (LNLPBL) DELTPRES = TOTPRES
+
                      ! Biofuel burning is in [molec/cm3/s], so we need to 
                      ! multiply by VOLUME(JLOP(I,J,1)) to convert it to 
                      ! [molec/box/s], VOLUME(JLOP(I,J,1)) is the volume in cm3 
@@ -449,6 +476,9 @@
 
                   ! Thickness of layer L [mb]
                   DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
+
+                  ! Add option for non-local PBL (Lin, 03/31/09)
+                  IF (LNLPBL) DELTPRES = TOTPRES
 
                   ! Save boundary layer fraction into AD12
                   AD12(I,J,L) = AD12(I,J,L) + ( DELTPRES / TOTPRES )

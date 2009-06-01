@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.23 2009/01/29 15:35:50 bmy Exp $
+! $Id: a3_read_mod.f,v 1.24 2009/06/01 19:58:15 ccarouge Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -459,6 +459,8 @@
 !  (5 ) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !  (6 ) Now read SNOW and GETWETTOP for GCAP met fields (swu, phs, 11/15/06)
 !  (7 ) Now read extra fields for GEOS-5 (bmy, 1/17/07)
+!  (8 ) Now read EFLUX field for non-local PBL scheme (only GEOS5).
+!        (ccc, 5/14/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -467,7 +469,7 @@
       USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
       USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
       USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0
+      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -542,7 +544,8 @@
      &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
      &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
      &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
-     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0 )
+     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
+     &              EFLUX=EFLUX )
 
 #elif defined( GCAP )
 
@@ -594,6 +597,7 @@
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (4 ) Increase # of fields for GCAP from 12 to 16 (swu, bmy, 10/4/06)
 !  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
+!  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
 !******************************************************************************
 !
 #     include "CMN_SIZE"   ! Size parameters
@@ -627,8 +631,8 @@
 
 #elif defined( GEOS_5 )
 
-      ! GEOS-5 has 25 A-3 fields
-      N_A3 = 25
+      ! GEOS-5 has 26 A-3 fields
+      N_A3 = 26
 
 #elif defined( GCAP )
       
@@ -688,7 +692,8 @@
      &                    PARDF,   PARDR,  PBL,    PREACC,   PRECON,  
      &                    PRECSNO, RADLWG, RADSWG, RADSWT,   SNICE,    
      &                    SNODP,   SNOMAS, SNOW,   TROPP,    TS,       
-     &                    TSKIN,   U10M,   USTAR,  V10M,     Z0 )
+     &                    TSKIN,   U10M,   USTAR,  V10M,     Z0,
+     &                    EFLUX )
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
@@ -731,6 +736,7 @@
 !  (28) U10M     : (2-D) GMAO U-wind at 10 m                    [m/s]
 !  (29) V10M     : (2-D) GMAO V-wind at 10 m                    [m/s]
 !  (30) Z0       : (2-D) GMAO roughness height                  [m] 
+!  (31) EFLUX    : (2-D) GMAO latent heat flux                  [W/m2]
 !
 !  NOTES:
 !  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
@@ -747,6 +753,7 @@
 !        GEOS-5 fields.  Convert GEOS-5 PRECTOT and PRECCON fields from
 !        [kg/m2/s] to [mm/day] for backwards compatibility. (bmy, 1/17/07)
 !  (8 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -790,6 +797,7 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: USTAR(IIPAR,JJPAR) 
       REAL*8,  INTENT(OUT), OPTIONAL :: V10M(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: Z0(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX(IIPAR,JJPAR)
 
       ! Local Variables
       INTEGER                        :: I, IJLOOP, IOS, J, N_A3, NFOUND 
@@ -1203,12 +1211,25 @@
                   NFOUND = NFOUND + 1
                ENDIF
   
+            !--------------------------------            
+            ! Get EFLUX (Lin, 03/31/09)
+            ! EFLUX: Latent heat flux
+            !--------------------------------            
+            CASE ( 'EFLUX' )
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( EFLUX ) ) CALL TRANSFER_2D( Q2, EFLUX )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
             !--------------------------------
             ! TPW: just skip over this
             !--------------------------------
             CASE ( 'TPW' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -1219,7 +1240,7 @@
             !--------------------------------
             CASE ( 'CLDTMP' )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:34' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -1230,10 +1251,10 @@
             ! Skip over for now, add later
             ! (bmy, 10/7/08)
             !--------------------------------
-            CASE ( 'EFLUX',   'FRLAKE',  'FRLAND', 'FRLANDIC',
+            CASE ( 'FRLAKE',  'FRLAND', 'FRLANDIC',
      &             'FROCEAN', 'PRECANV', 'LWTUP',  'QV2M'  )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1
@@ -1309,6 +1330,7 @@
       ! (20) PARDF  : Photosyn active diffuse radiation  [W/m2]
       ! (21) PARDR  : Photosyn active direct  radiation  [W/m2]
       ! (22) GWET   : Top soil wetness                   [unitless]
+      ! (23) EFLUX  : latent heat flux from surface      [W/m2]
       !=================================================================
       IF ( ND67 > 0 ) THEN
          IF ( PRESENT( HFLUX   ) ) AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX
@@ -1329,6 +1351,7 @@
          IF ( PRESENT( PARDF   ) ) AD67(:,:,20) = AD67(:,:,20) + PARDF
          IF ( PRESENT( PARDR   ) ) AD67(:,:,21) = AD67(:,:,21) + PARDR
          IF ( PRESENT( GWETTOP ) ) AD67(:,:,22) = AD67(:,:,22) + GWETTOP
+         IF ( PRESENT( EFLUX   ) ) AD67(:,:,23) = AD67(:,:,23) + EFLUX
       ENDIF
          
       ! Increment KDA3FLDS -- this is the # of times READ_A3 is called

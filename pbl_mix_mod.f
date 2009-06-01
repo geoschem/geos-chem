@@ -1,4 +1,4 @@
-! $Id: pbl_mix_mod.f,v 1.8 2008/11/05 19:45:44 bmy Exp $
+! $Id: pbl_mix_mod.f,v 1.9 2009/06/01 19:58:14 ccarouge Exp $
       MODULE PBL_MIX_MOD
 !
 !******************************************************************************
@@ -44,6 +44,8 @@
 !  (1 ) Now modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (2 ) Remove reference to "CMN" and XTRA2. (bmy, 8/30/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (4 ) Add INIT_PBL_MIX and COMPUTE_PBL_HEIGHT as PUBLIC routines 
+!        (lin, 5/29/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -66,6 +68,7 @@
       PUBLIC :: GET_PBL_TOP_L
       PUBLIC :: GET_PBL_TOP_m
       PUBLIC :: GET_PBL_THICK
+      PUBLIC :: INIT_PBL_MIX, COMPUTE_PBL_HEIGHT ! (Lin, 03/31/09)
 
       !=================================================================
       ! MODULE VARIABLES

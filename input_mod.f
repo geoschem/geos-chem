@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.56 2009/05/06 15:33:25 phs Exp $
+! $Id: input_mod.f,v 1.57 2009/06/01 19:58:14 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -2037,11 +2037,13 @@
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Add option for new non-local PBL scheme. (lin, ccc 5/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
+      USE LOGICAL_MOD, ONLY : LNLPBL ! (Lin, 03/31/09)
 
       ! Local variables
       INTEGER              :: N
@@ -2065,12 +2067,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:2' )
       READ( SUBSTRS(1:N), * ) LTURB
 
-      ! Convection timestep
+      ! Turn on non-local PBL scheme (Lin, 03/31/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:3' )
+      READ( SUBSTRS(1:N), * ) LNLPBL
+
+      ! Convection timestep
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:4' )
       READ( SUBSTRS(1:N), * ) TS_CONV
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
       !=================================================================
       ! Print to screen
@@ -2079,6 +2085,7 @@
       WRITE( 6, '(  a)' ) '----------------'
       WRITE( 6, 100     ) 'Turn on cloud convection?   : ', LCONV
       WRITE( 6, 100     ) 'Turn on PBL mixing?         : ', LTURB
+      WRITE( 6, 100     ) 'Turn on non-local PBL?      : ', LNLPBL
       WRITE( 6, 110     ) 'Convection timestep [min]   : ', TS_CONV
 
       ! FORMAT statements

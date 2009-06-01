@@ -1,4 +1,4 @@
-! $Id: convection_mod.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: convection_mod.f,v 1.20 2009/06/01 19:58:14 ccarouge Exp $
       MODULE CONVECTION_MOD
 !
 !******************************************************************************
@@ -84,9 +84,6 @@
       USE TRACER_MOD, ONLY : N_TRACERS, TCVV,  STT
 
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! Local variables
-      INTEGER :: I, J, L, N
 
 #if   defined( GCAP ) 
 

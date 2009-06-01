@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.26 2009/05/20 20:04:39 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.27 2009/06/01 19:58:14 ccarouge Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
