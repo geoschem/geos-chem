@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.37 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: carbon_mod.f,v 1.38 2009/06/01 20:29:27 phs Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -8,12 +8,22 @@
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
+!      
 !  For secondary organic aerosol (SOA) simulation orginal code developed
 !  by Chung and Seinfeld [2002] and Hong Liao from John Seinfeld's group 
 !  at Caltech was taken and further modified accordingly (rjp, bmy, 7/15/04)
 !  This simulation introduces additional following species:
 !     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
 !
+!  References for BC/OC emissions:
+! --------------------------------
+!   Bond, T.C. et al.: Historical emissions of black and organic carbon
+! aerosol fromenergy-related combustion, 1850-2000, Global Biogeochem. Cycles,
+! 21 GB2018, doi: 10.1029/2006GB002840, 2007.
+!
+!      Base Year is 2000. More at http://www.hiwater.org
+!
+!        
 !  Module Variables:
 !  ============================================================================
 !  (1 ) ANTH_BLKC        (REAL*8 ) : BC anthropogenic emissions       [kg C ]
@@ -60,8 +70,7 @@
 !  (42) TCOSZ            (REAL*8 ) : Summing array for SUNCOS
 !  (43) TERP_ORGC        (REAL*8 ) : Lumped terpene emissions         [kg C ]
 !  (44) SMALLNUM         (REAL*8 ) : A small positive number
-!  (45) USE_MONTHLY_ANTH (LOGICAL) : Toggles monthly or annual anthro emissions
-!  (46) USE_MONTHLY_BIOB (LOGICAL) : Toggles monthly or annual biomass emiss.
+!  (45) USE_BOND_BIOBURN (LOGICAL) : Flag to use annual biomass emiss.
 !
 !  Module Routines:
 !  ============================================================================
@@ -152,7 +161,11 @@
 !  (19) Now add future scaling to BIOMASS_CARB_GEOS (hotp, swu, 2/19/09)
 !  (20) Added SOA production from dicarbonyls (tmf, 3/2/09)
 !  (21) Bugfix: cleanup ORVC_TERP and ORVC_SESQ (tmf, 3/2/09)
-!  (22) Add option for non-local PBL scheme (lin, 06/09/08)
+!  (22) Replace USE_MONTHLY_BIOB with USE_BOND_BIOBURN, since this hardwired
+!        flag is a switc b/w annual Bond biomass burning emissions, and default
+!        GC source, which can be monthly/8 days/3hr.
+!        Implement changes for reading new Bond files (eml, phs, 5/18/09)
+!  (23) Add option for non-local PBL scheme (lin, 06/09/08)
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -178,7 +191,7 @@
       !=================================================================
 
       ! Scalars
-      LOGICAL             :: USE_MONTHLY_BIOB = .TRUE.
+      LOGICAL             :: USE_BOND_BIOBURN = .FALSE.
       INTEGER             :: DRYBCPI, DRYOCPI, DRYBCPO, DRYOCPO
       INTEGER             :: DRYALPH, DRYLIMO, DRYALCO
       INTEGER             :: DRYSOG1, DRYSOG2, DRYSOG3, DRYSOG4
@@ -3133,13 +3146,14 @@ c
 !        (bmy, 9/25/06)
 !  (6 ) Now check that GFED2 has been updated if we do not use the annual
 !        Bond Biomass emission (phs, yc, 12/18/08)
+!  (7 ) Now reads monthly (eml, phs, 5/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,          ONLY : AD07
       USE DAO_MOD,           ONLY : PBL
       USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,       ONLY : LSOA,      LPRT
+      USE LOGICAL_MOD,       ONLY : LSOA,      LPRT,  LCOOKE
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
@@ -3173,12 +3187,12 @@ c
 
          ! Echo info about ANTHRO emissionls
          WRITE( 6, 110 )
-         WRITE( 6, 111 )
+         IF ( LCOOKE ) WRITE( 6, 111 )
          WRITE( 6, 112 )
          WRITE( 6, 113 )
-
+         
          ! Monthly or annual BIOMASS emissions?
-         IF ( USE_MONTHLY_BIOB ) THEN
+         IF ( USE_BOND_BIOBURN ) THEN
             WRITE( 6, 120 )
          ELSE
             WRITE( 6, 130 )
@@ -3189,23 +3203,25 @@ c
 
          ! FORMAT strings
  100     FORMAT( 'C A R B O N   A E R O S O L   E M I S S I O N S'    )
- 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2004]'  )
- 111     FORMAT( '   overwritten with North American emissions from'  )
- 112     FORMAT( '   Cooke et al [1999] having imposed seasonality'   )
- 113     FORMAT( '   following Park et al [2003]'                     )
- 120     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
- 130     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
-
-
+ 110     FORMAT( 'w/ ANTHROPOGENIC emissions from Bond et al [2007]'  )
+ 111     FORMAT( 'w/ North American emissions from Cooke et al [1999]')
+ 112     FORMAT( 'w/ North American emissions having imposed'         )
+ 113     FORMAT( '   seasonality following Park et al [2003]'         )
+ 120     FORMAT( 'w/ BIOMASS emissions from Bond et al [2004]'        )
+ 130     FORMAT( 'w/ BIOMASS emissions from GEOS-CHEM inventory'      )
+        
          ! Initialize arrays
          CALL INIT_CARBON       
-         
-         ! Read annual mean anthro emissions from T. Bond [2004]
-         CALL ANTHRO_CARB_TBOND
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
 
+!----------------------
+! prior to 5/18/09 - now reads monthly data below (phs)         
+!         ! Read annual mean anthro emissions from T. Bond [2004]
+!         CALL ANTHRO_CARB_TBOND
+!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+!---------------------
+         
          ! Read annual mean biomass emissions if necessary
-         IF ( .not. USE_MONTHLY_BIOB ) THEN
+         IF ( USE_BOND_BIOBURN ) THEN
             CALL BIOMASS_CARB_TBOND
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_TBOND' )
          ENDIF
@@ -3229,16 +3245,23 @@ c
          ! Current month
          MONTH = GET_MONTH()
 
+         ! Read in monthly emissions from T Bond [2007], with imposed
+         ! seasonality over North America by R. Park [2003]
+         CALL ANTHRO_CARB_TBOND( MONTH )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
+
+         IF ( LCOOKE ) THEN
          ! Overwrite the T. Bond [2004] emissions over North America
          ! with monthly mean anthro emissions from Cooke et al [1999] 
          ! having imposed seasonality by R. Park [2003]
-         CALL ANTHRO_CARB_COOKE( MONTH )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
+            CALL ANTHRO_CARB_COOKE( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
+         ENDIF
 
 !-----------------------------------
 ! Prior to 12/18/08
 !         ! Read monthly mean biomass emissions
-!         IF ( USE_MONTHLY_BIOB ) THEN
+!         IF ( .not. USE_BOND_BIOBURN ) THEN
 !            CALL BIOMASS_CARB_GEOS
 !            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_COOKE' )
 !         ENDIF
@@ -3249,7 +3272,7 @@ c
       !-----------------------------------
       ! Read monthly/8-day/3-hr mean biomass emissions
       !-----------------------------------
-      IF ( USE_MONTHLY_BIOB ) THEN
+      IF ( .not. USE_BOND_BIOBURN ) THEN
 
          IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS
@@ -3631,17 +3654,30 @@ c
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE ANTHRO_CARB_TBOND
+      SUBROUTINE ANTHRO_CARB_TBOND( THISMONTH )
 !
 !******************************************************************************
-!  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
-!  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
-!  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!  fractions. (rjp, bmy, 4/2/04, 5/30/06)
+!  Subroutine ANTHRO_CARB_TBOND reads monthly mean anthropogenic and biofuel
+!  emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC CARBON.
+!  It also separates these into HYDROPHILIC and HYDROPHOBIC fractions. 
+!  (eml 4/17/09, rjp, bmy, 4/2/04, 5/30/06)
 !
-!  Emissions data comes from the Bond et al [2004] inventory and has units
-!  of [kg C/yr].  This will be converted to [kg C/timestep] below.
+!  Emissions data comes from Bond et al [GBC, 2007] inventory and has units
+!  of [kg C/yr], which is converted to [kg C/timestep] below. Seasonality is
+!  applied over the US as in Park [2003].
 !
+!-----------------------------------
+!     Prior to 12/18/08
+!     !  OLD:
+!     !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
+!     !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
+!     !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
+!     !  fractions. (rjp, bmy, 4/2/04, 5/30/06)
+!     !
+!     !  Emissions data comes from the Bond et al [2004] inventory and has units
+!     !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
+!     !
+!----------------------------------
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
@@ -3650,6 +3686,7 @@ c
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (4 ) Now compute future emissions of BC,OC if necessary. (swu, bmy, 5/30/06)
+!  (5 ) Now reads in monthly data from Bond et al [2007] (eml, 4/17/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3666,10 +3703,14 @@ c
 
 #     include "CMN_SIZE"             ! Size parameters
 
+      ! Arguments
+      INTEGER, INTENT(IN)           :: THISMONTH
+
       ! Local variables
       INTEGER                       :: I, J
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
+      REAL*8                        :: STEPS_PER_MON
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
 
@@ -3683,22 +3724,32 @@ c
       ! ANTHRO_CARB_TBOND begins here!
       !=================================================================
 
-      ! Number of emission timesteps per year
-      STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
+!-----------------------------------
+!     Prior to 12/18/08
+!      ! Number of emission timesteps per year
+!      STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
+!
+!      ! Get TAU0 value to index the punch file
+!      XTAU         = GET_TAU0( 1, 1, 2001 )
+!----------------------------------
+      
+      ! Number of emission timesteps per month
+      STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
 
       ! Get TAU0 value to index the punch file
-      XTAU         = GET_TAU0( 1, 1, 2001 )
+      XTAU          = GET_TAU0( THISMONTH, 1, 2000 )   
 
+      
       !=================================================================
       ! Read BLACK CARBON (aka ELEMENTAL CARBON) emission from 
-      ! anthropogenic sources as tracer #34 in [kg C/year].  
+      ! anthropogenic sources as tracer #34 in [kg C/month].  
       ! Then convert to [kg C/timestep] and store in ANTH_BLKC.
       !=================================================================
-
       ! Filename for carbon aerosol from fossil fuel use
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200411/BCOC_TBond_fossil.'       // 
+     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+      
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -3719,11 +3770,17 @@ c
       DO I = 1, IIPAR
          
          ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_YR
+         ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
          
          ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
-         ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
-        
+!-----------------------------------
+! Prior to 12/18/08
+!        ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
+         ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+
          ! Compute future emissions of BLACK CARBON (if necessary)
          IF ( LFUTURE ) THEN
             FUT_SCL          = GET_FUTURE_SCALE_BCff( I, J )
@@ -3736,7 +3793,7 @@ c
 
       !=================================================================
       ! Read ORGANIC CARBON from anthropogenic sources as tracer #35
-      ! in [kg C/year].  Then Convert to [kg C/timestep] and store in 
+      ! in [kg C/month].  Then Convert to [kg C/timestep] and store in 
       ! ANTH_ORGC.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
@@ -3753,10 +3810,16 @@ c
       DO I = 1, IIPAR
 
          ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
-         ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_YR
+         ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_MON
 
          ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
-         ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
+         ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
 
          ! Compute future emissions of ORGANIC CARBON (if necessary)
          IF ( LFUTURE ) THEN
@@ -3773,10 +3836,9 @@ c
       ! combustion as tracer #34 in [kg C/year].  Then convert to 
       ! [kg C/timestep] and store in BIOF_BLKC.
       !=================================================================
-
       ! Filename
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200411/BCOC_TBond_biofuel.'      // 
+     &           'carbon_200905/BCOC_TBond_biofuel.2000.' // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
 
@@ -3798,10 +3860,17 @@ c
       DO I = 1, IIPAR
 
          ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
-         BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_YR
-         
+!-----------------------------------
+! Prior to 12/18/08
+!        BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_YR
+         BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_MON
+
          ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
-         BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
+         BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
+
 
          ! Compute future emissions of BLACK CARBON (if necessary)
          IF ( LFUTURE ) THEN
@@ -3830,12 +3899,18 @@ c
 !$OMP+PRIVATE( I, J )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         
+
          ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_YR
+         BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_MON
 
          ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
-         BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
+!-----------------------------------
+! Prior to 12/18/08
+!        BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
+         BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
 
          ! Compute future emissions of BLACK CARBON (if necessary)
          IF ( LFUTURE ) THEN
@@ -5538,7 +5613,6 @@ c
       ! Return to calling program 
       END SUBROUTINE SOAM_CLOUD
 
-! <<<<<
 !------------------------------------------------------------------------------
 
 
@@ -5808,9 +5882,9 @@ c
 
       !=================================================================
       ! These only have to be allocated if we are
-      ! reading in monthly mean biomass burning
+      ! reading in monthly/8-day/3-hr mean biomass burning
       !=================================================================
-      IF ( USE_MONTHLY_BIOB ) THEN
+      IF ( .not. USE_BOND_BIOBURN ) THEN
 
          ALLOCATE( EF_BLKC( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EF_BLKC' )

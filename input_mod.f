@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.57 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: input_mod.f,v 1.58 2009/06/01 20:29:27 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -132,6 +132,7 @@
 !  (25) Minor bug fix in READ_DIAGNOSTIC_MENU (tmf, 2/10/09)
 !  (26) Add LMEGANMONO switch in emission menu (ccc, 3/2/09)
 !  (27) Add LDICARB switch in aerosol menu (ccc, tmf, 3/10/09)
+!  (28) Now read LCOOKE in aerosol menu (phs, 5/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1317,7 +1318,8 @@
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LAIRNOX,    LANTHRO,   LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX   
+      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX
+      USE LOGICAL_MOD, ONLY : LCOOKE
       USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
       USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
@@ -1502,12 +1504,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
-      ! Use AVHRR-derived LAI fields?
+      ! Use COOKE over North AMerica for BC/OC?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      READ( SUBSTRS(1:N), * ) LCOOKE
+
+      ! Use AVHRR-derived LAI fields?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
 
       !=================================================================
       ! Error check logical flags
@@ -1730,6 +1736,7 @@
       WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
       WRITE( 6, 100     ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
       WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
+      WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
 
       ! FORMAT statements
@@ -1829,10 +1836,8 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM, LEMBED
-      ! >> (dkh, 02/12/09) 
-      USE LOGICAL_MOD, ONLY : LSVCSPEC
-      ! << 
+      USE LOGICAL_MOD, ONLY : LCHEM,    LEMBED
+      USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,    ONLY : SET_CT_CHEM
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -1868,15 +1873,17 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
 
-      ! >> (dkh, 02/12/09) 
       ! Read and save CSPEC ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
+! For future use (phs)      
+!      ! Use KPP solver ?
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+!      READ( SUBSTRS(1:N), * ) LKPP
+
       ! Separator line
-      !CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
-      ! << 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
 
       !=================================================================
       ! Print to screen
@@ -1888,9 +1895,9 @@
       WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
       WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
       WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
-      ! >> (dkh, 02/12/09) 
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
-      ! << 
+!     For future use (phs)      
+!     WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
      
       
       ! FORMAT statements

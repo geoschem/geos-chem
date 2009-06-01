@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.19 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: logical_mod.f,v 1.20 2009/06/01 20:29:27 phs Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -81,6 +81,8 @@
 !
 !  (68) LDICARB   (LOGICAL) : ON/OFF switch for SOG condensation 
 !                             onto OC aerosols
+!  (69) LCOOKE    (LOGICAL) : ON/OFF switch for overwritting OC/BC emissions
+!                             from BOND with COOKE data over North America
 !
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
@@ -109,6 +111,8 @@
 !  (20) Added LMEGANMONO (ccc, tmf, 3/2/09)
 !  (21) Added LDICARB (ccc, tmf, 3/10/09)
 !  (22) Add LNLPBL, LARPBLH and LDEPBCK for non-local PBL scheme (lin, 5/29/09)
+!  (23) Added LCOOKE (phs, 5/18/09)
+!  (24) Added LKPP (phs, 5/28/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -121,6 +125,7 @@
       LOGICAL :: LATEQ
       LOGICAL :: LCARB
       LOGICAL :: LCRYST
+      LOGICAL :: LCOOKE
       LOGICAL :: LDEAD
       LOGICAL :: LDUST
       LOGICAL :: LSULF
@@ -131,6 +136,7 @@
       ! Chemistry
       LOGICAL :: LCHEM  
       LOGICAL :: LEMBED
+      LOGICAL :: LKPP
 
       ! Cloud convection
       LOGICAL :: LCONV
