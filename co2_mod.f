@@ -1,4 +1,4 @@
-! $Id: co2_mod.f,v 1.5 2009/06/08 14:09:32 ccarouge Exp $
+! $Id: co2_mod.f,v 1.6 2009/06/08 16:04:18 ccarouge Exp $
       MODULE CO2_MOD
 !
 !******************************************************************************
@@ -659,7 +659,7 @@
       INTEGER, INTENT(IN)    :: MONTH, DAY, DOY, YEAR
 
       ! Local variables
-      INTEGER                :: I, J
+      INTEGER                :: I, J, DAY_LOC
       REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=3  )     :: SDOY
@@ -671,12 +671,13 @@
 
       ! Warning: DOY may be different depending on leap-year or not.
       ! (ccc, 6/4/09)
-      IF ( .NOT.ITS_A_LEAP_YEAR( YEAR ) .AND. DOY > 59 ) THEN
-         DOY = DOY + 1
+      DAY_LOC = DOY
+      IF ( .NOT.ITS_A_LEAPYEAR( YEAR ) .AND. DAY_LOC > 59 ) THEN
+         DAY_LOC = DAY_LOC + 1
       ENDIF
 
       ! Make a string from DOY
-      WRITE( SDOY, '(i3.3)' ) DOY 
+      WRITE( SDOY, '(i3.3)' ) DAY_LOC 
 
       ! Name of file with Balanced Bio CO2 data
       FILENAME = TRIM( DATA_DIR )                      //
