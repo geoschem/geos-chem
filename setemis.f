@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.17 2009/06/01 19:58:13 ccarouge Exp $
+! $Id: setemis.f,v 1.18 2009/06/08 14:09:32 ccarouge Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -472,15 +472,12 @@
             ! occupied by level L into the AD12 diagnostic array.
             !===========================================================
             IF ( N == 1 .and. ND12 > 0 ) THEN
-               DO L = 1, MIN( TOP, LD12 )
+               DO L = 1, MIN( FLOOR( GET_PBL_TOP_L( I, J ) ), LD12 )
 
                   ! Thickness of layer L [mb]
                   DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
-
-                  ! Add option for non-local PBL (Lin, 03/31/09)
-                  IF (LNLPBL) DELTPRES = TOTPRES
-
-                  ! Save boundary layer fraction into AD12
+ 
+                 ! Save boundary layer fraction into AD12
                   AD12(I,J,L) = AD12(I,J,L) + ( DELTPRES / TOTPRES )
                ENDDO
             ENDIF

@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.17 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: calcrate.f,v 1.18 2009/06/08 14:09:32 ccarouge Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -815,8 +815,10 @@ C  dependence of HO2/NO3 + HO2 on water vapor
                ENDDO
                IF ( ND52 > 0 ) THEN
                   ! Archive gamma HO2 in AD52
-                   AD52(IX,IY,IZ) =
-     &                 AD52(IX,IY,IZ) + DUMMY3(KLOOP)
+                  IF ( IZ <= LD52 ) THEN
+                     AD52(IX,IY,IZ) =
+     &                    AD52(IX,IY,IZ) + DUMMY3(KLOOP)
+                  ENDIF
                ENDIF
             ENDDO
          ELSE

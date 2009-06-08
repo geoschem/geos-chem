@@ -1,4 +1,4 @@
-! $Id: co2_mod.f,v 1.4 2006/11/07 19:01:56 bmy Exp $
+! $Id: co2_mod.f,v 1.5 2009/06/08 14:09:32 ccarouge Exp $
       MODULE CO2_MOD
 !
 !******************************************************************************
@@ -209,7 +209,7 @@
 
             ! ... otherwise use constant daily emissions of NEP for Bal Bio
             IF ( ITS_A_NEW_DAY() ) THEN
-               CALL READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
+               CALL READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY, YEAR ) 
             ENDIF
 
          ENDIF
@@ -617,7 +617,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY ) 
+      SUBROUTINE READ_BBIO_DAILYAVERAGE( MONTH, DAY, DOY, YEAR ) 
 !
 !******************************************************************************
 !  Subroutine READ_DAILY_BBIO_CO2 reads in daily values for balanced 
@@ -642,6 +642,8 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Modify DOY for non leap-year to correspond to DOY for leap-year (2000).
+!       (ccc, 6/4/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -649,11 +651,12 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
 
 #     include "CMN_SIZE"      ! Size parameters
 
       ! Arguments
-      INTEGER, INTENT(IN)    :: MONTH, DAY, DOY
+      INTEGER, INTENT(IN)    :: MONTH, DAY, DOY, YEAR
 
       ! Local variables
       INTEGER                :: I, J
@@ -665,6 +668,12 @@
       !=================================================================
       ! READ_BBIO_DAILYAVERAGE begins here!
       !=================================================================
+
+      ! Warning: DOY may be different depending on leap-year or not.
+      ! (ccc, 6/4/09)
+      IF ( .NOT.ITS_A_LEAP_YEAR( YEAR ) .AND. DOY > 59 ) THEN
+         DOY = DOY + 1
+      ENDIF
 
       ! Make a string from DOY
       WRITE( SDOY, '(i3.3)' ) DOY 

@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.58 2009/06/01 20:29:27 phs Exp $
+! $Id: input_mod.f,v 1.59 2009/06/08 14:09:32 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -2044,7 +2044,8 @@
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
 !  NOTES:
-!  (1 ) Add option for new non-local PBL scheme. (lin, ccc 5/13/09)
+!  (1 ) Add option for new non-local PBL scheme. And a check on GEOS-5, 
+!        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2084,6 +2085,17 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
+
+      ! The non-local PBL scheme is valid only with GEOS-5 !
+#if !defined(GEOS_5) 
+      IF ( LNLPBL ) THEN
+         WRITE(*,*) '================================================='
+         WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
+         WRITE(*,*) 'LNLPBL is automatically turned to false !'
+         WRITE(*,*) '================================================='
+         LNLPBL = .FALSE.
+      ENDIF
+#endif
 
       !=================================================================
       ! Print to screen
