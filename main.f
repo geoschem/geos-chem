@@ -1,5 +1,10 @@
-! $Id: main.f,v 1.59 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: main.f,v 1.60 2009/06/11 13:16:21 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.60  2009/06/11 13:16:21  bmy
+! Now print "use ifort -V for information" about IFORT compiler when
+! displaying the type of compiler used to build G-C at top of the log
+! file (bmy, 6/11/09)
+!
 ! Revision 1.59  2009/06/01 19:58:14  ccarouge
 ! commit non-local PBL (ccc, 6/1/09)
 !
@@ -42,90 +47,6 @@
 !
 ! Bringing in GEOS-5 modifications to the mainline GEOS-Chem std code
 ! (bmy, 11/16/07)
-!
-! Revision 1.49  2007/11/05 16:16:22  bmy
-! - Added H2/HD simulation
-! - Added code for cloud overlap in FAST-J (but use same option as before)
-! - Added 200hPa polar fix for variable tropopause
-! - Added updated lightning scheme (non-near-land)
-! - Fixed mass flux diagnostics in GEOS-3 TPCORE
-! - Removed GEMISNOX array in CMN_NOX to prevent common block errors
-!
-! Revision 1.48  2007/02/22 18:26:28  bmy
-! GEOS-Chem v7-04-11, includes the following modifications:
-! - Fixed near-land lightning; now scale 2x25, 4x5 to 6 Tg N/yr (ltm,bmy)
-! - Now allow ND49, ND50, ND51 to save transects of a single lon or lat (bmy)
-! - Add case for T > 293K to routine GET_LWC in "mercury_mod.f" (cdh,bmy)
-! - Bug fix: correct indices for embedded chemistry in "transport_mod.f" (phs)
-! - Bug fix: correct typo in SEASALT_CHEM routine in "sulfate_mod.f" (bmy)
-! - Now prevent seg fault errors when LBIOMASS=F (bmy)
-! - Now fixed minor bug that inverted TROPP1 and TROPP2 (phs)
-! - Bug fix: now define LLTROP_FIX for GCAP in CMN_SIZE (phs)
-! - a3_read_mod.f: added SNOW and GETWETTOP fields for GCAP (phs)
-! - main.f: remove duplicate call for unzip in GCAP case (phs)
-! - time_mod.f: fix leap year problem in get_time_ahead for GCAP (phs)
-! - extra fixes for the variable tropopause (phs)
-! - minor diagnostic updates (phs)
-! - now save SOA quantities GPROD & APROD to restart files (tmf, havala, bmy)
-! - Updated TOMS/SBUV O3 columns for FAST-J photolysis (symeon, bmy)
-! - Bug fix in regridding 1x1 mass quantities to 4x5 GEOS grid (tw,bmy)
-!
-! Revision 1.42  2006/10/17 17:51:14  bmy
-! GEOS-Chem v7-04-10, includes the following modifications:
-! - Includes variable tropopause with ND54 diagnostic
-! - Added GFED2 biomass emissions for SO2, NH3, BC, OC, CO2
-! - Rewrote default biomass emissions routines for clarity
-! - Updates for GCAP: future emissions, met-field reading, TOMS-O3
-! - Bug fix in planeflight_mod.f: set NCS variable correctly
-! - Bug fix in SOA_LUMP; other minor bug fixes
-!
-! GEOS-Chem v7-04-09, includes the following modifications:
-! - Updated CO for David Streets (2001 for China, 2000 elsewhere)
-! - Now reset negative SPHU to a very small positive #
-! - Remove use of TINY(1d0) to avoid NaN's on SUN platform
-! - Minor bug fixes and deleted obsolete code
-!
-! Revision 1.38  2006/08/14 17:58:10  bmy
-! GEOS-Chem v7-04-08, includes the following modifications:
-! - Now add David Streets' emissions for China & SE Asia
-! - Removed support for GEOS-1 and GEOS-STRAT met fields
-! - Removed support for LINUX_IFC and LINUX_EFC compilers
-!
-! Revision 1.37  2006/06/28 17:26:52  bmy
-! GEOS-Chem v7-04-06, includes the following modifications:
-! - Now add BRAVO emissions (NOx, CO, SO2) over N. Mexico
-! - Turn off HO2 uptake by aerosols in SMVGEAR mechanism
-! - Bug fix: GEOS-4 convection now conserves mixing ratio
-! - Other minor bug fixes & improvements
-!
-! Revision 1.36  2006/06/06 14:26:07  bmy
-! GEOS-Chem v7-04-05, includes the following modifications:
-! - Now gets ISOP that has reacted w/ OH from SMVGEAR (cf. D. Henze)
-! - Incorporated IPCC future emission scale factors (cf. S. Wu)
-! - Other minor bug fixes
-!
-! Revision 1.35  2006/05/26 17:45:24  bmy
-! GEOS-Chem v7-04-04, includes the following modifications:
-! - Now updated for SOA production from ISOP (cf D. Henze)
-! - Now archive SOA concentrations in [ug/m3] ("diag42_mod.f")
-! - Other minor bug fixes
-!
-! Revision 1.34  2006/05/15 17:52:52  bmy
-! GEOS-Chem v7-04-03, includes the following modifications:
-! - Added near-land formulation for lightning
-! - Now can use CTH, MFLUX, PRECON params for lightning
-!   (NOTE: new lightning is only applied for GEOS-4 for time being)
-! - Added ND56 diagnostic for lightning flash rates
-! - Fixed Feb 28 -> Mar 1 transition for GCAP (i.e. no leap years)
-! - Other minor bug fixes
-!
-! Revision 1.33  2006/03/24 20:22:53  bmy
-! GEOS-CHEM v7-04-01, includes the following modifications:
-! - Updates to new Hg simulation (eck, cdh, sas)
-! - Changed Reynold's # criterion for aerodyn smooth surfaces in drydep
-! - Standardized several bug fixes implemented in v7-03-06 patch
-! - Bug fix: Now call MAKE_RH from "main.f" to avoid problems in drydep
-! - Removed obsolete code
 !
       PROGRAM GEOS_CHEM
 ! 
@@ -1210,7 +1131,8 @@
 #elif defined( LINUX_PGI )
       WRITE( 6, '(a)' ) 'Created w/ LINUX/PGI compiler'
 #elif defined( LINUX_IFORT )
-      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT (64-bit) compiler'
+      WRITE( 6, '(a)' ) 'Created w/ LINUX/IFORT compiler'
+      WRITE( 6, '(a)' ) 'Use ifort -V to print version information'
 #elif defined( SGI_MIPS  )
       WRITE( 6, '(a)' ) 'Created w/ SGI MIPSpro compiler'
 #elif defined( SPARC     )
@@ -1290,108 +1212,108 @@
       END SUBROUTINE DISPLAY_END_TIME
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE MET_FIELD_DEBUG
-
-      !=================================================================
-      ! Internal subroutine MET_FIELD_DEBUG prints out the maximum
-      ! and minimum, and sum of DAO met fields for debugging 
-      !=================================================================
-
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : AD,       AIRDEN,  AIRVOL,   ALBD1,  ALBD2
-      USE DAO_MOD, ONLY : ALBD,     AVGW,    BXHEIGHT, CLDFRC, CLDF     
-      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, DELP     
-      USE DAO_MOD, ONLY : DTRAIN,   GWETTOP, HFLUX,    HKBETA, HKETA     
-      USE DAO_MOD, ONLY : LWI,      MOISTQ,  OPTD,     OPTDEP, PBL      
-      USE DAO_MOD, ONLY : PREACC,   PRECON,  PS1,      PS2,    PSC2     
-      USE DAO_MOD, ONLY : RADLWG,   RADSWG,  RH,       SLP,    SNOW     
-      USE DAO_MOD, ONLY : SPHU1,    SPHU2,   SPHU,     SUNCOS, SUNCOSB  
-      USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
-      USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
-      USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
-      USE DAO_MOD, ONLY : Z0,       ZMEU,    ZMMD,     ZMMU     
-
-      ! Local variables
-      INTEGER :: I, J, L, IJ
-
-      !=================================================================
-      ! MET_FIELD_DEBUG begins here!
-      !=================================================================
-
-      ! Define box to print out
-      I  = 23
-      J  = 34
-      L  = 1
-      IJ = ( ( J-1 ) * IIPAR ) + I
-
-      !=================================================================
-      ! Print out met fields at (I,J,L)
-      !=================================================================
-      IF ( ALLOCATED( AD       ) ) PRINT*, 'AD      : ', AD(I,J,L)        
-      IF ( ALLOCATED( AIRDEN   ) ) PRINT*, 'AIRDEN  : ', AIRDEN(L,I,J) 
-      IF ( ALLOCATED( AIRVOL   ) ) PRINT*, 'AIRVOL  : ', AIRVOL(I,J,L) 
-      IF ( ALLOCATED( ALBD1    ) ) PRINT*, 'ALBD1   : ', ALBD1(I,J) 
-      IF ( ALLOCATED( ALBD2    ) ) PRINT*, 'ALBD2   : ', ALBD2(I,J) 
-      IF ( ALLOCATED( ALBD     ) ) PRINT*, 'ALBD    : ', ALBD(I,J) 
-      IF ( ALLOCATED( AVGW     ) ) PRINT*, 'AVGW    : ', AVGW(I,J,L) 
-      IF ( ALLOCATED( BXHEIGHT ) ) PRINT*, 'BXHEIGHT: ', BXHEIGHT(I,J,L) 
-      IF ( ALLOCATED( CLDFRC   ) ) PRINT*, 'CLDFRC  : ', CLDFRC(I,J)
-      IF ( ALLOCATED( CLDF     ) ) PRINT*, 'CLDF    : ', CLDF(L,I,J) 
-      IF ( ALLOCATED( CLDMAS   ) ) PRINT*, 'CLDMAS  : ', CLDMAS(I,J,L) 
-      IF ( ALLOCATED( CLDTOPS  ) ) PRINT*, 'CLDTOPS : ', CLDTOPS(I,J) 
-      IF ( ALLOCATED( DELP     ) ) PRINT*, 'DELP    : ', DELP(L,I,J) 
-      IF ( ALLOCATED( DTRAIN   ) ) PRINT*, 'DTRAIN  : ', DTRAIN(I,J,L) 
-      IF ( ALLOCATED( GWETTOP  ) ) PRINT*, 'GWETTOP : ', GWETTOP(I,J) 
-      IF ( ALLOCATED( HFLUX    ) ) PRINT*, 'HFLUX   : ', HFLUX(I,J) 
-      IF ( ALLOCATED( HKBETA   ) ) PRINT*, 'HKBETA  : ', HKBETA(I,J,L) 
-      IF ( ALLOCATED( HKETA    ) ) PRINT*, 'HKETA   : ', HKETA(I,J,L) 
-      IF ( ALLOCATED( LWI      ) ) PRINT*, 'LWI     : ', LWI(I,J) 
-      IF ( ALLOCATED( MOISTQ   ) ) PRINT*, 'MOISTQ  : ', MOISTQ(L,I,J) 
-      IF ( ALLOCATED( OPTD     ) ) PRINT*, 'OPTD    : ', OPTD(L,I,J) 
-      IF ( ALLOCATED( OPTDEP   ) ) PRINT*, 'OPTDEP  : ', OPTDEP(L,I,J) 
-      IF ( ALLOCATED( PBL      ) ) PRINT*, 'PBL     : ', PBL(I,J) 
-      IF ( ALLOCATED( PREACC   ) ) PRINT*, 'PREACC  : ', PREACC(I,J) 
-      IF ( ALLOCATED( PRECON   ) ) PRINT*, 'PRECON  : ', PRECON(I,J) 
-      IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 
-      IF ( ALLOCATED( PS2      ) ) PRINT*, 'PS2     : ', PS2(I,J) 
-      IF ( ALLOCATED( PSC2     ) ) PRINT*, 'PSC2    : ', PSC2(I,J)
-      IF ( ALLOCATED( RADLWG   ) ) PRINT*, 'RADLWG  : ', RADLWG(I,J)
-      IF ( ALLOCATED( RADSWG   ) ) PRINT*, 'RADSWG  : ', RADSWG(I,J)
-      IF ( ALLOCATED( RH       ) ) PRINT*, 'RH      : ', RH(I,J,L) 
-      IF ( ALLOCATED( SLP      ) ) PRINT*, 'SLP     : ', SLP(I,J) 
-      IF ( ALLOCATED( SNOW     ) ) PRINT*, 'SNOW    : ', SNOW(I,J) 
-      IF ( ALLOCATED( SPHU1    ) ) PRINT*, 'SPHU1   : ', SPHU1(I,J,L) 
-      IF ( ALLOCATED( SPHU2    ) ) PRINT*, 'SPHU2   : ', SPHU2(I,J,L) 
-      IF ( ALLOCATED( SPHU     ) ) PRINT*, 'SPHU    : ', SPHU(I,J,L) 
-      IF ( ALLOCATED( SUNCOS   ) ) PRINT*, 'SUNCOS  : ', SUNCOS(IJ) 
-      IF ( ALLOCATED( SUNCOSB  ) ) PRINT*, 'SUNCOSB : ', SUNCOSB(IJ) 
-      IF ( ALLOCATED( TMPU1    ) ) PRINT*, 'TMPU1   : ', TMPU1(I,J,L) 
-      IF ( ALLOCATED( TMPU2    ) ) PRINT*, 'TMPU2   : ', TMPU2(I,J,L) 
-      IF ( ALLOCATED( T        ) ) PRINT*, 'TMPU    : ', T(I,J,L)
-      IF ( ALLOCATED( TROPP    ) ) PRINT*, 'TROPP   : ', TROPP(I,J) 
-      IF ( ALLOCATED( TS       ) ) PRINT*, 'TS      : ', TS(I,J) 
-      IF ( ALLOCATED( TSKIN    ) ) PRINT*, 'TSKIN   : ', TSKIN(I,J) 
-      IF ( ALLOCATED( U10M     ) ) PRINT*, 'U10M    : ', U10M(I,J) 
-      IF ( ALLOCATED( USTAR    ) ) PRINT*, 'USTAR   : ', USTAR(I,J) 
-      IF ( ALLOCATED( UWND1    ) ) PRINT*, 'UWND1   : ', UWND1(I,J,L) 
-      IF ( ALLOCATED( UWND2    ) ) PRINT*, 'UWND2   : ', UWND2(I,J,L) 
-      IF ( ALLOCATED( UWND     ) ) PRINT*, 'UWND    : ', UWND(I,J,L) 
-      IF ( ALLOCATED( V10M     ) ) PRINT*, 'V10M    : ', V10M(I,J)  
-      IF ( ALLOCATED( VWND1    ) ) PRINT*, 'VWND1   : ', VWND1(I,J,L) 
-      IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
-      IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
-      IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
-      IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
-      IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 
-      IF ( ALLOCATED( ZMMU     ) ) PRINT*, 'ZMMU    : ', ZMMU(I,J,L) 
-
-      ! Flush the output buffer
-      CALL FLUSH( 6 )
-
-      ! Return to MAIN program
-      END SUBROUTINE MET_FIELD_DEBUG
-
+!
+!      SUBROUTINE MET_FIELD_DEBUG
+!
+!      !=================================================================
+!      ! Internal subroutine MET_FIELD_DEBUG prints out the maximum
+!      ! and minimum, and sum of DAO met fields for debugging 
+!      !=================================================================
+!
+!      ! References to F90 modules
+!      USE DAO_MOD, ONLY : AD,       AIRDEN,  AIRVOL,   ALBD1,  ALBD2
+!      USE DAO_MOD, ONLY : ALBD,     AVGW,    BXHEIGHT, CLDFRC, CLDF     
+!      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, DELP     
+!      USE DAO_MOD, ONLY : DTRAIN,   GWETTOP, HFLUX,    HKBETA, HKETA     
+!      USE DAO_MOD, ONLY : LWI,      MOISTQ,  OPTD,     OPTDEP, PBL      
+!      USE DAO_MOD, ONLY : PREACC,   PRECON,  PS1,      PS2,    PSC2     
+!      USE DAO_MOD, ONLY : RADLWG,   RADSWG,  RH,       SLP,    SNOW     
+!      USE DAO_MOD, ONLY : SPHU1,    SPHU2,   SPHU,     SUNCOS, SUNCOSB  
+!      USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
+!      USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
+!      USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
+!      USE DAO_MOD, ONLY : Z0,       ZMEU,    ZMMD,     ZMMU     
+!
+!      ! Local variables
+!      INTEGER :: I, J, L, IJ
+!
+!      !=================================================================
+!      ! MET_FIELD_DEBUG begins here!
+!      !=================================================================
+!
+!      ! Define box to print out
+!      I  = 23
+!      J  = 34
+!      L  = 1
+!      IJ = ( ( J-1 ) * IIPAR ) + I
+!
+!      !=================================================================
+!      ! Print out met fields at (I,J,L)
+!      !=================================================================
+!      IF ( ALLOCATED( AD       ) ) PRINT*, 'AD      : ', AD(I,J,L)        
+!      IF ( ALLOCATED( AIRDEN   ) ) PRINT*, 'AIRDEN  : ', AIRDEN(L,I,J) 
+!      IF ( ALLOCATED( AIRVOL   ) ) PRINT*, 'AIRVOL  : ', AIRVOL(I,J,L) 
+!      IF ( ALLOCATED( ALBD1    ) ) PRINT*, 'ALBD1   : ', ALBD1(I,J) 
+!      IF ( ALLOCATED( ALBD2    ) ) PRINT*, 'ALBD2   : ', ALBD2(I,J) 
+!      IF ( ALLOCATED( ALBD     ) ) PRINT*, 'ALBD    : ', ALBD(I,J) 
+!      IF ( ALLOCATED( AVGW     ) ) PRINT*, 'AVGW    : ', AVGW(I,J,L) 
+!      IF ( ALLOCATED( BXHEIGHT ) ) PRINT*, 'BXHEIGHT: ', BXHEIGHT(I,J,L) 
+!      IF ( ALLOCATED( CLDFRC   ) ) PRINT*, 'CLDFRC  : ', CLDFRC(I,J)
+!      IF ( ALLOCATED( CLDF     ) ) PRINT*, 'CLDF    : ', CLDF(L,I,J) 
+!      IF ( ALLOCATED( CLDMAS   ) ) PRINT*, 'CLDMAS  : ', CLDMAS(I,J,L) 
+!      IF ( ALLOCATED( CLDTOPS  ) ) PRINT*, 'CLDTOPS : ', CLDTOPS(I,J) 
+!      IF ( ALLOCATED( DELP     ) ) PRINT*, 'DELP    : ', DELP(L,I,J) 
+!      IF ( ALLOCATED( DTRAIN   ) ) PRINT*, 'DTRAIN  : ', DTRAIN(I,J,L) 
+!      IF ( ALLOCATED( GWETTOP  ) ) PRINT*, 'GWETTOP : ', GWETTOP(I,J) 
+!      IF ( ALLOCATED( HFLUX    ) ) PRINT*, 'HFLUX   : ', HFLUX(I,J) 
+!      IF ( ALLOCATED( HKBETA   ) ) PRINT*, 'HKBETA  : ', HKBETA(I,J,L) 
+!      IF ( ALLOCATED( HKETA    ) ) PRINT*, 'HKETA   : ', HKETA(I,J,L) 
+!      IF ( ALLOCATED( LWI      ) ) PRINT*, 'LWI     : ', LWI(I,J) 
+!      IF ( ALLOCATED( MOISTQ   ) ) PRINT*, 'MOISTQ  : ', MOISTQ(L,I,J) 
+!      IF ( ALLOCATED( OPTD     ) ) PRINT*, 'OPTD    : ', OPTD(L,I,J) 
+!      IF ( ALLOCATED( OPTDEP   ) ) PRINT*, 'OPTDEP  : ', OPTDEP(L,I,J) 
+!      IF ( ALLOCATED( PBL      ) ) PRINT*, 'PBL     : ', PBL(I,J) 
+!      IF ( ALLOCATED( PREACC   ) ) PRINT*, 'PREACC  : ', PREACC(I,J) 
+!      IF ( ALLOCATED( PRECON   ) ) PRINT*, 'PRECON  : ', PRECON(I,J) 
+!      IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 
+!      IF ( ALLOCATED( PS2      ) ) PRINT*, 'PS2     : ', PS2(I,J) 
+!      IF ( ALLOCATED( PSC2     ) ) PRINT*, 'PSC2    : ', PSC2(I,J)
+!      IF ( ALLOCATED( RADLWG   ) ) PRINT*, 'RADLWG  : ', RADLWG(I,J)
+!      IF ( ALLOCATED( RADSWG   ) ) PRINT*, 'RADSWG  : ', RADSWG(I,J)
+!      IF ( ALLOCATED( RH       ) ) PRINT*, 'RH      : ', RH(I,J,L) 
+!      IF ( ALLOCATED( SLP      ) ) PRINT*, 'SLP     : ', SLP(I,J) 
+!      IF ( ALLOCATED( SNOW     ) ) PRINT*, 'SNOW    : ', SNOW(I,J) 
+!      IF ( ALLOCATED( SPHU1    ) ) PRINT*, 'SPHU1   : ', SPHU1(I,J,L) 
+!      IF ( ALLOCATED( SPHU2    ) ) PRINT*, 'SPHU2   : ', SPHU2(I,J,L) 
+!      IF ( ALLOCATED( SPHU     ) ) PRINT*, 'SPHU    : ', SPHU(I,J,L) 
+!      IF ( ALLOCATED( SUNCOS   ) ) PRINT*, 'SUNCOS  : ', SUNCOS(IJ) 
+!      IF ( ALLOCATED( SUNCOSB  ) ) PRINT*, 'SUNCOSB : ', SUNCOSB(IJ) 
+!      IF ( ALLOCATED( TMPU1    ) ) PRINT*, 'TMPU1   : ', TMPU1(I,J,L) 
+!      IF ( ALLOCATED( TMPU2    ) ) PRINT*, 'TMPU2   : ', TMPU2(I,J,L) 
+!      IF ( ALLOCATED( T        ) ) PRINT*, 'TMPU    : ', T(I,J,L)
+!      IF ( ALLOCATED( TROPP    ) ) PRINT*, 'TROPP   : ', TROPP(I,J) 
+!      IF ( ALLOCATED( TS       ) ) PRINT*, 'TS      : ', TS(I,J) 
+!      IF ( ALLOCATED( TSKIN    ) ) PRINT*, 'TSKIN   : ', TSKIN(I,J) 
+!      IF ( ALLOCATED( U10M     ) ) PRINT*, 'U10M    : ', U10M(I,J) 
+!      IF ( ALLOCATED( USTAR    ) ) PRINT*, 'USTAR   : ', USTAR(I,J) 
+!      IF ( ALLOCATED( UWND1    ) ) PRINT*, 'UWND1   : ', UWND1(I,J,L) 
+!      IF ( ALLOCATED( UWND2    ) ) PRINT*, 'UWND2   : ', UWND2(I,J,L) 
+!      IF ( ALLOCATED( UWND     ) ) PRINT*, 'UWND    : ', UWND(I,J,L) 
+!      IF ( ALLOCATED( V10M     ) ) PRINT*, 'V10M    : ', V10M(I,J)  
+!      IF ( ALLOCATED( VWND1    ) ) PRINT*, 'VWND1   : ', VWND1(I,J,L) 
+!      IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
+!      IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
+!      IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
+!      IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
+!      IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 
+!      IF ( ALLOCATED( ZMMU     ) ) PRINT*, 'ZMMU    : ', ZMMU(I,J,L) 
+!
+!      ! Flush the output buffer
+!      CALL FLUSH( 6 )
+!
+!      ! Return to MAIN program
+!      END SUBROUTINE MET_FIELD_DEBUG
+!
 !-----------------------------------------------------------------------------
 
       ! End of program
