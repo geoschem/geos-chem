@@ -1,9 +1,9 @@
-! $Id: gfed2_biomass_mod.f,v 1.10 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: gfed2_biomass_mod.f,v 1.11 2009/07/08 20:54:39 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GFED2_BIOMASS_MOD contains variables and routines to compute the
-!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 1/2/08)
+!  GFED2 biomass burning emissions. (psk, bmy, 4/20/06, 7/8/09)
 !
 !     Monthly/8-day/3-hr emissions of C are read from disk and then
 !     multiplied by the appropriate emission factors to produce biomass
@@ -100,6 +100,8 @@
 !  (6 ) Added 9 gaseous biomass burning emissions (tmf, 1/7/09)
 !  (7 ) The value of N_SPEC is now determined in INIT_GFED2_BIOMASS and depend
 !        on the tracers used in the simulation. (ccc, 4/23/09)
+!  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
+!        2008 is now available on disk (bmy, 7/8/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -311,6 +313,8 @@
 !  (5 ) Biomass emissions array BIOM_OUT is now INOUT; automatically update
 !        BIOMASS array if needed, account for different GFED2 products:
 !        monthly, 8-day, 3hr, synoptic (phs, yc, psk, 12/18/08)
+!  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
+!        2008 is now available on disk (bmy, 7/8/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -422,7 +426,12 @@
       !-------------------------------
       ELSE IF ( LGFED2BB ) THEN
          
-         CALL GFED2_AVAILABLE( YYYY, 1997, 2007 )
+         !-----------------------------------------------------------
+         ! Prior to 7/8/09:
+         ! GFED2 2008 monthly data is now available (bmy, 7/8/09)
+         !CALL GFED2_AVAILABLE( YYYY, 1997, 2007 )
+         !-----------------------------------------------------------
+         CALL GFED2_AVAILABLE( YYYY, 1997, 2008 )
 
          WRITE( 6, 410 ) YYYY, MM
  410     FORMAT( 'for year and month: ', i4, '/', i2.2, / )

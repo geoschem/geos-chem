@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.10 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: epa_nei_mod.f,v 1.11 2009/07/08 20:54:40 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -1268,8 +1268,6 @@
             EPA_NEI = EPA_WD_AN_NH3(I,J)
 
          ELSE
-!-- Prior to 5/29/09
-!            EPA_NEI = 0d0
             ! Some anthropogenic species don't have EPA/NEI emissions. 
             ! We need to keep background emissions. (hotp, ccc, 5/29/09)
             EPA_NEI = -1d0
@@ -1318,8 +1316,6 @@
             EPA_NEI = EPA_WE_AN_NH3(I,J)
 
          ELSE
-!-- Prior to 5/29/09
-!            EPA_NEI = 0d0
             ! Some anthropogenic species don't have EPA/NEI emissions. 
             ! We need to keep background emissions. (hotp, ccc, 5/29/09)
             EPA_NEI = -1d0

@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.70 2009/06/01 19:58:14 ccarouge Exp $
+ ! $Id: define.h,v 1.71 2009/07/08 20:54:40 bmy Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -18,11 +18,10 @@
 !  (9 ) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
 !  (10) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
 !  (11) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
-!  (12) COMPAQ      : Enables code for Alpha w/ COMPAQ/HP Alpha compiler
 !  (13) IBM_AIX     : Enables code for IBM/AIX compiler
+!  (14) IBM_XLF     : Enables code for IBM/XLF compiler
 !  (14) LINUX_PGI   : Enables code for Linux w/ PGI compiler
 !  (15) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
-!  (16) SGI_MIPS    : Enables code for SGI Origin w/ MIPS compiler
 !  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 ! 
 !  NOTES:
@@ -69,6 +68,8 @@
 !  (23) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  (24) Added IN_CLOUD_OD flag for reprocessed GEOS-5 met.  Added GRID05x0666 
 !        flag for GEOS-5 nested grids (yxw, dan, bmy, hyl, 11/6/08)
+!  (25) Deleted support for old COMPAQ and SGI_MIPS compilers.  Added
+!        switch for IBM XLF compiler. (bmy, 7/8/09)
 !******************************************************************************
 !
 !==============================================================================
@@ -86,11 +87,10 @@
 #undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
-#undef COMPAQ
 #undef IBM_AIX
+#undef IBM_XLF
 #undef LINUX_PGI
 #undef LINUX_IFORT
-#undef SGI_MIPS
 #undef SPARC
 #undef IN_CLOUD_OD
 
@@ -117,11 +117,10 @@
 #define GRIDREDUCED 'GRIDREDUCED'
 
 !----- Compilers -----
-!#define COMPAQ      'COMPAQ'
 !#define IBM_AIX     'IBM_AIX'
+!#define IBM_XLF     'IBM_XLF'
 !#define LINUX_PGI   'LINUX_PGI'
 #define LINUX_IFORT 'LINUX_IFORT'
-!#define SGI_MIPS    'SGI_MIPS'
 !#define SPARC       'SPARC'
 
 !----- FOR GEOS-5 MET FIELDS ONLY -----
@@ -163,7 +162,7 @@
 !==============================================================================
 ! Force a compile  error if all compiler switches are undefined
 !==============================================================================
-#if !defined(COMPAQ) && !defined(IBM_AIX) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SGI_MIPS) && !defined(SPARC)
-#error "ERROR: One of COMPAQ, IBM_AIX, LINUX_PGI, LINUX_IFORT,"
-#error "SGI_MIPS, SPARC must be defined in header file define.h"
+#if !defined(IBM_AIX) && !defined(IBM_XLF) && !defined(LINUX_PGI) && !defined(LINUX_IFORT) && !defined(SPARC)
+#error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
+#error "SPARC must be defined in header file define.h"
 #endif

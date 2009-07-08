@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.18 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: biomass_mod.f,v 1.19 2009/07/08 20:54:40 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -229,22 +229,7 @@
 
             ! Zero the array for biomass burning
             BIOMASS = 0d0
-!----------------------------------------------------------------------
-! prior 12/17/08 (phs)
-! Now test for GFED2 above            
-!            ! Test for type of biomass emissions
-!            IF ( LGFED2BB ) THEN
-!            
-!               !---------------------------------
-!               ! GFED2 biomass inventory for
-!               ! gas-phase, aerosols, and CO2
-!               !---------------------------------
-!
-!               ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
-!               CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
-!
-!            ELSE
-!----------------------------------------------------------------------
+
             ! Test if it's a CO2 simulation
             IF ( ITS_A_CO2_SIM() ) THEN
 
@@ -320,9 +305,7 @@
             
             ! ND29: CO biomass emissions [molec/cm2/s]
             IF ( DO_ND29 .and. N == IDBCO ) THEN 
-!----------------------------------------------------------------------
-! prior 1/5/09 (phs)
-!               IF ( ITS_A_H2HD_SIM() .and. (.not. LGFED2BB ) ) THEN
+
                IF ( ITS_A_H2HD_SIM() .and. (.not. USE_GFED ) ) THEN
                   AD29(I,J,2) = AD29(I,J,2) + 
      &                          BIOMASS(I,J,IDBCO) * 1.11d0

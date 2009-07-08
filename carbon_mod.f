@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.38 2009/06/01 20:29:27 phs Exp $
+! $Id: carbon_mod.f,v 1.39 2009/07/08 20:54:40 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3213,13 +3213,6 @@ c
          ! Initialize arrays
          CALL INIT_CARBON       
 
-!----------------------
-! prior to 5/18/09 - now reads monthly data below (phs)         
-!         ! Read annual mean anthro emissions from T. Bond [2004]
-!         CALL ANTHRO_CARB_TBOND
-!         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_TBOND' )
-!---------------------
-         
          ! Read annual mean biomass emissions if necessary
          IF ( USE_BOND_BIOBURN ) THEN
             CALL BIOMASS_CARB_TBOND
@@ -3257,15 +3250,6 @@ c
             CALL ANTHRO_CARB_COOKE( MONTH )
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a A_CRB_COOKE' )
          ENDIF
-
-!-----------------------------------
-! Prior to 12/18/08
-!         ! Read monthly mean biomass emissions
-!         IF ( .not. USE_BOND_BIOBURN ) THEN
-!            CALL BIOMASS_CARB_GEOS
-!            IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a B_CRB_COOKE' )
-!         ENDIF
-!-----------------------------------
 
       ENDIF
 
@@ -3724,15 +3708,6 @@ c
       ! ANTHRO_CARB_TBOND begins here!
       !=================================================================
 
-!-----------------------------------
-!     Prior to 12/18/08
-!      ! Number of emission timesteps per year
-!      STEPS_PER_YR = ( ( 1440 * 365 ) / GET_TS_EMIS() )
-!
-!      ! Get TAU0 value to index the punch file
-!      XTAU         = GET_TAU0( 1, 1, 2001 )
-!----------------------------------
-      
       ! Number of emission timesteps per month
       STEPS_PER_MON = ( ( 1440 * NDAYS ( THISMONTH ) ) / GET_TS_EMIS() )
 
@@ -3770,15 +3745,9 @@ c
       DO I = 1, IIPAR
          
          ! Hydrophilic BLACK CARBON from anthropogenics [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_YR
          ANTH_BLKC(I,J,1) =          FHB   * FD2D(I,J) / STEPS_PER_MON
          
          ! Hydrophobic BLACK CARBON from anthropogenics [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
          ANTH_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
 
          ! Compute future emissions of BLACK CARBON (if necessary)
@@ -3810,15 +3779,9 @@ c
       DO I = 1, IIPAR
 
          ! Hydrophilic ORGANIC CARBON from anthropogenics [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_YR
          ANTH_ORGC(I,J,1) =          FHO *   FD2D(I,J) / STEPS_PER_MON
 
          ! Hydrophobic ORGANIC CARBON from anthropogenics [kgC/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
          ANTH_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
 
          ! Compute future emissions of ORGANIC CARBON (if necessary)
@@ -3860,15 +3823,9 @@ c
       DO I = 1, IIPAR
 
          ! Hydrophilic BLACK CARBON from biofuels [kg C /timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_YR
          BIOF_BLKC(I,J,1) =          FHB *   FD2D(I,J) / STEPS_PER_MON
 
          ! Hydrophobic BLACK CARBON from biofuels [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_YR
          BIOF_BLKC(I,J,2) = ( 1.d0 - FHB ) * FD2D(I,J) / STEPS_PER_MON
 
 
@@ -3901,15 +3858,9 @@ c
       DO I = 1, IIPAR
 
          ! Hydrophilic ORGANIC CARBON from biofuels [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_YR
          BIOF_ORGC(I,J,1) =          FHO   * FD2D(I,J) / STEPS_PER_MON
 
          ! Hydrophobic ORGANIC CARBON from biofuels [kg C/timestep]
-!-----------------------------------
-! Prior to 12/18/08
-!        BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_YR
          BIOF_ORGC(I,J,2) = ( 1.d0 - FHO ) * FD2D(I,J) / STEPS_PER_MON
 
          ! Compute future emissions of BLACK CARBON (if necessary)

@@ -1,4 +1,4 @@
-! $Id: acetone_mod.f,v 1.11 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: acetone_mod.f,v 1.12 2009/07/08 20:54:40 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
@@ -425,10 +425,6 @@
       ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
  
-!-----------------------------------------------------------------------
-! Prior to 3/6/09
-! #elif defined( GEOS_5 ) && defined( GRID05x0666 )
-!-----------------------------------------------------------------------
 #elif defined( GEOS_5 ) 
  
 #if defined( GRID05x0666 ) && defined ( NESTED_CH )

@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.23 2009/05/29 14:31:06 ccarouge Exp $
+! $Id: transport_mod.f,v 1.24 2009/07/08 20:54:39 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -355,10 +355,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-! prior to 4/15/09 (ccc)
-!            IF ( N == 1 ) THEN
-               AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-!            ENDIF
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
@@ -376,12 +373,6 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         !-------------------------------------------------------------------
-         ! Prior to 2/17/09:
-         ! This was changed to take into account only cells 
-         ! w/ nonzero tracer. (ccc, 2/17/09)
-         ! TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
-         !-------------------------------------------------------------------
          TR_DIFF = SAFE_DIV(TR_DIFF, SUMADA, 0.d0) * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
@@ -389,11 +380,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            !------------------------------------------------------------------
-            ! Prior to 2/17/09:
-            ! Only apply change to cells w/ nonzero tracer (ccc, 2/17/09)
-            ! STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
-            !------------------------------------------------------------------
             IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
                STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
             ENDIF
@@ -716,10 +702,7 @@
          DO I = 1, IIPAR
 
             ! Air mass [kg] after transport
-! prior to 4/15/09 (ccc)
-!            IF ( N == 1 ) THEN
-               AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
-!            ENDIF
+            AD_A(I,J,L) = GET_AIR_MASS( I, J, L, P_TP2(I,J) )
          
             ! Tracer mass [kg] after transport
             TR_A(I,J,L) = STT(I,J,L,N) * AD_A(I,J,L) / TCVV(N)
@@ -737,12 +720,6 @@
          TR_DIFF = SUM( TR_B(:,:,:,N) ) - SUM( TR_A )
 
          ! Convert from [kg] to [v/v]
-         !-------------------------------------------------------------------
-         ! Prior to 2/17/09:
-         ! This was changed to take into account only cells w/
-         ! nonzero tracer. (ccc, 2/17/09)
-         ! TR_DIFF = TR_DIFF / SUM( AD_A ) * TCVV(N)
-         !-------------------------------------------------------------------
          TR_DIFF = TR_DIFF / SUMADA * TCVV(N)
 
          ! Add mass difference [v/v] back to STT
@@ -750,12 +727,6 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            !----------------------------------------------------------------
-            ! Prior to 2/17/09:
-            ! This was changed to take into account only cells 
-            ! w/ nonzero tracer. (ccc, 2/17/09)
-            ! STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
-            !----------------------------------------------------------------
             IF ( STT(I,J,L,N) > 0.d0 ) THEN
                STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
             ENDIF

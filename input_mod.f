@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.59 2009/06/08 14:09:32 ccarouge Exp $
+! $Id: input_mod.f,v 1.60 2009/07/08 20:54:39 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -2681,9 +2681,11 @@
       ! ND37: Updraft scav frac
       !--------------------------
       N_TMP = GET_WETDEP_NMAX()
+      print*, '### wetdep: ', N_TMP
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
       CALL SET_TINDEX( 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
+      print*, '### TINDEX(37): ', tindex(37,:)
 
       !--------------------------
       ! ND38: Cld conv losses
@@ -2693,6 +2695,7 @@
       READ( SUBSTRS(1), * ) ND38
       IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
       CALL SET_TINDEX( 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
+      print*, '### TINDEX(38): ', tindex(38,:)
 
       !--------------------------
       ! ND39: Wet scav losses
@@ -2742,10 +2745,14 @@
          N_TMP = NUMDEP
       ENDIF
 
+      print*, '### drydep: ', N_TMP
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:46' )
       READ( SUBSTRS(1), * ) ND44
       IF ( .not. LDRYD ) ND44 = 0
       CALL SET_TINDEX( 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
+
+      print*, '### TINDEX(44): ', tindex(44,:)
+      stop
 
       !--------------------------
       ! ND45: Tracer conc.

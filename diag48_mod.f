@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.17 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: diag48_mod.f,v 1.18 2009/07/08 20:54:40 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -541,8 +541,6 @@
                SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1) 
 
                DO L = 1, K
-!--- Prior to (ccc, 5/27/09)
-!                  Q(L) = ODMDUST(I,J,L,R)
                   Q(L) = ODMDUST(I,J,L,R)* SCALE400nm
                ENDDO
             ENDDO

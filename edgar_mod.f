@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.9 2009/05/28 18:53:01 ccarouge Exp $
+! $Id: edgar_mod.f,v 1.10 2009/07/08 20:54:40 bmy Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -227,13 +227,6 @@
       !=================================================================
       IF ( MONTH /= MONTH_SAVE ) THEN
 
-!---------------
-! prior 3/10/08
-!         ! NOx
-!         IF ( LEDGARNOx ) THEN
-!            CALL COMPUTE_EDGAR_NOX( YEAR, MONTH, EDGAR_NOx )
-!         ENDIF
-!---------------
          ! Now always read NOX to get TODN (amv, phs, 3/10/08)
          CALL COMPUTE_EDGAR_NOX( YEAR,      MONTH, 
      &                           EDGAR_NOx, EDGAR_NOx_SHIP )
@@ -359,25 +352,6 @@
       !----------------------------------
       ! Scale NOx from 2000 -> this year
       !----------------------------------
-!------------------
-! prior to 3/4/08 
-!      ! Skip scaling if it's 2000
-!      IF ( YEAR /= 2000 ) THEN
-!
-!         ! Scale factor file
-!         NAME     = 'NOxScalar-YYYY-2000'
-!
-!         ! YYYYMMDD date
-!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
-!
-!         ! Replace YYYY with year 
-!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-!
-!         ! Read NOx scale file 
-!         CALL READ_EDGAR_SCALE( NAME, 71, 2000, SC_NOx_1x1 )
-!
-!      ENDIF 
-!
       CALL GET_ANNUAL_SCALAR_1x1( 71, 2000, YEAR, SC_NOx_1x1 )
 
       ! Apply scale factors at 1x1
@@ -585,10 +559,6 @@
          CALL READ_EDGAR_DATA( 'f5800nox(IEA)', 1, E_IN )
 
          ! Add into cumulative arrays
-!-------------------------------------------
-! prior to 5/13/08
-!         CALL ADD_EDGAR_DATA( E_IN, T_1x1, SC, T_HRLY_1x1 )
-!------------------------------------------
          CALL ADD_EDGAR_DATA( E_IN, T_SHIP_1x1 )
       ENDIF
 
@@ -840,25 +810,6 @@
       !----------------------------------
       ! Scale CO from 2000 -> this year
       !----------------------------------
-!-------------------
-! prior 3/4/08
-!      ! Skip scaling if it's 2000
-!      IF ( YEAR /= 2000 ) THEN
-!
-!         ! Scale factor file
-!         NAME     = 'COScalar-YYYY-2000'
-!
-!         ! YYYYMMDD date
-!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1985 ) * 10000 ) + 0101 
-!
-!         ! Replace YYYY with year 
-!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-!
-!         ! Read CO scale file
-!         CALL READ_EDGAR_SCALE( NAME, 72, 2000, SC_CO_1x1 )
-!
-!      ENDIF
-!-------------------
       CALL GET_ANNUAL_SCALAR_1x1( 72, 2000, YEAR, SC_CO_1x1 )
 
       ! Apply scale factors at 1x1
@@ -1073,25 +1024,6 @@
       !----------------------------------
       ! Scale SO2 from 2000 -> this year
       !----------------------------------
-!----------------
-! prior to 3/10/08
-!      ! Skip scaling if it's 2000
-!      IF ( YEAR /= 2000 ) THEN
-!
-!         ! Scale factor file
-!         NAME     = 'SOxScalar-YYYY-2000'
-!
-!         ! YYYYMMDD date
-!         YYYYMMDD = ( MAX( MIN( YEAR, 2002 ), 1998 ) * 10000 ) + 0101 
-!
-!         ! Replace YYYY with year 
-!         CALL EXPAND_DATE( NAME, YYYYMMDD, 000000 )
-!
-!         ! Read SO2 scale file
-!         CALL READ_EDGAR_SCALE( NAME, 73, 2000, SC_SO2_1x1 )
-!
-!      ENDIF 
-
       CALL GET_ANNUAL_SCALAR_1x1( 73, 2000, YEAR, SC_SO2_1x1 ) 
 
       !----------------------------------

@@ -1,8 +1,8 @@
-! $Id: error_mod.f,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: error_mod.f,v 1.20 2009/07/08 20:54:39 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, phs, 3/8/01, 4/14/09)
+!  Module ERROR_MOD contains error checking routines. (bmy, phs, 3/8/01,7/8/09)
 !
 !  Module Routines:
 !  ===========================================================================
@@ -61,6 +61,7 @@
 !  (20) Added routine SAFE_DIV (phs, bmy, 2/26/08)
 !  (21) Added routine IS_SAFE_DIV (phs, bmy, 6/11/08)
 !  (22) Updated routine SAFE_DIV (phs, 4/14/09)
+!  (23) Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -109,7 +110,7 @@
 !
 !******************************************************************************
 !  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
+!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -128,11 +129,13 @@
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
+!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!        (bmy, 7/8/09)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
-#if   defined( IBM_AIX )
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
 
@@ -145,13 +148,18 @@
       !=================================================================
       ! NAN_FLOAT begins here!
       !=================================================================
-#if   defined( SGI_MIPS )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
-
-#elif defined( COMPAQ )
-      IT_IS_A_NAN = ISNAN( VALUE )         
-
-#elif defined( LINUX_IFORT )
+!------------------------------------------------------------
+! Prior to 7/8/09:
+! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
+!#if   defined( SGI_MIPS )
+!      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
+!
+!#elif defined( COMPAQ )
+!      IT_IS_A_NAN = ISNAN( VALUE )         
+!
+!#elif defined( LINUX_IFORT )
+!------------------------------------------------------------
+#if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )    
 
 #elif defined( LINUX_PGI )
@@ -178,7 +186,7 @@
 !-----------------------------------------------------------------------------
       IT_IS_A_NAN = .FALSE.
 
-#elif defined( IBM_AIX )
+#elif defined( IBM_AIX ) || defined( IBM_XLF )
 
       ! For IBM/AIX platform
       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
@@ -196,7 +204,7 @@
 !
 !******************************************************************************
 !  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
+! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -215,11 +223,13 @@
 !  (7 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (8 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
+!  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!        (bmy, 7/8/09)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
-#if   defined( IBM_AIX )
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
 
@@ -232,13 +242,18 @@
       !=================================================================
       ! NAN_DBLE begins here!
       !=================================================================
-#if   defined( SGI_MIPS )
-      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
-
-#elif defined( COMPAQ )
-      IT_IS_A_NAN = ISNAN( VALUE )         
-
-#elif defined( LINUX_IFORT )
+!-------------------------------------------------------------------------
+! Prior to 7/8/09:
+! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
+!#if   defined( SGI_MIPS )
+!      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
+!
+!#elif defined( COMPAQ )
+!      IT_IS_A_NAN = ISNAN( VALUE )         
+!
+!#elif defined( LINUX_IFORT )
+!-------------------------------------------------------------------------
+#if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )      
 
 #elif defined( LINUX_PGI )
@@ -264,7 +279,7 @@
 !-----------------------------------------------------------------------------
       IT_IS_A_NAN = .FALSE.
 
-#elif defined( IBM_AIX )
+#elif defined( IBM_AIX ) || defined( IBM_XLF )
 
        ! For IBM/AIX platform
       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
@@ -282,7 +297,7 @@
 !
 !******************************************************************************
 !  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -302,11 +317,13 @@
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
+!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!        (bmy, 7/8/09)
 !******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
-#if   defined( IBM_AIX )
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
 
@@ -319,22 +336,26 @@
       !=================================================================
       ! FINITE_FLOAT begins here!
       !=================================================================  
-     
-#if   defined( SGI_MIPS )
-      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
- 
-#elif defined( COMPAQ ) 
-
-      ! Test for finite # using bit masking for DEC/Compaq platform
-      ! Now use REAL*4 values (bmy, 11/15/01)
-      IF ( VALUE == Z'7F800000' .or. 
-     &     VALUE == Z'FF800000' ) THEN
-         IT_IS_A_FINITE = .FALSE.
-      ELSE
-         IT_IS_A_FINITE = .TRUE.
-      ENDIF
-
-#elif defined( LINUX_IFORT )
+!---------------------------------------------------------------------------- 
+! Prior to 7/8/09:
+! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
+!#if   defined( SGI_MIPS )
+!      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
+! 
+!#elif defined( COMPAQ ) 
+!
+!      ! Test for finite # using bit masking for DEC/Compaq platform
+!      ! Now use REAL*4 values (bmy, 11/15/01)
+!      IF ( VALUE == Z'7F800000' .or. 
+!     &     VALUE == Z'FF800000' ) THEN
+!         IT_IS_A_FINITE = .FALSE.
+!      ELSE
+!         IT_IS_A_FINITE = .TRUE.
+!      ENDIF
+!
+!#elif defined( LINUX_IFORT )
+!---------------------------------------------------------------------------- 
+#if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
       INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
@@ -371,7 +392,7 @@
 !-----------------------------------------------------------------------------
       IT_IS_A_FINITE = .TRUE.
 
-#elif defined( IBM_AIX )
+#elif defined( IBM_AIX ) || defined( IBM_XLF )
 
       ! For IBM/AIX platform
       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN
@@ -389,7 +410,7 @@
 !
 !*****************************************************************************
 !  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 8/14/07)
+!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
 !
 !  Arguments as Input:
 !  ===========================================================================
@@ -409,11 +430,13 @@
 !  (8 ) Added LINUX_IFORT switch for Intel v8 and v9 compilers (bmy, 10/18/05)
 !  (9 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
-!******************************************************************************
+!  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
+!        (bmy, 7/8/09)
+******************************************************************************
 !
 #     include "define.h" ! C-preprocessor switches
 
-#if   defined( IBM_AIX )
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
       USE IEEE_ARITHMETIC
 #endif
 
@@ -426,20 +449,25 @@
       !=================================================================
       ! FINITE_DBLE begins here!
       !=================================================================
-#if   defined( SGI_MIPS )
-      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
-
-#elif defined( COMPAQ ) 
-
-      ! Test for finite # using bit masking for DEC/Compaq F90
-      IF ( VALUE == Z'7FF0000000000000'  .or. 
-     &     VALUE == Z'FFF0000000000000') THEN
-         IT_IS_A_FINITE = .FALSE.
-      ELSE
-         IT_IS_A_FINITE = .TRUE.
-      ENDIF
-
-#elif defined( LINUX_IFORT )
+!---------------------------------------------------------------------------- 
+! Prior to 7/8/09:
+! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
+!#if   defined( SGI_MIPS )
+!      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
+!
+!#elif defined( COMPAQ ) 
+!
+!      ! Test for finite # using bit masking for DEC/Compaq F90
+!      IF ( VALUE == Z'7FF0000000000000'  .or. 
+!     &     VALUE == Z'FFF0000000000000') THEN
+!         IT_IS_A_FINITE = .FALSE.
+!      ELSE
+!         IT_IS_A_FINITE = .TRUE.
+!      ENDIF
+!
+!#elif defined( LINUX_IFORT )
+!---------------------------------------------------------------------------- 
+#if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
       INTEGER, PARAMETER :: SNAN=0, QNAN=1, POS_INF=2, NEG_INF=3
@@ -476,7 +504,7 @@
 !-----------------------------------------------------------------------------
       IT_IS_A_FINITE = .TRUE.
 
-#elif defined( IBM_AIX )
+#elif defined( IBM_AIX ) || defined( IBM_XLF )
 
       ! For IBM/AIX platform
       IF ( IEEE_SUPPORT_DATATYPE( VALUE ) ) THEN

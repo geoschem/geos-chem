@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.31 2009/05/06 14:14:44 ccarouge Exp $
+! $Id: wetscav_mod.f,v 1.32 2009/07/08 20:54:39 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 3/5/08)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/8/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -128,6 +128,7 @@
 !          Environmental Chemistry.
 !          http://www.mpch-mainz.mpg.de/~sander/res/henry.html
 !       (tmf, 1/7/09)
+!  (27) Remove support for SGI compiler (bmy, 7/8/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2831,7 +2832,7 @@
 !******************************************************************************
 !  Subroutine WETDEP computes the downward mass flux of tracer due to washout 
 !  and rainout of aerosols and soluble tracers in a column.  The timestep is 
-!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 5/24/06)
+!  the dynamic timestep. (hyl, bey, bmy, djj, 4/2/99, 7/8/09)
 !
 !  The precip fields through the bottom of each level are indexed as follows:
 !
@@ -2938,6 +2939,7 @@
 !  (22) Redimension DSTT with NSOL instead of NSOLMAX. In many cases, NSOL is
 !        less than NSOLMAX and this will help to save memory especially when
 !        running at 2x25 or greater resolution. (bmy, 1/31/08)
+!  (23) Remove reference to SGI_MIPS (bmy, 7/8/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3002,7 +3004,10 @@
       ! Process rainout / washout by columns.
       !=================================================================
 
-#if   !defined( SGI_MIPS )
+!----------------------------------
+! Prior to 7/8/09:
+!#if   !defined( SGI_MIPS )
+!----------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,           FTOP,      ALPHA              )
@@ -3011,7 +3016,11 @@
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
 !$OMP+PRIVATE( QDOWN,   AER,         TMP                           )
 !$OMP+SCHEDULE( DYNAMIC )
-#endif
+!----------------------------------
+! Prior to 7/8/09:
+!#endif
+!----------------------------------
+
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

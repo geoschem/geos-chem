@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.25 2009/05/06 15:33:26 phs Exp $
+! $Id: emissions_mod.f,v 1.26 2009/07/08 20:54:40 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -183,10 +183,6 @@
          ! Read EDGAR emissions once per month to get, at least 
          ! the NOx diurnal scale factors, and the EDGAR emissions 
          ! if necessary (amv, phs, 3/11/08)
-!----------------
-! prior to 3/11/08
-!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
-!----------------
          IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
@@ -227,9 +223,6 @@
          !--------------------
 
          ! Read David Streets' emisisons over China / SE ASia
-!----------------
-! prior to 12/9/08
-!         IF ( LSTREETS .and. ITS_A_NEW_YEAR() ) THEN
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
 #if   defined(GRID05x0666)
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
@@ -244,10 +237,6 @@
          ENDIF
 
          ! Read EDGAR emissions once per month
-!----------------
-! prior to 3/11/08
-!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
-!----------------
          IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
@@ -316,10 +305,6 @@
          ENDIF
 
          ! Read EDGAR emissions once per month
-!----------------
-! prior to 3/11/08
-!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
-!----------------
          IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
@@ -416,10 +401,6 @@
          ENDIF
 
          ! Read EDGAR emissions once per month
-!----------------
-! prior to 3/11/08
-!         IF ( LEDGAR .and. ITS_A_NEW_MONTH() ) THEN
-!----------------
          IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF

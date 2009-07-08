@@ -1,4 +1,4 @@
-! $Id: aerosol_mod.f,v 1.16 2009/05/29 14:31:07 ccarouge Exp $
+! $Id: aerosol_mod.f,v 1.17 2009/07/08 20:54:40 bmy Exp $
       MODULE AEROSOL_MOD
 !
 !******************************************************************************
@@ -313,12 +313,6 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      !-----------------------------------------------------------------
-      ! Prior to 2/10/09:
-      ! Now change OCF to 2.1 to be consistent w/ "carbon_mod.f"
-      ! (tmf, 2/10/09)
-      !REAL*8,  PARAMETER :: OCF = 1.4d0
-      !-----------------------------------------------------------------
       REAL*8,  PARAMETER :: OCF = 2.1d0
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 

@@ -1,4 +1,4 @@
-! $Id: isoropia_mod.f,v 1.6 2006/03/24 20:22:51 bmy Exp $
+! $Id: isoropia_mod.f,v 1.7 2009/07/08 20:54:39 bmy Exp $
       MODULE ISOROPIA_MOD
 !
 !******************************************************************************
@@ -1185,7 +1185,11 @@
       CALAOU  = .TRUE.
       CALAIN  = .TRUE.
       FRST    = .TRUE.
+#if   defined( IBM_XLF ) 
+      SCASE   =  '\?\?'
+#else
       SCASE   =  '??'
+#endif
       SULRATW =  2.D0
       SODRAT  =  ZERO
       NOFER   =  0

@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.27 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: lightning_nox_mod.f,v 1.28 2009/07/08 20:54:39 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1364,7 +1364,7 @@
 !  Function GET_IC_CG_RATIO calculates the Intra-Cloud (IC) and Cloud-to-
 !  Ground (CG) lightning flash ratio based on the method of Price and Rind 
 !  1993, which is calculated from the cold-cloud depth (CCTHICK).
-!  (ltm, bmy, 12/11/06)
+!  (ltm, bmy, 12/11/06, 7/8/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1377,6 +1377,7 @@
 !  NOTES:
 !  (1 ) Split off from FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON into this
 !        separate function (ltm, bmy, 12/11/06)
+!  (2 ) Bug fix for XLF compiler (morin, bmy, 7/8/09)
 !******************************************************************************
 !
       ! Arguments
@@ -1438,7 +1439,12 @@
       !=====================================================================
 
       ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
-      CC = MAX( CCTHICK * 1d-3, 5.5 )
+      !---------------------------------------------------------------------
+      ! Prior to 7/8/09:
+      ! Bug fix: Use 5.5d0 to prevent XLF compiler from choking (bmy, 7/8/09)
+      !CC = MAX( CCTHICK * 1d-3, 5.5 )
+      !---------------------------------------------------------------------
+      CC = MAX( CCTHICK * 1d-3, 5.5d0 )
 
       ! Compute cloud-ground flash ratio as described above
       IF ( CC > 14d0 ) THEN

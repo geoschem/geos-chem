@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.10 2009/05/06 19:14:38 ccarouge Exp $
+! $Id: streets_anthro_mod.f,v 1.11 2009/07/08 20:54:39 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -1852,12 +1852,6 @@
             T_MEK  = SUM(MEK)   * AFACTOR
             T_PRPE = SUM(PRPE)  * AFACTOR
 
-!-- prior 2/27/09
-!         ELSE
-!
-!            ! Total NH3 [Tg NH3]
-!            T_NH3 = SUM( NH3 ) * 1d-9 / 12d0
-
          ENDIF
 
             
@@ -1877,11 +1871,6 @@
             WRITE( 6, 110 ) 'CH2O ', YEAR, MONTH, T_CH2O, '[Tg Ch2O]'
             WRITE( 6, 110 ) 'C2H6 ', YEAR, MONTH, T_C2H6, '[Tg C   ]'
             WRITE( 6, 110 ) 'ALD2 ', YEAR, MONTH, T_ALD2, '[Tg C   ]'
-
-!-- prior 2/27/09
-!         ELSE
-!            
-!            WRITE( 6, 110 ) 'NH3  ', YEAR, MONTH, T_NH3,  '[Tg NH3 ]'
 
          ENDIF
 

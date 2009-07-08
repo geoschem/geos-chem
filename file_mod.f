@@ -1,10 +1,10 @@
-! $Id: file_mod.f,v 1.14 2006/09/14 14:22:14 phs Exp $
+! $Id: file_mod.f,v 1.15 2009/07/08 20:54:39 bmy Exp $
       MODULE FILE_MOD
 !
 !******************************************************************************
 !  Module FILE_MOD contains file unit numbers, as well as file I/O routines
 !  for GEOS-CHEM.  FILE_MOD keeps all of the I/O unit numbers in a single
-!  location for convenient access. (bmy, 7/1/02, 8/4/06)
+!  location for convenient access. (bmy, 7/1/02, 7/8/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -58,6 +58,7 @@
 !  (12) Extra modification for Intel v9 compiler (bmy, 11/2/05)
 !  (13) Now print IFORT error messages (bmy, 11/30/05)
 !  (14) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (15) Remove support for SGI & COMPAQ compilers (bmy, 7/8/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -119,7 +120,7 @@
 !******************************************************************************
 !  Subroutine IOERRROR prints out I/O error messages.  The error number, 
 !  file unit, location, and a brief description will be printed, and 
-!  program execution will be halted. (bmy, 5/28/99, 8/4/06)
+!  program execution will be halted. (bmy, 5/28/99, 7/4/09)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -147,6 +148,8 @@
 !  (8 ) Modifications for Linux/IFORT Intel v9 compiler (bmy, 11/2/05)
 !  (9 ) Now call IFORT_ERRMSG to get the IFORT error messages (bmy, 11/30/05)
 !  (10) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
+!  (10) Remove support for SGI & COMPAQ compilers.  Add IBM_XLF switch.
+!        (bmy, 7/8/09)
 !******************************************************************************
 !  
       ! References to F90 modules
@@ -180,59 +183,64 @@
  110  FORMAT( 'GEOS-CHEM I/O ERROR ', i5, ' in file unit ', i5, /, 
      &        'Encountered at routine:location ', a )
 
-#if   defined( SGI_MIPS )
-      
-      !=================================================================
-      ! For SGI: print error msg and construct explain command string
-      !=================================================================
-      IF ( ERROR_NUM == 2 ) THEN   
-
-         ! Error 2 is "file not found", so handle that separately.
-         ! You can't use the explain command w/ error 2.
-         WRITE( 6, '(/,a)' ) 'Error: No such file or directory'
-         
-      ELSE
-
-         ! Call SGI strerror routine to convert ERROR_NUM to ERROR_MSG
-         ERROR_MSG = GERROR()
-
-         ! Print error message to std output
-         WRITE( 6, 120 ) TRIM( ERROR_MSG )
- 120     FORMAT( /, 'Error: ', a )
-      
-         ! Convert ERROR_NUM to string format
-         WRITE( ERROR_NUMSTR, '(i10)' ) ERROR_NUM
-
-         ! Construct argument for SGI explain command
-         IF ( ERROR_NUM >= 1000 .and. ERROR_NUM < 4000 ) THEN 
-            EXPLAIN_CMD = 'explain cf90-' // 
-     &                     TRIM( ADJUSTL( ERROR_NUMSTR ))
-
-         ELSE IF ( ERROR_NUM >= 4000 ) THEN
-            EXPLAIN_CMD = 'explain lib-'  // 
-     &                    TRIM( ADJUSTL( ERROR_NUMSTR ))
-         ENDIF
-      
-         ! Print command string for the SGI explain command
-         WRITE( 6, 130 ) TRIM( EXPLAIN_CMD )
- 130     FORMAT( /, 'Type "', a, '" at the Unix prompt for an ',
-     &              'explanation of the error.' )
-      ENDIF
-
-#elif defined( COMPAQ )
-
-      !=================================================================
-      ! For COMPAQ/Alpha: call gerror() to get the I/O error msg
-      !=================================================================
-
-      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
-      ERROR_MSG = GERROR()
- 
-      ! Print error message to std output
-      WRITE( 6, 120 ) TRIM( ERROR_MSG )
- 120  FORMAT( /, 'Error: ', a )
-
-#elif defined( LINUX_PGI )
+!-----------------------------------------------------------------------------
+! Prior to 7/8/09:
+! Remove support for SGI, COMPAQ (bmy, 7/8/09)
+!#if   defined( SGI_MIPS )
+!      
+!      !=================================================================
+!      ! For SGI: print error msg and construct explain command string
+!      !=================================================================
+!      IF ( ERROR_NUM == 2 ) THEN   
+!
+!         ! Error 2 is "file not found", so handle that separately.
+!         ! You can't use the explain command w/ error 2.
+!         WRITE( 6, '(/,a)' ) 'Error: No such file or directory'
+!         
+!      ELSE
+!
+!         ! Call SGI strerror routine to convert ERROR_NUM to ERROR_MSG
+!         ERROR_MSG = GERROR()
+!
+!         ! Print error message to std output
+!         WRITE( 6, 120 ) TRIM( ERROR_MSG )
+! 120     FORMAT( /, 'Error: ', a )
+!      
+!         ! Convert ERROR_NUM to string format
+!         WRITE( ERROR_NUMSTR, '(i10)' ) ERROR_NUM
+!
+!         ! Construct argument for SGI explain command
+!         IF ( ERROR_NUM >= 1000 .and. ERROR_NUM < 4000 ) THEN 
+!            EXPLAIN_CMD = 'explain cf90-' // 
+!     &                     TRIM( ADJUSTL( ERROR_NUMSTR ))
+!
+!         ELSE IF ( ERROR_NUM >= 4000 ) THEN
+!            EXPLAIN_CMD = 'explain lib-'  // 
+!     &                    TRIM( ADJUSTL( ERROR_NUMSTR ))
+!         ENDIF
+!      
+!         ! Print command string for the SGI explain command
+!         WRITE( 6, 130 ) TRIM( EXPLAIN_CMD )
+! 130     FORMAT( /, 'Type "', a, '" at the Unix prompt for an ',
+!     &              'explanation of the error.' )
+!      ENDIF
+!
+!#elif defined( COMPAQ )
+!
+!      !=================================================================
+!      ! For COMPAQ/Alpha: call gerror() to get the I/O error msg
+!      !=================================================================
+!
+!      ! GERROR returns ERROR_MSG corresponding to ERROR_NUM 
+!      ERROR_MSG = GERROR()
+! 
+!      ! Print error message to std output
+!      WRITE( 6, 120 ) TRIM( ERROR_MSG )
+! 120  FORMAT( /, 'Error: ', a )
+!
+!#elif defined( LINUX_PGI )
+!-----------------------------------------------------------------------------
+#if   defined( LINUX_PGI )
 
       !=================================================================
       ! For LINUX platform w/ PGI compiler
@@ -273,7 +281,7 @@
       WRITE( 6, 120 ) TRIM( ERROR_MSG )
  120  FORMAT( /, 'Error: ', a )
 
-#elif defined( IBM_AIX ) 
+#elif defined( IBM_AIX ) || defined( IBM_XLF )
 
       !=================================================================
       ! For IBM/AIX platform: call gerror() to get the I/O error msg

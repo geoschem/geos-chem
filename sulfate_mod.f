@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.50 2009/06/01 19:58:13 ccarouge Exp $
+! $Id: sulfate_mod.f,v 1.51 2009/07/08 20:54:39 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -3805,11 +3805,7 @@
          ! Read monthly mean data
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
-!-- prior 12/23/08            
-!         CALL READ_BIOMASS_SO2( MONTH )
          CALL READ_BIOFUEL_SO2( MONTH )
-!-- prior 12/23/08            
-!         CALL READ_BIOMASS_NH3( MONTH )
          CALL READ_BIOFUEL_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
 
@@ -3822,8 +3818,6 @@
          ENDIF
 
          ! Also read ship exhaust SO2 if necessary 
-!-- prior 12/23/08            
-!         IF ( LSHIPSO2 ) CALL READ_SHIP_SO2( MONTH )
          CALL READ_SHIP_SO2( MONTH )
 
          ! Read oxidants for the offline simulation only

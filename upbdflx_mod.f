@@ -1,9 +1,9 @@
-! $Id: upbdflx_mod.f,v 1.22 2008/12/15 15:55:14 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.23 2009/07/08 20:54:39 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
 !  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 11/6/08)
+!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 7/8/09)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -61,6 +61,7 @@
 !  (22) Added UPBDFLX_HD from the strat-trop flux of HD (lyj, phs, 9/18/07)
 !  (23) Cap 1-XRATIO in UPBDFLX_NOY to prevent underflow (phs, 6/30/08)
 !  (24) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (25) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -163,7 +164,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 11/6/08)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 7/8/09)
 !
 !  Reference:
 !  ===========================================================================
@@ -221,6 +222,7 @@
 !  (24) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -374,11 +376,17 @@
                
             IF ( P2 < P70mb ) THEN
                L70mb = L
-#if   defined( COMPAQ )
-               ! Nothing
-#else
+!--------------------------------
+! Prior to 7/8/09:
+!#if   defined( COMPAQ )
+!               ! Nothing
+!#else
+!--------------------------------
                EXIT
-#endif
+!--------------------------------
+! Prior to 7/8/09:
+!#endif
+!--------------------------------
             ENDIF
          ENDDO
          
@@ -798,7 +806,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_HD establishes the flux boundary condition for HD
 !  coming down from the stratosphere. This is adapted from the UPBDFLX_O3
-!  routine. (lyj, hup, phs, 9/18/07, 11/6/08)
+!  routine. (lyj, hup, phs, 9/18/07, 7/8/09)
 !
 !  Instead of calculating the fractionation of H2 in the stratosphere
 !  (where we would have to take into account fractionation of CH4),
@@ -816,6 +824,7 @@
 !  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
 !        Added parallel DO loops. (phs, 9/18/07)
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -945,11 +954,17 @@
                
                IF ( P2 < P70mb ) THEN
                   L70mb = L
-#if   defined( COMPAQ )
-                  ! Nothing
-#else
+!-------------------------------------
+! Prior to 7/8/09:
+!#if   defined( COMPAQ )
+!                  ! Nothing
+!#else
+!-------------------------------------
                   EXIT
-#endif
+!-------------------------------------
+! Prior to 7/8/09:
+!#endif
+!-------------------------------------
                ENDIF
             ENDDO
             

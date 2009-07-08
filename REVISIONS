@@ -1,97 +1,54 @@
-REVISIONS (v8-02-01)  
-6 May 2009
+REVISIONS (v8-02-03)
+08 Jul 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
-New in v8-02-01:
-
-=====================================================================
-     Revisions Logs for bug and fixes put into v8-02-02
-                             
-=====================================================================
-
-REMOVED:
---------
-
-NEW MODULES:
-------------
-
-NEW FUNCTIONS:
---------------
-
-MODIFIED:
----------
-
-diag48_mod.f     --- Scale all dust output by scale400nm
-
-convection_mod.f --- Remove unused definition of local variables
-
-acetone_mod.f    --- Add definition of scale_factor for GEOS5 2x2.5
-
-anthroems.f      ---
-
-=====================================================================
-     Revisions Logs for non-local PBL scheme put into v8-02-02
-                            Jintai 
-=====================================================================
-
-REMOVED
--------
-
-NEW MODULES:
-------------
-
-vdiff_mod.f90    --- Contains all routines for the non-local PBL scheme
-
-vdiff_pre_mod.f  --- Contains variable definitions and emis_save
+New in v8-02-03:
+-------------------------------------------------------------------------------
 
 
-NEW FUNCTION :
--------------
+Removed in v8-02-03:
+-------------------------------------------------------------------------------
 
 
-MODIFIED:
----------
+Modified in v8-02-03:
+-------------------------------------------------------------------------------
 
-CMN_DIAG         --- Add a new met field to ND67 (EFLUX).
+define.h		-- Deleted support for old COMPAQ and SGI_MIPS 
+			   compilers
+			-- Added IBM_XLF switch for XLF compiler
 
-Makefile.ifort   --- New modules vdiff_mod.f90 and vdiff_pre_mod.f.
+finite_dble		-- Remove support for SGI, COMPAQ compilers.
+("error_mod.f")		-- Add IBM_XLF switch. 
 
-a3_read_mod.f    --- Read EFLUX from GEOS-5 met fields.
+finite_float		-- Remove support for SGI, COMPAQ compilers.
+("error_mod.f")		-- Add IBM_XLF switch. 
 
-calcrate.f       --- Add non-local case for emissions and dry deposition.
+get_ic_gc_ratio		-- Bug fix to prevent error on XLF compiler
+("lightning_nox_mod.f)
 
-carbon_mod.f     --- Add option not to do dry deposition and save carbon 
-                     species emissions for the non local PBL.
+gfed2_compute_biomass	-- Adjust call to GFED2_AVAILABLE to reflect that 
+("gfed2_biomass_mod.f")    monthly data for 2008 is now available on disk 
 
-chemdr.f         --- Not call setemis if non-local PBL (call it in DO_PBL_MIX_2).
+ioerror			-- Remove support for SGI, COMPAQ compilers.
+("file_mod.f")		-- Add IBM_XLF switch. 
 
-chemistry_mod.f  --- ND44 done in vdiff_mod.f if non-local PBL.
+nan_dble		-- Remove support for SGI, COMPAQ compilers.
+("error_mod.f")		-- Add IBM_XLF switch. 
 
-dao_mod.f        --- Add definition of EFLUX array for GEOS5.
+nan_float		-- Remove support for SGI, COMPAQ compilers.
+("error_mod.f")		-- Add IBM_XLF switch. 
 
-diag3.f          --- Add EFLUX info for ND67 diag.
+ocean_mercury_flux	-- Bug fix to prevent error on XLF compiler
+("ocean_mercury_mod.f)
 
-drydep_mod.f     --- Modify dry deposition calculation for non-local PBL.
+upbdflx_o3		-- Remove reference to COMPAQ
+("upbdflx_mod.f")
 
-gamap_mod.f      --- Add EFLUX to ND67.
+upbdflx_hd		-- Remove reference to COMPAQ
+("upbdflx_mod.f")
 
-input_mod.f      --- Add LNLPBL to convection menu.
+wetdep			-- Remove reference to SGI_MIPS 
+("wetscav_mod.f")
 
-logical_mod.f    --- Add 3 logical for non-local PBL.
-
-main.f           --- Add calls to DO_PBL_MIX_2 for non-local 
-                     and move PBL before emissions.
-
-pbl_mix_mod.f    --- Change INIT_PBL_MIX and COMPUTE_PBL_HEIGHT 
-                     to public routines.
-
-seasalt_mod.f    --- Save emissions in emis_save for vdiff_mod.f
-
-setemis_mod.f    --- Constrain emissions to surface level for non-local PBL
-
-sulfate_mod.f    --- Sulfate surface emissions constrained to the first level
-                     and saved in emis_save for vdiff_mod.f
-
-tagged_ox_mod.f  --- Constrain emissions to surface level.

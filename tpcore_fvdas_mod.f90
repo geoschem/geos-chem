@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.13 2009/05/06 19:14:38 ccarouge Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.14 2009/07/08 20:54:39 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -255,11 +255,6 @@ CONTAINS
     REAL*8  :: sine(jm+1)  
     REAL*8  :: SINE_25(JM+1)   ! 
     REAL*8  :: dlon
-    !----------------------------------------  
-    ! Prior to 12/12/08:
-    ! Use PI from CMN_GCTM (bmy, 12/12/08)
-    !REAL*8  :: pi
-    !----------------------------------------
     INTEGER :: I, J
 
     ! NOTE: since we are not using MPI parallelization, we can set JFIRST 
@@ -282,17 +277,6 @@ CONTAINS
     ALLOCATE( dtdy5 ( JM ) ) 
     ALLOCATE( DLAT  ( JM ) )    ! For PJC pressure-fixer 
     
-    !----------------------------------------
-    ! Prior to 12/12/08:
-    ! Use PI from CMN_GCTM (bmy, 12/12/08)
-    !PI   = 4.0d0 * ATAN(1.0d0)
-    !----------------------------------------
-    
-    !----------------------------------------
-    ! Prior to 12/12/08:
-    ! Use double precision (bmy, 12/12/08)
-    !dlon = 2.d0 * PI / float(im)
-    !----------------------------------------
     dlon = 2.d0 * PI / DBLE( IM )
     
     ! S. Pole

@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.12 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: emep_mod.f,v 1.13 2009/07/08 20:54:40 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -694,11 +694,6 @@
             
          ! Surface area [cm2] * seconds in this year 
          ! Multiply by 1d-9 to convert from [kg] to [Tg]
-         !-------------------------------------------------------------
-         ! Prior to 1/30/09:
-         ! Now print out correct monthly totals (bmy, 1/30/09)
-         !A = GET_AREA_CM2( J ) * 365.25d0 * 86400d0 * 1d-9 
-         !-------------------------------------------------------------
          A = GET_AREA_CM2( J ) * DAYS_IN_MONTH * 86400d0 * 1d-9 
          
          ! Loop over longitudes

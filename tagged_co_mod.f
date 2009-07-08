@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.23 2009/01/28 19:59:14 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.24 2009/07/08 20:54:39 bmy Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -582,15 +582,11 @@
                F_OF_PBL = GET_FRAC_OF_PBL (I,J,L) 
 
                ! Add biomass burning to tracer #1 -- total CO [kg CO]
-!-- prior to 12/23/08
-!               STT(I,J,1,1) = STT(I,J,1,1) + E_CO
                STT(I,J,L,1) = STT(I,J,L,1) + E_CO * F_OF_PBL
             
                ! Split BB CO into geographic regions -- Tracers #6 - #11
                IF ( LSPLIT ) THEN
                   N            = BB_REGION(I,J)
-!-- prior to 12/23/08
-!                  STT(I,J,1,N) = STT(I,J,1,N) + E_CO
                   STT(I,J,L,N) = STT(I,J,L,N) + E_CO * F_OF_PBL                  
                ENDIF
 

@@ -1,10 +1,10 @@
-! $Id: ocean_mercury_mod.f,v 1.12 2006/04/17 19:51:10 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.13 2009/07/08 20:54:39 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
 !  Module OCEAN_MERCURY_MOD contains variables and routines needed to compute
 !  the oceanic flux of mercury.  Original code by Sarah Strode at UWA/Seattle.
-!  (sas, bmy, 1/21/05, 4/17/06)
+!  (sas, bmy, 1/21/05, 7/8/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -90,6 +90,7 @@
 !  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
 !  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
+!  (5 ) Bug fix for XLF compiler (morin, bmy, 7/8/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -244,7 +245,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 4/17/06)
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 7/8/09)
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
 !
@@ -260,6 +261,7 @@
 !        (sas, bmy, 2/24/05)
 !  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
 !        Also now accounts for 2x25 grid. (sas, cdh, bmy, 4/6/06)
+!  (3 ) Bug fix to prevent error on XLF compiler (morin, bmy, 7/8/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -488,7 +490,12 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! EF ratio for particle sinking based on Laws et al. 2000 
-            EF     = MAX( (0.63 - 0.02 * TC), 0.0) ! keep export > 0
+            !----------------------------------------------------------------
+            ! Prior to 7/8/09:
+            ! Now use 0d0 etc to prevent choking on XLF compiler (bmy, 7/8/09)
+            !EF     = MAX( (0.63 - 0.02 * TC), 0.0) ! keep export > 0
+            !----------------------------------------------------------------
+            EF     = MAX( (0.63d0 - 0.02d0 * TC ), 0d0 ) ! keep export > 0
             Ksink  = Ks * EF * NPP(I,J) * A_M2 *FRAC_O
 
             ! Conversion rate Hg2 -> HgC [unitless]

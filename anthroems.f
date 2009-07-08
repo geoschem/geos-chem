@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.14 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: anthroems.f,v 1.15 2009/07/08 20:54:40 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -189,21 +189,11 @@
       !  GET_ANNUAL_SCALAR. Allow users to force the scaling year
       !  as before with a value GT 0 in input.geos (phs, 3/11/08)
       !=================================================================
-!------------------
-! prior to 3/11/08
-!      IF ( FSCALYR < 0 ) THEN
-!         SCALEYEAR = MIN( GET_YEAR(), 2002 )
-!      ELSE
-!         SCALEYEAR = FSCALYR
-!      ENDIF
-!------------------
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
       ELSE
          SCALEYEAR = FSCALYR
       ENDIF
-
-
 
       !=================================================================      
       ! Do the following only on the very first call to ANTHROEMS...
@@ -340,16 +330,7 @@
       IF ( FIRST .or. SCALEYEAR /= LASTYEAR ) THEN
 
          WRITE( 6, * )
-!------------------
-! prior to 3/11/08
-!         ! Read in scale factors based on total fuel CO2 
-!         ! (relative to baseline year 1985) -- used for NOx
-!         CALL READ_TOTCO2( SCALEYEAR, FTOTCO2 )
-!
-!         ! Read in scale factors based on liquid fuel CO2 
-!         ! (relative to baseline year 1985) -- used for CO, HC's
-!         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
-!-----------------
+
          ! now use updated scalars (amv, phs, 3/11/08)
          CALL GET_ANNUAL_SCALAR( 71, 1985, SCALEYEAR, FTOTCO2 )
          CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )

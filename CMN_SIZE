@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.30 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: CMN_SIZE,v 1.31 2009/07/08 20:54:40 bmy Exp $
       !=======================================================================
       ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
       !
@@ -428,18 +428,12 @@
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
       INTEGER, PARAMETER :: NNPAR   = 73
-!----------------------------------------------------
-! Prior to 3/4/08:
-!      INTEGER, PARAMETER :: NEMPARA = 10
-!----------------------------------------------------
+
 ! new emissions HNO3 and O3 (phs)
 !  Add non-biogenic emission species:
 !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
       INTEGER, PARAMETER :: NEMPARA = 21 
-!----------------------------------------------------
-! Prior to 2/3/09:
-!      INTEGER, PARAMETER :: NEMPARB = 1
-!----------------------------------------------------
+
       ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
       INTEGER, PARAMETER :: NEMPARB = 3
 

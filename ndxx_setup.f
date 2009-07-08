@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.38 2009/05/06 19:14:38 ccarouge Exp $
+! $Id: ndxx_setup.f,v 1.39 2009/07/08 20:54:39 bmy Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -227,12 +227,6 @@
       LD52 = 1
       LD54 = 1
       LD64 = 1
-      !-----------------------------------------------------------------
-      ! Prior to 12/18/08:
-      ! We don't need to set LD65=1 here anymore, we now call 
-      ! NDXX_SETUP after DIAG_PL_MOD. (phs, bmy, 12/18/08)
-      !LD65 = 1
-      !-----------------------------------------------------------------
       LD66 = 1
       LD68 = 1
 
@@ -559,15 +553,6 @@
       ! ND24: Eastward mass flux from transport [kg/s] 
       !       --> uses MASSFLEW array (allocatable)
       !=================================================================
-!--   prior 4/15/09 (phs)
-!     IF ( ND24 > 0 ) THEN
-!         LD24 = MIN( ND24,      LLPAR )
-!         NMAX = MIN( N_TRACERS, NNPAR )
-!
-!         ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
-!      ENDIF
-
       IF ( ND24 > 0 ) LD24 = MIN( ND24, LLPAR )
 
       NMAX = MIN( N_TRACERS, NNPAR )
@@ -579,14 +564,6 @@
       ! ND25: Northward mass flux from transport [kg/s] 
       !       --> uses MASSFLNS array (allocatable)
       !=================================================================
-!--   prior 4/15/09 (phs)
-!      IF ( ND25 > 0 ) THEN
-!         LD25 = MIN( ND25,      LLPAR )
-!         NMAX = MIN( N_TRACERS, NNPAR )
-!
-!         ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
-!      ENDIF
       IF ( ND25 > 0 ) LD25 = MIN( ND25, LLPAR )
 
       NMAX = MIN( N_TRACERS, NNPAR )
@@ -598,15 +575,8 @@
       ! ND26: Vertical mass flux from transport [kg/s] 
       !       --> uses MASSFLUP array (allocatable)
       !=================================================================
-!--   prior 4/15/09 (phs)
-!      IF ( ND26 > 0 ) THEN
-!         LD26 = MIN( ND26,      LLPAR )
-!         NMAX = MIN( N_TRACERS, NNPAR )
-!
-!         ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
-!      ENDIF
       IF ( ND26 > 0 ) LD26 = MIN( ND26, LLPAR )
+
       NMAX = MIN( N_TRACERS, NNPAR )
 
       ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
