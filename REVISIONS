@@ -1,5 +1,5 @@
 REVISIONS (v8-02-03)
-08 Jul 2009
+10 Jul 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -26,7 +26,11 @@ finite_float		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
 
 get_ic_gc_ratio		-- Bug fix to prevent error on XLF compiler
-("lightning_nox_mod.f)
+("lightning_nox_mod.f")
+
+get_otd_lis_scale	-- Updated scale factors for GEOS-5 based on 4+ 
+("lightning_nox_mod.f")    years of data
+			-- Remove temporary fixes
 
 gfed2_compute_biomass	-- Adjust call to GFED2_AVAILABLE to reflect that 
 ("gfed2_biomass_mod.f")    monthly data for 2008 is now available on disk 
@@ -42,6 +46,11 @@ nan_float		-- Remove support for SGI, COMPAQ compilers.
 
 ocean_mercury_flux	-- Bug fix to prevent error on XLF compiler
 ("ocean_mercury_mod.f)
+
+read_local_redist	-- Now read from lightning_NOx_200907 directory
+("lightning_nox_mod.f")    for GEOS-4 and GEOS-5 CTH parameterizations.
+			-- Updated OTD/LIS for GEOS-5 based on 4+ years of data
+			-- Removed temporary fixes
 
 upbdflx_o3		-- Remove reference to COMPAQ
 ("upbdflx_mod.f")

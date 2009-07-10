@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.28 2009/07/08 20:54:39 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.29 2009/07/10 20:32:25 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -7,12 +7,10 @@
 !  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
 !  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
 !  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 4/29/09)  
+!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 7/9/09)  
 !
-!  NOTE: The OTD/LIS regional redistribution for MFLUX and PRECON lightning
-!  parameterizations have not yet been implemented.  These parameterizations
-!  do not yield realistic results with the GEOS-4 meteorology.  We will try
-!  to implement them for GEOS-5 at a later time. (rch, ltm, bmy, 10/3/07)
+!  !%%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!
 !
 !  Module Variables:
 !  ============================================================================
@@ -103,6 +101,7 @@
 !        GET_OTD_LIS_SCALE. (yxw, dan, ltm, bmy, 11/14/08)
 !  (8 ) Added quick fix for GEOS-5 reprocessed met fields (ltm, bmy, 2/18/09)
 !  (9 ) Added quick fix for GEOS-5 years 2004, 2005, 2008 (ltm, bmy, 4/29/09)
+!  (10) Updated OTD/LIS scaling for GEOS-5 reprocessed data (ltm, bmy, 7/10/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1564,7 +1563,7 @@
 !  redistribute GEOS-Chem flash rates according the "local redistribution"
 !  method of Bastien Sauvage.  This helps to make sure that the lightning
 !  flashes occur according to the distribution of observed convection.
-!  (bastien, bmy, 1/26/07, 2/18/09)
+!  (bastien, bmy, 1/26/07, 7/10/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1577,6 +1576,9 @@
 !        directory lightning_NOx_200709. (ltm, bmy, 9/24/07)
 !  (3 ) Added "quick fix" for reprocessed GEOS-5 met fields to be used when
 !        the IN_CLOUD_OD switch is turned on. (ltm, bmy, 2/18/09)
+!  (4 ) Now read from lightning_NOx_200907 directory for GEOS-4 and
+!        GEOS-5 CTH parameterizations.  Updated OTD/LIS for GEOS-5 based on
+!        4+ years of data; removed temporary fixes. (ltm, bmy, 7/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1600,30 +1602,37 @@
       ! READ_LOCAL_REDIST begins here!
       !=================================================================
 
+      !%%% NOTE: Now read CTH parameterization files from the 
+      !%%% lightning_NOx_200907 directory.  Leave the MFLUX and PRECON
+      !%%% files for GEOS-4 in lightning_NOx_200709, those are going
+      !%%% to be phased out in the next release (ltm, bmy, 7/10/09)
+
       ! Get file name
       IF ( LCTH ) THEN
 
          ! OTD-LIS Local file for CTH parameterization
-         FILENAME = 'OTD-LIS-Local-Redist.CTH.v3.' // 
-     &               GET_NAME_EXT() // '.'  // GET_RES_EXT()
+         FILENAME = 
+     &        'lightning_NOx_200907/OTD-LIS-Local-Redist.CTH.v4.' // 
+     &        GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ELSE IF ( LMFLUX ) THEN
 
          ! OTD-LIS Local file for MFLUX parameterization
-         FILENAME = 'OTD-LIS-Local-Redist.MFLUX.v3.'  // 
-     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
+         FILENAME = 
+     &        'lightning_NOx_200709/OTD-LIS-Local-Redist.MFLUX.v3.' // 
+     &         GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ELSE IF ( LPRECON ) THEN
 
          ! OTD-LIS local file for PRECON parameterization
-         FILENAME = 'OTD-LIS-Local-Redist.PRECON.v3.' // 
-     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
+         FILENAME = 
+     &        'lightning_NOx_200709/OTD-LIS-Local-Redist.PRECON.v3.' // 
+     &        GET_NAME_EXT() // '.' // GET_RES_EXT()
 
       ENDIF
 
       ! Prefix directory to file name
-      FILENAME = TRIM( DATA_DIR )        // 
-     &           'lightning_NOx_200709/' // TRIM( FILENAME ) 
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
 
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
@@ -1633,42 +1642,12 @@
       FILENAME = TRIM( FILENAME ) // '.NA'
 #endif
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% TEMPORARY FIX FOR REPROCESSED GEOS-5 MET FIELDS (ltm, bmy, 2/18/09)
-!%%%  
-!%%% We need to read from a new OTD-LIS redistribution file that has taken
-!%%% account of the new GEOS-5 convection.  Assume that this file is located
-!%%% in the lightning_NOx data directory. (ltm, bmy, 2/19/09)
-!%%%
-!%%% NOTE: This change will be rendered obsolete when the entire data set of 
-!%%% GEOS-5 is reprocessed and the OTD-LIS redistribution files are recomputed.
-!%%%
-#if   defined( IN_CLOUD_OD ) 
-      !----------------------------------------------------------------
-      ! NOTE: This OTD/LIS file is only for year 2008!
-      !FILENAME = TRIM( FILENAME ) // '.reprocessed_geos5_fix'
-      !----------------------------------------------------------------
-      ! NOTE: This OTD/LIS file is for years 2004, 2005, 2008!
-      FILENAME = TRIM( FILENAME ) // 
-     &           '.reprocessed_geos5_fix.2004_2005_2008'
-      !----------------------------------------------------------------
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_LOCAL_REDIST: Reading ', a )
 
       ! Use "generic" year 1985 for time indexing
       TAU0 = GET_TAU0( MONTH, 1, 1985 )
-
-! ltm_temporary_fix ----------
-      WRITE(6,*) 'If code crashes here, then please contact Lee Murray'
-      WRITE(6,*) 'about obtaining a temporary fix for the lightning'
-      WRITE(6,*) 'treatment because of the different convection.'
-      WRITE(6,*) 'ltmurray@seas.harvard.edu'
-      CALL FLUSH(6)
-! ----------------------------
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'OTD-LOC',  1, 
@@ -1759,6 +1738,8 @@
 !  (4 ) Added "quick fix" for reprocessed GEOS-5 met fields to be used when 
 !        the IN_CLOUD_OD switch is turned on. (ltm, bmy, 2/18/09)
 !  (5 ) Added "quick fix" for 2004, 2005, 2008 OTD/LIS (ltm, bmy, 4/29/09)
+!  (6 ) Updated scale factors for GEOS-5 based on 4+ years of data.  Remove
+!        temporary fixes. (bmy, 7/10/09)
 !******************************************************************************
 !
 #     include "define.h"
@@ -1801,43 +1782,29 @@
       ! GEOS-5: 4 x 5 global simulation
       !-------------------------------------
       IF ( LCTH ) THEN
+         !-------------------------------------------------------------------
+         ! Prior to 7/10/09:
+         ! Remove obsolete values (ltm, bmy, 7/10/09)
+         !IF ( LOTDLOC ) THEN
+         !   SCALE = ANN_AVG_FLASHRATE / 17.5892d0
+         !ELSE
+         !   SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+         !ENDIF
+         !-------------------------------------------------------------------
+
+         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
+         !       and compared against OTD/LIS May 1995-Dec 2005
+         !       (ltm, bmy, 7/10/09)
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 17.5892d0
+            SCALE = ANN_AVG_FLASHRATE / 21.4694d0
          ELSE
-            SCALE = ANN_AVG_FLASHRATE / 13.9779d0
+            SCALE = ANN_AVG_FLASHRATE / 18.3875d0
          ENDIF
+
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
          SCALE = 1.0d0
       ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% TEMPORARY FIX FOR REPROCESSED GEOS-5 MET FIELDS (ltm, bmy, 2/18/09)
-!%%%
-!%%% Deal with the change in convection used by GMAO by resetting the 4 x 5
-!%%% resolution factor to match that for the new convection (ltm, bmy, 2/18/09)
-!%%% 
-!%%% NOTE: This change will be rendered obsolete when the entire data set of 
-!%%% GEOS-5 is reprocessed and the OTD-LIS redistribution files recomputed.
-!%%%
-#if   defined( IN_CLOUD_OD )
-      IF ( LCTH ) THEN
-         IF ( LOTDLOC ) THEN
-            !----------------------------------------------------------------
-            ! NOTE: This value is for 2008 statistics only!
-            ! (i.e. if using the "reprocessed_geos5_fix" file
-            !SCALE = ANN_AVG_FLASHRATE / 22.4383d0
-            !----------------------------------------------------------------
-            ! NOTE: This value is for 2004, 2005, 2008 statistics!
-            ! (i.e. if using the reprocessed_geos5_fix.2004_2005_2008" file
-            SCALE = ANN_AVG_FLASHRATE / 21.0357d0
-            !----------------------------------------------------------------
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 18.3875d0
-         ENDIF
-      ENDIF
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
 
@@ -1845,43 +1812,28 @@
       ! GEOS-5: 2 x 2.5 global simulation
       !-------------------------------------
       IF ( LCTH ) THEN
+         !-------------------------------------------------------------------
+         ! Prior to 7/10/09:
+         ! Remove obsolete values (ltm, bmy, 7/10/09)
+         !IF ( LOTDLOC ) THEN
+         !   SCALE = ANN_AVG_FLASHRATE / 47.7117d0
+         !ELSE
+         !   SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+         !ENDIF
+         !-------------------------------------------------------------------
+
+         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
+         !       and compared against OTD/LIS May 1995-Dec 2005
+         !       (ltm, bmy, 7/10/09)
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 47.7117d0
+            SCALE = ANN_AVG_FLASHRATE / 64.0538d0
          ELSE
-            SCALE = ANN_AVG_FLASHRATE / 36.2878d0
+            SCALE = ANN_AVG_FLASHRATE / 52.0135d0
          ENDIF
       ELSE
          WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
          SCALE = 1.0d0
       ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% TEMPORARY FIX FOR REPROCESSED GEOS-5 MET FIELDS (ltm, bmy, 2/18/09)
-!%%%
-!%%% Deal with the change in convection used by GMAO by resetting the 2 x 2.5
-!%%% resolution factor to match that for the new convection (ltm, bmy, 2/18/09)
-!%%%
-!%%% NOTE: This change will be rendered obsolete when the entire data set of 
-!%%% GEOS-5 is reprocessed and the OTD-LIS redistribution files recomputed.
-!%%%
-#if   defined( IN_CLOUD_OD )
-      IF ( LCTH ) THEN
-         IF ( LOTDLOC ) THEN
-            !----------------------------------------------------------------
-            ! NOTE: This value is for 2008 statistics only!
-            ! (i.e. if using the "reprocessed_geos5_fix" file
-            !SCALE = ANN_AVG_FLASHRATE / 67.6701d0
-            !----------------------------------------------------------------
-            ! NOTE: This value is for 2004, 2005, 2008 statistics!
-            ! (i.e. if using the reprocessed_geos5_fix.2004_2005_2008" file
-            SCALE = ANN_AVG_FLASHRATE / 62.8215d0 
-            !----------------------------------------------------------------
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 52.0135d0
-         ENDIF
-      ENDIF
-#endif
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) & defined( NESTED_CH )
 
@@ -1890,8 +1842,21 @@
       ! Nested grid simulation: CHINA
       !-------------------------------------
       IF ( LCTH ) THEN
+         !-------------------------------------------------------------------
+         ! Prior to 7/10/09:
+         ! Remove obsolete values (ltm, bmy, 7/10/09)
+         !IF ( LOTDLOC ) THEN
+         !   SCALE = ANN_AVG_FLASHRATE / 100.082d0
+         !ELSE
+         !   SCALE = ANN_AVG_FLASHRATE / 75.0679d0
+         !ENDIF
+         !-------------------------------------------------------------------
+
+         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
+         !       and compared against OTD/LIS May 1995-Dec 2005
+         !       (ltm, bmy, 7/10/09)
          IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 100.082d0
+            SCALE = ANN_AVG_FLASHRATE / 175.392d0
          ELSE
             SCALE = ANN_AVG_FLASHRATE / 75.0679d0
          ENDIF
@@ -1906,8 +1871,9 @@
       ! GEOS-5: 0.5 x 0.666
       ! Nested grid simulation: N. AMERICA
       !-------------------------------------
-
-      ! %%%%% Still need to do this -- worry about it later!!! %%%%%
+      WRITE(6,*) 'OTD/LIS not yet available for GEOS5 Nested NA sim.'
+      CALL FLUSH(6)
+      SCALE = 1.0d0
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
