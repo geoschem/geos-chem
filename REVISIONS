@@ -1,5 +1,5 @@
 REVISIONS (v8-02-03)
-10 Jul 2009
+13 Jul 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -14,6 +14,9 @@ Removed in v8-02-03:
 
 Modified in v8-02-03:
 -------------------------------------------------------------------------------
+
+dao_mod.f               -- Add variables TO31 and TO32, and interpolation
+			   of TO3 if GEOS-5
 
 define.h		-- Deleted support for old COMPAQ and SGI_MIPS 
 			   compilers
@@ -35,6 +38,8 @@ get_otd_lis_scale	-- Updated scale factors for GEOS-5 based on 4+
 gfed2_compute_biomass	-- Adjust call to GFED2_AVAILABLE to reflect that 
 ("gfed2_biomass_mod.f")    monthly data for 2008 is now available on disk 
 
+i6_read_mod.f		-- Read TO31 and TO32 for GEOS-5
+
 ioerror			-- Remove support for SGI, COMPAQ compilers.
 ("file_mod.f")		-- Add IBM_XLF switch. 
 
@@ -51,6 +56,11 @@ read_local_redist	-- Now read from lightning_NOx_200907 directory
 ("lightning_nox_mod.f")    for GEOS-4 and GEOS-5 CTH parameterizations.
 			-- Updated OTD/LIS for GEOS-5 based on 4+ years of data
 			-- Removed temporary fixes
+
+set_prof.f		-- Replace TOMS/SBUV by GEOS-5 TO3 when no satellite
+			   data available (after 2008)
+
+toms_mod.f       	-- Update reading directory
 
 upbdflx_o3		-- Remove reference to COMPAQ
 ("upbdflx_mod.f")

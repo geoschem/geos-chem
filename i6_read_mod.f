@@ -1,4 +1,4 @@
-! $Id: i6_read_mod.f,v 1.22 2008/11/05 19:45:45 bmy Exp $
+! $Id: i6_read_mod.f,v 1.23 2009/07/13 20:57:21 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
@@ -451,7 +451,7 @@
 !      
       ! References to F90 modules
       USE DAO_MOD, ONLY : ALBD1, LWI,  PS1,   SLP,    SPHU1, T
-      USE DAO_MOD, ONLY : TO3,   TTO3, TMPU1, TROPP1, UWND1, VWND1
+      USE DAO_MOD, ONLY : TO31,   TTO3, TMPU1, TROPP1, UWND1, VWND1
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -484,7 +484,7 @@
       ! GEOS-5: read LWI, PS1, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO3, TTO3=TTO3 )
+     &              LWI=LWI,   PS=PS1,  SLP=SLP, TO3=TO31, TTO3=TTO3 )
 
 #elif defined( GCAP )
 
@@ -521,7 +521,7 @@
 !
       ! References to F90 modules
       USE DAO_MOD, ONLY : ALBD2,  LWI,   PS2,   SLP,    SPHU2
-      USE DAO_MOD, ONLY : T,      TO3,   TTO3,  TMPU1,  TMPU2
+      USE DAO_MOD, ONLY : T,      TO32,   TTO3,  TMPU1,  TMPU2
       USE DAO_MOD, ONLY : TROPP2, UWND2, VWND2
 
       ! Arguments
@@ -552,7 +552,7 @@
       ! GEOS-5: read LWI, PS2, SLP, TO3, TTO3
       !=================================================================
       CALL READ_I6( NYMD=NYMD, NHMS=NHMS, 
-     &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO3, TTO3=TTO3 )
+     &              LWI=LWI,   PS=PS2,   SLP=SLP, TO3=TO32, TTO3=TTO3 )
 
 
 #elif defined( GCAP )

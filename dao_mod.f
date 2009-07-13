@@ -1,4 +1,4 @@
-! $Id: dao_mod.f,v 1.30 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: dao_mod.f,v 1.31 2009/07/13 20:57:21 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
@@ -240,6 +240,8 @@
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLI(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLW(:,:,:)
+      REAL*8,  ALLOCATABLE :: TO31(:,:)
+      REAL*8,  ALLOCATABLE :: TO32(:,:)
       REAL*8,  ALLOCATABLE :: TO3(:,:)
       REAL*8,  ALLOCATABLE :: TTO3(:,:)
       REAL*8,  ALLOCATABLE :: TMPU1(:,:,:)
@@ -659,6 +661,12 @@
      &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
 #endif
                
+#if defined( GEOS_5 )
+               ! We may want to use the total O3 column from GEOS_5
+               TO3(I,J) = TO31(I,J)
+     &                  + ( TO32(I,J) - TO31(I,J) ) * TM
+#endif
+
                ! However, we still need to make sure to cap TROPP in the 
                ! polar regions (if the entire box is outside 60S-60N)
                ! so that we don't do chemistry at an abnormally high
@@ -2149,6 +2157,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TAUCLW' )
       TAUCLW = 0d0
 
+      ! GEOS-5 total column ozone at beginning of 6hr timestep
+      ALLOCATE( TO31( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO31' )
+      TO31 = 0d0
+
+      ! GEOS-5 total column ozone at end of 6hr timestep
+      ALLOCATE( TO32( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO32' )
+      TO32 = 0d0
+
       ! GEOS-5 total column ozone
       ALLOCATE( TO3( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TO3' )
@@ -2328,6 +2346,8 @@
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )
+      IF ( ALLOCATED( TO31     ) ) DEALLOCATE( TO31     )
+      IF ( ALLOCATED( TO32     ) ) DEALLOCATE( TO32     )
       IF ( ALLOCATED( TO3      ) ) DEALLOCATE( TO3      )
       IF ( ALLOCATED( TTO3     ) ) DEALLOCATE( TTO3     )
       IF ( ALLOCATED( TMPU1    ) ) DEALLOCATE( TMPU1    )

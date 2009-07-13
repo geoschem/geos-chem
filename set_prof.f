@@ -1,4 +1,4 @@
-! $Id: set_prof.f,v 1.7 2009/06/08 14:09:32 ccarouge Exp $
+! $Id: set_prof.f,v 1.8 2009/07/13 20:57:20 bmy Exp $
       SUBROUTINE SET_PROF( NLON, NLAT, YLAT,  MONTH,   DAY, 
      &                     T,    SA,   ODCOL, OPTDUST, OPTAER )
 !
@@ -57,10 +57,14 @@
 !        added standard GEOS-CHEM documentation header. (mje, bmy, 7/13/03)
 !  (5 ) We don't need to initialize the PJ array with ETAA and ETAB anymore.
 !        PJ is now defined in "fast_j.f".  Updated comments. (bmy, 10/30/07)
+!  (6 ) Modified to use GEOS-5 O3 columns when TOMS/SBUV data don't exist,
+!        i.e. after 2008. (ccc, 7/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
+      USE DAO_MOD,  ONLY : TO3
       USE TOMS_MOD, ONLY : TOMS, DTOMS1, DTOMS2
+      USE TIME_MOD, ONLY : GET_YEAR
 
       IMPLICIT NONE
 
@@ -76,13 +80,28 @@
 
       ! Local variables
       INTEGER                :: I, K, L, M, N
+      INTEGER                :: YEAR
       REAL*8                 :: DLOGP,F0,T0,B0,PB,PC,XC,MASFAC,SCALEH
       REAL*8                 :: PSTD(52),OREF2(51),TREF2(51),BREF2(51)
       REAL*8                 :: PROFCOL, DAYTOMS
+      ! TTOMS is to determine if we are using TOMS or GEOS-5 O3 columns.
+      ! (ccc, 7/13/09)
+      LOGICAL                :: TTOMS = .TRUE.
+      LOGICAL,SAVE           :: FIRST = .TRUE.
 
       !=================================================================
       ! SET_PROF begins here!
       !=================================================================
+
+      ! Get the year of the run to know if using TOMS or GEOS-5 O3 
+      ! columns. (ccc, 07/13/09)
+      YEAR = GET_YEAR()
+
+#if defined(GEOS_5)
+      IF ( YEAR > 2008 ) THEN
+         TTOMS = .FALSE.
+      ENDIF
+#endif
 
       ! Set up cloud and surface properties
       CALL CLDSRF( ODCOL, SA )
@@ -266,24 +285,43 @@
       !=================================================================
       DAYTOMS = 0d0
 
-      IF ( DAY <= 15 ) THEN 
+      IF ( TTOMS ) THEN
+         IF ( DAY <= 15 ) THEN 
 
-         ! Interpolate O3 to current day (w/in first half of month)
-         IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
-     &        DTOMS1(NLON,NLAT) > -999d0 ) THEN  
-            DAYTOMS = TOMS(NLON,NLAT) + DTOMS1(NLON,NLAT) * ( DAY - 15 )
+            ! Interpolate O3 to current day (w/in first half of month)
+            IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
+     &           DTOMS1(NLON,NLAT) > -999d0 ) THEN  
+               DAYTOMS = TOMS(NLON,NLAT) + DTOMS1(NLON,NLAT) * 
+     &                   ( DAY - 15 )
+            ENDIF
+
+         ELSE
+
+            ! Interpolate O3 to current day (w/in 2nd half of month)
+            IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
+     &           DTOMS2(NLON,NLAT) > -999d0 ) THEN  
+               DAYTOMS = TOMS(NLON,NLAT) + DTOMS2(NLON,NLAT) * 
+     &                   ( DAY - 15 )
+            ENDIF
+
          ENDIF
 
       ELSE
 
-         ! Interpolate O3 to current day (w/in 2nd half of month)
-         IF ( TOMS(NLON,NLAT)   > -999d0  .AND.
-     &        DTOMS2(NLON,NLAT) > -999d0 ) THEN  
-            DAYTOMS = TOMS(NLON,NLAT) + DTOMS2(NLON,NLAT) * ( DAY - 15 )
+         ! TOMS/SBUV data don't exist so we use GEOS_5 total O3 column, 
+         ! TO3. (ccc, 7/13/09)
+         IF ( FIRST ) THEN
+            WRITE(6,*) 'TOMS/SBUV data are not available for this year'
+            WRITE(6,*) 'We use the total O3 column given by GEOS-5.'
+            WRITE(6,*) 'The validation by GMAO of these O3 columns is ' 
+     &                 // 'in progress.'
+            FIRST = .FALSE.
          ENDIF
 
+         DAYTOMS = TO3(NLON, NLAT)
+
       ENDIF
-      
+
       ! Scale monthly O3 profile to the daily O3 profile (if available)
       IF ( DAYTOMS > 0d0 ) THEN 
          DO I = 1, NB

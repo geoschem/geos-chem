@@ -1,11 +1,11 @@
-! $Id: planeflight_mod.f,v 1.27 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: planeflight_mod.f,v 1.28 2009/07/13 20:57:20 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
 !  Module PLANEFLIGHT_MOD contains variables and routines which are used to
 !  "fly" a plane through the GEOS-Chem model simulation.  This is useful for
 !  comparing model results with aircraft observations. 
-!  (mje, bmy, 7/30/02, 4/23/07)
+!  (mje, bmy, 7/30/02, 7/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -84,6 +84,7 @@
 !  (18) Bug fix in RO2_SETUP (tmf, bmy, 4/23/07)
 !  (19) Set very small values to zero.  (tmf, 1/7/09)
 !  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
+!  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1211,6 +1212,7 @@
 !        MAXVARS accordingly so that we don't exceed this. (bmy, 7/8/02)
 !  (2 ) Now do not write file header -- this is now done in subroutine
 !        SETUP_PLANEFLIGHT at the start of each day (bmy, 3/25/05)
+!  (3 ) Bug fix: make sure we have 3 spaces in exponential (phs, 7/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1234,7 +1236,13 @@
      &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
       
       ! Format string
- 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,95(es10.3,x))
+!------------------------------------------------------------------------------
+! Prior to 7/13/09:
+! Always make sure we have 3 spaces in the exponential (phs, 7/13/09)
+! 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,95(es10.3,x))
+!------------------------------------------------------------------------------
+ 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
+     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')

@@ -1,4 +1,4 @@
-! $Id: toms_mod.f,v 1.10 2009/01/28 19:59:14 bmy Exp $
+! $Id: toms_mod.f,v 1.11 2009/07/13 20:57:20 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
@@ -103,6 +103,7 @@
 !  (7 ) Bug fix: don't include DATA_DIR in filename, just in case someone's 
 !        file path has replaceable tokens (e.g. hh, mm, MM etc.) (bmy, 12/5/07)
 !  (8 ) Latest year of TOMS data is now 2007 (bmy, 1/14/09)
+!  (9 ) Updated TOMS data in TOMS_200906. Latest year is 2008. (ccc, 6/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -204,10 +205,10 @@
       !ENDIF
       !-------------------------------------
 
-      ! Use 2007 data after 2007
-      IF ( YEAR > 2007 ) THEN
+      ! Use 2008 data after 2008
+      IF ( YEAR > 2008 ) THEN
          WRITE( 6, 105 ) YEAR
-         YEAR = 2007
+         YEAR = 2008
       ENDIF
       
 
@@ -226,7 +227,7 @@
       YYYYMMDD = ( YEAR * 10000 ) + ( THISMONTH * 100 ) + 01
      
       ! Define filename (with replaceable tokens)
-      FILENAME = 'TOMS_200701/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
+      FILENAME = 'TOMS_200906/TOMS_O3col_YYYY.' // GET_NAME_EXT_2D() //
      &           '.'                            // GET_RES_EXT()
 
       ! Replace YYYY token with current year
