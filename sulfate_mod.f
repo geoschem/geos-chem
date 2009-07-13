@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.51 2009/07/08 20:54:39 bmy Exp $
+! $Id: sulfate_mod.f,v 1.52 2009/07/13 15:09:22 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 5/27/09)
+!  (rjp, bdf, bmy, 6/22/00, 7/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -218,6 +218,7 @@
 !  (43) Bug fix: need to add CAC_AN to PRIVATE statements (bmy, 5/27/09)
 !  (44) Constrain surface emissions to the first level and save them into
 !        emis_save (lin, 5/29/09)
+!  (45) Last year of SST data is now 2008 (see READ_SST) (bmy, 7/13/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -6154,7 +6155,7 @@
 !
 !***************************************************************************** 
 !  Subroutine READ_SST reads monthly mean sea surface temperatures.
-!  (rjp, bdf, bmy, 9/18/02, 11/17/05)
+!  (rjp, bdf, bmy, 9/18/02, 7/13/09)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -6170,6 +6171,7 @@
 !        grids (bmy, 8/16/05) 
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now read int'annual SST data on the GEOS 1x1 grid (bmy, 11/17/05)
+!  (7 ) Last year of data is now 2008 (bmy, 7/13/09)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -6195,7 +6197,12 @@
       ! READ_SST begins here!
       !==================================================================
 
-      IF ( THISYEAR >= 1985 .and. THISYEAR <= 2004 ) THEN 
+      !---------------------------------------------------------
+      ! Prior to 7/13/09:
+      ! Max year is now 2008 (bmy, 7/13/09)
+      !IF ( THISYEAR >= 1985 .and. THISYEAR <= 2004 ) THEN 
+      !---------------------------------------------------------
+      IF ( THISYEAR >= 1985 .and. THISYEAR <= 2008 ) THEN 
          
          !------------------------------------
          ! Use interannual SST data from NOAA
