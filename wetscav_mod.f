@@ -1,9 +1,9 @@
-! $Id: wetscav_mod.f,v 1.32 2009/07/08 20:54:39 bmy Exp $
+! $Id: wetscav_mod.f,v 1.33 2009/07/20 14:30:33 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/8/09)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/20/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -128,7 +128,7 @@
 !          Environmental Chemistry.
 !          http://www.mpch-mainz.mpg.de/~sander/res/henry.html
 !       (tmf, 1/7/09)
-!  (27) Remove support for SGI compiler (bmy, 7/8/09)
+!  (27) Remove support for SGI compiler.  Bug fix in RAINOUT. (bmy, 7/20/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -812,8 +812,9 @@
 
             ! Compute liquid to gas ratio for GLYX, using
             ! (1) Zhou and Mopper (1990): Kstar298 = 3.6e5 M/atm 
-            ! (2) Schweitzer et al. (1998) showed that the temperature dependence 
-            ! for CH2O works well for glyoxal, so we use the same H298_R as CH2O
+            ! (2) Schweitzer et al. (1998) showed that the temperature 
+            ! dependence for CH2O works well for glyoxal, so we use the 
+            ! same H298_R as CH2O
             CALL COMPUTE_L2G( 3.6d5,   -7.2d3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
@@ -920,7 +921,8 @@
 
             ! Compute liquid to gas ratio for GLYC, using
             ! the appropriate parameters for Henry's law
-            ! from Betterton and Hoffman 1988): Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
+            ! from Betterton and Hoffman 1988): 
+            ! Kstar298 = 4.1d4 M/atm;  H298_R = -4600 K
             CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
 
@@ -1640,7 +1642,7 @@
 !
 !******************************************************************************
 !  Subroutine RAINOUT computes RAINFRAC, the fraction of soluble tracer
-!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 3/5/08)
+!  lost to rainout events in precipitation. (djj, bmy, 2/28/00, 7/20/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1688,6 +1690,9 @@
 !        HgP tracer. (eck, cdh, bmy, 1/6/06)
 !  (15) Updated for SOG4 and SOA4 (dkh, bmy, 5/18/06)
 !  (16) For GEOS-5, suppress rainout when T < 258K (hyl, bmy, 3/5/08)
+!  (17) Bug fix: need to use separate conversion parameters for H2O2 and
+!        NH3.  This was the same fix as in COMPUTE_F but until now we had
+!        overlooked this. (havala, bmy, 7/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1719,8 +1724,24 @@
       ! Local variables 
       REAL*8               :: L2G, I2G, C_TOT, F_L, F_I, K, TK, SO2LOSS
 
-      ! CONV = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
-      REAL*8, PARAMETER    :: CONV = 8.27042925126d-1
+      !------------------------------------------------------------------------
+      ! Prior to 7/20/09:
+      ! Need to use separate parameters for H2O2, NH3, just as is done
+      ! in subroutine COMPUTE_F above.  We overlooked this until now.
+      ! (havala, bmy, 7/20/09)
+      !! CONV = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
+      !REAL*8, PARAMETER    :: CONV = 8.27042925126d-1
+      !------------------------------------------------------------------------
+
+      ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
+      ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
+      ! 1.9 is ( molecular weight H2O2 / molecular weight water )
+      REAL*8, PARAMETER :: CONV_H2O2 = 8.27042925126d-1
+
+      ! CONV_NH3 = 0.6 * SQRT( 0.9 ), used for the ice to gas ratio for NH3
+      ! 0.6 is ( sticking  coeff  NH3 / sticking  coeff  water )
+      ! 0.9 is ( molecular weight NH3 / molecular weight water )
+      REAL*8, PARAMETER :: CONV_NH3  = 5.69209978831d-1
 
       !==================================================================
       ! RAINOUT begins here!
@@ -1771,7 +1792,12 @@
          ! Compute ice to gas ratio for H2O2 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
          IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+            !----------------------------------------------------
+            ! Prior to 7/20/09:
+            ! Now multiply by CONV_H2O2 (bmy, 7/20/09)
+            !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+            !----------------------------------------------------
+            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
          ELSE
             I2G = 0d0
          ENDIF
@@ -1882,7 +1908,8 @@
 
          ! Compute liquid to gas ratio for MGLY, using
          ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
+         ! from Betterton and Hoffman 1988): 
+         ! Kstar298 = 3.71d3 M/atm;  H298_R = -7.5d3 K
          CALL COMPUTE_L2G( 3.7d3,    -7.5d3, 
      &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
 
@@ -1919,7 +1946,8 @@
 
          ! Compute liquid to gas ratio for GLYC, using
          ! the appropriate parameters for Henry's law
-         ! from Betterton and Hoffman 1988): Kstar298 = 4.1d4 M/atm;  H298_R = -4.6d3 K
+         ! from Betterton and Hoffman 1988): 
+         ! Kstar298 = 4.1d4 M/atm;  H298_R = -4.6d3 K
          CALL COMPUTE_L2G( 4.1d4,    -4.6d3, 
      &                     T(I,J,L), CLDLIQ(I,J,L), L2G )
 
@@ -2041,7 +2069,12 @@
          ! Compute ice to gas ratio for NH3 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
          IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+            !----------------------------------------------------
+            ! Prior to 7/20/09
+            ! Now multiply by CONV_NH3 (bmy, 7/20/09)
+            !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
+            !----------------------------------------------------
+            I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
          ELSE
             I2G = 0d0
          ENDIF
