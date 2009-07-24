@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.60 2009/06/11 13:16:21 bmy Exp $
+! $Id: main.f,v 1.61 2009/07/24 20:25:59 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.61  2009/07/24 20:25:59  ccarouge
+! test (ccc, 7/24/09)
+!
 ! Revision 1.60  2009/06/11 13:16:21  bmy
 ! Now print "use ifort -V for information" about IFORT compiler when
 ! displaying the type of compiler used to build G-C at top of the log
@@ -89,6 +92,7 @@
 !
 !******************************************************************************
 !
+
       ! References to F90 modules 
       USE A3_READ_MOD,       ONLY : GET_A3_FIELDS
       USE A3_READ_MOD,       ONLY : OPEN_A3_FIELDS
