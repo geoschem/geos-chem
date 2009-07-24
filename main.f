@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.61 2009/07/24 20:25:59 ccarouge Exp $
+! $Id: main.f,v 1.62 2009/07/24 20:28:40 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.62  2009/07/24 20:28:40  ccarouge
+! *** empty log message ***
+!
 ! Revision 1.61  2009/07/24 20:25:59  ccarouge
 ! test (ccc, 7/24/09)
 !
@@ -92,7 +95,6 @@
 !
 !******************************************************************************
 !
-
       ! References to F90 modules 
       USE A3_READ_MOD,       ONLY : GET_A3_FIELDS
       USE A3_READ_MOD,       ONLY : OPEN_A3_FIELDS
