@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.14 2009/07/08 20:54:39 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.15 2009/08/18 14:41:41 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1337,11 +1337,15 @@ CONTAINS
              
              ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
              
-             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
           end do
           ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
-          va(i2,ij) = 0.5d0 * (cry(i2,ij) + cry(i2,ij+1))
+       end do
 
+       do ij = ju1+1, j2-1
+          do il = i1, i2
+             
+             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
+          end do
        end do
 
 !      =============================
