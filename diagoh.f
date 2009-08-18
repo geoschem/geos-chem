@@ -1,9 +1,9 @@
-! $Id: diagoh.f,v 1.1 2003/06/30 20:26:05 bmy Exp $
+! $Id: diagoh.f,v 1.2 2009/08/18 14:48:29 bmy Exp $
       SUBROUTINE DIAGOH
 !
 !******************************************************************************
 !  Subroutine DIAGOH saves chemical diagnostic quantities for 
-!  the ND43 chemical diagnostics.  (bmy, 5/1/98, 1/13/03)
+!  the ND43 chemical diagnostics.  (bmy, 5/1/98, 8/10/09)
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax for declarations (bmy, 3/29/99)
@@ -19,6 +19,7 @@
 !        Updated comments, cosmetic changes. (rvm, bmy, 2/27/02)
 !  (7 ) Removed obsolete reference to DIAGCHLORO (bmy, 8/2/02)
 !  (8 ) Now save NO3 [molec/cm3] as AD43(:,:,:,5) (bmy, 1/13/03)
+!  (9 ) Corrected typo in comments (bmy, 8/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -41,7 +42,7 @@
       !                  Save NO, NO2 between times HR1_NO and HR2_NO
       !
       ! Store the following chemical diagnostics into the AD43 array:
-      !    AD43(:,:,:,1) = OH    [molec/cm3/s]
+      !    AD43(:,:,:,1) = OH    [molec/cm3]
       !    AD43(:,:,:,2) = NO    [v/v]
       !    AD43(:,:,:,3) = HO2   [v/v]
       !    AD43(:,:,:,4) = NO2   [v/v]

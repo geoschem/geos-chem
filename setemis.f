@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.18 2009/06/08 14:09:32 ccarouge Exp $
+! $Id: setemis.f,v 1.19 2009/08/18 14:48:29 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -93,7 +93,9 @@
 !  (28) Now replace GEMISNOX array (from CMN_NOX) with module arrays
 !        EMIS_LI_NOx and EMIS_AC_NOx (ltm, bmy, 10/3/07)
 !  (29) Bug fix: resize EMISRR to be consistent w/ CMN_O3 (bmy, jaf, 6/11/08)
-!  (30) Limit emissions into the surface level only (lin, 5/29/09) 
+!  (30) Limit emissions into the surface level only (lin, 5/29/09)
+!  (31) Bug fix: cycle if IDEMIS(NN) <= 0 to avoid array-out-of-bounds
+!        errors (bmy, 8/6/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -164,13 +166,21 @@
          IF ( ALLOCATED( BIOMASS ) ) THEN 
             DO I = 1, NBIOMAX_GAS
                IF ( BIOTRCE(I) == NN ) THEN 
-                  NBB = I
-#if   defined( COMPAQ )
-                  ! COMPAQ has an issue with EXIT from w/in parallel loop
-                  ! (auvray, bmy, 11/29/04)
-#else
+                 NBB = I
+!------------------------------------------------------------------------------
+! Prior to 8/6/09:
+! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
+!#if   defined( COMPAQ )
+!                  ! COMPAQ has an issue with EXIT from w/in parallel loop
+!                  ! (auvray, bmy, 11/29/04)
+!#else
+!------------------------------------------------------------------------------
                   EXIT
-#endif
+!------------------------------------------------------------------------------
+! Prior to 8/6/09:
+! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
+!#endif
+!------------------------------------------------------------------------------
                ENDIF
             ENDDO
          ENDIF
@@ -182,12 +192,20 @@
             DO I = 1, NBFTRACE
                IF ( BFTRACE(I) == NN ) THEN
                   NBF = I
-#if   defined( COMPAQ )
-                  ! COMPAQ has an issue with EXIT from w/in parallel loop
-                  ! (auvray, bmy, 11/29/04)
-#else
+!------------------------------------------------------------------------------
+! Prior to 8/6/09:
+! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
+!#if   defined( COMPAQ )
+!                  ! COMPAQ has an issue with EXIT from w/in parallel loop
+!                  ! (auvray, bmy, 11/29/04)
+!#else
+!------------------------------------------------------------------------------
                   EXIT
-#endif 
+!------------------------------------------------------------------------------
+! Prior to 8/6/09:
+! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
+!#endif 
+!------------------------------------------------------------------------------
               ENDIF
             ENDDO
          ENDIF            
@@ -196,6 +214,13 @@
          DO JLOOP = 1, NTTLOOP
             REMIS(JLOOP,N) = 0d0
          ENDDO       
+
+         ! Skip to next tracer if IDEMIS(NN) is not defined in 
+         ! order to avoid array-out-of-bounds errors (bmy, 8/6/04)
+         IF ( IDEMIS(NN) <= 0 ) THEN
+            PRINT*, 'Tracer ', NN, ' is not an emitted species!'
+            CYCLE
+         ENDIF
 
          ! COEF1 = molecules of emission species / molecules of tracer
          COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))         
