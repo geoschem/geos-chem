@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.61 2009/07/10 20:32:25 bmy Exp $
+! $Id: input_mod.f,v 1.62 2009/08/19 17:05:47 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -45,11 +45,12 @@
 !  (22) READ_ARCHIVED_OH_MENU : Reads the GEOS-Chem archived OH menu
 !  (23) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
 !  (24) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
-!  (25) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
-!  (26) CHECK_DIRECTORY       : Checks a single directory for errors
-!  (27) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
-!  (28) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
-!  (29) INIT_INPUT            : Initializes directory & logical variables
+!  (25) READ_CH4_MENU         : Reads the GEOS-CHEM menu for CH4 simulations
+!  (26) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
+!  (27) CHECK_DIRECTORY       : Checks a single directory for errors
+!  (28) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
+!  (29) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
+!  (30) INIT_INPUT            : Initializes directory & logical variables
 !
 !  GEOS-CHEM modules referenced by "input_mod.f"
 !  ============================================================================
@@ -133,6 +134,7 @@
 !  (26) Add LMEGANMONO switch in emission menu (ccc, 3/2/09)
 !  (27) Add LDICARB switch in aerosol menu (ccc, tmf, 3/10/09)
 !  (28) Now read LCOOKE in aerosol menu (phs, 5/18/09)
+!  (29) Add CH4_MENU in input.geos (kjw, 8/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -317,6 +319,9 @@
               
          ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
             CALL READ_MERCURY_MENU
+                                    
+         ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
+            CALL READ_CH4_MENU
                                     
          ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
             EXIT
@@ -2378,7 +2383,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_CO2_SIM,        ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
-      USE TRACER_MOD,   ONLY : SALA_REDGE_um
+      USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -2554,7 +2559,7 @@
       CALL SET_TINDEX( 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
 
       !--------------------------
-      ! ND19: Free
+      ! ND19: CH4 loss
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:21' )
       READ( SUBSTRS(1), * ) ND19
@@ -2722,7 +2727,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:43' )
       READ( SUBSTRS(1), * ) ND43
-      IF ( .not. ITS_A_FULLCHEM_SIM() ) ND43 = 0
+      IF ( .not. ( ITS_A_FULLCHEM_SIM().or.ITS_A_CH4_SIM() )) ND43 = 0
       CALL SET_TINDEX( 43, ND43, SUBSTRS(2:N), N-1, PD43 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:44' )
@@ -2820,7 +2825,7 @@
       CALL SET_TINDEX( 57, ND57, SUBSTRS(2:N), N-1, PD57 )
 
       !--------------------------
-      ! ND58: Free
+      ! ND58: CH4 Emissions 
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
@@ -2834,7 +2839,7 @@
       CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
 
       !--------------------------
-      ! ND60: Free
+      ! ND60: Wetland Fraction 
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
       READ( SUBSTRS(1), * ) ND60
@@ -4124,6 +4129,109 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_CH4_MENU
+!
+!******************************************************************************
+!  Subroutine READ_CH4_MENU reads the CH4 MENU section of the GEOS-Chem 
+!  input file; this defines emissions options for CH4 tagged simulations.
+!  (kjw, ccc, 8/3/09)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE LOGICAL_MOD,          ONLY : LGAO,    LCOL,    LLIV,   LWAST
+      USE LOGICAL_MOD,          ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
+      USE LOGICAL_MOD,          ONLY : LOTANT,  LSOABS,  LOTNAT
+      USE LOGICAL_MOD,          ONLY : LCH4BUD
+ 
+#     include "define.h"             ! C-preprocessor switches
+
+      ! Local variables
+      INTEGER                       :: N
+      CHARACTER(LEN=255)            :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_CH4_MENU begins here!
+      !=================================================================
+
+      ! Compute CH4 budget
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:1' )
+      READ( SUBSTRS(1:N), * ) LCH4BUD
+
+      ! Use Gas & Oil emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:2' )
+      READ( SUBSTRS(1:N), * ) LGAO
+
+      ! Use Coal emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:3' )
+      READ( SUBSTRS(1:N), * ) LCOL              
+                                                
+      ! Use Livestock emissions?                
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:4' )
+      READ( SUBSTRS(1:N), * ) LLIV              
+                                                
+      ! Use Waste emissions?                    
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:5' )
+      READ( SUBSTRS(1:N), * ) LWAST             
+                                                
+      ! Use Biofuel emissions?                  
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:6' )
+      READ( SUBSTRS(1:N), * ) LBFCH4          
+                                                
+      ! Use Rice emissions?                     
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:7' )
+      READ( SUBSTRS(1:N), * ) LRICE             
+                                                
+      ! Use Other Anthropogenic emissions?      
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:8' )
+      READ( SUBSTRS(1:N), * ) LOTANT            
+                                                
+      ! Use Biomass emissions?                  
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:9' )
+      READ( SUBSTRS(1:N), * ) LBMCH4          
+                                                
+      ! Use Wetlands emissions?                 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:10' )
+      READ( SUBSTRS(1:N), * ) LWETL             
+                                                
+      ! Use Soil Absorption?          
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:11' )
+      READ( SUBSTRS(1:N), * ) LSOABS            
+                                                
+      ! Use Other Natural emissions?            
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:12' )
+      READ( SUBSTRS(1:N), * ) LOTNAT            
+                                                
+      ! Separator line                          
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CH4_menu:13' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'CH4 MENU'
+      WRITE( 6, '(  a)' ) '-----------'
+      WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
+      WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ', LGAO
+      WRITE( 6, 100     ) 'Use Coal Mine emis?   : ', LCOL
+      WRITE( 6, 100     ) 'Use Livestock emis?   : ', LLIV
+      WRITE( 6, 100     ) 'Use Waste emis?       : ', LWAST
+      WRITE( 6, 100     ) 'Use Biofuel emis?     : ', LBFCH4
+      WRITE( 6, 100     ) 'Use Rice emis?        : ', LRICE
+      WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ', LOTANT
+      WRITE( 6, 100     ) 'Use Biomass emis?     : ', LBMCH4
+      WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
+      WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
+      WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5  )
+
+      ! Return to calling program
+      END SUBROUTINE READ_CH4_MENU
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE VALIDATE_DIRECTORIES
 !
 !******************************************************************************
@@ -4309,15 +4417,19 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Add TS_DIAG, the largest time steps used for diagnostics.
+!        And test that all time steps are multiple of the smallest one.
+!        (ccc, 5/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LCONV, LCHEM, LDRYD 
       USE LOGICAL_MOD, ONLY : LEMIS, LTRAN, LTURB 
       USE TIME_MOD,    ONLY : SET_TIMESTEPS
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       
       ! Local variables
-      INTEGER              :: I, J, K, L, TS_SMALLEST
+      INTEGER              :: I, J, K, L, TS_SMALLEST, TS_DIAG
       
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -4346,24 +4458,74 @@
       TS_SMALLEST = MIN( I, J, K, L )
 
       ! If all of the operators above are turned off, 
-      ! then set NSMALLEST to NDYN.
+      ! then set TS_SMALLEST to TS_DYN.
       IF ( TS_SMALLEST == 999999 ) THEN 
          TS_SMALLEST = TS_DYN
       ENDIF
-            
-      ! If NDYN is smaller than NSMALLEST, reset NSMALLEST
-      ! to NDYN.  Also reset NTDT and NSTP accordingly.
+       
+      IF ( LTRAN .and. TS_DYN /= TS_SMALLEST ) THEN
+         WRITE(6,*) 'The transport time step should be the smallest one'
+         CALL GEOS_CHEM_STOP
+      ENDIF
+     
+      ! If TS_DYN is smaller than TS_SMALLEST, reset TS_DYN
+      ! to TS_SMALLEST.
       ! This is useful for runs where transport is turned off,
       ! but where chemistry is turned on. 
       IF ( TS_DYN < TS_SMALLEST ) THEN
          TS_DYN = TS_SMALLEST
       ENDIF
 
+      ! Define the largest time step, TS_DIAG, for diagnostics.
+      ! Diagnostics should be incremented at the end of multiples of
+      ! TS_DIAG, so that the system is at a physical state.
+      ! (ccc, 5/13/09)
+      IF ( .not. LTRAN                  ) I = -999999 
+      IF ( .not. LCONV .and..not. LTURB ) J = -999999
+      IF ( .not. LDRYD .and..not. LEMIS ) K = -999999
+      IF ( .not. LCHEM                  ) L = -999999
+
+      TS_DIAG = MAX( I, J, K, L )
+
+      ! If all the operators are turned off, then set TS_DIAG to TS_CHEM
+      ! Usually the chemistry time step is large. (ccc, 5/13/09)
+      IF ( TS_DIAG == -999999 ) THEN
+         TS_DIAG = TS_CHEM
+      ENDIF
+
+      ! Check if all time steps are multiples of the smallest.
+      ! (ccc, 5/13/09)
+      IF ( L /= -99999 .and. MOD( TS_CHEM, TS_SMALLEST ) /= 0 ) THEN
+         WRITE( 6, 100 ) 'Chemistry', TS_CHEM, TS_SMALLEST
+         CALL GEOS_CHEM_STOP
+      ENDIF
+      
+      IF ( K /= -99999 .and. MOD( TS_EMIS, TS_SMALLEST ) /= 0 ) THEN
+         WRITE( 6, 100 ) 'Emission', TS_EMIS, TS_SMALLEST
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      IF ( J /= -99999 .and. MOD( TS_CONV, TS_SMALLEST ) /= 0 ) THEN
+         WRITE( 6, 100 ) 'Convection', TS_CONV, TS_SMALLEST
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      IF ( I /= -99999 .and. MOD( TS_DYN, TS_SMALLEST ) /= 0 ) THEN
+         WRITE( 6, 100 ) 'Transport', TS_DYN, TS_SMALLEST
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+
       ! Initialize timesteps in "time_mod.f"
       CALL SET_TIMESTEPS( CHEMISTRY=TS_CHEM, EMISSION=TS_EMIS, 
      &                    DYNAMICS=TS_DYN,   UNIT_CONV=TS_UNIT,
-     &                    CONVECTION=TS_CONV )
+     &                    CONVECTION=TS_CONV, DIAGNOS=TS_DIAG )
+
       
+ 100  FORMAT( A, ' time step must be a multiple of the smallest one:',
+     &         i5, i5 )
+
+
       ! Return to MAIN program
       END SUBROUTINE CHECK_TIME_STEPS
 

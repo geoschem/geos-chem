@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.24 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: a3_read_mod.f,v 1.25 2009/08/19 17:05:48 ccarouge Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -461,6 +461,8 @@
 !  (7 ) Now read extra fields for GEOS-5 (bmy, 1/17/07)
 !  (8 ) Now read EFLUX field for non-local PBL scheme (only GEOS5).
 !        (ccc, 5/14/09)
+!  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
+!        (kjw, 8/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -470,6 +472,7 @@
       USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
       USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
+      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -533,7 +536,8 @@
       !    ALBEDO, CLDFRC, EVAP,   GRN,    GWETROOT, GWETTOP, HFLUX, 
       !    LAI,    PARDF,  PARDR,  PBLH,   PREACC,   PRECON,  PRECSNO,
       !    RADLWG, RADSWG, SNODP,  SNOMAS, T2M,      TROPP,   TSKIN,   
-      !    U10M,   USTAR,  V10M,   Z0 
+      !    U10M,   USTAR,  V10M,   Z0,
+      !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
       !
       !=================================================================
       CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
@@ -545,7 +549,8 @@
      &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
      &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
      &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
-     &              EFLUX=EFLUX )
+     &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
+     &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
 
 #elif defined( GCAP )
 
@@ -631,8 +636,8 @@
 
 #elif defined( GEOS_5 )
 
-      ! GEOS-5 has 26 A-3 fields
-      N_A3 = 26
+      ! GEOS-5 has 30 A-3 fields
+      N_A3 = 30
 
 #elif defined( GCAP )
       
@@ -693,7 +698,7 @@
      &                    PRECSNO, RADLWG, RADSWG, RADSWT,   SNICE,    
      &                    SNODP,   SNOMAS, SNOW,   TROPP,    TS,       
      &                    TSKIN,   U10M,   USTAR,  V10M,     Z0,
-     &                    EFLUX )
+     &                    EFLUX,   FRLAND, FRLAKE, FROCEAN,  FRLANDIC )
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
@@ -737,6 +742,10 @@
 !  (29) V10M     : (2-D) GMAO V-wind at 10 m                    [m/s]
 !  (30) Z0       : (2-D) GMAO roughness height                  [m] 
 !  (31) EFLUX    : (2-D) GMAO latent heat flux                  [W/m2]
+!  (32) FRLAND   : (2-D) GMAO fraction of land                  [unitless]
+!  (33) FROCEAN  : (2-D) GMAO fraction of ocean                 [unitless]
+!  (34) FRLANDIC : (2-D) GMAO fraction of land ice              [unitless]
+!  (35) FRLAKE   : (2-D) GMAO fraction of lake water            [unitless]
 !
 !  NOTES:
 !  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
@@ -754,6 +763,7 @@
 !        [kg/m2/s] to [mm/day] for backwards compatibility. (bmy, 1/17/07)
 !  (8 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
+!  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -798,6 +808,10 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: V10M(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: Z0(IIPAR,JJPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAND(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAKE(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FROCEAN(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
 
       ! Local Variables
       INTEGER                        :: I, IJLOOP, IOS, J, N_A3, NFOUND 
@@ -1246,15 +1260,70 @@
                   NFOUND = NFOUND + 1
                ENDIF
 
+            !--------------------------------            
+            ! FRLAND: land fraction
+            !--------------------------------            
+            CASE ( 'FRLAND' )
+               print*,'A3_READ_MOD: FRLAND'
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35')
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( FRLAND ) ) CALL TRANSFER_2D( Q2, FRLAND) 
+                  NFOUND = NFOUND + 1
+               ENDIF         
+
+            !--------------------------------            
+            ! FRLAKE: lake fraction
+            !--------------------------------            
+            CASE ( 'FRLAKE' )
+               print*,'A3_READ_MOD: FRLAKE'
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:36')
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( FRLAKE ) ) CALL TRANSFER_2D( Q2, FRLAKE) 
+                  NFOUND = NFOUND + 1
+               ENDIF 
+
+            !--------------------------------            
+            ! FROCEAN: ocean fraction
+            !--------------------------------            
+            CASE ( 'FROCEAN' )
+               print*,'A3_READ_MOD: FROCEAN'
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:37')
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( FROCEAN ) ) THEN
+                     CALL TRANSFER_2D( Q2, FROCEAN ) 
+                     NFOUND = NFOUND + 1
+                  ENDIF
+               ENDIF 
+
+            !--------------------------------            
+            ! FRLANDIC: land ice fraction
+            !--------------------------------            
+            CASE ( 'FRLANDIC' )
+               print*,'A3_READ_MOD: FRLANDIC'
+               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:38')
+             
+               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+                  IF ( PRESENT( FRLANDIC ) ) THEN
+                     CALL TRANSFER_2D( Q2, FRLANDIC ) 
+                     NFOUND = NFOUND + 1
+                  ENDIF
+               ENDIF 
+
             !--------------------------------
             ! Extra GEOS-5 fields
             ! Skip over for now, add later
             ! (bmy, 10/7/08)
             !--------------------------------
-            CASE ( 'FRLAKE',  'FRLAND', 'FRLANDIC',
-     &             'FROCEAN', 'PRECANV', 'LWTUP',  'QV2M'  )
+            CASE ( 'PRECANV', 'LWTUP',  'QV2M'  )
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:39' )
              
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
                   NFOUND = NFOUND + 1

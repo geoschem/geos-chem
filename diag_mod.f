@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.22 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag_mod.f,v 1.23 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -60,6 +60,8 @@
 !  (29) Added AD52 for Gamma HO2 diagnostic. (jaegle, ccc, 2/26/09)
 !  (30) Updated to save out GLYX production of SOAG in ND07.
 !       (tmf, 3/6/09)
+!  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
+!  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
 !******************************************************************************
 !     
       !=================================================================
@@ -226,6 +228,7 @@
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTOTH(:,:)
       INTEGER, ALLOCATABLE :: CTO3(:,:,:)
+      INTEGER, ALLOCATABLE :: LTO3(:,:)
 
       ! For ND46 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD46(:,:,:)      
@@ -247,6 +250,11 @@
 
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
+
+      ! -- for methane simulation diagnostics
+      REAL*4,  ALLOCATABLE :: AD19(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD58(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD60(:,:)
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -358,6 +366,9 @@
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
+      IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
+      IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
+      IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -382,6 +393,7 @@
       IF ( ALLOCATED( LTNO3       ) ) DEALLOCATE( LTNO3       )
       IF ( ALLOCATED( LTHO2       ) ) DEALLOCATE( LTHO2       )
       IF ( ALLOCATED( LTOTH       ) ) DEALLOCATE( LTOTH       )
+      IF ( ALLOCATED( LTO3        ) ) DEALLOCATE( LTO3        )
       IF ( ALLOCATED( MASSFLEW    ) ) DEALLOCATE( MASSFLEW    )
       IF ( ALLOCATED( MASSFLNS    ) ) DEALLOCATE( MASSFLNS    )
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )

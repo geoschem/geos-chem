@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.63 2009/07/08 20:54:40 bmy Exp $
+! $Id: diag3.f,v 1.64 2009/08/19 17:05:47 ccarouge Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -101,6 +101,9 @@
 !  (83) Modify ND17, ND18, ND37, ND38, ND44 to output the tracers selected 
 !        by the user. (ccc, 5/29/09)
 !  (84) Add EFLUX output information for ND67. (lin, ccc, 5/29/09)
+!  (85) Add SCALE_DIAG to scale diagnostics with the number of accumulation 
+!        steps. (ccc, 7/20/09)
+!  (86) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -137,6 +140,7 @@
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,     ONLY : AD52
       USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
+      USE DIAG_MOD,     ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,     ONLY : AD68,        AD69
       USE DIAG_MOD,     ONLY : AD10,        AD10em
@@ -155,6 +159,7 @@
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
+      USE TIME_MOD,     ONLY : GET_CT_DIAG 
       USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
       USE TRACER_MOD,   ONLY : TRACER_NAME
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
@@ -194,6 +199,7 @@
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
       REAL*8             :: SCALE_I6,  SCALE_A6,  SCALE_A3,  SCALED    
       REAL*8             :: SCALEDYN,  SCALECONV, SCALESRCE, SCALECHEM 
+      REAL*8             :: SCALEDIAG 
       REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
       REAL*8             :: FDTT,      AREA_M2,   DIAGb,     DIAGe
       
@@ -216,17 +222,18 @@
 !******************************************************************************
 !
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
-      DIAGb     = GET_DIAGb()
-      DIAGe     = GET_DIAGe()
-      SECONDS   = ( DIAGe - DIAGb ) * 3600d0
-      SCALED    = 1d0
-      SCALEDYN  = DBLE( GET_CT_DYN()  ) + 1d-32
-      SCALECONV = DBLE( GET_CT_CONV() ) + 1d-32
-      SCALESRCE = DBLE( GET_CT_EMIS() ) + 1d-32
-      SCALECHEM = DBLE( GET_CT_CHEM() ) + 1d-32
-      SCALE_A3  = DBLE( GET_CT_A3()   ) + 1d-32
-      SCALE_A6  = DBLE( GET_CT_A6()   ) + 1d-32
-      SCALE_I6  = DBLE( GET_CT_I6()   ) + 1d-32
+      DIAGb      = GET_DIAGb()
+      DIAGe      = GET_DIAGe()
+      SECONDS    = ( DIAGe - DIAGb ) * 3600d0
+      SCALED     = 1d0
+      SCALEDYN   = DBLE( GET_CT_DYN()  ) + 1d-32
+      SCALECONV  = DBLE( GET_CT_CONV() ) + 1d-32
+      SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1d-32
+      SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
+      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
+      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1d-32
+      SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1d-32
 !
 !******************************************************************************
 !  Setup for binary punch file:
@@ -1369,6 +1376,32 @@
       ENDIF
 !
 !******************************************************************************
+!  ND19: CH4 loss
+!
+!   # : Field    : Description                     : Units    : Scale factor
+!  --------------------------------------------------------------------------
+!  (1 ) CH4-LOSS : CH4 removing by OH              : kg CH4   : 1
+!******************************************************************************
+!
+      IF ( ND19 > 0 ) THEN
+
+         UNIT = 'kg'
+
+         !==============================================================
+         ! CH4 Loss
+         !==============================================================
+         CATEGORY     = 'CH4-LOSS'
+         N            = 1
+	
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+
+	ENDIF
+!
+!******************************************************************************
 !  ND21: Optical depth diagnostics
 !
 !   # : Field : Description                        : Units    : Scale factor
@@ -1909,7 +1942,9 @@
          CATEGORY = 'LANDMAP'
          UNIT     = 'unitless'
             
-         ARRAY(:,:,1) = AD30(:,:) / SCALEDYN
+!--- Prior to (ccc, 5/21/09) ----------------
+!         ARRAY(:,:,1) = AD30(:,:) / SCALEDYN
+         ARRAY(:,:,1) = AD30(:,:) / SCALEDIAG
          NN           = 1 
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -1938,7 +1973,10 @@
       IF ( ND31 > 0 ) THEN
          CATEGORY          = 'PEDGE-$'
          UNIT              = 'mb'
-         ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDYN
+
+!--- Prior to (ccc, 5/21/09) ----------------------------
+!         ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDYN
+         ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDIAG
          NN                = 1
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2105,7 +2143,9 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-            ARRAY(:,:,1) = AD33(:,:,N) / SCALEDYN
+!--- Prior to (ccc, 5/21/09) ---------------------
+!            ARRAY(:,:,1) = AD33(:,:,N) / SCALEDYN
+            ARRAY(:,:,1) = AD33(:,:,N) / SCALEDIAG
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2187,7 +2227,9 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
                
-            ARRAY(:,:,1) = AD35(:,:,N) / SCALEDYN
+!--- Prior to (ccc, 5/21/09) ---------------------
+!            ARRAY(:,:,1) = AD35(:,:,N) / SCALEDYN
+            ARRAY(:,:,1) = AD35(:,:,N) / SCALEDIAG
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -2813,7 +2855,9 @@
             NN = N
             
             DO L = 1, LD47
-               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
+!--- Prior to (ccc, 5/21/09) --------------------------
+!               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
+               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDIAG
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2936,6 +2980,73 @@
 !******************************************************************************
 !
       IF ( ND56 > 0 ) CALL WRITE_DIAG56
+
+!
+!******************************************************************************
+!  ND58: CH4 Emission Diagnostics
+!
+!   #  : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
+!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
+!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
+!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
+!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
+!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
+!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
+!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
+!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
+!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
+!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
+!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
+!******************************************************************************
+
+      IF ( ND58 > 0 ) THEN
+         CATEGORY = 'CH4-EMIS'
+
+         DO M = 1, TMAX(58)
+            N  = TINDEX(58,M)
+            IF ( N > PD58 ) CYCLE
+            NN = N
+
+            UNIT = 'kg'
+
+            ARRAY(:,:,1) = AD58(:,:,N)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+      ENDIF
+
+!
+!******************************************************************************
+!  ND60: Wetland fraction
+!
+!   # : Field    : Description                     : Units    : Scale factor
+!  --------------------------------------------------------------------------
+!  (1 ) WET-FRAC : WETLAND FRACTION                : unitless : 1
+!******************************************************************************
+!
+
+      IF ( ND60 > 0 ) THEN
+
+         UNIT = 'unitless'
+         CATEGORY     = 'WET-FRAC'
+         ARRAY(:,:,1) = AD60(:,:)
+         N            = 1
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, N,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+      ENDIF
+
+
 !
 !*****************************************************************************
 !  ND62: I-J Instantaneous Column Maps for Tracers (molec/cm^2)  
@@ -3296,7 +3407,9 @@
             NN = N 
 
             DO L = 1, LD68
-               ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDYN
+!--- Prior to (ccc, 5/21/09) --------------------------
+!               ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDYN
+               ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDIAG
             ENDDO
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

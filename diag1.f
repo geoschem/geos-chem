@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.21 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag1.f,v 1.22 2009/08/19 17:05:47 ccarouge Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -54,6 +54,7 @@
 !  (29) Bug fix: Update ND30 for both GEOS-3 and otherwise.  Also now save
 !        3-D pressure edges in ND31 instead of PS-PTOP.  Revert to the !
 !        pre-near-land ND30 diagnostic algorithm. (bmy, 1/28/04)
+!  (30) Use LTO3 for O3 in ND45. (ccc, 7/20/09)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -327,7 +328,7 @@
       USE DAO_MOD,        ONLY : AD,  AIRDEN, AVGW,     BXHEIGHT 
       USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
       USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
-      USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH
+      USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
@@ -463,6 +464,7 @@
       !  (1 ) AD45 array replaces the AIJ array for this diagnostic 
       !        (bmy, 3/22/99)
       !  (2 ) Add parallel loop over tracers (bmy, 5/4/00)
+      !  (3 ) Use LTO3 and not LTOTH for O3. (ccc, 7/20/09)
       !================================================================= 
       IF ( ND45 > 0 ) THEN
 !$OMP PARALLEL DO 
@@ -478,13 +480,18 @@
             ENDDO
             ENDDO
 
-            ! NOTE: Only update on chem timesteps (phs, 1/24/07)
-            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            ! With TS_DIAG, the diags are automatically calculated at the
+            ! right time (= same time done for all processes). (ccc, 5/21/09)
+!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
+!---- Prior to (ccc, 7/20/09) ----
+!                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
+!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
                   AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
-     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
+     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
                ENDDO            
                ENDDO            
                ENDDO            
@@ -512,8 +519,10 @@
             ENDDO
             ENDDO
             
-            ! NOTE: Only update on chem timesteps (phs, 1/24/07)
-            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            ! With TS_DIAG, the diags are automatically calculated at the
+            ! right time (= same time done for all processes). (ccc, 5/21/09)
+!            IF ( N == IDTOX .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            IF ( N == IDTOX .and. IS_FULLCHEM ) THEN
                DO L = 1, LD47
                DO J = 1, JJPAR
                DO I = 1, IIPAR

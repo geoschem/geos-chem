@@ -1,4 +1,4 @@
-! $Id: edgar_mod.f,v 1.10 2009/07/08 20:54:40 bmy Exp $
+! $Id: edgar_mod.f,v 1.11 2009/08/19 17:05:47 ccarouge Exp $
       MODULE EDGAR_MOD
 !
 !******************************************************************************
@@ -2085,7 +2085,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
@@ -2109,8 +2109,8 @@
       E_C2H4 = 0e0      
 
       ! Define the binary punch file name
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'C2H4_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &        'EDGAR200607/C2H4/C2H4_1985_FF_IND_EDGAR2.1x1geos.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2154,7 +2154,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD  
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
@@ -2178,8 +2178,8 @@
       E_C2H2 = 0e0      
 
       ! Define the binary punch file name
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'C2H2_1985_FF_IND_EDGAR2.1x1geos.bpch'
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &        'EDGAR200607/C2H2/C2H2_1985_FF_IND_EDGAR2.1x1geos.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2255,8 +2255,8 @@
       !=================================================================
       ! Read BENZ (tracer #57): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'BENZ_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      FILENAME = TRIM( DATA_DIR ) //
+     &        'EDGAR_200905/BENZ/BENZ_1985_FF_IND_EDGAR2.05x0666CH.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -2269,8 +2269,8 @@
       !=================================================================
       ! Read TOLU (tracer #58): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'TOLU_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      FILENAME = TRIM( DATA_DIR ) //
+     &        'EDGAR_200905/TOLU/TOLU_1985_FF_IND_EDGAR2.05x0666CH.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -2283,8 +2283,8 @@
       !=================================================================
       ! Read XYLE (tracer #59): aseasonal
       !=================================================================
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'XYLE_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      FILENAME = TRIM( DATA_DIR ) //
+     &        'EDGAR_200905/XYLE/XYLE_1985_FF_IND_EDGAR2.05x0666CH.bpch'
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -2341,8 +2341,8 @@
       E_C2H4 = 0e0      
 
       ! Define the binary punch file name
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'C2H4_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      FILENAME = TRIM( DATA_DIR ) //
+     &        'EDGAR_200905/C2H4/C2H4_1985_FF_IND_EDGAR2.05x0666CH.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2402,8 +2402,8 @@
       E_C2H2 = 0e0      
 
       ! Define the binary punch file name
-      FILENAME = '/as2/home/ccarouge/orig.emission/edgar/' //
-     &        'C2H2_1985_FF_IND_EDGAR2.05x0666CH.bpch'
+      FILENAME = TRIM( DATA_DIR ) //
+     &        'EDGAR_200905/C2H2/C2H2_1985_FF_IND_EDGAR2.05x0666CH.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )

@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.24 2009/07/08 20:54:39 bmy Exp $
+! $Id: transport_mod.f,v 1.25 2009/08/19 17:05:46 ccarouge Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -709,7 +709,7 @@
 
             ! We apply mass conservation only on cells with 
             ! nonzero tracer. (ccc, 11/20/08)
-            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
                SUMADA = SUMADA + AD_A(I,J,L)
             ENDIF
          ENDDO
@@ -727,7 +727,7 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            IF ( STT(I,J,L,N) > 0.d0 ) THEN
+            IF ( STT(I,J,L,N) > 0.d0 .or. STT(I,J,L,N) < 0.d0 ) THEN
                STT(I,J,L,N) = STT(I,J,L,N) + TR_DIFF
             ENDIF
 

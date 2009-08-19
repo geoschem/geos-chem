@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.28 2009/07/13 20:57:20 bmy Exp $
+! $Id: planeflight_mod.f,v 1.29 2009/08/19 17:05:46 ccarouge Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -85,6 +85,7 @@
 !  (19) Set very small values to zero.  (tmf, 1/7/09)
 !  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
 !  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
+!  (22) Output the grid cell indexes (kjw, 8/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -411,6 +412,9 @@
                IF ( LINE == 'GMAO_PSFC' ) PVAR(N) = 1004
                IF ( LINE == 'GMAO_UWND' ) PVAR(N) = 1005      
                IF ( LINE == 'GMAO_VWND' ) PVAR(N) = 1006 
+               IF ( LINE == 'GMAO_IIEV' ) PVAR(N) = 1007
+               IF ( LINE == 'GMAO_JJEV' ) PVAR(N) = 1008
+               IF ( LINE == 'GMAO_LLEV' ) PVAR(N) = 1009
 
             !===========================================================
             ! Column aerosol optical depths (same order as for FAST-J)
@@ -966,6 +970,24 @@
                   !--------------------------
                   CASE ( 1006 )
                      VARI(V) = VWND(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Grid Box I
+                  !--------------------------
+                  CASE ( 1007 )
+                     VARI(V) = I
+
+                  !--------------------------
+                  ! GEOS-Chem Grid Box J
+                  !--------------------------
+                  CASE ( 1008 )
+                     VARI(V) = J
+
+                  !--------------------------
+                  ! GEOS-Chem Grid Box L
+                  !--------------------------
+                  CASE ( 1009 )
+                     VARI(V) = L
 
                   !--------------------------
                   ! Column aerosol optical 

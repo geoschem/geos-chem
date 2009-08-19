@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.25 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag49_mod.f,v 1.26 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -169,6 +169,8 @@
 !  (10) Bug fix: UNIT should be "levels" for tracer 77.  Also RH should be
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
 !  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
+!  (12) Change the new day condition to open a new file. (ccc, 8/12/09)
+!  (13) Change the timestamp for the filename when closing (ccc, 8/12/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -180,6 +182,7 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET,        GET_YOFFSET
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE TIME_MOD,     ONLY : GET_NYMD,           GET_NHMS
+      USE TIME_MOD,     ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,     ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,     ONLY : ITS_A_NEW_DAY,      TIMESTAMP_STRING
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
@@ -201,8 +204,9 @@
       LOGICAL, SAVE            :: IS_FULLCHEM, IS_NOx,     IS_Ox 
       LOGICAL, SAVE            :: IS_NOy,      IS_CLDTOPS, IS_OPTD
       LOGICAL, SAVE            :: IS_SEASALT,  IS_SLP
-      INTEGER                  :: IOS, GMTRC, GMNL, I, J, K, L 
-      INTEGER                  :: N,   R,     H,    W, X, Y
+      INTEGER                  :: IOS,  GMTRC, GMNL, I, J, K, L 
+      INTEGER                  :: N,    R,     H,    W, X, Y
+      INTEGER                  :: NHMS, TS_DIAG
       REAL*8                   :: TAU, TMP,   SCALE400nm
       REAL*8                   :: Q( ND49_NI, ND49_NJ, ND49_NL )
       CHARACTER(LEN=16)        :: STAMP
@@ -236,8 +240,14 @@
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
+      ! We need to check if it's a new day + 1 longest time step (ccc, 8/12/09)
       !=================================================================
-      IF ( ITS_A_NEW_DAY() ) THEN
+!--- Previous to (ccc, 8/12/09)
+!      IF ( ITS_A_NEW_DAY() ) THEN
+      NHMS    = GET_NHMS()
+      TS_DIAG = GET_TS_DIAG()/60 * 10000   ! To change to NHMS format
+
+      IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )
@@ -292,7 +302,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L) 
+               Q(X,Y,K) = STT(I,J,L,N) * TCVV(N) / AD(I,J,L)
             ENDDO
             ENDDO
             ENDDO
@@ -1021,7 +1031,9 @@
 
          ! Expand date tokens in the file name
          FILENAME = TRIM( ND49_OUTPUT_FILE )
-         CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
+!--- Previous to (ccc, 8/12/09)
+!         CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
+         CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), GET_NHMS() )
 
          ! Echo info
          WRITE( 6, 120 ) TRIM( FILENAME )
@@ -1043,6 +1055,7 @@
 !  ND49 bpch file before the end of the day. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1050,7 +1063,7 @@
 
       ! Local variables
       LOGICAL :: ITS_TIME
-      REAL*8  :: HR1, HR2
+      REAL*8  :: HR1
 
       !=================================================================
       ! ITS_TIME_TO_CLOSE_FILE begins here!
@@ -1059,11 +1072,14 @@
       ! Current hour
       HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
 
-      ! Hour at the next dynamic timestep
-      HR2      = HR1        + ( ND49_FREQ / 60d0 )
+!--- Previous to (ccc, 8/12/09)
+!      ! Hour at the next dynamic timestep
+!      HR2      = HR1        + ( ND49_FREQ / 60d0 )
 
       ! If the next dyn step is the start of a new day, return TRUE
-      ITS_TIME = ( INT( HR2 ) == 24 )
+!--- Previous to (ccc, 8/12/09)
+!      ITS_TIME = ( INT( HR2 ) == 24 )
+      ITS_TIME = ( INT( HR1 ) == 24 )
 
       ! Return to calling program
       END FUNCTION ITS_TIME_TO_CLOSE_FILE
@@ -1077,25 +1093,46 @@
 !  time to call DIAG49 -- or FALSE otherwise. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Add a check on the output frequency for validity compared to time 
+!        steps used. (ccc, 5/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
       ! Local variables
-      INTEGER :: XMIN
+      INTEGER :: XMIN, TS_DIAG
       LOGICAL :: ITS_TIME
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! ITS_TIME_FOR_DIAG49 begins here!
       !=================================================================
 
-      ! Time already elapsed in this run
-      XMIN     = GET_ELAPSED_MIN()
-
-      ! Is the elapsed time a multiple of ND49_FREQ?
-      ITS_TIME = ( DO_SAVE_DIAG49 .and. MOD( XMIN, ND49_FREQ ) == 0 )
-
+      IF ( DO_SAVE_DIAG49 ) THEN
+         IF ( FIRST ) THEN
+            TS_DIAG = GET_TS_DIAG()
+            
+            ! Check if ND49_FREQ is a multiple of TS_DIAG
+            IF ( MOD( ND49_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND49', ND49_FREQ, TS_DIAG
+ 100           FORMAT( 'The ',a,' output frequency must be a multiple '
+     &              'of the largest time step:', i5, i5 )
+               CALL GEOS_CHEM_STOP
+            ENDIF
+            FIRST = .FALSE.
+         ENDIF
+         
+         ! Time already elapsed in this run
+         XMIN     = GET_ELAPSED_MIN()
+         
+         ! Is the elapsed time a multiple of ND49_FREQ?
+         ITS_TIME = ( DO_SAVE_DIAG49 .and. MOD( XMIN, ND49_FREQ ) == 0 )
+      ELSE
+         ITS_TIME = DO_SAVE_DIAG49
+      ENDIF
+            
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG49
 

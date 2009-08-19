@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.29 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag51_mod.f,v 1.30 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -163,6 +163,7 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
       INTEGER, ALLOCATABLE :: GOOD_CT(:)
+      INTEGER, ALLOCATABLE :: GOOD_CHEM(:)
       INTEGER, ALLOCATABLE :: GOOD_CT_CHEM(:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
@@ -257,10 +258,13 @@
 !  (4 ) Now uses function GET_LOCALTIME of "time_mod.f" (bmy, 3/27/03) 
 !  (5 ) Removed reference to CMN (bmy, 7/20/04)
 !  (6 ) Bug fix: LT should be REAL*8 and not INTEGER (ccarouge, 12/10/08)
+!  (7 ) We need to substract TS_DYN to the time to get the local time at 
+!        the beginning of previous time step. (ccc, 8/11/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE TIME_MOD, ONLY : GET_LOCALTIME
+      USE TIME_MOD, ONLY : GET_TS_DYN
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -271,21 +275,26 @@
       !INTEGER :: I, LT
       !------------------------------------------
       INTEGER :: I
-      REAL*8  :: LT
+      REAL*8  :: LT, TS_DYN
 
       !=================================================================
       ! GET_LOCAL_TIME begins here!
       !=================================================================
+      TS_DYN = GET_TS_DYN()
+      TS_DYN = TS_DYN / 60d0
+
       DO I = 1, IIPAR
 
          ! Get local time
-         LT = GET_LOCALTIME(I)
+         LT = GET_LOCALTIME(I) - TS_DYN
+         IF ( LT < 0  ) LT = LT + 24d0
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
          IF ( LT >= ND51_HR1 .and. LT <= ND51_HR2 ) THEN
             GOOD(I) = 1
-         ELSE
-            GOOD(I) = 0
+!--- Previous to (ccc, 8/11/09)
+!         ELSE
+!            GOOD(I) = 0
          ENDIF
       ENDDO
 
@@ -321,6 +330,9 @@
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
+!  (11) We determine points corresponding to the time window at each timestep.
+!       But accumulate only when it's time for diagnostic (longest t.s.)
+!       (ccc, 8/12/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -330,7 +342,8 @@
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE TIME_MOD,       ONLY : GET_TS_DIAG
       USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,     ONLY : N_TRACERS, XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
@@ -347,7 +360,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
-      LOGICAL           :: IS_CHEM
+      LOGICAL           :: IS_CHEM,     IS_DIAG
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
@@ -378,7 +391,15 @@
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
+      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+     &                 GET_TS_CHEM() ) == 0 )
+
+      ! Is it time for diagnostic accumulation ?
+      IF ( GET_ELAPSED_MIN() == 0 ) THEN
+         IS_DIAG = .FALSE.
+      ELSE
+         IS_DIAG = ( MOD( GET_ELAPSED_MIN(), GET_TS_DIAG() ) == 0 )
+      ENDIF
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
@@ -390,16 +411,20 @@
       !=================================================================
 
       ! Archive counter array of good points 
-      DO X = 1, ND51_NI
-         I          = GET_I( X )
-         GOOD_CT(X) = GOOD_CT(X) + GOOD(I)
-      ENDDO
+      IF ( IS_DIAG ) THEN
+         DO X = 1, ND51_NI
+            I          = GET_I( X )
+            GOOD_CT(X) = GOOD_CT(X) + GOOD(I)
+         ENDDO
+      ENDIF
 
       ! Archive counter array of good points for chemistry timesteps only
       IF ( IS_CHEM ) THEN
          DO X = 1, ND51_NI
             I               = GET_I( X )
             GOOD_CT_CHEM(X) = GOOD_CT_CHEM(X) + GOOD(I)
+            ! Save GOOD points only for chemistry time steps
+            GOOD_CHEM(X) = GOOD(I)
          ENDDO
       ENDIF
 
@@ -427,7 +452,6 @@
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + GOOD(I)
             ENDIF
-
          ENDDO
          ENDDO
          ENDDO
@@ -437,6 +461,7 @@
       !------------------------
       ! Accumulate quantities
       !------------------------
+      IF ( IS_DIAG ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALE400nm ) 
@@ -470,7 +495,9 @@
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
 
-            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ( N == 89 .and. IS_Ox ) THEN
 
                !--------------------------------------
                ! Pure O3 [v/v]
@@ -478,11 +505,18 @@
                !--------------------------------------
 
                ! Accumulate data
+!--- Previous to (ccc, 8/12/09)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
+!     &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD(I) )
+
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
-     &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD(I) )
+     &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
 
-            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!           ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 90 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO [v/v]
@@ -490,9 +524,14 @@
                !--------------------------------------
                
                ! Accumulate data
+!--- Previous to (ccc, 8/12/09)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
+!     &                  TCVV(IDTNOX)      / AD(I,J,L)     * GOOD(I) )
+
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
-     &                  TCVV(IDTNOX)      / AD(I,J,L)     * GOOD(I) )
+     &              ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
+     &                TCVV(IDTNOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
 
             ELSE IF ( N == 91 .and. IS_NOy ) THEN
 
@@ -537,7 +576,9 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH [molec/cm3]
@@ -545,17 +586,27 @@
                !--------------------------------------
 
                ! Accumulate data
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ( SAVEOH(I,J,L) * GOOD(I) )
+!--- Previous to (ccc, 8/12/09)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + ( SAVEOH(I,J,L) * GOOD(I) )
+               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+     &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
               
-            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 75 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO2 [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
+!--- Previous to (ccc, 8/12/09)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &              ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
+!     &                TCVV(IDTNOX)       / AD(I,J,L)      * GOOD(I) )
+ 
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
-     &                TCVV(IDTNOX)       / AD(I,J,L)      * GOOD(I) )
+     &            ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
+     &              TCVV(IDTNOX)       / AD(I,J,L)      * GOOD_CHEM(X) )
  
             ELSE IF ( N == 76 ) THEN
 
@@ -609,7 +660,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 82 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
@@ -621,11 +674,16 @@
                   SCALE400nm = QAA(2,IND(1)+H-1) / QAA(4,IND(1)+H-1) 
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
+     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 83 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
@@ -640,11 +698,16 @@
                   SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
+     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
@@ -659,11 +722,16 @@
                   SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1)
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) +
+!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
+     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
@@ -678,11 +746,16 @@
                   SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1)
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) ) 
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) ) 
+     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) ) 
                ENDDO
 
-            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
@@ -697,11 +770,16 @@
                   SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1)
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
+     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 87 .and. IS_CHEM ) THEN               
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 87 .and. IS_CHEM ) THEN               
+            ELSE IF ( N == 87 ) THEN               
 
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
@@ -713,8 +791,11 @@
                   SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
+!--- Previous to (ccc, 8/12/09)
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                       ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                       ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD(I) )
+     &                 ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 88 .and. IS_SEASALT ) THEN
@@ -787,6 +868,8 @@
          ENDDO
       ENDDO 
 !$OMP END PARALLEL DO
+      GOOD(:) = 0
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE ACCUMULATE_DIAG51
@@ -806,18 +889,21 @@
 !
 !  NOTES:
 !  (1 ) Added TAU_W so to make sure the timestamp is accurate. (bmy, 9/28/04)
+!  (2 ) Add check with TS_DIAG. (ccc, 7/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU,  
-     &                     GET_TAUb, GET_TAUe,   GET_TS_DYN
+      USE TIME_MOD, ONLY :  GET_HOUR, GET_MINUTE, GET_TAU,  
+     &                      GET_TAUb, GET_TAUe,   GET_TS_DYN,
+     &                      GET_TS_DIAG
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TAU_W
 
       ! Local variables
       LOGICAL             :: ITS_TIME
-      REAL*8              :: TAU, HOUR, DYN
+      REAL*8              :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -825,6 +911,16 @@
 
       ! Initialize
       ITS_TIME = .FALSE.
+
+      ! Add a check for the time to save. Must be a multiple of TS_DIAG
+      ! (ccc, 7/21/09)
+      TS_DIAG = ( GET_TS_DIAG() / 60d0 )
+      IF ( MOD(ND51_HR_WRITE, TS_DIAG) /= 0 ) THEN
+         WRITE( 6, 100 ) 'ND51', ND51_HR_WRITE, TS_DIAG
+ 100     FORMAT( 'The ',a,' output frequency must be a multiple '
+     &        'of the largest time step:', i5, i5 )
+         CALL GEOS_CHEM_STOP
+      ENDIF
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
@@ -836,7 +932,9 @@
 
       ! If the next dyn timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( MOD( HOUR+DYN, 24d0 ) == ND51_HR_WRITE ) THEN
+!--- Previous to (ccc, 8/12/09)
+!      IF ( MOD( HOUR+DYN, 24d0 ) == ND51_HR_WRITE ) THEN
+      IF ( MOD( HOUR, 24d0 ) == ND51_HR_WRITE ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
          RETURN
@@ -844,7 +942,9 @@
 
       ! If the next dyn timestep is the 
       ! end of the run, return TRUE
-      IF ( TAU + DYN == GET_TAUe() ) THEN
+!--- Previous to (ccc, 8/12/09)
+!      IF ( TAU + DYN == GET_TAUe() ) THEN
+      IF ( TAU == GET_TAUe() ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
          RETURN
@@ -886,15 +986,18 @@
 !        array broadcast assignments. (phs, 1/24/07)
 !  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
 !  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
+!  (10) Change timestamp used for filename (ccc, 8/12/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BPCH2_MOD,  ONLY : BPCH2,           OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE FILE_MOD,   ONLY : IU_ND51
-      USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD    
+!--- Previous to (ccc, 8/12/09)
+!      USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD    
+      USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD_DIAG    
       USE TIME_MOD,   ONLY : GET_NHMS,        GET_TAU 
-      USE TIME_MOD,   ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,   ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TRACER_MOD, ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size Parameters
@@ -904,7 +1007,7 @@
 
       ! Local variables
       INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
-      INTEGER            :: IOS, X, Y, K
+      INTEGER            :: IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT 
@@ -916,7 +1019,15 @@
 
       ! Replace date tokens in FILENAME
       FILENAME = ND51_OUTPUT_FILE
-      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
+
+      ! Change to get the good timestamp: day that was run and not next 
+      ! day if saved at midnight
+      NHMS = GET_NHMS()
+      IF ( NHMS == 0 ) NHMS = 240000
+
+!--- Previous to (ccc, 8/12/09)
+!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
+      CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1303,6 +1414,7 @@
       ! Zero counter arrays
       COUNT_CHEM3D = 0d0
       GOOD_CT      = 0d0
+      GOOD_CHEM    = 0d0
       GOOD_CT_CHEM = 0d0
 
       ! Return to calling program
@@ -1548,6 +1660,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
       GOOD_CT = 0
 
+      ! Counter of "good" times per day at each grid box for chemistry species
+      ALLOCATE( GOOD_CHEM( ND51_NI ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CHEM' )
+      GOOD_CHEM = 0
+
       ! Counter of "good" times per day for each chemistry timestep
       ALLOCATE( GOOD_CT_CHEM( ND51_NI ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
@@ -1586,6 +1703,7 @@
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
       IF ( ALLOCATED( GOOD_CT_CHEM ) ) DEALLOCATE( GOOD_CT_CHEM )
+      IF ( ALLOCATED( GOOD_CHEM    ) ) DEALLOCATE( GOOD_CHEM    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 
       ! Return to calling program

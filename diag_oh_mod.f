@@ -1,4 +1,4 @@
-! $Id: diag_oh_mod.f,v 1.3 2005/09/02 15:17:07 bmy Exp $
+! $Id: diag_oh_mod.f,v 1.4 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG_OH_MOD
 !
 !******************************************************************************
@@ -59,6 +59,7 @@
       ! Arrays 
       REAL*8, ALLOCATABLE :: OH_MASS(:,:,:)
       REAL*8, ALLOCATABLE :: AIR_MASS(:,:,:)
+      REAL*8, ALLOCATABLE :: OH_LOSS(:,:,:)
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -129,7 +130,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS )
+      SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS, XLOSS )
 ! 
 !******************************************************************************
 !  Subroutine DO_DIAG_OH_CH4 passes the OH loss, OH mass, and air mass terms
@@ -146,7 +147,7 @@
 !
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
-      REAL*8,  INTENT(IN) :: XOHMASS, XAIRMASS
+      REAL*8,  INTENT(IN) :: XOHMASS, XAIRMASS, XLOSS
 
       !=================================================================
       ! DO_DIAG_OH_CH4 begins here!
@@ -155,7 +156,7 @@
       ! Sum air mass & OH mass into arrays
       AIR_MASS(I,J,L) = AIR_MASS(I,J,L) + XAIRMASS
       OH_MASS(I,J,L)  = OH_MASS(I,J,L)  + XOHMASS
-      
+      OH_LOSS(I,J,L)  = OH_LOSS(I,J,L)  + XLOSS
       ! Return to calling program
       END SUBROUTINE DO_DIAG_OH_CH4
 
@@ -170,8 +171,10 @@
 !  NOTES:
 !******************************************************************************
 !
+      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
+
       ! Local variables 
-      REAL*8 :: SUM_OHMASS, SUM_MASS, OHCONC
+      REAL*8 :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS, OHCONC, LIFETIME
      
       !=================================================================
       ! PRINT_DIAG_OH begins here!
@@ -185,6 +188,9 @@
 
       ! Atmospheric air mass [molec air]
       SUM_MASS   = SUM( AIR_MASS ) 
+
+      ! OH Loss from CH3CCl3 + OH [molec / box / s]
+      SUM_OHLOSS = SUM( OH_LOSS )
          
       ! Avoid divide-by-zero errors 
       IF ( SUM_MASS > 0d0 ) THEN 
@@ -197,7 +203,25 @@
          WRITE( 6, *       ) 'ND23: Mass-Weighted OH Concentration'
          WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
          WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
+         ! Avoid divide-by-zero errors
+         IF ( ITS_A_CH4_SIM() .and. SUM_OHLOSS > 0) THEN
 
+            ! Calculate CH3CCl3 Lifetime [years]
+            LIFETIME = ( SUM_MASS / SUM_OHLOSS ) / ( 3600d0*365d0*24d0 )
+
+            ! Write value to log file
+            WRITE( 6, *       ) 'Methyl Chloroform (CH3CCl3)'
+            WRITE( 6, *       ) 'Tropospheric Lifetime     = ', 
+     &                              LIFETIME, ' [years]'
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+
+         ELSE
+
+            WRITE( 6, *       ) 'Could not compute CH3CCl3 lifetime!'
+            WRITE( 6, *       ) 'SUM_OHLOSS = 0!'
+            WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+
+         ENDIF
       ELSE
 
          ! Write error msg if SUM_MASS is zero
@@ -280,6 +304,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
       OH_MASS = 0d0
 
+      ALLOCATE( OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
+      OH_LOSS = 0d0
+
       ! Return to calling program
       END SUBROUTINE INIT_DIAG_OH
 
@@ -296,6 +324,7 @@
       !=================================================================
       IF ( ALLOCATED( OH_MASS  ) ) DEALLOCATE( OH_MASS  )
       IF ( ALLOCATED( AIR_MASS ) ) DEALLOCATE( AIR_MASS )
+      IF ( ALLOCATED( OH_LOSS  ) ) DEALLOCATE( OH_LOSS  )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG_OH

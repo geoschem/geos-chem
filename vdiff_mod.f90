@@ -2165,12 +2165,13 @@ contains
 !
 ! !USES:
 !
-    USE LOGICAL_MOD, ONLY : LTURB, LPRT
-    USE TRACER_MOD,  ONLY : N_TRACERS, STT, TCVV
+    USE LOGICAL_MOD,   ONLY : LTURB, LPRT
+    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV
     USE PBL_MIX_MOD,   ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT 
     
     USE VDIFF_PRE_MOD, ONLY : EMISRR, EMISRRN
     USE ERROR_MOD,     ONLY : DEBUG_MSG
+    USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
 !
@@ -2207,7 +2208,7 @@ contains
     !=================================================================
     ! Call SETEMIS which sets emission rates REMIS
     !=================================================================
-    CALL SETEMIS( EMISRR, EMISRRN )
+    IF ( ITS_TIME_FOR_EMIS() ) CALL SETEMIS( EMISRR, EMISRRN )
     
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )

@@ -1,4 +1,4 @@
-! $Id: diag42_mod.f,v 1.5 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag42_mod.f,v 1.6 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
@@ -263,6 +263,7 @@
 !  NOTES:
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems  on SUN 4100 platform
 !        (bmy, 9/5/06)
+!  (2 ) Use TS_DIAG for scaling instead of TS_DYN. (ccc, 8/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -270,7 +271,7 @@
       !USE DIAG_MOD,     ONLY : CTOTH
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_DIAGb,  GET_DIAGe
+      USE TIME_MOD,     ONLY : GET_CT_DIAG,  GET_DIAGb,  GET_DIAGe
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX
@@ -310,7 +311,9 @@
       RESERVED  = ''
       !SCALE     = FLOAT( CTOTH ) + TINY( 1d0 )
       !SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1d0 )
-      SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1e0 )
+!--- Prior to (ccc, 8/18/09)
+!      SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1e0 )
+      SCALE     = DBLE( GET_CT_DIAG() ) + TINY( 1e0 )
 
       !=================================================================
       ! Write data to the bpch file

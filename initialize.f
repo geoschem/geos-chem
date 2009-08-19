@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.28 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: initialize.f,v 1.29 2009/08/19 17:05:47 ccarouge Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -171,6 +171,9 @@
 !  (41) Now zero CTO3_24h (phs, 11/17/08)
 !  (42) Now zero AD52 for Gamma HO2 diag. (ccc, jaegle, 2/26/09)
 !  (43) Updated to diagnose GLYX production of SOAG in ND07. (tmf, 1/7/09)
+!  (44) Add initialization of counter for diag time steps. (ccc, 7/20/09)
+!  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
+!       (kjw, 8/18/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -204,6 +207,7 @@
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,    ONLY : AD52
       USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
+      USE DIAG_MOD,    ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,    ONLY : AD68,        AD69
       USE DIAG_MOD,    ONLY : AD10,        AD10em
@@ -276,6 +280,9 @@
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
+         IF ( ND19 > 0 ) AD19     = 0e0
+         IF ( ND58 > 0 ) AD58     = 0e0
+         IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
          IF ( ND67 > 0 ) AD67     = 0e0
          IF ( ND68 > 0 ) AD68     = 0e0
@@ -388,6 +395,7 @@
          CALL SET_CT_EMIS( RESET=.TRUE. )
          CALL SET_CT_I6(   RESET=.TRUE. )
          CALL SET_CT_XTRA( RESET=.TRUE. )
+         CALL SET_CT_DIAG( RESET=.TRUE. )
 
          ! Leave the ND48 counter for now
          KDA48     = 0

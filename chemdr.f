@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.31 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: chemdr.f,v 1.32 2009/08/19 17:05:47 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -148,8 +148,6 @@
 !  (31) Now call "save_full_trop" at the end to account for "do_diag_pl" 
 !        resetting some of CSPEC elements (phs, 6/3/08)
 !  (32) Reading the CSPEC_FULL restart file if asked.(dkh, hotp, ccc 2/26/09)
-!  (33) Call to setemis is moved to the PBL scheme for non-local.
-!        (lin, ccc, 5/29/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -177,7 +175,6 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
-      USE LOGICAL_MOD,          ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
 
@@ -404,15 +401,11 @@
 
       !=================================================================  
       ! Call SETEMIS which sets emission rates REMIS 
-      ! This call is moved to DO_PBL_MIX_2 in vdiff_mod when non-local 
-      ! PBL is used (Lin, 03/31/09) 
       !=================================================================
-      IF (.NOT. LNLPBL) THEN 
-         CALL SETEMIS( EMISRR, EMISRRN )
+      CALL SETEMIS( EMISRR, EMISRRN )
       
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-      ENDIF
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
 
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths

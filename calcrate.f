@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.18 2009/06/08 14:09:32 ccarouge Exp $
+! $Id: calcrate.f,v 1.19 2009/08/19 17:05:48 ccarouge Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -1323,6 +1323,8 @@ C *********************************************************************
       !=================================================================
       
 
+      IMPLICIT NONE
+
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
       INTEGER, INTENT(IN) :: AEROTYPE, CONTINENTAL_PBL
@@ -1420,7 +1422,7 @@ C *********************************************************************
             ! HO2+HO2 (see Jacob 1989)
             k1  =   1.58d10 * exp( -3. / B1 )
             k2  =   2.4d9   * exp( -4.7 / B1 )
-            kaq = ( k1 * (A1 - 1.d0) + k 2) / (A1**2)
+            kaq = ( k1 * (A1 - 1.d0) + k2) / (A1**2)
 
             ! Calculate the mass transfer rate constant and s.s. conc. of 
             ! total HO2 in the aqueous phase:

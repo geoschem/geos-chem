@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.39 2009/07/08 20:54:39 bmy Exp $
+! $Id: ndxx_setup.f,v 1.40 2009/08/19 17:05:46 ccarouge Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -134,7 +134,9 @@
 !  (68) Add AD07_SOAGM (tmf, 1/7/09) 
 !  (67) Added ND52 for GAMMA HO2 diagnostic. (ccc, jaegle, 2/26/09)
 !  (68) Add AD07_SOAGM (tmf, 1/7/09) 
-!  (69) Now always allocate Mass Flux arrays (phs, 4/15/09)      
+!  (69) Now always allocate Mass Flux arrays (phs, 4/15/09)
+!  (70) Allocate LTO3. (ccc, 7/20/09)
+!  (71) Add AD19, AD58, AD60 (kjw, 8/18/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -169,9 +171,12 @@
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54
+      USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
+      ! Add O3 for ND45 diag. (ccc, 8/12/09)
+      USE DIAG_MOD,        ONLY : LTO3
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -212,6 +217,7 @@
       LD16 = 1
       LD17 = 1
       LD18 = 1
+      LD19 = 1
       LD21 = 1
       LD22 = 1
       LD24 = 1
@@ -480,7 +486,17 @@
       ENDIF
 
       !=================================================================
-      ! ND19: Free diagnostic
+      ! ND19: CH4 loss by OH 
+      !=================================================================
+      IF ( ND19 > 0 ) THEN 
+         LD19 = MIN( ND19, LLPAR )
+	 
+         ALLOCATE( AD19( IIPAR, JJPAR, LD19 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19' )
+
+      ENDIF 
+
+      !=================================================================
       !
       ! ND20: Save O3 P-L losses to disk for single-tracer O3 run
       !       in the PL24H array.  Also turn on ND65, since the P-L 
@@ -860,6 +876,10 @@
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
 
+         ! Locations for O3 in ND45 (ccc, 7/17/09)
+         ALLOCATE( LTO3( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS > 0 ) CALL ALLOC_ERR( 'LTO3' )
+    
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ! and box is in the troposphere 
          ALLOCATE( CTO3( IIPAR, JJPAR, LD45 ), STAT=AS )
@@ -950,6 +970,29 @@
 
          ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
+      ENDIF
+
+      !=================================================================
+      ! ND58: CH4 emissions 
+      !=================================================================
+      IF ( ND58 > 0 ) THEN 
+
+         ALLOCATE( AD58( IIPAR, JJPAR, PD58), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58' )
+
+      ENDIF
+
+      !=================================================================
+      ! ND59: Free diagnostic
+      !=================================================================
+      !=================================================================
+      ! ND60: WETLAND FRACTION 
+      !=================================================================
+      IF ( ND60 > 0 ) THEN 
+	 
+         ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
+
       ENDIF
 
       !=================================================================

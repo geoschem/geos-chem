@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.20 2009/06/01 20:29:27 phs Exp $
+! $Id: logical_mod.f,v 1.21 2009/08/19 17:05:46 ccarouge Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -84,6 +84,20 @@
 !  (69) LCOOKE    (LOGICAL) : ON/OFF switch for overwritting OC/BC emissions
 !                             from BOND with COOKE data over North America
 !
+!  SWITCHES FOR CH4 SIMULATION
+!  ---------------------------
+!  (70) LGAO      (LOGICAL) : ON/OFF switch for using Gas and Oil emissions
+!  (71) LCOL      (LOGICAL) : ON/OFF switch for using Coal emissions
+!  (72) LLIV      (LOGICAL) : ON/OFF switch for using Livestock emissions
+!  (73) LWAST     (LOGICAL) : ON/OFF switch for using Waste emissions
+!  (74) LRICE     (LOGICAL) : ON/OFF switch for using Rice emissions
+!  (75) LOTANT    (LOGICAL) : ON/OFF switch for using Ot. Anthropogenic emiss.
+!  (76) LWETL     (LOGICAL) : ON/OFF switch for using Wetland emissions
+!  (77) LSOABS    (LOGICAL) : ON/OFF switch for using Soil Absorption
+!  (78) LOTNAT    (LOGICAL) : ON/OFF switch for using Ot. Natural emissions
+!  (79) LCH4BUD   (LOGICAL) : ON/OFF switch for computing CH4 budget
+!
+!
 !  NOTES:
 !  (1 ) Added LNEI99 switch to toggle EPA/NEI emissions (bmy, 11/5/04)
 !  (2 ) Added LAVHRRLAI switch to toggle AVHRR LAI fields (bmy, 12/20/04)
@@ -113,6 +127,7 @@
 !  (22) Add LNLPBL, LARPBLH and LDEPBCK for non-local PBL scheme (lin, 5/29/09)
 !  (23) Added LCOOKE (phs, 5/18/09)
 !  (24) Added LKPP (phs, 5/28/09)
+!  (25) Added switches for CH4 emissions and CH4 budget (kjw, 8/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -230,6 +245,20 @@
 
       ! Dynamic ocean mercury model
       LOGICAL :: LDYNOCEAN
+
+      ! CH4 emissions
+      LOGICAL :: LGAO
+      LOGICAL :: LCOL
+      LOGICAL :: LLIV
+      LOGICAL :: LWAST
+      LOGICAL :: LRICE
+      LOGICAL :: LOTANT
+      LOGICAL :: LWETL
+      LOGICAL :: LSOABS
+      LOGICAL :: LOTNAT
+      LOGICAL :: LBFCH4
+      LOGICAL :: LBMCH4
+      LOGICAL :: LCH4BUD
 
       ! End of module
       END MODULE LOGICAL_MOD

@@ -1,11 +1,26 @@
 REVISIONS (v8-02-03)
-20 Jul 2009
+19 Aug 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
 New in v8-02-03:
 -------------------------------------------------------------------------------
+
+read_ch4_menu           -- New menu in input.geos for CH4 simulations
+("input_mod.f")
+
+set_ct_diag             -- Increments counter for diagnostic time steps
+("time_mod.f")
+
+get_ct_diag             -- Return counter for diagnostic time steps
+("time_mod.f")
+
+timestamp_diag          -- Save NYMD_DIAG to use for time series filenames
+("time_mod.f")
+
+get_nymd_diag           -- Return NYMD_DIAG
+("time_mod.f")
 
 
 Removed in v8-02-03:
@@ -15,12 +30,43 @@ Removed in v8-02-03:
 Modified in v8-02-03:
 -------------------------------------------------------------------------------
 
+CMN_DIAG                -- Add initialization of PD58 and PD60. 
+                        -- Add declarations of LD19, LD58
+
+accumulate_diag50       -- Remove IS_CHEM and COUNT_CHEM, not pertinent.
+("diag50_mod.f")        -- Use JLOP for tropopause level at chemistry time step
+
+accumulate_diag51       -- Add IS_DIAG to identify accumulation time steps
+("diag51_mod.f")
+
+check_time_steps        -- Add checks on time steps.
+("input_mod.f")         -- Compute longest time step = TS_DIAG
+
 dao_mod.f               -- Add variables TO31 and TO32, and interpolation
 			   of TO3 if GEOS-5
+                        -- Add FRLAND, FROCEAN, FRLANDIC, FRLAKE for GEOS-5
 
 define.h		-- Deleted support for old COMPAQ and SGI_MIPS 
 			   compilers
 			-- Added IBM_XLF switch for XLF compiler
+
+diag1.f                 -- Add LTO3 for O3 in ND45
+
+diag3.f                 -- Change SCALEDYN to SCALEDIAG for some diag.
+                        -- Add output for diagnostics 19, 58 and 60
+
+diag49                  -- Change the new day condition to open file. 
+("diag49_mod.f")        -- Change the timestamp used when closing file.
+
+diag51_mod.f            -- Add GOOD_CHEM variable
+ 
+diag_2pm.f              -- Add LTO3 for O3 in ND45. 
+                        -- Modify calculation of LTOTH, CTOTH and CTO3.
+
+diag_mod.f              -- Add LTO3, AD19, AD58, AD60
+
+do_diag_oh_ch4          -- Add OH_LOSS module variable and XLOSS argument
+("diag_oh_mod.f")
 
 finite_dble		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
@@ -31,6 +77,12 @@ finite_float		-- Remove support for SGI, COMPAQ compilers.
 get_ic_gc_ratio		-- Bug fix to prevent error on XLF compiler
 ("lightning_nox_mod.f")
 
+get_local_time          -- Change local time computation
+("diag51_mod.f")
+
+get_n_a3                 -- Increase N_A3 to 30 for GEOS-5
+("a3_read_mod.f")          
+
 get_otd_lis_scale	-- Updated scale factors for GEOS-5 based on 4+ 
 ("lightning_nox_mod.f")    years of data
 			-- Remove temporary fixes
@@ -40,8 +92,40 @@ gfed2_compute_biomass	-- Adjust call to GFED2_AVAILABLE to reflect that
 
 i6_read_mod.f		-- Read TO31 and TO32 for GEOS-5
 
+initialize.f            -- Add initialization of counter for diag time steps
+                        -- Add initialization for AD19, AD58 and AD60
+
+init_diaginfo           -- Add categories CH4_LOSS, CH4-EMISS and WET-FRAC
+("gamap_mod.f")
+
+init_diaginfo           -- Add tracers for diagnostics ND19, ND58 and ND60
+("gamap_mod.f")         -- Change tracer index for ND52 to correspond 
+                           to ND52 category
+
 ioerror			-- Remove support for SGI, COMPAQ compilers.
 ("file_mod.f")		-- Add IBM_XLF switch. 
+
+its_time_for_diag       -- Replace 60 by TS_DIAG
+("input_mod.f")
+
+its_time_for_diag48     -- Add check between output frequency and diag. 
+("diag48_mod.f")           timestep (TS_DIAG)
+
+its_time_for_diag49     -- Add check between output frequency and diag. 
+("diag49_mod.f")           timestep (TS_DIAG). 
+
+its_time_for_diag50     -- Modify time check
+("diag50_mod.f")
+
+its_time_for_diag51     -- Add check between output frequency and diag. 
+("diag51_mod.f")           timestep (TS_DIAG)
+                        -- Modify time check
+
+logical_mod.f           -- Add switches for CH4 emissions and budget
+
+main.f                  -- Compute diagnostics after incrementing time
+                        -- Use new diagnostic time step, TS_DIAG
+                        -- Add call to TIMESTAMP_DIAG.
 
 nan_dble		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
@@ -49,21 +133,46 @@ nan_dble		-- Remove support for SGI, COMPAQ compilers.
 nan_float		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
 
+ndxx_setup.f            -- Add allocation of LTO3, AD19, AD58, AD60
+
 ocean_mercury_flux	-- Bug fix to prevent error on XLF compiler
 ("ocean_mercury_mod.f)
+
+planeflight             -- Add grid cell location.
+("planeflight_mod.f")
+
+print_diag_oh           -- Add CH3CCl3 lifetime output for CH4 simulation
+("diag_oh_mod.f")
 
 rainout			-- Bug fix: need to use separate conversion 
 ("wetscav_mod.f")          parameters for H2O2 and NH3.  This was the same 
                            fix as in COMPUTE_F but until now we had overlooked 
 		           this. 
 
+read_a3                 -- Add reading FRLAND, FROCEAN, FRLANDIC and 
+("a3_read_mod.f")          FRLAKE for GEOS-5
+
+read_diagnostic_menu    -- Add diagnostics 19, 58 and 60
+("input_mod.f")
+
+read_input_file         -- Add call to read_ch4_menu
+("input_mod.f")
+
 read_local_redist	-- Now read from lightning_NOx_200907 directory
 ("lightning_nox_mod.f")    for GEOS-4 and GEOS-5 CTH parameterizations.
 			-- Updated OTD/LIS for GEOS-5 based on 4+ years of data
 			-- Removed temporary fixes
 
+read_variables          -- Read grid cell location
+("planeflight_mod.f")
+
 set_prof.f		-- Replace TOMS/SBUV by GEOS-5 TO3 when no satellite
 			   data available (after 2008)
+
+set_timesteps           -- Add TS_DIAG
+("time_mod.f")
+
+time_mod.f              -- Add variables TS_DIAG, CT_DIAG and NYMD_DIAG
 
 toms_mod.f       	-- Update reading directory
 
@@ -75,4 +184,13 @@ upbdflx_hd		-- Remove reference to COMPAQ
 
 wetdep			-- Remove reference to SGI_MIPS 
 ("wetscav_mod.f")
+
+write_diag42            -- Use TS_DIAG for scaling instead of TS_DYN
+("diag42_mod.f")
+
+write_diag50            -- Change timestamp for filename (NYMD_DIAG).
+("diag50_mod.f")
+
+write_diag51            -- Change timestamp for filename (NYMD_DIAG)
+("diag51_mod.f")
 

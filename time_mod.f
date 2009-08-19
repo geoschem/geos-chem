@@ -1,4 +1,4 @@
-! $Id: time_mod.f,v 1.30 2007/02/06 17:40:08 bmy Exp $
+! $Id: time_mod.f,v 1.31 2009/08/19 17:05:46 ccarouge Exp $
       MODULE TIME_MOD
 !
 !******************************************************************************
@@ -54,82 +54,84 @@
 !  (9 ) SET_CT_CONV       : Increments/resets the convection timestep counter
 !  (10) SET_CT_DYN        : Increments/resets the dynamic timestep counter
 !  (11) SET_CT_EMIS       : Increments/resets the emissions timestep counter
-!  (12) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
-!  (13) SET_CT_A6         : Increments/resets the A-6 fields timestep counte
-!  (14) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
-!  (15) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
-!  (16) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
-!  (17) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
-!  (18) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
-!  (19) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
-!  (20) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
-!  (21) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
-!  (22) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
-!  (23) GET_NHMSe         : Returns the HHMMSS   at the end of the run
-!  (24) GET_NYMD          : Returns the YYYYMMDD at the current time
-!  (25) GET_NHMS          : Returns the HHMMSS   at the current time
-!  (26) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
-!  (27) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
-!  (28) GET_MONTH         : Returns the current month (1-12)
-!  (29) GET_DAY           : Returns the current day of month (1-31)
-!  (30) GET_YEAR          : Returns the current year (YYYY)
-!  (31) GET_HOUR          : Returns the current hour (0-23)
-!  (32) GET_MINUTE        : Returns the current minute (0-59)
-!  (33) GET_SECOND        : Returns the current second (0-59)
-!  (34) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
-!  (35) GET_DAY_OF_WEEK   : Returns the current day of the week (0-6)
-!  (36) GET_GMT           : Returns the current GMT (0.0 - 23.999)
-!  (37) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
-!  (38) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
-!  (39) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
-!  (40) GET_DIAGb         : Returns TAU value at start of diagnostic interval
-!  (41) GET_DIAGe         : Returns TAU value at end of diagnostic interval
-!  (42) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
-!  (43) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
-!  (44) GET_TS_CHEM       : Returns chemistry timestep in minutes
-!  (45) GET_TS_CONV       : Returns convection timestep in minutes
-!  (46) GET_TS_DIAG       : Returns diagnostic timestep in minutes
-!  (47) GET_TS_DYN        : Returns dynamic timestep in minutes
-!  (48) GET_TS_EMIS       : Returns emissions timestep in minutes
-!  (49) GET_TS_UNIT       : Returns unit conversion timestep in minutes
-!  (50) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
-!  (51) GET_CT_CONV       : Returns # of convection timesteps already executed
-!  (52) GET_CT_DYN        : Returns # of dynamic timesteps already executed
-!  (53) GET_CT_EMIS       : Returns # of emission timesteps already executed
-!  (54) GET_CT_A3         : Returns # of times A-3 fields have been read in
-!  (55) GET_CT_A6         : Returns # of times A-6 fields have been read in
-!  (56) GET_CT_I6         : Returns # of times I-6 fields have been read in
-!  (57) GET_CT_XTRA       : Returns # of times I-6 fields have been read in
-!  (58) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
-!  (59) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
-!  (60) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
-!  (61) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
-!  (62) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
-!  (63) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
-!  (64) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
-!  (65) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
-!  (66) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
-!  (67) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
-!  (68) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
-!  (69) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
-!  (71) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
-!  (72) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
-!  (73) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
-!  (74) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
-!  (75) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
-!  (76) ITS_TIME_FOR_BPCH : Returns TRUE if it's time to write bpch output
-!  (77) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (78) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
-!  (79) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
-!  (80) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
-!  (81) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
-!  (82) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
-!  (83) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
-!  (84) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
-!  (85) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
-!  (86) EXPAND_DATE       : Replaces date/time tokens w/ actual values
-!  (87) SYSTEM_DATE_TIME  : Returns the system date and time
-!  (88) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
+!  (12) SET_CT_DIAG       : Increments/resets the diagnostics timestep counter
+!  (13) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
+!  (14) SET_CT_A6         : Increments/resets the A-6 fields timestep counte
+!  (15) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
+!  (16) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
+!  (17) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
+!  (18) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
+!  (19) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
+!  (20) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
+!  (21) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
+!  (22) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
+!  (23) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
+!  (24) GET_NHMSe         : Returns the HHMMSS   at the end of the run
+!  (25) GET_NYMD          : Returns the YYYYMMDD at the current time
+!  (26) GET_NHMS          : Returns the HHMMSS   at the current time
+!  (27) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
+!  (28) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
+!  (29) GET_MONTH         : Returns the current month (1-12)
+!  (30) GET_DAY           : Returns the current day of month (1-31)
+!  (31) GET_YEAR          : Returns the current year (YYYY)
+!  (32) GET_HOUR          : Returns the current hour (0-23)
+!  (33) GET_MINUTE        : Returns the current minute (0-59)
+!  (34) GET_SECOND        : Returns the current second (0-59)
+!  (35) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
+!  (36) GET_DAY_OF_WEEK   : Returns the current day of the week (0-6)
+!  (37) GET_GMT           : Returns the current GMT (0.0 - 23.999)
+!  (38) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
+!  (39) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
+!  (40) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
+!  (41) GET_DIAGb         : Returns TAU value at start of diagnostic interval
+!  (42) GET_DIAGe         : Returns TAU value at end of diagnostic interval
+!  (43) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
+!  (44) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
+!  (45) GET_TS_CHEM       : Returns chemistry timestep in minutes
+!  (46) GET_TS_CONV       : Returns convection timestep in minutes
+!  (47) GET_TS_DIAG       : Returns diagnostic timestep in minutes
+!  (48) GET_TS_DYN        : Returns dynamic timestep in minutes
+!  (49) GET_TS_EMIS       : Returns emissions timestep in minutes
+!  (50) GET_TS_UNIT       : Returns unit conversion timestep in minutes
+!  (51) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
+!  (52) GET_CT_CONV       : Returns # of convection timesteps already executed
+!  (53) GET_CT_DYN        : Returns # of dynamic timesteps already executed
+!  (54) GET_CT_EMIS       : Returns # of emission timesteps already executed
+!  (55) GET_CT_A3         : Returns # of times A-3 fields have been read in
+!  (56) GET_CT_A6         : Returns # of times A-6 fields have been read in
+!  (57) GET_CT_I6         : Returns # of times I-6 fields have been read in
+!  (58) GET_CT_XTRA       : Returns # of times I-6 fields have been read in
+!  (59) GET_CT_DIAG       : Returns # of times diag. have been incremented
+!  (60) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
+!  (61) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
+!  (62) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
+!  (63) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
+!  (64) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
+!  (65) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
+!  (66) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
+!  (67) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
+!  (68) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
+!  (69) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
+!  (70) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
+!  (71) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
+!  (72) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
+!  (73) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
+!  (74) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
+!  (75) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
+!  (76) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
+!  (77) ITS_TIME_FOR_BPCH : Returns TRUE if it's time to write bpch output
+!  (78) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
+!  (79) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
+!  (80) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
+!  (81) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
+!  (82) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
+!  (83) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
+!  (84) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
+!  (85) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
+!  (86) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
+!  (87) EXPAND_DATE       : Replaces date/time tokens w/ actual values
+!  (88) SYSTEM_DATE_TIME  : Returns the system date and time
+!  (89) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
 !
 !  GEOS-CHEM modules referenced by time_mod.f
 !  ============================================================================
@@ -179,6 +181,12 @@
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (26) Further bug fix to skip over Feb 29th in GCAP (phs, bmy, 10/3/06)
 !  (27) Moved ITS_TIME_FOR_BPCH here from "main.f" (bmy, 2/2/07)
+!  (28) Add TS_DIAG and CT_DIAG variables to correctly output diagnostics 
+!        (good time step).
+!       Add SET_CT_DIAG and GET_CT_DIAG to implement TS_DIAG correctly.
+!       (ccc, 5/21/09)
+!  (29) Add NYMD_DIAG, GET_NYMD_DIAG, TIMESTAMP_DIAG to get the good timestamp
+!       for diagnostic filenames (ccc, 8/12/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -194,6 +202,7 @@
       ! ... except these variables
       PRIVATE           :: NYMDb,      NHMSb,       NYMDe   
       PRIVATE           :: NHMSe,      NYMD,        NHMS
+      PRIVATE           :: NYMD_DIAG
       PRIVATE           :: MONTH,      DAY,         YEAR
       PRIVATE           :: HOUR,       MINUTE,      SECOND
       PRIVATE           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
@@ -204,6 +213,7 @@
       PRIVATE           :: CT_CHEM,    CT_CONV,     CT_DYN
       PRIVATE           :: CT_EMIS,    CT_A3,       CT_A6
       PRIVATE           :: CT_I6,      CT_XTRA,     JD85
+      PRIVATE           :: CT_DIAG
       PRIVATE           :: NDIAGTIME
 
       !=================================================================
@@ -213,6 +223,8 @@
       ! Date and time variables
       INTEGER           :: NYMDb,      NHMSb,       NYMDe   
       INTEGER           :: NHMSe,      NYMD,        NHMS
+      ! To get the good day for diagnostic filenames. (ccc, 8/12/09) 
+      INTEGER           :: NYMD_DIAG
       INTEGER           :: MONTH,      DAY,         YEAR
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
@@ -227,7 +239,7 @@
       ! Timestep counters
       INTEGER           :: CT_CHEM,   CT_CONV,     CT_DYN    
       INTEGER           :: CT_EMIS,   CT_A3,       CT_A6
-      INTEGER           :: CT_I6,     CT_XTRA
+      INTEGER           :: CT_I6,     CT_XTRA,     CT_DIAG
 
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
@@ -539,7 +551,8 @@
 !------------------------------------------------------------------------------
       
       SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, 
-     &                          DYNAMICS,  EMISSION,  UNIT_CONV )
+     &                          DYNAMICS,  EMISSION,  UNIT_CONV,
+     &                          DIAGNOS )
 !
 !******************************************************************************
 !  Subroutine SET_TIMESTEPS initializes the timesteps for dynamics, convection,
@@ -551,27 +564,30 @@
 !  (2 ) CONVECTION (INTEGER) : Convective timestep       [minutes]
 !  (3 ) DYNAMICS   (INTEGER) : Dynamic timestep          [minutes]
 !  (4 ) EMISSION   (INTEGER) : Emissions timestep        [minutes]
-!  (4 ) UNIT_CONV  (INTEGER) : Unit conversion timestep  [minutes]
+!  (5 ) UNIT_CONV  (INTEGER) : Unit conversion timestep  [minutes]
+!  (6 ) DIAGNOS    (INTEGER) : Diagnostic timestep       [minutes]
 !
 !  NOTES:
 !  (1 ) Suppress some output lines (bmy, 7/20/04)
 !  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
+!  (3 ) Add TS_DIAG as the diagnostic timestep. (ccc, 5/13/09)
 !******************************************************************************
 !
       ! Arguments
       INTEGER, INTENT(IN) :: CHEMISTRY, CONVECTION, DYNAMICS
-      INTEGER, INTENT(IN) :: EMISSION,  UNIT_CONV
+      INTEGER, INTENT(IN) :: EMISSION,  UNIT_CONV, DIAGNOS
       
       !=================================================================
       ! SET_TIMESTEPS begins here!
       !=================================================================
 
       ! Initialize timesteps
-      TS_CHEM = CHEMISTRY
-      TS_CONV = CONVECTION
-      TS_DYN  = DYNAMICS
-      TS_EMIS = EMISSION
-      TS_UNIT = UNIT_CONV
+      TS_CHEM  = CHEMISTRY
+      TS_CONV  = CONVECTION
+      TS_DYN   = DYNAMICS
+      TS_EMIS  = EMISSION
+      TS_UNIT  = UNIT_CONV
+      TS_DIAG  = DIAGNOS
 
       ! Zero timestep counters
       CT_CHEM = 0
@@ -582,6 +598,7 @@
       CT_A6   = 0
       CT_I6   = 0
       CT_XTRA = 0
+      CT_DIAG = 0
 
       ! Echo to stdout
       WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-CHEM timesteps!'
@@ -591,6 +608,7 @@
       WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
+      WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
@@ -718,6 +736,37 @@
 
       ! Return to calling program
       END SUBROUTINE SET_CT_EMIS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SET_CT_DIAG( INCREMENT, RESET )
+!
+!******************************************************************************
+!  Subroutine SET_CT_DIAG increments CT_DIAG, the counter of largest
+!  timesteps executed thus far. (ccc, 5/13/09)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
+!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
+!
+!  NOTES:
+!******************************************************************************
+!      
+      ! Arguments
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
+
+      !=================================================================
+      ! SET_CT_DIAG begins here!
+      !=================================================================
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_DIAG = CT_DIAG + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_DIAG = 0
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE SET_CT_DIAG
 
 !------------------------------------------------------------------------------
 
@@ -1866,12 +1915,34 @@
       INTEGER :: THIS_CT_XTRA
 
       !=================================================================
-      ! GET_CT_I6 begins here!
+      ! GET_CT_XTRA begins here!
       !=================================================================
       THIS_CT_XTRA = CT_XTRA
 
       ! Return to calling program
       END FUNCTION GET_CT_XTRA
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_CT_DIAG() RESULT( THIS_CT_DIAG )
+!
+!******************************************************************************
+!  Function GET_CT_DIAG returns the DIAG timestep counter to the
+!  calling program. (ccc, 5/21/09)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      INTEGER :: THIS_CT_DIAG
+
+      !=================================================================
+      ! GET_CT_DIAG begins here!
+      !=================================================================
+      THIS_CT_DIAG = CT_DIAG
+
+      ! Return to calling program
+      END FUNCTION GET_CT_DIAG
 
 !------------------------------------------------------------------------------
 
@@ -2185,6 +2256,7 @@
 !  certain diagnostics false otherwise. (bmy, 3/21/03)
 !
 !  NOTES:
+!  (1 ) Use TS_DIAG now and not 60 minutes. (ccc, 7/20/09)
 !******************************************************************************
 !
       ! Function value
@@ -2193,7 +2265,7 @@
       !=================================================================
       ! ITS_TIME_FOR_DIAG begins here!
       !=================================================================
-      FLAG = ( MOD( ELAPSED_MIN, 60 ) == 0 )
+      FLAG = ( MOD( ELAPSED_MIN, TS_DIAG ) == 0 )
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG
@@ -3001,6 +3073,51 @@
 
       ! Return to calling program 
       END FUNCTION SYSTEM_TIMESTAMP
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE TIMESTAMP_DIAG
+!
+!******************************************************************************
+!  Subroutine TIMESTAMP_DIAG save timestamps to be used in filenames for
+!  diagnostics. We do not want the time when the diagnostic is saved but 
+!  the time for previous dynamic time step because midnight is considered
+!  as the beginning of next day (and not ending of previous day). 
+!  (ccc, 8/12/09)
+!
+!  NOTES:
+!******************************************************************************
+!
+      !=================================================================
+      ! TIMESTAMP_DIAG begins here!
+      !=================================================================
+
+      NYMD_DIAG = GET_NYMD()
+
+      ! Return to calling program
+      END SUBROUTINE TIMESTAMP_DIAG
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_NYMD_DIAG() RESULT( THISNYMD )
+!
+!******************************************************************************
+!  Function GET_NYMD_DIAG returns the previous NYMD value (YYYYMMDD) to the 
+!  calling program. Used for diagnostic filenames (ccc, 8/12/09)
+! 
+!  NOTES:
+!******************************************************************************
+!
+      ! Function value
+      INTEGER :: THISNYMD
+
+      !=================================================================
+      ! GET_NYMD_DIAG begins here!
+      !=================================================================
+      THISNYMD = NYMD_DIAG
+
+      ! Return to calling program
+      END FUNCTION GET_NYMD_DIAG
 
 !------------------------------------------------------------------------------
 

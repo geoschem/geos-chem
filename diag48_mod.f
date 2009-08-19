@@ -1,4 +1,4 @@
-! $Id: diag48_mod.f,v 1.18 2009/07/08 20:54:40 bmy Exp $
+! $Id: diag48_mod.f,v 1.19 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
@@ -752,24 +752,46 @@
 !  timeseries data write. (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) Add a check on the output frequency for validity compared to time 
+!        steps used. (ccc, 5/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD, ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
       ! Local variables
       LOGICAL :: ITS_TIME
-      INTEGER :: XMIN
+      INTEGER :: XMIN, TS_DIAG
+      LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! ITS_TIME_FOR_DIAG48 begins here!
       !=================================================================
       
-      ! Get elapsed minutes
-      XMIN     = GET_ELAPSED_MIN()
+      IF ( DO_SAVE_DIAG48 ) THEN
+         
+         IF ( FIRST ) THEN
+            TS_DIAG = GET_TS_DIAG()
 
-      ! Is it time to save the next timeseries station?
-      ITS_TIME = ( DO_SAVE_DIAG48 .and. MOD( XMIN, ND48_FREQ ) == 0 )
+            ! Check if ND48_FREQ is a multiple of TS_DIAG
+            IF ( MOD( ND48_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND48', ND48_FREQ, TS_DIAG
+ 100           FORMAT( 'The ',a,' output frequency must be a multiple '
+     &              'of the largest time step:', i5, i5 )
+               CALL GEOS_CHEM_STOP
+            ENDIF
+            FIRST = .FALSE.
+         ENDIF
+      
+         ! Get elapsed minutes
+         XMIN     = GET_ELAPSED_MIN()
+         
+         ! Is it time to save the next timeseries station?
+         ITS_TIME = ( DO_SAVE_DIAG48 .and. MOD( XMIN, ND48_FREQ ) == 0 )
+      ELSE
+         ITS_TIME = DO_SAVE_DIAG48
+      ENDIF
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG48

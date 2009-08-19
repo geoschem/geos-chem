@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.33 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: gamap_mod.f,v 1.34 2009/08/19 17:05:47 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -692,6 +692,7 @@
 !        production/loss w/ offset of 47000. (phs, 9/18/07)
 !  (4 ) Change diagnostic category for ND31 diagnostic from "PS-PTOP" 
 !        to "PEDGE-$" (bmy, 11/16/07)
+!  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
 !******************************************************************************
 !
       ! Local variables 
@@ -1077,8 +1078,8 @@
       OFFSET(N)   = SPACING * 31
 
       N           = N + 1
-      CATEGORY(N) = 'CH4BUDGT'
-      DESCRIPT(N) = 'jsw CH4 budget'
+      CATEGORY(N) = 'CH4-LOSS'
+      DESCRIPT(N) = 'CH4 Loss by OH'
       OFFSET(N)   = SPACING * 32
 
       N           = N + 1
@@ -1251,6 +1252,16 @@
       CATEGORY(N) = 'GAMMA'
       DESCRIPT(N) = 'gamma HO2'
       OFFSET(N)   = SPACING * 49
+
+      N           = N + 1
+      CATEGORY(N) = 'CH4-EMIS'
+      DESCRIPT(N) = 'CH4 Emissions'
+      OFFSET(N)   = SPACING * 50
+
+      N           = N + 1
+      CATEGORY(N) = 'WET-FRAC'
+      DESCRIPT(N) = 'Wetland Fraction'
+      OFFSET(N)   = SPACING * 51
 
       ! Number of categories
       NCATS = N
@@ -2029,6 +2040,26 @@
             MOLC (N,17) = INT( TRACER_COEFF(T,1) )
             SCALE(N,17) = 1e0
          ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! CH4 Loss due to reaction w/ OH
+      !-------------------------------------
+      IF ( ND19 > 0 ) THEN
+         
+         ! Number of tracers
+         NTRAC(19) = 1
+         T = 1
+          
+         ! Define quantities
+         NAME (T,19) = 'CH4Loss'
+         FNAME(T,19) = 'CH4 Loss from Reaction with OH'
+         UNIT (T,19) = 'kg'
+         INDEX(T,19) = T + ( SPACING * 32 )
+         MWT  (T,19) = 1.6e-3
+         MOLC (T,19) = 1
+         SCALE(T,19) = 1e0
+
       ENDIF
 
       !-------------------------------------      
@@ -2912,7 +2943,7 @@
          NAME (T,52) = 'GAMMAHO2'
          FNAME(T,52) = 'Gamma HO2'
          UNIT (T,52) = 'unitless'
-         INDEX(T,52) = T + ( SPACING * 46 )
+         INDEX(T,52) = T + ( SPACING * 49 )
          MOLC (T,52) = 1
          MWT  (T,52) = 0e0
          SCALE(T,52) = 1e0
@@ -3003,6 +3034,89 @@
             MWT  (T,56) = 0e0
             SCALE(T,56) = 1e0
          ENDDO
+      ENDIF
+
+      !-------------------------------------
+      ! CH4 Emissions
+      !-------------------------------------
+      IF ( ND58 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(58) = 12
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(58)
+
+            ! Get name and long name for each tracer
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,58) = 'CH4-TOT'
+                  FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
+               CASE( 2 )
+                  NAME (T,58) = 'CH4-GAO'
+                  FNAME(T,58) = 'CH4 Emissions gas & oil'
+               CASE( 3 )
+                  NAME (T,58) = 'CH4-COL'
+                  FNAME(T,58) = 'CH4 Emissions coal'
+               CASE( 4 )
+                  NAME (T,58) = 'CH4-LIV'
+                  FNAME(T,58) = 'CH4 Emissions livestock'
+               CASE( 5 )
+                  NAME (T,58) = 'CH4-WST'
+                  FNAME(T,58) = 'CH4 Emissions waste'
+               CASE( 6 )
+                  NAME (T,58) = 'CH4-BFL'
+                  FNAME(T,58) = 'CH4 Emissions biofuel'
+               CASE( 7 )
+                  NAME (T,58) = 'CH4-RIC'
+                  FNAME(T,58) = 'CH4 Emissions rice'
+               CASE( 8 )
+                  NAME (T,58) = 'CH4-OTA'
+                  FNAME(T,58) = 'CH4 Emissions other anthro'
+               CASE( 9 )
+                  NAME (T,58) = 'CH4-BBN'
+                  FNAME(T,58) = 'CH4 Emissions bioburn'
+               CASE( 10 )
+                  NAME (T,58) = 'CH4-WTL'
+                  FNAME(T,58) = 'CH4 Emissions wetlands'
+               CASE( 11 )
+                  NAME (T,58) = 'CH4-SAB'
+                  FNAME(T,58) = 'CH4 Emissions soil abs'
+               CASE( 12 )
+                  NAME (T,58) = 'CH4-OTN'
+                  FNAME(T,58) = 'CH4 Emissions other natural'
+               CASE( 13 )
+                  NAME (T,58) = 'CH4-Loss'
+                  FNAME(T,58) = 'CH4 Loss by Reaction w/ OH'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+            ! Define the rest of the quantities
+            UNIT (T,58) = 'kg'
+            INDEX(T,58) = T + ( SPACING * 50 )
+            MOLC (T,58) = 1
+            MWT  (T,58) = 1.6e-3
+            SCALE(T,58) = 1e0
+         ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! Wetland Fraction (ND60)
+      !-------------------------------------      
+      IF ( ND60 > 0 ) THEN
+
+         ! Number of tracers
+         NTRAC(60) = 1
+         T         = 1
+
+         NAME (T,60) = 'WETFRAC'
+         FNAME(T,60) = 'Wetland Fraction'
+         INDEX(T,60) = T + ( SPACING * 51 )
+         MOLC (T,60) = 0 
+         MWT  (T,60) = 0e0
+         SCALE(T,60) = 1e0
+         UNIT(T,60)  = 'unitless'
       ENDIF
 
       !-------------------------------------      

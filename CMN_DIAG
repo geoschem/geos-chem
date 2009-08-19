@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.24 2009/06/01 19:58:15 ccarouge Exp $
+! $Id: CMN_DIAG,v 1.25 2009/08/19 17:05:48 ccarouge Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -28,6 +28,7 @@
 !       PD44 = 41.(tmf, 1/7/09)
 ! (16) Add biogenic C2H4 emission, PD46 = 6. (tmf, 1/20/09)
 ! (17) Add one met field to ND67 (EFLUX). (ccc, 5/14/09)
+! (18) Add declarations for PD58 and PD60, LD19, LD58. (kjw,8/18/09)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -119,9 +120,9 @@
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
       INTEGER, PARAMETER :: PD57=0           
-      INTEGER, PARAMETER :: PD58=0
+      INTEGER, PARAMETER :: PD58=12
       INTEGER, PARAMETER :: PD59=0            
-      INTEGER, PARAMETER :: PD60=0          
+      INTEGER, PARAMETER :: PD60=1          
       INTEGER, PARAMETER :: PD61=0
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
@@ -150,13 +151,13 @@
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52
+     &   LD52, LD19, LD58
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52
+     &   LD52, LD19, LD58
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

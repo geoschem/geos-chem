@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.24 2009/07/08 20:54:39 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.25 2009/08/19 17:05:46 ccarouge Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -410,16 +410,24 @@
 !  (22) Bug fix: Now use IDECO to be consistent (phs, bmy, 6/30/08)
 !  (23) Now distribute CO biomass burning source through the PBL
 !        (yc, phs, 12/23/08)
+!  (24) Now include switch to use MEGAN biogenics instead of default GEIA.
+!        (jaf, 3/10/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL
       USE BIOMASS_MOD,  ONLY : BIOMASS,       IDBCO
-      USE DAO_MOD,      ONLY : SUNCOS
+      ! Add variables for MEGAN (jaf, 3/10/09)
+      USE DAO_MOD,      ONLY : SUNCOS,           PARDF,       PARDR
       USE DIAG_MOD,     ONLY : AD29,          AD46
       USE GRID_MOD,     ONLY : GET_XOFFSET,   GET_YOFFSET, GET_AREA_CM2
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LSPLIT,        LANTHRO
       USE LOGICAL_MOD,  ONLY : LBIOMASS,      LBIOFUEL
+      ! Add switches for biogenic MEGAN (jaf, 3/10/09)
+      USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
+      ! Add MEGAN biogenic routines (jaf, 3/10/09)
+      USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
       USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
@@ -442,8 +450,11 @@
       !REAL*4                 :: EMISTCO(IGLOB,JGLOB)
       !REAL*4                 :: FLIQCO2(IGLOB,JGLOB)
 
-      REAL*8                 :: TMMP, EMXX, EMX,    EMMO,    F_OF_PBL 
+      ! Change EMXX to EMIS to match full chem (jaf, 3/10/09)
+      REAL*8                 :: TMMP, EMIS, EMX,    EMMO,    F_OF_PBL 
       REAL*8                 :: EMAC, E_CO, DTSRCE, AREA_CM2
+      ! Add variables needed for MEGAN biogenics (jaf, 3/10/09)
+      REAL*8                 :: SC,   PDF,  PDR
       
       ! External functions
       REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
@@ -548,6 +559,8 @@
       ! (bmy, 6/8/01, 9/27/06)
       !
       ! GFED2 CO biomass burning emissions are not scaled any further.
+      ! This doesn't make any sense. Scaling now occurs in biomass_mod.f
+      ! (jaf, 2/6/09)
       !
       ! NOTES:
       ! (1) Some forest fires generate strong convection columns.  
@@ -646,15 +659,25 @@
       ! Process emissions of ISOPRENE, MONOTERPENES, METHANOL
       ! and ACETONE -- save into summing arrays for later use
       !=================================================================
+      ! Add biogenic switch in case you want biogenic but no biofuel
+      ! (jaf, 3/10/09)
+      IF ( LBIOGENIC ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMXX, EMMO, EMAC )
+!$OMP+PRIVATE( I, J, AREA_CM2, IJLOOP, TMMP, EMIS, EMMO, EMAC )
+! Add some private declarations for use with MEGAN
+!$OMP+PRIVATE( SC, PDR, PDF )
       DO J = 1, JJPAR
 
          ! Grid box surface area [cm2]
          AREA_CM2 = GET_AREA_CM2( J )
 
          DO I = 1, IIPAR
+
+            ! To be safe, zero coefficients (jaf, 3/10/09)
+            EMIS = 0d0
+            EMMO = 0d0
+            EMAC = 0d0
 
             ! 1-D array index 
             IJLOOP = ( (J-1) * IIPAR ) + I
@@ -669,21 +692,49 @@
             ! Surface air temperature [K]
             TMMP = XLTMMP(I,J,IJLOOP)
       
-            ! ISOP and MONOTERPENE emissions in [atoms C/box/time step] 
-            ! SUNCOS is COSINE( solar zenith angle ) 
-            EMXX = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP ) 
-            EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
+            ! Add MEGAN biogenics (jaf, 3/10/09)
+            IF ( LMEGAN ) THEN
+
+               !------------------
+               ! MEGAN biogenics
+               !------------------
+
+               ! Cosine of solar zenith angle
+               SC = SUNCOS(IJLOOP)
+
+               ! Diffuse and direct PAR
+               PDR = PARDR(I,J)
+               PDF = PARDF(I,J)
+
+               ! Isoprene [atoms C/box/timestep]
+               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
+     &                                   XNUMOL_ISOP, PDR, PDF )
+               ! Monoterpene [atoms C/box/timestep]
+               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
+
+            ELSE
+
+               !------------------
+               ! GEIA biogenics 
+               !------------------
+
+               ! Isoprene [atoms C/box/timestep]
+               EMIS = EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_ISOP )
+               ! Monoterpene [atoms C/box/timestep]
+               EMMO = EMMONOT( IJLOOP, TMMP, XNUMOL_MONO )
+
+            ENDIF
 
             ! Store ISOP and MONOTERPENE emissions [atoms C/box/time step]
             ! for later use in the subroutine CHEM_TAGGED_CO
-            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMXX
+            SUMISOPCO(I,J) = SUMISOPCO(I,J) + EMIS
             SUMMONOCO(I,J) = SUMMONOCO(I,J) + EMMO
 
             ! ND46 -- save biogenic emissions [atoms C/cm2/s] here 
             IF ( ND46 > 0 ) THEN
 
                ! Isoprene 
-               AD46(I,J,1) = AD46(I,J,1) + ( EMXX / AREA_CM2 / DTSRCE )
+               AD46(I,J,1) = AD46(I,J,1) + ( EMIS / AREA_CM2 / DTSRCE )
 
                ! Monoterpenes 
                AD46(I,J,4) = AD46(I,J,4) + ( EMMO / AREA_CM2 / DTSRCE )
@@ -700,11 +751,12 @@
 
             ! Sum acetone loss for use in chemco_decay
             ! Units = [atoms C/box/timestep]
-            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2) 
+            SUMACETCO(I,J) = SUMACETCO(I,J) + (EMAC * DTSRCE * AREA_CM2)
             
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE EMISS_TAGGED_CO
@@ -762,18 +814,24 @@
 !        reference to "CMN", it's obsolete. (bmy, 8/22/05)
 !  (19) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (20) Remove reference to "global_ch4_mod.f" (bmy, 5/31/06)
+!  (21) Use newest JPL 2006 rate constant for CO+OH (jaf, jmao, 3/4/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD, AIRVOL, T, DELP
+      ! jaf, 3/10/09
+      USE DIAG_MOD,       ONLY : AD29
       USE DIAG_PL_MOD,    ONLY : AD65
       USE ERROR_MOD,      ONLY : CHECK_VALUE
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH,   OH
       USE GLOBAL_NOX_MOD, ONLY : GET_GLOBAL_NOX,  BNOX
-      USE GRID_MOD,       ONLY : GET_YMID
+      ! jaf, 3/10/09
+      USE GRID_MOD,       ONLY : GET_YMID,        GET_AREA_CM2
       USE LOGICAL_MOD,    ONLY : LSPLIT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_MONTH, GET_YEAR
+      ! jaf, 3/10/09
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,     GET_TS_EMIS
+      USE TIME_MOD,       ONLY : GET_MONTH,       GET_YEAR
       USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_YEAR
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
@@ -791,6 +849,15 @@
       REAL*8                 :: CO_CH3OH,  CO_OH,      CO_ACET
       REAL*8                 :: CH4RATE,   DENS,       ALPHA_ACET
       REAL*8                 :: CORATE,    YMID
+
+      ! Variables for new JPL 2006 rate constants (jaf, jmao, 3/4/09)
+      REAL*8                 :: KHI1,      KLO1,       XYRAT1
+      REAL*8                 :: BLOG1,     FEXP1,      KHI2
+      REAL*8                 :: KLO2,      XYRAT2,     BLOG2
+      REAL*8                 :: FEXP2,     KCO1,       KCO2
+
+      ! For storing CO sources (jaf, 3/10/09)
+      REAL*8                 :: DTSRCE, AREA_CM2
 
       ! For saving CH4 latitudinal gradient
       REAL*8,  SAVE          :: A3090S, A0030S, A0030N, A3090N
@@ -816,6 +883,9 @@
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! DTSRCE is the number of seconds per emission timestep
+      DTSRCE = GET_TS_EMIS() * 60d0
+
       !=================================================================
       ! Read in OH, NOx, P(CO), and L(CO) fields for the current month
       !=================================================================
@@ -833,6 +903,7 @@
             
          ! Read in the loss/production of CO in the stratosphere.
          CALL READ_PCO_LCO_STRAT( MONTH )
+            
       ENDIF
 
       !=================================================================
@@ -859,11 +930,18 @@
 !$OMP+PRIVATE( ALPHA_CH4, KRATE, CO_ISOP, CO_CH3OH, ALPHA_ISOP    )
 !$OMP+PRIVATE( CO_MONO, ALPHA_MONO, CO_ACET, ALPHA_ACET, CORATE   )
 !$OMP+PRIVATE( CO_OH, PCO, YMID                                   )
+! Add private declarations for new CO+OH rate (jaf, jmao, 3/4/09)
+!$OMP+PRIVATE( KHI1, KLO1, XYRAT1, BLOG1, FEXP1, KHI2, KLO2       )
+!$OMP+PRIVATE( XYRAT2, BLOG2, FEXP2, KCO1, KCO2, AREA_CM2         )
+
       DO L = 1, LLPAR
       DO J = 1, JJPAR
 
          ! Latitude of grid box
          YMID = GET_YMID( J )
+
+         ! Grid box surface areas [cm2] (jaf, 3/10/09)
+         AREA_CM2 = GET_AREA_CM2( J )
 
       DO I = 1, IIPAR
 
@@ -1185,19 +1263,54 @@
             !  DECAY RATE
             !  The decay rate (KRATE) is calculated by:
             !
-            !     OH + CO -> products (JPL '97)
+            !     No change from JPL '97 to JPL '03 (jaf, 2/27/09)
+            !     OH + CO -> products (JPL '03)
             !     k = (1 + 0.6Patm) * 1.5E-13
             !
             !  KRATE has units of [ molec^2 CO / cm6 / s ]^-1, 
             !  since this is a 2-body reaction.
+            !
+            ! Updated rate constant from JPL 2006; now more complicated.
+            ! From JPL 2006: "The  reaction between HO and CO to yield
+            ! H + CO2 akes place on a potential energy surface that 
+            ! contains the radical HOCO.  The yield of H and CO2 is 
+            ! diminished as the pressure rises.  The loss of reactants 
+            ! is thus the sum of two processes, an association to yield 
+            ! HOCO and the chemical activation process yielding H and
+            ! CO2." So we now need two complicated reactions. The code
+            ! is more or less copied from calcrate.f as implemented by
+            ! jmao (jaf, 3/4/09)
             !===========================================================
 
             ! Pressure at the center of sigma level L,
             ! expressed as a fraction of surface pressure in [Pa]
-            PCO = GET_PCENTER(I,J,L) / 1.01325d3
+            ! Don't need pressure for new rate constant (jaf, 3/4/09)
+            !PCO = GET_PCENTER(I,J,L) / 1.01325d3
 
             ! Decay rate
-            KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
+            !KRATE = ( 1.d0 + ( 0.6d0 * PCO ) ) * 1.5d-13
+
+            ! Decay rate - new JPL 2006 version (jaf, 3/4/09)
+            ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
+            KLO1=5.9D-33*(T(I,J,L)/300)**(-1.4D0)
+            ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
+            KHI1=1.1D-12*(T(I,J,L)/300)**(1.3D0)
+            XYRAT1=KLO1*DENS/KHI1
+            BLOG1=LOG10(XYRAT1)
+            FEXP1=1.D0/(1.D0+BLOG1*BLOG1)
+            ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
+            KCO1=KLO1*DENS*0.6**FEXP1/(1.d0+XYRAT1)
+            ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
+            KLO2=1.5D-13*(T(I,J,L)/300)**(0.6D0)
+            ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
+            KHI2=2.1D09 *(T(I,J,L)/300)**(6.1D0)
+            XYRAT2=KLO2*DENS/KHI2
+            BLOG2=LOG10(XYRAT2)
+            FEXP2=1.D0/(1.D0+BLOG2*BLOG2)
+            ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
+            KCO2=KLO2*0.6**FEXP2/(1.d0+XYRAT2)
+            ! KRATE is the sum of the two.
+            KRATE=KCO1+KCO2
 
             ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
             CO_OH = KRATE * GCO * OH(I,J,L) * DTCHEM

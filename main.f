@@ -1,5 +1,10 @@
-! $Id: main.f,v 1.62 2009/07/24 20:28:40 ccarouge Exp $
+! $Id: main.f,v 1.63 2009/08/19 17:05:46 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.63  2009/08/19 17:05:46  ccarouge
+! Read GEOS-5 O3 columns and use them after 2008.
+! Diagnostic accumulation modifications.
+! Updated CH4 simulation. (ccc, 8/19/09)
+!
 ! Revision 1.62  2009/07/24 20:28:40  ccarouge
 ! *** empty log message ***
 !
@@ -180,9 +185,11 @@
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_BPCH
       USE TIME_MOD,          ONLY : SET_CT_CONV,      SET_CT_DYN
       USE TIME_MOD,          ONLY : SET_CT_EMIS,      SET_CT_CHEM
+      USE TIME_MOD,          ONLY : SET_CT_DIAG
       USE TIME_MOD,          ONLY : SET_DIAGb,        SET_DIAGe
       USE TIME_MOD,          ONLY : SET_CURRENT_TIME, PRINT_CURRENT_TIME
       USE TIME_MOD,          ONLY : SET_ELAPSED_MIN,  SYSTEM_TIMESTAMP
+      USE TIME_MOD,          ONLY : TIMESTAMP_DIAG
       USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
@@ -920,10 +927,26 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
 
+
+         !==============================================================
+         !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
+         !============================================================== 
+         ! Moved before diagnostics to count the last timestep as done.
+         ! Need to save timestamps for filenames.
+         ! (ccc, 5/13/09)
+ 
+         CALL TIMESTAMP_DIAG
+         CALL SET_ELAPSED_MIN
+         CALL SET_CURRENT_TIME
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+
+         
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
-         IF ( ITS_TIME_FOR_DYN() ) THEN
+!--- Prior to (ccc, 5/13/09)
+!         IF ( ITS_TIME_FOR_DYN() ) THEN
+         IF ( ITS_TIME_FOR_DIAG() ) THEN
          
             ! Accumulate several diagnostic quantities
             CALL DIAG1
@@ -934,6 +957,12 @@
          
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) CALL DIAG42
+
+            ! 24-hr timeseries
+            IF ( DO_SAVE_DIAG50 ) CALL DIAG50
+
+            ! Increment diagnostic timestep counter. (ccc, 5/13/09)
+            CALL SET_CT_DIAG( INCREMENT=.TRUE. )
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
@@ -972,9 +1001,6 @@
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
 
-         ! 24-hr timeseries
-         IF ( DO_SAVE_DIAG50 ) CALL DIAG50
-
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
 
@@ -992,14 +1018,11 @@
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
 
-         ! Check for NaN, Negatives, Infinities in STT once per hour
+         ! Check for NaN, Negatives, Infinities in STT each time diag are
+         ! saved. (ccc, 5/13/09)
          IF ( ITS_TIME_FOR_DIAG() ) THEN
             CALL CHECK_STT( 'End of Dynamic Loop' )
          ENDIF
-
-         ! Increment elapsed time
-         CALL SET_ELAPSED_MIN
-         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
           
       ENDDO
 

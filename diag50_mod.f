@@ -1,4 +1,4 @@
-! $Id: diag50_mod.f,v 1.22 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: diag50_mod.f,v 1.23 2009/08/19 17:05:47 ccarouge Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
@@ -134,7 +134,9 @@
       
       ! Scalars
       LOGICAL              :: DO_SAVE_DIAG50
-      INTEGER              :: COUNT,          COUNT_CHEM
+!--- Previous to (ccc, 8/12/09)
+!      INTEGER              :: COUNT,          COUNT_CHEM
+      INTEGER              :: COUNT
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
       INTEGER              :: J0,             ND50_NI
@@ -215,9 +217,12 @@
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
+!  (11) IS_CHEM check is not appropriate anymore. Keep COUNT_CHEM3D for 
+!       species known in troposphere only (ccc, 8/12/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
+      USE COMODE_MOD,     ONLY : JLOP
       USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
       USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
       USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
@@ -237,12 +242,14 @@
 #     include "jv_cmn.h"  ! ODAER
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
+#     include "comode.h"  ! NPVERT
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
-      LOGICAL             :: IS_CHEM
+!--- Previous to (ccc, 8/12/09)
+!     LOGICAL             :: IS_CHEM
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
@@ -272,8 +279,9 @@
          FIRST       = .FALSE.
       ENDIF
 
-      ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
+!--- Previous to (ccc, 8/12/09)
+!      ! Is it a chemistry timestep?
+!      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
 
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()
@@ -287,18 +295,23 @@
       ! Increment counter
       COUNT = COUNT + 1
 
-      ! Increment chemistry timestep counter
-      IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
+!--- Previous to (ccc, 8/12/09)
+!      ! Increment chemistry timestep counter
+!      IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
       
       ! Also increment 3-D counter for boxes in the tropopause
-      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
+      IF ( IS_FULLCHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO K = 1, ND50_NL
+!--- Previous to (ccc, 8/12/09)
+!         DO K = 1, ND50_NL
+         DO K = 1, MIN(ND50_NL, NPVERT)
             L = LOFF + K
 
          ! Loop over latitudes 
@@ -309,8 +322,14 @@
          DO X = 1, ND50_NI
             I = GET_I( X )
 
-            ! Only increment if we are in the trop
-            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            ! Only increment if we were in the trop at the previous chemistry
+            ! time step. We can't use ITS_IN_THE_TROP because it might not
+            ! be a chemistry time step. Use JLOP instead:
+            ! JLOP  = 0 if in stratosphere
+            ! JLOP /= 0 if in troposphere
+!--- Previous to (ccc, 8/12/09)
+!ccc            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+            IF ( JLOP( I, J, L ) > 0 ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 
@@ -353,7 +372,9 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
 
-            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ( N == 89 .and. IS_Ox ) THEN
 
                !--------------------------------------
                ! PURE O3 CONCENTRATION [v/v]
@@ -363,7 +384,9 @@
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 90 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO CONCENTRATION [v/v]
@@ -417,7 +440,9 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
+            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH CONCENTRATION [molec/cm3]
@@ -425,7 +450,9 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
               
-            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
+            ELSE IF ( N == 75 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO2 CONCENTRATION [v/v]
@@ -484,7 +511,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE(I,J,CLDTOPS(I,J))
                ENDIF
 
-            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 82 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
@@ -499,7 +528,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 83 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
@@ -517,7 +548,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
@@ -535,7 +568,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
@@ -553,7 +588,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
@@ -571,7 +608,9 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 87 .and. IS_CHEM ) THEN
+!--- Previous to (ccc, 8/12/09)
+!            ELSE IF ( N == 87 .and. IS_CHEM ) THEN
+            ELSE IF ( N == 87 ) THEN
                
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
@@ -670,6 +709,8 @@
 !  (bmy, 7/20/04)
 !
 !  NOTES:
+!  (1 ) The time is already updated to the next time step in main.f 
+!        (ccc, 8/12/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -677,7 +718,7 @@
 
       ! Local variables
       LOGICAL :: ITS_TIME
-      REAL*8  :: HR1, HR2
+      REAL*8  :: HR1
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG50 begins here!
@@ -687,10 +728,13 @@
       HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
 
       ! Hour at the next dynamic timestep
-      HR2      = HR1        + ( GET_TS_DYN() / 60d0 )
+!--- Previous to (ccc, 8/12/09)
+!      HR2      = HR1        + ( GET_TS_DYN() / 60d0 )
 
       ! If the next dyn step is the start of a new day, return TRUE
-      ITS_TIME = ( INT( HR2 ) == 24 )
+!--- Previous to (ccc, 8/12/09)
+!      ITS_TIME = ( INT( HR2 ) == 24 )
+      ITS_TIME = ( INT( HR1 ) == 0 )
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_WRITE_DIAG50
@@ -719,6 +763,7 @@
 !        array with array assignment statement. (phs, 1/24/07)
 !  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
 !  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, 10/7/08)
+!  (10) Change timestamp for filename (ccc, 8/12/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -727,7 +772,7 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE FILE_MOD,   ONLY : IU_ND50
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD,   GET_NHMS
+      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD_DIAG,   GET_NHMS
       USE TIME_MOD,   ONLY : GET_TAU,     GET_TS_DYN, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 
@@ -736,7 +781,7 @@
       ! Local variables
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
       INTEGER            :: I,    J,     L,   W, N  
-      INTEGER            :: GMNL, GMTRC, IOS, X, Y, K
+      INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)  :: STAMP
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -748,8 +793,16 @@
 
       ! Replace time & date tokens in the filename
       FILENAME = ND50_OUTPUT_FILE
-      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
+      ! Change to get the good timestamp: day that was run and not next 
+      ! day if saved at midnight
+      NHMS = GET_NHMS()
+      IF ( NHMS == 0 ) NHMS = 240000
+
+!--- Previous to (ccc, 8/12/09)
+!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
+      CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
+      
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - DIAG50: Opening file ', a ) 
@@ -779,8 +832,9 @@
          SELECT CASE ( ND50_TRACERS(W) )
             CASE( 89, 90, 74, 75 )
                DIVISOR = COUNT_CHEM3D
-            CASE( 82:87 )
-               DIVISOR = COUNT_CHEM
+!--- Previous to (ccc, 8/12/09)
+!            CASE( 82:87 )
+!               DIVISOR = COUNT_CHEM
             CASE DEFAULT
                DIVISOR = COUNT
          END SELECT
@@ -1110,7 +1164,8 @@
 
       ! Zero counters
       COUNT        = 0
-      COUNT_CHEM   = 0
+!--- Previous to (ccc, 8/12/09)
+!      COUNT_CHEM   = 0
       COUNT_CHEM3D = 0  
       
       ! Zero accumulating array

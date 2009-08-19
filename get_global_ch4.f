@@ -1,4 +1,4 @@
-! $Id: get_global_ch4.f,v 1.3 2008/01/25 19:48:16 bmy Exp $
+! $Id: get_global_ch4.f,v 1.4 2009/08/19 17:05:47 ccarouge Exp $
       SUBROUTINE GET_GLOBAL_CH4( THISYEAR, VARIABLE_CH4, 
      &                           A3090S, A0030S, A0030N, A3090N )
 !
@@ -36,6 +36,8 @@
 !  (6 ) Add the preindustrial CH4 scenarios.  Also set 2001 as the default
 !        in case we are running 2030 or 2050 met but present-day emissions.
 !        (swu, havala, bmy, 1/25/08)
+!  (7 ) Updated CH4 vales with version 2008-07-02 for 1983-2007. Also use
+!        2007 for years past 2007 (jaf, 4/15/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -55,7 +57,8 @@
       !=================================================================
       ! GET_GLOBAL_CH4 begins here!
       !
-      ! New methane data from 1983-2001 (mje, bmy, 7/7/03)
+      ! New methane data from 1983-2007 (mje, bmy, 7/7/03, jaf 4/15/09)
+      ! version is 2008-07-02
       !
       ! Methane measurements are from CMDL website:
       ! ftp://140.172.192.211/ccg/ch4/flask/month
@@ -92,125 +95,161 @@
                
             ! Modern-day years ...
             CASE( 1983 )
-               A3090S = 1559.89d0
-               A0030S = 1575.68d0
-               A0030N = 1627.04d0
-               A3090N = 1682.40d0
+               A3090S = 1583.48d0
+               A0030S = 1598.24d0
+               A0030N = 1644.37d0
+               A3090N = 1706.48d0
 
             CASE( 1984 )
-               A3090S = 1578.59d0
-               A0030S = 1587.03d0
-               A0030N = 1635.20d0
-               A3090N = 1702.69d0
+               A3090S = 1597.77d0
+               A0030S = 1606.66d0
+               A0030N = 1655.62d0
+               A3090N = 1723.63d0
 
             CASE( 1985 )
-               A3090S = 1588.78d0
-               A0030S = 1600.98d0
-               A0030N = 1648.02d0
-               A3090N = 1716.23d0
+               A3090S = 1608.08d0
+               A0030S = 1620.43d0
+               A0030N = 1668.11d0
+               A3090N = 1736.78d0
                
             CASE( 1986 )
-               A3090S = 1598.28d0  
-               A0030S = 1612.76d0  
-               A0030N = 1664.98d0  
-               A3090N = 1731.23d0
+               A3090S = 1619.91d0  
+               A0030S = 1632.24d0  
+               A0030N = 1682.88d0  
+               A3090N = 1752.71d0
 
             CASE( 1987 )
-               A3090S = 1611.65d0  
-               A0030S = 1622.34d0  
-               A0030N = 1681.88d0  
-               A3090N = 1741.44d0
+               A3090S = 1630.54d0  
+               A0030S = 1640.54d0  
+               A0030N = 1702.05d0  
+               A3090N = 1763.03d0
 
             CASE( 1988 )
-               A3090S = 1620.31d0  
-               A0030S = 1634.43d0  
-               A0030N = 1691.88d0  
-               A3090N = 1753.92d0
+               A3090S = 1642.08d0  
+               A0030S = 1651.60d0  
+               A0030N = 1713.07d0  
+               A3090N = 1775.66d0
 
             CASE( 1989 )
-               A3090S = 1634.89d0  
-               A0030S = 1647.15d0  
-               A0030N = 1699.20d0  
-               A3090N = 1759.64d0
+               A3090S = 1654.03d0  
+               A0030S = 1666.12d0  
+               A0030N = 1720.53d0  
+               A3090N = 1781.83d0
 
             CASE( 1990 )
-               A3090S = 1643.58d0  
-               A0030S = 1653.97d0  
-               A0030N = 1712.33d0  
-               A3090N = 1769.97d0
+               A3090S = 1663.21d0  
+               A0030S = 1672.45d0  
+               A0030N = 1733.84d0  
+               A3090N = 1791.92d0
 
             CASE( 1991 )
-               A3090S = 1654.38d0  
-               A0030S = 1665.13d0  
-               A0030N = 1722.64d0  
-               A3090N = 1779.76d0
+               A3090S = 1673.52d0  
+               A0030S = 1683.87d0  
+               A0030N = 1750.68d0  
+               A3090N = 1800.90d0
 
             CASE( 1992 )
-               A3090S = 1668.22d0  
-               A0030S = 1673.40d0  
-               A0030N = 1732.30d0  
-               A3090N = 1786.76d0
+               A3090S = 1687.97d0  
+               A0030S = 1692.97d0  
+               A0030N = 1755.94d0  
+               A3090N = 1807.16d0
 
             CASE( 1993 )
-               A3090S = 1667.04d0  
-               A0030S = 1677.26d0  
-               A0030N = 1733.96d0  
-               A3090N = 1790.82d0
+               A3090S = 1687.83d0  
+               A0030S = 1696.48d0  
+               A0030N = 1758.86d0  
+               A3090N = 1810.99d0
 
             CASE( 1994 )
-               A3090S = 1670.85d0  
-               A0030S = 1681.07d0  
-               A0030N = 1740.88d0  
-               A3090N = 1797.05d0
+               A3090S = 1692.00d0  
+               A0030S = 1701.41d0  
+               A0030N = 1766.98d0  
+               A3090N = 1817.12d0
 
             CASE( 1995 )
-               A3090S = 1681.00d0  
-               A0030S = 1689.19d0  
-               A0030N = 1751.25d0  
-               A3090N = 1802.51d0
+               A3090S = 1701.04d0  
+               A0030S = 1709.07d0  
+               A0030N = 1778.25d0  
+               A3090N = 1822.04d0
 
             CASE( 1996 )
-               A3090S = 1682.23d0  
-               A0030S = 1690.72d0  
-               A0030N = 1751.64d0  
-               A3090N = 1805.18d0
+               A3090S = 1701.87d0  
+               A0030S = 1711.01d0  
+               A0030N = 1778.08d0  
+               A3090N = 1825.23d0
             
             CASE( 1997 )
-               A3090S = 1687.94d0  
-               A0030S = 1693.35d0  
-               A0030N = 1755.41d0  
-               A3090N = 1805.92d0
+               A3090S = 1708.01d0  
+               A0030S = 1713.91d0  
+               A0030N = 1781.43d0  
+               A3090N = 1825.15d0
 
             CASE( 1998 )
-               A3090S = 1696.98d0  
-               A0030S = 1703.54d0  
-               A0030N = 1764.94d0  
-               A3090N = 1820.58d0
+               A3090S = 1716.55d0  
+               A0030S = 1724.57d0  
+               A0030N = 1783.86d0  
+               A3090N = 1839.72d0
 
             CASE( 1999 )
-               A3090S = 1705.64d0  
-               A0030S = 1714.18d0  
-               A0030N = 1769.83d0  
-               A3090N = 1823.48d0
+               A3090S = 1725.70d0  
+               A0030S = 1734.06d0  
+               A0030N = 1791.50d0  
+               A3090N = 1842.59d0
 
             CASE( 2000 )
-               A3090S = 1707.14d0  
-               A0030S = 1715.63d0  
-               A0030N = 1769.11d0  
-               A3090N = 1822.85d0
+               A3090S = 1728.13d0  
+               A0030S = 1737.70d0  
+               A0030N = 1792.42d0  
+               A3090N = 1840.83d0
 
             CASE( 2001 )
-               A3090S = 1705.68d0  
-               A0030S = 1709.52d0  
-               A0030N = 1767.51d0  
-               A3090N = 1822.53d0
+               A3090S = 1726.92d0  
+               A0030S = 1730.72d0  
+               A0030N = 1789.11d0  
+               A3090N = 1841.85d0
+
+            CASE( 2002 )
+               A3090S = 1729.75d0
+               A0030S = 1735.28d0
+               A0030N = 1790.08d0
+               A3090N = 1842.36d0
+
+            CASE( 2003 )
+               A3090S = 1729.64d0
+               A0030S = 1735.49d0
+               A0030N = 1795.89d0
+               A3090N = 1853.97d0
+
+            CASE( 2004 )
+               A3090S = 1728.72d0
+               A0030S = 1738.54d0
+               A0030N = 1797.30d0
+               A3090N = 1849.58d0
+
+            CASE( 2005 )
+               A3090S = 1727.10d0
+               A0030S = 1734.65d0
+               A0030N = 1795.73d0
+               A3090N = 1849.79d0
+
+            CASE( 2006 )
+               A3090S = 1726.53d0
+               A0030S = 1735.17d0
+               A0030N = 1796.30d0
+               A3090N = 1848.20d0
+
+            CASE( 2007 )
+               A3090S = 1732.52d0
+               A0030S = 1741.68d0
+               A0030N = 1801.38d0
+               A3090N = 1855.55d0
 
             ! Future year 2030
             CASE( 2025:2035 )
             
                ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
                ! are undefined, then we are running 2030 meteorology with 
-               ! present-day emissions.  In this case, default to 2001 CH4 
+               ! present-day emissions.  In this case, default to 2007 CH4 
                ! concentrations. (havala, 1/25/08)
                SELECT CASE( FUTURE_SCENARIO )
                   CASE( 'A1' )
@@ -228,11 +267,11 @@
                   CASE( 'B2' )
                      ! Not defined yet
                   CASE DEFAULT
-                     ! 2001 is the default
-                     A3090S = 1705.68d0  
-                     A0030S = 1709.52d0  
-                     A0030N = 1767.51d0  
-                     A3090N = 1822.53d0
+                     ! 2007 is the default
+                     A3090S = 1732.52d0
+                     A0030S = 1741.68d0
+                     A0030N = 1801.38d0
+                     A3090N = 1855.55d0
                END SELECT
 
             ! Future year 2050
@@ -240,7 +279,7 @@
 
                ! Pick the IPCC scenario.  If LFUTURE=F and FUTURE_SCENARIO
                ! is undefined, then we are running 2050 meteorology with 
-               ! present-day emissions.  In this case, default to 2001 CH4 
+               ! present-day emissions.  In this case, default to 2007 CH4 
                ! concentrations. (havala, 1/25/08)
                SELECT CASE ( FUTURE_SCENARIO )
                   CASE ( 'A1' )
@@ -264,20 +303,20 @@
                      A0030N = 2363.0d0
                      A3090N = 2363.0d0
                   CASE DEFAULT
-                     ! 2001 is the default
-                     A3090S = 1705.68d0  
-                     A0030S = 1709.52d0  
-                     A0030N = 1767.51d0  
-                     A3090N = 1822.53d0
+                     ! 2007 is the default
+                     A3090S = 1732.52d0
+                     A0030S = 1741.68d0
+                     A0030N = 1801.38d0
+                     A3090N = 1855.55d0
                END SELECT
 
-            ! Default is to use 2001 data for other years
-            ! for which we do not yet have data (bmy, 5/30/06)
+            ! Default is to use 2007 data for other years
+            ! for which we do not yet have data (jaf, 4/15/09)
             CASE DEFAULT
-               A3090S = 1705.68d0  
-               A0030S = 1709.52d0  
-               A0030N = 1767.51d0  
-               A3090N = 1822.53d0
+               A3090S = 1732.52d0
+               A0030S = 1741.68d0
+               A0030N = 1801.38d0
+               A3090N = 1855.55d0
 
          END SELECT
 
@@ -306,11 +345,12 @@
      &        'CH4 (30S - 90S) : ', f7.1, ' [ppbv]' )
 
       ! Indicate to the log file if we are using CH4 gradient data
-      ! from 2001 as a proxy for years past 2001 (mje, bmy, 7/7/03)
-      IF ( THISYEAR > 2001 ) THEN
+      ! from 2007 as a proxy for years past 2007 (mje, bmy, 7/7/03,
+      ! jaf, 4/15/09)
+      IF ( THISYEAR > 2007 ) THEN
          WRITE( 6, 115 ) 
- 115     FORMAT( /, 'Using CH4 gradient data from 2001 as a proxy',
-     &           /, 'since 2001 is the last year with reported data!' )
+ 115     FORMAT( /, 'Using CH4 gradient data from 2007 as a proxy',
+     &           /, 'since 2007 is the last year with reported data!' )
       ENDIF
 
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
