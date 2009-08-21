@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.62 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: input_mod.f,v 1.63 2009/08/21 17:59:49 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 2/10/09)
+!  (bmy, 7/20/04, 8/21/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -135,6 +135,7 @@
 !  (27) Add LDICARB switch in aerosol menu (ccc, tmf, 3/10/09)
 !  (28) Now read LCOOKE in aerosol menu (phs, 5/18/09)
 !  (29) Add CH4_MENU in input.geos (kjw, 8/18/09)
+!  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -4413,13 +4414,14 @@
 !  Subroutine CHECK_TIME_STEPS computes the smallest dynamic time step for the
 !  model, based on which operation are turned on.  This is called from routine
 !  READ_INPUT_FILE, after all of the timesteps and logical flags have been
-!  read from "input.geos". (bmy, 7/20/04, 10/3/05)
+!  read from "input.geos". (bmy, 7/20/04, 8/21/09)
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Add TS_DIAG, the largest time steps used for diagnostics.
 !        And test that all time steps are multiple of the smallest one.
 !        (ccc, 5/13/09)
+!  (3 ) Corrected typos -99999 instead of -999999 (phs, bmy, 8/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4495,22 +4497,22 @@
 
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)
-      IF ( L /= -99999 .and. MOD( TS_CHEM, TS_SMALLEST ) /= 0 ) THEN
+      IF ( L /= -999999 .and. MOD( TS_CHEM, TS_SMALLEST ) /= 0 ) THEN
          WRITE( 6, 100 ) 'Chemistry', TS_CHEM, TS_SMALLEST
          CALL GEOS_CHEM_STOP
       ENDIF
       
-      IF ( K /= -99999 .and. MOD( TS_EMIS, TS_SMALLEST ) /= 0 ) THEN
+      IF ( K /= -999999 .and. MOD( TS_EMIS, TS_SMALLEST ) /= 0 ) THEN
          WRITE( 6, 100 ) 'Emission', TS_EMIS, TS_SMALLEST
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      IF ( J /= -99999 .and. MOD( TS_CONV, TS_SMALLEST ) /= 0 ) THEN
+      IF ( J /= -999999 .and. MOD( TS_CONV, TS_SMALLEST ) /= 0 ) THEN
          WRITE( 6, 100 ) 'Convection', TS_CONV, TS_SMALLEST
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      IF ( I /= -99999 .and. MOD( TS_DYN, TS_SMALLEST ) /= 0 ) THEN
+      IF ( I /= -999999 .and. MOD( TS_DYN, TS_SMALLEST ) /= 0 ) THEN
          WRITE( 6, 100 ) 'Transport', TS_DYN, TS_SMALLEST
          CALL GEOS_CHEM_STOP
       ENDIF
