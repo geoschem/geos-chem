@@ -75,13 +75,16 @@ finite_dble		-- Remove support for SGI, COMPAQ compilers.
 finite_float		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
 
+gcap_global_adv         -- Bug fix in mass conservation calculation.
+("transport_mod.f")
+
 get_ic_gc_ratio		-- Bug fix to prevent error on XLF compiler
 ("lightning_nox_mod.f")
 
 get_local_time          -- Change local time computation
 ("diag51_mod.f")
 
-get_n_a3                 -- Increase N_A3 to 30 for GEOS-5
+get_n_a3                 -- Increase N_A3 to 33 for GEOS-5
 ("a3_read_mod.f")          
 
 get_otd_lis_scale	-- Updated scale factors for GEOS-5 based on 4+ 
@@ -90,6 +93,9 @@ get_otd_lis_scale	-- Updated scale factors for GEOS-5 based on 4+
 
 gfed2_compute_biomass	-- Adjust call to GFED2_AVAILABLE to reflect that 
 ("gfed2_biomass_mod.f")    monthly data for 2008 is now available on disk 
+
+global_ch4_mod.f        -- Completely re-designed and updated.
+                        -- Enables non-local PBL scheme
 
 i6_read_mod.f		-- Read TO31 and TO32 for GEOS-5
 
@@ -140,7 +146,7 @@ ocean_mercury_flux	-- Bug fix to prevent error on XLF compiler
 ("ocean_mercury_mod.f)
 
 planeflight             -- Add grid cell location.
-("planeflight_mod.f")
+("planeflight_mod.f")   -- Change time step for output (longest time step only)
 
 print_diag_oh           -- Add CH3CCl3 lifetime output for CH4 simulation
 ("diag_oh_mod.f")
@@ -167,11 +173,17 @@ read_local_redist	-- Now read from lightning_NOx_200907 directory
 read_variables          -- Read grid cell location
 ("planeflight_mod.f")
 
+set_cross_terms         -- Bug fix for va.
+("tpcore_fvdas_mod.f90")
+
 set_prof.f		-- Replace TOMS/SBUV by GEOS-5 TO3 when no satellite
 			   data available (after 2008)
 
 set_timesteps           -- Add TS_DIAG
 ("time_mod.f")
+
+test_valid              -- Change definition of JLOOP
+("planeflight_mod.f")
 
 time_mod.f              -- Add variables TS_DIAG, CT_DIAG and NYMD_DIAG
 
@@ -182,6 +194,9 @@ upbdflx_o3		-- Remove reference to COMPAQ
 
 upbdflx_hd		-- Remove reference to COMPAQ
 ("upbdflx_mod.f")
+
+vdiffdr                 -- Add case for CH4 simulation
+("vdiff_mod.f90")
 
 wetdep			-- Remove reference to SGI_MIPS 
 ("wetscav_mod.f")

@@ -1,4 +1,4 @@
-! $Id: diag_oh_mod.f,v 1.4 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: diag_oh_mod.f,v 1.5 2009/09/09 18:29:55 ccarouge Exp $
       MODULE DIAG_OH_MOD
 !
 !******************************************************************************
@@ -204,23 +204,26 @@
          WRITE( 6, *       ) 'Mean OH = ', OHCONC, ' [1e5 molec/cm3]' 
          WRITE( 6, '(  a)' ) REPEAT( '=', 79 ) 
          ! Avoid divide-by-zero errors
-         IF ( ITS_A_CH4_SIM() .and. SUM_OHLOSS > 0) THEN
+         IF ( ITS_A_CH4_SIM() ) THEN
+            IF ( SUM_OHLOSS > 0 ) THEN
 
-            ! Calculate CH3CCl3 Lifetime [years]
-            LIFETIME = ( SUM_MASS / SUM_OHLOSS ) / ( 3600d0*365d0*24d0 )
+               ! Calculate CH3CCl3 Lifetime [years]
+               LIFETIME = ( SUM_MASS / SUM_OHLOSS ) / 
+     &                    ( 3600d0*365d0*24d0 )
 
-            ! Write value to log file
-            WRITE( 6, *       ) 'Methyl Chloroform (CH3CCl3)'
-            WRITE( 6, *       ) 'Tropospheric Lifetime     = ', 
-     &                              LIFETIME, ' [years]'
-            WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+               ! Write value to log file
+               WRITE( 6, *       ) 'Methyl Chloroform (CH3CCl3)'
+               WRITE( 6, *       ) 'Tropospheric Lifetime     = ', 
+     &                                 LIFETIME, ' [years]'
+               WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
 
-         ELSE
+            ELSE
 
-            WRITE( 6, *       ) 'Could not compute CH3CCl3 lifetime!'
-            WRITE( 6, *       ) 'SUM_OHLOSS = 0!'
-            WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
+               WRITE( 6, *       ) 'Could not compute CH3CCl3 lifetime!'
+               WRITE( 6, *       ) 'SUM_OHLOSS = 0!'
+               WRITE( 6, '(  a)' ) REPEAT( '=', 79 )
 
+            ENDIF
          ENDIF
       ELSE
 

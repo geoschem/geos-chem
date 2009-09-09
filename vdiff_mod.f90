@@ -1596,6 +1596,7 @@ contains
                              ID_EMITTED, TRACER_COEFF, TRACER_COEFF, &
                              TRACER_NAME
     USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM, ITS_A_TAGCO_SIM
+    USE TRACER_MOD,   ONLY : ITS_A_CH4_SIM
     USE DAO_MOD,      ONLY : um1 => UWND, vm1 => VWND, tadv => T, &
                              hflx => HFLUX, eflux => EFLUX, &
                              USTAR, BXHEIGHT, shp => SPHU, PS => PSC2, &
@@ -1759,6 +1760,17 @@ contains
           
        endif ! NCS
        
+       if ( ITS_A_CH4_SIM() ) then
+          ! add surface emis
+          ! (after converting kg/box/timestep to kg/m2/s)
+          ! Should NOT use ID_EMITTED here, since it is only for gases 
+          ! for SMVGEAR. (Lin, 06/10/08)
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
+                                                         GET_TS_EMIS() / 60.d0
+          enddo
+       endif
+
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -1860,21 +1872,8 @@ contains
     if (ND44 > 0) then 
 
        do N = 1, NUMDEP
-       !do N = 1, NDRYDEP(NCS) ! Lin_20080527 
-!ccc          SELECT CASE ( TRIM( DEPNAME(N) ) )
           SELECT CASE ( DEPNAME(N) )
-             ! gases + aerosols for fully chemistry 
-!ccc          CASE ( 'NO2', 'O3', 'PAN', 'HNO3', 'H2O2', &
-!ccc                 'PMN', 'PPN', 'ISN2', 'R4N2', 'CH2O', &
-!ccc                 'N2O5', &
-!ccc                 'SO2','SO4','SO4S','MSA','NH3', &
-!ccc                 'NH4','NIT','NITS','AS','AHS','LET', &
-!ccc                 'SO4aq','NH4aq', &
-!ccc                 'BCPI', 'OCPI', 'BCPO', 'OCPO', &
-!ccc                 'ALPH', 'LIMO', 'ALCO', 'SOG1', &
-!ccc                 'SOG2', 'SOG3', 'SOG4', 'SOA1', &
-!ccc                 'SOA2', 'SOA3', 'SOA4'  )
-             
+             ! non gases + aerosols for fully chemistry 
              CASE ( 'DST1', 'DST2', 'DST3', 'DST4', 'SALA', &
                     'SALC' )
                 CYCLE

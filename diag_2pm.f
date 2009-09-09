@@ -1,4 +1,4 @@
-! $Id: diag_2pm.f,v 1.8 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: diag_2pm.f,v 1.9 2009/09/09 18:29:55 ccarouge Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
@@ -91,21 +91,21 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Change initialization of LTOTH: only on timestep after saving
-         ! diagnostics.(ccc, 6/12/09)
-         IF ( ITS_AFTER_DIAG ) THEN
-            LTOTH(I,J) = 0
-         ENDIF
-
-         ! Reinitialise LTO3 at each chemistry step
-         IF ( IS_CHEM ) THEN
-            LTO3(I,J)  = 0
-         ENDIF
-
          !-----------------------------
          ! ND45 -- mixing ratios
          !-----------------------------
          IF ( IS_ND45 ) THEN
+
+            ! Change initialization of LTOTH: only on timestep after saving
+            ! diagnostics.(ccc, 6/12/09)
+            IF ( ITS_AFTER_DIAG ) THEN
+               LTOTH(I,J) = 0
+            ENDIF
+
+            ! Reinitialise LTO3 at each chemistry step
+            IF ( IS_CHEM ) THEN
+               LTO3(I,J)  = 0
+            ENDIF
 
             ! Archive if we fall w/in the local time limits
             IF ( LT(I) >= HR1_OTH .and. LT(I) <= HR2_OTH ) THEN

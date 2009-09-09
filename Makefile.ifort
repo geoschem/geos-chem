@@ -1,12 +1,12 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.33 2009/06/01 19:58:15 ccarouge Exp $
+# $Id: Makefile.ifort,v 1.34 2009/09/09 18:29:55 ccarouge Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Wed Jan 28 15:09:07 2009)
 #=============================================================================
 SHELL = /bin/sh
 
 # IFORT compilation options
-FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian 
+FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian -ipo -static
  
 # IFORT compilation options (for debugging: no optimization)
 #FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback -CB

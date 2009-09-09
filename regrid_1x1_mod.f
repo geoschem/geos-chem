@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.16 2009/05/07 19:24:29 ccarouge Exp $
+! $Id: regrid_1x1_mod.f,v 1.17 2009/09/09 18:29:55 ccarouge Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -637,6 +637,8 @@
       ! Is this concentration data?
       IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
 
+      OUTDATA = 0d0
+
 #if   defined( GRID05x0666 ) && defined( NESTED_CH )
 
       !------------------------------------------------
@@ -693,6 +695,8 @@
 
       ! Is this concentration data?
       IS_CONC = ITS_CONCENTRATION_DATA( UNIT )
+
+      OUTDATA = 0d0
 
 #if defined( GRID05x0666 ) && defined( NESTED_CH )
 

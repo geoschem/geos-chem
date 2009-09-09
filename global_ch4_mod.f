@@ -1,4 +1,4 @@
-! $Id: global_ch4_mod.f,v 1.11 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: global_ch4_mod.f,v 1.12 2009/09/09 18:29:55 ccarouge Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
@@ -341,6 +341,7 @@
 !  (11) Now reference STT from "tracer_mod.f".  Now reference DATA_DIR from
 !        "directory_mod.f". (bmy, 7/20/04)
 !  (12) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (13) Add non-local PBL capability (ccc, 8/31/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -356,6 +357,10 @@
       USE TRACER_MOD,    ONLY : N_TRACERS, ID_TRACER
       USE LOGICAL_MOD,   ONLY : LWETL,           LBMCH4,       LRICE
       USE LOGICAL_MOD,   ONLY : LBFCH4
+
+      USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (ccc, 08/31/09)
+      USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
+      
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! Diagnostic switches
@@ -506,14 +511,20 @@
          IREF = I + I0
 
 
-         STT(IREF,JREF,1,1) = STT(IREF,JREF,1,1) +
-     &     ( CH4_EMIS(IREF,JREF,1)  ) / XNUMOL_CH4 * DTSRCE * AREA_CM2 	    
-
-         IF ( LSPLIT ) THEN
-            DO N = 2, N_TRACERS
+         IF ( .NOT.LNLPBL ) THEN
+            DO N = 1, N_TRACERS
                STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
      &            CH4_EMIS(IREF,JREF,ID_TRACER(N))
      &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
+            ENDDO
+         ENDIF
+
+         ! Save emissions in the EMIS_SAVE array to use the non-local 
+         ! PBL scheme to propagate emissions (ccc, 8/31/09)
+         IF ( LNLPBL ) THEN
+            DO N = 1, N_TRACERS
+               EMIS_SAVE(IREF,JREF,N) = CH4_EMIS(IREF,JREF,ID_TRACER(N))
+     &                                  / XNUMOL_CH4 * DTSRCE * AREA_CM2
             ENDDO
          ENDIF
 
@@ -526,7 +537,7 @@
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,N) 
+     &            CH4_EMIS(IREF,JREF,ID_TRACER(N)) 
      &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
             ENDDO
          ENDIF

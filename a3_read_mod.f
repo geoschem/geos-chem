@@ -1,4 +1,4 @@
-! $Id: a3_read_mod.f,v 1.25 2009/08/19 17:05:48 ccarouge Exp $
+! $Id: a3_read_mod.f,v 1.26 2009/09/09 18:29:55 ccarouge Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
@@ -636,8 +636,8 @@
 
 #elif defined( GEOS_5 )
 
-      ! GEOS-5 has 30 A-3 fields
-      N_A3 = 30
+      ! GEOS-5 has 33 A-3 fields (only 30 used in GEOS-Chem)
+      N_A3 = 33
 
 #elif defined( GCAP )
       
@@ -1264,7 +1264,6 @@
             ! FRLAND: land fraction
             !--------------------------------            
             CASE ( 'FRLAND' )
-               print*,'A3_READ_MOD: FRLAND'
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35')
              
@@ -1277,7 +1276,6 @@
             ! FRLAKE: lake fraction
             !--------------------------------            
             CASE ( 'FRLAKE' )
-               print*,'A3_READ_MOD: FRLAKE'
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:36')
              
@@ -1290,7 +1288,6 @@
             ! FROCEAN: ocean fraction
             !--------------------------------            
             CASE ( 'FROCEAN' )
-               print*,'A3_READ_MOD: FROCEAN'
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:37')
              
@@ -1305,7 +1302,6 @@
             ! FRLANDIC: land ice fraction
             !--------------------------------            
             CASE ( 'FRLANDIC' )
-               print*,'A3_READ_MOD: FRLANDIC'
                READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:38')
              

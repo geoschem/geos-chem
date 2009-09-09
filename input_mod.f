@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.63 2009/08/21 17:59:49 bmy Exp $
+! $Id: input_mod.f,v 1.64 2009/09/09 18:29:55 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -4429,6 +4429,7 @@
       USE LOGICAL_MOD, ONLY : LEMIS, LTRAN, LTURB 
       USE TIME_MOD,    ONLY : SET_TIMESTEPS
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+      USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
       
       ! Local variables
       INTEGER              :: I, J, K, L, TS_SMALLEST, TS_DIAG
@@ -4494,6 +4495,9 @@
       IF ( TS_DIAG == -999999 ) THEN
          TS_DIAG = TS_CHEM
       ENDIF
+
+      ! Change TS_DIAG to TS_DYN for methane simulation. (ccc, 8/27/09)
+      IF ( ITS_A_CH4_SIM() ) TS_DIAG = TS_DYN
 
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)

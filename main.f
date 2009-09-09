@@ -1,5 +1,8 @@
-! $Id: main.f,v 1.63 2009/08/19 17:05:46 ccarouge Exp $
+! $Id: main.f,v 1.64 2009/09/09 18:29:55 ccarouge Exp $
 ! $Log: main.f,v $
+! Revision 1.64  2009/09/09 18:29:55  ccarouge
+! small bug fixes for diagnostics and CH4. (ccc, 9/9/09)
+!
 ! Revision 1.63  2009/08/19 17:05:46  ccarouge
 ! Read GEOS-5 O3 columns and use them after 2008.
 ! Diagnostic accumulation modifications.
@@ -935,6 +938,22 @@
          ! Need to save timestamps for filenames.
          ! (ccc, 5/13/09)
  
+         ! Plane following diagnostic
+         IF ( ND40 > 0 ) THEN 
+         
+            ! Call SETUP_PLANEFLIGHT routine if necessary
+            IF ( ITS_A_NEW_DAY() ) THEN
+               
+               ! If it's a full-chemistry simulation but LCHEM=F,
+               ! or if it's an offline simulation, call setup routine 
+               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
+               ELSE
+                  CALL SETUP_PLANEFLIGHT
+               ENDIF
+            ENDIF
+         ENDIF
+
          CALL TIMESTAMP_DIAG
          CALL SET_ELAPSED_MIN
          CALL SET_CURRENT_TIME
@@ -966,6 +985,28 @@
 
             !### Debug
             IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
+
+            ! Plane following diagnostic
+            IF ( ND40 > 0 ) THEN 
+               
+! Planeflight setup moved before starting diagnostics.
+!--- Prior to (ccc, 8/27/09)
+!            ! Call SETUP_PLANEFLIGHT routine if necessary
+!            IF ( ITS_A_NEW_DAY() ) THEN
+!               
+!               ! If it's a full-chemistry simulation but LCHEM=F,
+!               ! or if it's an offline simulation, call setup routine 
+!               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+!                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
+!               ELSE
+!                  CALL SETUP_PLANEFLIGHT
+!               ENDIF
+!            ENDIF
+
+               ! Archive data along the flight track
+               CALL PLANEFLIGHT
+            ENDIF
+            
          ENDIF
 
          !==============================================================
@@ -976,25 +1017,6 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
-         ! Plane following diagnostic
-         IF ( ND40 > 0 ) THEN 
-         
-            ! Call SETUP_PLANEFLIGHT routine if necessary
-            IF ( ITS_A_NEW_DAY() ) THEN
-               
-               ! If it's a full-chemistry simulation but LCHEM=F,
-               ! or if it's an offline simulation, call setup routine 
-               IF ( ITS_A_FULLCHEM_SIM() ) THEN
-                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
-               ELSE
-                  CALL SETUP_PLANEFLIGHT
-               ENDIF
-            ENDIF
-
-            ! Archive data along the flight track
-            CALL PLANEFLIGHT
-         ENDIF
-            
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
 

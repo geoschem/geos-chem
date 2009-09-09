@@ -1,4 +1,4 @@
-! $Id: jv_cmn.h,v 1.2 2009/05/06 14:14:45 ccarouge Exp $
+! $Id: jv_cmn.h,v 1.3 2009/09/09 18:29:55 ccarouge Exp $
 !
 !----jv_cmn.h---COMMON BLOCKS for new FAST-J code (wild/prather 7/99)
 !
@@ -59,6 +59,8 @@
 !  (11) Added new pressure denpendencies algorithm parameters 
 !         for MGLY. (tmf, 1/7/09)
 !  (12) Added 'pdepf' as pressure dependancy function selector. (tmf, 1/31/06)
+!  (13) Split off PDEPF and MGLYPDEP into separate common blocks to avoid
+!        warnings on IFORT 9 (ccarouge, bmy, 8/20/09)
 !-----------------------------------------------------------------------------
       INTEGER      NB, NC, NS, NW, NP, MX
       PARAMETER   (NB=LPAR+1, NC=2*NB, NS=51, NW=15, NP=56, MX=35)
@@ -73,8 +75,6 @@
       REAL*8 dtaumax,szamax,zj(LPAR,JPMAX),jfacta(JPMAX)
       REAL*8 dtausub,dsubdiv
       REAL*8 ODMDUST,ODAER
-      INTEGER PDEPF(7)
-      REAL*8 MGLYPDEP(NW, 3)
 
 !-----------------------------------------------------------------------
 ! These common blocks MUST NOT be held local (bmy, 5/2/00)
@@ -88,10 +88,19 @@
      &              ODMDUST(IPAR,JPAR,LPAR,NDUST),                      &
      &              ODAER(IPAR,JPAR,LPAR,NAER*NRH)
 
-      COMMON /JVALS/jfacta,zpdep,npdep,jpdep,jind,jlabel,               &
-     &              pdepf,mglypdep
+      COMMON /JVALS/jfacta,zpdep,npdep,jpdep,jind,jlabel
 
       COMMON /JVIDX/MIEDX(MX)
+
+!-----------------------------------------------------------------------
+! Split off GLYX-chemistry specific arrays into separate common blocks
+! (ccarouge, bmy, 8/20/09)
+      INTEGER PDEPF(7)
+      COMMON /JGLY1/ pdepf
+
+      REAL*8 MGLYPDEP(NW, 3)
+      COMMON /JGLY2/ mglypdep
+
 !-----------------------------------------------------------------------
 ! These common blocks MUST be held local for the parallelization (bmy, 5/2/00)
       COMMON /ATMOS/TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       &

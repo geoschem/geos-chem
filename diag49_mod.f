@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.26 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: diag49_mod.f,v 1.27 2009/09/09 18:29:55 ccarouge Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -240,12 +240,15 @@
 
       !=================================================================
       ! If it's a new day, open a new BPCH file and write file header
-      ! We need to check if it's a new day + 1 longest time step (ccc, 8/12/09)
+      ! We need to check if it's a new day + 1 ND49 time step (ccc, 8/12/09)
       !=================================================================
 !--- Previous to (ccc, 8/12/09)
 !      IF ( ITS_A_NEW_DAY() ) THEN
       NHMS    = GET_NHMS()
-      TS_DIAG = GET_TS_DIAG()/60 * 10000   ! To change to NHMS format
+      TS_DIAG = ND49_FREQ
+
+      ! To change TS_DIAG to NHMS format
+      TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
