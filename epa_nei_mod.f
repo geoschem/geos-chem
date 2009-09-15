@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.11 2009/07/08 20:54:40 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.12 2009/09/15 15:51:47 phs Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -707,6 +707,8 @@
 !       to avoid double counting emissions along the borders. Masks for the
 !       case that either BRAVO or CAC (but not both) is used w/ EPA have not
 !       been produced" (phs, 12/23/08)
+!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
+!       the NA window, are available) nested NA runs.
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -738,7 +740,12 @@
       ELSE
          MASK_DIR = 'EPA_NEI_200411'
       ENDIF
-         
+
+#if   defined( NESTED_NA )
+      MASK_DIR = 'EPA_NEI_200411'
+#endif
+
+      
       FILENAME = TRIM( DATA_DIR )         //
      &           MASK_DIR // '/usa_mask.' // GET_NAME_EXT_2D() //
      &           '.'                      // GET_RES_EXT()

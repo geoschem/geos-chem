@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.26 2009/06/01 19:58:14 ccarouge Exp $
+! $Id: emfossil.f,v 1.27 2009/09/15 15:51:47 phs Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -65,7 +65,8 @@
 !        overlap (phs, 5/7/08)
 !  (32) Now overwrite USA NOx with VISTAS if necessary (amv, 12/02/08)
 !  (33) Modified CO scaling (jaf, 2/25/09)
-!  (34) Add a test on existing emissions for EPA/NEI. (hotp, ccc, 5/29/09) 
+!  (34) Add a test on existing emissions for EPA/NEI. (hotp, ccc, 5/29/09)
+!  (35) Updated ship treatment (phs, 7/0/09)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -84,6 +85,8 @@
       USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
       USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,           ONLY : LICARTT
+      USE LOGICAL_MOD,           ONLY : LICOADSSHIP !(cklee, 6/30/09)
+
       USE STREETS_ANTHRO_MOD,    ONLY : GET_SE_ASIA_MASK
       USE STREETS_ANTHRO_MOD,    ONLY : GET_STREETS_ANTHRO
       USE TIME_MOD,              ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
@@ -93,6 +96,8 @@
       USE TRACERID_MOD,          ONLY : IDENOX, IDEOX,    IDEHNO3
       USE TRACERID_MOD,          ONLY : IDTOX,  IDTCO,    IDTHNO3
       USE VISTAS_ANTHRO_MOD,     ONLY : GET_VISTAS_ANTHRO
+
+      USE ICOADS_SHIP_MOD,       ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
       IMPLICIT NONE
 
@@ -410,39 +415,44 @@
             ! chemistry of ship emission plumes during ITCT 2002, 
             ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
             ! (djj, phs, 3/4/08)
-            ! Now alse process EMEP NOx ship emissions, available
+            ! Now also process EMEP NOx ship emissions, available
             ! from 1990 with EMEP 2005 (phs, 6/08)
+            ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
             !-----------------------------------------------------------
             ! DO it only once (1st level)
             IF ( LL == 1 ) THEN
 
+               ! Reset
+               SHIP = 0D0
+
+               ! handle global inventory first
                IF ( LEDGARSHIP ) THEN 
 
                   ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
                   SHIP = GET_EDGAR_NOx( I, J, 
      &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
-
-                  ! Convert
-                  SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
                   
-!Prior to 5/1/09 (win, 5/1/09)
-!               ELSE IF ( LEMEPSHIP  .AND.
-!     $                 ( GET_EUROPE_MASK( I, J ) > 0d0 ) ) THEN
-!
-!                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-!                  SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
-               ELSE IF ( LEMEPSHIP ) THEN
+               ! ICOADS ship emissions (cklee,7/09/09)
+               ELSE IF ( LICOADSSHIP ) THEN
+
+                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
+                  SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+                  
+               ENDIF
+
+               ! Overwrite Europe
+               IF ( LEMEPSHIP ) THEN
                  
                   IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
 
                   ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
      &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
 
-               ELSE
-                  
-                  SHIP=0D0
-                  
                ENDIF
+                  
+               ! Convert molec/cm2/s to kg/box/timestep to get same
+               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
+               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
          
                ! Store as HNO3 and O3
                EMISRR(I,J,IDEHNO3) = SHIP * XNUMOL(IDTHNO3) / DTSRCE
@@ -525,10 +535,11 @@
             ! Get EDGAR CO
             EDGAR  = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE. )
 
-            ! Add ship emissions
-            IF ( LEDGARSHIP ) 
-     &           EDGAR = EDGAR + GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE.,
-     &                                         SHIP=.TRUE.)
+!-- commented to deal with ship below (phs, 7/9/09)             
+!            ! Add ship emissions
+!            IF ( LEDGARSHIP ) 
+!     &           EDGAR = EDGAR + GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE.,
+!     &                                         SHIP=.TRUE.)
 
             ! Apply time of day factor
             EDGAR  = EDGAR * TODX
@@ -552,10 +563,10 @@
                ! Get EMEP emissions 
                EMEP = GET_EMEP_ANTHRO( I, J, NN )
 
-
-               IF ( LEMEPSHIP .AND. NN == IDTCO )
-     $              EMEP = EMEP + GET_EMEP_ANTHRO( I, J, NN,
-     $                                             SHIP=.TRUE.)
+!-- commented to deal with ship below (phs, 7/9/09)
+!               IF ( LEMEPSHIP .AND. NN == IDTCO )
+!     $              EMEP = EMEP + GET_EMEP_ANTHRO( I, J, NN,
+!     $                                             SHIP=.TRUE.)
          
                ! -1 indicates tracer NN does not have EMEP emissions
                IF ( .not. ( EMEP < 0d0 ) ) THEN
@@ -729,15 +740,50 @@
          ! calculating emissions. (jaf, ccc, 2/25/09)
          ! Modifications of the scaling using Rynda GRL 2008.
          ! (jaf, ccc, 2/25/09)
-         IF ( ITS_A_TAGCO_SIM() ) THEN
-            IF (GET_USA_MASK(I,J) > 0.d0.and.LICARTT) THEN
-               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
-            ELSE
-               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+         ! Added a nested if (phs, 7/9/09)
+         IF ( ITS_A_TAGCO_SIM() ) THEN           
+            IF ( LICARTT ) THEN
+               IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
+                  IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
+               ELSE
+                  IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+               ENDIF
             ENDIF
          ELSE
             IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
          ENDIF
+
+
+         !--------------------------------------------------------------
+         ! Add ship emissions for CO (phs, 7/9/09)
+         !--------------------------------------------------------------
+         SHIP = 0D0
+         
+         IF ( NN == IDTCO ) THEN
+
+            ! get global inventory first
+            IF ( LEDGARSHIP ) THEN
+               
+               SHIP = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE.,
+     $                              SHIP=.TRUE.)
+            
+            ELSE IF ( LICOADSSHIP ) THEN
+
+               SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+
+            ENDIF
+
+            ! overwrite Europe
+            IF ( LEMEPSHIP ) SHIP = 
+     $           GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
+
+            ! Convert to same units as EMX(1), and add
+            SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+            EMX(1) = EMX(1) + SHIP
+            
+         ENDIF
+     
 
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics

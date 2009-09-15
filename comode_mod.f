@@ -1,4 +1,4 @@
-! $Id: comode_mod.f,v 1.6 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: comode_mod.f,v 1.7 2009/09/15 15:51:47 phs Exp $
       MODULE COMODE_MOD
 !
 !******************************************************************************
@@ -55,6 +55,7 @@
 !       For SOA production from reactive uptake of dicarbonyls, 
 !       archived WTAREA and WERADIUS should include dusts, 
 !       but excludes BCPO and OCPO (tmf, ccc, 1/7/09)
+!  (11) Added 3 *_KPP arrays (phs,ks,dhk, 09/15/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -81,6 +82,9 @@
       REAL*8,  ALLOCATABLE :: VOLUME(:)      
       REAL*8,  ALLOCATABLE :: WTAREA(:,:)
       REAL*8,  ALLOCATABLE :: WERADIUS(:,:)
+      REAL*8,  ALLOCATABLE :: R_KPP(:,:)
+      REAL*8,  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
+      REAL*8,  ALLOCATABLE :: CSPEC_FOR_KPP(:,:) 
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -103,9 +107,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LKPP  
+      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+      
 #     include "CMN_SIZE"
 #     include "comode.h" 
 
@@ -199,6 +204,22 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
          WERADIUS = 0d0      
 
+         !***** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *********
+         IF ( LKPP ) THEN
+            ALLOCATE( R_KPP( ITLOOP, NMTRATE ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'R_KPP' )
+            R_KPP = 0d0
+
+            ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLTROP ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'HSAVE_KPP' )
+            HSAVE_KPP = 0.d0 
+            
+            ALLOCATE( CSPEC_FOR_KPP( ITLOOP, IGAS ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FOR_KPP' )
+            CSPEC_FOR_KPP = 0d0
+
+         ENDIF
+         !********************************************
       ENDIF
 
       !----------------------------------
@@ -278,6 +299,10 @@
       IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME  )  
       IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA  )
       IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS )
+      ! KPP arrays
+      IF ( ALLOCATED( R_KPP         ) ) DEALLOCATE( R_KPP         )
+      IF ( ALLOCATED( CSPEC_FOR_KPP ) ) DEALLOCATE( CSPEC_FOR_KPP )
+      IF ( ALLOCATED( HSAVE_KPP     ) ) DEALLOCATE( HSAVE_KPP     )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_COMODE

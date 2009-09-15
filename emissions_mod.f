@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.26 2009/07/08 20:54:40 bmy Exp $
+! $Id: emissions_mod.f,v 1.27 2009/09/15 15:51:47 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -100,6 +100,8 @@
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 
+      USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
+
 #     include "CMN_SIZE"               ! Size parameters
 #     include "CMN_O3"                 ! FSCLYR
 !
@@ -161,6 +163,9 @@
 
       ! Get biomass burning emissions for use below
       IF ( LBIOMASS ) THEN
+!#### HARDWIRE SWITCH : use YEAR instead of GET_YEAR() to use the same
+!#### base year as anthropogenic emissions
+!         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
          CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
       ENDIF
          
@@ -206,6 +211,10 @@
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
      $        CALL EMISS_ARCTAS_SHIP( YEAR )
+
+         ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
+     &        CALL EMISS_ICOADS_SHIP
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
@@ -253,6 +262,11 @@
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
      $        CALL EMISS_ARCTAS_SHIP( YEAR )
+
+         ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_ICOADS_SHIP
+         ENDIF
 
          ! Emissions for various aerosol types
          IF ( LSSALT            ) CALL EMISSSEASALT
@@ -317,6 +331,11 @@
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+
+         ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_ICOADS_SHIP
+         ENDIF
 
          ! Now call EMISSDR for Tagged CO fossil fuel emissions, 
          ! so that we get the same emissions for Tagged CO as 
@@ -416,6 +435,11 @@
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+
+         ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_ICOADS_SHIP
+         ENDIF
 
          ! Emit H2/HD
          CALL EMISS_H2_HD

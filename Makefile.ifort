@@ -1,5 +1,5 @@
 #=============================================================================
-# $Id: Makefile.ifort,v 1.34 2009/09/09 18:29:55 ccarouge Exp $
+# $Id: Makefile.ifort,v 1.35 2009/09/15 15:51:48 phs Exp $
 #
 # GEOS-Chem Makefile for LINUX/IFORT compiler (bmy, Wed Jan 28 15:09:07 2009)
 #=============================================================================
@@ -19,6 +19,17 @@ F90 = ifort $(FFLAGS) -openmp -Dmultitask
 
 # Compile command -- single processor
 #F90 = ifort $(FFLAGS)
+
+#### This version to choose b/w two sets of files to compile has a very small problem:
+#### When you switch b/w 43 tracers and 54 tracers more than once, you need
+#### to "make clean" before updating the executable.
+
+# KPP files parameter (NTRAC)
+NTRAC     = 43
+KPPSOLVER = rosenbrock
+#
+.DEFAULT_GOAL := all
+#-------------------------------------------------------------------
 
 OBJSe =                   \
 ifort_errmsg.o
@@ -127,6 +138,19 @@ set_aer.o                     \
 set_prof.o                    
 
 MODS =                        \
+gckpp_Precision.o             \
+gckpp_Parameters.o            \
+gckpp_Global.o                \
+gckpp_JacobianSP.o            \
+gckpp_Jacobian.o              \
+gckpp_LinearAlgebra.o         \
+gckpp_Monitor.o  	      \
+gckpp_Function.o	      \
+gckpp_StoichiomSP.o	      \
+gckpp_Stoichiom.o	      \
+gckpp_HessianSP.o	      \
+gckpp_Hessian.o	              \
+gckpp_Util.o	              \
 fjx_acet_mod.o                \
 charpak_mod.o                 \
 error_mod.o                   \
@@ -147,6 +171,10 @@ lai_mod.o                     \
 tracerid_mod.o                \
 benchmark_mod.o               \
 comode_mod.o                  \
+gckpp_Rates.o                 \
+gckpp_Initialize.o            \
+gckpp_Integrator.o            \
+gckpp_Model.o	              \
 diag_mod.o                    \
 dao_mod.o                     \
 tropopause_mod.o              \
@@ -173,6 +201,7 @@ emep_mod.o                    \
 epa_nei_mod.o                 \
 streets_anthro_mod.o          \
 arctas_ship_emiss_mod.o       \
+icoads_ship_mod.o             \
 cac_anthro_mod.o              \
 vistas_anthro_mod.o           \
 geia_mod.o                    \
@@ -238,11 +267,38 @@ emissions_mod.o               \
 gamap_mod.o                   \
 input_mod.o            
 
+
 #=============================================================================
-#  Executables and Documentation
+#  Executable and Documentation
 #=============================================================================
-geos:   $(MODS) $(OBJS) $(OBJSe) $(FJ)    
+.PHONY : all kppintegrator
+
+all: kppintegrator geos
+
+geos: $(MODS) $(OBJS) $(OBJSe) $(FJ)
 	$(F90)  $(MODS) $(OBJS)  $(OBJSe) $(FJ) -o geos
+
+#=============================================================================
+# Two rules for KPP : update solver only if needed, and set directory
+#=============================================================================
+
+# (1) update solver (S=Source, T=Target)
+SOLVER_SFILE=./KPP/int/gckpp_Integrator_$(KPPSOLVER).f90
+SOLVER_TFILE=./KPP/$(NTRAC)t/gckpp_Integrator.f90
+
+kppintegrator:
+	@diff -q $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
+	if [ $$? == 1 ] ; then   \
+		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
+		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
+	fi
+
+# (2) specify files source location
+gckpp_%.o : ./KPP/$(NTRAC)t/gckpp_%.f90
+	$(F90) -c -free $< -o $@
+
+#=============================================================================
+
 
 # Build GEOS-Chem documenation w/ ProTeX
 doc:
@@ -301,7 +357,7 @@ carbon_mod.o                   : carbon_mod.f                   CMN CMN_DIAG CMN
 ch3i_mod.o                     : ch3i_mod.f                     CMN_DEP CMN_DIAG CMN_SIZE define.h comode.h 
 charpak_mod.o                  : charpak_mod.f                  
 chemdr.o                       : chemdr.f                       CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
-chemistry_mod.o                : chemistry_mod.f                CMN_DIAG CMN_SIZE define.h comode.h 
+chemistry_mod.o                : chemistry_mod.f gckpp_Global.o gckpp_Rates.o gckpp_Integrator.o CMN_DIAG CMN_SIZE define.h comode.h
 cleanup.o                      : cleanup.f                      define.h 
 co2_mod.o                      : co2_mod.f                      CMN_SIZE define.h 
 comode_mod.o                   : comode_mod.f                   CMN_SIZE define.h comode.h 

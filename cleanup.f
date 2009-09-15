@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.21 2009/01/28 19:59:16 bmy Exp $
+! $Id: cleanup.f,v 1.22 2009/09/15 15:51:48 phs Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -144,6 +144,7 @@
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
+      USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
 
       IMPLICIT NONE
 
@@ -216,6 +217,7 @@
       CALL CLEANUP_UVALBEDO
       CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
+      CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 

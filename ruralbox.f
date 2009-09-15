@@ -1,4 +1,4 @@
-! $Id: ruralbox.f,v 1.8 2006/10/17 17:51:16 bmy Exp $
+! $Id: ruralbox.f,v 1.9 2009/09/15 15:51:47 phs Exp $
       SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
      &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
 !
@@ -72,7 +72,7 @@
 
       ! Local variables      
       LOGICAL                 :: LDEBUG
-      INTEGER                 :: I, J, L, JLOOP, IJLOOP, LL
+      INTEGER                 :: I, J, L, JLOOP, IJLOOP
 
       ! External functions
       REAL*8,  EXTERNAL       :: BOXVL
@@ -110,6 +110,7 @@
      &              J < JEBD1 .OR. J > JEBD2 ) GOTO 40
             ENDIF
 
+            
             IF ( IGLOBCHEM <= 0 ) THEN
 
 ! === testing === BDF

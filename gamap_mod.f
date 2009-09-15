@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.34 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: gamap_mod.f,v 1.35 2009/09/15 15:51:47 phs Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -1263,6 +1263,13 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+! NEED TO DO THAT AT ONE POINT      
+!      ! New for CSPEC
+!      N           = N + 1
+!      CATEGORY(N) = 'IJ-CHK-$'
+!      DESCRIPT(N) = 'species concentrations after chemistry'
+!      OFFSET(N)   = SPACING * 50
+!      
       ! Number of categories
       NCATS = N
       

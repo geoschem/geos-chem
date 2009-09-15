@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# $Id: build,v 1.10 2008/04/29 14:03:03 bmy Exp $
+# $Id: build,v 1.11 2009/09/15 15:51:48 phs Exp $
 
 =head1 NAME
 
@@ -70,36 +70,65 @@ sub getMakeFile() {
   # NOTES:
   # (1 ) Now searches for Intel "ifort" compiler makefile "Makefile.ifort 
   #       if LINUX_IFORT switch is #defined. (bmy, 11/3/05)
+  # (2) Added the NTRAC variable to return and pass as an argument to 
+  #       makefile. Its default value is 43 (phs,6/16/09)
   #=========================================================================
 
   # Local variables
   my $line  = "";
   my @lines = "";
+  my $ntrac = "43";
+  my $comp  = "";
 
   # Read "define.h" into a string array
   open( INPUT, "define.h" ) or croak "getDefaults: Can't open define.h";
   chomp( @lines = <INPUT> );
   close( INPUT );
 
+# -- prior to 6/16/09
+#  # Process each line individually
+#  foreach $line ( @lines ) {
+#
+#    # Determine makefile name from the defined C-preprocessor switch
+#    if ( $line =~ "#define" and !( $line =~ "!#define" ) ) { 
+#      if    ( $line =~ "COMPAQ"      ) { return( "Makefile.compaq" ); }
+#      elsif ( $line =~ "IBM"         ) { return( "Makefile.ibm"    ); }
+#      elsif ( $line =~ "LINUX_PGI"   ) { return( "Makefile.pgi"    ); } 
+#      elsif ( $line =~ "LINUX_IFC"   ) { return( "Makefile.ifc"    ); } 
+#      elsif ( $line =~ "LINUX_EFC"   ) { return( "Makefile.efc"    ); } 
+#      elsif ( $line =~ "LINUX_IFORT" ) { return( "Makefile.ifort"  ); } 
+#      elsif ( $line =~ "LINUX"       ) { return( "Makefile.linux"  ); } 
+#      elsif ( $line =~ 'SGI'         ) { return( "Makefile.sgi"    ); }
+#      elsif ( $line =~ 'SPARC'       ) { return( "Makefile.sparc"  ); }
+#    }
+#  }
+
+
   # Process each line individually
   foreach $line ( @lines ) {
 
-    # Determine makefile name from the defined C-preprocessor switch
     if ( $line =~ "#define" and !( $line =~ "!#define" ) ) { 
-      if    ( $line =~ "COMPAQ"      ) { return( "Makefile.compaq" ); }
-      elsif ( $line =~ "IBM"         ) { return( "Makefile.ibm"    ); }
-      elsif ( $line =~ "LINUX_PGI"   ) { return( "Makefile.pgi"    ); } 
-      elsif ( $line =~ "LINUX_IFC"   ) { return( "Makefile.ifc"    ); } 
-      elsif ( $line =~ "LINUX_EFC"   ) { return( "Makefile.efc"    ); } 
-      elsif ( $line =~ "LINUX_IFORT" ) { return( "Makefile.ifort"  ); } 
-      elsif ( $line =~ "LINUX"       ) { return( "Makefile.linux"  ); } 
-      elsif ( $line =~ 'SGI'         ) { return( "Makefile.sgi"    ); }
-      elsif ( $line =~ 'SPARC'       ) { return( "Makefile.sparc"  ); }
+
+      # Determine makefile name from the defined C-preprocessor switch
+      if    ( $line =~ "COMPAQ"      ) { $comp = "Makefile.compaq" ; }
+      elsif ( $line =~ "IBM"         ) { $comp = "Makefile.ibm"    ; }
+      elsif ( $line =~ "LINUX_PGI"   ) { $comp = "Makefile.pgi"    ; } 
+      elsif ( $line =~ "LINUX_IFC"   ) { $comp = "Makefile.ifc"    ; } 
+      elsif ( $line =~ "LINUX_EFC"   ) { $comp = "Makefile.efc"    ; } 
+      elsif ( $line =~ "LINUX_IFORT" ) { $comp = "Makefile.ifort"  ; } 
+      elsif ( $line =~ "LINUX"       ) { $comp = "Makefile.linux"  ; } 
+      elsif ( $line =~ 'SGI'         ) { $comp = "Makefile.sgi"    ; }
+      elsif ( $line =~ 'SPARC'       ) { $comp = "Makefile.sparc"  ; }
+      
+      # Determine number of tracers to select KPP files
+      elsif ( $line =~ /KPPTRACER *([[:digit:]]+)/ )
+      { $ntrac = $1; }
     }
   }
 
-  # Otherwise return failure
-  return( '' );
+
+  # Otherwise to calling
+  return( $comp, $ntrac );
 }
 
 #------------------------------------------------------------------------------
@@ -118,28 +147,30 @@ sub main() {
   # NOTES:
   # (1 ) Need to set system variables for Intel IFORT compiler (bmy, 11/3/05)
   # (2 ) Now use "and" to avoid conflict w/ the sub mit command (bmy, 11/18/05)
+  # (3 ) Now use NTRAC flag in the call to Make (phs, 6/16/09)
   #==========================================================================
 
   # Local variables
   my $makeFile = "";
+  my $ntrac    = "";
   my $target   = "geos";
 
    # If an argument has been passed, then redefine $target 
   if ( scalar( @ARGV ) > 0 ) { $target = $ARGV[0]; }
 
-  # Get the makefile name by examining "define.h"
-  $makeFile = getMakeFile();
+  # Get the makefile name and Nb Tracers by examining "define.h"
+  ( $makeFile, $ntrac ) = getMakeFile();
   
   # Compile GEOS-CHEM w/ the right makefile
   if ( length( $makeFile ) > 0 ) { 
-    print "Compiling $target in $makeFile\n";
+    print "Compiling $target in $makeFile with KPP files for $ntrac tracers\n";
 
     # Need to set system variables for Intel IFORT compiler (bmy, 11/3/05)
     #if ( $makeFile =~ "ifort" and !( $target =~ "clean" ) ) 
     #   { qx( source /usr/local/bin/ifortvars.sh; make $target -f $makeFile ); }
     #else
     #   { qx( make $target -f $makeFile ); }  
-    qx( make $target -f $makeFile );
+    qx( make $target NTRAC=$ntrac -f $makeFile );
 
   } else { die "Could not find makefile name!\n" }
 }

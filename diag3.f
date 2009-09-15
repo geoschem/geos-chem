@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.64 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: diag3.f,v 1.65 2009/09/15 15:51:47 phs Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -101,9 +101,10 @@
 !  (83) Modify ND17, ND18, ND37, ND38, ND44 to output the tracers selected 
 !        by the user. (ccc, 5/29/09)
 !  (84) Add EFLUX output information for ND67. (lin, ccc, 5/29/09)
-!  (85) Add SCALE_DIAG to scale diagnostics with the number of accumulation 
+!  (85) Add test on ICOADS (cklee, 06/30/09)
+!  (86) Add SCALE_DIAG to scale diagnostics with the number of accumulation 
 !        steps. (ccc, 7/20/09)
-!  (86) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
+!  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -156,6 +157,8 @@
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
       USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
       USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
+      USE LOGICAL_MOD,  ONLY : LICOADSSHIP
+
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
       USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
@@ -1051,8 +1054,9 @@
          ! Ship SO2     bec (5/17/04)
          ! New test on logical flag (phs, 3/2/09)
          !==============================================================
+         ! Add ICOADSSHIP (cklee, 6/30/09)
          IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
-     $        LEMEPSHIP ) THEN
+     $        LEMEPSHIP .OR. LICOADSSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)

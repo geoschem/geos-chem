@@ -7,6 +7,11 @@ geos-chem-support@as.harvard.edu
 New in v8-02-03:
 -------------------------------------------------------------------------------
 
+gckpp_driver            -- driver for KPP-derived solver
+("chemistry_mod.f")
+
+icoads_ship_mod.f       -- Module to allocate and read ICOADS emissions 
+
 read_ch4_menu           -- New menu in input.geos for CH4 simulations
 ("input_mod.f")
 
@@ -22,6 +27,31 @@ timestamp_diag          -- Save NYMD_DIAG to use for time series filenames
 get_nymd_diag           -- Return NYMD_DIAG
 ("time_mod.f")
 
+Added files (with ***=43t and 54t):
+
+   KPP/***/gckpp_Function.f90       
+   KPP/***/gckpp_Global.f90         
+   KPP/***/gckpp_Hessian.f90        
+   KPP/***/gckpp_HessianSP.f90      
+   KPP/***/gckpp_Initialize.f90     
+   KPP/***/gckpp_Integrator.f90     
+   KPP/***/gckpp_Jacobian.f90       
+   KPP/***/gckpp_JacobianSP.f90     
+   KPP/***/gckpp_LinearAlgebra.f90  
+   KPP/***/gckpp_Model.f90          
+   KPP/***/gckpp_Monitor.f90        
+   KPP/***/gckpp_Parameters.f90     
+   KPP/***/gckpp_Precision.f90      
+   KPP/***/gckpp_Rates.f90          
+   KPP/***/gckpp_Stoichiom.f90      
+   KPP/***/gckpp_StoichiomSP.f90    
+   KPP/***/gckpp_Util.f90           
+
+   KPP/int/gckpp_Integrator_rosenbrock.f90
+   KPP/int/gckpp_Integrator_lsodes.f90 
+   KPP/int/gckpp_Integrator_radau5.f90 
+   KPP/int/gckpp_Integrator_runge_kutta.f90
+
 
 Removed in v8-02-03:
 -------------------------------------------------------------------------------
@@ -33,15 +63,41 @@ Modified in v8-02-03:
 CMN_DIAG                -- Add initialization of PD58 and PD60. 
                         -- Add declarations of LD19, LD58
 
+Makefile.ifort		-- added icoads module
+			-- added gckpp_* objects and their rules
+			-- Added variable NTRAC to specify which
+			   chemistry is used (NTRAC=43 or 54)
+			-- Added variable KPPSOLVER to switch integrator
+
 accumulate_diag50       -- Remove IS_CHEM and COUNT_CHEM, not pertinent.
 ("diag50_mod.f")        -- Use JLOP for tropopause level at chemistry time step
 
 accumulate_diag51       -- Add IS_DIAG to identify accumulation time steps
 ("diag51_mod.f")
 
+calcrate.f		-- add kpp interface
+
 check_time_steps        -- Add checks on time steps.
 ("input_mod.f")         -- Compute longest time step = TS_DIAG
 			-- Fixed typos: -99999 should be -999999
+
+chem_dms		-- Now correctly records P(SO2) from OH in AD05
+(sulfate_mod.f)
+
+chem_msa		-- Now add PMSA_DMS to the MSA tracer array
+(sulfate_mod.f)		   above PBL
+
+chemdr.f		-- optional call to the kpp driver
+
+cleanup_comode          -- deallocate 3 kpp arrays
+("comode_mod.f")
+
+cleanup.f		-- call cleanup_icoads_ship
+
+comode.h		-- add RRATE_FOR_KPP variable to DKBLOOP2
+                           common block 
+
+comode_mod.f		-- declare 3 kpp arrays
 
 dao_mod.f               -- Add variables TO31 and TO32, and interpolation
 			   of TO3 if GEOS-5
@@ -55,6 +111,7 @@ diag1.f                 -- Add LTO3 for O3 in ND45
 
 diag3.f                 -- Change SCALEDYN to SCALEDIAG for some diag.
                         -- Add output for diagnostics 19, 58 and 60
+			-- test ICOADS for ND13
 
 diag49                  -- Change the new day condition to open file. 
 ("diag49_mod.f")        -- Change the timestamp used when closing file.
@@ -68,6 +125,15 @@ diag_mod.f              -- Add LTO3, AD19, AD58, AD60
 
 do_diag_oh_ch4          -- Add OH_LOSS module variable and XLOSS argument
 ("diag_oh_mod.f")
+
+do_emissions            -- reads ICOADS
+("emissions_mod.f")
+
+emfossil.f		-- added ICOADS, fixed Tagged CO and ICARRTT
+			   test, improved handling of ship EMEP
+
+emiss_streets_anthro	-- fix for NOx monthly emissions at 1x1 that
+("streets_anthro_mod.f")   covered China
 
 finite_dble		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 
@@ -102,6 +168,9 @@ i6_read_mod.f		-- Read TO31 and TO32 for GEOS-5
 initialize.f            -- Add initialization of counter for diag time steps
                         -- Add initialization for AD19, AD58 and AD60
 
+init_comode		-- allocate 3 kpp arrays
+("comode_mod.f")
+
 init_diaginfo           -- Add categories CH4_LOSS, CH4-EMISS and WET-FRAC
 ("gamap_mod.f")
 
@@ -111,6 +180,9 @@ init_diaginfo           -- Add tracers for diagnostics ND19, ND58 and ND60
 
 ioerror			-- Remove support for SGI, COMPAQ compilers.
 ("file_mod.f")		-- Add IBM_XLF switch. 
+
+logical_mod.f		-- added declaration of LICOADSSHIP
+			-- added declaration of LKPP
 
 its_time_for_diag       -- Replace 60 by TS_DIAG
 ("input_mod.f")
@@ -127,6 +199,9 @@ its_time_for_diag50     -- Modify time check
 its_time_for_diag51     -- Add check between output frequency and diag. 
 ("diag51_mod.f")           timestep (TS_DIAG)
                         -- Modify time check
+
+jv_cmn.h		-- Split off PDEPF and MGLYPDEP into separate
+			   common blocks to avoid warnings on IFORT 9
 
 logical_mod.f           -- Add switches for CH4 emissions and budget
 
@@ -145,6 +220,10 @@ ndxx_setup.f            -- Add allocation of LTO3, AD19, AD58, AD60
 ocean_mercury_flux	-- Bug fix to prevent error on XLF compiler
 ("ocean_mercury_mod.f)
 
+physproc.f		-- kpp interface to get re-ordered rx rates in
+	                   kpp arrays
+			-- optional call to smvgear
+
 planeflight             -- Add grid cell location.
 ("planeflight_mod.f")   -- Change time step for output (longest time step only)
 
@@ -155,6 +234,12 @@ rainout			-- Bug fix: need to use separate conversion
 ("wetscav_mod.f")          parameters for H2O2 and NH3.  This was the same 
                            fix as in COMPUTE_F but until now we had overlooked 
 		           this. 
+
+read_chemistry_menu	-- reads LKPP flag
+("input_mod.f")		-- added optional test on KPPTRACER 
+
+read_emissions_menu	-- reads LICOADSSHP flag
+("input_mod.f")
 
 read_a3                 -- Add reading FRLAND, FROCEAN, FRLANDIC and 
 ("a3_read_mod.f")          FRLAKE for GEOS-5
@@ -170,6 +255,13 @@ read_local_redist	-- Now read from lightning_NOx_200907 directory
 			-- Updated OTD/LIS for GEOS-5 based on 4+ years of data
 			-- Removed temporary fixes
 
+read_usa_mask		-- fix for nested NA simulations
+(epa_nei_mod.f)
+
+
+read_ship_so2		-- use ICOADS ship SO2 if necessary
+("sulfate_mod.f")
+
 read_variables          -- Read grid cell location
 ("planeflight_mod.f")
 
@@ -181,6 +273,9 @@ set_prof.f		-- Replace TOMS/SBUV by GEOS-5 TO3 when no satellite
 
 set_timesteps           -- Add TS_DIAG
 ("time_mod.f")
+
+srcso4			-- added BRAVO source
+("sulfate_mod.f")
 
 test_valid              -- Change definition of JLOOP
 ("planeflight_mod.f")
@@ -200,6 +295,9 @@ vdiffdr                 -- Add case for CH4 simulation
 
 wetdep			-- Remove reference to SGI_MIPS 
 ("wetscav_mod.f")
+
+write_var_to_file	-- enforce 3 spaces in the exponential of
+("planeflight_mod.f")	   format statement=======
 
 write_diag42            -- Use TS_DIAG for scaling instead of TS_DYN
 ("diag42_mod.f")

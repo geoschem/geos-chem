@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.14 2009/05/06 14:14:47 ccarouge Exp $
+! $Id: bpch2_mod.f,v 1.15 2009/09/15 15:51:48 phs Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -137,28 +137,42 @@
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
-     &               'open_bpch2_for_read:1' )
+      IF ( IOS /= 0 ) THEN
+         WRITE(6,*)'Error opening filename=',trim(filename)
+         CALL FLUSH(6)
+         CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:1')
+      ENDIF
 
+      
       ! Read file type identifier
       READ( IUNIT, IOSTAT=IOS ) FTI
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
-     &               'open_bpch2_for_read:2' )
-
+      IF ( IOS /= 0 ) THEN
+         WRITE(6,*)'Error reading FTI for filename=',trim(filename)
+         CALL FLUSH(6)
+         CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:2' )
+      ENDIF
+         
       ! Stop if this is not a binary punch file
       IF ( TRIM( FTI ) /= 'CTM bin 02' ) THEN
+         WRITE(6,*)'Error filename=',trim(filename)
+         CALL FLUSH(6)
          CALL ERROR_STOP( 'Invalid file format!', 
      &                    'OPEN_BPCH2_FOR_READ (bpch2_mod.f)')
       ENDIF
 
+      
       ! Read top title
       READ( IUNIT, IOSTAT=IOS ) TMP_TITLE
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
-     &               'open_bpch2_for_read:3' )
+      IF ( IOS /= 0 ) THEN
+         WRITE(6,*)'Error reading filename=',trim(filename)
+         CALL FLUSH(6)
+         CALL IOERROR( IOS, IUNIT, 'open_bpch2_for_read:3' )
+      ENDIF
+   
 
       ! Copy value of TMP_TITLE to TITLE for return 
       IF ( PRESENT( TITLE ) ) TITLE = TMP_TITLE

@@ -1,4 +1,4 @@
-! $Id: arctas_ship_emiss_mod.f,v 1.3 2009/01/29 15:50:26 bmy Exp $
+! $Id: arctas_ship_emiss_mod.f,v 1.4 2009/09/15 15:51:48 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -35,14 +35,26 @@
 !  28 Jan 2009 - P. Le Sager - Initial Version
 !
 ! !REMARKS:
-!  (1) This inventory is based on EDGAR 2000 for NOx, CO, and
-!       SO2. But SO2 has been updated by David Street for 2006. BC and OC
-!       (from Bond et al, 2004) are also provided. They are a 1996
-!       inventory scaled to 2006.  All these emissions were prepared for
-!       the ARCTAS 2008 campaign.
-!  (2) Only SO2 differs from existing EDGAR/BOND inventories. All other
+!  (1) Part of the ARCTAS pre-campaign composite inventory distributed by
+!       David Streets.
+!  (2) Only SO2 differs from existing EDGAR inventory. All other
 !       species are disregarded for now, except CO2 that we did not have
 !       before.
+!  (3) The ship emission is based on the work by Eyring et al., JGR 2005,
+!      which estimates the total international ship emissions for 1985, 1990,
+!      2001, and 2020 (projection). The ship emission for each individual year
+!      is interpreted based on the above years, and the spatial pattern
+!      (gridded) is mapped based on the EDGAR gridded ship emission for 2000
+!      (total amount from EDGAR is scaled to Eyring-based number).
+!
+!      If you want to reference the work on publication or website, you may
+!      either mention "Diehl et al., manuscript in preparation, 2009" or
+!      refer to the AeroCom readme document for hindcast emissions for ship
+!      (prepared by Diehl):
+!      http://www-lscedods.cea.fr/aerocom/AEROCOM_HC/readme_ship/.
+!
+!      If you have further questions, please contact Thomas directly
+!      (thomas.diehl@nasa.gov). 
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -309,7 +321,7 @@
 ! !REMARKS:
 !  (1) Even though the inventory was prepared for Arctas 2008 campaign, CO2 
 !       base year is 2000, and SO2 base year is 2006. Input YEAR is used to 
-!       scale SO2 into 1985-2004! 
+!       scale SO2 into 1985-2005 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -390,7 +402,7 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       WRITE( 6, 100  )  
- 100  FORMAT( 'E D G A R   S H I P   E M I S S I O N S', / )
+ 100  FORMAT( 'A R C T A S   S H I P   E M I S S I O N S', / )
 
 
       ! Test for simulation type

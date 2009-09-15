@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.52 2009/07/13 15:09:22 bmy Exp $
+! $Id: sulfate_mod.f,v 1.53 2009/09/15 15:51:46 phs Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -272,7 +272,8 @@
       REAL*8,  ALLOCATABLE :: ESO2_sh(:,:) 
       REAL*8,  ALLOCATABLE :: ESO4_an(:,:,:) 
       REAL*8,  ALLOCATABLE :: JH2O2(:,:,:)
-      REAL*8,  ALLOCATABLE :: LSO2_AQ(:,:,:)
+! not used for now - comment it (phs, 6/29/09)      
+!      REAL*8,  ALLOCATABLE :: LSO2_AQ(:,:,:)
       REAL*8,  ALLOCATABLE :: O3m(:,:,:)
       REAL*8,  ALLOCATABLE :: PH2O2m(:,:,:)
       REAL*8,  ALLOCATABLE :: PMSA_DMS(:,:,:)
@@ -902,6 +903,7 @@
 !  (6 ) Now remove reference to CMN, it's obsolete.  Now reference 
 !        ITS_IN_THE_STRAT from "tropopause_mod.f". (bmy, 8/22/05)
 !  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (8 ) Now correctly records P(SO2) from OH in AD05 (pjh)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1064,7 +1066,11 @@
          IF ( ND05 > 0 .and. L <= LD05 ) THEN
 
             ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
-            XOH  = ( DMS0   - DMS_OH ) / Fx * AD(I,J,L) / TCVV_S
+!---prior 8/10/09 (pjh)
+! now correctly records P(SO2) from OH (pjh)
+!            XOH  = ( DMS0   - DMS_OH ) / Fx * AD(I,J,L) / TCVV_S
+            XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
+     $           Fx * AD(I,J,L) / TCVV_S
             XN3  = ( DMS_OH - DMS    ) / Fx * AD(I,J,L) / TCVV_S
             XX   = ( ( DMS0 - DMS ) * AD(I,J,L) / TCVV_S ) - XOH - XN3
         
@@ -2856,17 +2862,22 @@
 !        Vertical DO-loops can run up to PBL_MAX and not LLTROP.   Also
 !        remove reference to header file CMN. (bmy, 2/22/05)
 !  (8 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (9 ) Change loop back to over entire troposphere to correctly add production
+!        of MSA (PMSA_dms) to the MSA tracer array.
+!       Added reference USE_TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+!        as a precaution.  (pjh, 8/19/2009)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : AD
-      USE DIAG_MOD,     ONLY : AD44
-      USE DRYDEP_MOD,   ONLY : DEPSAV
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
-      USE TRACERID_MOD, ONLY : IDTMSA
+      USE DAO_MOD,        ONLY : AD
+      USE DIAG_MOD,       ONLY : AD44
+      USE DRYDEP_MOD,     ONLY : DEPSAV
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TRACER_MOD,     ONLY : STT, TCVV, XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTMSA
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! AIRMW
@@ -2906,73 +2917,155 @@
       ENDIF
 
       ! Loop over tropospheric grid boxes
+!--------------------------
+!     pjh 8/18/2009      
+!     Change the loop from over L = 1, PBL_MAX to over the entire
+!     troposphere. Cycle if in the stratosphere. Allow dry dep only up to
+!     the PBL_MAX, otherwise add PMSA_DMS to the MSA tracer array above
+!     PBL. Previous changes had not accounted for PMSA_DMS into the MSA
+!     tracer array and therefore lost the MSA source above the PBL.
+!--------------
+
+
+!---- prior 24/8/09 (phs, pjh)
+!       
+! !$OMP PARALLEL DO
+! !$OMP+DEFAULT( SHARED )
+! !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
+! !$OMP+SCHEDULE( DYNAMIC )
+!       DO L = 1, PBL_MAX 
+!       DO J = 1, JJPAR
+!       DO I = 1, IIPAR
+! 
+!          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
+!          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+! 
+!          ! Only apply drydep loss to boxes w/in the PBL
+!          IF ( F_UNDER_TOP > 0 ) THEN
+!          
+!             ! Initial MSA [v/v]
+!             MSA0 = STT(I,J,L,IDTMSA) 
+! 
+!             ! MSA drydep frequency [1/s].  Also accounts for the fraction
+!             ! of each grid box (I,J,L) that is located beneath the PBL top
+!             RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+! 
+!          ! Add option for non-local PBL (Lin, 03/31/09)
+!          IF (LNLPBL) RKT = 0.D0
+! 
+!             ! RKT > 0 denotes that we have drydep occurring
+!             IF ( RKT > 0.d0 ) THEN
+! 
+!                ! Fraction of MSA lost to drydep [unitless]
+!                RKT = RKT * DTCHEM
+! 
+!                ! Modified MSA concentration 
+!                MSA = ( MSA0 * EXP( -RKT )                        ) +
+!      &               ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
+! 
+!             ELSE
+! 
+!                ! MSA production from DMS [v/v/timestep]
+!                MSA = MSA0 + PMSA_DMS(I,J,L)
+! 
+!             ENDIF
+! 
+!             ! Final MSA [v/v]
+!             IF ( MSA < SMALLNUM ) MSA = 0d0
+!             STT(I,J,L,IDTMSA) = MSA
+! 
+!             !===========================================================
+!             ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
+!             !===========================================================
+!             IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
+! 
+!                ! Surface area [cm2]
+!                AREA_CM2 = GET_AREA_CM2( J )
+! 
+!                ! Convert [v/v/timestep] to [molec/cm2/s]
+!                FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
+!                FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
+!                FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
+!                
+!                ! Store dryd flux in ND44_TMP as a placeholder
+!                ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+!             ENDIF
+!          ENDIF
+!       ENDDO
+!       ENDDO
+!       ENDDO
+! !$OMP END PARALLEL DO
+
+
+      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, PBL_MAX 
+      DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         ! Skip stratospheric boxes
+         IF ( ITS_IN_THE_STRAT( I, J, L ) ) CYCLE      
 
          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
 
-         ! Only apply drydep loss to boxes w/in the PBL
-         IF ( F_UNDER_TOP > 0 ) THEN
-         
-            ! Initial MSA [v/v]
-            MSA0 = STT(I,J,L,IDTMSA) 
+         ! Initial MSA [v/v]
+         MSA0 = STT(I,J,L,IDTMSA) 
 
-            ! MSA drydep frequency [1/s].  Also accounts for the fraction
-            ! of each grid box (I,J,L) that is located beneath the PBL top
-            RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
+         ! MSA drydep frequency [1/s].  Also accounts for the fraction
+         ! of each grid box (I,J,L) that is located beneath the PBL top
+         RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
 
          ! Add option for non-local PBL (Lin, 03/31/09)
          IF (LNLPBL) RKT = 0.D0
+         
+         ! RKT > 0 denotes that we have drydep occurring
+         IF ( RKT > 0.d0 ) THEN
 
-            ! RKT > 0 denotes that we have drydep occurring
-            IF ( RKT > 0.d0 ) THEN
+            ! Fraction of MSA lost to drydep [unitless]
+            RKT = RKT * DTCHEM
+            
+            ! Modified MSA concentration 
+            MSA = ( MSA0 * EXP( -RKT )                        ) +
+     &            ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
 
-               ! Fraction of MSA lost to drydep [unitless]
-               RKT = RKT * DTCHEM
+         ELSE
+            
+            ! MSA production from DMS [v/v/timestep]
+            MSA = MSA0 + PMSA_DMS(I,J,L)
 
-               ! Modified MSA concentration 
-               MSA = ( MSA0 * EXP( -RKT )                        ) +
-     &               ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
-
-            ELSE
-
-               ! MSA production from DMS [v/v/timestep]
-               MSA = MSA0 + PMSA_DMS(I,J,L)
-
-            ENDIF
-
-            ! Final MSA [v/v]
-            IF ( MSA < SMALLNUM ) MSA = 0d0
-            STT(I,J,L,IDTMSA) = MSA
-
-            !===========================================================
-            ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
-            !===========================================================
-            IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
-
-               ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( J )
-
-               ! Convert [v/v/timestep] to [molec/cm2/s]
-               FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
-               FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
-               FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
-               
-               ! Store dryd flux in ND44_TMP as a placeholder
-               ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-            ENDIF
          ENDIF
+
+         ! Final MSA [v/v]
+         IF ( MSA < SMALLNUM ) MSA = 0d0
+         STT(I,J,L,IDTMSA) = MSA
+
+         !===========================================================
+         ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
+         !===========================================================
+         IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
+                     
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+
+            ! Convert [v/v/timestep] to [molec/cm2/s]
+            FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
+            FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
+            FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
+
+            ! Store dryd flux in ND44_TMP as a placeholder
+            ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
+         ENDIF
+      
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
+      
       !===============================================================
       ! ND44: Sum drydep fluxes by level into the AD44 array in
       ! order to ensure that  we get the same results w/ sp or mp 
@@ -4309,20 +4402,19 @@
       ! Overwrite CANADA w/ CAC       (anthro only   ) SO2 emissions
       !-----------------------------------------------------------------
       ! Note that we:
-      ! Overwrite ASIA   w/ STREETS   (anthro only if year LE 2005 )
+      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP
       !  in READ_ANTHRO_SOx.
       !
-      ! The difference is on the way SO4 is determined: 
-      !  - in READ_ANTHRO_SOx, SO4 is a fraction of provided SO2 if 
-      !     EDGAR, else it is GEIA default value
-      !  - here, SO4 is either provided (like for EPA), or it is EDGAR
-      !     or GEIA (like we do for BRAVO)
+      ! In both cases, SO4 is a fraction of provided SO2 (except for
+      ! EPA). It is done in READ_ANTHRO_SOX in the 1st case, and in
+      ! SRCSO4 for inventories dealt with here. EPA is the only one to
+      ! provide direct SO4, which is why we deal with it here, even
+      ! though it does not have to be like that. Historical.
       !
-      ! In the second case, we can still get SO4 as a fraction of SO2
-      ! provided locally (like CAC). This is done then in SRCSO4.
-      ! (This specific treatment for CAC is to allow for CAC+EPA on the 
-      !  border)
-      ! (amv, phs, 3/12/08)
+      ! So, since we have EPA here, we have to deal with BRAVO and
+      ! CAC here to deal with their overlaping mask.
+      !
+      ! (amv, phs, 3/12/08, 8/24/09)
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4689,18 +4781,19 @@
 !  (6 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (7 ) Now overwrite CAC emissions over Canada, if necessary (amv,  1/10/08)
 !  (8 ) Need to add CAC_AN to the PRIVATE statement (bmy, 5/27/09)
+!  (9 ) Now account for BRAVO SO4. Fix typo for CAC (phs, 8/24/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK
-      USE CAC_ANTHRO_MOD, ONLY : GET_CAC_ANTHRO
+      USE BRAVO_MOD,      ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
       USE DAO_MOD,        ONLY : PBL
       USE DIAG_MOD,       ONLY : AD13_SO4_an,     AD13_SO4_bf
       USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
       USE ERROR_MOD,      ONLY : ERROR_STOP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC
+      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC, LBRAVO
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACER_MOD,     ONLY : XNUMOL
@@ -4719,7 +4812,7 @@
       REAL*8                 :: SO4(LLPAR), DTSRCE  
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
-      REAL*8                 :: CAC_AN
+      REAL*8                 :: AN
       REAL*8                 :: SO4an(IIPAR,JJPAR,2)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
 
@@ -4742,11 +4835,12 @@
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 SO4 emissions       (if necessary)
       ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
+      ! Overwrite MEXICO w/ BRAVO     SO2-fraction emiss. (if necessary)
       ! Store emissions into local arrays SO4an, SO4bf
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, AN )
       DO J = 1, JJPAR
          
          ! Grid box surface area [cm2]
@@ -4785,20 +4879,19 @@
 
             ! If we are using CAC emissions and over CANADA ...
             IF ( LCAC ) THEN
-            IF ( GET_CANADA_MASK( I, J) < 0d0 ) THEN
+            IF ( GET_CANADA_MASK( I, J) > 0d0 ) THEN
 
                ! Read SO4 emissions in [molec/cm2/s]
-               CAC_AN       = GET_CAC_ANTHRO( I, J, IDTSO2, 
-     &                                        MOLEC_CM2_S=.TRUE. )
+               AN = GET_CAC_ANTHRO( I, J, IDTSO2, MOLEC_CM2_S=.TRUE. )
 
                ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
                ! [kg/box/s]
                ! Place all CAC anthro SO4 into surface layer
                IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
-                  SO4an(I,J,1) = SO4an(I,J,1) + CAC_AN * 0.014/ 0.986 
+                  SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
      &                           * AREA_CM2 / XNUMOL(IDTSO4)
                ELSE
-                  SO4an(I,J,1) = CAC_AN * 0.014 / 0.986 * AREA_CM2 
+                  SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
                   SO4bf(I,J)   = 0d0
                ENDIF
@@ -4808,6 +4901,31 @@
             ENDIF
             ENDIF
 
+            ! If we are using BRAVO emissions and over MEXICO ...
+            IF ( LBRAVO ) THEN
+            IF ( GET_BRAVO_MASK( I, J) > 0d0 ) THEN
+
+               ! Read SO4 emissions in [molec/cm2/s]
+               AN = GET_BRAVO_ANTHRO( I, J, IDTSO2 )
+               
+               ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
+               ! [kg/box/s]
+               ! Place all BRAVO anthro SO4 into surface layer
+               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+                  SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
+     &                           * AREA_CM2 / XNUMOL(IDTSO4)
+               ELSE
+                  SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
+     &                           / XNUMOL(IDTSO4)
+                  SO4bf(I,J)   = 0d0
+               ENDIF
+
+               SO4an(I,J,2) = 0d0
+               
+            ENDIF
+            ENDIF
+
+            
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -6629,10 +6747,12 @@
 !        (avd, bmy, 7/14/06)
 !  (6 ) Now references GET_ARCTAS_HIP from 'arctas_ship_emiss_mod.f" and
 !        GET_EMEP_ANTHRO to get ARCTAS and EMEP SO2 ship emissions (phs, 12/5/08)
+!  (7 ) Now get ICOADS ship SO2 if necessary (phs, cklee, 6/30/09) 
 !******************************************************************************
 !
       ! References to F90 modules
       USE ARCTAS_SHIP_EMISS_MOD,ONLY : GET_ARCTAS_SHIP
+      USE ICOADS_SHIP_MOD,      ONLY : GET_ICOADS_SHIP   !(cklee, 7/09/09)
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR 
@@ -6643,6 +6763,7 @@
       USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
      &                                 LARCSHIP,        LSHIPSO2,
      $                                 LEMEPSHIP
+      USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
@@ -6670,6 +6791,7 @@
       ! Test for EDAGR last, since this is default inventory by design.
       ! So we can still use EDGAR SHIP to get ship-NOX and CO, and
       ! overwrite ship-SO2 with ARCTAS or Colbert (phs, 12/5/08)
+      ! Does the same with ICOADS (phs, 7/21/09)
 
       !-----------------------------------------------------------
       ! Use ARCTAS SHIP emissions (EDGAR 2006 update) 
@@ -6777,7 +6899,34 @@
          ENDDO
 !$OMP END PARALLEL DO
          
+
+      !----------------------------------------
+      ! Use ICOADS ship SOx emissions   !(cklee, 6/24/09)
+      ! Replace the above ship emissions 
+      !----------------------------------------
+      ELSE IF ( LICOADSSHIP ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+         ! Read ICOADS emissions in [kg SO2/box/s]
+         ESO2_sh(I,J) = GET_ICOADS_SHIP( I, J, IDTSO2,  KG_S=.TRUE. )
+               
+            IF ( LEMEPSHIP ) THEN
+               IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $           ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, 26, KG_S=.TRUE.,
+     $                                          SHIP=.TRUE.)
+            ENDIF
+
+         ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+         
       ENDIF
+
 
       ! Return to calling program
       END SUBROUTINE READ_SHIP_SO2

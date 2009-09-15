@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.21 2009/08/19 17:05:46 ccarouge Exp $
+! $Id: logical_mod.f,v 1.22 2009/09/15 15:51:47 phs Exp $
       MODULE LOGICAL_MOD
 !
 !******************************************************************************
@@ -127,7 +127,8 @@
 !  (22) Add LNLPBL, LARPBLH and LDEPBCK for non-local PBL scheme (lin, 5/29/09)
 !  (23) Added LCOOKE (phs, 5/18/09)
 !  (24) Added LKPP (phs, 5/28/09)
-!  (25) Added switches for CH4 emissions and CH4 budget (kjw, 8/18/09)
+!  (25) Added LICOADSSHIP (cklee, 06/30/09)
+!  (26) Added switches for CH4 emissions and CH4 budget (kjw, 8/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -186,6 +187,7 @@
       LOGICAL :: LFOSSIL    ! <-- deprecated: replace w/ LANTHRO soon
       LOGICAL :: LSTREETS
       LOGICAL :: LICARTT
+      LOGICAL :: LICOADSSHIP    !(cklee, 6/30/09)
       LOGICAL :: LLIGHTNOX
       LOGICAL :: LOTDREG
       LOGICAL :: LOTDLOC

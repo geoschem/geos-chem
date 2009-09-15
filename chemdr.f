@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.32 2009/08/19 17:05:47 ccarouge Exp $
+! $Id: chemdr.f,v 1.33 2009/09/15 15:51:48 phs Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -148,11 +148,13 @@
 !  (31) Now call "save_full_trop" at the end to account for "do_diag_pl" 
 !        resetting some of CSPEC elements (phs, 6/3/08)
 !  (32) Reading the CSPEC_FULL restart file if asked.(dkh, hotp, ccc 2/26/09)
+!  (33) Added optional call to gckpp_driver (phs,ks,dhk, 09/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
-      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA, 
+     &                                 CSPEC_FOR_KPP
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : SUNCOSB,  T
@@ -164,6 +166,7 @@
       USE LOGICAL_MOD,          ONLY : LCARB,        LDUST,     LEMBED
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
+      USE LOGICAL_MOD,          ONLY : LKPP
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
@@ -175,6 +178,9 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
+      ! KPP interface (phs,ks,dhk, 09/15/09))
+      USE GCKPP_GLOBAL,         ONLY : NTT
+      USE CHEMISTRY_MOD,        ONLY : GCKPP_DRIVER
 
       IMPLICIT NONE
 
@@ -190,6 +196,7 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+!      REAL*8                   :: ATOL(6)
 
       
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
@@ -452,9 +459,18 @@
       !================================================================
 
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
-      ! and SMVGEAR, which is the chemistry solver
+      ! and SMVGEAR (if we do not use the solver coded by kpp), which
+      ! is the chemistry solver
       CALL PHYSPROC( SUNCOS, SUNCOSB )
-      
+       
+      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
+      IF ( LKPP ) THEN
+         NTT = NTTLOOP
+         CSPEC_FOR_KPP = CSPEC
+         CALL gckpp_Driver()
+      ENDIF
+      !********************************************
+
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
 

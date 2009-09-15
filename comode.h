@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.19 2009/05/06 14:14:46 ccarouge Exp $
+! $Id: comode.h,v 1.20 2009/09/15 15:51:48 phs Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -56,6 +56,7 @@
 !       (tmf, 3/6/09)
 !  (15) Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
+!  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -111,14 +112,11 @@ C
       PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
 
       ! Regular
-      !PARAMETER (KBLOOP  = 64                      )
-      PARAMETER (KBLOOP  = 24                      )
+      PARAMETER (KBLOOP  = 24                       )
       PARAMETER (IMLOOP  = ILAT * ILONG            )
       PARAMETER (ILAYER  = IVERT + 1               )
       PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
       PARAMETER (MAXDAYS = 1000                    )
-C Debug
-C     PARAMETER (KBLOOP  = 1                       )
       PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
 C
 C ************************* TRACER PARAMETERS ****************************
@@ -548,6 +546,9 @@ C
       ! /DKBLOOP2/ needs to be declared THREADPRIVATE
       REAL*8 CNEW,CEST,GLOSS,CHOLD,VDIAG,CBLK,DTLOS,EXPLIC,CONC
       REAL*8 RRATE,URATE,TRATE,CORIG
+      !***************KPP_INTERFACE****************
+      REAL*8 RRATE_FOR_KPP
+      !********************************************
       COMMON /DKBLOOP2/
      2  CNEW(   KBLOOP,  MXGSAER),  
      3  CEST(   KBLOOP,  MXGSAER),  
@@ -556,7 +557,10 @@ C
      6  VDIAG(  KBLOOP,  MXGSAER),  CBLK(  KBLOOP,MXGSAER),  
      7  DTLOS(  KBLOOP,  MXGSAER),  EXPLIC(KBLOOP,MXGSAER),
      1  CONC(   KBLOOP,MXGSAER*7),  
-     2  RRATE(  KBLOOP,  NMTRATE),  
+     2  RRATE(  KBLOOP,  NMTRATE), 
+      !***************KPP_INTERFACE****************
+     2  RRATE_FOR_KPP(  KBLOOP,  NMTRATE), 
+      !********************************************  
      3  URATE(  KBLOOP,NMTRATE,3), 
      4  TRATE(  KBLOOP,NMTRATE*2), 
      7  CORIG(  KBLOOP,  MXGSAER)

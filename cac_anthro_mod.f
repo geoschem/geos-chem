@@ -1,4 +1,4 @@
-! $Id: cac_anthro_mod.f,v 1.3 2009/01/29 16:02:55 bmy Exp $
+! $Id: cac_anthro_mod.f,v 1.4 2009/09/15 15:51:48 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -322,7 +322,7 @@
             ! Cast to REAL*8 before regridding
             GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
-            ! Apply annual scalar factor. Available for 1985-2003,
+            ! Apply annual scalar factor. Available for 1985-2005,
             ! and NOx, CO and SO2 only.
             IF ( ( THISYEAR .lt. 2002 ) .and. SPECIES .ne. 4 ) THEN
 

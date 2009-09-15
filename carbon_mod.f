@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.39 2009/07/08 20:54:40 bmy Exp $
+! $Id: carbon_mod.f,v 1.40 2009/09/15 15:51:48 phs Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -18,7 +18,7 @@
 !  References for BC/OC emissions:
 ! --------------------------------
 !   Bond, T.C. et al.: Historical emissions of black and organic carbon
-! aerosol fromenergy-related combustion, 1850-2000, Global Biogeochem. Cycles,
+! aerosol from energy-related combustion, 1850-2000, Global Biogeochem. Cycles,
 ! 21 GB2018, doi: 10.1029/2006GB002840, 2007.
 !
 !      Base Year is 2000. More at http://www.hiwater.org

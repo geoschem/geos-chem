@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.7 2009/01/28 19:59:14 bmy Exp $
+! $Id: physproc.f,v 1.8 2009/09/15 15:51:47 phs Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -22,13 +22,18 @@
 !        Now save output from TIMESTAMP_STRING to STAMP and print that.
 !        (bmy, 9/29/03)
 !  (4 ) Fixed case of small KULOOP (phs, 10/5/07)
+!  (5 ) Now only get the rx rates if not using SMVGEAR (phs,ks,dhk, 09/15/09)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
-      USE COMODE_MOD, ONLY : ABSHUM, AIRDENS, CSPEC,  CSUMA, 
-     &                       CSUMC,  ERRMX2,  IXSAVE, IYSAVE, T3
-      USE TIME_MOD,   ONLY : TIMESTAMP_STRING
+      USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
+     &                            R_KPP,  CSUMC,    ERRMX2,  IXSAVE, 
+     &                            IYSAVE,      T3
+      USE LOGICAL_MOD,     ONLY : LKPP
+      USE TIME_MOD,        ONLY : TIMESTAMP_STRING
 
+      use omp_lib
+      
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -71,7 +76,7 @@ C
       INTEGER JLLAST,IT,IRADD,LVAL,IRVAL,IRADD1,JREORD,IPAR,JPAR,JPAR1
       INTEGER NSUMBLOCK,NCELLROW,NBLOCKROW,ICG,I,NGCOUNT,NGHI,IAVG
       INTEGER IREMAIN,IUSESIZE,NREBLOCK,L
-      INTEGER IX,IY,IJWINDOW,KBLK2
+      INTEGER IX,IY,IJWINDOW,KBLK2,NK
 
       INTEGER COUNTER,JGAS
       REAL*8 S1CON,S2CON,ARGS,CONSTQ,SNOON,CONTEMP,DIFCONC,PLODYN
@@ -248,12 +253,9 @@ C *********************************************************************
 C                   START GRID BLOCK LOOP
 C *********************************************************************
 C
-
-          !Write(6,*) 'about to start chemistry with NCS= ',ncs
-          !write(6,*) '    val of nblockuse = ',nblockuse
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD )
+!$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
 !$OMP+SCHEDULE( DYNAMIC )
          DO 640 KBLK2       = 1, NBLOCKUSE
           KBLK              = KBLK2
@@ -262,8 +264,6 @@ C
 C
           IF (KTLOOP.EQ.0) GOTO 640
 
-         !write(*,*) 'In physproc: ',KBLK,NBLOCKUSE,KTLOOP
-C
 C *********************************************************************
 C *  PLACE LARGE DOMAIN GAS ARRAY (# CM-3) INTO SMALLER BLOCK ARRAY   *
 C *********************************************************************
@@ -273,15 +273,14 @@ C NTSPEC = NUMBER OF ACTIVE PLUS INACTIVE GASES.
 C MAPPL  = MAPS ORIGINAL SPECIES NUMBERS TO SPECIES NUMBERS
 C          RE-ORDERED FOR CHEMISTRY.
 C
-          DO 572 JOLD         = 1, NTSPEC(NCS)
-             JNEW               = MAPPL(JOLD,NCS)
-             DO 570 KLOOP       = 1, KTLOOP
-                JLOOP             = JREORDER(JLOOPLO+KLOOP)
-                CBLK( KLOOP,JOLD) = CSPEC(JLOOP,JOLD)
-                CORIG(KLOOP,JNEW) = CSPEC(JLOOP,JOLD)
- 570         CONTINUE
- 572      CONTINUE
-
+             DO 572 JOLD         = 1, NTSPEC(NCS)
+                JNEW               = MAPPL(JOLD,NCS)
+                DO 570 KLOOP       = 1, KTLOOP
+                   JLOOP             = JREORDER(JLOOPLO+KLOOP)
+                   CBLK( KLOOP,JOLD) = CSPEC(JLOOP,JOLD)
+                   CORIG(KLOOP,JNEW) = CSPEC(JLOOP,JOLD)
+ 570            CONTINUE
+ 572         CONTINUE
 C
 C *********************************************************************
 C *              CALCULATE REACTION RATE COEFFICIENTS                 *
@@ -290,13 +289,24 @@ C
 
           CALL CALCRATE(SUNCOS)
 
-C
+          !***************KPP_INTERFACE****************
+          IF ( LKPP ) THEN
+             DO KLOOP = 1, KTLOOP        
+                JLOOP         = JREORDER(JLOOPLO+KLOOP)
+                DO NK          = 1, NTRATES(NCS)
+                   R_KPP(JLOOP,NK) = RRATE_FOR_KPP(KLOOP,NK)
+                ENDDO
+             ENDDO
+          ENDIF
+          !********************************************
+
 C *********************************************************************
 C *                        SOLVE CHEMICAL ODES                        *
 C *********************************************************************
 C
-          CALL SMVGEAR
-
+          IF (.NOT. LKPP ) THEN
+             CALL SMVGEAR
+             
 C
 C *********************************************************************
 C * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *
@@ -309,16 +319,18 @@ C GRIDVH   = GRID CELL VOLUME (CM3)
 C CNEW     = # CM-3
 C C        = # CM-3 
 C
-          IF (ISREORD.EQ.2) THEN
-             DO 620 JNEW         = 1, ISCHANG(NCS)
-                JOLD               = INEWOLD(JNEW,NCS)
-                DO 620 KLOOP       = 1, KTLOOP
-                   JLOOP             = JREORDER(JLOOPLO+KLOOP)
-                   CSPEC(JLOOP,JOLD)     = MAX(CNEW(KLOOP,JNEW),SMAL2)
- 620         CONTINUE
+             IF (ISREORD.EQ.2) THEN
+                DO 620 JNEW         = 1, ISCHANG(NCS)
+                   JOLD               = INEWOLD(JNEW,NCS)
+                   DO 620 KLOOP       = 1, KTLOOP
+                      JLOOP             = JREORDER(JLOOPLO+KLOOP)
+                      CSPEC(JLOOP,JOLD) = MAX(CNEW(KLOOP,JNEW),SMAL2)
+ 620            CONTINUE
+             ENDIF
           ENDIF
 C
- 640     CONTINUE
+          
+ 640      CONTINUE
 !$OMP END PARALLEL DO
 C        CONTINUE KBLK = 1, NBLOCKUSE
 C
@@ -570,93 +582,93 @@ C RMSCURH  = ROOT-MEAN-SQUARE ERROR OVER ALL NGHI SPECIES
 C
 C OTHER PARAMETERS DEFINED IN DEFINE.DAT
 C
-      IF (ITESTGEAR.GT.0) THEN
-       NCS            = 1
-       IF (IRCHEM.EQ.1) WRITE(IOUT,980)
-       ICG            = ISCHANG(NCS)
-       CLO1           = 1.0d-05 
-       CLO2           = 1.0d+03    
-C
-       DO 970 JNEW    = 1, ICG
-        JOLD          = INEWOLD(JNEW,NCS)
-        CMODEL(JNEW)  = CSPEC(LLOOP,JOLD)
- 970   CONTINUE
-C
-       IF (ITESTGEAR.EQ.2) THEN
-        WRITE(KCPD,996) TIME,DELT,IRCHEM,(NAMENCS(INEWOLD(I,NCS),NCS),
-     1                  CMODEL(I),I=1,ICG)
-       ENDIF
-C
-       IF (ITESTGEAR.EQ.1) THEN
-        SUMFRACS      = 0.d0
-        SUMRMS        = 0.d0
-        SUMHI         = 0.d0
-        SUMRMSH       = 0.d0
-        NGCOUNT       = 0
-        NGHI          = 0
-C       WRITE(IOUT,982)
-        IF (IRCHEM.EQ.1)  WRITE(IOUT,988)
-C
-        DO 975 JNEW   = 1, ICG
-         JOLD         = INEWOLD(JNEW,NCS)
-         CMOD         = CMODEL(JNEW)
-         CGOOD        = GEARCONC(JNEW,IRCHEM,NCS)
-         IF (CGOOD.GT.CLO1.AND.CMOD.GT.CLO1.AND.CGOOD.GT.1.d-5*
-     1       CPREV(JNEW)) THEN 
-          FRACDIF     = (CMOD - CGOOD) / CGOOD
-          FRACABS     = ABS(FRACDIF)
-          SUMFRACS    = SUMFRACS + FRACABS 
-          SUMRMS      = SUMRMS   + FRACABS * FRACABS
-          NGCOUNT     = NGCOUNT + 1
-          IF (CGOOD.GT.CLO2.AND.CMOD.GT.CLO2) THEN
-           SUMHI      = SUMHI    + FRACABS 
-           SUMRMSH    = SUMRMSH  + FRACABS * FRACABS
-           NGHI       = NGHI     + 1
-           IAVG       = 2
-          ELSE
-           IAVG       = 1
-          ENDIF
-         ELSE
-          FRACDIF     = 0.d0
-          IAVG        = 0
-         ENDIF
-         CPREV(JNEW)  = CGOOD
-C        WRITE(IOUT,984) NAMENCS(JOLD,NCS),CGOOD,CMOD,FRACDIF*100.,IAVG
- 975    CONTINUE
-C
-        IF (NGCOUNT.GT.0) THEN
-         AVGERR     = 100.d0 * SUMFRACS     / NGCOUNT  
-         RMSCUR     = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
-        ELSE
-         AVGERR     = 0.d0
-         RMSCUR     = 0.d0
-        ENDIF
-C
-        IF (NGHI.GT.0) THEN
-         AVGHI       = 100.d0 * SUMHI        / NGHI  
-         RMSCURH     = 100.d0 * SQRT(SUMRMSH / NGHI)
-        ELSE
-         AVGHI       = 0.d0
-         RMSCURH     = 0.d0
-        ENDIF
-C
-        SUMAVGE     = SUMAVGE + AVGERR
-        SUMAVHI     = SUMAVHI + AVGHI
-        SUMRMSE     = SUMRMSE + RMSCUR
-        SUMRMHI     = SUMRMHI + RMSCURH
-        NOCC        = NOCC    + 1
-C
-        FSTEPT   = FLOAT(NPDERIV)
-        FITS     = FLOAT(NSUBFUN)
-C
-        TOTSTEP  = TOTSTEP + FSTEPT 
-        TOTIT    = TOTIT   + FITS
-        TELAPS   = TELAPS  + XELAPS 
-        WRITE(IOUT,992) IRCHEM,TIME,FSTEPT,FITS,FITS/FSTEPT,
-     1                  NGCOUNT,NGHI,AVGERR,AVGHI,RMSCUR,RMSCURH
-       ENDIF
-      ENDIF
-C
+!phs!       IF (ITESTGEAR.GT.0) THEN
+!phs!        NCS            = 1
+!phs!        IF (IRCHEM.EQ.1) WRITE(IOUT,980)
+!phs!        ICG            = ISCHANG(NCS)
+!phs!        CLO1           = 1.0d-05 
+!phs!        CLO2           = 1.0d+03    
+!phs! C
+!phs!        DO 970 JNEW    = 1, ICG
+!phs!         JOLD          = INEWOLD(JNEW,NCS)
+!phs!         CMODEL(JNEW)  = CSPEC(LLOOP,JOLD)
+!phs!  970   CONTINUE
+!phs! C
+!phs!        IF (ITESTGEAR.EQ.2) THEN
+!phs!         WRITE(KCPD,996) TIME,DELT,IRCHEM,(NAMENCS(INEWOLD(I,NCS),NCS),
+!phs!      1                  CMODEL(I),I=1,ICG)
+!phs!        ENDIF
+!phs! C
+!phs!        IF (ITESTGEAR.EQ.1) THEN
+!phs!         SUMFRACS      = 0.d0
+!phs!         SUMRMS        = 0.d0
+!phs!         SUMHI         = 0.d0
+!phs!         SUMRMSH       = 0.d0
+!phs!         NGCOUNT       = 0
+!phs!         NGHI          = 0
+!phs! C       WRITE(IOUT,982)
+!phs!         IF (IRCHEM.EQ.1)  WRITE(IOUT,988)
+!phs! C
+!phs!         DO 975 JNEW   = 1, ICG
+!phs!          JOLD         = INEWOLD(JNEW,NCS)
+!phs!          CMOD         = CMODEL(JNEW)
+!phs!          CGOOD        = GEARCONC(JNEW,IRCHEM,NCS)
+!phs!          IF (CGOOD.GT.CLO1.AND.CMOD.GT.CLO1.AND.CGOOD.GT.1.d-5*
+!phs!      1       CPREV(JNEW)) THEN 
+!phs!           FRACDIF     = (CMOD - CGOOD) / CGOOD
+!phs!           FRACABS     = ABS(FRACDIF)
+!phs!           SUMFRACS    = SUMFRACS + FRACABS 
+!phs!           SUMRMS      = SUMRMS   + FRACABS * FRACABS
+!phs!           NGCOUNT     = NGCOUNT + 1
+!phs!           IF (CGOOD.GT.CLO2.AND.CMOD.GT.CLO2) THEN
+!phs!            SUMHI      = SUMHI    + FRACABS 
+!phs!            SUMRMSH    = SUMRMSH  + FRACABS * FRACABS
+!phs!            NGHI       = NGHI     + 1
+!phs!            IAVG       = 2
+!phs!           ELSE
+!phs!            IAVG       = 1
+!phs!           ENDIF
+!phs!          ELSE
+!phs!           FRACDIF     = 0.d0
+!phs!           IAVG        = 0
+!phs!          ENDIF
+!phs!          CPREV(JNEW)  = CGOOD
+!phs! C        WRITE(IOUT,984) NAMENCS(JOLD,NCS),CGOOD,CMOD,FRACDIF*100.,IAVG
+!phs!  975    CONTINUE
+!phs! C
+!phs!         IF (NGCOUNT.GT.0) THEN
+!phs!          AVGERR     = 100.d0 * SUMFRACS     / NGCOUNT  
+!phs!          RMSCUR     = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
+!phs!         ELSE
+!phs!          AVGERR     = 0.d0
+!phs!          RMSCUR     = 0.d0
+!phs!         ENDIF
+!phs! C
+!phs!         IF (NGHI.GT.0) THEN
+!phs!          AVGHI       = 100.d0 * SUMHI        / NGHI  
+!phs!          RMSCURH     = 100.d0 * SQRT(SUMRMSH / NGHI)
+!phs!         ELSE
+!phs!          AVGHI       = 0.d0
+!phs!          RMSCURH     = 0.d0
+!phs!         ENDIF
+!phs! C
+!phs!         SUMAVGE     = SUMAVGE + AVGERR
+!phs!         SUMAVHI     = SUMAVHI + AVGHI
+!phs!         SUMRMSE     = SUMRMSE + RMSCUR
+!phs!         SUMRMHI     = SUMRMHI + RMSCURH
+!phs!         NOCC        = NOCC    + 1
+!phs! C
+!phs!         FSTEPT   = FLOAT(NPDERIV)
+!phs!         FITS     = FLOAT(NSUBFUN)
+!phs! C
+!phs!         TOTSTEP  = TOTSTEP + FSTEPT 
+!phs!         TOTIT    = TOTIT   + FITS
+!phs!         TELAPS   = TELAPS  + XELAPS 
+!phs!         WRITE(IOUT,992) IRCHEM,TIME,FSTEPT,FITS,FITS/FSTEPT,
+!phs!      1                  NGCOUNT,NGHI,AVGERR,AVGHI,RMSCUR,RMSCURH
+!phs!        ENDIF
+!phs!       ENDIF
+!phs! C
 C *********************************************************************
 C *                            FORMATS                                * 
 C *********************************************************************

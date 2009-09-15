@@ -1,4 +1,4 @@
- ! $Id: define.h,v 1.71 2009/07/08 20:54:40 bmy Exp $
+ ! $Id: define.h,v 1.72 2009/09/15 15:51:47 phs Exp $
 !
 !******************************************************************************
 !  Include file "define.h" specifies C-preprocessor "switches" that are 
@@ -132,6 +132,25 @@
 ! by the cloud fracton) to be applied, which should be a good enough fix
 ! in the meantime. (bmy, hyl, 10/24/08)
 #define IN_CLOUD_OD  'IN_CLOUD_OD'
+
+
+!==============================================================================
+!  Define the necessary "switches" for using KPP solvers
+!==============================================================================
+!---- The following flag is used by the "build" script, which already
+!---- reads this file to get the compiler. It is also used in the code,
+!---- if defined (ie, this is optional), to double check consistency
+!---- between KPP files and input.geos.
+!---- 
+!---- Set this flag to either 43 or 54. Build will pass that value to
+!---- make to choose the correct KPP files. This value has no effect if
+!---- you use smvgear. You can comment it if you do not use build but
+!---- make directly: overriding flags at the command line 
+!#define KPPTRACER 43
+
+!#define KPPSOLVER rosenbrock
+!#define KPPSOLVER lsodes
+!#define KPPSOLVER radau5
 
 !==============================================================================
 ! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  

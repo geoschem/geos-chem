@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.64 2009/09/09 18:29:55 ccarouge Exp $
+! $Id: input_mod.f,v 1.65 2009/09/15 15:51:47 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1319,6 +1319,7 @@
 !        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
 !  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
 !       (ccc, 2/2/09)
+!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1334,8 +1335,10 @@
       USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
       USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
       USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
+      USE LOGICAL_MOD, ONLY : LICOADSSHIP 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_O3"      ! FSCALYR
@@ -1498,6 +1501,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
+      ! Use ICOADS (NOx, SO2, CO) ship  emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      READ( SUBSTRS(1:N), * ) LICOADSSHIP
+
       ! Use ship EMEP emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
@@ -1578,6 +1585,15 @@
       ! Check SO2 ship emissions options
       !=================================================================
       IF ( LARCSHIP ) LSHIPSO2 = .FALSE.
+   
+      ! Add an ship emissions options (cklee, 6/30/09)
+      ! Replace with ICOADS ship emissions
+      IF ( LICOADSSHIP ) THEN
+         LEDGARSHIP = .FALSE.
+         !LEMEPSHIP  = .FALSE.
+         LSHIPSO2   = .FALSE.
+         !LARCSHIP   = .FALSE.
+      ENDIF      
 
       
       !=================================================================
@@ -1739,6 +1755,7 @@
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
       WRITE( 6, 100     ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
+      WRITE( 6, 100     ) 'Turn on ICOADS  SHIP emiss.?: ', LICOADSSHIP
       WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
       WRITE( 6, 100     ) 'Turn on Corbett SHIP SO2 ?  : ', LSHIPSO2
       WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
@@ -1837,7 +1854,7 @@
 !  Subroutine READ_CHEMISTRY_MENU reads the CHEMISTRY MENU section of 
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
-!  NOTES:
+!  NOTES: (1) added optional test on KPPTRACER (phs, 6/17/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1845,6 +1862,7 @@
       USE LOGICAL_MOD, ONLY : LCHEM,    LEMBED
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,    ONLY : SET_CT_CHEM
+      USE TRACER_MOD,  ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! IEBD1 etc
@@ -1883,10 +1901,9 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
-! For future use (phs)      
-!      ! Use KPP solver ?
-!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
-!      READ( SUBSTRS(1:N), * ) LKPP
+      ! Use KPP solver ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
@@ -1902,9 +1919,29 @@
       WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
       WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
-!     For future use (phs)      
-!     WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
-     
+      WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
+
+         
+      ! Optional test, available if KPPTRACER is defined in define.h
+#ifdef KPPTRACER
+
+      write(MSG,'( a, i3, a, i3, a)')
+     &       'Number of TRACERS in INPUT.GEOS (', N_TRACERS,
+     &       ') and in KPP (', KPPTRACER,
+     &       ') do not match!'
+            
+      IF ( LKPP ) THEN
+
+#if KPPTRACER == 43         
+         IF ( N_TRACERS /= 43 ) CALL ERROR_STOP( MSG, 'input_mod.f' )
+#endif
+
+#if KPPTRACER == 54
+         IF ( N_TRACERS /= 54 ) CALL ERROR_STOP( MSG, 'input_mod.f' )
+#endif
+         
+      ENDIF
+#endif
       
       ! FORMAT statements
  100  FORMAT( A, L5  )

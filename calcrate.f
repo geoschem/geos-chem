@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.19 2009/08/19 17:05:48 ccarouge Exp $
+! $Id: calcrate.f,v 1.20 2009/09/15 15:51:48 phs Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -58,6 +58,7 @@
 !  (14) Updated OH+CO and O(1D)+H2O rates. (jmao, 4/20/09)
 !  (15) Add options for emissions and depositions for non-local PBL scheme.
 !       (ccc, 5/21/09)
+!  (16) Added interface to get rx rates for solver from kpp (phs,ks,dhk, 09/15/09)  
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -77,7 +78,9 @@
       ! Add IDHO2 for HO2 concentration and IS_ICE (jaegle 02/26/09)
       USE TRACERID_MOD,    ONLY : IDHO2
       USE DAO_MOD,         ONLY : IS_ICE
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+      ! KPP interface (phs,ks,dhk, 09/15/09)
+      USE GCKPP_GLOBAL,    ONLY : IND
+      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
 
 
       IMPLICIT NONE
@@ -1146,6 +1149,24 @@ C *********************************************************************
 C
       ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
       CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
+
+
+      !*********KPP_INTERFACE************ (phs,ks,dhk, 09/15/09)
+      IF ( LKPP ) THEN 
+         I = 1
+         DO NK          = 1, NTRATES(NCS)
+            DO KLOOP    = 1, KTLOOP
+               IF ( NEWFOLD(NK,NCS) > 0 ) THEN
+                  IF ( KLOOP.eq.1 ) THEN
+                     IND(I) = NK
+                     I      = I +1
+                  ENDIF
+                  RRATE_FOR_KPP(KLOOP,NK) = RRATE(KLOOP,NEWFOLD(NK,NCS)) ! Saving rates for KPP
+               ENDIF
+            ENDDO
+         ENDDO
+      ENDIF
+      !********************************************
 C
 C *********************************************************************
 C                     RETURN TO CALLING PROGRAM
