@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/09/16 19:20:27 bmy Exp $
+# $Id: Makefile,v 1.2 2009/09/16 20:15:20 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -146,7 +146,8 @@ gckpp_Parameters.o    : gckpp_Precision.o
 
 gckpp_Rates.o         : gckpp_Parameters.o      \
                         gckpp_Global.o          \
-                        gckpp_Monitor.o
+                        gckpp_Monitor.o         \
+                        gckpp_comode_mod.o
 
 gckpp_Stoichiom.o     : gckpp_Parameters.o      \
                         gckpp_StoichiomSP.o
