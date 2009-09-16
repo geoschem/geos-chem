@@ -1,73 +1,114 @@
-# $Id: Makefile,v 1.5 2009/01/30 20:03:36 bmy Exp $
+# $Id: Makefile,v 1.6 2009/09/16 19:20:27 bmy Exp $
+#------------------------------------------------------------------------------
+#          Harvard University Atmospheric Chemistry Modeling Group            !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: Makefile (in doc subdirectory)
+#
+# !DESCRIPTION: Makefile for building the documentation (in PDF and 
+#  PostScript formats) for the GEOS-Chem model source code, makefiles,
+#  and related scripts.
+#\\
+#\\
+# !REMARKS:
+# To build the documentation, call "make" with the following syntax:
+#
+#   make TARGET [ OPTIONAL-FLAGS ]
+#
+# To display a complete list of options, type "make help".
+#
+# You must have the LaTeX utilities (latex, dvips, dvipdf) installed
+# on your system in order to build the documentation.
+#
+# !REVISION HISTORY: 
+#  16 Sep 2009 - R. Yantosca - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
 #==============================================================================
-# Makefile: to create PDF and PS documentation from the ProTeX headers
-#           contained in GEOS-Chem F90 module files. (bmy, 12/17/08, 1/28/09)
+# Initialization
 #==============================================================================
 
-# List of "phony" targets (i.e. targets not associated with files)
+# Define variables
+SHELL   = /bin/sh
+ROOTDIR = ..
+BINDIR  = $(ROOTDIR)/bin
+CODEDIR = $(ROOTDIR)/GeosCore
+KPPDIR  = $(ROOTDIR)/KPP
+
+#==============================================================================
+# Makefile targets
+#==============================================================================
+
 .PHONY: all docclean
 
-# Make all documentation
-all: tpcore emissions
+all: srcdoc makedoc
 
-# Remove all Latex, PS, PDF files
 clean:
 	rm -f *.tex *.ps *.pdf
 
-#---------------------------
-# tpcore_fvdas_mod.f90
-#---------------------------
+#==============================================================================
+# Build documentation for GEOS-Chem source code
+#==============================================================================
 
-# Documentation files
-TPCORE_F90 =             \
-tpcore_fvdas.intro       \
-../tpcore_fvdas_mod.f90  \
-../pjc_pfix_mod.f 
+SRC1 =                               \
+./geos_chem.intro                    \
+$(CODEDIR)/tpcore_fvdas_mod.f90      \
+$(CODEDIR)/pjc_pfix_mod.f            \
+$(CODEDIR)/emissions_mod.f           \
+$(CODEDIR)/arctas_ship_emiss_mod.f   \
+$(CODEDIR)/bravo_mod.f               \
+$(CODEDIR)/cac_anthro_mod.f          \
+$(CODEDIR)/emep_mod.f                \
+$(CODEDIR)/scale_anthro_mod.f        \
+$(CODEDIR)/vistas_anthro_mod.f 
 
-TPCORE_TEX = tpcore_fvdas.tex
-TPCORE_DVI = tpcore_fvdas.dvi
-TPCORE_PDF = tpcore_fvdas.pdf
-TPCORE_PS  = tpcore_fvdas.ps
+TEX1 = GEOS-Chem.tex
+DVI1 = GEOS-Chem.dvi
+PDF1 = GEOS-Chem.pdf
+PS1  = GEOS-chem.ps
 
-# Build LaTeX, *.pdf, and *.ps documentation
-tpcore: 
-	rm -f $(TPCORE_TEX)
-	protex -sf $(TPCORE_F90) > $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	dvipdf $(TPCORE_DVI) $(TPCORE_PDF)
-	dvips $(TPCORE_DVI) -o $(TPCORE_PS)
+srcdoc: 
+	rm -f $(TEX1)
+	protex -sf $(SRC1) > $(TEX1)
+	latex $(TEX1)
+	latex $(TEX1)
+	latex $(TEX1)
+	dvipdf $(DVI1) $(PDF1)
+	dvips $(DVI1) -o $(PS1)
 	rm -f *.aux *.dvi *.log *.toc
 
 
-#---------------------------
-# Emissions document
-#---------------------------
+#==============================================================================
+# Build documentation for GEOS-Chem source code
+#==============================================================================
 
-# Documentation files
-EMISS_F90 =                  \
-emissions.intro              \
-../emissions_mod.f           \
-../arctas_ship_emiss_mod.f   \
-../bravo_mod.f               \
-../cac_anthro_mod.f          \
-../emep_mod.f                \
-../scale_anthro_mod.f        \
-../vistas_anthro_mod.f 
+SRC2 =                         \
+./make.intro                   \
+$(ROOTDIR)/Makefile            \
+$(ROOTDIR)/Makefile_header.mk  \
+$(CODEDIR)/Makefile            \
+$(KPPDIR)/Makefile             \
+$(KPPDIR)/43t/Makefile         \
+$(KPPDIR)/54t/Makefile         \
+$(KPPDIR)/int/Makefile         \
+./Makefile
 
-EMISS_TEX = emissions.tex
-EMISS_DVI = emissions.dvi
-EMISS_PDF = emissions.pdf
-EMISS_PS  = emissions.ps
+TEX2 = GEOS-Chem-Makefiles.tex
+DVI2 = GEOS-Chem-Makefiles.dvi
+PDF2 = GEOS-Chem-Makefiles.pdf
+PS2  = GEOS-Chem-Makefiles.ps
 
-# Build LaTeX, *.pdf, and *.ps documentation
-emissions: 
-	rm -f $(EMISS_TEX)
-	protex -sf $(EMISS_F90) > $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	dvipdf $(EMISS_DVI) $(EMISS_PDF)
-	dvips $(EMISS_DVI) -o $(EMISS_PS)
+makedoc: 
+	rm -f $(TEX2)
+	protex -fS $(SRC2) > $(TEX2)
+	latex $(TEX2)
+	latex $(TEX2)
+	latex $(TEX2)
+	dvipdf $(DVI2) $(PDF2)
+	dvips $(DVI2) -o $(PS2)
 	rm -f *.aux *.dvi *.log *.toc
+
+#EOC
