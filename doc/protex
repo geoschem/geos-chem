@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-#  $Id: protex,v 1.1 2008/12/16 14:56:11 bmy Exp $
+#  $Id: protex,v 1.2 2009/09/16 14:05:52 bmy Exp $
 #
 #BOP
 #
@@ -87,6 +87,9 @@
 #  15Jan2003  R. Staufer  Modified table of contents to print only section headers - no descriptions
 #
 #  25Feb2003  R. Staufer  Added BOPI/EOPI and -i (internal) switch to provide the option of omitting prologue information from output files.
+#  28Jul2009  R. Yantosca  Hack added to suppress printing "Fortran" if we 
+#                          are using the "!MODULE" tag for shell scripts or 
+#                          Makefiles.
 #
 #EOP
 #----------------------------------------------------------------------------
@@ -477,8 +480,23 @@ LINE:
               if($opt_g) {
 		  printf "\\section [%s] {Module  %s }\n\n", $_,$_;}
 	      else {
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%% Hack added by Bob Yantosca to suppress printing "Fortran" if we are 
+#%%% using the "!MODULE" tag for shell scripts or Makefiles. (bmy, 7/28/09)
+		if ( $opt_S ) {
+		  #----------------------------------------
+		  # Shell scripts: don't print "Fortran"
+		  #----------------------------------------
+		  unless($opt_f) {printf "\\subsection{Module Interface %s (Source File: %s)}\n\n", $_, $FileBaseName;}	
+		  else           {printf "\\subsection{Module Interface %s }\n\n", $_;}	 
+	        } else {
+		  #----------------------------------------
+		  # F90 code: do print "Fortran"
+		  #----------------------------------------
 		  unless($opt_f) {printf "\\subsection{Fortran:  Module Interface %s (Source File: %s)}\n\n", $_, $FileBaseName;}
 		  else           {printf "\\subsection{Fortran:  Module Interface %s }\n\n", $_;}
+		}
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	      } # endif
 
               $have_name = 1;
