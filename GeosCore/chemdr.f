@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.1 2009/09/16 14:06:37 bmy Exp $
+! $Id: chemdr.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -153,8 +153,8 @@
 !
       ! References to F90 modules
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
-      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA, 
-     &                                 CSPEC_FOR_KPP
+      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : SUNCOSB,  T

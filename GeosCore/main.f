@@ -1,7 +1,11 @@
-! $Id: main.f,v 1.1 2009/09/16 14:06:21 bmy Exp $
+! $Id: main.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
 ! $Log: main.f,v $
-! Revision 1.1  2009/09/16 14:06:21  bmy
-! Moved source code files to GeosCore subdirectory (bmy, 9/16/09)
+! Revision 1.2  2009/09/16 19:19:00  bmy
+! Code changes to allow us to split up KPP from GeosCore w/o
+! dependencies (phs, 9/16/09)
+!
+! Revision 1.65  2009/09/16 19:01:37  phs
+! update to separate comode_mod into 2 files with one specifically for kpp
 !
 ! Revision 1.64  2009/09/09 18:29:55  ccarouge
 ! small bug fixes for diagnostics and CH4. (ccc, 9/9/09)
@@ -118,6 +122,7 @@
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
+      USE GCKPP_COMODE_MOD,  ONLY : INIT_GCKPP_COMODE
       USE DIAG_MOD,          ONLY : DIAGCHLORO
       USE DIAG41_MOD,        ONLY : DIAG41,          ND41
       USE DIAG42_MOD,        ONLY : DIAG42,          ND42
@@ -137,7 +142,7 @@
       USE DAO_MOD,           ONLY : MAKE_RH
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
-      USE ERROR_MOD,         ONLY : DEBUG_MSG
+      USE ERROR_MOD,         ONLY : DEBUG_MSG,       ERROR_STOP
       USE FILE_MOD,          ONLY : IU_BPCH,         IU_DEBUG
       USE FILE_MOD,          ONLY : IU_ND48,         IU_SMV2LOG    
       USE FILE_MOD,          ONLY : CLOSE_FILES
@@ -159,7 +164,7 @@
       USE LOGICAL_MOD,       ONLY : LLIGHTNOX, LPRT,  LSTDRUN, LSVGLB
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -226,6 +231,7 @@
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"          ! Physical constants
+#     include "comode.h" 
 
       ! Local variables
       LOGICAL            :: FIRST = .TRUE.
@@ -235,7 +241,7 @@
       INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
       INTEGER            :: YEAR,        MONTH, DAY,       DAY_OF_YEAR
       INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
-      INTEGER            :: ELAPSED_SEC, NHMSb
+      INTEGER            :: ELAPSED_SEC, NHMSb, RC
       REAL*8             :: TAU,         TAUb         
       CHARACTER(LEN=255) :: ZTYPE
 
@@ -243,6 +249,8 @@
       ! GEOS-CHEM starts here!                                            
       !=================================================================
 
+      RC=0 ! Error flag. Default 0 is "no error"
+      
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
@@ -274,10 +282,14 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_TROPOPAUSE' )
       ENDIF
 
-      ! Initialize allocatable SMVGEAR arrays
+      ! Initialize allocatable SMVGEAR/KPP arrays
       IF ( LEMIS .or. LCHEM ) THEN
          IF ( ITS_A_FULLCHEM_SIM() ) CALL INIT_COMODE
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
+         IF ( LKPP )  CALL INIT_GCKPP_COMODE( IIPAR, JJPAR, LLTROP,
+     $        ITLOOP, NMTRATE, IGAS, RC )
+         IF ( RC == 1 )
+     $        CALL ERROR_STOP( "Alloc error", "INIT_GCKPP_COMODE" )
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/09/16 14:06:47 bmy Exp $
+# $Id: Makefile,v 1.2 2009/09/16 19:19:01 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -10,7 +10,8 @@
 # GEOS-Chem core source code files and bundles all of the object files (*.o) 
 # into the libGeosCore.a library (located in the LIB directory).  Module files 
 # (*.mod) are copied to the MOD directory.
-#
+#\\
+#\\
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
 #                                                                             .
@@ -29,57 +30,53 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
+# SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
+# ROOTDIR    Specifies the root directory for the GEOS-Chem code
 # BIN        Specifies the directory where executable files are stored
-# CC         Contains the default C compilation commands (for PGI only)
 # DOC        Specifies the directory for generating documentation w/ ProTeX
 # EXE        Specifies the name of the executable file
-# F90        Contains the Fortran compilation commands
-# FREEFORM   Contains the command to force F90 "free format" compilation
 # HDR        Specifies the directory where include files are found
-# LD         Contains the command to link to libraries & make executable
 # LIB        Specifies the directory where library files (*.a) are stored
+# LINK       Specifies the link commands to the GEOS-Chem library files
 # KPP        Specifies the directory where th KPP solver files reside
 # MOD        Specifies the directory where module files (*.mod) are stored
 # OBJ        Specifies the list of object files (*.o) to be created.
-# R8         Contains the command to force REAL -> REAL*8
-# SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
+# AR         Sys var w/ name of library creator program (i.e., "ar", "ranlib")
+# MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
+# NTRAC      Cmd line argument; specifies either 43 or 54 tracer simulation
+# KPPSOLVER  Cmd line argument; specifies the type of integrator to use
 #                                                                             .
 # NOTE: CC, F90, FREEFORM, LD, R8 are included from "Makefile_header.mk".
 #
 # !REVISION HISTORY: 
-#  27 Jul 2009 - R. Yantosca - Initial version
+#  16 Sep 2009 - R. Yantosca - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL = /bin/sh
-BIN   = ../bin
-DOC   = ../doc
-HDR   = ../Headers
-EXE   = geos
-LIB   = ../lib
-LINK  = -lGeosCore -lKpp -lKppSolver
-KPP   = ../KPP
-MOD   = ../mod
+SHELL   = /bin/sh
+ROOTDIR = ..
+BIN     = $(ROOTDIR)/bin
+DOC     = $(ROOTDIR)/doc
+HDR     = $(ROOTDIR)/Headers
+EXE     = geos
+LIB     = $(ROOTDIR)/lib
+KPP     = $(ROOTDIR)/KPP
+MOD     = $(ROOTDIR)/mod
+
+# Link to library files created from code in the various subdirs
+LINK    = -lGeosCore -lKpp -lKppInt
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
-include ../Makefile_header.mk
+include $(ROOTDIR)/Makefile_header.mk
 
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
 # will find the corresponding source code file (*.f, *.f90) and compile it. 
 #=============================================================================
-
-
-# KPP files parameter (NTRAC)
-NTRAC     = 43
-KPPSOLVER = rosenbrock
-#
-.DEFAULT_GOAL := all
-#-------------------------------------------------------------------
 
 OBJ =                         \
 ifort_errmsg.o                \
@@ -103,10 +100,6 @@ lai_mod.o                     \
 tracerid_mod.o                \
 benchmark_mod.o               \
 comode_mod.o                  \
-gckpp_Rates.o                 \
-gckpp_Initialize.o            \
-gckpp_Integrator.o            \
-gckpp_Model.o	              \
 diag_mod.o                    \
 dao_mod.o                     \
 tropopause_mod.o              \
@@ -339,10 +332,10 @@ help:
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'
 	@echo ''
 	@echo 'TARGET may be one of the following:'
-	@echo 'all       Build all GEOS-Chem libraries & executables'
+	@echo 'all       Default target.  Synonym for lib libkpp exe'
 	@echo 'lib       Only build GEOS-Chem objects & libraries in GeosCore subdir'
 	@echo 'libkpp    Only build GEOS-Chem objects & libraries in KPP subdir'
-	@echo 'exe       Build GEOS-Chem executable without KPP solver'
+	@echo 'exe       Build GEOS-Chem executable'
 	@echo 'clean     Removes *.o, *.mod files in source code subdirs only'
 	@echo 'realclean Removes *.o, *mod, *.lib *.a files source code, mod, lib, bin subdirs'
 	@echo 'doc       Builds GEOS-Chem documentation (*.ps, *.pdf) with ProTeX in doc subdir'
@@ -353,44 +346,10 @@ help:
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
+	@echo 'IPO=yes        Turns on optmization options -ipo -static (IFORT only)'
 	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
 	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is lsodes)'
-
-
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-# Original from Philippe 
-#
-##=============================================================================
-##  Executable and Documentation
-##=============================================================================
-#.PHONY : all kppintegrator
-#
-#all: kppintegrator geos
-#
-#geos: $(MODS) $(OBJS) $(OBJSe) $(FJ)
-#	$(F90)  $(MODS) $(OBJS)  $(OBJSe) $(FJ) -o geos
-#
-##=============================================================================
-## Two rules for KPP : update solver only if needed, and set directory
-##=============================================================================
-#
-## (1) update solver (S=Source, T=Target)
-#SOLVER_SFILE=./KPP/int/gckpp_Integrator_$(KPPSOLVER).f90
-#SOLVER_TFILE=./KPP/$(NTRAC)t/gckpp_Integrator.f90
-#
-#kppintegrator:
-#	@diff -q $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
-#	if [ $$? == 1 ] ; then   \
-#		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
-#		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
-#	fi
-#
-## (2) specify files source location
-#gckpp_%.o : ./KPP/$(NTRAC)t/gckpp_%.f90
-#	$(F90) -c -free $< -o $@
-#
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 #==============================================================================
 # Dependencies listing
@@ -401,3 +360,5 @@ tpcore_mod.o                   : tpcore_mod.f
 	$(F90) -c $(R8) $*.f
 tpcore_window_mod.o            : tpcore_window_mod.f
 	$(F90) -c $(R8) $*.f
+
+#EOC
