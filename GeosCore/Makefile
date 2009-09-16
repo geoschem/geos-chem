@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2009/09/16 19:19:01 bmy Exp $
+# $Id: Makefile,v 1.3 2009/09/16 19:35:18 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -298,7 +298,7 @@ set_prof.o
 
 .PHONY: all clean realclean doc docclean help
 
-all: lib libkpp exe
+all: libkpp lib exe
 
 lib: $(OBJ)
 	cp *.mod $(MOD)
@@ -332,7 +332,7 @@ help:
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'
 	@echo ''
 	@echo 'TARGET may be one of the following:'
-	@echo 'all       Default target.  Synonym for lib libkpp exe'
+	@echo 'all       Default target.  Synonym for libkpp lib exe'
 	@echo 'lib       Only build GEOS-Chem objects & libraries in GeosCore subdir'
 	@echo 'libkpp    Only build GEOS-Chem objects & libraries in KPP subdir'
 	@echo 'exe       Build GEOS-Chem executable'
