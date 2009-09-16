@@ -29,6 +29,7 @@ get_nymd_diag           -- Return NYMD_DIAG
 
 Added files (with ***=43t and 54t):
 
+   KPP/***/gckpp_comode_mod.f90       
    KPP/***/gckpp_Function.f90       
    KPP/***/gckpp_Global.f90         
    KPP/***/gckpp_Hessian.f90        
@@ -93,11 +94,10 @@ cleanup_comode          -- deallocate 3 kpp arrays
 ("comode_mod.f")
 
 cleanup.f		-- call cleanup_icoads_ship
+			-- call cleanup_gckpp_comode
 
 comode.h		-- add RRATE_FOR_KPP variable to DKBLOOP2
                            common block 
-
-comode_mod.f		-- declare 3 kpp arrays
 
 dao_mod.f               -- Add variables TO31 and TO32, and interpolation
 			   of TO3 if GEOS-5
@@ -208,6 +208,7 @@ logical_mod.f           -- Add switches for CH4 emissions and budget
 main.f                  -- Compute diagnostics after incrementing time
                         -- Use new diagnostic time step, TS_DIAG
                         -- Add call to TIMESTAMP_DIAG.
+			-- call INIT_GCKPP_COMODE if using KPP solver
 
 nan_dble		-- Remove support for SGI, COMPAQ compilers.
 ("error_mod.f")		-- Add IBM_XLF switch. 

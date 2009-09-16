@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.22 2009/09/15 15:51:48 phs Exp $
+! $Id: cleanup.f,v 1.23 2009/09/16 19:01:37 phs Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -96,6 +96,7 @@
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE COMODE_MOD,              ONLY : CLEANUP_COMODE
+      USE GCKPP_COMODE_MOD,        ONLY : CLEANUP_GCKPP_COMODE
       USE DAO_MOD,                 ONLY : CLEANUP_DAO
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
@@ -171,6 +172,7 @@
       CALL CLEANUP_CARBON
       CALL CLEANUP_CO2
       CALL CLEANUP_COMODE
+      CALL CLEANUP_GCKPP_COMODE
       CALL CLEANUP_DAO
       CALL CLEANUP_DIAG
       CALL CLEANUP_DIAG03

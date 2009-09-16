@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.32 2009/09/15 15:51:48 phs Exp $
+! $Id: chemistry_mod.f,v 1.33 2009/09/16 19:01:37 phs Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -404,13 +404,13 @@
 !******************************************************************************
 !     Driver routine to perform integration of the full KPP chemistry mechanism.
 !     Based on Daven Henze's GCKPP_DRIVER.           (Kumaresh, 01/24/2008)
-!     Updated for       
+!     Commented, and updated to call various forward solvers (phs, 09/16/09)
 !******************************************************************************
 !
       ! Reference to f90 modules
-      USE COMODE_MOD,           ONLY : JLOP,   CSPEC,    CSPEC_FOR_KPP
-      USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,   IZSAVE
-      USE COMODE_MOD,           ONLY : R_KPP,  HSAVE_KPP
+      USE COMODE_MOD,           ONLY : JLOP,   CSPEC
+      USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
+      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP, CSPEC_FOR_KPP
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
       USE GCKPP_INITIALIZE,     ONLY : INITIALIZE

@@ -19,7 +19,8 @@
 ! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+!   16 Sep 2009 - P. Le Sager - Replaced COMODE_MOD by GCKPP_COMODE_MOD
+! 
 
 
 MODULE gckpp_Rates
@@ -183,7 +184,7 @@ CONTAINS
 SUBROUTINE Update_RCONST ( )
 
 
-  USE COMODE_MOD,        ONLY : R_KPP
+  USE gckpp_COMODE_MOD,        ONLY : R_KPP
   USE gckpp_Monitor
 
 ! Begin INLINED RCONST

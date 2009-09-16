@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.8 2009/09/15 15:51:47 phs Exp $
+! $Id: physproc.f,v 1.9 2009/09/16 19:01:37 phs Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -27,8 +27,9 @@
 !
       ! References to F90 modules (bmy, 10/19/00)
       USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
-     &                            R_KPP,  CSUMC,    ERRMX2,  IXSAVE, 
-     &                            IYSAVE,      T3
+     &                            CSUMC,  ERRMX2,  IXSAVE, 
+     &                            IYSAVE, T3
+      USE GCKPP_COMODE_MOD,ONLY : R_KPP
       USE LOGICAL_MOD,     ONLY : LKPP
       USE TIME_MOD,        ONLY : TIMESTAMP_STRING
 
