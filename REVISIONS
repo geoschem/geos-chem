@@ -1,31 +1,31 @@
 REVISIONS (v8-02-03)
-21 Aug 2009
+18 Sep 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
+
+
+NOTE: Source code has been broken down into several subdirectories:
+
+   Code      : Main level 
+   Headers   : Directory with *.h and *CMN include files 
+   GeosCore  : Directory with regular *.f and *.f90 source code files
+   KPP       : Main KPP directory
+   KPP/43t   : KPP files for 43 tracer sim
+   KPP/54t   : KPP files for 54 tracer sim
+   KPP/int   : KPP solvers (i.e. rosenbrock, radau, runge-kutta, lsodes)
+   doc       : Directory where automatic documentation is built
+   lib       : Directory where library files *.a will be created
+   mod       : Directory where *.mod files will be sent
+   bin       : Directory where executable will be sent
 
 
 New in v8-02-03:
 -------------------------------------------------------------------------------
 
+In the KPP/43t and KPP/54t directories:
+
 gckpp_driver            -- driver for KPP-derived solver
 ("chemistry_mod.f")
-
-icoads_ship_mod.f       -- Module to allocate and read ICOADS emissions 
-
-read_ch4_menu           -- New menu in input.geos for CH4 simulations
-("input_mod.f")
-
-set_ct_diag             -- Increments counter for diagnostic time steps
-("time_mod.f")
-
-get_ct_diag             -- Return counter for diagnostic time steps
-("time_mod.f")
-
-timestamp_diag          -- Save NYMD_DIAG to use for time series filenames
-("time_mod.f")
-
-get_nymd_diag           -- Return NYMD_DIAG
-("time_mod.f")
 
 Added files (with ***=43t and 54t):
 
@@ -54,21 +54,49 @@ Added files (with ***=43t and 54t):
    KPP/int/gckpp_Integrator_runge_kutta.f90
 
 
+In the GeosCore directory:
+
+icoads_ship_mod.f       -- Module to allocate and read ICOADS emissions 
+
+read_ch4_menu           -- New menu in input.geos for CH4 simulations
+("input_mod.f")
+
+set_ct_diag             -- Increments counter for diagnostic time steps
+("time_mod.f")
+
+get_ct_diag             -- Return counter for diagnostic time steps
+("time_mod.f")
+
+timestamp_diag          -- Save NYMD_DIAG to use for time series filenames
+("time_mod.f")
+
+get_nymd_diag           -- Return NYMD_DIAG
+("time_mod.f")
+
+
+
 Removed in v8-02-03:
 -------------------------------------------------------------------------------
+
+Makefile.ifort		-- Removed; functionality is now included in
+Makefile.pgi               the various makefiles in the subdirectories
+Makefile.ibm               and in the Makefile_header.mk
+Makefile.compaq
+Makefile.sgi
+Makefile.sparc
+
 
 
 Modified in v8-02-03:
 -------------------------------------------------------------------------------
 
+In the GeosCore directory:
+
 CMN_DIAG                -- Add initialization of PD58 and PD60. 
                         -- Add declarations of LD19, LD58
 
-Makefile.ifort		-- added icoads module
-			-- added gckpp_* objects and their rules
-			-- Added variable NTRAC to specify which
-			   chemistry is used (NTRAC=43 or 54)
-			-- Added variable KPPSOLVER to switch integrator
+anthro_carb_tbond       -- Now read data from carbon_200909 directory
+("carbon_mod.f")
 
 accumulate_diag50       -- Remove IS_CHEM and COUNT_CHEM, not pertinent.
 ("diag50_mod.f")        -- Use JLOP for tropopause level at chemistry time step
