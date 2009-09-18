@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2009/09/16 19:20:27 bmy Exp $
+# $Id: Makefile,v 1.3 2009/09/18 19:39:36 phs Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -54,6 +54,8 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
+#  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
+#                              "make -C int" calls 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -80,21 +82,34 @@ ifndef KPPSOLVER
 KPPSOLVER = rosenbrock
 endif
 
+# solver (S=Source, T=Target)
+SOLVER_SFILE=./int/gckpp_Integrator_$(KPPSOLVER).f90
+SOLVER_TFILE=./$(NTRAC)t/gckpp_Integrator.f90
+
+
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: all lib clean doc help
+.PHONY: all lib kppintegrator clean doc help
 
 all: lib
 
-lib:
+lib: kppintegrator
 	@$(MAKE) -C $(NTRAC)t
-	@$(MAKE) -C int
+#	@$(MAKE) -C int
+
+
+kppintegrator:
+	@diff -q $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
+	if [ $$? == 1 ] ; then   \
+		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
+		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
+	fi
 
 clean:
 	@$(MAKE) -C $(NTRAC)t clean
-	@$(MAKE) -C int       clean
+#	@$(MAKE) -C int       clean
 
 help:
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'
