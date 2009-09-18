@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/09/16 19:34:15 bmy Exp $
+# $Id: Makefile,v 1.2 2009/09/18 20:44:57 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -48,7 +48,7 @@ lib:
 	@$(MAKE) -C $(GEOSDIR) lib
 
 exe:
-	@$(MAKE) -C $(GEOSDIR) all
+	@$(MAKE) -C $(GEOSDIR) exe
 
 clean:
 	@$(MAKE) -C $(GEOSDIR) clean

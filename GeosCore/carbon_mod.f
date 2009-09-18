@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.1 2009/09/16 14:06:38 bmy Exp $
+! $Id: carbon_mod.f,v 1.2 2009/09/18 20:44:57 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3722,7 +3722,12 @@ c
       !=================================================================
       ! Filename for carbon aerosol from fossil fuel use
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
+!--------------------------------------------------------------------------
+! Prior to 9/18/09:
+! Switch to carbon_200909 directory (bmy, 9/18/09)
+!     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
+!--------------------------------------------------------------------------
+     &           'carbon_200909/BCOC_TBond_fossil.2000.'  // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
       
 
@@ -3801,7 +3806,12 @@ c
       !=================================================================
       ! Filename
       FILENAME = TRIM( DATA_DIR )                         // 
-     &           'carbon_200905/BCOC_TBond_biofuel.2000.' // 
+!--------------------------------------------------------------------------
+! Prior to 9/18/09:
+! Switch to carbon_200909 directory (bmy, 9/18/09)
+!     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
+!--------------------------------------------------------------------------
+     &           'carbon_200909/BCOC_TBond_biofuel.2000.' // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
 
