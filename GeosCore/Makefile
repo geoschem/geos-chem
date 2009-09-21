@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2009/09/18 19:39:36 phs Exp $
+# $Id: Makefile,v 1.5 2009/09/21 18:07:30 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -349,6 +349,7 @@ help:
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
 	@echo 'IPO=yes        Turns on optmization options -ipo -static (IFORT only)'
+	@echo 'TRACEBACK=yes  Turns on traceback option (IFORT only)'
 	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
 	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is lsodes)'

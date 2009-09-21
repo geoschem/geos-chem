@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2009/09/18 19:39:36 phs Exp $
+# $Id: Makefile,v 1.4 2009/09/21 18:07:29 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -65,8 +65,8 @@ SHELL   = /bin/sh
 ROOTDIR = ..
 DOC     = $(ROOTDIR)/doc
 HDR     = $(ROOTDIR)/Headers
-LIB     = $(ROOTDIR)lib
-MOD     = $(ROOTDIR)mod
+LIB     = $(ROOTDIR)/lib
+MOD     = $(ROOTDIR)/mod
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
@@ -125,6 +125,7 @@ help:
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
 	@echo 'IPO=yes        Turns on optmization options -ipo -static (IFORT only)'
+	@echo 'TRACEBACK=yes  Turns on traceback option (IFORT only)'
 	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
 	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
