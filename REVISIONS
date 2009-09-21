@@ -1,5 +1,5 @@
 REVISIONS (v8-02-03)
-18 Sep 2009
+21 Sep 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -17,6 +17,7 @@ NOTE: Source code has been broken down into several subdirectories:
    lib       : Directory where library files *.a will be created
    mod       : Directory where *.mod files will be sent
    bin       : Directory where executable will be sent
+   help      : Directory containing help screen
 
 
 New in v8-02-03:
