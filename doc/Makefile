@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2009/09/21 18:53:21 bmy Exp $
+# $Id: Makefile,v 1.8 2009/09/21 18:59:35 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -100,7 +100,8 @@ $(KPPDIR)/Makefile             \
 $(KPPDIR)/43t/Makefile         \
 $(KPPDIR)/54t/Makefile         \
 $(KPPDIR)/int/Makefile         \
-./Makefile
+./Makefile                     \
+$(HELPDIR)/Makefile
 
 TEX2 = GEOS-Chem-Makefiles.tex
 DVI2 = GEOS-Chem-Makefiles.dvi
