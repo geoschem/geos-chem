@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2009/09/16 19:20:27 bmy Exp $
+# $Id: Makefile,v 1.7 2009/09/21 18:53:21 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -23,6 +23,8 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
+#  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
+#                              display the help screen options
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -36,18 +38,22 @@ SHELL   = /bin/sh
 ROOTDIR = ..
 BINDIR  = $(ROOTDIR)/bin
 CODEDIR = $(ROOTDIR)/GeosCore
+HELPDIR = $(ROOTDIR)/help
 KPPDIR  = $(ROOTDIR)/KPP
 
 #==============================================================================
 # Makefile targets
 #==============================================================================
 
-.PHONY: all docclean
+.PHONY: all docclean help
 
 all: srcdoc makedoc
 
 clean:
 	rm -f *.tex *.ps *.pdf
+
+help:
+	@$(MAKE) -C $(HELPDIR)
 
 #==============================================================================
 # Build documentation for GEOS-Chem source code

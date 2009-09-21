@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2009/09/16 20:15:20 bmy Exp $
+# $Id: Makefile,v 1.3 2009/09/21 18:53:21 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -39,6 +39,8 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
+#  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
+#                              display the help screen options
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -47,6 +49,7 @@
 SHELL   = /bin/sh
 ROOTDIR = ../..
 HDR     = $(ROOTDIR)/Headers
+HELP    = $(ROOTDIR)/help
 LIB     = $(ROOTDIR)/lib
 MOD     = $(ROOTDIR)/mod
 
@@ -80,22 +83,7 @@ clean:
 	rm -f *.o *.mod geos
 
 help:
-	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'
-	@echo ''
-	@echo 'TARGET may be one of the following:'
-	@echo 'all    Default target.  Synonym for "lib".'
-	@echo 'lib    Only build GEOS-Chem objects & libraries in KPP subdir (default)'
-	@echo 'clean  Removes *.o, *.mod files in KPP subdir only'
-	@echo 'help   Displays this help screen'
-	@echo ''
-	@echo 'OPTIONAL-FLAGS may be:'
-	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
-	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
-	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
-	@echo 'IPO=yes        Turns on optmization options -ipo -static (IFORT only)'
-	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
-	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
-	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
+	@$(MAKE) -C $(HELP)
 
 #=============================================================================
 # Dependencies listing (grep "USE " to get the list of module references!)
