@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/09/21 18:53:21 bmy Exp $
+# $Id: Makefile,v 1.2 2009/09/23 14:36:35 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -32,6 +32,10 @@
 SHELL   = /bin/sh
 
 help:
+	@echo '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+	@echo '%%%      GEOS-Chem Help Screen      %%%'
+	@echo '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
+	@echo
 	@echo 'Usage: make TARGET [ OPTIONAL-FLAGS ]'
 	@echo ''
 	@echo 'TARGET may be one of the following:'

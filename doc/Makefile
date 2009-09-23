@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2009/09/21 18:59:35 bmy Exp $
+# $Id: Makefile,v 1.9 2009/09/23 14:36:35 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -99,7 +99,6 @@ $(CODEDIR)/Makefile            \
 $(KPPDIR)/Makefile             \
 $(KPPDIR)/43t/Makefile         \
 $(KPPDIR)/54t/Makefile         \
-$(KPPDIR)/int/Makefile         \
 ./Makefile                     \
 $(HELPDIR)/Makefile
 

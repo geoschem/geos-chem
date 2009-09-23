@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.5 2009/09/21 18:53:21 bmy Exp $
+# $Id: Makefile,v 1.6 2009/09/23 14:36:36 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -98,11 +98,9 @@ all: lib
 
 lib: kppintegrator
 	@$(MAKE) -C $(NTRAC)t
-#	@$(MAKE) -C int
-
 
 kppintegrator:
-	@diff -q $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
+	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
 	if [ $$? == 1 ] ; then   \
 		echo " copy $(SOLVER_SFILE) --> $(SOLVER_TFILE)";\
 		cp $(SOLVER_SFILE) $(SOLVER_TFILE) ;    \
@@ -110,7 +108,6 @@ kppintegrator:
 
 clean:
 	@$(MAKE) -C $(NTRAC)t clean
-#	@$(MAKE) -C int       clean
 
 help:
 	@$(MAKE) -C $(HELP) 

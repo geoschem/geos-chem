@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.1 2009/09/16 19:34:15 bmy Exp $
+# $Id: Makefile_header.mk,v 1.2 2009/09/23 14:36:36 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -33,6 +33,7 @@
 #                                                                             .
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
+#  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -95,7 +96,7 @@ FFLAGS += -C
 endif
 
 CC       = gcc
-F90      = pgf90 $(FFLAGS) -I$(MOD)
+F90      = pgf90 $(FFLAGS) -I$(HDR) -I$(MOD)
 LD       = pgf90 $(FFLAGS) -L$(LIB)
 FREEFORM = -Mfree
 R8       = -Mextend -r8
@@ -124,12 +125,12 @@ endif
 CC       =
 #---------------------------------------------------------------
 # If your compiler is under the name "f90", use these lines!
-#F90      = f90 $(FFLAGS) -I$(MOD)
-#LD       = f90 $(FFLAGS) -I$(LIB)
+F90      = f90 $(FFLAGS) -I$(HDR) -I$(MOD)
+LD       = f90 $(FFLAGS) -I$(LIB)
 #---------------------------------------------------------------
 # If your compiler is under the name "sunf90", use these lines!
-F90      = sunf90 $(FFLAGS) -I$(MOD)
-LD       = sunf90 $(FFLAGS) -L$(LIB)
+#F90      = sunf90 $(FFLAGS) -I$(HDR) -I$(MOD)
+#LD       = sunf90 $(FFLAGS) -L$(LIB)
 #---------------------------------------------------------------
 FREEFORM = -free
 R8       = -xtypemap=real:64
@@ -159,7 +160,7 @@ FFLAGS += -C
 endif
 
 CC       =
-F90      = xlf90_r $(FFLAGS) -I$(MOD)
+F90      = xlf90_r $(FFLAGS) -I$(HDR) -I$(MOD)
 LD       = xlf90_r $(FFLAGS) -L$(LIB)
 FREEFORM = -qrealsize=8
 R8       = -r8

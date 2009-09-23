@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2009/09/21 18:53:21 bmy Exp $
+# $Id: Makefile,v 1.7 2009/09/23 14:36:36 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -50,7 +50,7 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
-#  18 Sep 2009 - P. Le Sager - Commented -lKppInt
+#  18 Sep 2009 - P. Le Sager - Removed -lKppInt
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options
 #EOP
@@ -70,7 +70,6 @@ KPP     = $(ROOTDIR)/KPP
 MOD     = $(ROOTDIR)/mod
 
 # Link to library files created from code in the various subdirs
-#LINK    = -lGeosCore -lKpp -lKppInt
 LINK    = -lGeosCore -lKpp
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
@@ -84,7 +83,6 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 OBJ =                         \
-ifort_errmsg.o                \
 fjx_acet_mod.o                \
 charpak_mod.o                 \
 error_mod.o                   \
@@ -296,6 +294,15 @@ rd_prof.o                     \
 set_aer.o                     \
 set_prof.o                    
 
+# Special files just for IFORT
+ifeq ($(COMPILER),ifort) 
+OBJ += ifort_errmsg.o
+endif
+
+# Special files just for PGI
+ifeq ($(COMPILER),pgi) 
+OBJ += linux_err.o
+endif
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -346,5 +353,7 @@ tpcore_mod.o                   : tpcore_mod.f
 	$(F90) -c $(R8) $*.f
 tpcore_window_mod.o            : tpcore_window_mod.f
 	$(F90) -c $(R8) $*.f
+linux_err.o                    : linux_err.c     
+	$(CC) -c linux_err.c
 
 #EOC
