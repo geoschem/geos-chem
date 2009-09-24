@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+! $Id: chemistry_mod.f,v 1.3 2009/09/24 20:18:03 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -587,11 +587,11 @@
          
            ! Try another time if it failed
            IF ( IERR < 0 ) THEN
-              write(6,*), ''
+              write(6,*) ''
               write(6,100) istatus(1:8),rstate(1:3)
-              write(6,*), ''
+              write(6,*) ''
               write(ERR_MSG,'(a, i3)') 'Integrator error code :',IERR
-              write(6,*),   'JLOOP, I, J, L ', JLOOP, I, J, L
+              write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
 
               ! Reset first time step and start concentrations
               RCNTRL(3)  = 0d0
