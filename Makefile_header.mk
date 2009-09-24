@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.2 2009/09/23 14:36:36 bmy Exp $
+# $Id: Makefile_header.mk,v 1.3 2009/09/24 16:56:52 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -34,6 +34,7 @@
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
+#  24 Sep 2009 - R. Yantosca - added NONUMA option for PGI compiler
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -90,6 +91,11 @@ else
 FFLAGS = -byteswapio -Mpreprocess -fast -mp -Mnosgimp -Dmultitask -Bstatic
 endif
 
+# Add option for suppressing PGI non-uniform memory access (numa) library 
+ifeq ($(NONUMA),yes) 
+FFLAGS += -mp=nonuma
+endif
+
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS += -C
@@ -125,11 +131,11 @@ endif
 CC       =
 #---------------------------------------------------------------
 # If your compiler is under the name "f90", use these lines!
-F90      = f90 $(FFLAGS) -I$(HDR) -I$(MOD)
-LD       = f90 $(FFLAGS) -I$(LIB)
+F90      = f90 $(FFLAGS) -I$(HDR) -M$(MOD)
+LD       = f90 $(FFLAGS) -L$(LIB)
 #---------------------------------------------------------------
 # If your compiler is under the name "sunf90", use these lines!
-#F90      = sunf90 $(FFLAGS) -I$(HDR) -I$(MOD)
+#F90      = sunf90 $(FFLAGS) -I$(HDR) -M$(MOD)
 #LD       = sunf90 $(FFLAGS) -L$(LIB)
 #---------------------------------------------------------------
 FREEFORM = -free

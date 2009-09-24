@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2009/09/23 14:36:35 bmy Exp $
+# $Id: Makefile,v 1.3 2009/09/24 16:56:51 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -24,6 +24,8 @@
 #
 # !REVISION HISTORY: 
 #  21 Sep 2009 - R. Yantosca - Initial version
+#  24 Sep 2009 - R. Yantosca - Added info about NONUMA option for PGI
+#  24 Sep 2009 - R. Yantosca - Now list rosenbrock as default solver
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -53,8 +55,9 @@ help:
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
-	@echo 'IPO=yes        Turns on optmization options -ipo -static (IFORT only)'
-	@echo 'TRACEBACK=yes  Turns on traceback option (IFORT only)'
+	@echo 'IPO=yes        Turns on optmization options -ipo -static (ifort only)'
+	@echo 'TRACEBACK=yes  Turns on -traceback option (ifort only)'
+	@echo 'NONUMA=yes     Turns on -mp=nonuma option (pgi only)'
 	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
-	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is lsodes)'
+	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
