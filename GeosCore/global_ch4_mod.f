@@ -1,4 +1,4 @@
-! $Id: global_ch4_mod.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.2 2009/09/30 17:56:31 ccarouge Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
@@ -628,7 +628,7 @@
       USE DAO_MOD,       ONLY : FROCEAN,      FRLANDIC
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE,      IOERROR
       USE GRID_MOD,      ONLY : GET_AREA_M2
@@ -641,7 +641,7 @@
 #     include "CMN_DIAG"     ! Diagnostic switches
 
       INTEGER :: I, J, L      
-      INTEGER :: GM      
+      INTEGER :: GM, YEAR      
       REAL*4  :: ARRAY(IIPAR,JJPAR)
       REAL*8  :: WETFRAC(IIPAR,JJPAR)
       REAL*8  :: REALWET(IIPAR,JJPAR)
@@ -680,8 +680,9 @@
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
 
-      FILENAME = '/home/kjw/GEOS-Chem/' //
-     &         'files/emissions/wetlands/Wet_frac.' // GET_RES_EXT()
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+     &           'Wet_frac.'       // GET_NAME_EXT_2D()      //
+     &           '.'               // GET_RES_EXT()
 
       WRITE( 6, 91 ) TRIM ( FILENAME )
  91   FORMAT( '     - WL_CH4: Reading WET-FRAC: ', a )
@@ -789,11 +790,10 @@
 
       XTAU = GET_TAU0( 1, 1, 2000 )
 
-	FILENAME = '/home/kjw/GEOS-Chem/' //
-     &         'files/emissions/wetlands/Carbon_litter.geos.'  //
-     &          GET_RES_EXT()
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/wetlands/' //
+     &           'Carbon_litter.'     // GET_NAME_EXT_2D()      //
+     &           '.'                  // GET_RES_EXT()
 
-        print*,'Carbon Litter'
       CALL READ_BPCH2( FILENAME, 'CO--SRCE',   2,      
      &                        XTAU,      IGLOB,   JGLOB,      
      &                           1,      ARRAY,   QUIET=.TRUE.)
@@ -801,14 +801,13 @@
       CALL TRANSFER_2D( ARRAY, LITTER_C )
 
 
-	FILENAME = '/home/kjw/GEOS-Chem/' //
-     &             'files/emissions/wetlands/' //
-     &             'Carbon_soil.geos.' // GET_RES_EXT()
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+     &           'Carbon_soil.'    // GET_NAME_EXT_2D()      //
+     &           '.'               // GET_RES_EXT()
 
-        print*,'Carbon Soil'
-         CALL READ_BPCH2( FILENAME, 'CO--SRCE',   2,      
-     &                        XTAU,      IGLOB,   JGLOB,      
-     &                           1,      ARRAY,   QUIET=.TRUE.)
+      CALL READ_BPCH2( FILENAME, 'CO--SRCE',   2,      
+     &                 XTAU,      IGLOB,   JGLOB,      
+     &                 1,      ARRAY,   QUIET=.TRUE.)
 
       CALL TRANSFER_2D( ARRAY, SOIL_C )
 
@@ -817,14 +816,19 @@
       ! Get annual mean skin temperature. 
       !===================================================================
 
-      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      YEAR = GET_YEAR()
+      ! Force YEAR to 2004. Only year with data for now.
+      IF ( YEAR /= 2004 ) YEAR = 2004
+
+      WRITE( CYEAR, '(i4)' ) YEAR
 
       print*,'Skin Temp'
-      FILENAME = '/home/kjw/GEOS-Chem/files/emissions/wetlands/' //
-     &           'TSKIN.' // GET_NAME_EXT() // '.' //
-     &           GET_RES_EXT() // '.' // CYEAR // '.bpch'
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+     &           'TSKIN.'          // CYEAR                  // 
+     &           '.'               // GET_NAME_EXT()         // 
+     &           '.'               // GET_RES_EXT()
 
-      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+      XTAU = GET_TAU0( 1, 1, YEAR )
       
       CALL READ_BPCH2( FILENAME,  'GMAO-2D',    2,
      &                     XTAU,      IGLOB,    JGLOB,      
@@ -1153,7 +1157,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_NAME_EXT_2D
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE TIME_MOD,      ONLY : GET_MONTH,    GET_YEAR
@@ -1192,9 +1196,10 @@
       !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
       XTAU = GET_TAU0( 1, 1, 2004 )
 
-      FILENAME = '/home/kjw/GEOS-Chem/' //
-     &           'files/emissions/new_temp/rice.' //
-     &            GET_RES_EXT() // '.' // CYEAR // '.bpch'
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &           'rice.'          // CYEAR             // 
+     &           '.'              // GET_NAME_EXT_2D() // 
+     &           '.'              // GET_RES_EXT()
 
       CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
      &                 XTAU,      IGLOB,     JGLOB,
@@ -1204,12 +1209,10 @@
 
       ! Get annual and monthly mean soil wetness from GEOS
       ! One file contains both monthly and annual mean GWETTOP
-
-      WRITE( CYEAR, '(i4)' ) GET_YEAR()
-
-      FILENAME = '/home/kjw/GEOS-Chem/files/emissions/' //
-     &           'wetlands/GWETTOP.' // GET_NAME_EXT() //
-     &           '.' // GET_RES_EXT() // '.' // CYEAR // '.bpch'
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/'  //
+     &           'GWETTOP.'        // CYEAR          // 
+     &           '.'               // GET_NAME_EXT() // 
+     &           '.'               // GET_RES_EXT()
 
       ! Annual mean GWETTOP
       XTAU = GET_TAU0( 1, 1, GET_YEAR() )
@@ -1371,6 +1374,7 @@
 
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_YEAR
@@ -1409,9 +1413,10 @@
 
       !4.2 Gas and Oil emissions
       IF ( LGAO ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/files/' //
-     &              'emissions/new_temp/gas_oil.' //
-     &               GET_RES_EXT() // '.' // CYEAR // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'gas_oil.'       // CYEAR             // 
+     &              '.'              // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1422,9 +1427,10 @@
 
       !4.3 Coal Mine emissions
       IF ( LCOL ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/files/' //
-     &                'emissions/new_temp/coal.'//
-     &                 GET_RES_EXT() // '.' // CYEAR // '.bpch' 
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'coal.'          // CYEAR             // 
+     &              '.'              // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1434,9 +1440,10 @@
 
       !4.4 Livestock emissions
       IF ( LLIV ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/files/' //
-     &                'emissions/new_temp/livestock.'   //
-     &                 GET_RES_EXT() // '.' // CYEAR // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'livestock.'     // CYEAR             // 
+     &              '.'              // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1447,9 +1454,10 @@
 	
       !4.5 Waste emissions
       IF ( LWAST ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/files/' //
-     &                'emissions/new_temp/waste.' // 
-     &                 GET_RES_EXT() // '.' // CYEAR // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'waste.'         // CYEAR             // 
+     &              '.'              // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1459,9 +1467,10 @@
 
       !4.8 Other Anthropogenic Emissions
       IF ( LOTANT ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/' //
-     &               'files/emissions/new_temp/other.'//
-     &                GET_RES_EXT() // '.' // CYEAR // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'other.'         // CYEAR             // 
+     &              '.'              // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS',   1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1492,6 +1501,7 @@
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT,  GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TIME_MOD,      ONLY : GET_YEAR
@@ -1523,9 +1533,9 @@
 
       !4.11 Soil Absorption
       IF ( LSOABS ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/' //
-     &                'files/emissions/new_temp/soilabs.'//
-     &                 GET_RES_EXT() // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'soilabs.'       // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
      &                       XTAU,      IGLOB,    JGLOB,
@@ -1535,9 +1545,9 @@
 
       !4.12 Other Natural Emissions
       IF ( LOTNAT ) THEN
-         FILENAME = '/home/kjw/GEOS-Chem/' //
-     &                'files/emissions/new_temp/termites.'//
-     &                 GET_RES_EXT() // '.bpch'
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+     &              'termites.'      // GET_NAME_EXT_2D() //
+     &              '.'              // GET_RES_EXT() 
 
          CALL READ_BPCH2( FILENAME, 'CH4-EMIS', 1,
      &                       XTAU,      IGLOB,    JGLOB,
