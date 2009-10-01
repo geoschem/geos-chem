@@ -1,9 +1,9 @@
-! $Id: global_ch4_mod.f,v 1.2 2009/09/30 17:56:31 ccarouge Exp $
+! $Id: global_ch4_mod.f,v 1.3 2009/10/01 13:26:58 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
 !  Module GLOBAL_CH4_MOD contains variables and routines for simulating
-!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 10/3/05)
+!  CH4 chemistry in the troposphere (jsw, bnd, bmy, 1/17/01, 10/1/09)
 !
 !  Module Variables:
 !  =========================================================================== 
@@ -97,6 +97,7 @@
 !        (bmy, 7/20/04)
 !  (21) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (23) Updated CH4 simulation (wecht, cph, ccarouge, 10/1/09)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -618,7 +619,9 @@
 !		c - Wetland area (%)
 !		d - Soil moisture.
 !       a, b, c are taken from the LPJ, a vegetation model. Data are provided 
-!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.      
+!	by J.O.Kaplan. Soil moisture is read from GEOS Met input files.  
+!
+!  (3 ) Corrected order of DO loops (bmy, 10/1/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -720,8 +723,14 @@
 
       ! GEOS4 calculation
 #if   defined( GEOS_4 )
-      DO I=1, IIPAR
-      DO J=1, JJPAR
+      !------------------------------------------------------
+      ! Prior to 10/1/09:
+      ! Proper loop ordering is J then I (bmy, 10/1/09)
+      !DO I=1, IIPAR
+      !DO J=1, JJPAR
+      !------------------------------------------------------
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
 	 IF (TSKIN(I,J) > 273) THEN
          ! We want emissions from land boxes only
@@ -740,8 +749,14 @@
 
       ! GEOS5 Calculation
 #elif defined( GEOS_5 )
-      DO I=1, IIPAR
-      DO J=1, JJPAR
+      !------------------------------------------------------
+      ! Prior to 10/1/09:
+      ! Proper loop ordering is J then I (bmy, 10/1/09)
+      !DO I=1, IIPAR
+      !DO J=1, JJPAR
+      !------------------------------------------------------
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
 	 IF (TSKIN(I,J) > 273) THEN
          ! We want emissions from any box that contains some land
@@ -843,9 +858,14 @@
 
       METHANE_OUT = 0d0	
 
-
-      DO I = 1, IIPAR
+      !------------------------------------------------------
+      ! Prior to 10/1/09:
+      ! Proper loop ordering is J then I (bmy, 10/1/09)
+      !DO I = 1, IIPAR
+      !DO J = 1, JJPAR
+      !------------------------------------------------------
       DO J = 1, JJPAR
+      DO I = 1, IIPAR
         
 	 IF ( tskin(I,J) < 233. ) THEN
 	    F_TEMP = 0
@@ -1152,6 +1172,7 @@
 !  NOTES:
 !  (1 ) CH4 emissions from rice calculated with a routine created by Jerome
 !       Drevet.  Adapted as its own subroutine by Kevin Wecht (6/03/09)
+!  (2 ) Corrected ordering of DO loops (bmy, 10/1/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1229,8 +1250,14 @@
       CALL TRANSFER_2D( ARRAY, MONTH_GWETTOP )
 
       !scale rice emissions (by Jerome Drevet)
-      DO I=1, IIPAR
-      DO J=1, JJPAR
+      !------------------------------------------------------
+      ! Prior to 10/1/09:
+      ! Proper loop ordering is J then I (bmy, 10/1/09)
+      !DO I=1, IIPAR
+      !DO J=1, JJPAR
+      !------------------------------------------------------
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
 	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
          wet_ratio = wet_ratio * 2.
          wet_ratio = wet_ratio +1.
@@ -1239,10 +1266,14 @@
       ENDDO
       ENDDO
 
-
-
-      DO I=1, IIPAR
-      DO J=1, JJPAR
+      !------------------------------------------------------
+      ! Prior to 10/1/09:
+      ! Proper loop ordering is J then I (bmy, 10/1/09)
+      !DO I=1, IIPAR
+      !DO J=1, JJPAR
+      !------------------------------------------------------
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
          if (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
          if (CH4_EMIS(I,J,10) > 0) THEN  ! If wtl  > 0
          if (CH4_EMIS(I,J,10) > CH4_EMIS(I,J,7)) THEN
