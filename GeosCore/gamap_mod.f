@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.1 2009/09/16 14:06:27 bmy Exp $
+! $Id: gamap_mod.f,v 1.2 2009/10/07 20:48:34 phs Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -3179,8 +3179,19 @@
                   NAME(T,66) = 'SPHU'
                   UNIT(T,66) = 'g/kg'
                CASE( 5 )
+!-- prior 10/7/09 (Junhua)
+!                  NAME(T,66) = 'CLDMAS'
+!                  UNIT(T,66) = 'kg/m2/s'
+#if   defined( GEOS_4 )
+                  NAME(T,66) = 'ZMMU'
+                  UNIT(T,66) = 'Pa/s'
+#elif defined( GEOS_5 )
+                  NAME(T,66) = 'CMFMC'
+                  UNIT(T,66) = 'kg/m2/s'
+#else
                   NAME(T,66) = 'CLDMAS'
                   UNIT(T,66) = 'kg/m2/s'
+#endif
                CASE( 6 )
                   NAME(T,66) = 'DTRAIN'
                   UNIT(T,66) = 'kg/m2/s'
