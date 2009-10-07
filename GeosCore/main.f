@@ -1,5 +1,9 @@
-! $Id: main.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+! $Id: main.f,v 1.3 2009/10/07 20:56:58 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.3  2009/10/07 20:56:58  bmy
+! Minor change in debug output...denote "NLPBL 1" or "NLPBL 2" so that
+! we can bracket which call to the DO_PBL_MIX_2 is dying (bmy, 10/7/09)
+!
 ! Revision 1.2  2009/09/16 19:19:00  bmy
 ! Code changes to allow us to split up KPP from GeosCore w/o
 ! dependencies (phs, 9/16/09)
@@ -456,7 +460,7 @@
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
         CALL DO_PBL_MIX_2( .FALSE. )
-        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL' )
+        IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 1' )
       ENDIF
 
       !=================================================================
@@ -876,7 +880,7 @@
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
                CALL DO_PBL_MIX_2( LTURB )
-               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL' )
+               IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a NLPBL 2' )
             ENDIF
 
             !### Debug
