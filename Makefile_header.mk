@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.3 2009/09/24 16:56:52 bmy Exp $
+# $Id: Makefile_header.mk,v 1.4 2009/10/07 14:49:48 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -35,6 +35,7 @@
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
 #  24 Sep 2009 - R. Yantosca - added NONUMA option for PGI compiler
+#  07 Oct 2009 - R. Yantosca - Replaced .SUFFIXES section w/ pattern rules
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -174,14 +175,19 @@ R8       = -r8
 endif
 
 #------------------------------------------------------------------------------
-# Default compilation rules for *.f, *.f90, *.F, *.F90 and *.c files
+# Specify pattern rules for compiliation 
+# (i.e. tell "make" how to compile different types of source code files)
 #------------------------------------------------------------------------------
-.SUFFIXES: .f .F .f90 .F90 .c
-.f.o:                   ; $(F90) -c $*.f
-.F.o:                   ; $(F90) -c $*.F
-.f90.o:                 ; $(F90) -c $(FREEFORM) $*.f90 
-.F90.o:                 ; $(F90) -c $(FREEFORM) $*.F90 
-.c.o:                   ; $(CC) -c $*.c
+%.o : %.f
+	$(F90) -c $<
+%.o : %.F
+	$(F90) -c $<
+%.o : %.f90
+	$(F90) -c $(FREEFORM) $<
+%.o : %.F90
+	$(F90) -c $(FREEFORM) $<
+%.o : %.c
+	$(CC) -c $*.c
 
 #------------------------------------------------------------------------------
 # Export global variables so that the main Makefile will see these

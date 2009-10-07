@@ -1,3 +1,4 @@
+! $Id: vdiff_mod.f90,v 1.2 2009/10/07 14:49:48 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -97,6 +98,7 @@ MODULE VDIFF_MOD
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
+!  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
 !EOP
 !------------------------------------------------------------------------------
 

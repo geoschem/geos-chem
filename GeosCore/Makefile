@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2009/09/23 14:36:36 bmy Exp $
+# $Id: Makefile,v 1.8 2009/10/07 14:49:48 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -343,17 +343,15 @@ docclean:
 help:
 	@$(MAKE) -C $(HELP)
 
-
 #==============================================================================
-# Dependencies listing
+# Dependencies listing: List files that need special handling above
+# and beyond the default patterns listed in "Makefile_header.mk"
 #==============================================================================
 tpcore_geos5_window_mod.o      : tpcore_geos5_window_mod.f90
-	$(F90) -c $(R8) $*.f90
+	$(F90) -c $(FREEFORM) $(R8) $<
 tpcore_mod.o                   : tpcore_mod.f
-	$(F90) -c $(R8) $*.f
+	$(F90) -c $(R8) $<
 tpcore_window_mod.o            : tpcore_window_mod.f
-	$(F90) -c $(R8) $*.f
-linux_err.o                    : linux_err.c     
-	$(CC) -c linux_err.c
+	$(F90) -c $(R8) $<
 
 #EOC
