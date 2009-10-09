@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.2 2009/10/07 20:48:34 phs Exp $
+! $Id: gamap_mod.f,v 1.3 2009/10/09 13:16:22 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 2/22/08)
+!  simulation. (bmy, 5/3/05, 10/9/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -86,6 +86,7 @@
 !  (17) Add gamap info for dicarbonyl simulation (tmf, 3/10/09)
 !  (18) Add C2H4 in ND46 (ccc, 3/10/09)
 !  (19) Add EFLUX to ND67 (lin, ccc, 5/29/09)
+!  (20) Minor bug fixes (bmy, phs, 10/9/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1296,6 +1297,8 @@
 !        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
 !  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
 !  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
+!  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
+!        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2317,7 +2320,12 @@
                      NAME (T,28) = 'PRPE'
                      INDEX(T,28) = 18 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
+                     !-------------------------------------------------
+                     ! Prior to 10/9/09:
+                     ! ALD2 has 2 carbons, not 3 (dbm, bmy, 10/9/09)
+                     !MOLC (T,28) = 3
+                     !-------------------------------------------------
+                     MOLC (T,28) = 2
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 8  )
                      NAME (T,28) = 'C3H8'

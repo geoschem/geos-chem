@@ -1,5 +1,5 @@
 REVISIONS (v8-02-03)
-21 Sep 2009
+09 Oct 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -18,6 +18,10 @@ NOTE: Source code has been broken down into several subdirectories:
    mod       : Directory where *.mod files will be sent
    bin       : Directory where executable will be sent
    help      : Directory containing help screen
+
+For more information about the new Makefile structure, please see the 
+following page on the GEOS-Chem wiki:
+http://wiki.seas.harvard.edu/geos-chem/index.php/GEOS-Chem_Makefile_Structure
 
 
 New in v8-02-03:
@@ -201,11 +205,13 @@ init_comode		-- allocate 3 kpp arrays
 ("comode_mod.f")
 
 init_diaginfo           -- Add categories CH4_LOSS, CH4-EMISS and WET-FRAC
-("gamap_mod.f")
-
-init_diaginfo           -- Add tracers for diagnostics ND19, ND58 and ND60
-("gamap_mod.f")         -- Change tracer index for ND52 to correspond 
+("gamap_mod.f")         -- Add tracers for diagnostics ND19, ND58 and ND60
+                        -- Change tracer index for ND52 to correspond 
                            to ND52 category
+
+init_tracerinfo		-- Bug fix in ND28: ALD2 should have 2 carbons, not 3
+("gamap_mod.f")         -- Also bug fix in ND66 to print out the name of
+                           ZMMU correctly.
 
 ioerror			-- Remove support for SGI, COMPAQ compilers.
 ("file_mod.f")		-- Add IBM_XLF switch. 
