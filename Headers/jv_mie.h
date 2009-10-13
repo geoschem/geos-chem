@@ -1,4 +1,4 @@
-! $Id: jv_mie.h,v 1.1 2009/09/16 14:05:53 bmy Exp $
+! $Id: jv_mie.h,v 1.2 2009/10/13 13:28:35 phs Exp $
 !
 !----jv_mie.h-----COMMON BLOCKS for FAST-J code: 4x4x85 (prather 4/96)
 !
@@ -18,6 +18,7 @@
 !       file to be inlined into freeform source code. (bmy, 6/25/02)
 ! (2 ) Now declare common blocks /MIEBLK/ and /MINDEX/ as THREADPRIVATE for
 !       all platforms (bmy, 3/23/03)
+! (3 ) Set NL to 1000 to avoid SMVGEAR crash with GEOS-5.2.0 on Sept 1st 2008
 !-----------------------------------------------------------------------
       INTEGER    NL, N__, M__
 !-----------------------------------------------------------------------
@@ -29,11 +30,15 @@
 !  Uncomment this line to restore the previous definition (bmy, 9/29/99)
 !      PARAMETER (NL=400, N__=2*NL, M__=4)
 !-----------------------------------------------------------------------
-!  NL=500 was too small again, so we upped it to 750. 
-!  Uncomment this line to restore the previous definition (mje, 6/14/01)
-!      PARAMETER (NL=500, N__=2*NL, M__=4)
+!     NL=500 was too small again, so we upped it to 750. 
+!     Uncomment this line to restore the previous definition (mje, 6/14/01)
+!     PARAMETER (NL=500, N__=2*NL, M__=4)
 !-----------------------------------------------------------------------
-      PARAMETER (NL=750, N__=2*NL, M__=4)
+!     NL=750 was too small again, so we upped it to 1000. 
+!     Uncomment this line to restore the previous definition (phs, 10/9/09)
+!     PARAMETER (NL=750, N__=2*NL, M__=4)
+!-----------------------------------------------------------------------
+      PARAMETER (NL=1000, N__=2*NL, M__=4)
       REAL*8 A,B,C1,H,AA,CC,S,W,U1,V1,WT,EMU,PM,PM0,POMEGA
       REAL*8 ZTAU,FZ,FJ,DD,RR,ZREFL,ZFLUX,RADIUS,ZU0
       INTEGER ND,N,M,MFIT
