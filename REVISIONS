@@ -1,5 +1,5 @@
 REVISIONS (v8-02-03)
-09 Oct 2009
+13 Oct 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -146,8 +146,12 @@ diag3.f                 -- Change SCALEDYN to SCALEDIAG for some diag.
                         -- Add output for diagnostics 19, 58 and 60
 			-- test ICOADS for ND13
 
+diag49                  -- Now save SLP under tracer #18 in "DAO-FLDS"
+("diag49_mod.f")        
+                        
 diag49                  -- Change the new day condition to open file. 
-("diag49_mod.f")        -- Change the timestamp used when closing file.
+("diag49_mod.f")        -- Change the timestamp used when closing file
+                        -- Now save SLP under tracer #18 in "DAO-FLDS"
 
 diag51_mod.f            -- Add GOOD_CHEM variable
  
@@ -339,8 +343,9 @@ write_diag42            -- Use TS_DIAG for scaling instead of TS_DYN
 ("diag42_mod.f")
 
 write_diag50            -- Change timestamp for filename (NYMD_DIAG).
-("diag50_mod.f")
+("diag50_mod.f")        -- Now save SLP under tracer #18 in "DAO-FLDS"
+			-- Also set unit to 'K' for temperature field
 
 write_diag51            -- Change timestamp for filename (NYMD_DIAG)
-("diag51_mod.f")
+("diag51_mod.f")        -- Now save SLP under tracer #18 in "DAO-FLDS"
 

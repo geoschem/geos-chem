@@ -1,9 +1,9 @@
-! $Id: diag49_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag49_mod.f,v 1.2 2009/10/13 14:03:51 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
 !  Module DIAG49_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/7/08)
+!  timeseries output to disk (bmy, 7/20/04, 10/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -95,6 +95,7 @@
 !  (10) Minor bug fixes in DIAG49 (cdh, bmy, 2/11/08)
 !  (11) Bug fix: replace "PS-PTOP" with "PEDGE-$"
 !  (12) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
+!  (13) Bug fix DIAG49 for diagnostic output of SLP (tai, bmy, 10/13/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -897,7 +898,13 @@
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
             GMNL     = 1
-            GMTRC    = 21
+            !-------------------------------------------------------
+            ! Prior to 10/13/09:
+            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
+            ! (tai, bmy, 10/13/09)
+            !GMTRC    = 21
+            !-------------------------------------------------------
+            GMTRC    = 18
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

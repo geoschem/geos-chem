@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag51_mod.f,v 1.2 2009/10/13 14:03:50 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 12/10/08)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -115,6 +115,7 @@
 !  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !  (15) Bug fix in GET_LOCAL_TIME (ccc, 12/10/08)
 !  (16) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
+!  (17) Updates in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -986,7 +987,8 @@
 !        array broadcast assignments. (phs, 1/24/07)
 !  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
 !  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
-!  (10) Change timestamp used for filename (ccc, 8/12/09)
+!  (10) Change timestamp used for filename.  Now save SLP under tracer #18 in 
+!       "DAO-FLDS". (ccc, tai, bmy, 10/13/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1328,7 +1330,13 @@
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
             GMNL     = 1
-            GMTRC    = 21
+            !-------------------------------------------------------
+            ! Prior to 10/13/09:
+            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
+            ! (tai, bmy, 10/13/09)
+            !GMTRC    = 21
+            !-------------------------------------------------------
+            GMTRC    = 18
 
          ELSE IF ( N == 96 ) THEN
 

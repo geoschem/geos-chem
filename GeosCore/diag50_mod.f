@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag50_mod.f,v 1.2 2009/10/13 14:03:50 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/7/08)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -108,6 +108,7 @@
 !  (12) Renumber RH diagnostic in WRITE_DIAG50 (bmy, 2/11/08)
 !  (13) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, 10/7/08)
 !  (14) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
+!  (15) Updates & bug fixes in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -763,7 +764,9 @@
 !        array with array assignment statement. (phs, 1/24/07)
 !  (8 ) RH should be tracer #17 under "TIME-SER" category (bmy, 2/11/08)
 !  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, 10/7/08)
-!  (10) Change timestamp for filename (ccc, 8/12/09)
+!  (10) Change timestamp for filename.  Now save SLP under tracer #18 in 
+!        "DAO-FLDS".  Also set unit to 'K' for temperature field. 
+!        (ccc, tai, bmy, 10/13/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1083,7 +1086,13 @@
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
             GMNL     = 1
-            GMTRC    = 21
+            !-------------------------------------------------------
+            ! Prior to 10/13/09:
+            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
+            ! (tai, bmy, 10/13/09)
+            !GMTRC    = 21
+            !-------------------------------------------------------
+            GMTRC    = 18
 
          ELSE IF ( N == 96 ) THEN
 
@@ -1121,6 +1130,7 @@
             ! Temperature
             !---------------------
             CATEGORY  = 'DAO-3D-$'
+            UNIT      = 'K'          ! Add unit string (bmy, 10/13/09)
             GMNL      = ND50_NL
             GMTRC     = 3
             

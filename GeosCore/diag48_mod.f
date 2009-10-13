@@ -1,9 +1,9 @@
-! $Id: diag48_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag48_mod.f,v 1.2 2009/10/13 14:03:51 bmy Exp $
       MODULE DIAG48_MOD
 !
 !******************************************************************************
 !  Module DIAG48_MOD contains variables and routines to save out 3-D 
-!  timeseries output to disk (bmy, 7/20/04, 10/7/08)
+!  timeseries output to disk (bmy, 7/20/04, 10/13/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !  (5 ) Minor bug fixes in DIAG48 (cdh, bmy, 2/11/08)
 !  (6 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
 !  (7 ) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 10/22/07)
+!  (8 ) Bug fix in DIAG49 for diangostic output of SLP. (bmy, 10/13/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -124,7 +125,7 @@
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
-!  (bmy, bey, amf, 6/1/99, 10/7/08)
+!  (bmy, bey, amf, 6/1/99, 10/13/09)
 !
 !  NOTES:
 !  (1 ) Remove reference to "CMN".  Also now get PBL heights in meters and
@@ -141,7 +142,8 @@
 !  (6 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (7 ) Bug fix: unit for tracer #77 should be "layers".  Also RH should be 
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
-!  (8 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
+!  (8 ) Bug fix: replace "PS-PTOP" with "PEDGE-$". (phs, bmy, 10/7/08)
+!  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -592,7 +594,13 @@
             !----------------------------------- 
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
-            GMTRC    = 21            
+            !-------------------------------------------------------
+            ! Prior to 10/13/09:
+            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
+            ! (tai, bmy, 10/13/09)
+            !GMTRC    = 21            
+            !-------------------------------------------------------
+            GMTRC    = 18
 
             IF ( K == 1 ) THEN
                Q(1) = SLP(I,J)
