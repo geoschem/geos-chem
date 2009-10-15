@@ -95,8 +95,9 @@ planeflight_mod.f
 regrid_1x1_mod.f
 setemis.f
 streets_anthro_mod.f
-tpcore_geos5_window_mod.f90
 toms_mod.f
+tpcore_geos5_window_mod.f90
+tropopause_mod.f
 tracerid_mod.f
 upbdflx_mod.f
 wetscav_mod.f
