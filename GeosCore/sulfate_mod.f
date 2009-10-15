@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.1 2009/09/16 14:06:03 bmy Exp $
+! $Id: sulfate_mod.f,v 1.2 2009/10/15 13:41:11 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 7/13/09)
+!  (rjp, bdf, bmy, 6/22/00, 10/15/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -219,6 +219,7 @@
 !  (44) Constrain surface emissions to the first level and save them into
 !        emis_save (lin, 5/29/09)
 !  (45) Last year of SST data is now 2008 (see READ_SST) (bmy, 7/13/09)
+!  (46) Updated rxns in CHEM_DMS and CHEM_SO2 to JPL 2006 (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -856,7 +857,7 @@
 !******************************************************************************
 !  Subroutine CHEM_DMS is the DMS chemistry subroutine from Mian Chin's    
 !  GOCART model, modified for use with the GEOS-CHEM model.
-!  (rjp, bdf, bmy, 5/31/00, 10/25/05)  
+!  (rjp, bdf, bmy, 5/31/00, 10/15/09)  
 !                                                                           
 !  Module Variables used:                                                     
 !  ============================================================================
@@ -904,6 +905,7 @@
 !        ITS_IN_THE_STRAT from "tropopause_mod.f". (bmy, 8/22/05)
 !  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Now correctly records P(SO2) from OH in AD05 (pjh)
+!  (9 ) Update reaction rate to match JPL06 and full chem (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -993,7 +995,14 @@
             RK1 = ( 1.7d-42 * EXP( 7810.d0 / TK ) * O2 ) /
      &            ( 1.d0 + 5.5d-31 * EXP( 7460.d0 / TK ) * O2 ) * OH
 
-            RK2 = 1.2d-11 * EXP( -260.d0 / TK ) * OH 
+            !---------------------------------------------------------
+            ! Prior to 10/15/09:
+            !RK2 = 1.2d-11 * EXP( -260.d0 / TK ) * OH 
+            !---------------------------------------------------------
+
+            ! Update reaction rate to match JPL06 and full chem
+            ! (jaf, bmy, 10/15/09)
+            RK2 = 1.1d-11 * EXP( -240.d0 / TK ) * OH 
          ENDIF
             
          !==============================================================
@@ -1351,7 +1360,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 10/25/05) 
+!  (rjp, bmy, 11/26/02, 10/15/09) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1402,6 +1411,7 @@
 !  (10) Now remove reference to CMN, it's obsolete.  Now reference 
 !        ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
 !  (11) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1505,9 +1515,21 @@
 
          IF ( IS_OFFLINE ) THEN
 
+            !-----------------------------------------------------------------
+            ! Prior to 10/15/09:
+            !! Gas phase SO4 production is done here in offline run only 
+            !! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
+            !K0  = 3.0d-31 * ( 300.d0 / TK )**3.3d0
+            !M   = AIRDEN(L,I,J) * F
+            !KK  = K0 * M / Ki
+            !F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
+            !RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * GET_OH(I,J,L)
+            !-----------------------------------------------------------------
+
             ! Gas phase SO4 production is done here in offline run only 
-            ! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-            K0  = 3.0d-31 * ( 300.d0 / TK )**3.3d0
+            ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
+            K0  = 3.3d-31 * ( 300.d0 / TK )**4.3d0
+            Ki  = 1.6d-12
             M   = AIRDEN(L,I,J) * F
             KK  = K0 * M / Ki
             F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
