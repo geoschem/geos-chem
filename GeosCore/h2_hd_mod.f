@@ -1,4 +1,4 @@
-! $Id: h2_hd_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+! $Id: h2_hd_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE H2_HD_MOD
 !
 !******************************************************************************
@@ -241,20 +241,11 @@
       !=================================================================
       IF ( FSCALYR < 0 ) THEN
          SCALEYEAR = GET_YEAR()
-!------------------
-! prior to 3/11/08
-!         ! Cap SCALEYEAR at 1998 for now (bmy, 1/13/03) 
-!         IF ( SCALEYEAR > 1998 ) SCALEYEAR = 1998
-!------------------
       ELSE
          SCALEYEAR = FSCALYR
       ENDIF
 
       IF ( SCALEYEAR /= LASTYEAR ) THEN
-!------------------
-! prior to 3/11/08
-!         CALL READ_LIQCO2( SCALEYEAR, FLIQCO2 )
-!-----------------
          ! now use updated scalars (phs, 3/11/08)
          CALL GET_ANNUAL_SCALAR( 72, 1985, SCALEYEAR, FLIQCO2 )
          LASTYEAR = SCALEYEAR

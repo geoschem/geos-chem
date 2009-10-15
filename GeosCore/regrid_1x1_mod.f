@@ -1,4 +1,4 @@
-! $Id: regrid_1x1_mod.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
@@ -561,10 +561,6 @@
       ! Copy data array
       OUTDATA = INDATA
 
-!prior to 5/5/09
-!#endif
-!New addition (win, 5/5/09)
-
       !--------------------------------------------
       ! Regrid GEOS 1x1 grid to nested China grid 0.5x0.667 res
       !--------------------------------------------
@@ -590,7 +586,6 @@
       STOP
 
 #endif
-!end new addition (win, 5/5/09)
 
       ! Return to calling program
       END SUBROUTINE DO_THE_REGRIDDING

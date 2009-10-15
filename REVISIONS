@@ -4,17 +4,17 @@ Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
-New in v8-02-03:
+New in v8-02-04:
 -------------------------------------------------------------------------------
 
 
 
-Removed in v8-02-03:
+Removed in v8-02-04:
 -------------------------------------------------------------------------------
 
 
 
-Modified in v8-02-03:
+Modified in v8-02-04:
 -------------------------------------------------------------------------------
 
 In the Headers subdirectory:
@@ -31,7 +31,18 @@ chem_dms		-- Update reaction rate to match JPL06 and full chem
 chem_so2		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
 
+cleanup_sulfate		-- Deleted obsolete arrays from older SO2 volcanic
+("sulfate_mod.f")          emissions inventory
+
+emisssulfate		-- Now read new volcanic SO2 emissions daily
+("sulfate_mod.f")
+
 fast_j.f 		-- Removed references to IN_CLOUD_OD		
+
+init_sulfate		-- Now redimension EEV & NEV arrays for new SO2 
+("sulfate_mod.f")          volcanic emissions inventory
+			-- Deleted obsolete arrays from older SO2 volcanic
+                           emissions inventory
 
 open_a6_fields		-- Removed references to IN_CLOUD_OD
 ("a6_read_mod.f")
@@ -44,3 +55,50 @@ read_a6			-- Removed references to IN_CLOUD_OD
 
 read_i6			-- Removed references to IN_CLOUD_OD
 ("i6_read_mod.f")
+
+read_erup_volc		-- Complete re-write as volcanic emissions are now 
+("sulfate_mod.f")          monthly and stored as BPCH files
+
+read_nonerup_volc	-- Complete re-write as volcanic emissions are now 
+("sulfate_mod.f")          monthly and stored as BPCH files
+
+srcso2			-- Changed processing of volcanic SO2 emissions
+("sulfate_mod.f")
+
+sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions
+			-- Commented out LEEV and LENV flags
+
+
+
+Removed obsolete, commented out code from:
+-------------------------------------------
+calcrate.f
+carbon_mod.f
+diag3.f
+diag42_mod.f
+diag48_mod.f
+diag49_mod.f
+diag51_mod.f
+emfossil.f
+emissdr.f
+error_mod.f
+gamap_mod.f
+gc_biomass_mod.f
+geia_mod.f
+global_ch4_mod.f
+h2_hd_mod.f
+input_mod.f
+lightning_nox_mod.f
+main.f
+ocean_mercury_mod.f
+planeflight_mod.f
+regrid_1x1_mod.f
+setemis.f
+streets_anthro_mod.f
+tpcore_geos5_window_mod.f90
+toms_mod.f
+tracerid_mod.f
+upbdflx_mod.f
+wetscav_mod.f
+
+

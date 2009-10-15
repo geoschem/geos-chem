@@ -1,4 +1,4 @@
-! $Id: toms_mod.f,v 1.1 2009/09/16 14:06:01 bmy Exp $
+! $Id: toms_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE TOMS_MOD
 !
 !******************************************************************************
@@ -194,16 +194,6 @@
          WRITE( 6, 100 ) YEAR
          YEAR = 1979
       ENDIF
-
-      !-------------------------------------
-      ! Prior to 1/14/09:
-      ! Latest year is now 2007 (bmy, 1/14/2009)
-      !! Use 2005 data after 2005
-      !IF ( YEAR > 2005 ) THEN
-      !   WRITE( 6, 105 ) YEAR
-      !   YEAR = 2005
-      !ENDIF
-      !-------------------------------------
 
       ! Use 2008 data after 2008
       IF ( YEAR > 2008 ) THEN

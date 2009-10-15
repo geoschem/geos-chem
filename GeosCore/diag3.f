@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag3.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -1946,8 +1946,6 @@
          CATEGORY = 'LANDMAP'
          UNIT     = 'unitless'
             
-!--- Prior to (ccc, 5/21/09) ----------------
-!         ARRAY(:,:,1) = AD30(:,:) / SCALEDYN
          ARRAY(:,:,1) = AD30(:,:) / SCALEDIAG
          NN           = 1 
 
@@ -1978,8 +1976,6 @@
          CATEGORY          = 'PEDGE-$'
          UNIT              = 'mb'
 
-!--- Prior to (ccc, 5/21/09) ----------------------------
-!         ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDYN
          ARRAY(:,:,1:LD31) = AD31(:,:,1:LD31) / SCALEDIAG
          NN                = 1
 
@@ -2147,8 +2143,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-!--- Prior to (ccc, 5/21/09) ---------------------
-!            ARRAY(:,:,1) = AD33(:,:,N) / SCALEDYN
             ARRAY(:,:,1) = AD33(:,:,N) / SCALEDIAG
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
@@ -2231,8 +2225,6 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
                
-!--- Prior to (ccc, 5/21/09) ---------------------
-!            ARRAY(:,:,1) = AD35(:,:,N) / SCALEDYN
             ARRAY(:,:,1) = AD35(:,:,N) / SCALEDIAG
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -2859,8 +2851,6 @@
             NN = N
             
             DO L = 1, LD47
-!--- Prior to (ccc, 5/21/09) --------------------------
-!               ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDYN
                ARRAY(:,:,L) = AD47(:,:,L,N) / SCALEDIAG
             ENDDO
 
@@ -3411,8 +3401,6 @@
             NN = N 
 
             DO L = 1, LD68
-!--- Prior to (ccc, 5/21/09) --------------------------
-!               ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDYN
                ARRAY(:,:,L) = AD68(:,:,L,N) / SCALEDIAG
             ENDDO
 

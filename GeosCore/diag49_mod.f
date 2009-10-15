@@ -1,4 +1,4 @@
-! $Id: diag49_mod.f,v 1.2 2009/10/13 14:03:51 bmy Exp $
+! $Id: diag49_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
       MODULE DIAG49_MOD
 !
 !******************************************************************************
@@ -898,12 +898,6 @@
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
             GMNL     = 1
-            !-------------------------------------------------------
-            ! Prior to 10/13/09:
-            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
-            ! (tai, bmy, 10/13/09)
-            !GMTRC    = 21
-            !-------------------------------------------------------
             GMTRC    = 18
 
 !$OMP PARALLEL DO

@@ -1,4 +1,4 @@
-! $Id: tpcore_geos5_window_mod.f90,v 1.1 2009/09/16 14:06:00 bmy Exp $
+! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/10/15 17:46:23 bmy Exp $
 module TPCORE_GEOS5_WINDOW_MOD
 !
 !******************************************************************************
@@ -266,11 +266,6 @@ CONTAINS
 !----------------
 
  allocate ( cosp(jm) ) 
- !------------------------------------------------------------------------
- ! Prior to 1/20/09:
- ! Bug fix: should be dimensioned with JM+1 (Xiaoguang Gu, bmy, 1/20/09)
- !allocate ( cose(jm) ) 
- !------------------------------------------------------------------------
  allocate ( cose(jm+1) ) 
  allocate (   gw(jm) ) 
  allocate (  rgw(jm) ) 

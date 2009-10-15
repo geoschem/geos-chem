@@ -1,4 +1,4 @@
-! $Id: global_ch4_mod.f,v 1.3 2009/10/01 13:26:58 bmy Exp $
+! $Id: global_ch4_mod.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
       MODULE GLOBAL_CH4_MOD
 !
 !******************************************************************************
@@ -723,12 +723,6 @@
 
       ! GEOS4 calculation
 #if   defined( GEOS_4 )
-      !------------------------------------------------------
-      ! Prior to 10/1/09:
-      ! Proper loop ordering is J then I (bmy, 10/1/09)
-      !DO I=1, IIPAR
-      !DO J=1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
@@ -749,12 +743,6 @@
 
       ! GEOS5 Calculation
 #elif defined( GEOS_5 )
-      !------------------------------------------------------
-      ! Prior to 10/1/09:
-      ! Proper loop ordering is J then I (bmy, 10/1/09)
-      !DO I=1, IIPAR
-      !DO J=1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
@@ -858,12 +846,6 @@
 
       METHANE_OUT = 0d0	
 
-      !------------------------------------------------------
-      ! Prior to 10/1/09:
-      ! Proper loop ordering is J then I (bmy, 10/1/09)
-      !DO I = 1, IIPAR
-      !DO J = 1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         
@@ -1250,12 +1232,6 @@
       CALL TRANSFER_2D( ARRAY, MONTH_GWETTOP )
 
       !scale rice emissions (by Jerome Drevet)
-      !------------------------------------------------------
-      ! Prior to 10/1/09:
-      ! Proper loop ordering is J then I (bmy, 10/1/09)
-      !DO I=1, IIPAR
-      !DO J=1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 	 wet_ratio = MONTH_GWETTOP(I,J)/MEAN_GWETTOP(I,J)-1
@@ -1266,12 +1242,6 @@
       ENDDO
       ENDDO
 
-      !------------------------------------------------------
-      ! Prior to 10/1/09:
-      ! Proper loop ordering is J then I (bmy, 10/1/09)
-      !DO I=1, IIPAR
-      !DO J=1, JJPAR
-      !------------------------------------------------------
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          if (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0

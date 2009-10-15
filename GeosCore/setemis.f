@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.1 2009/09/16 14:06:09 bmy Exp $
+! $Id: setemis.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -167,20 +167,7 @@
             DO I = 1, NBIOMAX_GAS
                IF ( BIOTRCE(I) == NN ) THEN 
                  NBB = I
-!------------------------------------------------------------------------------
-! Prior to 8/6/09:
-! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
-!#if   defined( COMPAQ )
-!                  ! COMPAQ has an issue with EXIT from w/in parallel loop
-!                  ! (auvray, bmy, 11/29/04)
-!#else
-!------------------------------------------------------------------------------
                   EXIT
-!------------------------------------------------------------------------------
-! Prior to 8/6/09:
-! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
-!#endif
-!------------------------------------------------------------------------------
                ENDIF
             ENDDO
          ENDIF
@@ -192,20 +179,7 @@
             DO I = 1, NBFTRACE
                IF ( BFTRACE(I) == NN ) THEN
                   NBF = I
-!------------------------------------------------------------------------------
-! Prior to 8/6/09:
-! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
-!#if   defined( COMPAQ )
-!                  ! COMPAQ has an issue with EXIT from w/in parallel loop
-!                  ! (auvray, bmy, 11/29/04)
-!#else
-!------------------------------------------------------------------------------
                   EXIT
-!------------------------------------------------------------------------------
-! Prior to 8/6/09:
-! Remove reference to obsolete COMPAQ compiler (bmy, 8/6/09)
-!#endif 
-!------------------------------------------------------------------------------
               ENDIF
             ENDDO
          ENDIF            

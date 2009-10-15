@@ -1,4 +1,4 @@
-! $Id: tracerid_mod.f,v 1.1 2009/09/16 14:05:59 bmy Exp $
+! $Id: tracerid_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE TRACERID_MOD
 !
 !******************************************************************************
@@ -866,11 +866,6 @@
       ! Added HNO3 and Ox to deal with ship NOx emissions (3/4/08, phs)
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!-----------------------------------------------------------------
-! Prior to 3/2/09
-!         NEMANTHRO = 12 !phs - replaces 10
-!         NEMBIOG   = 1
-!-----------------------------------------------------------------
          NEMANTHRO = 21 !phs - replaces 10
          NEMBIOG   = 3
          IDENOX    = 1

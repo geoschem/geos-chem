@@ -1,5 +1,10 @@
-! $Id: main.f,v 1.3 2009/10/07 20:56:58 bmy Exp $
+! $Id: main.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
 ! $Log: main.f,v $
+! Revision 1.4  2009/10/15 17:46:24  bmy
+! Updated sulfate_mod.f for new SO2 volcanic emissions
+! Removed obsolete, commented out code from several source code files
+! (bmy, 10/15/09)
+!
 ! Revision 1.3  2009/10/07 20:56:58  bmy
 ! Minor change in debug output...denote "NLPBL 1" or "NLPBL 2" so that
 ! we can bracket which call to the DO_PBL_MIX_2 is dying (bmy, 10/7/09)
@@ -847,10 +852,6 @@
             !========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !========================================================
-            !--------------------------------------------------------
-            ! Prior to 9/18/07:
-            !IF ( LDRYD ) CALL DO_DRYDEP
-            !--------------------------------------------------------
             IF ( LDRYD .and. ( .not. ITS_A_H2HD_SIM() ) ) CALL DO_DRYDEP
 
             !========================================================
@@ -982,8 +983,6 @@
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
-!--- Prior to (ccc, 5/13/09)
-!         IF ( ITS_TIME_FOR_DYN() ) THEN
          IF ( ITS_TIME_FOR_DIAG() ) THEN
          
             ! Accumulate several diagnostic quantities
@@ -1008,20 +1007,6 @@
             ! Plane following diagnostic
             IF ( ND40 > 0 ) THEN 
                
-! Planeflight setup moved before starting diagnostics.
-!--- Prior to (ccc, 8/27/09)
-!            ! Call SETUP_PLANEFLIGHT routine if necessary
-!            IF ( ITS_A_NEW_DAY() ) THEN
-!               
-!               ! If it's a full-chemistry simulation but LCHEM=F,
-!               ! or if it's an offline simulation, call setup routine 
-!               IF ( ITS_A_FULLCHEM_SIM() ) THEN
-!                  IF ( .not. LCHEM ) CALL SETUP_PLANEFLIGHT
-!               ELSE
-!                  CALL SETUP_PLANEFLIGHT
-!               ENDIF
-!            ENDIF
-
                ! Archive data along the flight track
                CALL PLANEFLIGHT
             ENDIF

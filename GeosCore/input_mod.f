@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.1 2009/09/16 14:06:23 bmy Exp $
+! $Id: input_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -2795,12 +2795,6 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:47' )
       READ( SUBSTRS(1), * ) ND45
-      !---------------------------------------------------------------------
-      ! Prior to 2/10/09:
-      ! Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS,
-      ! Minor bug fix discovered by May Fu. (tmf, bmy, 2/10/09)
-      !CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, N_TRACERS )
-      !---------------------------------------------------------------------
       CALL SET_TINDEX( 45, ND45, SUBSTRS(2:N), N-1, PD45 )
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_diagnostic_menu:48' ) 

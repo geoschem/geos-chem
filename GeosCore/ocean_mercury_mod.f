@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.1 2009/09/16 14:06:18 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -490,11 +490,6 @@
             ScCO2  = 644.7d0 + TC * ( -6.16d0 + TC * ( 0.11d0 ) ) 
 
             ! EF ratio for particle sinking based on Laws et al. 2000 
-            !----------------------------------------------------------------
-            ! Prior to 7/8/09:
-            ! Now use 0d0 etc to prevent choking on XLF compiler (bmy, 7/8/09)
-            !EF     = MAX( (0.63 - 0.02 * TC), 0.0) ! keep export > 0
-            !----------------------------------------------------------------
             EF     = MAX( (0.63d0 - 0.02d0 * TC ), 0d0 ) ! keep export > 0
             Ksink  = Ks * EF * NPP(I,J) * A_M2 *FRAC_O
 

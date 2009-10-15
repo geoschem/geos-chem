@@ -1,4 +1,4 @@
-! $Id: partition.f,v 1.1 2009/09/16 14:06:17 bmy Exp $
+! $Id: partition.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
 !******************************************************************************
@@ -288,15 +288,6 @@
 
                ! Error test
                IF ( CONCNOX - SUM1 < 0.d0 ) THEN
-                  !------------------------------------------------------
-                  ! Prior to 1/7/09
-                  ! Don't stop w/ error, but just print warning msg.
-                  ! Sometimes the new TPCORE can cause this error to 
-                  ! trap if there CONCNOX = 0, but that can be purely 
-                  ! a numerical condition and not really an error. 
-                  ! (phs, ccc, bmy, 1/7/09)
-                  !CALL ERROR_STOP( 'STOP 30000', 'partition.f' )
-                  !------------------------------------------------------
 !$OMP CRITICAL 
                   PRINT*, '### In partition.f: CONCNOX - SUM1 < 0'
                   PRINT*, '### If CONCNOX = 0 and SUM1 ~ 1e-99 it is OK'

@@ -1,4 +1,4 @@
-! $Id: wetscav_mod.f,v 1.1 2009/09/16 14:05:58 bmy Exp $
+! $Id: wetscav_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE WETSCAV_MOD
 !
 !******************************************************************************
@@ -1724,15 +1724,6 @@
       ! Local variables 
       REAL*8               :: L2G, I2G, C_TOT, F_L, F_I, K, TK, SO2LOSS
 
-      !------------------------------------------------------------------------
-      ! Prior to 7/20/09:
-      ! Need to use separate parameters for H2O2, NH3, just as is done
-      ! in subroutine COMPUTE_F above.  We overlooked this until now.
-      ! (havala, bmy, 7/20/09)
-      !! CONV = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
-      !REAL*8, PARAMETER    :: CONV = 8.27042925126d-1
-      !------------------------------------------------------------------------
-
       ! CONV_H2O2 = 0.6 * SQRT( 1.9 ), used for the ice to gas ratio for H2O2
       ! 0.6 is ( sticking  coeff H2O2  / sticking  coeff  water )
       ! 1.9 is ( molecular weight H2O2 / molecular weight water )
@@ -1792,11 +1783,6 @@
          ! Compute ice to gas ratio for H2O2 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
          IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-            !----------------------------------------------------
-            ! Prior to 7/20/09:
-            ! Now multiply by CONV_H2O2 (bmy, 7/20/09)
-            !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
-            !----------------------------------------------------
             I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_H2O2
          ELSE
             I2G = 0d0
@@ -2069,11 +2055,6 @@
          ! Compute ice to gas ratio for NH3 by co-condensation
          ! (Eq. 9, Jacob et al, 2000)
          IF ( C_H2O(I,J,L) > 0d0 ) THEN 
-            !----------------------------------------------------
-            ! Prior to 7/20/09
-            ! Now multiply by CONV_NH3 (bmy, 7/20/09)
-            !I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV
-            !----------------------------------------------------
             I2G = ( CLDICE(I,J,L) / C_H2O(I,J,L) ) * CONV_NH3
          ELSE
             I2G = 0d0
@@ -3036,11 +3017,6 @@
       !
       ! Process rainout / washout by columns.
       !=================================================================
-
-!----------------------------------
-! Prior to 7/8/09:
-!#if   !defined( SGI_MIPS )
-!----------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,           FTOP,      ALPHA              )
@@ -3049,10 +3025,6 @@
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
 !$OMP+PRIVATE( QDOWN,   AER,         TMP                           )
 !$OMP+SCHEDULE( DYNAMIC )
-!----------------------------------
-! Prior to 7/8/09:
-!#endif
-!----------------------------------
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR

@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.1 2009/09/16 14:06:38 bmy Exp $
+! $Id: calcrate.f,v 1.2 2009/10/15 17:46:25 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -805,12 +805,6 @@ C  dependence of HO2/NO3 + HO2 on water vapor
                      XSTKCF = BRR(NK,NCS)
 
                   ENDIF
-
-                  !----------------------------------------------------
-                  ! Prior to 2/26/09: (move higher up) jaegle
-                  ! Radius for dust size bin N
-                  !XRADIUS = ERADIUS(JLOOP,N) 
-                  !----------------------------------------------------
 
                   ! Reaction rate for dust size bin N
                   RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + 

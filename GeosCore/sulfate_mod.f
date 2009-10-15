@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.3 2009/10/15 14:52:19 bmy Exp $
+! $Id: sulfate_mod.f,v 1.4 2009/10/15 17:46:23 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -48,22 +48,13 @@
 !  (37) PSO4_SO2   (REAL*8 ) : P(SO4) from SO2                  [v/v/timestep]
 !  (38) SSTEMP     (REAL*8 ) : Sea surface temperatures         [K]
 !  (39) VCLDF      (REAL*8 ) : Volume cloud frac. for SO2 aq.   [unitless]
-!  (40) NEV        (INTEGER) : Max # of eruptive volcanoes      [unitless]
-!  (41) IEV        (INTEGER) : Longitudes of eruptive volcanoes [degrees]  
-!  (42) JEV        (INTEGER) : Latitudes of eruptive volcanoes  [degrees ]
-!  (43) IHGHT      (INTEGER) : Height of eruptive volcano plume [m]
-!  (44) IELVe      (INTEGER) : Elevation of eruptive volcanoes  [m]
-!  (45) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
-!  (46) NNV        (INTEGER) : Max # of non-eruptive volcanoes  [unitless]
-!  (47) NNVOL      (INTEGER) : Number of non-eruptive volcanoes [unitless]
-!  (48) INV        (INTEGER) : Longitude of non-erup volcanoes  [degrees]
-!  (49) JNV        (INTEGER) : Latitude of non-erup volcanoes   [degrees]
-!  (50) IELVn      (INTEGER) : Elevation of non-erup volcanoes  [m]
-!  (51) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
-!  (52) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
-!  (53) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
-!  (54) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
-!  (55) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
+!  (40) Eev        (REAL*8 ) : SO2 em. from eruptive volcanoes  [kg SO2/box/s]
+!  (41) Env        (INTEGER) : SO2 em. from non-erup volcanoes  [kg SO2/box/s]
+!  (42) TCOSZ      (REAL*8 ) : Sum of cos(SZA) for offline run  [unitless] 
+!  (43) TTDAY      (REAL*8 ) : Total daylight length at (I,J)   [minutes]
+!  (44) SMALLNUM   (REAL*8 ) : Small number - prevent underflow [unitless]
+!  (45) COSZM      (REAL*8 ) : Array for MAX(cos(SZA)) at (I,J) [unitless]
+!  (46) LVOLC      (INTEGER) : Number of volcanic levels (20)   [unitless]
 !  
 !  Module Routines:
 !  ===========================================================================
@@ -220,6 +211,7 @@
 !        emis_save (lin, 5/29/09)
 !  (45) Last year of SST data is now 2008 (see READ_SST) (bmy, 7/13/09)
 !  (46) Updated rxns in CHEM_DMS and CHEM_SO2 to JPL 2006 (jaf, bmy, 10/15/09)
+!  (47) Added new volcanic emissions of SO2 (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -247,9 +239,15 @@
       ! Time variable
       INTEGER              :: ELAPSED_SEC
 
-      ! Logical Flags
-      LOGICAL, PARAMETER   :: LENV = .TRUE.
-      LOGICAL, PARAMETER   :: LEEV = .TRUE.
+!------------------------------------------------------------------------------
+! Prior to 8/10/09 (jaf)
+! These logical flags don't do anything since they are always set
+! to true and only used within this module (jaf, 8/10/09)
+!
+!      ! Logical Flags
+!      LOGICAL, PARAMETER   :: LENV = .TRUE.
+!      LOGICAL, PARAMETER   :: LEEV = .TRUE.
+!------------------------------------------------------------------------------
       
       ! Parameters
       REAL*8,  PARAMETER   :: XNUMOL_OH  = 6.022d23 / 17d-3
@@ -289,19 +287,30 @@
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
 
+      ! Volcano levels (jaf, 8/7/09)
+      INTEGER, PARAMETER   :: LVOLC=20
+
       ! Eruptive volcanoes
-      INTEGER, PARAMETER   :: NEV=50
-      INTEGER              :: NEVOL
-      INTEGER, ALLOCATABLE :: IEV(:),   JEV(:)
-      INTEGER, ALLOCATABLE :: IDAYs(:), IDAYe(:)
-      INTEGER, ALLOCATABLE :: IHGHT(:), IELVe(:)
-      REAL*8,  ALLOCATABLE :: EEV(:)
+!---------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      INTEGER, PARAMETER   :: NEV=50
+!      INTEGER              :: NEVOL
+!      INTEGER, ALLOCATABLE :: IEV(:),   JEV(:)
+!      INTEGER, ALLOCATABLE :: IDAYs(:), IDAYe(:)
+!      INTEGER, ALLOCATABLE :: IHGHT(:), IELVe(:)
+!      REAL*8,  ALLOCATABLE :: EEV(:)
+!---------------------------------------------------------
+      REAL*8,  ALLOCATABLE :: EEV(:,:,:)
 
       ! Non-eruptive volcanoes 
-      INTEGER, PARAMETER   :: NNV=50
-      INTEGER              :: NNVOL
-      INTEGER, ALLOCATABLE :: INV(:), JNV(:), IELVn(:)
-      REAL*8,  ALLOCATABLE :: ENV(:)
+!---------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      INTEGER, PARAMETER   :: NNV=50
+!      INTEGER              :: NNVOL
+!      INTEGER, ALLOCATABLE :: INV(:), JNV(:), IELVn(:)
+!      REAL*8,  ALLOCATABLE :: ENV(:)
+!---------------------------------------------------------
+      REAL*8,  ALLOCATABLE :: ENV(:,:,:)
       
       ! Pointers to drydep species w/in DEPSAV
       INTEGER              :: DRYSO2,  DRYSO4,   DRYMSA,  DRYNH3  
@@ -3831,7 +3840,7 @@
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
-!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 10/3/05)
+!  the sulfate emissions routines in "sulfate_mod.f" (bmy, 6/7/00, 10/15/09)
 ! 
 !  NOTES:
 !  (1 ) BXHEIGHT is now dimensioned IIPAR,JJPAR,LLPAR (bmy, 9/26/01)
@@ -3859,7 +3868,7 @@
 !  (11) Now check if GFED2 has been updated (yc, phs, 12/23/08)
 !  (12) Add LANTHRO switch to properly turn off the anthropogenic emissions,
 !        READ_AIRCRAFT_SO2, READ_ANTHRO_SOx, READ_ANTHRO_NH3 (ccc, 4/15/09)
-!
+!  (13) Now read new volcanic SO2 emissions daily (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3867,6 +3876,7 @@
       USE LOGICAL_MOD,       ONLY : LSHIPSO2,   LPRT,   LBIOMASS !(win,5/1/09)
       USE TIME_MOD,          ONLY : GET_SEASON, GET_MONTH
       USE TIME_MOD,          ONLY : GET_YEAR,   ITS_A_NEW_MONTH
+      USE TIME_MOD,          ONLY : GET_DAY,    ITS_A_NEW_DAY
       USE TRACER_MOD,        ONLY : STT,        ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,      ONLY : IDTNITs,    IDTSO4s
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
@@ -3878,7 +3888,7 @@
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
-      INTEGER            :: NSEASON, MONTH, YEAR   
+      INTEGER            :: NSEASON, DAY, MONTH, YEAR   
 
       !=================================================================
       ! EMISSSULFATE begins here!
@@ -3904,9 +3914,13 @@
          ! Initialize arrays
          CALL INIT_SULFATE
 
-         ! Read emissions from volcanoes
-         IF ( LENV ) CALL READ_NONERUP_VOLC
-         IF ( LEEV ) CALL READ_ERUP_VOLC
+!-----------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+! Now read volcanic emissions daily (jaf, bmy, 10/15/09)
+!         ! Read emissions from volcanoes
+!         IF ( LENV ) CALL READ_NONERUP_VOLC
+!         IF ( LEEV ) CALL READ_ERUP_VOLC
+!-----------------------------------------------------------------
 
          ! We have now gone thru the first timestep
          FIRSTEMISS  = .FALSE.
@@ -3914,8 +3928,21 @@
 
       ! Get the season and month
       NSEASON = GET_SEASON()
+      DAY     = GET_DAY()
       MONTH   = GET_MONTH()
       YEAR    = GET_YEAR()
+
+      !=================================================================
+      ! If this is a new day, read in the volcanic emissions 
+      ! (jaf, bmy, 10/15/09)
+      !=================================================================
+      IF ( ITS_A_NEW_DAY() ) THEN 
+
+         ! Read volcanic data
+         CALL READ_NONERUP_VOLC( DAY, MONTH, YEAR )
+         CALL READ_ERUP_VOLC(    DAY, MONTH, YEAR )
+
+      ENDIF
 
       !=================================================================
       ! If this is a new month, read in the monthly mean quantities
@@ -4185,7 +4212,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 2/27/09)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 10/15/09)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4221,6 +4248,7 @@
 !  (11) Now use CAC Canadian emissions, if necessary (amv, 1/10/08)
 !  (12) Bug fix: Always fill the diagnostic array AD13_SO2_sh because it 
 !        is allocated anyway (phs, 2/27/09) 
+!  (13) Changed processing of volcanic SO2 emissions (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4233,11 +4261,13 @@
       USE DAO_MOD,        ONLY : BXHEIGHT, PBL
       USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
-      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE ERROR_MOD,      ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE GRID_MOD,       ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,    ONLY : LBRAVO, LNEI99,   LSHIPSO2
       USE LOGICAL_MOD,    ONLY : LCAC
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_TS_EMIS,      GET_DAY_OF_YEAR 
       USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD,     ONLY : XNUMOL
@@ -4253,11 +4283,17 @@
 
       ! Local variables
       LOGICAL                :: WEEKDAY
-      INTEGER                :: I, J, K, L, LV1, LV2, NTOP, JDAY
+!-----------------------------------------------------------
+! Prior to 10/15/09(jaf)
+!      INTEGER                :: LV1, LV2, JDAY
+!      REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR)
+!      REAL*8                 :: HGHT
+!      REAL*8                 :: SLAB,        SLAB1
+!-----------------------------------------------------------
+      INTEGER                :: I, J, K, L, NTOP
       INTEGER                :: DAY_NUM
-      REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR), SO2(LLPAR)
-      REAL*8                 :: DTSRCE,      HGHT,      SO2SRC
-      REAL*8                 :: SLAB,        SLAB1
+      REAL*8                 :: SO2(LLPAR)
+      REAL*8                 :: DTSRCE,      SO2SRC
       REAL*8                 :: TSO2,        FEMIS
       REAL*8                 :: AREA_CM2,    AN,        BF
       REAL*8                 :: SO2an(IIPAR,JJPAR,2)
@@ -4266,6 +4302,19 @@
       ! Ratio of molecular weights: S/SO2
       REAL*8,  PARAMETER     :: S_SO2 = 32d0 / 64d0
 
+      ! New variables for volcanic emissions (jaf, 10/15/09)
+      INTEGER                :: IREF, JREF, I0, J0
+      REAL*8                 :: PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC
+
+      ! Pressure edges of volcanic 0.5-km grid. Edges come from
+      ! converting 500 m increments to pressure using the U.S. standard
+      ! atmosphere since volcanic emissions are provided as meters above
+      ! sea level (jaf, 10/15/09)
+      REAL*8                 :: VOLCPRESS(LVOLC+1) = (/
+     &  1013.25, 954.61, 898.74, 845.56, 747.95, 746.83, 701.08,
+     &   657.64, 616.40, 577.28, 540.20, 505.07, 471.81, 440.35,
+     &   410.61, 382.52, 356.00, 330.99, 307.42, 285.24, 264.36 /)
+
       !=================================================================
       ! SRCSO2 begins here!
       !================================================================
@@ -4273,8 +4322,11 @@
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
 
-      ! JDAY is the day of year (0-365 or 0-366)
-      JDAY    = GET_DAY_OF_YEAR()
+!-------------------------------------------------------
+! Prior to 10/15/09(jaf)
+!      ! JDAY is the day of year (0-365 or 0-366)
+!      JDAY    = GET_DAY_OF_YEAR()
+!-------------------------------------------------------
 
       ! Get current day of the week
       DAY_NUM = GET_DAY_OF_WEEK()
@@ -4282,145 +4334,274 @@
       ! Is it a weekday?
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
+!----------------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      !=================================================================
+!      ! SO2 emissions from non-eruptive volcanoes [kg SO2/box/s].
+!      ! Assume that emission only occurs at the crater altitude.
+!      !=================================================================
+!
+!      IF ( LENV ) THEN
+!
+!         ! Initialize
+!         ESO2_nv = 0.d0
+!
+!         ! Loop thru each non-erupting volcano
+!         DO K = 1, NNVOL
+!
+!            ! Elevation of volcano crater
+!            HGHT  = DBLE( IELVn(k) )
+!
+!            ! Altitude of crater from the ground
+!            ZH(0) = 0.d0
+!
+!            ! Loop over levels
+!            DO L = 1, LLPAR
+!
+!               ! Thickness of layer [m] w/ crater
+!               DZ(L) = BXHEIGHT(INV(K),JNV(K),L)
+!
+!               ! Increment altitude
+!               ZH(L) = ZH(L-1) + DZ(L)
+!
+!               ! If we are at the crater altitude, add emissions and exit
+!               IF ( ZH(L-1) <= HGHT .AND. ZH(L) > HGHT ) THEN 
+!                  ESO2_nv(INV(K),JNV(K),L) = 
+!     &                 ESO2_nv(INV(K),JNV(K),L) + Env(K)
+!                  EXIT
+!               ENDIF
+!            ENDDO
+!         ENDDO
+!      ENDIF  
+!
+!      !=================================================================
+!      ! Calculate eruptive volcanic emission of SO2.
+!      !=================================================================
+!      IF ( LEEV ) THEN
+!
+!         ! Initialize
+!         ESO2_ev = 0.D0
+!
+!         ! Loop thru each erupting volcano
+!         DO K = 1, NEVOL
+!
+!            ! Test to see if the volcano is erupting
+!            IF ( JDAY < IDAYS(K) .OR. JDAY > IDAYe(K) ) GOTO 20
+!
+!            !===========================================================
+!            ! Define a slab at the top 1/3 of the volcano plume.
+!            !===========================================================
+!            HGHT  = DBLE( IHGHT(K) )
+!
+!            ! slab bottom height
+!            SLAB1 = HGHT - ( HGHT - DBLE ( IELVe(K) ) ) / 3.d0 
+!
+!            ! Slab thickness
+!            SLAB  = HGHT - SLAB1 
+!            ZH(0) = 0.d0 
+!        
+!            ! Loop over each level
+!            DO L = 1, LLPAR
+!
+!               ! DZ is the thickness of level L [m]
+!               DZ(L) = BXHEIGHT(IEV(K),JEV(K),L)
+!
+!               ! ZH is the height of the top edge of 
+!               ! level L, measured from the ground up [m]
+!               ZH(L) = ZH(L-1) + DZ(L) 
+!
+!               ! max model erup.height
+!               IF ( L == LLPAR .AND. HGHT > ZH(L) ) THEN 
+!                  LV2 = LLPAR
+!                  !HGHT = ZH(L)
+!                  !SLAB1 = SLAB1 - ( HGHT - ZH(L) )
+!               ENDIF
+!
+!               !========================================================
+!               ! If Zh(l) <= bottom of the slab, go to next level.
+!               !========================================================
+!               IF ( ZH(L) <= SLAB1 ) GOTO 22
+!
+!               !========================================================
+!               ! If the slab is only in current level: CASE 1
+!               !       ---------------------------------- ZH(L)
+!               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
+!               !       ---------------------------------- ZH(L-1)
+!               !========================================================
+!               IF ( ZH(L-1) <= SLAB1 .AND. ZH(L) >= HGHT ) THEN
+!                  LV1   = L
+!                  LV2   = L
+!                  DZ(L) = SLAB
+!
+!               !========================================================
+!               ! The slab extends more then one level.  Find the 
+!               ! lowest (lv1) and the highest (lv2) levels:
+!               !       --------------------------------- ZH(L)
+!               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!               !       --------------------------------- ZH(L-1)
+!               ! 
+!               !       --------------------------------- ZH(L)
+!               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!               !       --------------------------------- ZH(L-1)
+!               !========================================================
+!               ELSE IF (ZH(L-1) <= SLAB1 .AND. ZH(L) > SLAB1)  THEN
+!                  LV1   = L
+!                  DZ(L) = ZH(L) - SLAB1
+!                  
+!               ELSE IF (ZH(L-1) < HGHT  .AND. ZH(L) > HGHT )  THEN
+!                  LV2   = L
+!                  DZ(L) = HGHT - ZH(L-1)
+!                  EXIT          ! do 20 
+!        
+!               ENDIF
+!               
+!               ! Go to next level
+! 22            CONTINUE         
+!            ENDDO
+!
+!            !===========================================================
+!            ! Calculate SO2 emission in the levels between LV1 and LV2.  
+!            ! Convert Eev from [kg SO2/box/event] to [kg SO2/box/s].  
+!            ! ESO2_ev is distributed evenly with altitude among the slab.
+!            !===========================================================
+!            DO L = LV1, LV2
+!               ESO2_ev(IEV(K),JEV(K),L) = ESO2_ev(IEV(K),JEV(K),L) + 
+!     &              EEV(K) / ( (IDAYe(K)-IDAYs(K)+1) * 24.d0 * 3600.d0 )
+!     &              * DZ(L) / SLAB
+!            ENDDO
+!
+!            ! Go to next volcano
+! 20         CONTINUE 
+!         ENDDO
+!
+!      ENDIF  
+!
+!----------------------------------------------------------------------
       !=================================================================
-      ! SO2 emissions from non-eruptive volcanoes [kg SO2/box/s].
-      ! Assume that emission only occurs at the crater altitude.
+      ! SO2 emissions from volcanoes [kg SO2/box/s].
+      ! 
+      ! SO2 emissions are saved separately for eruptive and non-eruptive
+      ! volcanoes, but in both cases they have been gridded onto a
+      ! 1 degree x 1 degree by 0.5 km grid. Horizontal regridding is
+      ! done in READ_NONERUP_VOLC and READ_ERUP_VOLC. Here we do the
+      ! vertical regridding, with the scheme based on that in AIREMISS
+      ! in aircraft_nox_mod.f. Since both types of volcanoes are on the
+      ! same grid and have been similarly pre-processed, we can treat
+      ! them simultaneously here.
+      !
+      ! As before, non-eruptive volcanic emissions are injected into the
+      ! model layer corresponding to the altitude of the volcanic
+      ! crater. Eruptive emissions are injected into the top third of
+      ! the volcanic plume. These steps were performed in the pre-
+      ! processing and hence are not done here. 
+      !
+      ! (jaf, bmy, 10/15/09)
       !=================================================================
-      IF ( LENV ) THEN
+      ESO2_ev = 0d0
+      ESO2_nv = 0d0
 
-         ! Initialize
-         ESO2_nv = 0.d0
+      ! Get nested-grid offsets
+      I0 = GET_XOFFSET()
+      J0 = GET_YOFFSET()
+    
+      ! Loop over surface grid boxes
+      DO J = 1, JJPAR
+         JREF = J + J0
+      DO I = 1, IIPAR
+         IREF = I + I0
+    
+         !==============================================================
+         ! Loop over tropospheric GEOS-CHEM levels 
+         !==============================================================
+         DO L = 1, LLTROP
 
-         ! Loop thru each non-erupting volcano
-         DO K = 1, NNVOL
+            ! PLOW  is the pressure at the bottom edge of sigma level L
+            ! PHIGH is the pressure at the top    edge of sigma level L 
+            PLOW  = GET_PEDGE(I,J,L)
+            PHIGH = GET_PEDGE(I,J,L+1)
 
-            ! Elevation of volcano crater
-            HGHT  = DBLE( IELVn(k) )
+            ! Make sure PLOW is not smaller than VOLCPRESS(1)
+            IF ( L == 1 .AND. PLOW < VOLCPRESS(1) ) PLOW = VOLCPRESS(1)
 
-            ! Altitude of crater from the ground
-            ZH(0) = 0.d0
+            ! Exit loop if GEOS-Chem level is higher than top of grid
+            IF ( PLOW .LE. VOLCPRESS(LVOLC+1) ) EXIT
 
-            ! Loop over levels
-            DO L = 1, LLPAR
+            !===========================================================
+            ! Loop over the native 1-km volcanic SO2 grid layers
+            !===========================================================
+            DO K = 1, LVOLC
 
-               ! Thickness of layer [m] w/ crater
-               DZ(L) = BXHEIGHT(INV(K),JNV(K),L)
+               ! PVOLCLOW  is pressure at the bottom of 1-km grid layer K
+               ! PVOLCHIGH is pressure at the top    of 1-km grid layer K
+               PVOLCLOW = VOLCPRESS(K)
+               PVOLCHIGH = VOLCPRESS(K+1)
 
-               ! Increment altitude
-               ZH(L) = ZH(L-1) + DZ(L)
+               ! Compute the fraction of each 1-km layer K that
+               ! lies within the given GEOS-CHEM layer L
+               FRAC = 0.0
 
-               ! If we are at the crater altitude, add emissions and exit
-               IF ( ZH(L-1) <= HGHT .AND. ZH(L) > HGHT ) THEN 
-                  ESO2_nv(INV(K),JNV(K),L) = 
-     &                 ESO2_nv(INV(K),JNV(K),L) + Env(K)
-                  EXIT
+               ! GC grid box is completely below volcanic grid box
+               IF ( PHIGH >= PVOLCLOW ) THEN
+                  GOTO 10
+
+               ! Bottom of GC grid box is in volcanic grid box
+               ELSE IF ( PLOW < PVOLCLOW .AND. PLOW > PVOLCHIGH ) THEN
+                  ! Only part of GC box is in volcanic box
+                  IF ( PHIGH < PVOLCHIGH ) THEN
+                     FRAC = (PLOW-PVOLCHIGH) / (PVOLCLOW-PVOLCHIGH)
+                  ! All of GC box is in volcanic box
+                  ELSE
+                     FRAC =  (PLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
+                  ENDIF
+
+               ! Top of GC grid box is in volcanic box (bottom isn't)
+               ELSE IF ( PHIGH <  PVOLCLOW .AND. 
+     &                   PHIGH >  PVOLCHIGH .AND.
+     &                   PLOW  >= PVOLCLOW) THEN
+                  FRAC = (PVOLCLOW-PHIGH) / (PVOLCLOW-PVOLCHIGH)
+
+               ! All of volcanic box in GC box
+               ELSE IF ( PHIGH <= PVOLCHIGH .AND. 
+     &                   PLOW >= PVOLCLOW ) THEN
+                  FRAC = 1.0
+
                ENDIF
-            ENDDO
-         ENDDO
-      ENDIF  
 
-      !=================================================================
-      ! Calculate eruptive volcanic emission of SO2.
-      !=================================================================
-      IF ( LEEV ) THEN
+            ! Add contribution from this layer of volcanic grid (K)
+            ! to non-eruptive SO2 in model grid layer L.
+            ESO2_nv(IREF,JREF,L) = ESO2_nv(IREF,JREF,L) +
+     &                             FRAC * ENV(IREF,JREF,K)
 
-         ! Initialize
-         ESO2_ev = 0.D0
+            ! Add contribution from this layer of volcanic grid (K)
+            ! to eruptive SO2 in model grid layer L.
+            ESO2_ev(IREF,JREF,L) = ESO2_ev(IREF,JREF,L) +
+     &                             FRAC * EEV(IREF,JREF,K)
 
-         ! Loop thru each erupting volcano
-         DO K = 1, NEVOL
+            ENDDO ! K
 
-            ! Test to see if the volcano is erupting
-            IF ( JDAY < IDAYS(K) .OR. JDAY > IDAYe(K) ) GOTO 20
+10          CONTINUE
+         ENDDO    ! L
 
-            !===========================================================
-            ! Define a slab at the top 1/3 of the volcano plume.
-            !===========================================================
-            HGHT  = DBLE( IHGHT(K) )
+      ! Consistency check: columns before and after regridding should
+      ! be equal
+      IF ( ABS(SUM(ESO2_nv(IREF,JREF,:)) - SUM(ENV(IREF,JREF,:)))
+     &   / SUM(ENV(IREF,JREF,:)) .GT. 1e-5 ) THEN
+         PRINT*, 'Non-eruptive volcanic SO2 emissions before and ' //
+     &           'after regridding are not equivalent!'
+         CALL FLUSH(6)
+         CALL GEOS_CHEM_STOP
+      ENDIF
+      IF ( ABS(SUM(ESO2_ev(IREF,JREF,:)) - SUM(EEV(IREF,JREF,:)))
+     &   / SUM(EEV(IREF,JREF,:)) .GT. 1e-5 ) THEN
+         PRINT*, 'Eruptive volcanic SO2 emissions before and ' //
+     &           'after regridding are not equivalent!'
+         CALL FLUSH(6)
+         CALL GEOS_CHEM_STOP
+      ENDIF
 
-            ! slab bottom height
-            SLAB1 = HGHT - ( HGHT - DBLE ( IELVe(K) ) ) / 3.d0 
-
-            ! Slab thickness
-            SLAB  = HGHT - SLAB1 
-            ZH(0) = 0.d0 
-        
-            ! Loop over each level
-            DO L = 1, LLPAR
-
-               ! DZ is the thickness of level L [m]
-               DZ(L) = BXHEIGHT(IEV(K),JEV(K),L)
-
-               ! ZH is the height of the top edge of 
-               ! level L, measured from the ground up [m]
-               ZH(L) = ZH(L-1) + DZ(L) 
-
-               ! max model erup.height
-               IF ( L == LLPAR .AND. HGHT > ZH(L) ) THEN 
-                  LV2 = LLPAR
-                  !HGHT = ZH(L)
-                  !SLAB1 = SLAB1 - ( HGHT - ZH(L) )
-               ENDIF
-
-               !========================================================
-               ! If Zh(l) <= bottom of the slab, go to next level.
-               !========================================================
-               IF ( ZH(L) <= SLAB1 ) GOTO 22
-
-               !========================================================
-               ! If the slab is only in current level: CASE 1
-               !       ---------------------------------- ZH(L)
-               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-               !       ---------------------------------- ZH(L-1)
-               !========================================================
-               IF ( ZH(L-1) <= SLAB1 .AND. ZH(L) >= HGHT ) THEN
-                  LV1   = L
-                  LV2   = L
-                  DZ(L) = SLAB
-
-               !========================================================
-               ! The slab extends more then one level.  Find the 
-               ! lowest (lv1) and the highest (lv2) levels:
-               !       --------------------------------- ZH(L)
-               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-               !       --------------------------------- ZH(L-1)
-               ! 
-               !       --------------------------------- ZH(L)
-               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-               !       --------------------------------- ZH(L-1)
-               !========================================================
-               ELSE IF (ZH(L-1) <= SLAB1 .AND. ZH(L) > SLAB1)  THEN
-                  LV1   = L
-                  DZ(L) = ZH(L) - SLAB1
-                  
-               ELSE IF (ZH(L-1) < HGHT  .AND. ZH(L) > HGHT )  THEN
-                  LV2   = L
-                  DZ(L) = HGHT - ZH(L-1)
-                  EXIT          ! do 20 
-        
-               ENDIF
-               
-               ! Go to next level
- 22            CONTINUE         
-            ENDDO
-
-            !===========================================================
-            ! Calculate SO2 emission in the levels between LV1 and LV2.  
-            ! Convert Eev from [kg SO2/box/event] to [kg SO2/box/s].  
-            ! ESO2_ev is distributed evenly with altitude among the slab.
-            !===========================================================
-            DO L = LV1, LV2
-               ESO2_ev(IEV(K),JEV(K),L) = ESO2_ev(IEV(K),JEV(K),L) + 
-     &              EEV(K) / ( (IDAYe(K)-IDAYs(K)+1) * 24.d0 * 3600.d0 )
-     &              * DZ(L) / SLAB
-            ENDDO
-
-            ! Go to next volcano
- 20         CONTINUE 
-         ENDDO
-
-      ENDIF  
+      ENDDO       ! I
+      ENDDO       ! J
 
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 
@@ -4428,7 +4609,7 @@
       ! Overwrite CANADA w/ CAC       (anthro only   ) SO2 emissions
       !-----------------------------------------------------------------
       ! Note that we:
-      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP
+      ! Overwrite ASIA w/ STREETS and EUROPE w/ EMEP 
       !  in READ_ANTHRO_SOx.
       !
       ! In both cases, SO4 is a fraction of provided SO2 (except for
@@ -4636,7 +4817,8 @@
          ENDDO
 
          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
-         TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
+         !TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
+         TSO2  = SUM( SO2an(I,J,:) ) + SO2bf(I,J)
 
          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
 !         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
@@ -5691,182 +5873,358 @@
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE READ_NONERUP_VOLC
+      SUBROUTINE READ_NONERUP_VOLC( INDAY, INMONTH, INYEAR )
 !
 !******************************************************************************
 !  Subroutine READ_NONERUP_VOLC reads SO2 emissions from non-eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02, 10/3/05)
+!  volcanoes. (rjp, bdf, bmy, jaf, 9/19/02, 10/3/05, 10/15/09)
+!
+!  Arguments as input:
+!  ============================================================================
+!  (1 ) INMONTH (INTEGER) : Current month number (1-12)
+!  (2 ) INYEAR  (INTEGER) : Current 4-digit year 
+!  (3 ) INDAY   (INTEGER) : Current 2-digit day 
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Complete re-write as volcanic emissions are now monthly and
+!	stored as BPCH files (jaf, bmy, 10/15/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+!-------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      USE BPCH2_MOD,      ONLY : GET_RES_EXT
+!      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+!      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+!-------------------------------------------------------
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE TIME_MOD,       ONLY : EXPAND_DATE
 
 #     include "CMN_SIZE"  ! Size parameters
 
+      ! Arguments
+      INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
+     
       ! Local variables
-      INTEGER              :: I, IOS, J, K, L
-      REAL*8               :: EE
+!--------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      INTEGER              :: I, IOS, J, K
+!      REAL*8               :: EE
+!---------------------------------------------------------------
+      REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
+      REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
+      REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
+      REAL*8               :: ARRAY_1LEV(IIPAR,JJPAR)
+      REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
+      REAL*8               :: XTAU
+      INTEGER              :: THISYEAR, THISDAY, YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
 
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
       !=================================================================
 
-      ! Initialize
-      K        = 1
-      Env      = 0.d0
-      FILENAME = TRIM( DATA_DIR )                  // 
-     &           'sulfate_sim_200508/volcano.con.' // GET_RES_EXT()
+!----------------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!
+!      ! Initialize
+!      K        = 1
+!      Env      = 0.d0
+!      FILENAME = TRIM( DATA_DIR )                  // 
+!     &           'sulfate_sim_200508/volcano.con.' // GET_RES_EXT()
+!8/10/09)
+!      !=================================================================
+!      ! Read NON-eruptive volcanic SO2 emission (GEIA) into Env.  
+!      ! Convert Env from [Mg SO2/box/day] to [kg SO2/box/s].
+!      !=================================================================
+!
+!      ! Fancy output
+!      WRITE( 6, 100 ) TRIM( FILENAME ) 
+! 100  FORMAT( '     - READ_NONERUP_VOLC: Reading ', a )
+!     
+!      ! Open file 
+!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:1' )
+!
+!      ! Read header lines
+!      DO L = 1, 2
+!         READ( IU_FILE, '(a)', IOSTAT=IOS )             
+!         IF ( IOS > 0 ) THEN
+!            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:2' )
+!         ENDIF
+!      ENDDO
+!
+!      ! Read data values
+!      DO 
+!         READ( IU_FILE, '(49x,i4,e11.3,1x,2i4)', IOSTAT=IOS ) 
+!     &        IELVn(k), EE, INV(K), JNV(k) 
+!         
+!         ! Check for EOF
+!         IF ( IOS < 0 ) EXIT
+!
+!         ! Trap I/O error
+!         IF ( IOS > 0 ) THEN
+!            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:3' )
+!         ENDIF
+!
+!         ! Unit conversion: [Mg SO2/box/day] -> [kg SO2/box/s]
+!         Env(k) = EE * 1000.d0 / ( 24.d0 * 3600.d0 )
+!
+!         ! Increment counter
+!         K = K + 1 
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )
+!
+!      ! NNVOL = Number of non-eruptive volcanoes
+!      NNVOL = K - 1
+!----------------------------------------------------------------------
 
-      !=================================================================
-      ! Read NON-eruptive volcanic SO2 emission (GEIA) into Env.  
-      ! Convert Env from [Mg SO2/box/day] to [kg SO2/box/s].
-      !=================================================================
+      ! Set year based on availability of volcanic emission files
+      THISYEAR = INYEAR
+      IF ( INYEAR < 1985 ) THISYEAR = 1985
+      IF ( INYEAR > 2007 ) THISYEAR = 2007
 
-      ! Fancy output
-      WRITE( 6, 100 ) TRIM( FILENAME ) 
+      ! Need to deal with leap years for which there is no data (i.e.
+      ! 2008). Assume emissions on Feb. 29th are identical to emissions
+      ! on Feb. 28th (jaf, 10/15/09)
+      THISDAY = INDAY
+      IF ( (INMONTH == 2) .and. (INDAY == 29) ) THISDAY = 28
+
+      ! Set date
+      YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
+
+      ! File name
+      FILENAME = TRIM( DATA_DIR_1x1 )  //
+     &           'volcano_SO2_200909/' //
+     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
+
+      ! Replace YYYY/MM in the file name
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+
+      ! Echo output
+      WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_NONERUP_VOLC: Reading ', a )
-     
-      ! Open file 
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:1' )
 
-      ! Read header lines
-      DO L = 1, 2
-         READ( IU_FILE, '(a)', IOSTAT=IOS )             
-         IF ( IOS > 0 ) THEN
-            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:2' )
-         ENDIF
+      ! TAU value (use this year)
+      XTAU = GET_TAU0( INMONTH, THISDAY, THISYEAR )
+
+      ! Read non-eruptive emissions (kg/box/day)
+      CALL READ_BPCH2( FILENAME, 'SO2-NV-$',        26,
+     &                 XTAU,      I1x1,             J1x1-1,
+     &                 LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
+
+      ! Array regridding has to be done level by level since the array
+      ! has a different vertical dimension than expected
+      DO L = 1, LVOLC
+         ! Cast from REAL*4 to REAL*8
+         ARRAY_GEN8 = ARRAY_GEN(:,:,L)
+
+         ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
+         CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
+
+         ! Regrid from 1x1 to correct grid
+         CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+
+         ! Save into correct level of ARRAY
+         ARRAY(:,:,L) = ARRAY_1LEV
       ENDDO
 
-      ! Read data values
-      DO 
-         READ( IU_FILE, '(49x,i4,e11.3,1x,2i4)', IOSTAT=IOS ) 
-     &        IELVn(k), EE, INV(K), JNV(k) 
-         
-         ! Check for EOF
-         IF ( IOS < 0 ) EXIT
-
-         ! Trap I/O error
-         IF ( IOS > 0 ) THEN
-            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:3' )
-         ENDIF
-
-         ! Unit conversion: [Mg SO2/box/day] -> [kg SO2/box/s]
-         Env(k) = EE * 1000.d0 / ( 24.d0 * 3600.d0 )
-
-         ! Increment counter
-         K = K + 1 
-      ENDDO
-
-      ! Close file
-      CLOSE( IU_FILE )
-
-      ! NNVOL = Number of non-eruptive volcanoes
-      NNVOL = K - 1
+      ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
+      ENV = ARRAY / ( 24.d0 * 3600.d0 )
 
       ! Return to calling program
       END SUBROUTINE READ_NONERUP_VOLC
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE READ_ERUP_VOLC
+      SUBROUTINE READ_ERUP_VOLC( INDAY, INMONTH, INYEAR )
 !
 !***************************************************************************** 
 !  Subroutine READ_ERUP_VOLC reads SO2 emissions from eruptive
-!  volcanoes. (rjp, bdf, bmy, 9/19/02, 10/3/05)
+!  volcanoes. (rjp, bdf, bmy, jaf, 9/19/02, 10/3/05, 10/15/09)
+!
+!  Arguments as input:
+!  ============================================================================
+!  (1 ) INMONTH (INTEGER) : Current month number (1-12)
+!  (2 ) INYEAR  (INTEGER) : Current 4-digit year 
+!  (3 ) INDAY   (INTEGER) : Current 2-digit day 
 !
 !  NOTES:
 !  (1 ) Split off from old module routine "sulfate_readyr" (bmy, 9/19/02)
 !  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now read files from "sulfate_sim_200508/" (bmy, 7/28/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Complete re-write as volcanic emissions are now monthly and
+!	stored as BPCH files (jaf, bmy, 10/15/09)
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT, GET_TAU0, READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+!-------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      USE BPCH2_MOD,      ONLY : GET_RES_EXT
+!      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+!      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
+!-------------------------------------------------------
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE TIME_MOD,       ONLY : EXPAND_DATE
       
 #     include "CMN_SIZE"   ! Size parameters
+
+      ! Arguments
+      INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
  
       ! Local variables
-      INTEGER              :: I, IOS, IUNIT, J, K, L, M
-      REAL*8               :: A, B, Fe, X, EE
+!------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      INTEGER              :: I, IOS, IUNIT, J, K, M
+!      REAL*8               :: A, B, Fe, X, EE
+!------------------------------------------------------
+      REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
+      REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
+      REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
+      REAL*8               :: ARRAY_1LEV(IIPAR,JJPAR)
+      REAL*8               :: ARRAY(IIPAR,JJPAR,LVOLC)
+      REAL*8               :: XTAU
+      INTEGER              :: YYYYMMDD, L
       CHARACTER(LEN=255)   :: FILENAME
-
+     
       !==================================================================
       ! READ_ERUP_VOLC begins here
       !==================================================================
 
-      ! Initialize
-      K        = 1
-      Eev(:)   = 0.d0
-      FILENAME = TRIM( DATA_DIR )                        // 
-     &           'sulfate_sim_200508/volcano.erup.1990.' // 
-     &           GET_RES_EXT()
-      
-      !==================================================================
-      ! Read eruptive volcanic SO2 emission (based on Smithsonian data 
-      ! base, SO2 emission and cloud height are a function of VEI.  
-      ! Data are over-written if TOMS observations are available.  
-      ! Also define a slab with a thickness of 1/3 of the cloud column, 
-      ! and SO2 are emitted uniformely within the slab.  
-      !
-      ! Convert Ee from [kton SO2] to [kg SO2/box] and store in Eev.
-      ! ESO2_ev(i,j,l) in [kg SO2/box/s] will be calculated in SRCSO2.  
-      !==================================================================
-      
-      ! Fancy output
-      WRITE( 6, 100 ) TRIM( FILENAME ) 
- 100  FORMAT( '     - READ_ERUP_VOLC: Reading ', a )
-   
-      ! Open file 
-      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:1' )
+!----------------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!
+!      ! Initialize
+!      K        = 1
+!      Eev(:)   = 0.d0
+!      FILENAME = TRIM( DATA_DIR )                        // 
+!     &           'sulfate_sim_200508/volcano.erup.1990.' // 
+!     &           GET_RES_EXT()
+!      
+!      !==================================================================
+!      ! Read eruptive volcanic SO2 emission (based on Smithsonian data 
+!      ! base, SO2 emission and cloud height are a function of VEI.  
+!      ! Data are over-written if TOMS observations are available.  
+!      ! Also define a slab with a thickness of 1/3 of the cloud column, 
+!      ! and SO2 are emitted uniformely within the slab.  
+!      !
+!      ! Convert Ee from [kton SO2] to [kg SO2/box] and store in Eev.
+!      ! ESO2_ev(i,j,l) in [kg SO2/box/s] will be calculated in SRCSO2.  
+!      !==================================================================
+!      
+!      ! Fancy output
+!      WRITE( 6, 100 ) TRIM( FILENAME ) 
+! 100  FORMAT( '     - READ_ERUP_VOLC: Reading ', a )
+!   
+!      ! Open file 
+!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
+!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:1' )
+!
+!      ! Read header lines
+!      DO L = 1, 2
+!         READ( IU_FILE, '(a)', IOSTAT=IOS )
+!         IF ( IOS > 0 ) THEN
+!            CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:2' )
+!         ENDIF
+!      ENDDO
+!
+!         ! Read data values
+!      DO 
+!         READ( IU_FILE, '(47x,3i6,6x,i6,es11.3,1x,2i4)', IOSTAT=IOS )
+!     &        IELVe(K), IDAYs(K), IDAYe(K), IHGHT(K), 
+!     &        Ee,       IEV(K),   JEV(K)
+!         
+!         ! Check for EOF
+!         IF ( IOS < 0 ) EXIT
+!
+!          ! Trap I/O error
+!         IF ( IOS > 0 ) THEN
+!            CALL IOERROR( IOS, IU_FILE, 'sulfate_readyr:6' )
+!         ENDIF
+!
+!         ! Unit conversion: [kton SO2/box/event] -> [kg SO2/box/event]
+!         Eev(k) = Ee * 1.d6
+!
+!         ! Increment count
+!         K = K + 1
+!      ENDDO
+!
+!      ! Close file
+!      CLOSE( IU_FILE )
+!
+!      ! NEVOL = Number of eruptive volcanoes
+!      NEVOL = K - 1
+!----------------------------------------------------------------------
 
-      ! Read header lines
-      DO L = 1, 2
-         READ( IU_FILE, '(a)', IOSTAT=IOS )
-         IF ( IOS > 0 ) THEN
-            CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:2' )
-         ENDIF
-      ENDDO
+      ! If the current year falls within the range of available data,
+      ! get eruptive volcanic emissions (jaf, 10/15/09)
+      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
 
-         ! Read data values
-      DO 
-         READ( IU_FILE, '(47x,3i6,6x,i6,es11.3,1x,2i4)', IOSTAT=IOS )
-     &        IELVe(K), IDAYs(K), IDAYe(K), IHGHT(K), 
-     &        Ee,       IEV(K),   JEV(K)
-         
-         ! Check for EOF
-         IF ( IOS < 0 ) EXIT
+         ! Set date
+         YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
 
-          ! Trap I/O error
-         IF ( IOS > 0 ) THEN
-            CALL IOERROR( IOS, IU_FILE, 'sulfate_readyr:6' )
-         ENDIF
+         ! File name
+         FILENAME = TRIM( DATA_DIR_1x1 )  //
+     &              'volcano_SO2_200909/' //
+     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
 
-         ! Unit conversion: [kton SO2/box/event] -> [kg SO2/box/event]
-         Eev(k) = Ee * 1.d6
+         ! Replace YYYY/MM in the file name
+         CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-         ! Increment count
-         K = K + 1
-      ENDDO
+         ! TAU value (use this year)
+         XTAU = GET_TAU0( INMONTH, INDAY, INYEAR )
 
-      ! Close file
-      CLOSE( IU_FILE )
+         ! Echo output
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_ERUP_VOLC: Reading ', a )
 
-      ! NEVOL = Number of eruptive volcanoes
-      NEVOL = K - 1
+         ! Read eruptive emissions (kg/box/day)
+         CALL READ_BPCH2( FILENAME, 'SO2-EV-$',        26,
+     &                    XTAU,      I1x1,             J1x1-1,
+     &                    LVOLC,     ARRAY_GEN(:,:,:), QUIET=.TRUE. )
+
+         ! Array regridding has to be done level by level since the array
+         ! has a different vertical dimension than expected
+         DO L = 1, LVOLC
+            ! Cast from REAL*4 to REAL*8
+            ARRAY_GEN8 = ARRAY_GEN(:,:,L)
+
+            ! Regrid from GENERIC 1x1 GRID to GEOS-Chem 1x1 GRID.
+            CALL DO_REGRID_G2G_1x1( 'kg', ARRAY_GEN8, ARRAY_1x1(:,:,1) )
+
+            ! Regrid from 1x1 to correct grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY_1x1, ARRAY_1LEV )
+
+            ! Save into correct level of ARRAY
+            ARRAY(:,:,L) = ARRAY_1LEV
+         ENDDO
+
+         ! Unit conversion: [kg SO2/box/day] -> [kg SO2/box/s]
+         EEV = ARRAY / ( 24.d0 * 3600.d0 )
+
+      ! If no data are available for current year, set eruptive
+      ! emissions to zero and print a warning message.
+      ! Current data range is 1985-2007 (jaf, 10/15/09)
+      ELSE
+
+         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
+     &               ' for 1985-2007. You are outside the window.'
+         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+         EEV = 0d0
+
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE READ_ERUP_VOLC
@@ -7634,7 +7992,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_SULFATE initializes and zeros all allocatable arrays
-!  declared in "sulfate_mod.f" (bmy, 6/2/00, 5/23/06)
+!  declared in "sulfate_mod.f" (bmy, 6/2/00, 10/15/09)
 !
 !  NOTES:
 !  (1 ) Only allocate some arrays for the standalone simulation (NSRCX==10).
@@ -7653,6 +8011,9 @@
 !        SO4aq, NH4aq. (bmy, 1/6/06)
 !  (8 ) Now allocates PSO4_ss, PNITs (bec, bmy, 4/13/05)
 !  (9 ) Initialize drydep flags outside of IF block (bmy, 5/23/06)
+!  (10) Now redimension EEV & NEV arrays for new SO2 volcanic emissions
+!        inventory.  Deleted obsolete arrays from older SO2 volcanic
+!        emissions inventory. (jaf, bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -7683,11 +8044,23 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0d0
 
-      ALLOCATE( EEV( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Eev' )
-      Eev = 0d0
+!----------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      ALLOCATE( EEV( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Eev' )
+!      Eev = 0d0
+!----------------------------------------------------
+      ALLOCATE( EEV( IIPAR, JJPAR, LVOLC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EEV' )
+      EEV = 0d0
 
-      ALLOCATE( ENV( NNV ), STAT=AS )
+!----------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      ALLOCATE( ENV( NNV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENV' )
+!      ENV = 0d0
+!----------------------------------------------------
+      ALLOCATE( ENV( IIPAR, JJPAR, LVOLC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENV' )
       ENV = 0d0
 
@@ -7738,43 +8111,46 @@
       ALLOCATE( ESO4_an( IIPAR, JJPAR, 2  ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
       ESO4_an = 0d0
-  
-      ALLOCATE( IDAYe( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYe' )
-      IDAYe = 0d0
 
-      ALLOCATE( IDAYs( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYs' )
-      IDAYs = 0d0
+!---------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      ALLOCATE( IDAYe( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYe' )
+!      IDAYe = 0d0
+!
+!      ALLOCATE( IDAYs( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYs' )
+!      IDAYs = 0d0
+!
+!      ALLOCATE( IELVe( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVe' )
+!      IELVe = 0d0
+!
+!      ALLOCATE( IELVn( NNV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVn' )
+!      IELVn = 0d0
+!
+!      ALLOCATE( IEV( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IEV' )
+!      IEV = 0d0
+!
+!      ALLOCATE( IHGHT( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IHGHT' )
+!      IHGHT = 0d0
+!
+!      ALLOCATE( INV( NNV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INV' )
+!      INV = 0d0
+!
+!      ALLOCATE( JEV( NEV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JEV' )
+!      JEV = 0d0
+!
+!      ALLOCATE( JNV( NNV ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNV' )
+!      JNV = 0d0
+!---------------------------------------------------------
 
-      ALLOCATE( IELVe( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVe' )
-      IELVe = 0d0
-
-      ALLOCATE( IELVn( NNV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVn' )
-      IELVn = 0d0
-
-      ALLOCATE( IEV( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IEV' )
-      IEV = 0d0
-
-      ALLOCATE( IHGHT( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IHGHT' )
-      IHGHT = 0d0
-
-      ALLOCATE( INV( NNV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INV' )
-      INV = 0d0
-
-      ALLOCATE( JEV( NEV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JEV' )
-      JEV = 0d0
-
-      ALLOCATE( JNV( NNV ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNV' )
-      JNV = 0d0
-         
       ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLTROP ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
       PMSA_DMS = 0d0
@@ -7905,7 +8281,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_SULFATE deallocates all previously allocated arrays 
-!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 5/3/06)
+!  for sulfate emissions -- call at the end of the run (bmy, 6/1/00, 10/15/09)
 ! 
 !  NOTES:
 !  (1 ) Now also deallocates IJSURF. (bmy, 11/12/02)
@@ -7914,6 +8290,8 @@
 !  (4 ) Now also deallocates ESO4_sh (bec, bmy, 5/20/04)
 !  (5 ) Now remove IJSURF (bmy, 7/20/04)
 !  (6 ) Bug fix: now deallocate PSO4_ss, PNITs (bmy, 5/3/06)
+!  (7 ) Deleted obsolete arrays from older SO2 volcanic emissions 
+!        inventory (jaf, bmy, 10/15/09)
 !******************************************************************************
 ! 
       !=================================================================
@@ -7934,16 +8312,19 @@
       IF ( ALLOCATED( ESO2_bf   ) ) DEALLOCATE( ESO2_bf   )
       IF ( ALLOCATED( ESO2_sh   ) ) DEALLOCATE( ESO2_sh   )
       IF ( ALLOCATED( ESO4_an   ) ) DEALLOCATE( ESO4_an   )
-      IF ( ALLOCATED( IDAYs     ) ) DEALLOCATE( IDAYs     )
-      IF ( ALLOCATED( IDAYe     ) ) DEALLOCATE( IDAYe     )
-      IF ( ALLOCATED( IELVe     ) ) DEALLOCATE( IELVe     )
-      IF ( ALLOCATED( IELVn     ) ) DEALLOCATE( IELVn     )
-      IF ( ALLOCATED( IEV       ) ) DEALLOCATE( IEV       )
-      IF ( ALLOCATED( IHGHT     ) ) DEALLOCATE( IHGHT     )
-      IF ( ALLOCATED( INV       ) ) DEALLOCATE( INV       )
-      IF ( ALLOCATED( JEV       ) ) DEALLOCATE( JEV       )
+!------------------------------------------------------------------
+! Prior to 10/15/09 (jaf)
+!      IF ( ALLOCATED( IDAYs     ) ) DEALLOCATE( IDAYs     )
+!      IF ( ALLOCATED( IDAYe     ) ) DEALLOCATE( IDAYe     )
+!      IF ( ALLOCATED( IELVe     ) ) DEALLOCATE( IELVe     )
+!      IF ( ALLOCATED( IELVn     ) ) DEALLOCATE( IELVn     )
+!      IF ( ALLOCATED( IEV       ) ) DEALLOCATE( IEV       )
+!      IF ( ALLOCATED( IHGHT     ) ) DEALLOCATE( IHGHT     )
+!      IF ( ALLOCATED( INV       ) ) DEALLOCATE( INV       )
+!      IF ( ALLOCATED( JEV       ) ) DEALLOCATE( JEV       )
+!      IF ( ALLOCATED( JNV       ) ) DEALLOCATE( JNV       )
+!------------------------------------------------------------------
       IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )
-      IF ( ALLOCATED( JNV       ) ) DEALLOCATE( JNV       )
       IF ( ALLOCATED( O3m       ) ) DEALLOCATE( O3m       )
       IF ( ALLOCATED( PH2O2m    ) ) DEALLOCATE( PH2O2m    )
       IF ( ALLOCATED( PMSA_DMS  ) ) DEALLOCATE( PMSA_DMS  )

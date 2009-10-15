@@ -1,4 +1,4 @@
-! $Id: lightning_nox_mod.f,v 1.1 2009/09/16 14:06:22 bmy Exp $
+! $Id: lightning_nox_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE LIGHTNING_NOX_MOD
 !
 !******************************************************************************
@@ -1438,11 +1438,6 @@
       !=====================================================================
 
       ! Convert cold cloud thickness from [m] to [km] (min value: 5.5 km)
-      !---------------------------------------------------------------------
-      ! Prior to 7/8/09:
-      ! Bug fix: Use 5.5d0 to prevent XLF compiler from choking (bmy, 7/8/09)
-      !CC = MAX( CCTHICK * 1d-3, 5.5 )
-      !---------------------------------------------------------------------
       CC = MAX( CCTHICK * 1d-3, 5.5d0 )
 
       ! Compute cloud-ground flash ratio as described above
@@ -1782,15 +1777,6 @@
       ! GEOS-5: 4 x 5 global simulation
       !-------------------------------------
       IF ( LCTH ) THEN
-         !-------------------------------------------------------------------
-         ! Prior to 7/10/09:
-         ! Remove obsolete values (ltm, bmy, 7/10/09)
-         !IF ( LOTDLOC ) THEN
-         !   SCALE = ANN_AVG_FLASHRATE / 17.5892d0
-         !ELSE
-         !   SCALE = ANN_AVG_FLASHRATE / 13.9779d0
-         !ENDIF
-         !-------------------------------------------------------------------
 
          ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
          !       and compared against OTD/LIS May 1995-Dec 2005
@@ -1812,15 +1798,6 @@
       ! GEOS-5: 2 x 2.5 global simulation
       !-------------------------------------
       IF ( LCTH ) THEN
-         !-------------------------------------------------------------------
-         ! Prior to 7/10/09:
-         ! Remove obsolete values (ltm, bmy, 7/10/09)
-         !IF ( LOTDLOC ) THEN
-         !   SCALE = ANN_AVG_FLASHRATE / 47.7117d0
-         !ELSE
-         !   SCALE = ANN_AVG_FLASHRATE / 36.2878d0
-         !ENDIF
-         !-------------------------------------------------------------------
 
          ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
          !       and compared against OTD/LIS May 1995-Dec 2005
@@ -1842,15 +1819,6 @@
       ! Nested grid simulation: CHINA
       !-------------------------------------
       IF ( LCTH ) THEN
-         !-------------------------------------------------------------------
-         ! Prior to 7/10/09:
-         ! Remove obsolete values (ltm, bmy, 7/10/09)
-         !IF ( LOTDLOC ) THEN
-         !   SCALE = ANN_AVG_FLASHRATE / 100.082d0
-         !ELSE
-         !   SCALE = ANN_AVG_FLASHRATE / 75.0679d0
-         !ENDIF
-         !-------------------------------------------------------------------
 
          ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
          !       and compared against OTD/LIS May 1995-Dec 2005

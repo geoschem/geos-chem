@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.1 2009/09/16 14:06:30 bmy Exp $
+! $Id: error_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE ERROR_MOD
 !
 !******************************************************************************
@@ -148,17 +148,6 @@
       !=================================================================
       ! NAN_FLOAT begins here!
       !=================================================================
-!------------------------------------------------------------
-! Prior to 7/8/09:
-! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
-!#if   defined( SGI_MIPS )
-!      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
-!
-!#elif defined( COMPAQ )
-!      IT_IS_A_NAN = ISNAN( VALUE )         
-!
-!#elif defined( LINUX_IFORT )
-!------------------------------------------------------------
 #if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )    
 
@@ -242,17 +231,6 @@
       !=================================================================
       ! NAN_DBLE begins here!
       !=================================================================
-!-------------------------------------------------------------------------
-! Prior to 7/8/09:
-! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
-!#if   defined( SGI_MIPS )
-!      IT_IS_A_NAN = IEEE_IS_NAN( VALUE )   
-!
-!#elif defined( COMPAQ )
-!      IT_IS_A_NAN = ISNAN( VALUE )         
-!
-!#elif defined( LINUX_IFORT )
-!-------------------------------------------------------------------------
 #if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )      
 
@@ -336,25 +314,6 @@
       !=================================================================
       ! FINITE_FLOAT begins here!
       !=================================================================  
-!---------------------------------------------------------------------------- 
-! Prior to 7/8/09:
-! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
-!#if   defined( SGI_MIPS )
-!      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
-! 
-!#elif defined( COMPAQ ) 
-!
-!      ! Test for finite # using bit masking for DEC/Compaq platform
-!      ! Now use REAL*4 values (bmy, 11/15/01)
-!      IF ( VALUE == Z'7F800000' .or. 
-!     &     VALUE == Z'FF800000' ) THEN
-!         IT_IS_A_FINITE = .FALSE.
-!      ELSE
-!         IT_IS_A_FINITE = .TRUE.
-!      ENDIF
-!
-!#elif defined( LINUX_IFORT )
-!---------------------------------------------------------------------------- 
 #if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
@@ -449,24 +408,6 @@
       !=================================================================
       ! FINITE_DBLE begins here!
       !=================================================================
-!---------------------------------------------------------------------------- 
-! Prior to 7/8/09:
-! Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
-!#if   defined( SGI_MIPS )
-!      IT_IS_A_FINITE = IEEE_FINITE( VALUE )  
-!
-!#elif defined( COMPAQ ) 
-!
-!      ! Test for finite # using bit masking for DEC/Compaq F90
-!      IF ( VALUE == Z'7FF0000000000000'  .or. 
-!     &     VALUE == Z'FFF0000000000000') THEN
-!         IT_IS_A_FINITE = .FALSE.
-!      ELSE
-!         IT_IS_A_FINITE = .TRUE.
-!      ENDIF
-!
-!#elif defined( LINUX_IFORT )
-!---------------------------------------------------------------------------- 
 #if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")

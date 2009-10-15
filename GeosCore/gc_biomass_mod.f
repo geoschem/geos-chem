@@ -1,4 +1,4 @@
-! $Id: gc_biomass_mod.f,v 1.1 2009/09/16 14:06:27 bmy Exp $
+! $Id: gc_biomass_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE GC_BIOMASS_MOD
 !
 !******************************************************************************
@@ -663,12 +663,6 @@
             ! Store CO emissions before scaling 
             ! for new gaseous emissions (tmf, 1/7/09)
             CALL TRANSFER_2D( ARRAY(:,:,1), COEMIS(:,:) )
-
-!------------------------------------------------------------------
-! Prior to 2/25/09, ccc 
-!           ! CO -- scale to account for oxidation of extra VOC's
-!            CALL SCALE_BIOMASS_CO( BIOMASS(:,:,N)              )
-!------------------------------------------------------------------
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN

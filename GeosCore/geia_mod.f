@@ -1,4 +1,4 @@
-! $Id: geia_mod.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
+! $Id: geia_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
@@ -960,8 +960,6 @@
 
       ! IHOUR ranges from 1-6 
       ! Modified to use NINT instead of INT (ccc, 4/15/09)
-! prior to 4/15/09 ---------------------------------
-!      IHOUR = INT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
       IHOUR = NINT( ( GET_LOCALTIME( I ) ) / 4 ) + 1
       IF ( IHOUR == 7 ) IHOUR = 1
 

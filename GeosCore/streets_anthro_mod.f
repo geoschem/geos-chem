@@ -1,4 +1,4 @@
-! $Id: streets_anthro_mod.f,v 1.1 2009/09/16 14:06:04 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
@@ -614,15 +614,6 @@
 
                TAU = TAU2006
             ELSE
-
-!--- prior to 7/1/09 (has only Chinese data)
-!               
-!               FILENAME  = TRIM( STREETS_DIR ) // 
-!     &              'Streets_NOx_FF_2004_monthly.generic.1x1'
-!
-!               TAU = TAUMONTH_2004
-!
-                              
                FILENAME  = TRIM( STREETS_DIR ) // 
      &              'Streets_NOx_FF_2000.generic.1x1'
 
@@ -641,30 +632,6 @@
          !--------------------------
          ! Scale NOx 
          !--------------------------
-
-!----- prior to 7/1/09 (phs)
-!         IF ( IS_2006 ) THEN
-!
-!            ! Monthly Variability for 2006 Base Year. Variability has
-!            ! been obtained from 2004 data (phs, 12/2/08)
-!            FILENAME  = TRIM( STREETS_DIR ) // 
-!     &                  'Streets_2004_NOx_MonthFctr_total.generic.1x1'
-!
-!            CALL READ_STREETS( FILENAME,     'RATIO-2D', 71,
-!     $                         TAUMONTH_2004, TEMP,     'unitless' )
-!
-!            NOX = NOX * TEMP
-!
-!            
-!         ELSE
-!         
-!            ! Annual scalar factor for NOx 2004 (amv, phs, 3/10/08)
-!            CALL GET_ANNUAL_SCALAR( 71, 2004, SIM_YEAR, SCALFAC )
-!
-!            NOX = NOX * SCALFAC
-!            
-!         ENDIF
-            
 
          ! Annual scalar factor (phs, 3/10/08)
          !--------------------------

@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.2 2009/10/13 14:03:50 bmy Exp $
+! $Id: diag51_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -270,11 +270,6 @@
 #     include "CMN_SIZE"   ! Size parameters
 
       ! Local variables 
-      !------------------------------------------
-      ! Prior to 12/10/08:
-      ! LT should be REAL*8 (ccarouge, 12/10/08)
-      !INTEGER :: I, LT
-      !------------------------------------------
       INTEGER :: I
       REAL*8  :: LT, TS_DYN
 
@@ -293,9 +288,6 @@
          ! GOOD indicates which boxes have local times between HR1 and HR2
          IF ( LT >= ND51_HR1 .and. LT <= ND51_HR2 ) THEN
             GOOD(I) = 1
-!--- Previous to (ccc, 8/11/09)
-!         ELSE
-!            GOOD(I) = 0
          ENDIF
       ENDDO
 
@@ -1330,12 +1322,6 @@
             CATEGORY = 'DAO-FLDS'
             UNIT     = 'hPa'
             GMNL     = 1
-            !-------------------------------------------------------
-            ! Prior to 10/13/09:
-            ! Fix historical baggage, SLP = tracer #18 in DAO-FLDS
-            ! (tai, bmy, 10/13/09)
-            !GMTRC    = 21
-            !-------------------------------------------------------
             GMTRC    = 18
 
          ELSE IF ( N == 96 ) THEN

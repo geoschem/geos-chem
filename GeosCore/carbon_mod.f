@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.2 2009/09/18 20:44:57 bmy Exp $
+! $Id: carbon_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3650,18 +3650,6 @@ c
 !  of [kg C/yr], which is converted to [kg C/timestep] below. Seasonality is
 !  applied over the US as in Park [2003].
 !
-!-----------------------------------
-!     Prior to 12/18/08
-!     !  OLD:
-!     !  Subroutine ANTHRO_CARB_TBOND computes annual mean anthropogenic and 
-!     !  biofuel emissions of BLACK CARBON (aka ELEMENTAL CARBON) and ORGANIC 
-!     !  CARBON.  It also separates these into HYDROPHILIC and HYDROPHOBIC 
-!     !  fractions. (rjp, bmy, 4/2/04, 5/30/06)
-!     !
-!     !  Emissions data comes from the Bond et al [2004] inventory and has units
-!     !  of [kg C/yr].  This will be converted to [kg C/timestep] below.
-!     !
-!----------------------------------
 !  We also assume that 20% of BC and 50% of OC from anthropogenic 
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
@@ -3722,11 +3710,6 @@ c
       !=================================================================
       ! Filename for carbon aerosol from fossil fuel use
       FILENAME = TRIM( DATA_DIR )                         // 
-!--------------------------------------------------------------------------
-! Prior to 9/18/09:
-! Switch to carbon_200909 directory (bmy, 9/18/09)
-!     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
-!--------------------------------------------------------------------------
      &           'carbon_200909/BCOC_TBond_fossil.2000.'  // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
       
@@ -3806,11 +3789,6 @@ c
       !=================================================================
       ! Filename
       FILENAME = TRIM( DATA_DIR )                         // 
-!--------------------------------------------------------------------------
-! Prior to 9/18/09:
-! Switch to carbon_200909 directory (bmy, 9/18/09)
-!     &           'carbon_200905/BCOC_TBond_fossil.2000.'  // 
-!--------------------------------------------------------------------------
      &           'carbon_200909/BCOC_TBond_biofuel.2000.' // 
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 

@@ -1,4 +1,4 @@
-! $Id: diag42_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag42_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE DIAG42_MOD
 !
 !******************************************************************************
@@ -309,10 +309,6 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
-      !SCALE     = FLOAT( CTOTH ) + TINY( 1d0 )
-      !SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1d0 )
-!--- Prior to (ccc, 8/18/09)
-!      SCALE     = DBLE( GET_CT_DYN() ) + TINY( 1e0 )
       SCALE     = DBLE( GET_CT_DIAG() ) + TINY( 1e0 )
 
       !=================================================================

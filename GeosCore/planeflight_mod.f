@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
+! $Id: planeflight_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -805,8 +805,6 @@
       USE DAO_MOD,      ONLY : AD, T,   UWND,   VWND
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
-!--- Prior to (ccc, 8/27/09)
-!      USE TIME_MOD,     ONLY : GET_TAU, GET_TS_CHEM
       USE TIME_MOD,     ONLY : GET_TAU, GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,     TCVV
       
@@ -841,9 +839,6 @@
       DO M = PPOINT, NPOINTS
 
          ! Starting & end times of chemistry interval
-!--- Prior to (ccc, 8/27/09)
-!         PTAUS = GET_TAU()
-!         PTAUE = PTAUS + ( GET_TS_CHEM() / 60d0 )
          PTAUE = GET_TAU()
          PTAUS = PTAUE - ( GET_TS_DIAG() / 60d0 )
 
@@ -900,12 +895,9 @@
 
                      ! Only archive where SMVGEAR chem is done
                      ! Save as mixing ratio [v/v]
-!--- Prior to (ccc,8/27/09)
-!                     IF ( PCHEM ) THEN 
                      IF ( JLOOP /= 0 ) THEN
                         VARI(V) = CSPEC(JLOOP,PVAR(V)) / AIRDENS(JLOOP)
                      ENDIF
-!                     ENDIF
 
                   !-------------------------
                   ! RO2 family
@@ -914,8 +906,6 @@
 
                      ! Only archive where SMVGEAR chem is done
                      ! Sum all RO2 contributions, save as [v/v]
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) THEN 
                      VARI(V) = 0d0
                            
                         IF ( JLOOP /= 0 ) THEN
@@ -925,7 +915,6 @@
                            
                            VARI(V) = VARI(V) / AIRDENS(JLOOP)
                         ENDIF
-!                     ENDIF
 
                   !--------------------------
                   ! GMAO temperature [K]
@@ -940,9 +929,6 @@
                      
                      ! Only archive where SMVGEAR chem is done
                      ! Code skalooched from "calcrate.f"
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) THEN
-                     
                         IF ( JLOOP /= 0 ) THEN
                            TK       = T3(JLOOP)
                            CONSEXP  = 17.2693882d0 * 
@@ -953,7 +939,6 @@
                            VARI(V)  = ABSHUM(JLOOP) * 
      &                                VPRESH2O      / AIRDENS(JLOOP)
                         ENDIF
-!                     ENDIF
 
                   !--------------------------
                   ! GMAO aerosol sfc area
@@ -961,8 +946,6 @@
                   CASE ( 1003 )
 
                      ! Only archive where SMVGEAR chem is done
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) THEN
                         VARI(V) = 0d0
 
                         IF ( JLOOP /= 0 ) THEN
@@ -970,7 +953,6 @@
                               VARI(V) = VARI(V) + TAREA(JLOOP,N)
                            ENDDO
                         ENDIF
-!                     ENDIF
 
                   !--------------------------
                   ! GMAO sfc pressure [hPa]
@@ -1015,8 +997,6 @@
                   CASE ( 2001:2005 )
                   
                      ! Only archive where SMVGEAR chem is done
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) THEN 
                   
                         ! Remove MISSING flag
                         VARI(V) = 0d0
@@ -1039,17 +1019,12 @@
                            VARI(V) = VARI(V) + 
      &                               SUM( S400nm * ODAER(I,J,:,IRHN) )
                         ENDDO
-!                     ENDIF
 
                   !--------------------------
                   ! Aerosol optical depths
                   ! below plane [unitless]
                   !--------------------------
                   CASE ( 3001:3005 )
-                  
-                     ! Only archive where SMVGEAR chem is done
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) THEN 
                   
                         ! Remove MISSING flag
                         VARI(V) = 0d0
@@ -1079,7 +1054,6 @@
                            VARI(V) = VARI(V) + 
      &                          SUM( S400nm * ODAER(I,J,1:LPLANE,IRHN) )
                         ENDDO
-!                     ENDIF
 
                   !--------------------------
                   ! SMVGEAR reaction rates
@@ -1090,8 +1064,6 @@
                      R = R + 1
 
                      ! Only archive where SMVGEAR chem is done 
-!--- Prior to (ccc, 8/27/09)
-!                     IF ( PCHEM ) VARI(V) = PRRATE(JLOOP,R)
                      IF ( JLOOP /= 0 ) VARI(V) = PRRATE(JLOOP,R)
 
                   !--------------------------
@@ -1211,9 +1183,6 @@
       !=================================================================
       ! We only do full-chemistry in the troposphere
       !=================================================================
-!--- Prior to (ccc, 8/27/09)
-!      IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN 
-
       IF ( ITS_A_FULLCHEM_SIM() ) THEN
   
          ! JLOOP indicates if a box is in tropo (/=0) or not. 
@@ -1272,11 +1241,6 @@
      &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
       
       ! Format string
-!------------------------------------------------------------------------------
-! Prior to 7/13/09:
-! Always make sure we have 3 spaces in the exponential (phs, 7/13/09)
-! 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,95(es10.3,x))
-!------------------------------------------------------------------------------
  110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
      &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
 

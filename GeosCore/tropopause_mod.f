@@ -1,4 +1,4 @@
-! $Id: tropopause_mod.f,v 1.1 2009/09/16 14:05:59 bmy Exp $
+! $Id: tropopause_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
       MODULE TROPOPAUSE_MOD
 !
 !******************************************************************************
@@ -353,17 +353,6 @@
 
       !### For backwards compatibility during transition
       LPAUSE = TROPOPAUSE
-
-!-----------------------------------------------------------------------------
-! Prior to 2/10/05:
-! For now don't read in IFLUX (bmy, 1/2
-!      ! Integer flags for ND27 diagnostic is tracer #4
-!      CALL READ_BPCH2( FILENAME, 'TR-PAUSE', 4, 0d0, 
-!     &                 IGLOB,     JGLOB,     1, ARRAY, QUIET=.TRUE. )
-!
-!      ! Copy from REAL*4 to INTEGER and resize to (IIPAR,JJPAR)
-!      CALL TRANSFER_2D( ARRAY(:,:,1), IFLX )
-!-----------------------------------------------------------------------------
 
       !=================================================================
       ! L <  TROPOPAUSE(I,J) are tropospheric boxes  

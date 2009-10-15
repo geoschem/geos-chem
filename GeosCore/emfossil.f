@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.1 2009/09/16 14:06:32 bmy Exp $
+! $Id: emfossil.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -158,10 +158,6 @@
          ! Initialize work variables
          EMX(:)  = 0d0
 
-!---------------
-! prior to 3/11/08
-!         TODX = TODN(IHOUR)
-!---------------
          ! Use spatially varying diurnal scale factors 
          ! from EDGAR (amv, phs, 3/10/08)
          TODX = GET_EDGAR_TODN(I,J,HOUR)
@@ -513,18 +509,6 @@
 
          EMX(1) = TODX * EMISR(IREF,JREF,N) 
  
-!--------- Prior to 2/25/09, ccc --------------------------------
-!         ! Account for CO production from anthropogenic VOC's
-!         ! -> For Tagged CO, enhance CO production by 18.5%
-!         ! -> For full-chem, enhance CO production by 2%
-!         ! (bnd, bmy, 4/26/01; jaf, mak, bmy, 2/14/08)
-!         IF ( ITS_A_TAGCO_SIM() ) THEN
-!            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.185d0
-!         ELSE
-!            IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0
-!         ENDIF
-!----------------------------------------------------------------
-         
          !--------------------------------------------------------------
          ! Get CO emissions from the EDGAR inventory (global)
          !--------------------------------------------------------------
@@ -534,12 +518,6 @@
          
             ! Get EDGAR CO
             EDGAR  = GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE. )
-
-!-- commented to deal with ship below (phs, 7/9/09)             
-!            ! Add ship emissions
-!            IF ( LEDGARSHIP ) 
-!     &           EDGAR = EDGAR + GET_EDGAR_CO( I, J, MOLEC_CM2_S=.TRUE.,
-!     &                                         SHIP=.TRUE.)
 
             ! Apply time of day factor
             EDGAR  = EDGAR * TODX
@@ -563,11 +541,6 @@
                ! Get EMEP emissions 
                EMEP = GET_EMEP_ANTHRO( I, J, NN )
 
-!-- commented to deal with ship below (phs, 7/9/09)
-!               IF ( LEMEPSHIP .AND. NN == IDTCO )
-!     $              EMEP = EMEP + GET_EMEP_ANTHRO( I, J, NN,
-!     $                                             SHIP=.TRUE.)
-         
                ! -1 indicates tracer NN does not have EMEP emissions
                IF ( .not. ( EMEP < 0d0 ) ) THEN
 
@@ -653,13 +626,6 @@
                BRAVO = GET_BRAVO_ANTHRO( I, J, NN )
          
                ! -1 indicates tracer NN does not have BRAVO emissions
-               !-----------------------------------------------------------
-               ! Prior to 11/19/08:
-               ! Use more robust test to only screen out -1 values
-               ! and not zero values (which could be valid emissions)
-               ! (avd, phs, bmy, 11/19/08)               
-               !IF ( BRAVO > 0d0 ) THEN
-               !-----------------------------------------------------------
                IF ( .not. ( BRAVO < 0d0 ) ) THEN
 
                   ! Apply time-of-day factor
@@ -699,13 +665,6 @@
                CAC = GET_CAC_ANTHRO( I, J, NN, MOLEC_CM2_S=.TRUE. )
          
                ! -1 indicates tracer NN does not have CAC emissions
-               !-----------------------------------------------------------
-               ! Prior to 11/19/08:
-               ! Use more robust test to only screen out -1 values
-               ! and not zero values (which could be valid emissions)
-               ! (avd, phs, bmy, 11/19/08)               
-               !IF ( CAC > 0d0 ) THEN
-               !-----------------------------------------------------------
                IF ( .not. ( CAC < 0d0 ) ) THEN
 
                   ! Apply time-of-day factor

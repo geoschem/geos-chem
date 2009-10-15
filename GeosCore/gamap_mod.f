@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.3 2009/10/09 13:16:22 bmy Exp $
+! $Id: gamap_mod.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -2320,11 +2320,6 @@
                      NAME (T,28) = 'PRPE'
                      INDEX(T,28) = 18 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     !-------------------------------------------------
-                     ! Prior to 10/9/09:
-                     ! ALD2 has 2 carbons, not 3 (dbm, bmy, 10/9/09)
-                     !MOLC (T,28) = 3
-                     !-------------------------------------------------
                      MOLC (T,28) = 2
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 8  )
@@ -3187,9 +3182,6 @@
                   NAME(T,66) = 'SPHU'
                   UNIT(T,66) = 'g/kg'
                CASE( 5 )
-!-- prior 10/7/09 (Junhua)
-!                  NAME(T,66) = 'CLDMAS'
-!                  UNIT(T,66) = 'kg/m2/s'
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
