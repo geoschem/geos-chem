@@ -17,8 +17,30 @@ Removed in v8-02-03:
 Modified in v8-02-03:
 -------------------------------------------------------------------------------
 
+In the Headers subdirectory:
+
+define.h		-- Removed references to IN_CLOUD_OD
+			-- Added ProTeX headers
+
+
+In the GeosCore subdirectory:
+
 chem_dms		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
 
 chem_so2		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
+
+fast_j.f 		-- Removed references to IN_CLOUD_OD		
+
+open_a6_fields		-- Removed references to IN_CLOUD_OD
+("a6_read_mod.f")
+
+read_a3			-- Removed references to IN_CLOUD_OD
+("a3_read_mod.f")
+
+read_a6			-- Removed references to IN_CLOUD_OD
+("a6_read_mod.f")
+
+read_i6			-- Removed references to IN_CLOUD_OD
+("i6_read_mod.f")

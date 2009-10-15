@@ -1,10 +1,10 @@
-! $Id: i6_read_mod.f,v 1.1 2009/09/16 14:06:24 bmy Exp $
+! $Id: i6_read_mod.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
       MODULE I6_READ_MOD
 !
 !******************************************************************************
 !  Module I6_READ_MOD contains subroutines that unzip, open, and read
 !  GEOS-CHEM I-6 (instantaneous 6-hr) met fields from disk. 
-!  (bmy, 6/23/03, 10/7/08)
+!  (bmy, 6/23/03, 10/15/09)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -48,6 +48,7 @@
 !  (13) Now read TROPP files for GEOS-4, and check tropopause level 
 !       in case of a variable tropopause (phs, bmy, bdf, 9/14/06)
 !  (14) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  (15) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -677,7 +678,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_I6 reads GEOS-CHEM I-6 (inst. 6-hr) met fields from disk.
-!  (bmy, 5/8/98, 10/7/08)
+!  (bmy, 5/8/98, 10/15/09)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -711,6 +712,7 @@
 !  (7 ) Now read TROPP files for GEOS-4 (phs, bmy, bdf, 9/12/06)
 !  (8 ) Now read TO3 and TTO3 for GEOS-5 (bmy, 1/16/07)
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -751,7 +753,12 @@
       !=================================================================
 
       ! Get the number of I-6 fields
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!------------------------------------------------------------
+#if   defined( GEOS_5 )
       N_I6 = N_I6_FIELDS
 #else
       N_I6 = GET_N_I6( NYMD )

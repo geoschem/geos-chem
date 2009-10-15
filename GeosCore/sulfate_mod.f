@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.2 2009/10/15 13:41:11 bmy Exp $
+! $Id: sulfate_mod.f,v 1.3 2009/10/15 14:52:19 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -1476,7 +1476,11 @@
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
-      Ki     = 1.5d-12
+      !-----------------------------------------------
+      ! Prior to 10/15/09:
+      ! Moved this below (jaf, bmy, 10/15/09)
+      !Ki     = 1.5d-12
+      !-----------------------------------------------
 
       ! Zero ND44_TMP array
       ND44_TMP = 0d0

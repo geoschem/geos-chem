@@ -1,9 +1,9 @@
-! $Id: a6_read_mod.f,v 1.1 2009/09/16 14:06:44 bmy Exp $
+! $Id: a6_read_mod.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
 !  Module A6_READ_MOD contains subroutines that unzip, open, and read
-!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/1/08)
+!  GEOS-CHEM A-6 (avg 6-hour) met fields from disk. (bmy, 6/19/03, 10/15/09)
 ! 
 !  Module Routines:
 !  ============================================================================
@@ -52,6 +52,7 @@
 !        unitless to % to be compatible w/ present drydep etc. algorithms. 
 !        (phs, bmy, 3/28/08)
 !  (15) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
+!  (16) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -311,7 +312,7 @@
 !
 !******************************************************************************
 !  Subroutine OPEN_A6_FIELDS opens the A-6 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 2/12/09)
+!  time NHMS. (bmy, bdf, 6/15/98, 10/15/09)
 !  
 !  Arguments as input:
 !  ===========================================================================
@@ -332,6 +333,7 @@
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (10) Set N_A6_FIELDS=21 for GEOS-5 and IN_CLOUD_OD (jmao, bmy, 2/12/09)
+!  (11) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -438,7 +440,12 @@
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_A6_FIELDS
 
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD ) 
+!--------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD ) 
+!--------------------------------------------------------------
+#if   defined( GEOS_5 )
          !%%% KLUDGE: set N_A6_FIELDS=21 when using the reprocessed
          !%%% GEOS-5 met.   This accounts for CMFMC (which doesn't seem
          !%%% to get counted) as well as for MOISTQ, which is an extra
@@ -752,7 +759,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
-!  (bmy, 6/5/98, 3/28/08)
+!  (bmy, 6/5/98, 10/15/09)
 ! 
 !  Arguments as input:
 !  ===========================================================================
@@ -818,6 +825,7 @@
 !        name for PV.  Bug fix: convert GEOS-5 RH from unitless to %.
 !        (phs, bmy, 3/28/08)
 !  (8 ) Now get the # of A-6 fields from the file ident string (bmy, 10/7/08)
+!  (9 ) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -889,7 +897,12 @@
       !=================================================================
 
       ! Get number of A-6 fields
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-------------------------------------------------------------
+#if   defined( GEOS_5 )
       N_A6 = N_A6_FIELDS
 #else
       N_A6 = GET_N_A6()
@@ -1540,13 +1553,18 @@
       ! Special handling for GEOS-5
       !------------------------------
 
-#if   !defined( IN_CLOUD_OD )
-      !%%%%% KLUDGE FOR GEOS-5: If we are not using GEOS-5 met fields
-      !%%%%% that have been reprocessed to fix the bug in optical depth,
-      !%%%%% then multiply optical depth by the cloud fraction for a
-      !%%%%% quick fix. (bmy, phs, 10/10/08)
-      IF ( PRESENT( OPTDEPTH ) ) OPTDEPTH = OPTDEPTH * CLDTOT
-#endif
+!------------------------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   !defined( IN_CLOUD_OD )
+!      !%%%%% KLUDGE FOR GEOS-5: If we are not using GEOS-5 met fields
+!      !%%%%% that have been reprocessed to fix the bug in optical depth,
+!      !%%%%% then multiply optical depth by the cloud fraction for a
+!      !%%%%% quick fix. (bmy, phs, 10/10/08)
+!      IF ( PRESENT( OPTDEPTH ) ) OPTDEPTH = OPTDEPTH * CLDTOT
+!#endif
+!------------------------------------------------------------------------------
+
 
       ! Convert RH from unitless to percent (phs, bmy, 3/28/08)
       ! %%% NOTE: GEOS-5 file spec says units of RH are % but that's wrong!

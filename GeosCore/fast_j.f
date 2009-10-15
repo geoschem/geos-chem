@@ -1,10 +1,10 @@
-! $Id: fast_j.f,v 1.1 2009/09/16 14:06:30 bmy Exp $
+! $Id: fast_j.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
 !  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
 !  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 10/7/08)
+!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 10/15/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -71,6 +71,7 @@
 !  (18) Now switch to approx. random overlap option (hyl, phs, bmy, 10/7/08)
 !  (19) Now can handle GEOS-5 reprocessed met data with OPTDEPTH being
 !        in-cloud optical depths. (bmy, hyl, 10/24/08)
+!  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -207,7 +208,12 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-----------------------------------------------------------
+! Prior to 10/15/09:
+! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-----------------------------------------------------------
+#if   defined( GEOS_5 )
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
@@ -237,7 +243,12 @@
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-------------------------------------------------------------
+#if   defined( GEOS_5 )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -340,7 +351,12 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!------------------------------------------------------------
+#if   defined( GEOS_5 )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                   ! optical depth & cloud fractions regridded with RegridTau)

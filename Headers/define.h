@@ -1,10 +1,16 @@
- ! $Id: define.h,v 1.2 2009/09/24 20:46:11 bmy Exp $
+! $Id: define.h,v 1.3 2009/10/15 14:52:19 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Include file "define.h" specifies C-preprocessor "switches" that are 
-!  used to include or exclude certain sections of code.  
-!  (bmy, bdf, 1/30/98, 11/6/08)
+! !INCLUDE: define.h
 !
+! !DESCRIPTION: Include file "define.h" specifies C-preprocessor "switches" 
+!  that are used to include or exclude certain sections of code.  
+!\\
+!\\
+! !REMARKS:
 !  List of "Switches"
 !  ===========================================================================
 !  (1 ) GCAP        : Enables code for GCAP   met fields & chemistry
@@ -23,7 +29,7 @@
 !  (14) LINUX_PGI   : Enables code for Linux w/ PGI compiler
 !  (15) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
 !  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
-! 
+!                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
 !        that normally reference CMN_SIZE will also reference "define.h".
@@ -31,46 +37,58 @@
 !        given implementation, as the criteria for code inclusion/exclusion 
 !        is the #if defined() statement.  Undefined "switches" are "off".
 !  (3 ) To turn off a switch, comment that line of code out.
-!  (4 ) As of 11/30/99, DO_MASSFLUX is obsolete, since the mass flux
-!        arrays are now declared allocatable in "diag_mod.f".  
-!  (5 ) Eliminate DO_MASSB switch -- ND63 diagnostic is now obsolete.
-!        (bmy, 4/12/00)
-!  (6 ) Add GEOS_3 and GRID1x1 switches for future use (bmy, 7/7/00)
-!  (7 ) Make sure that one of FULLCHEM, SMALLCHEM, or LGEOSCO is turned on.
-!        Also cosmetic changes. (bmy, 10/3/00)
-!  (8 ) Added new switches "DEC_COMPAQ" and "SGI" (bmy, 3/9/01) 
-!  (9 ) Added new "LINUX" switch (bmy, 7/16/01)
-!  (10) Added new "GEOS_4" switch for GEOS-4/fvDAS met fields (bmy, 11/21/01)
-!  (11) Now enclose switch names in ' ', since the PGI compiler chokes 
-!        on barewords (bmy, 3/20/02)
-!  (12) Changed RCS ID tag comment character from "C" to "!" to allow freeform
-!        compilation (bmy, 6/25/02)
-!  (13) Removed GEOS_2 switch; added GEOS_4 switch.  Also added SPARC switch 
-!        to invoke Sun/Sparc specific code. (bmy, 3/23/03)
-!  (14) Added IBM_AIX switch (bmy, 6/27/03)
-!  (15) Added INTEL_FC switch (bmy, 10/21/03)
-!  (16) Added GRID30LEV switch for 30L GEOS-3 or GEOS-4 grid (bmy, 10/31/03)
-!  (17) Renamed cpp switch "LINUX" to "LINUX_PGI".  Renamed cpp switch 
-!        "INTEL_FC" to "LINUX_IFC".  Renamed cpp switch "SGI" to "SGI_MIPS".
-!        Added cpp switch "LINUX_EFC".  Removed cpp switch SMALLCHEM.
-!        (bmy, 12/2/03)
-!  (18) Added "A_LLK_03" switch to denote GEOS-4 "a_llk_03" met fields.  This
-!        will be temporary since "a_llk_03" met fields will be replaced by
-!        a newer product.  (bmy, 3/22/04) 
-!  (19) Added NESTED_NA and NESTED_CH cpp switches.  Also add GRID1x125
-!        cpp switch. (bmy, 12/1/04)
-!  (20) Removed obsolete A_LLK_03, LFASTJ, LSLOWJ, FULLCHEM, LGEOSCO switches.
-!        Also added extra switches for GCAP and GEOS_5 met fields.  
-!        (bmy, 6/23/05)
-!  (21) Added LINUX_IFORT switch to delineate Intel compilers v8 or v9 
-!        from v7. (bmy, 10/18/05)
-!  (22) Removed GEOS_1, GEOS_STRAT, LINUX_IFC, LINUX_EFC (bmy, 8/4/06)
-!  (23) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
-!  (24) Added IN_CLOUD_OD flag for reprocessed GEOS-5 met.  Added GRID05x0666 
-!        flag for GEOS-5 nested grids (yxw, dan, bmy, hyl, 11/6/08)
-!  (25) Deleted support for old COMPAQ and SGI_MIPS compilers.  Added
-!        switch for IBM XLF compiler. (bmy, 7/8/09)
-!******************************************************************************
+!
+! !REVISION HISTORY:
+!  30 Nov 1999 - R. Yantosca - DO_MASSFLUX is obsolete, since the mass flux
+!                              arrays are now declared allocatable in 
+!                             "diag_mod.f".  
+!  12 Apr 2000 - R. Yantosca - Eliminate DO_MASSB switch -- ND63 diagnostic 
+!                              is now obsolete.
+!  07 Jul 2000 - R. Yantosca - Add GEOS_3 and GRID1x1 switches for future use
+!  03 Oct 2000 - R. Yantosca - Make sure that one of FULLCHEM, SMALLCHEM, or 
+!                              LGEOSCO is turned on.  Also cosmetic changes. 
+!  03 Sep 2001 - R. Yantosca - Added new switches "DEC_COMPAQ" and "SGI" 
+!  16 Jul 2001 - R. Yantosca - Added new "LINUX" switch\
+!  21 Nov 2001 - R. Yantosca - Added new "GEOS_4" switch for GEOS-4/fvDAS 
+!                              met fields
+!  20 Mar 2002 - R. Yantosca - Now enclose switch names in ' ', since the 
+!                              PGI compiler chokes on barewords
+!  25 Jun 2002 - R. Yantosca - Changed RCS ID tag comment character from "C" 
+!                              to "!" to allow freeform compilation
+!  23 Mar 2003 - R. Yantosca - Removed GEOS_2 switch; added GEOS_4 switch.  
+!                              Also added SPARC switch to invoke Sun/Sparc 
+!                              specific code.
+!  27 Mar 2003 - R. Yantosca - Added IBM_AIX switch
+!  21 Oct 2003 - R. Yantosca - Added INTEL_FC switch
+!  31 Oct 2003 - R. Yantosca - GRID30LEV switch for 30L GEOS-3 or GEOS-4 grid
+!  02 Dec 2003 - R. Yantosca - Renamed cpp switch "LINUX" to "LINUX_PGI".  
+!                              Renamed cpp switch "INTEL_FC" to "LINUX_IFC".  
+!                              Renamed cpp switch "SGI" to "SGI_MIPS".
+!                              Added cpp switch "LINUX_EFC".  
+!                              Removed cpp switch SMALLCHEM.
+!  22 Mar 2004 - R. Yantosca - Added "A_LLK_03" switch to denote GEOS-4 
+!                              "a_llk_03" met fields.  This will be temporary 
+!                              since "a_llk_03" met fields will be replaced by
+!                              a newer product.
+!  01 Dec 2004 - R. Yantosca - Added NESTED_NA and NESTED_CH cpp switches.  
+!                              Also add GRID1x125 cpp switch.
+!  23 Jun 2005 - R. Yantosca - Removed obsolete A_LLK_03, LFASTJ, LSLOWJ, 
+!                              FULLCHEM, LGEOSCO switches.  Also added extra 
+!                              switches for GCAP and GEOS_5 met fields.  
+!  18 Oct 2005 - R. Yantosca - Added LINUX_IFORT switch to delineate Intel 
+!                              compilers v8 or v9 from v7.
+!  04 Aug 2006 - R. Yantosca - Removed obsolete GEOS_1, GEOS_STRAT, LINUX_IFC, 
+!                              LINUX_EFC switches.
+!  07 Feb 2007 - R. Yantosca - Renamed GRID30LEV to GRIDREDUCED
+!  06 Nov 2008 - R. Yantosca - Added IN_CLOUD_OD flag for reprocessed GEOS-5 
+!                              met.  Added GRID05x0666 flag for GEOS-5 nested 
+!                              grids (cf. yxw, dan, bmy, hyl)
+!  08 Jul 2009 - R. Yantosca - Deleted support for old COMPAQ and SGI_MIPS 
+!                              compilers.  Added switch for IBM XLF compiler. 
+!  15 Oct 2009 - R. Yantosca - Remove IN_CLOUD_OD.  Added ProTex headers.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 !==============================================================================
 ! Undefine all "switches" so that they cannot be accidentally reset  
@@ -92,7 +110,10 @@
 #undef LINUX_PGI
 #undef LINUX_IFORT
 #undef SPARC
-#undef IN_CLOUD_OD
+!----------------------------
+! Prior to 10/15/09:
+!#undef IN_CLOUD_OD
+!----------------------------
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -123,25 +144,30 @@
 #define LINUX_IFORT 'LINUX_IFORT'
 !#define SPARC       'SPARC'
 
-!----- FOR GEOS-5 MET FIELDS ONLY -----
-! NOTE: If you are using GEOS-5 met fields that were reprocessed to 
-! correctly regrid the in-cloud optical depth and cloud fraction fields, 
-! then be sure to uncomment the following line of code.  This will cause 
-! FAST-J to interpret the optical depth correctly.  Leaving this option
-! commented will cause a "quick fix" (i.e. multiplying the optical depth
-! by the cloud fracton) to be applied, which should be a good enough fix
-! in the meantime. (bmy, hyl, 10/24/08)
-#define IN_CLOUD_OD  'IN_CLOUD_OD'
-
-!==============================================================================
-! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  
-!==============================================================================
-#if defined(GEOS_3) || defined(GEOS_4) || defined (GCAP)
-#if defined(IN_CLOUD_OD)
-#error "ERROR: IN_CLOUD_OD option set with GEOS_3, GEOS_4, or GCAP"
-#endif
-#endif
-
+!------------------------------------------------------------------------------
+! Prior to 10/15/09
+! Remove IN_CLOUD_OD, force all users to get the reprocessed GEOS-5 met
+! fields (bmy, 10/15/09)
+!
+!!----- FOR GEOS-5 MET FIELDS ONLY -----
+!! NOTE: If you are using GEOS-5 met fields that were reprocessed to 
+!! correctly regrid the in-cloud optical depth and cloud fraction fields, 
+!! then be sure to uncomment the following line of code.  This will cause 
+!! FAST-J to interpret the optical depth correctly.  Leaving this option
+!! commented will cause a "quick fix" (i.e. multiplying the optical depth
+!! by the cloud fracton) to be applied, which should be a good enough fix
+!! in the meantime. (bmy, hyl, 10/24/08)
+!#define IN_CLOUD_OD  'IN_CLOUD_OD'
+!
+!!==============================================================================
+!! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  
+!!==============================================================================
+!#if defined(GEOS_3) || defined(GEOS_4) || defined (GCAP)
+!#if defined(IN_CLOUD_OD)
+!#error "ERROR: IN_CLOUD_OD option set with GEOS_3, GEOS_4, or GCAP"
+!#endif
+!#endif
+!------------------------------------------------------------------------------
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
@@ -166,3 +192,5 @@
 #error "ERROR: One of IBM_AIX, IBL_XLF, LINUX_PGI, LINUX_IFORT,"
 #error "SPARC must be defined in header file define.h"
 #endif
+
+!EOC

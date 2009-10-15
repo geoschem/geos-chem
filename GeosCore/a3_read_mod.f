@@ -1,9 +1,9 @@
-! $Id: a3_read_mod.f,v 1.1 2009/09/16 14:06:44 bmy Exp $
+! $Id: a3_read_mod.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
       MODULE A3_READ_MOD
 !
 !******************************************************************************
 !  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/7/08)
+!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/15/09)
 ! 
 !  Module Routines:
 !  =========================================================================
@@ -44,6 +44,7 @@
 !  (10) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
 !  (11) Extra modifications for GEOS-5 met fields (bmy, 1/17/07)
 !  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
+!  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -702,7 +703,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 10/7/08)
+!  (bmy, 5/8/98, 10/15/09)
 ! 
 !  Arguments as input:
 !  ============================================================================
@@ -764,6 +765,7 @@
 !  (8 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
+!  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -825,7 +827,12 @@
       !=================================================================
 
       ! Get the number of A-3 fields stored in this data set
-#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-----------------------------------------------------------------
+! Prior to 10/15/09:
+! Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
+!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
+!-----------------------------------------------------------------
+#if   defined( GEOS_5 )
       N_A3 = N_A3_FIELDS
 #else
       N_A3 = GET_N_A3( NYMD )
