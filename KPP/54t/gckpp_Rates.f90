@@ -183,7 +183,7 @@ CONTAINS
 SUBROUTINE Update_RCONST ( )
 
 
-  USE COMODE_MOD,        ONLY : R_KPP
+  USE gckpp_COMODE_MOD,        ONLY : R_KPP
   USE gckpp_Monitor
 
 ! Begin INLINED RCONST
