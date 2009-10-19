@@ -1,9 +1,9 @@
-! $Id: drydep_mod.f,v 1.1 2009/09/16 14:06:34 bmy Exp $
+! $Id: drydep_mod.f,v 1.2 2009/10/19 18:32:54 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
 !  Module DRYDEP_MOD contains variables and routines for the GEOS-CHEM dry
-!  deposition scheme. (bmy, 1/27/03, 9/18/07)
+!  deposition scheme. (bmy, 1/27/03, 10/19/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -158,6 +158,7 @@
 !  (25) Added 15 more dry deposition species (tmf, 7/31/08)
 !  (26) Modify dry depostion to follow the non-local PBL scheme.
 !        (lin, ccc, 5/29/09)
+!  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -2989,7 +2990,7 @@ C** Load array DVEL
 !
 !******************************************************************************
 !  Subroutine INIT_DRYDEP initializes certain variables for the GEOS-CHEM
-!  dry deposition subroutines. (bmy, 11/19/02, 6/23/06)
+!  dry deposition subroutines. (bmy, 11/19/02, 10/19/09)
 !
 !  NOTES:
 !  (1 ) Added N2O5 as a drydep tracer, w/ the same drydep velocity as
@@ -3015,6 +3016,8 @@ C** Load array DVEL
 !  (12) Bug fix: fix TYPO in IF block for IDTSOA4 (dkh, bmy, 6/23/06)
 !  (13) Included H2/HD tracers for offline H2-HD sim (phs, 9/18/07)
 !  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
+!  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
+!        (bmy, 10/19/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3543,7 +3546,12 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'ALPH'
             HSTAR(NUMDEP)   = 0.023d0
             F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 136d-3
+            !----------------------------------------------------------
+            ! Prior to 10/19/09:
+            ! Molwt should be 136.23 not 136 even (bmy, 10/19/09)
+            !XMW(NUMDEP)     = 136d-3
+            !----------------------------------------------------------
+            XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          ! LIMO (Limonene)
@@ -3554,7 +3562,12 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'LIMO'
             HSTAR(NUMDEP)   = 0.07d0
             F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 136d-3
+            !----------------------------------------------------------
+            ! Prior to 10/19/09:
+            ! Molwt should be 136.23 not 136 even (bmy, 10/19/09)
+            !XMW(NUMDEP)     = 136d-3
+            !----------------------------------------------------------
+            XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          ! ALCO (Alcohols)

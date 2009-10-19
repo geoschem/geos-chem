@@ -7,6 +7,8 @@ geos-chem-support@as.harvard.edu
 New in v8-02-04:
 -------------------------------------------------------------------------------
 
+In the GeosCore subdirectory:
+
 linoz_mod.f		-- Module containing routines for the Linoz
 	 		   stratospheric chemistry algorithm
 
@@ -42,6 +44,9 @@ emisssulfate		-- Now read new volcanic SO2 emissions daily
 ("sulfate_mod.f")
 
 fast_j.f 		-- Removed references to IN_CLOUD_OD		
+
+init_drydep		-- Minor bug fix: ALPH, LIMO should have 
+("drydep_mod.f")           molwt = 136.23, not 136 even
 
 init_input		-- Now initialize LLINOZ
 ("input_mod.f")
