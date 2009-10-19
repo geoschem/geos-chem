@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.4 2009/10/15 17:46:23 bmy Exp $
+! $Id: sulfate_mod.f,v 1.5 2009/10/19 15:13:18 phs Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -6402,7 +6402,9 @@
 
                ! Store SO2 emission [kg SO2/s]
                ESO2_an(I,J,1) = EDG_SO2
-               ESO4_an(I,J,2) = 0d0
+!--- prior to 10/19/09 (phs)
+!               ESO4_an(I,J,2) = 0d0
+               ESO2_an(I,J,2) = 0d0
 
                ! Compute SO4 from SO2 [kg SO4/s]
                ESO4_an(I,J,1) = EDG_SO2 * Fe / ( 1.d0 - Fe )
