@@ -1,5 +1,5 @@
 REVISIONS (v8-02-04)
-15 Oct 2009
+19 Oct 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -7,6 +7,8 @@ geos-chem-support@as.harvard.edu
 New in v8-02-04:
 -------------------------------------------------------------------------------
 
+linoz_mod.f		-- Module containing routines for the Linoz
+	 		   stratospheric chemistry algorithm
 
 
 Removed in v8-02-04:
@@ -31,6 +33,8 @@ chem_dms		-- Update reaction rate to match JPL06 and full chem
 chem_so2		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
 
+cleanup.f		-- Now references CLEANUP_LINOZ
+
 cleanup_sulfate		-- Deleted obsolete arrays from older SO2 volcanic
 ("sulfate_mod.f")          emissions inventory
 
@@ -39,10 +43,15 @@ emisssulfate		-- Now read new volcanic SO2 emissions daily
 
 fast_j.f 		-- Removed references to IN_CLOUD_OD		
 
+init_input		-- Now initialize LLINOZ
+("input_mod.f")
+
 init_sulfate		-- Now redimension EEV & NEV arrays for new SO2 
 ("sulfate_mod.f")          volcanic emissions inventory
 			-- Deleted obsolete arrays from older SO2 volcanic
                            emissions inventory
+
+main.f			-- Now calls LINOZ_READ at startup
 
 open_a6_fields		-- Removed references to IN_CLOUD_OD
 ("a6_read_mod.f")
@@ -56,11 +65,18 @@ read_a6			-- Removed references to IN_CLOUD_OD
 read_i6			-- Removed references to IN_CLOUD_OD
 ("i6_read_mod.f")
 
+read_emissions_menu	-- Bug fix: for now, if LEMEPSHIP is turned on but 
+("input_mod.f")            LEMEP is turned off, just turn off LEMEPSHIP and 
+                           print a warning msg
+
 read_erup_volc		-- Complete re-write as volcanic emissions are now 
 ("sulfate_mod.f")          monthly and stored as BPCH files
 
 read_nonerup_volc	-- Complete re-write as volcanic emissions are now 
 ("sulfate_mod.f")          monthly and stored as BPCH files
+
+read_simulation_menu	-- Now read LLINOZ switch from input.geos file
+("input_mod.f")
 
 srcso2			-- Changed processing of volcanic SO2 emissions
 ("sulfate_mod.f")
@@ -68,6 +84,9 @@ srcso2			-- Changed processing of volcanic SO2 emissions
 sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions
 			-- Commented out LEEV and LENV flags
 
+tagged_ox_mod.f		-- Various updates for Linoz
+
+upbdflx_mod.f		-- Various updates for Linoz
 
 
 Removed obsolete, commented out code from:

@@ -1,4 +1,4 @@
-! $Id: upbdflx_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
+! $Id: upbdflx_mod.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
       MODULE UPBDFLX_MOD
 !
 !******************************************************************************
@@ -62,6 +62,7 @@
 !  (23) Cap 1-XRATIO in UPBDFLX_NOY to prevent underflow (phs, 6/30/08)
 !  (24) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (25) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -97,7 +98,7 @@
 !
 !******************************************************************************
 !  Subroutine DO_UPBDFLX is the driver routine for the stratospheric (upper-
-!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 9/18/07)
+!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 10/16/09)
 !  
 !  NOTES:
 !  (1 ) Removed IORD, JORD, KORD from the arg list.  Now references LPRT
@@ -105,13 +106,15 @@
 !        ITS_A_TAGOX_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now references ITS_A_H2HD_SIM from "tracer_mod.f".  Now call routine
 !        UPBDFLX_HD for H2/HD simulation. (lyj, phs, 9/18/07)
+!  (3 ) Added support for LINOZ (dbm, jliu, bmy, 10/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD, ONLY : LPRT, LLINOZ
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
+      USE LINOZ_MOD,   ONLY : DO_LINOZ
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -126,7 +129,12 @@
          !---------------
 
          ! Ox from strat 
-         CALL UPBDFLX_O3
+         ! dbj changed for linoz
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ
+         ELSE
+            CALL UPBDFLX_O3
+         ENDIF
 
          ! NOy from strat
          CALL UPBDFLX_NOY( 1 )
@@ -138,7 +146,12 @@
          !---------------
 
          ! Ox from strat
-         CALL UPBDFLX_O3
+         ! dbj changed for linoz
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ
+         ELSE
+            CALL UPBDFLX_O3
+         ENDIF
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 
@@ -164,7 +177,7 @@
 !******************************************************************************
 !  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
 !  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 7/8/09)
+!  McLinden et al, 2000. (qli, bmy, 12/13/99, 10/16/09)
 !
 !  Reference:
 !  ===========================================================================
@@ -223,6 +236,7 @@
 !  (25) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -340,10 +354,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 )
 !$OMP+PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3    )
-!-------------------------------------------------
-! Comment out for now (bmy, 10/2/07)
-!!$OMP+PRIVATE( PTP )
-!-------------------------------------------------
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = J30S, J30N 
       DO I = 1,    IIPAR
@@ -445,7 +455,8 @@
             STT(I,J,L,NTRACER) = STT(I,J,L,NTRACER) + PO3 
 
             ! Store O3 flux for strat Ox tracer (Tagged Ox only)
-            IF ( ITS_A_TAGOX_SIM() ) CALL ADD_STRAT_POX( I, J, L, PO3 )
+            !IF ( ITS_A_TAGOX_SIM() ) CALL ADD_STRAT_POX( I, J, L, PO3 )
+            !print*,'DBJ: COMMENTED ADD_STRAT_POX'
 
             ! Archive stratospheric O3 for printout in [Tg/yr]
             IF ( FIRST ) THEN

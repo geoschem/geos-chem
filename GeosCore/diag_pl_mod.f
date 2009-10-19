@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.1 2009/09/16 14:06:34 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.2 2009/10/19 14:31:58 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -83,6 +83,7 @@
       PUBLIC :: AD65
       PUBLIC :: DO_SAVE_PL
       PUBLIC :: FAM_PL
+      PUBLIC :: TAGO3_PL_YEAR  ! dbj
       
       ! ... and these routines
       PUBLIC :: DO_DIAG_PL
@@ -105,6 +106,7 @@
       INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
+      INTEGER                        :: TAGO3_PL_YEAR   ! dbj
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 

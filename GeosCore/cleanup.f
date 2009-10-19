@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+! $Id: cleanup.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -81,6 +81,7 @@
 !  (39) Now references CLEANUP_CAC_ANTHRO (amv, phs, 3/10/08)
 !  (40) Now references CLEANUP_ARCTAS_SHIP (phs, 3/10/08)
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
+!  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -125,6 +126,7 @@
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
+      USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
@@ -201,6 +203,7 @@
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
+      CALL CLEANUP_LINOZ
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY

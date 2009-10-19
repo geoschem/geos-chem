@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.1 2009/09/16 14:06:02 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.2 2009/10/19 14:31:58 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03, 12/4/07)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03,10/16/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -51,6 +51,7 @@
 !  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
 !  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
+!  (13) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -79,7 +80,9 @@
       !%%%INTEGER, PARAMETER   :: N_INIT   = 12
       !%%%INTEGER, PARAMETER   :: N_USA    = 13
       !------------------------------------------------------
-      INTEGER, PARAMETER   :: N_TAGGED = 3
+      ! dbj: stratospheric tracers must be tracer 2
+      !------------------------------------------------------
+      INTEGER, PARAMETER   :: N_TAGGED = 2
       INTEGER, PARAMETER   :: N_STRAT  = 2
       INTEGER, PARAMETER   :: N_INIT   = 3
       INTEGER, PARAMETER   :: N_USA    = -1
@@ -122,7 +125,7 @@
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
-      STT(I,J,L,N_STRAT) = STT(I,J,L,N_STRAT) + POx
+      !STT(I,J,L,N_STRAT) = STT(I,J,L,N_STRAT) + POx
 
       ! Return to calling program
       END SUBROUTINE ADD_STRAT_POX
@@ -144,6 +147,7 @@
 !  (5 ) Now use LLTROP instead of LLTROP_FIX (phs, bmy, 12/4/07)
 !  (6 ) Now use LD65, since this is the number of levels use to 
 !        save diag20 (phs, 11/17/08)
+!  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -151,6 +155,13 @@
       USE DIRECTORY_MOD, ONLY : O3PL_DIR 
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, GET_TAU
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      ! JLIU,2008/10/01
+      USE CHARPAK_MOD, ONLY : STRREPL
+      USE TIME_MOD,    ONLY : YMD_EXTRACT, ITS_A_LEAPYEAR
+      USE TIME_MOD,    ONLY : GET_DAY_OF_YEAR, GET_YEAR, GET_HOUR
+      USE DIAG_PL_MOD     !dbj
+      USE JULDAY_MOD,  ONLY : JULDAY    !dbj
+
            
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! LD65
@@ -159,14 +170,51 @@
       REAL*4             :: ARRAY(IGLOB,JGLOB,LD65)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
+      !JLIU, 2008/10/01
+      INTEGER             :: YYYY, MM, DD, FIRST_DATE
+      INTEGER             :: DAY_OF_YEAR
+      CHARACTER(LEN=2)    :: MM_STR, DD_STR
 
       !=================================================================
       ! READ_POX_LOX begins here!
       !=================================================================
 
       ! Filename string
-      FILENAME = 'rate.YYYYMMDD'
-      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+      !FILENAME = 'rate.YYYYMMDD'
+      !CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+
+      ! -----------------------------------------
+      ! dbj 
+      ! JLIU, 2008/10/01
+      ! -----------------------------------------
+      IF (TAGO3_PL_YEAR .GT. 0) THEN
+
+          ! Extract today's date into year, month, and day sections
+          CALL YMD_EXTRACT( GET_NYMD(), YYYY, MM, DD )
+
+          IF ( ITS_A_LEAPYEAR() ) THEN
+             IF ( (.NOT. ITS_A_LEAPYEAR(TAGO3_PL_YEAR)) .AND. 
+     &            (DD .EQ. 29) ) THEN
+                 DD = DD - 1
+             ENDIF
+          ENDIF
+
+#if       defined( LINUX_PGI )
+          ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+          ENCODE( 2, '(a,i4.4,i2.2,i2.2)', FILENAME ) 
+     &        'rate.',TAGO3_PL_YEAR,MM,DD
+#else
+          ! For other platforms, use an F90 internal write (bmy, 9/29/03)
+          WRITE(FILENAME, '(a,i4.4,i2.2,i2.2)') 
+     &         'rate.',TAGO3_PL_YEAR,MM,DD
+#endif
+
+      ELSE
+          FILENAME = 'rate.YYYYMMDD'
+          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+      ENDIF
+
+!------------------------------------------
 
       ! Prefix FILENAME w/ the proper directory
       FILENAME = TRIM( O3PL_DIR ) // FILENAME
@@ -175,21 +223,38 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_POX_LOX: Reading ', a )
 
-      ! Get the TAU0 value for today
-      XTAU = GET_TAU()
+!---------------------------------------
+! dbj
+!JLIU, 2008/10/01
+!---------------------------------------
+
+      IF (TAGO3_PL_YEAR .GT. 0) THEN
+
+         XTAU =
+     &          ( (JULDAY(TAGO3_PL_YEAR,MM,DFLOAT(DD)) - 
+     &             JULDAY(1985,1,DFLOAT(1)))*24.0d0 ) +
+     &             GET_HOUR()
+
+
+      ELSE
+         ! Get the TAU0 value for today
+         XTAU = GET_TAU()
+      ENDIF
 
       !=================================================================
       ! Read P(O3) [kg/cm3/s]
       !=================================================================
 
       ! Initialize
-      ARRAY = 0e0
+      !ARRAY = 0e0
+      ARRAY(:,:,:) = 0e0
 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
      &                 XTAU,      IGLOB,     JGLOB,      
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &         LLTROP_FIX,        ARRAY,     QUIET=.false.)
+c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -199,12 +264,14 @@
       !=================================================================
 
       ! Initialize
-      ARRAY = 0e0
+      ARRAY(:,:,:) = 0e0
+      !ARRAY = 0e0
 
       ! read data
       CALL READ_BPCH2( FILENAME, 'PORL-L=$', 2,      
      &                 XTAU,      IGLOB,     JGLOB,      
-     &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+     &         LLTROP_FIX,        ARRAY,     QUIET=.false.)
+c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )
@@ -429,19 +496,19 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD44
-      USE DIAG_PL_MOD,  ONLY : AD65
-      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,   ONLY : DEPSAV      
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LDRYD
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,     ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY 
-      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,   ONLY : STT,                   N_TRACERS, XNUMOL
-      USE TRACERID_MOD, ONLY : IDTOX
+      USE DIAG_MOD,       ONLY : AD44
+      USE DIAG_PL_MOD,    ONLY : AD65
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,     ONLY : DEPSAV      
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,    ONLY : LDRYD
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY 
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : STT,                 N_TRACERS, XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,  ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD,    ONLY : LNLPBL
 
       IMPLICIT NONE
 

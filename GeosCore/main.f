@@ -1,83 +1,4 @@
-! $Id: main.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
-! $Log: main.f,v $
-! Revision 1.4  2009/10/15 17:46:24  bmy
-! Updated sulfate_mod.f for new SO2 volcanic emissions
-! Removed obsolete, commented out code from several source code files
-! (bmy, 10/15/09)
-!
-! Revision 1.3  2009/10/07 20:56:58  bmy
-! Minor change in debug output...denote "NLPBL 1" or "NLPBL 2" so that
-! we can bracket which call to the DO_PBL_MIX_2 is dying (bmy, 10/7/09)
-!
-! Revision 1.2  2009/09/16 19:19:00  bmy
-! Code changes to allow us to split up KPP from GeosCore w/o
-! dependencies (phs, 9/16/09)
-!
-! Revision 1.65  2009/09/16 19:01:37  phs
-! update to separate comode_mod into 2 files with one specifically for kpp
-!
-! Revision 1.64  2009/09/09 18:29:55  ccarouge
-! small bug fixes for diagnostics and CH4. (ccc, 9/9/09)
-!
-! Revision 1.63  2009/08/19 17:05:46  ccarouge
-! Read GEOS-5 O3 columns and use them after 2008.
-! Diagnostic accumulation modifications.
-! Updated CH4 simulation. (ccc, 8/19/09)
-!
-! Revision 1.62  2009/07/24 20:28:40  ccarouge
-! *** empty log message ***
-!
-! Revision 1.61  2009/07/24 20:25:59  ccarouge
-! test (ccc, 7/24/09)
-!
-! Revision 1.60  2009/06/11 13:16:21  bmy
-! Now print "use ifort -V for information" about IFORT compiler when
-! displaying the type of compiler used to build G-C at top of the log
-! file (bmy, 6/11/09)
-!
-! Revision 1.59  2009/06/01 19:58:14  ccarouge
-! commit non-local PBL (ccc, 6/1/09)
-!
-! Revision 1.58  2009/05/06 14:14:45  ccarouge
-! commits for v8-02-01 (ccarouge 5/6/09)
-!
-! Revision 1.57  2009/01/29 15:35:50  bmy
-! Added protex header to emep_mod.f.  Also some last-minute changes from
-! Philippe, and a couple of typo fixes. (bmy, 1/29/09)
-!
-! Revision 1.56  2008/12/15 21:21:12  bmy
-! Added various updates of diagnostics. (bmy, 12/15/08)
-!
-! Revision 1.55  2008/12/15 15:55:15  bmy
-! Replaced TPCORE by S-J Lin and Kevin Yeh with the version
-! from GMI (ccarouge, bmy, 12/15/08)
-!
-! Bug fix in ND51
-!
-! Removed obsolete "Prior to" code from various routines
-!
-! (bmy, 12/15/08)
-!
-! Revision 1.54  2008/11/07 19:30:33  bmy
-! Modifications for GEOS-5 0.5 x 0.666 nested grid simulation
-! Also removed obsolete lightning_nox_nl_mod.f
-! (bmy, 11/7/08)
-!
-! Revision 1.53  2008/08/08 17:20:36  bmy
-! Updated before Bob Y. goes on vacation (bmy, 8/8/08)
-!
-! Revision 1.52  2008/04/03 14:19:44  bmy
-! Now use RPMARES for ATE.  Only compute ATE w/in tropopause. (bmy, 4/3/08)
-!
-! Revision 1.51  2008/02/14 18:23:49  bmy
-! Added fixes to make sure tagged CO has same emissions
-! as the full-chemistry CO (jaf, mak, bmy, 2/14/08)
-!
-! Revision 1.50  2007/11/16 18:47:43  bmy
-!
-! Bringing in GEOS-5 modifications to the mainline GEOS-Chem std code
-! (bmy, 11/16/07)
-!
+! $Id: main.f,v 1.5 2009/10/19 14:31:58 bmy Exp $
       PROGRAM GEOS_CHEM
 ! 
 !******************************************************************************
@@ -93,23 +14,23 @@
 !                 (formerly known as the Harvard-GEOS model)
 !           for 4 x 5, 2 x 2.5 global grids and 1 x 1 nested grids
 !
-!       Contact: Bob Yantosca, Harvard University (bmy@io.as.harvard.edu)
+!       Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)
 !                                                                     
 !******************************************************************************
 !
 !  See the GEOS-Chem Web Site:
 !
-!     http://www.as.harvard.edu/chemistry/trop/geos/
+!     http://acmg.seas.harvard.edu/geos/
 !
 !  and  the GEOS-Chem User's Guide:
 !
-!     http://www.as.harvard.edu/chemistry/trop/geos/doc/man/
+!     http://acmg.seas.harvard.edu/geos/doc/man/
 !
 !  and the GEOS-Chem wiki:
 !
 !     http://wiki.seas.harvard.edu/geos-chem/
 !
-!  for the most up-to-date GEOS-CHEM documentation on the following topics:
+!  for the most up-to-date GEOS-Chem documentation on the following topics:
 !
 !     - installation, compilation, and execution
 !     - coding practice and style
@@ -174,6 +95,7 @@
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
+      USE LOGICAL_MOD,       ONLY : LLINOZ
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -232,6 +154,7 @@
       ! Added (lin, 03/31/09)
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
+      USE LINOZ_MOD,         ONLY : LINOZ_READ
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -302,6 +225,9 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
          
+      ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
+      IF ( LLINOZ ) CALL LINOZ_READ
+
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 

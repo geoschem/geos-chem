@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: input_mod.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 8/21/09)
+!  (bmy, 7/20/04, 10/16/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -136,6 +136,7 @@
 !  (28) Now read LCOOKE in aerosol menu (phs, 5/18/09)
 !  (29) Add CH4_MENU in input.geos (kjw, 8/18/09)
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
+!  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -515,7 +516,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 6/17/08)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 10/15/09)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
@@ -527,6 +528,7 @@
 !        INIT_TRANSFER (bmy, 11/5/07)
 !  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
+!  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -536,7 +538,7 @@
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP
+      USE LOGICAL_MOD,   ONLY : LVARTROP,    LLINOZ
       USE RESTART_MOD,   ONLY : SET_RESTART
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -620,12 +622,16 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
+      ! LINOZ chemistry in the stratosphere
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      READ( SUBSTRS(1:N), *     ) LLINOZ  
+
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
 
       !=================================================================
       ! Print to screen
@@ -658,6 +664,7 @@
       WRITE( 6, 120     ) 'Unzip met fields?           : ', LUNZIP
       WRITE( 6, 120     ) 'Wait for met fields?        : ', LWAIT
       WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
+      WRITE( 6, 120     ) 'Use LINOZ strat chemistry?  : ', LLINOZ
       WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
 
       ! Format statements
@@ -1288,7 +1295,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 10/30/08)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 10/18/09)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1320,6 +1327,8 @@
 !  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
 !       (ccc, 2/2/09)
 !  (21) Now read LICOADSSHIP (cklee, 6/30/09)
+!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
+!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1564,6 +1573,20 @@
          LEDGARSOx  = .TRUE.
       ENDIF
 
+      !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
+      !%%% off, this will cause an error (because arrays are not   %%%
+      !%%% allocated, etc.).  For now, just turn off LEMEPSHIP     %%%
+      !%%% and print a warning message.  Whoever wants to fix this %%%
+      !%%% in a more robust way is welcome to do so.               %%%
+      !%%% (mak, bmy, 10/19/09)                                    %%%
+      IF ( LEMEPSHIP .and. ( .not. LEMEP ) ) THEN
+         LEMEPSHIP = .FALSE.
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
+         WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
+         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
 
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
@@ -4629,7 +4652,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 9/24/07)
+!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/16/09)
 !
 !  NOTES:
 !  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
@@ -4645,6 +4668,7 @@
 !  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
 !  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
 !  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
+!  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4676,6 +4700,7 @@
       ! >> (dkh, 02/12/09) 
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
+      USE LOGICAL_MOD,   ONLY : LLINOZ
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4761,6 +4786,7 @@
       LSPLIT       = .FALSE.
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
+      LLINOZ       = .FALSE.
 
       ! Initialize counters
       CT1          = 0

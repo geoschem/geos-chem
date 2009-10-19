@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2009/10/07 14:49:48 bmy Exp $
+# $Id: Makefile,v 1.9 2009/10/19 14:31:58 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -189,6 +189,7 @@ tpcore_mod.o                  \
 tpcore_window_mod.o           \
 tpcore_geos5_window_mod.o     \
 transport_mod.o               \
+linoz_mod.o                   \
 upbdflx_mod.o                 \
 chemistry_mod.o               \
 emissions_mod.o               \
