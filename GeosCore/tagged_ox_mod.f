@@ -1,10 +1,10 @@
-! $Id: tagged_ox_mod.f,v 1.2 2009/10/19 14:31:58 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.3 2009/10/26 20:34:47 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
 !  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
 !  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03,10/16/09)
+!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03,10/26/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -51,7 +51,7 @@
 !  (10) Modified for variable tropopause (phs, bmy, 1/19/07)
 !  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
-!  (13) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
+!  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -472,7 +472,7 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 !
 !******************************************************************************
 !  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 12/4/07)
+!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 10/26/09)
 ! 
 !  NOTES:
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
@@ -493,6 +493,7 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 !        up to LLTROP_FIX (phs, 1/19/07) 
 !  (8 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
+!  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -604,7 +605,16 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
             IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM 
+            !----------------------------------------------------------------
+            ! Prior to 10/26/09:
+            ! Only compute loss rate in the stratosphere (dbj, bmy, 10/26/09)
+            !LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM 
+            !----------------------------------------------------------------
+            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
+               LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
+            ELSE
+               LL = 0.0d0
+            ENDIF 
                            
             !===========================================================
             ! ND65 diagnostic: Chemical prod/loss [kg/s]

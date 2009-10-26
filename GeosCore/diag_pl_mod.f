@@ -1,10 +1,10 @@
-! $Id: diag_pl_mod.f,v 1.2 2009/10/19 14:31:58 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.3 2009/10/26 20:34:47 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
 !  Module DIAG_PL_MOD contains variables and routines which are used to 
 !  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 11/18/08)
+!  (bmy, 7/20/04, 10/26/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -67,6 +67,7 @@
 !  (7 ) Now use LD65 as the vertical dimension instead of LLTROP or LLTROP_FIX
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
+!  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -637,7 +638,7 @@
 !******************************************************************************
 !  Subroutine DIAG20 computes production and loss rates of O3, and 
 !  then calls subroutine WRITE20 to save the these rates to disk. 
-!  (bey, bmy, 6/9/99, 12/4/07)
+!  (bey, bmy, 6/9/99, 10/26/09)
 !
 !  By saving, the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
@@ -658,6 +659,7 @@
 !  (6 ) Now use LD65 instead of LLTROP_FIX (phs, bmy, 12/4/07)
 !  (7 ) Now take care of boxes that switch b/w stratospheric and tropospheric
 !        regimes (phs, 11/17/08)
+!  (8 ) Bug fix: Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -800,26 +802,34 @@
          ! Write P(Ox) and L(Ox) to disk
          CALL WRITE20
 
-         ! Zero counter
-         COUNT(I,J,L) = 0
+!------------------------------------------------------------
+! Prior to 10/26/09
+! Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
+!         ! Zero counter
+!         COUNT(I,J,L) = 0
+!
+!         ! Zero PL24H array
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, N )
+!         DO N = 1, 2
+!         DO L = 1, LD65
+!         DO J = 1, JJPAR
+!         DO I = 1, IIPAR
+!            PL24H(I,J,L,N) = 0d0
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!         ENDDO
+!!$OMP END PARALLEL DO 
+!------------------------------------------------------------
 
-         ! Zero PL24H array
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, 2
-         DO L = 1, LD65
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            PL24H(I,J,L,N) = 0d0
-         ENDDO
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO        
+         ! Zero arrays
+         COUNT = 0
+         PL24H = 0d0
 
          ! Reset for the next day
-         TAU0 = TAU1
+         TAU0  = TAU1
       ENDIF
 
       ! Return to calling program

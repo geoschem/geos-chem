@@ -1,12 +1,23 @@
+! $Id: CVSLOG,v 1.2 2009/10/26 20:34:48 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.2  2009/10/26 20:34:48  bmy
+! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
+!
+!
+! $Log: CVSLOG,v $
+! Revision 1.2  2009/10/26 20:34:48  bmy
+! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
+!
 ! Revision 1.1  2009/10/19 14:31:58  bmy
 ! Fixed bug in input_mod re: LEMEPSHIP
 ! Committed changes for LINOZ
 ! Updated comments (bmy, 10/19/09)
 !
-!
-! $Id: CVSLOG,v 1.1 2009/10/19 14:31:58 bmy Exp $
+! $Id: CVSLOG,v 1.2 2009/10/26 20:34:48 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.2  2009/10/26 20:34:48  bmy
+! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
+!
 ! Revision 1.1  2009/10/19 14:31:58  bmy
 ! Fixed bug in input_mod re: LEMEPSHIP
 ! Committed changes for LINOZ
