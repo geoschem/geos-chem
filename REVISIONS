@@ -1,33 +1,52 @@
 REVISIONS (v8-02-04)
-26 Oct 2009
+27 Oct 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
 New in v8-02-04:
--------------------------------------------------------------------------------
+================================================================================
 
 In the GeosCore subdirectory:
+-----------------------------
 
 linoz_mod.f		-- Module containing routines for the Linoz
 	 		   stratospheric chemistry algorithm
 
 
 Removed in v8-02-04:
--------------------------------------------------------------------------------
+================================================================================
 
 
 
 Modified in v8-02-04:
--------------------------------------------------------------------------------
+================================================================================
+
+Input files for GEOS-Chem:
+--------------------------
+
+ratj.d     		-- Updated the branching ratio of HNO4.  
+			   Changed the lines:
+			      Line 13 HNO4 from 33.3 to 5.0
+			      Line 14 HNO4 from 66.7 to 95.0
+			   This is based on Jimenez et al, "Quantum yields 
+			   of OH, HO2 and NO3 in the UV photolysis of HO2NO2" 
+			   (jmao, bmy, 10/27/09)
+
 
 In the Headers subdirectory:
+----------------------------
 
 define.h		-- Removed references to IN_CLOUD_OD
 			-- Added ProTeX headers
 
 
 In the GeosCore subdirectory:
+-----------------------------
+
+calcrate.f		-- FastJX has taken near-IR photolysis into account 
+                           with cross section at 574nm, so we don't need to 
+	                   manually add 1e-5 to the JHNO4 rate anymore.
 
 chem_dms		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
@@ -100,8 +119,8 @@ tagged_ox_mod.f		-- Various updates for Linoz
 upbdflx_mod.f		-- Various updates for Linoz
 
 
-Removed obsolete, commented out code from:
--------------------------------------------
+Removed obsolete, commented out code from the following routines:
+================================================================================
 calcrate.f
 carbon_mod.f
 diag3.f
