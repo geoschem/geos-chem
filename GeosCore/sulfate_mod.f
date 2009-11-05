@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.5 2009/10/19 15:13:18 phs Exp $
+! $Id: sulfate_mod.f,v 1.6 2009/11/05 15:35:29 phs Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -212,6 +212,8 @@
 !  (45) Last year of SST data is now 2008 (see READ_SST) (bmy, 7/13/09)
 !  (46) Updated rxns in CHEM_DMS and CHEM_SO2 to JPL 2006 (jaf, bmy, 10/15/09)
 !  (47) Added new volcanic emissions of SO2 (jaf, bmy, 10/15/09)
+!  (48) Now accounts for NEI 2005 emissions, and multilevels SOxan emissions
+!        (amv, phs, 10/15/2009) 
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -3997,7 +3999,97 @@
       END SUBROUTINE EMISSSULFATE
 
 !-----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SULFATE_PBL_MIX
+!
+! !DESCRIPTION: Subroutine SULFATE\_PBL\_MIX partitions the total
+! anthro sulfate emissions thru the entire boundary layer. Emissions
+! above the PBL are not used, and left in their level, regardless of
+! the mixing scheme. For non-local mixing scheme, all emissions
+! within the PBL are put in the first level.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SULFATE_PBL_MIX ( EMISS, SULFATE, FRAC_OF_PBL,
+     $                             PBL_TOP, IS_LOCAL )
+!
+! !USES:
+!                 
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+!             
+      INTEGER, INTENT(IN)    :: PBL_TOP ! Top level of boundary layer
+      LOGICAL, INTENT(IN)    :: IS_LOCAL ! mixing scheme
+      REAL*8,  INTENT(IN)    :: FRAC_OF_PBL(:) ! 
+      REAL*8,  INTENT(IN)    :: EMISS(:)  
+!     
+! !OUTPUT PARAMETERS:
+!             
+      REAL*8,  INTENT(INOUT) :: SULFATE(:) ! partitioned emissions
+!
+! !REVISION HISTORY: 
+!   27 Oct 2009 - P. Le Sager - initial
+!
+! !REMARKS:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                :: TOPMIX, TOPEMISS
+      REAL*8                 :: TSULFATE
 
+      ! Zero  at all levels 
+      SULFATE  = 0.0
+
+      ! Number of emission levels
+      TOPEMISS = SIZE( EMISS )
+      
+      ! Higher level of emiss to be partitionned
+      TOPMIX   = MIN( PBL_TOP, TOPEMISS )        
+        
+      ! Get total emiss SULFATE in PBL
+      TSULFATE = SUM( EMISS(1:TOPMIX) ) 
+
+      
+      ! Partition if local scheme
+      IF ( IS_LOCAL ) THEN
+
+         ! Fraction of total SULFATE in each layer
+         SULFATE( 1:PBL_TOP ) = FRAC_OF_PBL( 1:PBL_TOP ) * TSULFATE
+         
+      ELSE
+         
+         SULFATE(1) = TSULFATE
+
+      ENDIF
+
+      ! Do not touch emissions above PBL, regardless of mixing scheme
+      IF ( TOPEMISS > TOPMIX )
+     $     SULFATE( TOPMIX+1 : TOPEMISS ) = EMISS( TOPMIX+1 : TOPEMISS )
+        
+!#### DEBUG
+!      IF ( ABS( SUM( SULFATE(1:TOPMIX) ) - TSULFATE ) > 1.D-5 ) THEN
+!         PRINT*, '### ERROR in SULFATE_PBL_MIX!'
+!         PRINT*, '### SUM(SULFATE) : ', SUM( SULFATE(1:TOPMIX) )
+!         PRINT*, '### TSULFATE     : ', TSULFATE
+!         CALL ERROR_STOP( 'Check SULFATE PBL EMISSIONS MIXING',
+!     &                    'SULFATE_PBL_MIX (sulfate_mod.f)' )
+!      ENDIF
+!#### DEBUG
+
+      END SUBROUTINE SULFATE_PBL_MIX
+!EOC    
+!---------------------------------------------------------------------------
+      
       SUBROUTINE SRCDMS( TC )
 !
 !***************************************************************************** 
@@ -4174,8 +4266,8 @@
                ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
                FEMIS     = GET_FRAC_OF_PBL( I, J, L )
 
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (LNLPBL) FEMIS = 0.D0
+               ! Add option for non-local PBL (Lin, 03/31/09)
+               IF (LNLPBL) FEMIS = 0.D0
 
                ! DMS in box (I,J,L) plus emissions [kg]
                TC(I,J,L) = TC(I,J,L) + ( FEMIS * DMSSRC )
@@ -4249,6 +4341,9 @@
 !  (12) Bug fix: Always fill the diagnostic array AD13_SO2_sh because it 
 !        is allocated anyway (phs, 2/27/09) 
 !  (13) Changed processing of volcanic SO2 emissions (jaf, bmy, 10/15/09)
+!  (14) Read NEI now (amv, 10/07/2009)
+!  (15) Now calls SULFATE_PBL_MIX to do the PBL mixing of
+!     emissions (phs, 10/27/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4265,7 +4360,9 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE GRID_MOD,       ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,    ONLY : LBRAVO, LNEI99,   LSHIPSO2
-      USE LOGICAL_MOD,    ONLY : LCAC
+      USE LOGICAL_MOD,    ONLY : LCAC, LNEI05
+      USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL,  GET_PBL_TOP_L
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_TS_EMIS,      GET_DAY_OF_YEAR 
@@ -4282,7 +4379,7 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      LOGICAL                :: WEEKDAY
+      LOGICAL                :: WEEKDAY, IS_LOCAL
 !-----------------------------------------------------------
 ! Prior to 10/15/09(jaf)
 !      INTEGER                :: LV1, LV2, JDAY
@@ -4294,10 +4391,11 @@
       INTEGER                :: DAY_NUM
       REAL*8                 :: SO2(LLPAR)
       REAL*8                 :: DTSRCE,      SO2SRC
-      REAL*8                 :: TSO2,        FEMIS
+      REAL*8                 :: TSO2,        FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,    AN,        BF
-      REAL*8                 :: SO2an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO2an(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: SO2bf(IIPAR,JJPAR)
+      REAL*8                 :: TEMPEMISS(NOXLEVELS)
 
       ! Ratio of molecular weights: S/SO2
       REAL*8,  PARAMETER     :: S_SO2 = 32d0 / 64d0
@@ -4334,6 +4432,9 @@
       ! Is it a weekday?
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
+      ! is it local PBL mixing scheme?
+      IS_LOCAL = .NOT. LNLPBL      
+      
 !----------------------------------------------------------------------
 ! Prior to 10/15/09 (jaf)
 !      !=================================================================
@@ -4625,7 +4726,7 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, AN, BF )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, AN, BF )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
@@ -4717,8 +4818,9 @@
             ! Default SO2 from GEIA or EDGAR (w/ optional STREETS for 
             ! ASIA, and EMEP for Europe)
             !-----------------------------------------------------------
-            SO2an(I,J,1) = ESO2_an(I,J,1)
-            SO2an(I,J,2) = ESO2_an(I,J,2)
+            DO L = 1, NOXLEVELS
+               SO2an(I,J,L) = ESO2_an(I,J,L)
+            ENDDO
             SO2bf(I,J)   = ESO2_bf(I,J)
 
             !-----------------------------------------------------------
@@ -4734,7 +4836,9 @@
                ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                ! Place all anthro SO2 into surface layer
                SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
-               SO2an(I,J,2) = 0d0
+               DO L = 2, NOXLEVELS
+                  SO2an(I,J,L) = 0d0
+               ENDDO
                
                ! Convert biofuel SO2 from [molec/cm2/s] to [kg/box/s] 
                SO2bf(I,J)   = BF * AREA_CM2 / XNUMOL(IDTSO2)
@@ -4754,15 +4858,19 @@
                ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                ! Place all anthro SO2 into surface layer.
                ! Add to USA emissions if on the border. 
-               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+               IF ( LNEI99 ) then
+                  IF ( GET_USA_MASK( I, J) > 0d0 ) THEN
 
                   SO2an(I,J,1) = SO2an(I,J,1) + 
      &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+                 ENDIF 
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
                ENDIF
 
-               SO2an(I,J,2) = 0d0
+               DO L = 2, NOXLEVELS
+                  SO2an(I,J,L) = 0d0
+               ENDDO
 
             ENDIF
             ENDIF
@@ -4781,15 +4889,40 @@
                ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s] 
                ! Place all anthro SO2 into surface layer.
                ! Add to USA emissions if on the border. 
-               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
+               IF ( LNEI99 ) then
+                  if ( GET_USA_MASK( I, J) > 0d0 ) THEN
 
-                  SO2an(I,J,1) = SO2an(I,J,1) + 
-     &                           AN * AREA_CM2 / XNUMOL(IDTSO2)
+                     SO2an(I,J,1) = SO2an(I,J,1) + 
+     &                    AN * AREA_CM2 / XNUMOL(IDTSO2)
+                  endif
                ELSE
                   SO2an(I,J,1) = AN * AREA_CM2 / XNUMOL(IDTSO2)
                ENDIF
 
-               SO2an(I,J,2) = 0d0
+               DO L = 2, NOXLEVELS
+                  SO2an(I,J,L) = 0d0
+               ENDDO
+
+            ENDIF
+            ENDIF
+
+
+            !-----------------------------------------------------------
+            ! If we are using EPA/NEI 2005 over USA.
+            ! Must be called after CAC and BRAVO to simply overwrite
+            ! where they overlap
+            !-----------------------------------------------------------            
+            IF ( LNEI05 ) THEN
+            IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+
+               ! Read USA SO2 emissions in [molec/cm2/s]
+               DO L = 1, NOXLEVELS
+                  AN = GET_NEI2005_ANTHRO( I, J, L, IDTSO2, WEEKDAY,
+     &                            MOLEC_CM2_s=.TRUE. )
+
+                  ! Convert anthro SO2 from [molec/cm2/s] to [kg/box/s]
+                  SO2an(I,J,L) =  AN * AREA_CM2 / XNUMOL(IDTSO2)
+               ENDDO
 
             ENDIF
             ENDIF
@@ -4803,87 +4936,111 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, L, SO2, TSO2, FEMIS, SO2SRC )
+!$OMP+PRIVATE( I, J, NTOP, L, SO2, FEMIS, SO2SRC, TEMPEMISS )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Top of the boundary layer
-         NTOP = CEILING( GET_PBL_TOP_L( I, J ) ) 
+          ! Top of the boundary layer
+          NTOP = CEILING( GET_PBL_TOP_L( I, J ) ) 
 
-         ! Zero SO2 array
-         DO L = 1, LLPAR
-            SO2(L) = 0d0
-         ENDDO
+          
+          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+          DO L = 1, LLPAR
+             FEMIS(L)  = GET_FRAC_OF_PBL( I, J, L )
+          ENDDO
 
-         ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
-         !TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
-         TSO2  = SUM( SO2an(I,J,:) ) + SO2bf(I,J)
+          
+!---  prior to 10/27/09          
+!phs          ! Zero SO2 array
+!phs          DO L = 1, LLPAR
+!phs             SO2(L) = 0d0
+!phs          ENDDO
+!phs 
+!phs          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
+!phs          TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
+!phs 
+!phs          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
+!phs !         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
+!phs          TSO2 = TSO2 + ESO2_sh(I,J)
+!phs         
+!phs          ! Zero SO2SRC
+!phs          SO2SRC = 0d0
+!phs 
+!phs          !===============================================================
+!phs          ! Partition the total anthro and biomass SO2 emissions thru
+!phs          ! the entire boundary layer (if PBL top is higher than level 2)
+!phs          !===============================================================
+!phs          ! Add option for non-local PBL (Lin, 03/31/09)
+!phs          IF (.NOT. LNLPBL) THEN
+!phs 
+!phs             IF ( NTOP > 2 ) THEN
+!phs    
+!phs                ! Loop thru levels in the PBL
+!phs                DO L  = 1, NTOP
+!phs                  
+!phs                   ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+!phs                   FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+!phs                  
+!phs                   ! Partition total SO2 into level K
+!phs                   SO2(L) = FEMIS * TSO2
+!phs 
+!phs                ENDDO
+!phs 
+!phs             !===============================================================
+!phs             ! If PBL top occurs lower than or close to the top of level 2,
+!phs             ! then then surface SO2 goes into level 1 and the smokestack
+!phs             ! stack SO2 goes into level 2.
+!phs             !===============================================================
+!phs             ELSE
+!phs                SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
+!phs 
+!phs                DO L = 2, NOXLEVELS
+!phs                   SO2(L) = SO2an(I,J,L) 
+!phs                ENDDO
+!phs 
+!phs                ! Also add ship exhaust SO2 into surface if necessary 
+!phs                ! (bec, bmy, 5/20/04)
+!phs !-- prior 6/08 (phs)
+!phs !               IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
+!phs                SO2(1) = SO2(1) + ESO2_sh(I,J)
+!phs 
+!phs             ENDIF 
+!phs 
+!phs          ELSE
+!phs 
+!phs             ! constrain surface emissions to the lowest model layer
+!phs             ! (Lin, 04/28/08)
+!phs             SO2(1) = TSO2
+!phs 
+!phs          ENDIF
+!phs 
+!phs          ! Error check
+!phs          IF ( ABS( SUM( SO2 ) - TSO2 ) > 1.D-5 ) THEN
+!phs !$OMP CRITICAL
+!phs             PRINT*, '### ERROR in SRCSO2!'
+!phs             PRINT*, '### I, J, L, : ', I, J, L
+!phs             PRINT*, '### SUM(SO2) : ', SUM( SO2 )
+!phs             PRINT*, '### TSO2     : ', TSO2
+!phs !$OMP END CRITICAL
+!phs             CALL ERROR_STOP( 'Check SO2 redistribution!',
+!phs      &                       'SRCSO2 (sulfate_mod.f)' )
+!phs          ENDIF
+!phs
 
-         ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
-!         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
-         TSO2 = TSO2 + ESO2_sh(I,J)
-        
-         ! Zero SO2SRC
-         SO2SRC = 0d0
+         !=============================================================
+         ! Do PBL mixing of anthro (multilevel) + biomass + biofuel +
+         ! ship exhaust SO2 at (I,J)
+         !=============================================================
+         TEMPEMISS(1) = SO2an(I,J,1) + Eso2_bb(I,J) +
+     $                  SO2bf(I,J)   + ESO2_sh(I,J)
 
-         !===============================================================
-         ! Partition the total anthro and biomass SO2 emissions thru
-         ! the entire boundary layer (if PBL top is higher than level 2)
-         !===============================================================
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (.NOT. LNLPBL) THEN
+         TEMPEMISS(2:)= SO2an(I,J,2:)
+         
+         call SULFATE_PBL_MIX( TEMPEMISS, SO2, 
+     $                         FEMIS,     NTOP, IS_LOCAL )
 
-            IF ( NTOP > 2 ) THEN
-   
-               ! Loop thru levels in the PBL
-               DO L  = 1, NTOP
-                 
-                  ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-                  FEMIS  = GET_FRAC_OF_PBL( I, J, L )
-                 
-                  ! Partition total SO2 into level K
-                  SO2(L) = FEMIS * TSO2
-
-               ENDDO
-
-            !===============================================================
-            ! If PBL top occurs lower than or close to the top of level 2,
-            ! then then surface SO2 goes into level 1 and the smokestack
-            ! stack SO2 goes into level 2.
-            !===============================================================
-            ELSE
-               SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
-               SO2(2) = SO2an(I,J,2) 
-
-               ! Also add ship exhaust SO2 into surface if necessary 
-               ! (bec, bmy, 5/20/04)
-!-- prior 6/08 (phs)
-!               IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
-               SO2(1) = SO2(1) + ESO2_sh(I,J)
-
-            ENDIF 
-
-         ELSE
-
-            ! constrain surface emissions to the lowest model layer
-            ! (Lin, 04/28/08)
-            SO2(1) = TSO2
-
-         ENDIF
-
-         ! Error check
-         IF ( ABS( SUM( SO2 ) - TSO2 ) > 1.D-5 ) THEN
-!$OMP CRITICAL
-            PRINT*, '### ERROR in SRCSO2!'
-            PRINT*, '### I, J, L, : ', I, J, L
-            PRINT*, '### SUM(SO2) : ', SUM( SO2 )
-            PRINT*, '### TSO2     : ', TSO2
-!$OMP END CRITICAL
-            CALL ERROR_STOP( 'Check SO2 redistribution!',
-     &                       'SRCSO2 (sulfate_mod.f)' )
-         ENDIF
-        
+         
          !==============================================================
          ! Add anthro SO2, aircraft SO2, volcano SO2, and biomass SO2
          ! Convert from [kg SO2/box/s] -> [kg SO2/box/timestep]
@@ -4902,9 +5059,9 @@
                IF (L /= 1) then
                   TC(I,J,L) = TC(I,J,L) + ( SO2SRC * DTSRCE )
                ELSE
-               ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
-               ! (units: kg) (Lin, 06/09/08)
-                  emis_save(I,J,IDTSO2) = SO2SRC * DTSRCE
+                  ! Save surface emis for non-local PBL mixing (vdiff_mod.f) 
+                  ! (units: kg) (Lin, 06/09/08)
+                  EMIS_SAVE(I,J,IDTSO2) = SO2SRC * DTSRCE
                ENDIF
             ENDIF
          ENDDO
@@ -4914,8 +5071,8 @@
          !==============================================================
          IF ( ND13 > 0 ) THEN 
 
-            ! Anthropogenic SO2 -- Levels 1-2
-            DO L = 1, 2
+            ! Anthropogenic SO2 -- Levels 1-NOXLEVELS
+            DO L = 1, NOXLEVELS
                AD13_SO2_an(I,J,L) = AD13_SO2_an(I,J,L) +
      &                              ( SO2an(I,J,L) * S_SO2 * DTSRCE )
             ENDDO
@@ -4990,22 +5147,27 @@
 !  (7 ) Now overwrite CAC emissions over Canada, if necessary (amv,  1/10/08)
 !  (8 ) Need to add CAC_AN to the PRIVATE statement (bmy, 5/27/09)
 !  (9 ) Now account for BRAVO SO4. Fix typo for CAC (phs, 8/24/09)
+!  (10) Now account for NEI 2005 inventory (amv, 10/07/2009)
+!  (11) Now calls SULFATE_PBL_MIX to do the PBL mixing of
+!        emissions (phs, 10/27/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
-      USE BRAVO_MOD,      ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
-      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
-      USE DAO_MOD,        ONLY : PBL
-      USE DIAG_MOD,       ONLY : AD13_SO4_an,     AD13_SO4_bf
-      USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
-      USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC, LBRAVO
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTSO4, IDTSO2
+      USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE DAO_MOD,            ONLY : PBL
+      USE DIAG_MOD,           ONLY : AD13_SO4_an,     AD13_SO4_bf
+      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,  GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LBRAVO, LNEI05
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13 (for now)
@@ -5015,14 +5177,15 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      LOGICAL                :: WEEKDAY
+      LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, DAY_NUM, NTOP
       REAL*8                 :: SO4(LLPAR), DTSRCE  
-      REAL*8                 :: TSO4,       FEMIS
+      REAL*8                 :: TSO4,       FEMIS(LLPAR)
       REAL*8                 :: AREA_CM2,   EPA_AN,  EPA_BF
       REAL*8                 :: AN
-      REAL*8                 :: SO4an(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4an(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: SO4bf(IIPAR,JJPAR)
+      REAL*8                 :: TEMPEMISS(NOXLEVELS)
 
       ! Ratio of molecular weights: S/SO4
       REAL*8,  PARAMETER     :: S_SO4 = 32d0 / 96d0
@@ -5040,6 +5203,9 @@
       ! Is it a weekday?
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
+      ! is it local PBL mixing scheme?
+      IS_LOCAL = .NOT. LNLPBL
+
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 SO4 emissions       (if necessary)
       ! Overwrite CANADA w/ CAC       SO2-fraction emiss. (if necessary)
@@ -5048,7 +5214,8 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, AN )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, EPA_AN, EPA_BF, AN )
+!$OMP+PRIVATE( NTOP, FEMIS, SO4, TEMPEMISS )
       DO J = 1, JJPAR
          
          ! Grid box surface area [cm2]
@@ -5056,16 +5223,26 @@
 
          DO I = 1, IIPAR
 
+            ! Top level of boundary layer at (I,J)
+            NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+
+            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+            DO L = 1, LLPAR
+               FEMIS(L)  = GET_FRAC_OF_PBL( I, J, L )
+            ENDDO
+
             !-----------------------------------------------------------
             ! Default SO4 from GEIA, or (as a fraction of SO2) from 
             ! EDGAR w/ optional STREETS for S.E.-ASIA, and optional
             ! EMEP for Europe
             !-----------------------------------------------------------
-            SO4an(I,J,1) = ESO4_an(I,J,1)
-            SO4an(I,J,2) = ESO4_an(I,J,2)
+            DO L = 1, NOXLEVELS
+               SO4an(I,J,L) = ESO4_an(I,J,L)
+            ENDDO
             SO4bf(I,J)   = 0d0
 
-
+            
+            !-----------------------------------------------------------
             ! If we are using EPA/NEI99 emissions and over the USA
             IF ( LNEI99 ) THEN
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
@@ -5077,7 +5254,9 @@
                   ! Convert anthro SO4 from [molec/cm2/s] to [kg/box/s] 
                   ! Place all EPA/NEI99 anthro SO4 into surface layer
                   SO4an(I,J,1) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
-                  SO4an(I,J,2) = 0d0
+                  DO L = 2,NOXLEVELS
+                     SO4an(I,J,L) = 0d0
+                  ENDDO
                
                   ! Convert biofuel SO4 from [molec/cm2/s] to [kg/box/s]
                   SO4bf(I,J)   = EPA_BF * AREA_CM2 / XNUMOL(IDTSO4)
@@ -5085,6 +5264,7 @@
             ENDIF
             ENDIF
 
+            !-----------------------------------------------------------
             ! If we are using CAC emissions and over CANADA ...
             IF ( LCAC ) THEN
             IF ( GET_CANADA_MASK( I, J) > 0d0 ) THEN
@@ -5095,20 +5275,25 @@
                ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
                ! [kg/box/s]
                ! Place all CAC anthro SO4 into surface layer
-               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
-                  SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
-     &                           * AREA_CM2 / XNUMOL(IDTSO4)
+               IF ( LNEI99 ) then
+                  if (GET_USA_MASK( I, J) > 0d0 ) THEN
+                     SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
+     &                    * AREA_CM2 / XNUMOL(IDTSO4)
+                  endif
                ELSE
                   SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
                   SO4bf(I,J)   = 0d0
                ENDIF
 
-               SO4an(I,J,2) = 0d0
+               DO L = 2, NOXLEVELS
+                  SO4an(I,J,L) = 0d0
+               ENDDO
 
             ENDIF
             ENDIF
 
+            !-----------------------------------------------------------
             ! If we are using BRAVO emissions and over MEXICO ...
             IF ( LBRAVO ) THEN
             IF ( GET_BRAVO_MASK( I, J) > 0d0 ) THEN
@@ -5119,20 +5304,82 @@
                ! Convert anthro SO2 to SO4 and from [molec/cm2/s] to 
                ! [kg/box/s]
                ! Place all BRAVO anthro SO4 into surface layer
-               IF ( LNEI99 .and. GET_USA_MASK( I, J) > 0d0 ) THEN
-                  SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
-     &                           * AREA_CM2 / XNUMOL(IDTSO4)
+               IF ( LNEI99 ) then
+                  if (GET_USA_MASK( I, J) > 0d0 ) THEN
+                     SO4an(I,J,1) = SO4an(I,J,1) + AN * 0.014/ 0.986 
+     &                    * AREA_CM2 / XNUMOL(IDTSO4)
+                  endif
                ELSE
                   SO4an(I,J,1) = AN * 0.014 / 0.986 * AREA_CM2 
      &                           / XNUMOL(IDTSO4)
                   SO4bf(I,J)   = 0d0
                ENDIF
 
-               SO4an(I,J,2) = 0d0
-               
+               DO L = 2, NOXLEVELS
+                  SO4an(I,J,L) = 0d0
+               ENDDO
+
             ENDIF
             ENDIF
 
+            !-----------------------------------------------------------
+            ! If we are using NEI 2005 over the USA ...
+            ! Must be called after CAC and BRAVO to simply overwrite
+            ! where they overlap
+            IF ( LNEI05 ) THEN
+               IF ( NEI05_MASK( I, J) < 0d0 ) THEN
+
+                  ! Read SO4 emissions in [molec/cm2/s]
+                  DO L = 1, NOXLEVELS
+                     EPA_AN    = GET_NEI2005_ANTHRO( I, J, L, IDTSO4,
+     &                                  WEEKDAY,  MOLEC_CM2_S=.TRUE. )
+                     SO4an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTSO4)
+
+                  ENDDO
+                  SO4bf(I,J)   = 0d0
+                  
+               ENDIF
+            ENDIF
+
+
+            !=============================================================
+            ! Do PBL mixing of emissions
+            !=============================================================
+            TEMPEMISS(1) = SO4an(I,J,1) + SO4bf(I,J)
+
+            TEMPEMISS(2:)= SO4an(I,J,2:)
+
+            call SULFATE_PBL_MIX( TEMPEMISS,   SO4, 
+     $                            FEMIS, NTOP, IS_LOCAL )
+
+
+            
+            !=============================================================
+            ! Add SO4 emissions to tracer array 
+            ! Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
+            !=============================================================
+            IF ( IS_LOCAL ) THEN
+               TC(I,J,:)  = TC(I,J,:)  + SO4(:)  * DTSRCE
+            ELSE
+               TC(I,J,2:) = TC(I,J,2:) + SO4(2:) * DTSRCE
+               EMIS_SAVE(I,J,IDTSO4) = SO4(1) * DTSRCE
+            ENDIF
+               
+
+            !==============================================================
+            ! ND13 Diagnostic: SO4 emission in [kg S/box/timestep]       
+            !==============================================================
+            IF ( ND13 > 0 ) THEN 
+
+               ! Anthro SO4
+               AD13_SO4_an(I,J,:) = AD13_SO4_an(I,J,:) +
+     $                              ( SO4an(I,J,:) * S_SO4 * DTSRCE )
+
+               ! Biofuel SO4
+               AD13_SO4_bf(I,J) = AD13_SO4_bf(I,J) + 
+     &                            ( SO4bf(I,J) * S_SO4 * DTSRCE ) 
+            ENDIF
+            
             
          ENDDO
       ENDDO
@@ -5141,105 +5388,108 @@
       !=================================================================
       ! Compute SO4 emissions 
       !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS )
-!$OMP+SCHEDULE( DYNAMIC )
-
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Top level of boundary layer at (I,J)
-         NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
-
-         ! Zero SO4 array at all levels 
-         DO L = 1, LLPAR
-            SO4(L) = 0.0
-         ENDDO
-
-         ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
-         TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
-
-         !==============================================================
-         ! Partition the total anthro SO4 emissions thru the entire 
-         ! boundary layer (if PBL top is higher than level 2)
-         !==============================================================
-         ! Add option for non-local PBL (Lin, 03/31/09)
-         IF (.NOT. LNLPBL) THEN
-            IF ( NTOP > 2 ) THEN
-   
-               ! Loop thru boundary layer
-               DO L = 1, NTOP
-                 
-                  ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-                  FEMIS  = GET_FRAC_OF_PBL( I, J, L )
-                  
-                  ! Fraction of total SO4 in layer L
-                  SO4(L) = FEMIS * TSO4
-
-               ENDDO
-
-            !==============================================================
-            ! If PBL height is low and lower or similar to the second 
-            ! model layer then surface emission is emitted to the first
-            ! model layer and the stack emission goes to the second model
-            ! layer.  Also add biofuel SO4 into the surface layer.
-            !==============================================================
-            ELSE
-
-               SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
-               SO4(2) = SO4an(I,J,2) 
-            
-            ENDIF 
-
-         ELSE
-         
-            SO4(1) = TSO4
-
-         ENDIF
-
-         IF ( ABS( SUM( SO4 ) - TSO4 ) > 1.D-5 ) THEN
-!$OMP CRITICAL
-            PRINT*, '### ERROR in SRCSO4!'
-            PRINT*, '### I, J, L, : ', I, J, L
-            PRINT*, '### SUM(SO4) : ', SUM( SO4 )
-            PRINT*, '### TSO4     : ', TSO4
-!$OMP END CRITICAL
-            CALL ERROR_STOP( 'Check SO4 redistribution',
-     &                       'SRCSO4 (sulfate_mod.f)' )
-         ENDIF
-
-         !=============================================================
-         ! Add SO4 emissions to tracer array 
-         ! Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
-         !=============================================================
-         DO L = 1, LLPAR
-            ! Add option for non-local PBL (Lin, 03/31/09)
-            IF (.NOT. LNLPBL) THEN
-               TC(I,J,L) = TC(I,J,L) + ( SO4(L) * DTSRCE )
-            ELSE
-               emis_save(I,J,IDTSO4) = SO4(1) * DTSRCE
-            ENDIF
-         ENDDO
-
-         !==============================================================
-         ! ND13 Diagnostic: SO4 emission in [kg S/box/timestep]       
-         !==============================================================
-         IF ( ND13 > 0 ) THEN 
-
-            ! Anthro SO4
-            DO L = 1, 2      
-               AD13_SO4_an(I,J,L) = AD13_SO4_an(I,J,L) + 
-     &                              ( SO4an(I,J,L) * S_SO4 * DTSRCE )
-            ENDDO
-
-            ! Biofuel SO4
-            AD13_SO4_bf(I,J) = AD13_SO4_bf(I,J) + 
-     &                         ( SO4bf(I,J) * S_SO4 * DTSRCE ) 
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+!---- prior to 10/27/09 (phs)
+!phs !$OMP PARALLEL DO
+!phs !$OMP+DEFAULT( SHARED )
+!phs !$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS )
+!phs !$OMP+SCHEDULE( DYNAMIC )
+!phs 
+!phs       DO J = 1, JJPAR
+!phs       DO I = 1, IIPAR
+!phs
+!phs          ! Top level of boundary layer at (I,J)
+!phs          NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
+!phs 
+!phs          ! Zero SO4 array at all levels 
+!phs          DO L = 1, LLPAR
+!phs             SO4(L) = 0.0
+!phs          ENDDO
+!phs 
+!phs          ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
+!phs          TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
+!phs 
+!phs          !==============================================================
+!phs          ! Partition the total anthro SO4 emissions thru the entire 
+!phs          ! boundary layer (if PBL top is higher than level 2)  
+!phs          !==============================================================
+!phs          ! Add option for non-local PBL (Lin, 03/31/09)
+!phs          IF (.NOT. LNLPBL) THEN
+!phs             IF ( NTOP > 2 ) THEN
+!phs    
+!phs                ! Loop thru boundary layer
+!phs                DO L = 1, NTOP
+!phs                  
+!phs                   ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+!phs                   FEMIS  = GET_FRAC_OF_PBL( I, J, L )
+!phs                   
+!phs                   ! Fraction of total SO4 in layer L
+!phs                   SO4(L) = FEMIS * TSO4
+!phs 
+!phs                ENDDO
+!phs 
+!phs             !==============================================================
+!phs             ! If PBL height is low and lower or similar to the second 
+!phs             ! model layer then surface emission is emitted to the first
+!phs             ! model layer and the stack emission goes to the second model
+!phs             ! layer.  Also add biofuel SO4 into the surface layer.
+!phs             !==============================================================
+!phs             ELSE
+!phs 
+!phs                SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
+!phs                DO L = 2, NOXLEVELS
+!phs                   SO4(L) = SO4an(I,J,L) 
+!phs                ENDDO
+!phs             
+!phs             ENDIF 
+!phs 
+!phs          ELSE
+!phs          
+!phs             SO4(1) = TSO4
+!phs 
+!phs          ENDIF
+!phs 
+!phs          IF ( ABS( SUM( SO4 ) - TSO4 ) > 1.D-5 ) THEN
+!phs !$OMP CRITICAL
+!phs             PRINT*, '### ERROR in SRCSO4!'
+!phs             PRINT*, '### I, J, L, : ', I, J, L
+!phs             PRINT*, '### SUM(SO4) : ', SUM( SO4 )
+!phs             PRINT*, '### TSO4     : ', TSO4
+!phs !$OMP END CRITICAL
+!phs             CALL ERROR_STOP( 'Check SO4 redistribution',
+!phs      &                       'SRCSO4 (sulfate_mod.f)' )
+!phs          ENDIF
+!phs 
+!phs           !=============================================================
+!phs           ! Add SO4 emissions to tracer array 
+!phs           ! Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
+!phs           !=============================================================
+!phs           DO L = 1, LLPAR
+!phs              ! Add option for non-local PBL (Lin, 03/31/09)
+!phs              IF (.NOT. LNLPBL) THEN
+!phs                 TC(I,J,L) = TC(I,J,L) + ( SO4(L) * DTSRCE )
+!phs              ELSE
+!phs                 emis_save(I,J,IDTSO4) = SO4(1) * DTSRCE
+!phs              ENDIF
+!phs           ENDDO
+!phs 
+!phs          !==============================================================
+!phs          ! ND13 Diagnostic: SO4 emission in [kg S/box/timestep]       
+!phs          !==============================================================
+!phs          IF ( ND13 > 0 ) THEN 
+!phs 
+!phs             ! Anthro SO4
+!phs             DO L = 1, NOXLEVELS      
+!phs                AD13_SO4_an(I,J,L) = AD13_SO4_an(I,J,L) + 
+!phs      &                              ( SO4an(I,J,L) * S_SO4 * DTSRCE )
+!phs             ENDDO
+!phs 
+!phs             ! Biofuel SO4
+!phs             AD13_SO4_bf(I,J) = AD13_SO4_bf(I,J) + 
+!phs      &                         ( SO4bf(I,J) * S_SO4 * DTSRCE ) 
+!phs          ENDIF
+!phs       ENDDO
+!phs       ENDDO
+!phs !$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE SRCSO4
@@ -5278,23 +5528,28 @@
 !        file CMN. (bmy, 2/22/05)
 !  (7 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (8 ) Need to add CAC_AN to the PRIVATE loop (bmy, 5/27/09)
+!  (9 ) Added NIE 2005 (amv, 10/07/2009) 
+!  (10) Made NH3an 3D; Calls SULFATE_PBL_MIX to do the PBL mixing of
+!        emissions, and allows for emissions above the PBL (phs, 10/27/09)        
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CAC_ANTHRO_MOD, ONLY : GET_CANADA_MASK
-      USE CAC_ANTHRO_MOD, ONLY : GET_CAC_ANTHRO
-      USE DIAG_MOD,       ONLY : AD13_NH3_an, AD13_NH3_bb
-      USE DIAG_MOD,       ONLY : AD13_NH3_bf, AD13_NH3_na
-      USE DAO_MOD,        ONLY : PBL
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
-      USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE LOGICAL_MOD,    ONLY : LNEI99, LCAC
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTNH3
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CAC_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE DIAG_MOD,           ONLY : AD13_NH3_an, AD13_NH3_bb
+      USE DIAG_MOD,           ONLY : AD13_NH3_bf, AD13_NH3_na
+      USE DAO_MOD,            ONLY : PBL
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO, GET_EPA_BIOFUEL
+      USE EPA_NEI_MOD,        ONLY : GET_USA_MASK
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE LOGICAL_MOD,        ONLY : LNEI99, LCAC, LNEI05
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDTNH3
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND13
@@ -5304,14 +5559,16 @@
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
 
       ! Local variables
-      LOGICAL                :: WEEKDAY
+      LOGICAL                :: WEEKDAY,  IS_LOCAL
       INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
-      REAL*8                 :: FEMIS,    DTSRCE,  TNH3    
-      REAL*8                 :: AREA_CM2, EPA_AN,  EPA_BF
-      REAL*8                 :: CAC_AN
-      REAL*8                 :: NH3an(IIPAR,JJPAR)
+      REAL*8                 :: DTSRCE,   AREA_CM2    
+      REAL*8                 :: CAC_AN,   EPA_AN,  EPA_BF
+      REAL*8                 :: FEMIS(LLPAR), NH3(LLPAR)
+      REAL*8                 :: NH3an(IIPAR,JJPAR,NOXLEVELS)
+      REAL*8                 :: NEI2005(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: NH3bf(IIPAR,JJPAR)
-
+      REAL*8                 :: TEMPEMISS(NOXLEVELS)
+      
       !=================================================================
       ! SRCNH3 begins here!
       !=================================================================
@@ -5325,13 +5582,20 @@
       ! Is it a weekday?
       WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
 
+      ! init
+      NH3an = 0D0
+      
+      ! is it local PBL mixing scheme?
+      IS_LOCAL = .NOT. LNLPBL
+
       !=================================================================
       ! Overwrite USA with EPA/NEI NH3 emissions (if necessary)
       ! Store emissions into local arrays NH3an, NH3bf
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN )
+!$OMP+PRIVATE( I, J, AREA_CM2, EPA_AN, EPA_BF, CAC_AN, L )
+!$OMP+PRIVATE( NTOP, FEMIS, NH3, TEMPEMISS )
       DO J = 1, JJPAR
          
          !-------------------------------------------------------------------
@@ -5344,6 +5608,14 @@
          !-------------------------------------------------------------------
 
          DO I = 1, IIPAR
+
+            ! Top of the boundary layer
+            NTOP = CEILING( GET_PBL_TOP_L( I, J ) ) 
+
+            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
+            DO L = 1, LLPAR
+               FEMIS(L)  = GET_FRAC_OF_PBL( I, J, L )
+            ENDDO
 
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -5377,10 +5649,10 @@
             !ELSE
             !-----------------------------------------------------------------
 
-               ! If we are not using the EPA/NEI emissions, just copy the 
-               ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
-               NH3an(I,J) = ENH3_an(I,J)
-               NH3bf(I,J) = ENH3_bf(I,J)
+            ! If we are not using the EPA/NEI emissions, just copy the 
+            ! regular ENH3_an and ENH3_bf to local arrays. (bmy, 11/16/04)
+            NH3an(I,J,1) = ENH3_an(I,J)
+            NH3bf(I,J)   = ENH3_bf(I,J)
             
             !-----------------------------------------------------------------
             ! NOTE: There seems to be some problems with the EPA/NEI NH3 
@@ -5399,78 +5671,83 @@
      &                                  MOLEC_CM2_S=.TRUE.)
 
                ! Convert from [molec NH3/cm2/c] to [kg NH3/box/sec]
-               NH3an(I,J) = CAC_AN * AREA_CM2 / XNUMOL(IDTNH3)
+               NH3an(I,J,1) = CAC_AN * AREA_CM2 / XNUMOL(IDTNH3)
 
             ENDIF
             ENDIF
 
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+            
 
-      !=================================================================
-      ! Partition NH3 emissions into the STT tracer array
-      !=================================================================
+            ! If we are using NEI 2005 over North America
+            IF ( LNEI05 ) THEN
+            IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+             
+               DO L = 1, NOXLEVELS 
 
-      ! Loop over surface grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, NTOP, TNH3, L, FEMIS )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-          
-         ! Layer where the PBL top happens
-         NTOP   = CEILING( GET_PBL_TOP_L( I, J ) )
+                  ! Read NH3 anthro emissions in [molec NH3/cm2/s]                  
+                  EPA_AN = GET_NEI2005_ANTHRO( I, J, L, IDTNH3, 
+     &                                   WEEKDAY, MOLEC_CM2_S=.TRUE.)
+     
+                  ! Convert from [molec NH3/cm2/c] to [kg NH3/box/sec]
+                  NH3an(I,J,L) = EPA_AN * AREA_CM2 / XNUMOL(IDTNH3)
 
-         ! Sum all types of NH3 emission [kg/box/s]
-         TNH3   = NH3an(I,J) + ENH3_bb(I,J) + 
-     &            NH3bf(I,J) + ENH3_na(I,J)
+               ENDDO
 
-         !==============================================================
-         ! Add NH3 emissions [kg NH3/box] into the tracer array
-         ! Partition total NH3 throughout the entire boundary layer
-         !==============================================================
+            ENDIF
+            ENDIF
 
-         ! Loop over all levels in the boundary layer
-         DO L = 1, NTOP
 
-            ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-            FEMIS     = GET_FRAC_OF_PBL( I, J, L )
-            ! Add option for non-local PBL (Lin, 03/31/09)
-	    IF (LNLPBL) FEMIS = 0.D0
 
-            ! Add NH3 emissions into tracer array [kg NH3/timestep]
-            TC(I,J,L) = TC(I,J,L) + ( TNH3 * FEMIS * DTSRCE )
+            !=============================================================
+            ! Do PBL mixing of all types of NH3 emission [kg/box/s]
+            !=============================================================
+            TEMPEMISS(1) = NH3an(I,J,1) + ENH3_bb(I,J) + 
+     &                     NH3bf(I,J)   + ENH3_na(I,J)
 
-         ENDDO
+            TEMPEMISS(2:)= NH3an(I,J,2:)
+            
+            call SULFATE_PBL_MIX( TEMPEMISS, NH3, 
+     $                            FEMIS,     NTOP, IS_LOCAL )
 
-         ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
-         ! (Lin, 06/09/08) 
-         IF (LNLPBL) emis_save(I,J,IDTNH3) = TNH3 * DTSRCE
 
-         !============================================================
-         ! ND13 diagnostics: NH3 emissions [kg NH3/box/timestep]
-         !============================================================
-         IF ( ND13 > 0 ) THEN
+            !=============================================================
+            ! Add NH3 emissions to tracer/emission arrays, and
+            ! convert from [kg NH3/box/s] -> [kg NH3/box/timestep]
+            !=============================================================
+            IF ( IS_LOCAL ) THEN
+               TC(I,J,:)  = TC(I,J,:)  + NH3(:)  * DTSRCE
+            ELSE
+               TC(I,J,2:) = TC(I,J,2:) + NH3(2:) * DTSRCE
+               EMIS_SAVE(I,J,IDTNH3) = NH3(1) * DTSRCE
+            ENDIF
+            
+            !============================================================
+            ! ND13 diagnostics: NH3 emissions [kg NH3/box/timestep]
+            !============================================================
+            IF ( ND13 > 0 ) THEN
 
-            ! Anthro NH3
-            AD13_NH3_an(I,J) = AD13_NH3_an(I,J) + 
-     &                         ( NH3an(I,J)   * DTSRCE )            
+               ! Anthro NH3
+               DO L = 1, NOXLEVELS      
+                  AD13_NH3_an(I,J,L) = AD13_NH3_an(I,J,L) + 
+     &                              ( NH3an(I,J,L)   * DTSRCE )            
+               ENDDO
 
-            ! Biomass NH3
-            AD13_NH3_bb(I,J) = AD13_NH3_bb(I,J) + 
+               ! Biomass NH3
+               AD13_NH3_bb(I,J) = AD13_NH3_bb(I,J) + 
      &                         ( ENH3_bb(I,J) * DTSRCE )
-                  
-            ! Biofuel NH3
-            AD13_NH3_bf(I,J) = AD13_NH3_bf(I,J) +
-     &                         ( NH3bf(I,J)   * DTSRCE )   
 
-            ! Natural source NH3
-            AD13_NH3_na(I,J) = AD13_NH3_na(I,J) + 
+               ! Biofuel NH3
+               AD13_NH3_bf(I,J) = AD13_NH3_bf(I,J) +
+     &                         ( NH3bf(I,J)   * DTSRCE )
+
+               ! Natural source NH3
+               AD13_NH3_na(I,J) = AD13_NH3_na(I,J) + 
      &                         ( ENH3_na(I,J) * DTSRCE )
-         ENDIF
-      ENDDO
+
+
+            ENDIF
+            
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -6261,6 +6538,7 @@
 !  (9 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
+!  (10) Account for multilevels emissions (amv, 10/07/2009)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -6290,7 +6568,7 @@
       INTEGER, INTENT(IN)           :: THISMONTH, NSEASON
                                     
       ! Local variables             
-      INTEGER                       :: I, J, L, IX, JX, IOS
+      INTEGER                       :: I, J, L, LL, IX, JX, IOS
       INTEGER, SAVE                 :: LASTYEAR = -99
       INTEGER                       :: SCALEYEAR
       REAL*4                        :: E_SOx(IGLOB,JGLOB,2)
@@ -6331,7 +6609,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe ) 
+!$OMP+PRIVATE( I, J, X, Y, EDG_SO2, Fe, LL ) 
 
          ! Loop over latitudes
          DO J = 1, JJPAR
@@ -6402,13 +6680,15 @@
 
                ! Store SO2 emission [kg SO2/s]
                ESO2_an(I,J,1) = EDG_SO2
-!--- prior to 10/19/09 (phs)
-!               ESO4_an(I,J,2) = 0d0
-               ESO2_an(I,J,2) = 0d0
+               DO LL = 2,NOXLEVELS
+                  ESO2_an(I,J,LL) = 0d0
+               ENDDO
 
                ! Compute SO4 from SO2 [kg SO4/s]
                ESO4_an(I,J,1) = EDG_SO2 * Fe / ( 1.d0 - Fe )
-               ESO4_an(I,J,2) = 0d0
+               DO LL = 2, NOXLEVELS
+                  ESO4_an(I,J,LL) = 0d0
+               ENDDO
             ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -6496,7 +6776,7 @@
          !==============================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, AREA_CM2, Y, X, Fe )
+!$OMP+PRIVATE( I, J, L, AREA_CM2, Y, X, Fe, LL )
          DO L = 1, 2
          DO J = 1, JJPAR
 
@@ -6579,6 +6859,13 @@
 !     &                          AREA_CM2 / XNUMOL(IDTSO4)
 
                 ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
+
+                IF ( NOXLEVELS > 2 ) THEN
+                   DO LL = 3,NOXLEVELS
+                      ESO2_an(I,J,LL) = 0d0
+                      ESO4_an(I,J,LL) = 0d0
+                   ENDDO
+                ENDIF
 
             ENDDO
          ENDDO
@@ -7426,12 +7713,7 @@
             ! If we are over the SE Asia region ...
             IF ( GET_SE_ASIA_MASK( I, J ) > 0d0  ) THEN
 
-               ! Overwrite with David Streets emissions [kg NH3/s]
-!------------------------------------------------------------------------------
-! Prior to 12/10/08:
-! Now check first that NH3 is available (phs, 12/10/08)               
-!               ENH3_an(I,J) = GET_STREETS_ANTHRO( I,      J, 
-!     &                                            IDTNH3, KG_S=.TRUE.)
+               ! Overwrite with David Streets emissions if available [kg NH3/s]
                STREETS = GET_STREETS_ANTHRO( I,      J, 
      &                                       IDTNH3, KG_S=.TRUE.)
 
@@ -8086,7 +8368,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_ac' )
       ESO2_ac = 0d0
 
-      ALLOCATE( ESO2_an( IIPAR, JJPAR, 2 ), STAT=AS )
+      ALLOCATE( ESO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_an' )
       ESO2_an = 0d0
 
@@ -8110,7 +8392,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO2_sh' )
       ESO2_sh = 0d0
 
-      ALLOCATE( ESO4_an( IIPAR, JJPAR, 2  ), STAT=AS )
+      ALLOCATE( ESO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
       ESO4_an = 0d0
 

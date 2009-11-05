@@ -1,5 +1,5 @@
 REVISIONS (v8-02-04)
-27 Oct 2009
+30 Oct 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -12,6 +12,12 @@ In the GeosCore subdirectory:
 
 linoz_mod.f		-- Module containing routines for the Linoz
 	 		   stratospheric chemistry algorithm
+
+nei2005_anthro_mod.f    -- read, allocate, total, and deallocate NEI
+		       	   2005 emissions data 
+
+sulfate_pbl_mix	        -- does the PBL mixing of a column of sulfate
+(sulfate_mod.f)		   emissions  
 
 
 Removed in v8-02-04:
@@ -33,6 +39,8 @@ ratj.d     		-- Updated the branching ratio of HNO4.
 			   of OH, HO2 and NO3 in the UV photolysis of HO2NO2" 
 			   (jmao, bmy, 10/27/09)
 
+input.geos		-- has an additional lines for EPA2005, and LINOZ
+
 
 In the Headers subdirectory:
 ----------------------------
@@ -40,9 +48,13 @@ In the Headers subdirectory:
 define.h		-- Removed references to IN_CLOUD_OD
 			-- Added ProTeX headers
 
+CMN_SIZE        	-- set NOXLEVELS and NOXEXTENT to 5
+
 
 In the GeosCore subdirectory:
 -----------------------------
+
+anthroems.f	        -- account for NOXLEVELS not equal to 2
 
 calcrate.f		-- FastJX has taken near-IR photolysis into account 
                            with cross section at 574nm, so we don't need to 
@@ -65,8 +77,20 @@ cleanup_sulfate		-- Deleted obsolete arrays from older SO2 volcanic
 diag20			-- Bug fix: Now just zero arrays w/o loop indices
 ("diag_pl_mod.f")
 
+diag3.f                 -- accounts for 3D AD13_NH3_an
+
+diag_mod.f		-- AD13_NH3_an is declared as 3D
+     
+do_emissions    	-- account for NEI 2005
+(emissions_mod.f)
+
+dst_mbl			-- new scale factor for dust mobilization for 
+("dust_dead_mod.f")        GEOS5 at 2x2.5
+
 emisssulfate		-- Now read new volcanic SO2 emissions daily
 ("sulfate_mod.f")
+
+emfossil.f		-- account for NEI 2005
 
 fast_j.f 		-- Removed references to IN_CLOUD_OD		
 
@@ -81,7 +105,15 @@ init_sulfate		-- Now redimension EEV & NEV arrays for new SO2
 			-- Deleted obsolete arrays from older SO2 volcanic
                            emissions inventory
 
+logical_mod.f		-- added LNEI05
+     
 main.f			-- Now calls LINOZ_READ at startup
+
+Makefile		-- added nei2005_anthro_mod.o
+
+ndxx_setup.f		-- Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS
+			   levels to accomodate NEI 2005
+			-- accounts for 3D AD13_NH3_an
 
 open_a6_fields		-- Removed references to IN_CLOUD_OD
 ("a6_read_mod.f")
@@ -95,9 +127,13 @@ read_a6			-- Removed references to IN_CLOUD_OD
 read_i6			-- Removed references to IN_CLOUD_OD
 ("i6_read_mod.f")
 
+read_anthro_sox		-- account for multilevels emissions
+("sulfate_mod.f")
+     
 read_emissions_menu	-- Bug fix: for now, if LEMEPSHIP is turned on but 
 ("input_mod.f")            LEMEP is turned off, just turn off LEMEPSHIP and 
                            print a warning msg
+			-- Now reads for LNEI05
 
 read_erup_volc		-- Complete re-write as volcanic emissions are now 
 ("sulfate_mod.f")          monthly and stored as BPCH files
@@ -108,7 +144,16 @@ read_nonerup_volc	-- Complete re-write as volcanic emissions are now
 read_simulation_menu	-- Now read LLINOZ switch from input.geos file
 ("input_mod.f")
 
+setemis.f		-- anthro NOx emissions above PBL are left
+                           in their initial level 
+
 srcso2			-- Changed processing of volcanic SO2 emissions
+("sulfate_mod.f")	-- account for NEI 2005
+
+srcso4			-- account for NEI 2005
+("sulfate_mod.f")
+
+srcnh3			-- account for NEI 2005; multilevel emiss. now
 ("sulfate_mod.f")
 
 sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions

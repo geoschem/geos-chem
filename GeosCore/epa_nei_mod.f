@@ -1,4 +1,4 @@
-! $Id: epa_nei_mod.f,v 1.1 2009/09/16 14:06:30 bmy Exp $
+! $Id: epa_nei_mod.f,v 1.2 2009/11/05 15:35:31 phs Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
@@ -704,7 +704,7 @@
 !       the border. They are simply set to include boxes where EPA emissions
 !       are non-zero. We assume that BRAVO and CAC are also used when EPA is
 !       used. If you use neither BRAVO nor CAC, you should use the older masks
-!       to avoid double counting emissions along the borders. Masks for the
+!       to avoid missing emissions along the borders. Masks for the
 !       case that either BRAVO or CAC (but not both) is used w/ EPA have not
 !       been produced" (phs, 12/23/08)
 !  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to

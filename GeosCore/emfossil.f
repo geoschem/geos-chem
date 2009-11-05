@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: emfossil.f,v 1.3 2009/11/05 15:35:32 phs Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -67,6 +67,7 @@
 !  (33) Modified CO scaling (jaf, 2/25/09)
 !  (34) Add a test on existing emissions for EPA/NEI. (hotp, ccc, 5/29/09)
 !  (35) Updated ship treatment (phs, 7/0/09)
+!  (36) Add NEI2005 (amv, phs, 10/20/09)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -84,7 +85,9 @@
       USE LOGICAL_MOD,           ONLY : LSTREETS,         LCAC
       USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
       USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
-      USE LOGICAL_MOD,           ONLY : LICARTT
+      USE LOGICAL_MOD,           ONLY : LICARTT,          LNEI05
+      USE NEI2005_ANTHRO_MOD,    ONLY : GET_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD,    ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,           ONLY : LICOADSSHIP !(cklee, 6/30/09)
 
       USE STREETS_ANTHRO_MOD,    ONLY : GET_SE_ASIA_MASK
@@ -117,7 +120,7 @@
       REAL*8                :: XEMISR
       REAL*8                :: XEMISRN(NOXLEVELS)
       REAL*8                :: BRAVO, EPA_NEI, EMEP, EDGAR, STREETS
-      REAL*8                :: CAC,   SHIP,    VISTAS
+      REAL*8                :: CAC,   SHIP,    VISTAS, NEI05
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -335,12 +338,12 @@
 
                      ! Replace GEIA with BRAVO emissions at surface
                      ! Now, if on border, add to NEI99 emissions (phs, 5/7/08)
-                     IF ( ( LNEI99 ) .AND. 
-     &                    ( GET_USA_MASK( I, J ) > 0d0 ) ) THEN
+                     IF ( LNEI99 ) THEN 
+                        IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
-                        EMX(LL) = EMX(LL) + BRAVO * 
-     &                            ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-
+                           EMX(LL) = EMX(LL) + BRAVO * 
+     &                              ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                        ENDIF                           
                      ELSE
                         EMX(LL) = BRAVO * 
      &                            ( DTSRCE*AREA_CM2 ) / XNUMOL(NN) 
@@ -402,6 +405,27 @@
 
                   ENDIF
                ENDIF
+            ENDIF
+
+            IF ( LNEI05 ) THEN
+
+               ! If we are over the USA and CAN/MEX
+               IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+
+                  ! Get EPA emissions for NOx
+                  NEI05 = GET_NEI2005_ANTHRO( I, J, LL, NN, WEEKDAY,
+     &                                        MOLEC_CM2_s = .TRUE.)
+
+                  ! Apply time-of-day factor
+                  NEI05 = NEI05 * TODX
+
+                  ! Replace GEIA with EPA/NEI emissions at surface
+                  EMX(LL) = NEI05 *
+     &                      ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+               ENDIF
+               
+
             ENDIF
 
             !-----------------------------------------------------------
@@ -634,12 +658,12 @@
                   ! Convert from molec/cm2/s to kg/box/timestep in order
                   ! to be in the proper units for EMISRR array.
                   ! Now, if on border, add to NEI99 emissions (phs, 5/7/08)
-                  IF ( ( LNEI99 ) .AND. 
-     &                 ( GET_USA_MASK( I, J ) > 0d0 ) ) THEN
+                  IF ( LNEI99 ) THEN 
+                     IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
-                     EMX(1) = EMX(1) + 
-     &                        BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-
+                        EMX(1) = EMX(1) + 
+     &                       BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+                     ENDIF
                   ELSE
 
                      EMX(1) = BRAVO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
@@ -689,6 +713,43 @@
 
                ENDIF
             ENDIF
+         ENDIF
+
+         ! If we are using EPA/NEI2005 emissions ...
+         IF ( LNEI05 ) THEN
+
+            ! If we are over the USA ...
+            IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
+
+               NEI05 = 0D0
+               
+               ! Loop over all of the emission levels
+               ! For now lump levels together (phs, 10/20/09)
+               DO LL = 1, NOXLEVELS 
+               
+                  ! Get EPA/NEI emissions               
+                  EPA_NEI = GET_NEI2005_ANTHRO( I, J, LL, NN,
+     &                 WEEKDAY, MOLEC_CM2_S=.TRUE. )
+
+                  ! -1 indicates tracer NN does not have EPA/NEI emissions
+                  IF ( EPA_NEI < 0d0 )  EXIT
+
+                  NEI05 = NEI05 + EPA_NEI
+                  
+               ENDDO
+
+               
+               IF ( EPA_NEI > -1d0 ) THEN
+
+                  ! Apply time-of-day factor
+                  NEI05 = NEI05 * TODX
+  
+                  ! Convert from molec/cm2/s to kg/box/timestep in order
+                  ! to be in the proper units for EMISRR array
+                  EMX(1)  = NEI05 * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)
+
+               ENDIF
+            ENDIF              
          ENDIF
 
          ! Account for CO production from anthropogenic VOC's

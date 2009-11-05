@@ -1,4 +1,4 @@
-! $Id: anthroems.f,v 1.1 2009/09/16 14:06:42 bmy Exp $
+! $Id: anthroems.f,v 1.2 2009/11/05 15:35:34 phs Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
@@ -605,8 +605,9 @@
       EMISRN = 0d0
 
       ! NOX: scale by total CO2 scale factors
+      ! Now loop over 2 levels only (phs, 10/19/09)
       IF ( IDENOX > 0 ) THEN
-         DO LL = 1, NOXLEVELS
+         DO LL = 1, 2 !NOXLEVELS
             DO J = 1, JJPAR
                JREF = J + J0
                DO I = 1, IIPAR
@@ -618,8 +619,10 @@
          ENDDO
          
          ! Print total in Tg N
+         ! Now loop over 2 levels only (phs, 10/19/09)
          CALL TOTAL_FOSSIL_TG( EMISTN,    IIPAR, JJPAR,  
-     &                         NOXLEVELS, 14d-3, 'NOx', NSEASON )
+!     &                         NOXLEVELS, 14d-3, 'NOx', NSEASON )
+     &                         2,         14d-3, 'NOx', NSEASON )
       ENDIF   
 
       !=================================================================
@@ -635,8 +638,9 @@
          NN = IDEMS(N)
 
          ! Do unit conversion for NOx separately, since it is multi-level
+         ! Now loop over 2 levels only (phs, 10/19/09)
          IF ( N == IDENOX ) THEN
-            DO LL = 1, NOXLEVELS
+            DO LL = 1, 2 !NOXLEVELS
                DO J = 1, JJPAR
                   JREF = J + J0
                

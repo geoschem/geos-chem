@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: diag3.f,v 1.3 2009/11/05 15:35:33 phs Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -105,6 +105,7 @@
 !  (86) Add SCALE_DIAG to scale diagnostics with the number of accumulation 
 !        steps. (ccc, 7/20/09)
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
+!  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -1104,14 +1105,19 @@
          !==============================================================
          UNIT         = 'kg'
          CATEGORY     = 'NH3-ANTH'
-         ARRAY(:,:,1) = AD13_NH3_an(:,:) 
+
+         DO L = 1, NOXEXTENT 
+            ARRAY(:,:,L) = AD13_NH3_an(:,:,L)
+         ENDDO
+
+!         ARRAY(:,:,1) = AD13_NH3_an(:,:) 
          N            = IDTNH3
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:NOXEXTENT) )
 
          !==============================================================
          ! Natural source NH3

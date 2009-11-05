@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
+! $Id: setemis.f,v 1.3 2009/11/05 15:35:30 phs Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -96,6 +96,7 @@
 !  (30) Limit emissions into the surface level only (lin, 5/29/09)
 !  (31) Bug fix: cycle if IDEMIS(NN) <= 0 to avoid array-out-of-bounds
 !        errors (bmy, 8/6/09)
+!  (32) Check for emissions above PBL -anthro NOx only for now- (phs, 10/27/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -128,7 +129,7 @@
       ! Local variables
       LOGICAL             :: IS_LI_NOx, IS_AC_NOx
       INTEGER             :: I, J,  JLOOP, JLOOP1, LTROP
-      INTEGER             :: L, LL, N, NN,  NBB, NBF, TOP
+      INTEGER             :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
       REAL*8              :: COEF1,   TOTPRES, DELTPRES
       REAL*8              :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
@@ -151,6 +152,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
 !$OMP+PRIVATE( COEF1, TOP, TOTPRES, NOXTOT, DELTPRES, EMIS_BL,  A_CM2 )
+!$OMP+PRIVATE( TOPMIX )
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over emission species
@@ -214,6 +216,9 @@
             TOP = FLOOR( GET_PBL_TOP_L( I, J ) )
             IF ( TOP == 0 ) TOP = 1
 
+            ! Check for possible emissions above PBL (phs, 27/10/09)
+            TOPMIX = MIN( TOP, NOXEXTENT )
+            
             ! Add option for non-local PBL (Lin, 03/31/09)
             IF (LNLPBL) TOP = 1
 
@@ -230,7 +235,9 @@
 
                ! Sum anthro NOx emissions over all levels [molec NOx/box/s]
                NOXTOT = 0d0
-               DO L = 1, NOXEXTENT
+!--prior to 27/10/09 (phs)
+!               DO L = 1, NOXEXTENT
+               DO L = 1, TOPMIX
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO
 
@@ -261,6 +268,17 @@
                   ENDIF
                ENDDO
 
+               ! put any emissions above PBL into corresponding
+               ! REMIS (phs, 27/10/09)
+               IF ( NOXEXTENT > TOPMIX ) THEN
+                  DO L = TOPMIX+1, NOXEXTENT
+                     JLOOP          = JLOP(I,J,L)
+                     REMIS(JLOOP,N) = EMISRRN(I,J,L) /
+     $                    ( VOLUME(JLOOP) * COEF1 )
+                  ENDDO
+               ENDIF   
+                     
+               
                !========================================================
                ! Soil Nox emissions [molec/cm3/s] 
                ! Distribute emissions thru the entire boundary layer

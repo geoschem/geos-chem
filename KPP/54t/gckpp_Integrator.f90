@@ -59,8 +59,8 @@ MODULE gckpp_Integrator
 !~~~>  Statistics on the work performed by the Rosenbrock method
   INTEGER, PARAMETER :: Nfun=1, Njac=2, Nstp=3, Nacc=4, &
        Nrej=5, Ndec=6, Nsol=7, Nsng=8, &
-       Ntexit=1, Nhexit=2, Nhnew = 3,  &
-       Nierr=20                             !== Added for GC
+       Ntexit=1, Nhexit=2, Nhnew = 3!,  &
+!       Nierr=20                             !== was added for GC but not needed anymore
 
 CONTAINS
 

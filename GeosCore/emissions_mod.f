@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.1 2009/09/16 14:06:31 bmy Exp $
+! $Id: emissions_mod.f,v 1.2 2009/11/05 15:35:32 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -89,6 +89,7 @@
       USE Kr85_MOD,               ONLY : EMISSKr85
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
+      USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
@@ -137,6 +138,8 @@
 !        (phs, 5/12/08)
 !  (20) Now references EMISS_VISTAS_ANTHR from "vistas_anthro_mod.f". Call
 !        EMEP, and Streets every month (amv, 12/2/08)
+!  (21) Now references EMISS_EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
+!        (amv, 10/19/09)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,6 +211,10 @@
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) CALL EMISS_CAC_ANTHRO
 
+         ! Read NEI2005 (USA) emissions
+         IF ( LNEI05 .and. ITS_A_NEW_YEAR() ) 
+     &        CALL EMISS_NEI2005_ANTHRO
+
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
      $        CALL EMISS_ARCTAS_SHIP( YEAR )
@@ -252,6 +259,10 @@
 
          ! Read EPA/NEI99 emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read NEI2005 emissions once per year
+         IF ( LNEI05 .and. ITS_A_NEW_YEAR() ) 
+     &      CALL EMISS_NEI2005_ANTHRO
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
@@ -325,6 +336,10 @@
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read NEI2005 (USA) emissions once per year
+         IF ( LNEI05 .and. ITS_A_NEW_YEAR() ) 
+     &      CALL EMISS_NEI2005_ANTHRO
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
@@ -429,6 +444,10 @@
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+
+         ! Read NEI2005 (USA) emissions
+         IF ( LNEI05 .and. ITS_A_NEW_YEAR() ) 
+     &      CALL EMISS_NEI2005_ANTHRO
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO

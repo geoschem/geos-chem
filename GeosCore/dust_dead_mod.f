@@ -1,4 +1,4 @@
-! $Id: dust_dead_mod.f,v 1.1 2009/09/16 14:06:34 bmy Exp $
+! $Id: dust_dead_mod.f,v 1.2 2009/11/05 15:35:33 phs Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
@@ -289,6 +289,7 @@
 !        Also tune GEOS-3 1x1 N. America nested-grid dust emissions to
 !        the 4x5 totals from the GEOS-5 4x5 v8-01-01-Run0 benchmark. 
 !        (yxw, bmy, dan, 11/6/08)
+!  (4 ) New scale parameter for 2x2.5 GEOS-5 (tdf, jaf, phs, 10/30/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -328,6 +329,12 @@
       ! as the 2 x 2.5 simulation (yxw, dan, bmy, 11/6/08)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
 
+      
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
+
+      ! for the 2x2.5 GEOS-5 to be consistent with GEOS-4
+      REAL*8, PARAMETER      :: FLX_MSS_FDG_FCT = 4.9d-4      
+      
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 
       ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS

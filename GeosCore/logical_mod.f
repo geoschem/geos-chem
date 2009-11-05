@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.2 2009/10/19 14:31:58 bmy Exp $
+! $Id: logical_mod.f,v 1.3 2009/11/05 15:35:31 phs Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -51,6 +51,7 @@
 !  18 Aug 2009 - K. Wecht    - Added switches for CH4 emissions & budget  
 !  16 Oct 2009 - R. Yantosca - Added LLINOZ switch for Linoz O3 strat chem
 !  16 Oct 2009 - R. Yantosca - Added ProTeX header
+!  30 Oct 2009 - A. v. Donkelaar - Added LNEI2005
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,7 +121,8 @@
       LOGICAL :: LMEGAN          ! Use MEGAN biogenic emissions?
       LOGICAL :: LMEGANMONO      ! Use MEGAN monoterpenes?
       LOGICAL :: LMONOT          ! Use old 
-      LOGICAL :: LNEI99          ! Use EPA regional emissions?
+      LOGICAL :: LNEI99          ! Use EPA 1999 regional emissions?
+      LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
       LOGICAL :: LTOMSAI         ! Scale biomass burning to TOMS AI index?

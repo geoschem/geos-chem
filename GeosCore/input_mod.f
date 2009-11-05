@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
+! $Id: input_mod.f,v 1.4 2009/11/05 15:35:31 phs Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1329,6 +1329,7 @@
 !  (21) Now read LICOADSSHIP (cklee, 6/30/09)
 !  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
 !        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
+!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1344,7 +1345,7 @@
       USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
       USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
       USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
-      USE LOGICAL_MOD, ONLY : LICOADSSHIP 
+      USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
 
@@ -1405,137 +1406,141 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:9' )
       READ( SUBSTRS(1:N), * ) LCAC
 
-      ! Use EPA/NEI99 emissions?
+      ! Include NEI2005 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:10' )
+      READ( SUBSTRS(1:N), * ) LNEI05
+
+      ! Use EPA/NEI99 emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LNEI99
       
       ! Include ICARTT-based corrections ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
       READ( SUBSTRS(1:N), * ) LICARTT
 
       ! Include VISTAS anthro emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
       READ( SUBSTRS(1:N), * ) LVISTAS
 
       ! Include biofuel emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:13' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
       READ( SUBSTRS(1:N), * ) LBIOFUEL
 
       ! Include biogenic emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
       READ( SUBSTRS(1:N), * ) LBIOGENIC
 
       ! Use MEGAN biogenic emissions for ISOP?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
       ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LMEGANMONO
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Scale lightning flash rate to OTD-LIS annual averate rate?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LOTDSCALE
 
       ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LOTDREG
 
       ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
 
       !=================================================================
       ! Error check logical flags
@@ -1607,15 +1612,17 @@
       !=================================================================
       ! Check SO2 ship emissions options
       !=================================================================
-      IF ( LARCSHIP ) LSHIPSO2 = .FALSE.
+      IF ( LARCSHIP ) LSHIPSO2 = .FALSE. ! SO2-Arctas precedes SO2-Corbett
    
+      !=================================================================
+      ! Check global ship emissions options
+      !=================================================================
       ! Add an ship emissions options (cklee, 6/30/09)
       ! Replace with ICOADS ship emissions
+      ! User can still use regional EMEP, and ARCTAS-SO2 if he wants (phs) 
       IF ( LICOADSSHIP ) THEN
-         LEDGARSHIP = .FALSE.
-         !LEMEPSHIP  = .FALSE.
-         LSHIPSO2   = .FALSE.
-         !LARCSHIP   = .FALSE.
+         LEDGARSHIP = .FALSE. ! ICOADS precedes EDGAR
+         LSHIPSO2   = .FALSE. ! SO2-ICOADS precedes SO2-Corbett
       ENDIF      
 
       
@@ -1623,7 +1630,7 @@
       ! Check EPA options
       !=================================================================
       
-      ! VISTAS and ICARTT assumes that EPA/NEI is ON
+      ! VISTAS and ICARTT assumes that EPA/NEI 99 is ON
       IF ( ( ( LVISTAS ) .OR. ( LICARTT )) .AND. .NOT.( LNEI99 ) ) THEN
          LNEI99 = .TRUE.
          WRITE( 6, '(/,a,/)' ) ' EPA/NEI99 has been automatically ' //
@@ -1631,8 +1638,9 @@
      $        ' modifications'
       ENDIF
 
-      
-      ! ICARTT correction are NOT available at high resolution
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!     ICARTT corrections are NOT available at high resolution
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
 #if !defined(GRID2x25) && !defined(GRID4x5)
       
@@ -1643,6 +1651,18 @@
       ENDIF
          
 #endif
+
+      ! NEI 2005 precedes NEI 1999
+      IF ( LNEI05 .AND. LNEI99 ) THEN
+         LNEI99  = .FALSE.
+         LVISTAS = .FALSE.
+         LICARTT = .FALSE.
+         WRITE( 6, '(/,a,/)' ) ' EPA/NEI99 (incl. VISTAS and ICARTT' //
+     $        'options) has been automatically ' //
+     $        'switched OFF to use NEI 2005.'
+      ENDIF
+         
+      
 
       !=================================================================
       ! Prioritize GFED2
@@ -1752,6 +1772,7 @@
       WRITE( 6, 100     ) '  Use BRAVO anthro emissions: ', LBRAVO
       WRITE( 6, 100     ) '  Use CAC anthro emissions  : ', LCAC
       WRITE( 6, 100     ) '  Use STREETS anthro emiss. : ', LSTREETS
+      WRITE( 6, 100     ) '  Use EPA/NEI 2005          : ', LNEI05
       WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
       WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
       WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT

@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag_mod.f,v 1.2 2009/11/05 15:35:33 phs Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -62,6 +62,7 @@
 !       (tmf, 3/6/09)
 !  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
 !  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
+!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)     
 !******************************************************************************
 !     
       !=================================================================
@@ -120,7 +121,7 @@
       REAL*4,  ALLOCATABLE :: AD13_SO2_sh(:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO4_an(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_SO4_bf(:,:)
-      REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:)
+      REAL*4,  ALLOCATABLE :: AD13_NH3_an(:,:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_na(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_bb(:,:)
       REAL*4,  ALLOCATABLE :: AD13_NH3_bf(:,:)

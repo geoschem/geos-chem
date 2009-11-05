@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.1 2009/09/16 14:06:39 bmy Exp $
+! $Id: bpch2_mod.f,v 1.2 2009/11/05 15:35:33 phs Exp $
       MODULE BPCH2_MOD
 !
 !******************************************************************************
@@ -225,7 +225,12 @@
      &      IOSTAT=IOS, FORM='UNFORMATTED',    ACCESS='SEQUENTIAL' )
 
       ! Error check
-      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT,'open_bpch2_for_write:1')
+      IF ( IOS /= 0 ) THEN
+         WRITE(6,*) ' '
+         WRITE(6,*) "CANNOT WRITE : " // FILENAME
+         CALL IOERROR( IOS, IUNIT,'open_bpch2_for_write:1')
+      ENDIF
+         
 
       ! Write the top-of-file title to disk
       CALL BPCH2_HDR( IUNIT, TMP_TITLE )

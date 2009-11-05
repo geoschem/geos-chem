@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.1 2009/09/16 14:06:19 bmy Exp $
+! $Id: ndxx_setup.f,v 1.2 2009/11/05 15:35:30 phs Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -136,7 +136,10 @@
 !  (68) Add AD07_SOAGM (tmf, 1/7/09) 
 !  (69) Now always allocate Mass Flux arrays (phs, 4/15/09)
 !  (70) Allocate LTO3. (ccc, 7/20/09)
-!  (71) Add AD19, AD58, AD60 (kjw, 8/18/09) 
+!  (71) Add AD19, AD58, AD60 (kjw, 8/18/09)
+!  (72) Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS levels to accomodate
+!     NEI 2005 (amv, 10/9/09)
+!  (73) AD13_NH3_an is 3D now (phs, 10/22/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -370,7 +373,7 @@
          ALLOCATE( AD13_SO2_ac( IIPAR, JJPAR, LD13 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_ac' )
 
-         ALLOCATE( AD13_SO2_an( IIPAR, JJPAR, 2 ), STAT=AS )
+         ALLOCATE( AD13_SO2_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_an' )
 
          ALLOCATE( AD13_SO2_bb( IIPAR, JJPAR ), STAT=AS )
@@ -385,7 +388,7 @@
          ALLOCATE( AD13_SO2_nv( IIPAR, JJPAR, LD13 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO2_nv' )
 
-         ALLOCATE( AD13_SO4_an( IIPAR, JJPAR, 2 ), STAT=AS )
+         ALLOCATE( AD13_SO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_an' )
 
          ALLOCATE( AD13_SO4_bf( IIPAR, JJPAR ), STAT=AS )
@@ -394,7 +397,7 @@
          ALLOCATE( AD13_SO2_sh( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_SO4_sh' )
 
-         ALLOCATE( AD13_NH3_an( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( AD13_NH3_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD13_NH3_an' )
 
          ALLOCATE( AD13_NH3_na( IIPAR, JJPAR ), STAT=AS )

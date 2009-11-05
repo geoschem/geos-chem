@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2009/10/19 14:31:58 bmy Exp $
+# $Id: Makefile,v 1.10 2009/11/05 15:35:34 phs Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -131,6 +131,7 @@ streets_anthro_mod.o          \
 arctas_ship_emiss_mod.o       \
 icoads_ship_mod.o             \
 cac_anthro_mod.o              \
+nei2005_anthro_mod.o          \
 vistas_anthro_mod.o           \
 geia_mod.o                    \
 global_ch4_mod.o              \
