@@ -1,10 +1,10 @@
-! $Id: biomass_mod.f,v 1.1 2009/09/16 14:06:39 bmy Exp $
+! $Id: biomass_mod.f,v 1.2 2009/11/06 20:54:20 bmy Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
 !  Module BIOMASS_MOD is a "wrapper" module, which allows us to select either
 !  GFED2 biomass burning emissions, or the default GEOS-Chem biomass burning
-!  emissions (based on Bryan Duncan et al).  (psk, bmy, 4/5/06, 9/18/07)
+!  emissions (based on Bryan Duncan et al).  (psk, bmy, 4/5/06, 11/6/09)
 !
 !  GEOS-Chem has the following biomass burning gas-phase species:
 !
@@ -80,6 +80,7 @@
 !  (4 ) Hard-wired IDBCO2 and BIOTRCE (tmf, 7/30/08)
 !  (5 ) Add CO scaling for VOC production. Routine SCALE_BIOMASS_CO 
 !        transfered from gc_biomass_mod.f (jaf, mak, 2/6/09)
+!  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -142,7 +143,7 @@
 !******************************************************************************
 !  Subroutine COMPUTE_BIOMASS_EMISSIONS is a wrapper which allows us to select
 !  either the GFED2 biomass burning emissions, or the regular GEOS-Chem
-!  biomass burning emissions (Duncan et al 2001). (psk, bmy, 4/5/06, 9/18/07)
+!  biomass burning emissions (Duncan et al 2001). (psk, bmy, 4/5/06, 11/6/09)
 !
 !  This routine is called on each timestep.  At the start of a new month,
 !  new biomass burning emissions are read from disk.  The ND28, ND29, ND32
@@ -161,6 +162,10 @@
 !  (3 ) Now make a more general call to GFED2 reader to account for all
 !        four options (phs, 17/12/08)
 !  (4 ) Add CO scaling for VOC production (jaf, mak, 2/6/09)
+!  (5 ) Irrespective of inventory type, we need to scale biomass CO to account 
+!        for CO production from VOC's that are not explicitly carried in the 
+!        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
+!        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -221,7 +226,17 @@
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
                
-            
+            ! Irrespective of inventory type, we need to scale biomass
+            ! CO to account for CO production from VOC's that are not
+            ! explicitly carried in the chemistry mechanisms. This used
+            ! to be done in gc_biomass_mod.f but then is not used for 
+            ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            ENDIF
+
          !==============================================================
          ! Read GC biomass emissions at the start of a new month
          !==============================================================
@@ -272,18 +287,17 @@
      &                                       BIOMASS(:,:,IDBOC) ) 
                ENDIF
             ENDIF
-!            ENDIF
-         ENDIF
 
-         ! Irrespective of inventory type, we need to scale biomass
-         ! CO to account for CO production from VOC's that are not
-         ! explicitly carried in the chemistry mechanisms. This used
-         ! to be done in gc_biomass_mod.f but then is not used for 
-         ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
-         IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO)*1.05d0
-         ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-            BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO)*1.11d0
+            ! Irrespective of inventory type, we need to scale biomass
+            ! CO to account for CO production from VOC's that are not
+            ! explicitly carried in the chemistry mechanisms. This used
+            ! to be done in gc_biomass_mod.f but then is not used for 
+            ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            ENDIF
          ENDIF
 
          !==============================================================
