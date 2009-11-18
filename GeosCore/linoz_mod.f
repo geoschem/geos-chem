@@ -1,4 +1,4 @@
-! $Id: linoz_mod.f,v 1.1 2009/10/19 14:31:58 bmy Exp $
+! $Id: linoz_mod.f,v 1.2 2009/11/18 21:44:14 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -6,8 +6,8 @@
 !
 ! !MODULE: linoz_mod.f
 !
-! !DESCRIPTION: Module linoz_mod.f contains routines to perform the 
-!  Linoz stratospheric ozone chemistry.  
+! !DESCRIPTION: Module linoz_mod.f contains routines to perform the Linoz 
+!  stratospheric ozone chemistry.
 !\\
 !\\
 ! !INTERFACE:
@@ -47,11 +47,30 @@
       PRIVATE :: LINOZ_INTPL
       PRIVATE :: STRAT_INIT
 !
+! !REMARKS:
+!  Dylan Jones (dbj@atmosp.physics.utoronto.ca) wrote:
+!                                                                             .
+!    Testing this code [in v8-02-04] was more difficult that I thought. 
+!    I began by trying to compare the output of v8-02-04 with our previous 
+!    runs with v8-02-01.  I accounted for the changes in the transport_mod.f 
+!    and I tried to undo the changes in when the diagnostics are archived in 
+!    v8-02-04, but I was still getting large differences between v8-02-04 
+!    and v8-02-01. I finally gave up on this since I may have made a mistake
+!    in reverting to the old way of doing the diagnostics in v8-02-04.  In 
+!    the end I took the new linoz code from v8-02-04 and used it in v8-02-01. 
+!    I ran two GEOS-5 full chemistry simulations for 2007 and the output 
+!    were consistent over the full year.  
+!                                                                             .
+!    I think that it is safe to release [Linoz in v8-02-04].  However, we 
+!    should acknowledge that it was [only] tested in v8-02-01, since I was 
+!    not able to assess the quality of the output in v8-02-04. 
+!
 ! REVISION HISTORY:
 !  23 Mar 2000 - P. Cameron-Smith    - Initial version adapted heavily 
 !                                      from McLinden's original file.
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
 !  28 May 2009 - D. Jones            - Further modifications
+!  18 Nov 2009 - D. Jones            - Further modifications
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -140,6 +159,8 @@
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
+!  18 Nov 2009 - D. Jones - For now, set tagged stratospheric tracer to total 
+!                           O3 in the overworld to avoid issues with spin ups
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -233,14 +254,19 @@
             ENDDO
             LPOS = LPOS-1
 
+            !---------------------------------------------------------
+            ! dbj: for now, set tagged stratospheric tracer to total 
+            ! O3 in the overworld to avoid issues with spin ups
+            !---------------------------------------------------------
+            IF ( ITS_A_TAGOX_SIM() ) THEN
+              STT(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) =
+     &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)
+            ENDIF
+
+
             DO L = LM,LBOT,-1        
 
                !IF (L .LT. LPAUSE(I,J)) GOTO 31
-
-               ! dbj: for now, set tagged stratospheric tracer to total O3
-               ! in the overworld to avoid issues with spin ups
-               STT(I,J,(L_OVERWRLD+1):LLPAR,NTRACER) = 
-     &                STT(I,J,(L_OVERWRLD+1):LLPAR,1)  
 
                IF (STT(I,J,L,NTRACER) .LE. 0.D0) CYCLE     
 
@@ -975,6 +1001,9 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: AS
+
+      print*, '### init_linoz'
+      call flush(6)
 
       ! For safety's sake, only allocate arrays on first call
       IF ( FIRST ) THEN 
