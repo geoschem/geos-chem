@@ -1,4 +1,4 @@
-! $Id: vdiff_mod.f90,v 1.2 2009/10/07 14:49:48 bmy Exp $
+! $Id: vdiff_mod.f90,v 1.3 2009/11/19 14:48:55 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -178,12 +178,12 @@ contains
 !\\
 ! !INTERFACE:
 !
-  subroutine vdiff( lat, ip, um1, vm1, tm1, &
-                    pmidm1, pintm1, rpdel, rpdeli, ztodt, &
-                    zm, shflx, cflx, &
-                    thp, qp1, pblh, kvh, &
-                    kvm, tpert, qpert, cgs, shp1, &
-                    wvflx, plonl, taux, tauy, ustar)
+  subroutine vdiff( lat, ip, uwnd, vwnd, tadv, &
+                    pmid, pint, rpdel_arg, rpdeli_arg, ztodt, &
+                    zm_arg, shflx_arg, sflx, &
+                    thp_arg, as2, pblh_arg, kvh_arg, &
+                    kvm_arg, tpert_arg, qpert_arg, cgs_arg, shp, &
+                    wvflx_arg, plonl, taux_arg, tauy_arg, ustar_arg)
 !
 ! !USES:
 !
@@ -196,42 +196,46 @@ contains
     real*8, intent(in) :: &
          ztodt                     ! 2 delta-t
     real*8, intent(in) :: &
-         um1(plonl,plev), &        ! u wind input
-         vm1(plonl,plev), &        ! v wind input
-         tm1(plonl,plev), &        ! temperature input
-         pmidm1(plonl,plev), &     ! midpoint pressures
-         pintm1(plonl,plevp), &    ! interface pressures
-         rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
-         zm(plonl,plev), &         ! midpoint geoptl height above sfc
-         shflx(plonl), &           ! surface sensible heat flux (w/m2)
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
-         wvflx(plonl)              ! water vapor flux (kg/m2/s)
+         uwnd(:,:,:), &        ! u wind input
+         vwnd(:,:,:), &        ! v wind input
+         tadv(:,:,:), &        ! temperature input
+         pmid(:,:,:), &     ! midpoint pressures
+         pint(:,:,:), &    ! interface pressures
+         rpdel_arg(:,:,:), &      ! 1./pdel  (thickness bet interfaces)
+         rpdeli_arg(:,:,:), &     ! 1./pdeli (thickness bet midpoints)
+         zm_arg(:,:,:), &         ! midpoint geoptl height above sfc
+         shflx_arg(:,:), &           ! surface sensible heat flux (w/m2)
+         sflx(:,:,:), &      ! surface constituent flux (kg/m2/s)
+         wvflx_arg(:,:)              ! water vapor flux (kg/m2/s)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: &
-         qp1(plonl,plev,pcnst), &  ! moist, tracers after vert. diff
-         shp1(plonl,plev), &       ! specific humidity (kg/kg)
-         thp(plonl,plev)           ! pot temp after vert. diffusion
+         as2(:,:,:,:), &  ! moist, tracers after vert. diff
+         shp(:,:,:), &       ! specific humidity (kg/kg)
+         thp_arg(:,:,:)           ! pot temp after vert. diffusion
 !
 ! !OUTPUT PARAMETERS: 
 !
     real*8, intent(out) :: &
-         kvh(plonl,plevp), &       ! coefficient for heat and tracers
-         kvm(plonl,plevp), &       ! coefficient for momentum
-         tpert(plonl), &           ! convective temperature excess
-         qpert(plonl), &           ! convective humidity excess
-         cgs(plonl,plevp)          ! counter-grad star (cg/flux)
+         kvh_arg(:,:,:), &       ! coefficient for heat and tracers
+         kvm_arg(:,:,:), &       ! coefficient for momentum
+         tpert_arg(:,:), &           ! convective temperature excess
+         qpert_arg(:,:), &           ! convective humidity excess
+         cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
 
     real*8, optional, intent(inout) :: &
-         taux(plonl), &            ! x surface stress (n)
-         tauy(plonl), &            ! y surface stress (n)
-         ustar(plonl)              ! surface friction velocity
+         taux_arg(:,:), &            ! x surface stress (n)
+         tauy_arg(:,:), &            ! y surface stress (n)
+         ustar_arg(:,:)              ! surface friction velocity
 
-    real*8, intent(inout) :: pblh(plonl) ! boundary-layer height [m]
+    real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
+
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
+!
+! (1 ) All arguments are full arrays now. Latitude slices are copied in local
+!      variables. (ccc, 11/19/09) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,6 +290,36 @@ contains
          termm(plonl,plev)         ! 1./(1.+cam(k) + ccm(k) - ccm(k)*zem(k-1))
     logical :: adjust(plonl)
 
+    real*8 :: &
+         um1(plonl,plev), &        ! u wind input
+         vm1(plonl,plev), &        ! v wind input
+         tm1(plonl,plev), &        ! temperature input
+         pmidm1(plonl,plev), &     ! midpoint pressures
+         pintm1(plonl,plevp), &    ! interface pressures
+         rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
+         rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
+         zm(plonl,plev), &         ! midpoint geoptl height above sfc
+         shflx(plonl), &           ! surface sensible heat flux (w/m2)
+         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         wvflx(plonl)              ! water vapor flux (kg/m2/s)
+    real*8 :: &
+         qp1(plonl,plev,pcnst), &  ! moist, tracers after vert. diff
+         shp1(plonl,plev), &       ! specific humidity (kg/kg)
+         thp(plonl,plev)           ! pot temp after vert. diffusion
+    real*8 :: &
+         kvh(plonl,plevp), &       ! coefficient for heat and tracers
+         kvm(plonl,plevp), &       ! coefficient for momentum
+         tpert(plonl), &           ! convective temperature excess
+         qpert(plonl), &           ! convective humidity excess
+         cgs(plonl,plevp)          ! counter-grad star (cg/flux)
+
+    real*8 :: &
+        taux(plonl), &            ! x surface stress (n)
+        tauy(plonl), &            ! y surface stress (n)
+        ustar(plonl)              ! surface friction velocity
+
+    real*8 :: pblh(plonl) ! boundary-layer height [m]
+
     !=================================================================
     ! vdiff begins here!
     !=================================================================
@@ -293,7 +327,34 @@ contains
 !      !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
-    
+
+    !Populate local variables with values from arguments.(ccc, 11/17/09)
+    um1    = uwnd(:,lat,:)
+    vm1    = vwnd(:,lat,:)
+    tm1    = tadv(:,lat,:)    
+    pmidm1 = pmid(:,lat,:)  
+    pintm1 = pint(:,lat,:)      
+    rpdel  = rpdel_arg(:,lat,:)  
+    rpdeli = rpdeli_arg(:,lat,:)
+    zm     = zm_arg(:,lat,:)
+    shflx  = shflx_arg(:,lat)
+    cflx   = sflx(:,lat,:)
+    wvflx  = wvflx_arg(:,lat)
+    qp1    = as2(:,lat,:,:)
+    shp1   = shp(:,lat,:)
+    thp    = thp_arg(:,lat,:)
+    kvh    = kvh_arg(:,lat,:)
+    kvm    = kvm_arg(:,lat,:)
+    tpert  = tpert_arg(:,lat)
+    qpert  = qpert_arg(:,lat)
+    cgs    = cgs_arg(:,lat,:)
+    pblh   = pblh_arg(:,lat)
+        
+    IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
+    IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
+    IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
+
+
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
@@ -301,7 +362,8 @@ contains
     do i = 1,plonl
        tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
-       if (present(taux) .and. present(tauy)) then 
+!ccc       if (present(taux) .and. present(tauy)) then 
+       if (present(taux_arg) .and. present(tauy_arg)) then 
           dubot(i)     = taux(i)*tmp1(i)
           dvbot(i)     = tauy(i)*tmp1(i)
        endif
@@ -393,7 +455,8 @@ contains
 !           the free atmosphere kv is returned above the boundary layer top.
 !-----------------------------------------------------------------------
     ! ustar must always be inputted 
-    if (present(taux) .and. present(tauy)) then
+!ccc    if (present(taux) .and. present(tauy)) then
+    if (present(taux_arg) .and. present(tauy_arg)) then
        call pbldif( thp, shp1, zm, um1, vm1, &
                     tm1, pmidm1, kvf, cflx, shflx, &
                     kvm, kvh, &
@@ -603,6 +666,21 @@ contains
 !-----------------------------------------------------------------------
     call qvdiff( 1, thx, dtbot, cch, zeh, &
 	         termh, thp, plonl )
+
+    !Output values from local variables to arguments.(ccc, 11/17/09)
+    as2(:,lat,:,:)   = qp1 
+    shp(:,lat,:)     = shp1
+    thp_arg(:,lat,:) = thp
+    kvh_arg(:,lat,:) = kvh    
+    kvm_arg(:,lat,:) = kvm    
+    tpert_arg(:,lat) = tpert  
+    qpert_arg(:,lat) = qpert  
+    cgs_arg(:,lat,:)   = cgs    
+    pblh_arg(:,lat)  = pblh   
+        
+    IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux   
+    IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
+    IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
 
   end subroutine vdiff
 !EOC
@@ -1186,9 +1264,9 @@ contains
 !\\
 ! !INTERFACE:
 !
-  subroutine vdiffar( lat     ,tm1, &
-                      pmidm1  ,pintm1  ,rpdel   ,rpdeli  ,ztodt, &
-                      cflx    ,qp1     ,kvh     ,cgs     ,plonl )
+  subroutine vdiffar( lat   ,tadv , &
+                      pmid  ,pint ,rpdel_arg ,rpdeli_arg  ,ztodt, &
+                      sflx  ,as2  ,kvh_arg   ,cgs_arg     ,plonl )
 !
 ! !USES:
 ! 
@@ -1199,20 +1277,20 @@ contains
     integer, intent(in) :: lat     ! latitude index
     integer, intent(in) :: plonl   ! lon tile dim
     real*8, intent(in) :: &
-         tm1(plonl,plev), &        ! temperature input
-         pmidm1(plonl,plev), &     ! midpoint pressures
-         pintm1(plonl,plevp), &    ! interface pressures
-         rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
-         ztodt, &                  ! 2 delta-t
-         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
-         kvh(plonl,plevp), &       ! coefficient for heat and tracers
-         cgs(plonl,plevp)          ! counter-grad star (cg/flux)
+         ztodt , &                 ! 2 delta-t
+         tadv(:,:,:), &        ! temperature input
+         pmid(:,:,:), &     ! midpoint pressures
+         pint(:,:,:), &    ! interface pressures
+         rpdel_arg(:,:,:), &      ! 1./pdel  (thickness bet interfaces)
+         rpdeli_arg(:,:,:), &     ! 1./pdeli (thickness bet midpoints)
+         sflx(:,:,:), &      ! surface constituent flux (kg/m2/s)
+         kvh_arg(:,:,:), &       ! coefficient for heat and tracers
+         cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: &
-         qp1(plonl,plev,pcnst)     ! moist, tracers after vert. diff
+         as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY: 
 !EOP
@@ -1244,10 +1322,33 @@ contains
          k, &                  ! vertical index
          m                     ! constituent index
 
+    real*8 :: &
+         tm1(plonl,plev), &        ! temperature input
+         pmidm1(plonl,plev), &     ! midpoint pressures
+         pintm1(plonl,plevp), &    ! interface pressures
+         rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
+         rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
+         cflx(plonl,pcnst), &      ! surface constituent flux (kg/m2/s)
+         kvh(plonl,plevp), &       ! coefficient for heat and tracers
+         cgs(plonl,plevp)          ! counter-grad star (cg/flux)
+    real*8 :: &
+         qp1(plonl,plev,pcnst)     ! moist, tracers after vert. diff
     !=================================================================
     ! vdiffar begins here!
     !=================================================================
     
+    !Populate local variables with values from arguments (ccc, 11/17/09)
+    tm1    = tadv(:,lat,:)
+    pmidm1 = pmid(:,lat,:)
+    pintm1 = pint(:,lat,:)
+    rpdel  = rpdel_arg(:,lat,:)
+    rpdeli = rpdeli_arg(:,lat,:)
+    cflx   = sflx(:,lat,:)
+    kvh    = kvh_arg(:,lat,:)
+    cgs    = cgs_arg(:,lat,:)
+    qp1    = as2(:,lat,:,:)
+    
+
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
@@ -1380,6 +1481,9 @@ contains
     where (qp1 < 0.)
        qp1 = 0.
     endwhere
+    
+    !Output values from local variables to arguments.(ccc, 11/17/09)
+    as2(:,lat,:,:) = qp1
     
   end subroutine vdiffar
 !EOC
@@ -1622,7 +1726,10 @@ contains
 !
     real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
+!
+! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
+!       (ccc, 11/19/09) 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1633,7 +1740,8 @@ contains
 
     real*8, dimension(IIPAR,JJPAR,LLPAR) :: pmid, rpdel, rpdeli, zm
     real*8, dimension(IIPAR,JJPAR,LLPAR+1) :: pint
-    real*8, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx, eflx, dflx ! surface flux
+    real*8, dimension(IIPAR,JJPAR,N_TRACERS) :: sflx
+    real*8, dimension(IIPAR,JJPAR,N_TRACERS) :: eflx, dflx ! surface flux
     real*8, dimension(IIPAR,JJPAR,LLPAR+1) :: cgs, kvh, kvm
     real*8, dimension(IIPAR,JJPAR) :: pblh, tpert, qpert
     real*8, dimension(IIPAR,JJPAR,LLPAR) :: thp         ! potential temperature
@@ -1946,19 +2054,30 @@ contains
 !      !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( J )      
+!$OMP PARALLEL DO DEFAULT( SHARED )      &
+!$OMP PRIVATE( J )     
        do J = 1, JJPAR
+          
+!--- Previous to (ccc, 11/19/09)
+!          call vdiff( J, 1, um1(:,J,:), vm1(:,J,:), tadv(:,J,:), &
+!                      pmid(:,J,:), pint(:,J,:), rpdel(:,J,:), &
+!                      rpdeli(:,J,:), dtime, &
+!                      zm(:,J,:), hflx(:,J), sflx(:,J,:), &
+!                      thp(:,J,:), as2(:,J,:,:), pblh(:,J), &
+!                      kvh(:,J,:), &
+!                      kvm(:,J,:), tpert(:,J), qpert(:,J), &
+!                      cgs(:,J,:), shp(:,J,:), &
+!                      shflx(:,J), IIPAR, ustar=ustar(:,J))
 
-          call vdiff( J, 1, um1(:,J,:), vm1(:,J,:), tadv(:,J,:), &
-                      pmid(:,J,:), pint(:,J,:), rpdel(:,J,:), &
-                      rpdeli(:,J,:), dtime, &
-                      zm(:,J,:), hflx(:,J), sflx(:,J,:), &
-                      thp(:,J,:), as2(:,J,:,:), pblh(:,J), &
-                      kvh(:,J,:), &
-                      kvm(:,J,:), tpert(:,J), qpert(:,J), &
-                      cgs(:,J,:), shp(:,J,:), &
-                      shflx(:,J), IIPAR, ustar=ustar(:,J))
-
+          call vdiff( J, 1, um1, vm1, tadv,        &
+                      pmid, pint, rpdel,           &
+                      rpdeli, dtime,               &
+                      zm, hflx, sflx,              &
+                      thp, as2, pblh,              &
+                      kvh,                         &
+                      kvm, tpert, qpert,           &
+                      cgs, shp,                    &
+                      shflx, IIPAR, ustar_arg=ustar)
        enddo
 !$OMP END PARALLEL DO
 
@@ -2025,13 +2144,21 @@ contains
 !      !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( J ) 
+!$OMP PARALLEL DO DEFAULT( SHARED )   &
+!$OMP PRIVATE( J )
        do J = 1, JJPAR
-          call vdiffar( J, tadv(:,J,:), &
-                        pmid (:,J,:), pint(:,J,:),        &
-                        rpdel(:,J,:), rpdeli(:,J,:), dtime, &
-                        sflx(:,J,:), as2(:,J,:,:),                   &
-                        kvh(:,J,:), cgs(:,J,:), IIPAR)
+
+!--- Previous to (ccc,11/19/09)
+!          call vdiffar( J, tadv(:,J,:), &
+!                        pmid (:,J,:), pint(:,J,:),        &
+!                        rpdel(:,J,:), rpdeli(:,J,:), dtime, &
+!                        sflx(:,J,:), as2(:,J,:,:),                   &
+!                        kvh(:,J,:), cgs(:,J,:), IIPAR)
+          call vdiffar( J, tadv, &
+                        pmid, pint,        &
+                        rpdel, rpdeli, dtime, &
+                        sflx, as2,                   &
+                        kvh, cgs, IIPAR)
 
       enddo
 !$OMP END PARALLEL DO
