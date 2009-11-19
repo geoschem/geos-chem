@@ -1,12 +1,26 @@
-! $Id: CVSLOG,v 1.3 2009/10/27 14:56:03 bmy Exp $
+! $Id: CVSLOG,v 1.4 2009/11/19 14:54:06 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.4  2009/11/19 14:54:06  bmy
+! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
+! bmy, 11/19/09)
+!
+
+! $Id: CVSLOG,v 1.4 2009/11/19 14:54:06 bmy Exp $
+! $Log: CVSLOG,v $
+! Revision 1.4  2009/11/19 14:54:06  bmy
+! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
+! bmy, 11/19/09)
+!
 ! Revision 1.3  2009/10/27 14:56:03  bmy
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
 !
-!
-! $Id: CVSLOG,v 1.3 2009/10/27 14:56:03 bmy Exp $
+! $Id: CVSLOG,v 1.4 2009/11/19 14:54:06 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.4  2009/11/19 14:54:06  bmy
+! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
+! bmy, 11/19/09)
+!
 ! Revision 1.3  2009/10/27 14:56:03  bmy
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
@@ -15,6 +29,10 @@
 ! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
 !
 ! $Log: CVSLOG,v $
+! Revision 1.4  2009/11/19 14:54:06  bmy
+! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
+! bmy, 11/19/09)
+!
 ! Revision 1.3  2009/10/27 14:56:03  bmy
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
@@ -27,8 +45,12 @@
 ! Committed changes for LINOZ
 ! Updated comments (bmy, 10/19/09)
 !
-! $Id: CVSLOG,v 1.3 2009/10/27 14:56:03 bmy Exp $
+! $Id: CVSLOG,v 1.4 2009/11/19 14:54:06 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.4  2009/11/19 14:54:06  bmy
+! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
+! bmy, 11/19/09)
+!
 ! Revision 1.3  2009/10/27 14:56:03  bmy
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
