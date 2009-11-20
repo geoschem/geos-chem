@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.4 2009/10/07 14:49:48 bmy Exp $
+# $Id: Makefile_header.mk,v 1.5 2009/11/20 21:43:22 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -36,6 +36,8 @@
 #  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
 #  24 Sep 2009 - R. Yantosca - added NONUMA option for PGI compiler
 #  07 Oct 2009 - R. Yantosca - Replaced .SUFFIXES section w/ pattern rules
+#  19 Nov 2009 - R. Yantosca - Now use OMP variable to determine whether to
+#                              turn on OpenMP parallelization options 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -45,6 +47,16 @@ ifndef COMPILER
 COMPILER = ifort
 endif
 
+# Turn OpenMP on by default
+ifndef OMP
+OMP = yes
+endif
+
+# Turn off OpenMP parallelization for debug runs
+ifdef DEBUG
+OMP = no
+endif
+
 #------------------------------------------------------------------------------
 # IFORT compilation options (default)
 #------------------------------------------------------------------------------
@@ -52,9 +64,20 @@ ifeq ($(COMPILER),ifort)
 
 # Pick correct options for debug run or regular run 
 ifdef DEBUG
+
+# %%% Compiler options for debug run %%%
 FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback 
+
 else
-FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian -openmp -Dmultitask
+
+# %%% Compiler options for regular run %%%
+FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
+
+# Turn on OpenMP parallelization
+ifeq ($(OMP),yes) 
+FFLAGS += -openmp -Dmultitask
+endif
+
 endif
 
 # Add special IFORT optimization commands
@@ -85,11 +108,12 @@ endif
 #------------------------------------------------------------------------------
 ifeq ($(COMPILER),pgi) 
 
-# Pick correct options for debug run or regular run 
-ifdef DEBUG
+# Base options
 FFLAGS = -byteswapio -Mpreprocess -fast -Bstatic
-else
-FFLAGS = -byteswapio -Mpreprocess -fast -mp -Mnosgimp -Dmultitask -Bstatic
+
+# Turn on OpenMP parallelization
+ifeq ($(OMP),yes) 
+FFLAGS += -mp -Mnosgimp -Dmultitask
 endif
 
 # Add option for suppressing PGI non-uniform memory access (numa) library 
@@ -119,10 +143,16 @@ ifeq ($(COMPILER),sun)
 # NOTE: -native builds in proper options for whichever chipset you have!
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
 
-# Additional flags for parallel run
-ifndef DEBUG
+# Turn on OpenMP parallelization
+ifeq ($(OMP),yes) 
 FFLAGS += -openmp=parallel -Dmultitask
 endif
+
+# Prior to 11/19/09:
+## Additional flags for parallel run
+#ifndef DEBUG
+#FFLAGS += -openmp=parallel -Dmultitask
+#endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
@@ -156,10 +186,16 @@ FFLAGS = -bmaxdata:0x80000000 -bmaxstack:0x80000000 -qfixed -qsuffix=cpp=f -q64
 # Add optimization options
 FFLAGS += -O3 -qarch=auto -qtune=auto -qcache=auto -qmaxmem=-1 -qstrict 
 
-# Add more options for parallel run
-ifndef DEBUG
+# Turn on OpenMP parallelization
+ifeq ($(OMP),yes) 
 FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
 endif
+
+# Prior to 11/19/09:
+## Add more options for parallel run
+#ifndef DEBUG
+#FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
+#endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS

@@ -1,75 +1,81 @@
-! $Id: pressure_mod.f,v 1.1 2009/09/16 14:06:15 bmy Exp $
+! $Id: pressure_mod.f,v 1.1 2009/11/20 21:43:03 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: pressure_mod.f
+!
+! !DESCRIPTION: Module PRESSURE\_MOD contains variables and routines which 
+!  specify the grid box pressures for both hybrid or pure-sigma models.  
+!  This is necessary for running GEOS-Chem with the GEOS-4 or GEOS-5 hybrid
+!  grids.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE PRESSURE_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module PRESSURE_MOD contains variables and routines which specify the grid 
-!  box pressures for both hybrid or pure-sigma models.  This is necessary
-!  for running GEOS-CHEM with the new GEOS-4/fvDAS meteorological fields.
-!  (dsa, bmy, 8/27/02, 10/30/07)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AP   (REAL*8)         : "A" term for hybrid ETA coordinate
-!  (2 ) BP   (REAL*8)         : "B" term for hybrid ETA coordinate
-!  (3 ) PFLT (REAL*8)         : "Floating" surface pressure field
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_AP                : Returns "A" term for hybrid ETA coordinate
-!  (2 ) GET_BP                : Returns "B" term for hybrid ETA coordinate
-!  (3 ) SET_FLOATING_PRESSURE : Initializes PFLT w/ Psurface from "main.f"
-!  (4 ) GET_PEDGE             : Returns pressure at bottom edge of box (I,J L)
-!  (5 ) GET_PCENTER           : Returns pressure at center of box (I,J,L)
-!  (6 ) INIT_PRESSURE         : Allocates and zeroes all module arrays
-!  (7 ) CLEANUP_PRESSURE      : Deallocates all module arrays
+      PUBLIC :: CLEANUP_PRESSURE           
+      PUBLIC :: GET_AP
+      PUBLIC :: GET_BP
+      PUBLIC :: GET_PCENTER           
+      PUBLIC :: GET_PEDGE             
+      PUBLIC :: INIT_PRESSURE         
+      PUBLIC :: SET_FLOATING_PRESSURE 
 !
-!  GEOS-CHEM modules referenced by pressure_mod.f
-!  ============================================================================
-!  (1 ) error_mod.f           : Module w/ I/O error and NaN check routines
+! !REMARKS:
 !
 !  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 10/30/07)
 !  ============================================================================
-!
+!                                                                             .
 !  GEOS-4 and GEOS-5 (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
-!  
+!                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
-!  
+!                                                                             .
 !  where
-!
+!                                                                             .
 !     Psurface(I,J) is  the "true" surface pressure at lon,lat (I,J)
 !     Ap(L)         has the same units as surface pressure [hPa]
 !     Bp(L)         is  a unitless constant given at level edges
-!
+!                                                                             .
 !  Ap(L) and Bp(L) are given to us by GMAO.
-!
-!
+!                                                                             .
+!                                                                             .
 !  GEOS-3 (pure-sigma) and GCAP (hybrid grid):
 !  ----------------------------------------------------------------------------
 !  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
 !  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
 !  sigma edges at higher levels).  For these grids, can stil use the same
 !  formula as for GEOS-4, with one modification:
-!  
+!                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
-!
+!                                                                             .
 !  where
-!
+!                                                                             .
 !     Psurface(I,J) = the "true" surface pressure at lon,lat (I,J)
 !     Ap(L)         = PTOP    = model top pressure
 !     Bp(L)         = SIGE(L) = bottom sigma edge of level L
-!
-!
+!                                                                             .
+!                                                                             .
 !  The following are true for GCAP, GEOS-3, GEOS-4:
 !  ----------------------------------------------------------------------------
 !  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
 !  (2) Bp(1)       = 1.0          (L=1       is the surface       )
 !  (3) PTOP        = Ap(LLPAR+1)  (L=LLPAR+1 is the atmosphere top) 
 !
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  27 Aug 2002 - D. Abbot & R. Yantosca - Initial version 
 !  (1 ) Be sure to check PFLT for NaN or Infinities (bmy, 8/27/02)
 !  (2 ) Updated comments (bmy, 5/8/03)
 !  (3 ) Updated format string for fvDAS (bmy, 6/19/03)
@@ -80,129 +86,133 @@
 !  (8 ) Removed obsolete reference to "CMN" (bmy, 4/25/06)
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Added Ap and Bp for GEOS-5 met fields (bmy, 10/30/07)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "pressure_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... and these routines 
-      PUBLIC :: CLEANUP_PRESSURE           
-      PUBLIC :: GET_AP
-      PUBLIC :: GET_BP
-      PUBLIC :: GET_PCENTER           
-      PUBLIC :: GET_PEDGE             
-      PUBLIC :: INIT_PRESSURE         
-      PUBLIC :: SET_FLOATING_PRESSURE 
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Arrays
-      REAL*8, ALLOCATABLE :: AP(:)
-      REAL*8, ALLOCATABLE :: BP(:)
-      REAL*8, ALLOCATABLE :: PFLT(:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      ! Module variables
+      REAL*8, ALLOCATABLE :: AP(:)      ! "A" term for hybrid ETA coordinate
+      REAL*8, ALLOCATABLE :: BP(:)      ! "B" term for hybrid ETA coordinate
+      REAL*8, ALLOCATABLE :: PFLT(:,:)  ! "Floating" surface pressure field
 
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ap
+!
+! !DESCRIPTION: Function GET\_AP returns the "A" term [hPa] for the 
+!  hybrid ETA coordinate.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_AP( L ) RESULT( AP_TEMP )
 !
-!******************************************************************************
-!  Function GET_AP returns the "A" term [hPa] for the hybrid ETA coordinate.
-!  (dsa, bmy, 8/20/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) L (INTEGER) : AP will be returned at the bottom edge of level L
+#     include "CMN_SIZE"              ! Size parameters
 !
-!  NOTES:
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-#     include "CMN_SIZE"  ! Size parameters
-      
-      ! Arguments
-      INTEGER, INTENT(IN) :: L 
-
-      ! Local variables
-      REAL*8 :: AP_TEMP
-
-      !=================================================================
-      ! GET_AP begins here!
-      !=================================================================      
+      INTEGER, INTENT(IN) :: L        ! GEOS-Chem level index
+!
+! !RETURN VALUE: 
+!
+      REAL*8              :: AP_TEMP  ! Corresponding "A" value [hPa]
+                                      !  at bottom edge of level L
+!
+! !REVISION HISTORY:
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       AP_TEMP = AP(L)
 
-      ! Return to calling program
       END FUNCTION GET_AP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_bp
+!
+! !DESCRIPTION: Function GET\_BP returns the "B" term [unitless] for the 
+!  hybrid ETA coordinate.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_BP( L ) RESULT( BP_TEMP )
 !
-!******************************************************************************
-!  Function GET_BP returns the "B" term [unitless] for the hybrid ETA 
-!  coordinate (dsa, bmy, 8/20/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) L (INTEGER) : BP will be returned at the bottom edge of level L
+#     include "CMN_SIZE"              ! Size parameters
 !
-!  NOTES:
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-#     include "CMN_SIZE"
-      
-      INTEGER, INTENT(IN)  :: L !edge level
-
-      REAL*8 :: BP_TEMP
-
-      !=================================================================
-      ! GET_BP begins here!
-      !=================================================================
+      INTEGER, INTENT(IN) :: L        ! GEOS-Chem level index
+!
+! !RETURN VALUE: 
+!
+      REAL*8              :: BP_TEMP  ! Corresponding "B" value [unitless]
+                                      !  at bottom edge of level L
+!
+! !REVISION HISTORY:
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       BP_TEMP = BP(L)
 
-      ! Return to calling program
       END FUNCTION GET_BP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_floating_pressure
+!
+! !DESCRIPTION: Subroutine SET\_FLOATING\_PRESSURE initializes the floating 
+!  pressure field PFLT with a pressure from the main program.  This is needed
+!  to initialize and reset PFLT after transport.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_FLOATING_PRESSURE( PS )
 !
-!******************************************************************************
-!  Subroutine SET_FLOATING_PRESSURE initializes the floating pressure field
-!  PFLT with a pressure from the main program.  This is needed to initialize 
-!  and reset PFLT after transport. (dsa, bdf, bmy, 8/27/02, 4/14/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) PS (REAL*8) :: Array containing pressure with which to initialize PFLT
-!
-!  NOTES:
-!  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
-!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
 #     include "CMN_SIZE"  ! Size parameters
-   
-      ! Arguments
-      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER            :: I, J
+  
+!
+! !INPUT PARAMETERS: 
+!
+      ! Array containing pressure with which to initialize PFLT [hPa]
+      REAL*8, INTENT(IN) :: PS(IIPAR,JJPAR)  
+!
+! !REVISION HISTORY:
+!  27 Aug 2002 - D. Abbot, B. Field,  R. Yantosca - Initial version  
+!  (1 ) Now check PFLT for NaN or Infinities (bmy, 8/27/02)
+!  (2 ) Added parallel DO-loop (bmy, 4/14/04)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER :: I, J
 
       !=================================================================
       ! SET_FLOATING_PRESSURE begins here!
@@ -225,37 +235,44 @@
 
       ! Return to calling program
       END SUBROUTINE SET_FLOATING_PRESSURE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pedge
+!
+! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
+!  of level L.  L=1 is the surface, L=LLPAR+1 is the atm top.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PEDGE( I, J, L ) RESULT( PEDGE )
 !
-!******************************************************************************
-!  Function GET_PEDGE returns the pressure at the bottom edge of level L.
-!  L=1 is the surface, L=LLPAR+1 is the atm top. (dsa, bmy, 8/20/02, 10/30/07)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : GEOS-Chem longitude index 
-!  (2 ) J (INTEGER) : GEOS-Chem latitude index
-!  (3 ) L (INTEGER) : GEOS-Chem level index
-!
-!  NOTES:
-!  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
-!  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
-!******************************************************************************
+! !USES:
 !
 #     include "CMN_SIZE"   ! PTOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L 
-      
-      ! Return value
-      REAL*8              :: PEDGE 
-
-      !=================================================================
-      ! GET_PEDGE begins here!
-      !=================================================================
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I      ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J      ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L      ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: PEDGE  ! Pressure @ bottom edge of (I,J,L) [hPa]
+!
+! !REVISION HISTORY:
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
+!  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GEOS_4 ) || defined( GEOS_5 )
 
@@ -277,59 +294,80 @@
 
 #endif     
  
-      ! Return to calling program
       END FUNCTION GET_PEDGE 
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_pcenter
+!
+! !DESCRIPTION: Function GET\_PCENTER returns the pressure at the vertical
+!  midpoint of level L.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_PCENTER( I, J, L ) RESULT( PCENTER )
 !
-!******************************************************************************
-!  Function GET_PEDGE returns the pressure at the bottom edge of level L.
-!  (dsa, bmy, 8/20/02, 4/25/06)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) P_BOT (REAL*8 ) : P_surface - P_top (PS-PTOP)
-!  (2 ) L     (INTEGER) : Pressure will be returned at the center of level L
+! !USES:
 !
-!  NOTES:
+#     include "CMN_SIZE"   ! PTOP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I        ! GEOS-Chem lon   index
+      INTEGER, INTENT(IN) :: J        ! GEOS-Chem lat   index
+      INTEGER, INTENT(IN) :: L        ! GEOS-Chem level index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: PCENTER  ! Pressure @ center of (I,J,L) [hPa]
+!
+! !REVISION HISTORY:
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
 !  (1 ) Updated format string for fvDAS (bmy, 6/19/03)
 !  (2 ) Removed reference to "CMN", it's obsolete (bmy, 4/25/06)
-!******************************************************************************
-!
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L     
-      
-      ! Return value
-      REAL*8              :: PCENTER 
-
-      !=================================================================
-      ! GET_PCENTER begins here!
-      !=================================================================
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! The pressure at the center of a grid-box is found
       ! by averaging the pressures at the box's two edges
       PCENTER = 0.5d0 * ( GET_PEDGE(I,J,L) + GET_PEDGE(I,J,L+1) )
 
-      ! Return to calling program
       END FUNCTION GET_PCENTER
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_pressure
+!
+! !DESCRIPTION: Subroutine INIT\_PRESSURE allocates and initializes the AP 
+!  and BP arrays.  It must be called in "main.f", after SIGE is defined.  
+!  GEOS-4 and GEOS-5 requires the hybrid pressure system specified by 
+!  the listed values of AP and BP, while earlier versions of GEOS use a pure 
+!  sigma pressure system.  GCAP met fields (based on GISS) also use a hybrid 
+!  system. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_PRESSURE
 !
-!******************************************************************************
-!  Subroutine INIT_PRESSURE allocates and initializes the AP and BP arrays.
-!  It must be called in "main.f", after SIGE is defined.  GEOS-4 uses fvDAS, 
-!  which requires the hybrid pressure system specified by the listed values 
-!  of AP and BP, while earlier versions of GEOS use a pure sigma pressure
-!  system.  GCAP met fields (based on GISS) also use a hybrid system. 
-!  (dsa, swu, bmy, 8/20/02, 10/30/07)
+! !USES:
 !
-!  NOTES:
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+
+#     include "CMN_SIZE"  ! LLPAR, PTOP
+!
+! !REVISION HISTORY:
+!  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
 !  (1 ) Now reference ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Now echo Ap, Bp to std output (bmy, 3/14/03)
 !  (3 ) Now print LLPAR+1 levels for Ap, Bp.  Remove reference to SIGE, it's
@@ -337,14 +375,13 @@
 !        IF statements to define vertical coordinates. (bmy, 11/3/03)
 !  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
 !  (5 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 10/30/07)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-#     include "CMN_SIZE"  ! LLPAR, PTOP
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       INTEGER :: L
 
@@ -656,29 +693,32 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_PRESSURE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_pressure
+!
+! !DESCRIPTION: Subroutine CLEANUP\_PRESSURE deallocates all allocated arrays 
+!  at the end of a GEOS-Chem model run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_PRESSURE
 !
-!******************************************************************************
-!  Subroutine CLEANUP_PRESSURE deallocates all allocated arrays at the
-!  end of a GEOS-CHEM model run. (dsa, bmy, 8/20/02)
-!
-!  NOTES:
-!******************************************************************************
-!
-      !=================================================================
-      ! CLEANUP_PRESSURE begins here!
-      !=================================================================
+! !REVISION HISTORY:
+!  20 Aug 2002 - D. Abbot & R. Yantosca - Initial version  
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( ALLOCATED( AP   ) ) DEALLOCATE( AP   )
       IF ( ALLOCATED( BP   ) ) DEALLOCATE( BP   )
       IF ( ALLOCATED( PFLT ) ) DEALLOCATE( PFLT )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_PRESSURE
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE PRESSURE_MOD

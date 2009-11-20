@@ -1,35 +1,64 @@
-! $Id: error_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: error_mod.f,v 1.1 2009/11/20 21:43:06 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: error_mod.f
+!
+! !DESCRIPTION: Module ERROR\_MOD contains error checking routines.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE ERROR_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module ERROR_MOD contains error checking routines. (bmy, phs, 3/8/01,7/8/09)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ===========================================================================
-!  (1 ) NAN_FLOAT        : Checks REAL*4 numbers for IEEE NaN flag
-!  (2 ) NAN_DBLE         : Checks REAL*8 numbers for IEEE NaN flag
-!  (3 ) FINITE_FLOAT     : Checks REAL*4 numbers for IEEE Infinity flag
-!  (4 ) FINITE_DBLE      : Checks REAL*8 numbers for IEEE Infinity flag
-!  (5 ) CHECK_REAL_VALUE : Convenience routine for REAL*4 error checking
-!  (6 ) CHECK_DBLE_VALUE : Convenience routine for REAL*8 error checking
-!  (7 ) ERROR_STOP       : Wrapper for GEOS_CHEM_STOP; also prints error msg
-!  (8 ) GEOS_CHEM_STOP   : Deallocates all module arrays and stops the run
-!  (9 ) ALLOC_ERR        : Prints error msg for memory allocation errors
-!  (10) DEBUG_MSG        : Prints a debug message and flushes stdout buffer
-!  (11) SAFE_DIV         : Performs a "safe division" (no FP errors)
-!  (12) IS_SAFE_DIV      : Tests if it is a "safe division" condition
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Interfaces:
-!  ===========================================================================
-!  (1 ) IT_IS_NAN        : Overloads NAN_FLOAT,        NAN_DBLE
-!  (2 ) IT_IS_FINITE     : Overloads FINITE_FLOAT,     FINITE_DBLE
-!  (3 ) CHECK_VALUE      : Overloads CHECK_REAL_VALUE, CHECK_DBLE_VALUE
+      PUBLIC  :: ALLOC_ERR
+      PUBLIC  :: CHECK_VALUE
+      PUBLIC  :: DEBUG_MSG
+      PUBLIC  :: ERROR_STOP
+      PUBLIC  :: GEOS_CHEM_STOP
+      PUBLIC  :: IS_SAFE_DIV
+      PUBLIC  :: IT_IS_NAN
+      PUBLIC  :: IT_IS_FINITE
+      PUBLIC  :: SAFE_DIV
+
+      ! Interface for NaN-check routines
+      INTERFACE IT_IS_NAN
+         MODULE PROCEDURE NAN_FLOAT
+         MODULE PROCEDURE NAN_DBLE
+      END INTERFACE
+
+      ! Interface for finite-check routines
+      INTERFACE IT_IS_FINITE
+         MODULE PROCEDURE FINITE_FLOAT
+         MODULE PROCEDURE FINITE_DBLE
+      END INTERFACE
+
+      ! Interface for check-value routines
+      INTERFACE CHECK_VALUE
+         MODULE PROCEDURE CHECK_REAL_VALUE
+         MODULE PROCEDURE CHECK_DBLE_VALUE
+      END INTERFACE
 !
-!  GEOS-CHEM modules referenced by error_mod.f
-!  ============================================================================
-!  none
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PRIVATE :: CHECK_DBLE_VALUE
+      PRIVATE :: CHECK_REAL_VALUE
+      PRIVATE :: FINITE_DBLE
+      PRIVATE :: FINITE_FLOAT
+      PRIVATE :: NAN_DBLE
+      PRIVATE :: NAN_FLOAT
+!
+! !REVISION HISTORY:
+!  08 Mar 2001 - R. Yantosca - Initial version
 !  (1 ) Added subroutines CHECK_REAL_VALUE and CHECK_DBLE_VALUE, which are
 !        overloaded by interface CHECK_VALUE.  This is a convenience
 !        so that you don't have to always call IT_IS_NAN directly.
@@ -62,61 +91,44 @@
 !  (21) Added routine IS_SAFE_DIV (phs, bmy, 6/11/08)
 !  (22) Updated routine SAFE_DIV (phs, 4/14/09)
 !  (23) Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "error_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC ...
-      PUBLIC 
-
-      ! ... except these routines
-      PRIVATE NAN_FLOAT,        NAN_DBLE
-      PRIVATE FINITE_FLOAT,     FINITE_DBLE
-      PRIVATE CHECK_REAL_VALUE, CHECK_DBLE_VALUE
-
-      !=================================================================
-      ! MODULE INTERFACES -- "bind" two or more routines with different
-      ! argument types or # of arguments under one unique name
-      !================================================================= 
-
-      ! Interface for NaN-check routines
-      INTERFACE IT_IS_NAN
-         MODULE PROCEDURE NAN_FLOAT, NAN_DBLE
-      END INTERFACE
-
-      ! Interface for finite-check routines
-      INTERFACE IT_IS_FINITE
-         MODULE PROCEDURE FINITE_FLOAT, FINITE_DBLE
-      END INTERFACE
-
-      ! Interface for check-value routines
-      INTERFACE CHECK_VALUE
-         MODULE PROCEDURE CHECK_REAL_VALUE, CHECK_DBLE_VALUE
-      END INTERFACE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nan_float
+!
+! !DESCRIPTION: Function NAN\_FLOAT returns TRUE if a REAL*4 number is equal 
+!  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION NAN_FLOAT( VALUE ) RESULT( IT_IS_A_NAN )
 !
-!******************************************************************************
-!  Module NAN_FLOAT returns TRUE if a REAL*4 number is equal to the IEEE NaN 
-!  (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) VALUE (REAL*4) : Number to be tested for NaN
+#     include "define.h" 
+
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
+      USE IEEE_ARITHMETIC
+#endif
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      REAL*4, INTENT(IN) :: VALUE        ! Value to be tested for NaN
+!
+! !RETURN VALUE:
+!
+      LOGICAL            :: IT_IS_A_NAN  ! =T if VALUE is NaN; =F otherwise
+!
+! !REVISION HISTORY:
 !  (1 ) Is overloaded by interface "IT_IS_NAN".
 !  (2 ) Now call C routine is_nan(x) for Linux platform (bmy, 6/13/02)
 !  (3 ) Eliminate IF statement in Linux section.  Also now trap NaN on
@@ -131,23 +143,11 @@
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
-!******************************************************************************
-!
-#     include "define.h" ! C-preprocessor switches
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
-      USE IEEE_ARITHMETIC
-#endif
-
-      ! Arguments
-      REAL*4, INTENT(IN) :: VALUE
-
-      ! Return value
-      LOGICAL            :: IT_IS_A_NAN
-
-      !=================================================================
-      ! NAN_FLOAT begins here!
-      !=================================================================
 #if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )    
 
@@ -186,26 +186,45 @@
 
       ! Return to calling program
       END FUNCTION NAN_FLOAT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: nan_dble
+!
+! !DESCRIPTION: Function NAN\_DBLE returns TRUE if a REAL*8 number is equal 
+!  to the IEEE NaN (Not-a-Number) flag.  Returns FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION NAN_DBLE( VALUE ) RESULT( IT_IS_A_NAN )
 !
-!******************************************************************************
-!  Module NAN_DBLE returns TRUE if a REAL*8 number is equal to the IEEE NaN 
-! (Not-a-Number) flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) VALUE (REAL*8) : Number to be tested for NaN
+#     include "define.h" 
+
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
+      USE IEEE_ARITHMETIC
+#endif
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: VALUE        ! Value to be tested for NaN
+!
+! !RETURN VALUE:
+!
+      LOGICAL            :: IT_IS_A_NAN  ! =T if VALUE is NaN; =F otherwise
+!
+! !REVISION HISTORY:
 !  (1 ) Is overloaded by interface "IT_IS_NAN".
 !  (2 ) Now call C routine is_nan(x) for Linux platform (bmy, 6/13/02)
 !  (3 ) Eliminate IF statement in Linux section.  Also now trap NaN on
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
-!  (4 ) Added patches for IBM/AIX (gcc, bmy, 6/27/03)
+!  (4 ) Added patches for IBM/AIX platform (gcc, bmy, 6/27/03)
 !  (5 ) Use LINUX error-trapping for INTEL_FC (bmy, 10/24/03)
 !  (6 ) Renamed SGI to SGI_MIPS, LINUX to LINUX_PGI, INTEL_FC to INTEL_IFC,
 !        and added LINUX_EFC. (bmy, 12/2/03)
@@ -214,23 +233,11 @@
 !  (9 ) Now use ISNAN for Linux/IFORT compiler (bmy, 8/14/07)
 !  (10) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "define.h" ! C-preprocessor switches
-
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
-      USE IEEE_ARITHMETIC
-#endif
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: VALUE
-
-      ! Return value
-      LOGICAL            :: IT_IS_A_NAN
-
-      !=================================================================
-      ! NAN_DBLE begins here!
-      !=================================================================
 #if   defined( LINUX_IFORT )
       IT_IS_A_NAN = ISNAN( VALUE )      
 
@@ -268,20 +275,39 @@
 
       ! Return to calling program
       END FUNCTION NAN_DBLE
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: finite_float
+!
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*4 number is 
+!  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION FINITE_FLOAT( VALUE ) RESULT( IT_IS_A_FINITE )
 !
-!******************************************************************************
-!  Module FINITE_FLOAT returns TRUE if a REAL*4 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) VALUE (REAL*4) : Number to be tested for infinity
+#     include "define.h" 
+
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
+      USE IEEE_ARITHMETIC
+#endif
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      REAL*4, INTENT(IN) :: VALUE           ! Value to be tested for infinity
+!
+! !RETURN VALUE:
+!
+      LOGICAL            :: IT_IS_A_FINITE  ! =T if VALUE is finite; =F else
+!
+! !REVISION HISTORY:
 !  (1 ) Is overloaded by interface "IT_IS_FINITE".
 !  (2 ) Now use correct values for bit masking (bmy, 11/15/01)
 !  (3 ) Eliminate IF statement in Linux section.  Also now trap Infinity on
@@ -297,23 +323,11 @@
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
-!******************************************************************************
-!
-#     include "define.h" ! C-preprocessor switches
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
-      USE IEEE_ARITHMETIC
-#endif
-
-      ! Arguments
-      REAL*4, INTENT(IN) :: VALUE
-
-      ! Return value
-      LOGICAL            :: IT_IS_A_FINITE
-
-      !=================================================================
-      ! FINITE_FLOAT begins here!
-      !=================================================================  
 #if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
@@ -362,22 +376,41 @@
       
       ! Return to calling program
       END FUNCTION FINITE_FLOAT
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: finite_dble
+!
+! !DESCRIPTION: Function FINITE\_FLOAT returns FALSE if a REAL*8 number is 
+!  equal to the IEEE Infinity flag.  Returns TRUE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION FINITE_DBLE( VALUE ) RESULT( IT_IS_A_FINITE )
 !
-!*****************************************************************************
-!  Module FINITE_DBLE returns TRUE if a REAL*8 number is equal to the 
-!  IEEE Infinity flag.  Returns FALSE otherwise. (bmy, 3/8/01, 7/8/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1) VALUE (REAL*8) : Number to be tested for infinity
+#     include "define.h" 
+
+#if   defined( IBM_AIX ) || defined( IBM_XLF )
+      USE IEEE_ARITHMETIC
+#endif
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: VALUE           ! Value to be tested for infinity
+!
+! !RETURN VALUE:
+!
+      LOGICAL            :: IT_IS_A_FINITE  ! =T if VALUE is finite; =F else
+!
+! !REVISION HISTORY:
 !  (1 ) Is overloaded by interface "IT_IS_FINITE".
-!  (2 ) Now call C routine is_nan(x) for Linux platform (bmy, 6/13/02)
+!  (2 ) Now use correct values for bit masking (bmy, 11/15/01)
 !  (3 ) Eliminate IF statement in Linux section.  Also now trap Infinity on
 !        the Sun/Sparc platform.  Rename cpp switch from DEC_COMPAQ to
 !        COMPAQ. (bmy, 3/23/03)
@@ -391,23 +424,11 @@
 !  (10) Now use FP_CLASS for IFORT compiler (bmy, 8/14/07)
 !  (11) Remove support for SGI, COMPAQ compilers.  Add IBM_XLF switch. 
 !        (bmy, 7/8/09)
-******************************************************************************
-!
-#     include "define.h" ! C-preprocessor switches
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-#if   defined( IBM_AIX ) || defined( IBM_XLF )
-      USE IEEE_ARITHMETIC
-#endif
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: VALUE
-
-      ! Return value
-      LOGICAL            :: IT_IS_A_FINITE
-         
-      !=================================================================
-      ! FINITE_DBLE begins here!
-      !=================================================================
 #if   defined( LINUX_IFORT )
 
       ! Local variables (parameters copied from "fordef.for")
@@ -456,38 +477,38 @@
       
       ! Return to calling program
       END FUNCTION FINITE_DBLE
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_real_value
+!
+! !DESCRIPTION: Subroutine CHECK\_REAL\_VALUE checks to make sure a REAL*4 
+!  value is not NaN or Infinity. This is a wrapper for the interfaces
+!  IT\_IS\_NAN and IT\_IS\_FINITE.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_REAL_VALUE( VALUE, LOCATION, VARNAME, MESSAGE )
 !
-!******************************************************************************
-!  Subroutine CHECK_REAL_VALUE checks to make sure a REAL*4 value is not 
-!  NaN or Infinity. This is a wrapper for the interface IT_IS_NAN. 
-!  (bmy, 6/13/01)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) VALUE    (REAL*4  ) : Value to be checked
-!  (2 ) LOCATION (INTEGER ) : 4-element array w/ box indices (I,J,L,N)
-!  (3 ) VARNAME  (CHAR*(*)) : Variable name corresponding to VALUE
-!  (4 ) MESSAGE  (CHAR*(*)) : A short descriptive message 
+      REAL*4,           INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
-!  NOTES:
-!  (1 ) Now call GEOS_CHEM_STOP to shutdown safely.  Updated comments,
-!        cosmetic changes (bmy, 10/15/02)
-!******************************************************************************
-!
-      ! Arguments
-      REAL*4,           INTENT(IN) :: VALUE
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE
-      INTEGER,          INTENT(IN) :: LOCATION(4)
-
-      !=================================================================
-      ! CHECK_REAL_VALUE begins here!
-      !=================================================================
-
+! !REVISION HISTORY:
+!  13 Jun 2001 - R. Yantosca - Initial version
+!  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
+!  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! First check for NaN -- print info & stop run if found
       IF ( IT_IS_NAN( VALUE ) ) THEN 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -516,38 +537,38 @@
 
       ! Return to calling program
       END SUBROUTINE CHECK_REAL_VALUE
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_dble_value
+!
+! !DESCRIPTION: Subroutine CHECK\_DBLE\_VALUE checks to make sure a REAL*4 
+!  value is not NaN or Infinity. This is a wrapper for the interfaces
+!  IT\_IS\_NAN and IT\_IS\_FINITE.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_DBLE_VALUE( VALUE, LOCATION, VARNAME, MESSAGE )
 !
-!******************************************************************************
-!  Subroutine CHECK_DBLE_VALUE checks to make sure a REAL*8 value is 
-!  not NaN or Infinity.  This is a wrapper for the interface IT_IS_NAN. 
-!  (bmy, 6/14/01, 10/15/02)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) VALUE    (REAL*4  ) : Value to be checked
-!  (2 ) LOCATION (INTEGER ) : 4-element array w/ box indices (I,J,L,N)
-!  (3 ) VARNAME  (CHAR*(*)) : Variable name corresponding to VALUE
-!  (4 ) MESSAGE  (CHAR*(*)) : A short descriptive message 
-! 
-!  NOTES:
-!  (1 ) Now call GEOS_CHEM_STOP to shutdown safely.  Updated comments,
-!        cosmetic changes (bmy, 10/15/02)
-!******************************************************************************
+      REAL*8,           INTENT(IN) :: VALUE        ! Value to be checked
+      CHARACTER(LEN=*), INTENT(IN) :: VARNAME      ! Name of variable
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Short descriptive msg
+      INTEGER,          INTENT(IN) :: LOCATION(4)  ! (/ I, J, L, N /) indices
 !
-      ! Arguments
-      REAL*8,           INTENT(IN) :: VALUE
-      CHARACTER(LEN=*), INTENT(IN) :: VARNAME
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE
-      INTEGER,          INTENT(IN) :: LOCATION(4)
-
-      !=================================================================
-      ! CHECK_DBLE_VALUE begins here!
-      !=================================================================
-
+! !REVISION HISTORY:
+!  13 Jun 2001 - R. Yantosca - Initial version
+!  15 Oct 2002 - R. Yantosca - Now call GEOS_CHEM_STOP to shutdown safely
+!  15 Oct 2002 - R. Yantosca - Updated comments, cosmetic changes
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! First check for NaN
       IF ( IT_IS_NAN( VALUE ) )THEN 
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -576,30 +597,33 @@
 
       ! Return to calling program
       END SUBROUTINE CHECK_DBLE_VALUE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: error_stop
+!
+! !DESCRIPTION: Subroutine ERROR\_STOP is a wrapper for GEOS\_CHEM\_STOP.  It 
+!  prints an error message then calls GEOS\_CHEM\_STOP to free memory and quit.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ERROR_STOP( MESSAGE, LOCATION )
 !
-!******************************************************************************
-!  Subroutine ERROR_STOP is a wrapper for GEOS_CHEM_STOP.  It prints an error
-!  message then calls GEOS_CHEM_STOP to free memory and quit. (bmy, 10/15/02)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MESSAGE  (CHARACTER) : Error message to be printed
-!  (2 ) LOCATION (CHARACTER) : Location where ERROR_STOP is called from
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE    ! Error msg to print
+      CHARACTER(LEN=*), INTENT(IN) :: LOCATION   ! Where ERROR_STOP is called
 !
-!  NOTES:
-!******************************************************************************
-!
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE, LOCATION
-
-      !=================================================================
-      ! ERROR_MSG begins here!
-      !=================================================================
+! !REVISION HISTORY:
+!  15 Oct 2002 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 !$OMP CRITICAL
 
@@ -616,25 +640,34 @@
       
       ! Return to calling program
       END SUBROUTINE ERROR_STOP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos_chem_stop
+!
+! !DESCRIPTION: Subroutine GEOS\_CHEM\_STOP calls CLEANUP to deallocate all 
+!  module arrays and then stops the run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GEOS_CHEM_STOP
 !
-!******************************************************************************
-!  Subroutine GEOS_CHEM_STOP calls CLEANUP to deallocate all module arrays
-!  and then stops the run.  (bmy, 10/15/02, 1/24/04) 
-!
-!  NOTES
-!  (1 ) Now EXIT works for LINUX_IFC, LINUX_EFC, so remove #if block.
-!        (bmy, 1/24/04)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
 
-      !=================================================================
-      ! GEOS_CHEM_STOP begins here!
-      !=================================================================
+! !REVISION HISTORY:
+!  15 Oct 2002 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Now EXIT works for LINUX_IFC, LINUX_EFC,
+!                              so remove #if block.
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 !$OMP CRITICAL
 
@@ -648,32 +681,42 @@
 
       ! End of program
       END SUBROUTINE GEOS_CHEM_STOP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: alloc_err
+!
+! !DESCRIPTION: Subroutine ALLOC\_ERR prints an error message if there is not 
+!  enough memory to allocate a particular allocatable array.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ALLOC_ERR( ARRAYNAME, AS )
 !
-!******************************************************************************
-!  Subroutine ALLOC_ERR prints an error message if there is not enough
-!  memory to allocate a particular allocatable array. (bmy, 6/26/00, 11/30/05)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) ARRAYNAME (CHARACTER) : name of the allocatable array
-!
-!  NOTES:
-!  (1 ) Split off from "ndxx_setup.f" into a separate routine (bmy, 6/26/00)
-!  (2 ) Added to "error_mod.f" (bmy, 10/15/02)
-!  (3 ) Call special error msg function for IFORT compiler (bmy, 11/30/05)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
-
-      ! Arguments
-      CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME
-      INTEGER, OPTIONAL, INTENT(IN) :: AS
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*),  INTENT(IN) :: ARRAYNAME  ! Name of array
+      INTEGER, OPTIONAL, INTENT(IN) :: AS         ! Error output from "STAT" 
+!
+! !REVISION HISTORY:
+!  26 Jun 2000 - R. Yantosca - Initial version, split off from "ndxx_setup.f"
+!  15 Oct 2002 - R. Yantosca - Added to "error_mod.f"
+!  30 Nov 2005 - R. Yantosca - Call IFORT_ERRMSG for Intel Fortran compiler
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       CHARACTER(LEN=255)            :: ERRMSG
 
       !=================================================================
@@ -719,39 +762,45 @@
       
       ! End of subroutine
       END SUBROUTINE ALLOC_ERR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: debug_msg
+!
+! !DESCRIPTION: Subroutine DEBUG\_MSG prints a message to the stdout buffer 
+!  and flushes.  This is useful for determining the exact location where 
+!  errors occur.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DEBUG_MSG( MESSAGE )
 !
-!******************************************************************************
-!  Subroutine DEBUG_MSG prints a message to the stdout buffer and flushes.
-!  This is useful for determining the exact location where errors occur.
-!  (bmy, 1/7/02, 8/4/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MESSAGE (CHAR*(*)) : Descriptive message string
+#     include "define.h"
 !
-!  NOTES: 
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE   ! Message to print
+!
+! !REVISION HISTORY:
+!  07 Jan 2002 - R. Yantosca - Initial version
 !  (1 ) Now just write the message and flush the buffer (bmy, 7/5/01)
 !  (2 ) Renamed from "paftop.f" to "debug_msg.f" (bmy, 1/7/02)
 !  (3 ) Bundled into "error_mod.f" (bmy, 11/22/02)
 !  (4 ) Now do not FLUSH the buffer for EFC compiler (bmy, 4/6/04)
 !  (5 ) Now add a little space for debug output (bmy, 4/10/06)
 !  (6 ) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
-!******************************************************************************
-!
-      IMPLICIT NONE
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-#     include "define.h"
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: MESSAGE
-
-      !=================================================================
-      ! DEBUG_MSG begins here!
-      !================================================================= 
+      ! Print message
       WRITE( 6, '(5x,a)' ) MESSAGE
 
       ! Call FLUSH routine to flush the output buffer
@@ -759,54 +808,67 @@
 
       ! Return to calling program
       END SUBROUTINE DEBUG_MSG
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: safe_div
+!
+! !DESCRIPTION: Function SAFE\_DIV performs "safe division", that is to 
+!  prevent overflow, underlow, NaN, or infinity errors.  An alternate value 
+!  is returned if the division cannot be performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SAFE_DIV( N,        D, 
+     &                   ALT_NAN,  ALT_OVER, 
+     &                   ALT_UNDER            ) RESULT( Q )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,           INTENT(IN) :: N           ! Numerator
+      REAL*8,           INTENT(IN) :: D           ! Denominator
+      REAL*8,           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
+                                                  !  returned if the division 
+                                                  !  is either NAN (0/0) or 
+                                                  !  leads to overflow (i.e., 
+                                                  !  a too large number)
+      REAL*8, OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
+                                                  !  returned if the division
+                                                  !  leads to overflow (default
+                                                  !  is ALT_NAN)
+      REAL*8, OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
+                                                  !  returned if the division
+                                                  !  leads to underflow 
+                                                  !  (default is 0, but you 
+                                                  !  could use TINY() if you 
+                                                  !  want a non-zero result).
+!
+! !RETURN VALUE:
+!
+      REAL*8                       :: Q           ! Output from the division
 
-      FUNCTION SAFE_DIV( N, D, ALT_NAN, ALT_OVER, ALT_UNDER )
-     &     RESULT( Q )
-!     
-!******************************************************************************
-!  Subroutine SAFE_DIV performs "safe division", that is to prevent overflow,
-!  underlow, NaN, or infinity errors.  An alternate value is returned if the 
-!  division cannot be performed. (bmy, phs, 2/26/08, 4/14/09)
-!  
+!
+! !REMARKS:
 !  For more information, see the discussion on:
 !   http://groups.google.com/group/comp.lang.fortran/browse_thread/thread/8b367f44c419fa1d/
-!  
-!  Arguments as Input:
-!  ========================================================================
-!  (1 ) N       : Numerator for the division 
-!  (2 ) D       : Divisor for the division
-!  (3 ) ALT_NAN : Alternate value to be returned if the division is either
-!                 NAN (0/0) or leads to overflow (ie, a too large number)
 !
-!  Optional Input:
-!  ========================================================================  
-!  (4 ) ALT_OVER  : Alternate value to be returned if the division
-!                    leads to overflow (default is ALT_NAN)
-!  (4 ) ALT_UNDER : Alternate value to be returned if the division
-!                    leads to underflow (default is 0, but you could 
-!                    use TINY() if you want non-zero result). 
-!  
-!  NOTES:
+! !REVISION HISTORY:
+!  26 Feb 2008 - P. Le Sager & R. Yantosca - Initial version
 !  (1) Now can return different alternate values if NAN (that is 0/0),
 !      overflow (that is a too large number), or too small (that is greater
 !      than 0 but less than smallest possible number). Default value is
 !      zero in case of underflow (phs, 4/14/09)
 !  (2) Some compiler options flush underflows to zero (-ftz for IFort).
 !       To think about it (phs, 4/14/09)
-!******************************************************************************
-!     
-      ! Arguments
-      REAL*8,           INTENT(IN) :: N, D, ALT_NAN
-      REAL*8, OPTIONAL, INTENT(IN) :: ALT_OVER, ALT_UNDER
-      
-      ! Function value
-      REAL*8             :: Q
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !==================================================================
-      ! SAFE_DIV begins here!
-      !==================================================================
       IF ( N==0 .and. D==0 ) THEN
 
          ! NAN
@@ -834,38 +896,51 @@
 
       ! Return to calling program
       END FUNCTION SAFE_DIV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_safe_div
+!
+! !DESCRIPTION: Subroutine IS\_SAFE\_DIV tests for "safe division", that is 
+!  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
+!  returned if the division cannot be performed. (phs, 6/11/08)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IS_SAFE_DIV( N, D, R4 ) RESULT( F )
 !
-!******************************************************************************
-!  Subroutine IS_SAFE_DIV tests for "safe division", that is check if the 
-!  division will overflow/underflow or hold NaN.  .FALSE. is returned if the 
-!  division cannot be performed. (phs, 6/11/08)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N              : Numerator for the division 
-!  (2 ) D              : Divisor for the division
-!  (3 ) R4 (optional)  : logical flag to use the limits of REAL*4 to define 
-!                        under/overflow. Extra defensive.
+      REAL*8,  INTENT(IN)           :: N    ! Numerator
+      REAL*8,  INTENT(IN)           :: D    ! Denominator
+      LOGICAL, INTENT(IN), OPTIONAL :: R4   ! Logical flag to use the limits 
+                                            !  of REAL*4 to define underflow
+                                            !  or overflow.  Extra defensive.
 !
-!  NOTES:
-!  (1) UnderFlow, OverFlow and NaN are tested for. If you need to
-!       differentiate between the three, use the SAFE_DIV (phs, 4/14/09)
-!******************************************************************************
+! !OUTPUT PARAMETERS:
 !
-      ! Arguments
-      REAL*8,  INTENT(IN)           :: N, D
-      LOGICAL, INTENT(IN), OPTIONAL :: R4
-
-      ! local variables
+      LOGICAL                       :: F    ! =F if division isn't allowed
+                                            ! =T otherwise
+!
+! !REMARKS:
+!  UnderFlow, OverFlow and NaN are tested for. If you need to
+!  differentiate between the three, use the SAFE_DIV (phs, 4/14/09)
+!
+! !REVISION HISTORY:
+!  11 Jun 2008 - P. Le Sager - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER MaxExp, MinExp
       REAL*4  RR
-
-      ! Function value
-      LOGICAL            :: F
 
       !==================================================================
       ! IS_SAFE_DIV begins here!
@@ -890,8 +965,6 @@
 
       ! Return to calling program
       END FUNCTION IS_SAFE_DIV
-
-!------------------------------------------------------------------------------
-
+!EOC
       ! End of module
       END MODULE ERROR_MOD

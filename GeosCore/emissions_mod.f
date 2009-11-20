@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.3 2009/11/06 16:15:16 phs Exp $
+! $Id: emissions_mod.f,v 1.4 2009/11/20 21:43:18 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -86,7 +86,11 @@
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
-      USE Kr85_MOD,               ONLY : EMISSKr85
+      !------------------------------------------------------------------
+      ! Prior to 11/20/09:
+      ! Comment out from compilation (bmy, 11/20/09)
+      !USE Kr85_MOD,               ONLY : EMISSKr85
+      !------------------------------------------------------------------
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO

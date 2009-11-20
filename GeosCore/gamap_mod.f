@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.4 2009/10/15 17:46:24 bmy Exp $
+! $Id: gamap_mod.f,v 1.5 2009/11/20 21:43:16 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 10/9/09)
+!  simulation. (bmy, 5/3/05, 11/19/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -87,6 +87,7 @@
 !  (18) Add C2H4 in ND46 (ccc, 3/10/09)
 !  (19) Add EFLUX to ND67 (lin, ccc, 5/29/09)
 !  (20) Minor bug fixes (bmy, phs, 10/9/09)
+!  (20) Minor bug fixes (dkh, bmy, 11/19/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1284,7 +1285,7 @@
 !******************************************************************************
 !  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
 !  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, phs, 10/17/06, 2/22/08)
+!  (bmy, phs, 10/17/06, 11/19/09)
 !
 !  NOTES:
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
@@ -1299,6 +1300,7 @@
 !  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
 !  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
 !        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
+!  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2314,13 +2316,25 @@
                      NAME (T,28) = 'ALD2'
                      INDEX(T,28) = 11 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
+                     !---------------------------------------------------
+                     ! Prior to 11/19/09:
+                     ! Oops, bug fix applied to PRPE, not ALD2.  
+                     ! ALD2 should have 2 carbons (dkh, bmy, 11/19/09)
+                     !MOLC (T,28) = 3
+                     !---------------------------------------------------
+                     MOLC (T,28) = 2
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 7  )
                      NAME (T,28) = 'PRPE'
                      INDEX(T,28) = 18 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 2
+                     !---------------------------------------------------
+                     ! Prior to 11/19/09:
+                     ! Oops, bug fix applied to PRPE, not ALD2.  
+                     ! PRPE should have 3 carbons (dkh, bmy, 11/19/09)
+                     !MOLC (T,28) = 2
+                     !---------------------------------------------------
+                     MOLC (T,28) = 3
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 8  )
                      NAME (T,28) = 'C3H8'

@@ -1,32 +1,43 @@
-! $Id: charpak_mod.f,v 1.1 2009/09/16 14:06:37 bmy Exp $
+! $Id: charpak_mod.f,v 1.1 2009/11/20 21:43:07 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: charpak_mod.f
+!
+! !DESCRIPTION: Module CHARPAK\_MOD contains routines from the CHARPAK 
+!  string and character manipulation package used by GEOS-Chem.
+!\\   
+!\\
+! !INTERFACE: 
+!
       MODULE CHARPAK_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module CHARPAK_MOD contains routines from the CHARPAK string and character
-!  manipulation package used by GEOS-CHEM (bmy, 10/15/01, 7/20/04)
+      IMPLICIT NONE
+      PRIVATE
 !
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: CNTMAT     
+      PUBLIC  :: COPYTXT    
+      PUBLIC  :: CSTRIP     
+      PUBLIC  :: ISDIGIT    
+      PUBLIC  :: STRREPL    
+      PUBLIC  :: STRSPLIT   
+      PUBLIC  :: STRSQUEEZE 
+      PUBLIC  :: TRANLC     
+      PUBLIC  :: TRANUC     
+      PUBLIC  :: TXT2INUM   
+      PUBLIC  :: TXTEXT     
+!
+! !REMARKS:
 !  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications 
 !  made for GEOS-CHEM by Bob Yantosca (1998, 2002, 2004).
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) CNTMAT     : Counts # of chars in STR1 that match a char in STR2
-!  (2 ) COPYTXT    : Writes chars from STR1 into STR2
-!  (3 ) CSTRIP     : Strip blanks and null characters from a string 
-!  (4 ) ISDIGIT    : Returns TRUE if a character is a numeric digit           
-!  (5 ) STRREPL    : Replaces characters w/in a string with replacement text
-!  (6 ) STRSPLIT   : Convenience wrapper for TXTEXT
-!  (7 ) STRSQUEEZE : Squeezes text by removing white space from both ends
-!  (8 ) TRANLC     : Translates text to LOWERCASE
-!  (9 ) TRANUC     : Translates text to UPPERCASE
-!  (10) TXT2INUM   : Converts a string of characters into an integer number
-!  (11) TXTEXT     : Extracts a sequence of characters from a string
-!
-!  GEOS-CHEM modules referenced by charpak_mod.f
-!  ============================================================================
-!  none
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Moved "cntmat.f", "copytxt.f", "cstrip.f", "fillstr.f", "txt2inum.f",
 !        "txtext.f", into this F90 module for easier bookkeeping 
 !        (bmy, 10/15/01)
@@ -42,15 +53,12 @@
 !        routines STRREPL and STRSQUEEZE. (bmy, 7/30/02)
 !  (6 ) Added function ISDIGIT.  Also replace LEN_TRIM with LEN in routine
 !        STRREPL, to allow us to replace tabs w/ spaces. (bmy, 7/20/04)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE CntMat(str1,str2,imat)
@@ -590,7 +598,5 @@ C         Copy characters into WORD and set col for return
 
       ! Return to calling program
       END SUBROUTINE TxtExt
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE CHARPAK_MOD

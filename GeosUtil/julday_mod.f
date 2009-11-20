@@ -1,63 +1,89 @@
-! $Id: julday_mod.f,v 1.1 2009/09/16 14:06:23 bmy Exp $
+! $Id: julday_mod.f,v 1.1 2009/11/20 21:43:04 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: julday_mod.f
+!
+! !DESCRIPTION: Module JULDAY\_MOD contains routines used to convert from 
+!  month/day/year to Astronomical Julian Date and back again.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE JULDAY_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module JULDAY_MOD contains routines used to convert from month/day/year
-!  to Astronomical Julian Date and back again. (bmy, 11/26/01, 6/26/02)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) JULDAY  : Given month/day/year, computes astronomical Julian date
-!  (2 ) MINT    : Modified integer function, used by JULDAY
-!  (3 ) CALDATE : Given astronomical julian date, computes YYYYMMDD, HHMMSS
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PUBLIC  :: JULDAY
+      PUBLIC  :: CALDATE
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: MINT
+!
+! !REVISION HISTORY:
 !  (1 ) Moved JULDAY, MINT, CALDATE here from "bpch2_mod.f" (bmy, 11/20/01)
 !  (2 ) Bug fix: now compute NHMS correctly.  Also use REAL*4 variables to
 !        avoid roundoff errors. (bmy, 11/26/01)
 !  (3 ) Updated comments (bmy, 5/28/02)
 !  (4 ) Renamed arguments for clarity (bmy, 6/26/02)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  20 Nov 2009 - R. Yantosca - Added ProTeX Headers
+!EOP
 !------------------------------------------------------------------------------
-     
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: julday  
+!
+! !DESCRIPTION: Function JULDAY returns the astronomical Julian day. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION JULDAY( YYYY, MM, DD ) RESULT( JULIANDAY )
 !
-!******************************************************************************
-!  Function JULDAY returns the astronomical Julian day (bmy, 11/26/01, 6/26/02)
+! !INPUT PARAMETERS: 
 !
-!  Algorithm taken from "Practical Astronomy With Your Calculator",
-!  Third Edition, by Peter Duffett-Smith, Cambridge UP, 1992.
+      INTEGER, INTENT(IN) :: YYYY        ! Year (must be in 4-digit format!)
+      INTEGER, INTENT(IN) :: MM          ! Month (1-12)
+      REAL*8,  INTENT(IN) :: DD          ! Day of month (may be fractional!)
+!
+! !RETURN VALUE:
 ! 
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) YYYY  (INTEGER) : Current year 
-!  (2 ) MM    (INTEGER) : Current month
-!  (3 ) DD    (REAL*8 ) : Current day (can be fractional, e.g. 17.25)
+      REAL*8              :: JULIANDAY   ! Astronomical Julian Date
 !
-!  NOTES:
-!  (1 ) JULDAY requires the external function MINT.F.
-!  (2 ) JULDAY will compute the correct Julian day for any 
-!        BC or AD date.
-!  (3 ) For BC dates, subtract 1 from the year and append a minus 
-!        sign.  For example, 1 BC is 0, 2 BC is -1, etc.  This is 
-!        necessary for the algorithm.  
-!  (4 ) Changed YEAR to YYYY, MONTH to MM, and DAY to DD for documentation
-!        purposes. (bmy, 6/26/02)
-!******************************************************************************
+! !REMARKS:
+!  (1) Algorithm taken from "Practical Astronomy With Your Calculator",
+!       Third Edition, by Peter Duffett-Smith, Cambridge UP, 1992.
+!  (2) Requires the external function MINT.F. 
+!  (3) JulDay will compute the correct Julian day for any BC or AD date.
+!  (4) For BC dates, subtract 1 from the year and append a minus sign.  
+!       For example, 1 BC is 0, 2 BC is -1, etc.  This is necessary for 
+!       the algorithm.  
+!
+! !REVISION HISTORY: 
+!  26 Nov 2001 - R. Yantosca - Initial version
+!  Changed YEAR to YYYY, MONTH to MM, and DAY to DD for documentation
+!   purposes. (bmy, 6/26/02)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 !   
-      ! Arguments
-      INTEGER, INTENT(IN) :: YYYY, MM
-      REAL*8              :: DD,   JULIANDAY
-   
-      ! Local variables
       INTEGER             :: YEAR1, MONTH1
       REAL*8              :: X1, A, B, C, D
       LOGICAL             :: ISGREGORIAN
@@ -121,34 +147,42 @@
    
       ! Return to calling program
       END FUNCTION JULDAY
-   
+!EOC
 !------------------------------------------------------------------------------
-   
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: mint
+!
+! !DESCRIPTION: Function MINT is the modified integer function.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION MINT( X ) RESULT ( VALUE )
 !
-!******************************************************************************
-!  Function MINT (bmy, 11/20/01) defines the MODIFIED INTEGER FUNCTION:
-! 
-!  MINT = -INT( ABS( X ) ), X <  0
-!  MINT =  INT( ABS( X ) ), X >= 0
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1) X : (REAL*8) Argument for the function MINT
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
-!  (1) MINT is primarily intended for use with routine JULDAY.
-!******************************************************************************
-!
-      ! Arguments
       REAL*8, INTENT(IN) :: X
-         
-      ! Return value
-      REAL*8             :: value
-   
-      !=================================================================
-      ! MINT begins here!
-      !=================================================================
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: VALUE
+!
+! !REMARKS:
+!  The modified integer function is defined as follows:
+!
+!            { -INT( ABS( X ) )   for X < 0
+!     MINT = {
+!            {  INT( ABS( X ) )   for X >= 0
+!
+! !REVISION HISTORY: 
+!  20 Nov 2001 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( X < 0d0 ) THEN 
          VALUE = -INT( ABS( X ) )        
       ELSE
@@ -157,39 +191,48 @@
    
       ! Return to calling program
       END FUNCTION MINT
-   
+!EOC
 !------------------------------------------------------------------------------
-   
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: caldate
+!
+! !DESCRIPTION: Subroutine CALDATE converts an astronomical Julian day to 
+!  the YYYYMMDD and HHMMSS format.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CALDATE( JULIANDAY, YYYYMMDD, HHMMSS )
 !
-!******************************************************************************
-!  Subroutine CALDATE converts an astronomical Julian day to a YYYYMMDD
-!  (year-month-day) and HHMMSS (hour-min-sec) format. (bmy, 11/26/01, 6/26/02)
-!   
-!  Algorithm taken from "Practical Astronomy With Your Calculator",
-!  Third Edition, by Peter Duffett-Smith, Cambridge UP, 1992.
-!   
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) JULIANDAY : REAL*8  : Astronomical julian day
-!   
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) YYYYMMDD (INTEGER) : year-month-day corresponding to JULIANDAY
-!  (2 ) HHMMSS   (INTEGER) : hour-min-sec   corresponding to JULIANDAY
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      ! Arguments
+      REAL*8,  INTENT(IN)  :: JULIANDAY  ! Astronomical Julian Date 
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER, INTENT(OUT) :: YYYYMMDD   ! Date in YYYY/MM/DD format
+      INTEGER, INTENT(OUT) :: HHMMSS     ! Time in hh:mm:ss format
+!
+! !REMARKS:
+!   Algorithm taken from "Practical Astronomy With Your Calculator",
+!   Third Edition, by Peter Duffett-Smith, Cambridge UP, 1992.
+!
+! !REVISION HISTORY: 
 !  (1 ) Now compute HHMMSS correctly.  Also use REAL*4 variables HH, MM, SS
 !        to avoid roundoff errors. (bmy, 11/21/01)
 !  (2 ) Renamed NYMD to YYYYMMDD and NHMS to HHMMSS for documentation
 !        purposes (bmy, 6/26/02)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: JULIANDAY
-      INTEGER, INTENT(OUT) :: YYYYMMDD, HHMMSS
-    
-      ! Local variables
+! !LOCAL VARIABLES:
+!   
       REAL*4               :: HH, MM, SS
       REAL*8               :: A, B, C, D, DAY, E, F 
       REAL*8               :: FDAY, G, I, J, JD, M, Y
@@ -250,7 +293,5 @@
       
       ! Return to calling program
       END SUBROUTINE CALDATE
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE JULDAY_MOD

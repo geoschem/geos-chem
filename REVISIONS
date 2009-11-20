@@ -1,11 +1,19 @@
 REVISIONS (v8-02-04)
-06 Nov 2009
+19 Nov 2009
 Bob Yantosca, Philippe Le Sager, and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
 New in v8-02-04:
 ===============================================================================
+
+
+In the GeosBpch subdirectory:
+-----------------------------
+
+bpch_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
 
 In the GeosCore subdirectory:
 -----------------------------
@@ -19,9 +27,47 @@ nei2005_anthro_mod.f    -- read, allocate, total, and deallocate NEI
 sulfate_pbl_mix	        -- does the PBL mixing of a column of sulfate
 (sulfate_mod.f)		   emissions  
 
+In the GeosUtil subdirectory:
+-----------------------------
+
+charpak_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+directory_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+error_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+file_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+grid_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+ifort_errmsg.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+julday_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+pressure_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
+regrid_1x1_mod.f	-- Moved here from GeosCore
+
+time_mod.f		-- Moved here from GeosCore
+
+transfer_mod.f		-- Moved here from GeosCore
+
+unix_cmds_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
+
 
 Removed in v8-02-04:
 ===============================================================================
+
+Kr85_mod.f 		-- Moved to the "obsolete" folder for later reference
 
 
 
@@ -111,6 +157,10 @@ init_sulfate		-- Now redimension EEV & NEV arrays for new SO2
 ("sulfate_mod.f")          volcanic emissions inventory
 			-- Deleted obsolete arrays from older SO2 volcanic
                            emissions inventory
+
+init_tracerinfo		-- Previous bug for molecular weight of ALD2 had 
+("gamap_mod.f")		   been applied to PRPE.  Now corrected, ALD2 has
+	 		   2 carbons and PRPE has 3 carbons.
 
 logical_mod.f		-- added LNEI05
      

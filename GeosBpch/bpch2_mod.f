@@ -1,35 +1,46 @@
-! $Id: bpch2_mod.f,v 1.2 2009/11/05 15:35:33 phs Exp $
+! $Id: bpch2_mod.f,v 1.1 2009/11/20 21:43:21 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: bpch2_mod.f
+!
+! !DESCRIPTION: Module BPCH2\_MOD contains the routines used to read data 
+!  from and write data to binary punch (BPCH) file format (v. 2.0).
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE BPCH2_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module BPCH2_MOD contains the routines used to read data from and write
-!  data to binary punch (BPCH) file format (v. 2.0). (bmy, 6/28/00, 11/6/08)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) OPEN_BPCH2_FOR_READ : Opens binary punch file for input
-!  (2 ) OPEN_BPCH_FOR_WRITE : Opens binary punch file for output
-!  (3 ) BPCH2_HDR           : writes "top-of-file" header to BPCH file
-!  (4 ) BPCH2               : writes a data block to a binary punch file
-!  (5 ) READ_BPCH2          : reads a data block from a binary punch file
-!  (6 ) GET_MODELNAME       : returns MODELNAME for the given met field
-!  (7 ) GET_NAME_EXT        : returns file extension string for model name
-!  (8 ) GET_NAME_EXT_2D     : returns file extension string for 2-D model name
-!  (9 ) GET_RES_EXT         : returns file extension string for model res.
-!  (10) GET_HALFPOLAR       : returns 1 for half-polar grids; 0 otherwise
-!  (11) GET_TAU0_6A         : computes TAU0 from MONTH, DAY, YEAR (, H, M, SEC)
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Interfaces
-!  ============================================================================
-!  (1 ) GET_TAU0            : Overloads GET_TAU0_6A
+      PUBLIC  :: OPEN_BPCH2_FOR_READ 
+      PUBLIC  :: OPEN_BPCH2_FOR_WRITE 
+      PUBLIC  :: BPCH2_HDR           
+      PUBLIC  :: BPCH2               
+      PUBLIC  :: READ_BPCH2          
+      PUBLIC  :: GET_MODELNAME       
+      PUBLIC  :: GET_NAME_EXT        
+      PUBLIC  :: GET_NAME_EXT_2D     
+      PUBLIC  :: GET_RES_EXT         
+      PUBLIC  :: GET_HALFPOLAR       
 !
-!  GEOS-CHEM modules referenced by bpch2_mod.f
-!  ============================================================================
-!  (1 ) error_mod.f         : Module w/ NaN and other error-check routines
-!  (2 ) file_mod.f          : Module w/ file unit numbers and error checks
-!  (3 ) julday_mod.f        : Module w/ astronomical Julian date routines
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PRIVATE :: GET_TAU0_6A
+
+      INTERFACE GET_TAU0
+         MODULE PROCEDURE GET_TAU0_6A
+      END INTERFACE
+!
+! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
 !  (2 ) Added years 1985-2001 for routine GET_TAU0 (bmy, 8/1/00)
 !  (3 ) Use IOS /= 0 criterion to also check for EOF (bmy, 9/12/00)
@@ -67,63 +78,50 @@
 !  (32) Renamed GRID30LEV to GRIDREDUCED.  Also increase TEMPARRAY in
 !        READ_BPCH2 for GEOS-5 vertical levels. (bmy, 2/16/07)
 !  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "bpch2_mod.f"
-      !=================================================================
-
-      ! PRIVATE module routines
-      PRIVATE :: GET_TAU0_6A
-
-      !=================================================================
-      ! MODULE INTERFACES -- "bind" two or more routines with different
-      ! argument types or # of arguments under one unique name
-      !================================================================= 
-      INTERFACE GET_TAU0
-         MODULE PROCEDURE GET_TAU0_6A
-      END INTERFACE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: open_bpch2_for_read
+!
+! !DESCRIPTION: Subroutine OPEN\_BPCH2\_FOR\_READ opens a binary punch file 
+!  (version 2.0 format) for reading only.  Also reads FTI and TITLE strings. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OPEN_BPCH2_FOR_READ( IUNIT, FILENAME, TITLE )
 !
-!******************************************************************************
-!  Subroutine OPEN_BPCH2_FOR_READ opens a binary punch file (version 2.0 
-!  format) for reading only.  Also reads FTI and TITLE strings. 
-!  (bmy, 7/30/02, 10/15/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IUNIT    (INTEGER )  : Logical unit number of the file to be opened
-!  (2 ) FILENAME (CHARACTER) : Name of the file to be opened
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (3 ) TITLE    (CHARACTER) : OPTIONAL: returns TITLE to calling program
-!
-!  NOTES:
-!  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
-
-      ! Arguments
-      INTEGER,           INTENT(IN)            :: IUNIT
-      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME
-      CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
+!
+! !OUTPUT PARAMETERS:
+!
+      CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
+!
+! !REVISION HISTORY: 
+!  (1 ) Now references ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                                  :: IOS
       CHARACTER(LEN=40)                        :: FTI
       CHARACTER(LEN=80)                        :: TMP_TITLE
@@ -179,33 +177,44 @@
 
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_READ
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: open_bpch2_for_write
+!
+! !DESCRIPTION: Subroutine OPEN\_BPCH2\_FOR\_WRITE opens a binary punch file
+!  (version 2.0) for writing.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OPEN_BPCH2_FOR_WRITE( IUNIT, FILENAME, TITLE )
 !
-!******************************************************************************
-!  Subroutine OPEN_BPCH2_FOR_WRITE opens a binary punch file (version 2.0)
-!  for writing. (bmy, 7/30/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IUNIT    (INTEGER )  : Logical unit number of the file to be opened
-!  (2 ) FILENAME (CHARACTER) : Name of the file to be opened
-!  (3 ) TITLE    (CHARACTER) : Optional: title for top of file
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR
-
-      ! Arguments
-      INTEGER,           INTENT(IN)           :: IUNIT
-      CHARACTER(LEN=*),  INTENT(IN)           :: FILENAME
-      CHARACTER(LEN=80), INTENT(IN), OPTIONAL :: TITLE
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,           INTENT(IN)            :: IUNIT     ! LUN for file I/O
+      CHARACTER(LEN=*),  INTENT(IN)            :: FILENAME  ! Name of file
+!
+! !OUTPUT PARAMETERS:
+!
+      CHARACTER(LEN=80), INTENT(OUT), OPTIONAL :: TITLE     ! File title string
+!
+! !REVISION HISTORY:
+!  30 Jul 2002 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER                                 :: IOS
       CHARACTER(LEN=80)                       :: TMP_TITLE
 
@@ -237,34 +246,42 @@
 
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_WRITE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: bpch2_hdr
+!
+! !DESCRIPTION: Subroutine BPCH2\_HDR writes a header at the top of the binary
+!  punch file, version 2.0.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE BPCH2_HDR ( IUNIT, TITLE )
 !
-!******************************************************************************
-!  Subroutine BPCH2_HDR writes a header at the top of the binary
-!  punch file, version 2.0 (bmy, 5/27/99, 7/30/02).
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1) IUNIT : INTEGER - logical unit number of binary punch file
-!  (2) TITLE : CHAR*80 - description of data contained in binary punch file
+      USE FILE_MOD, ONLY : IOERROR
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER,           INTENT(IN) :: IUNIT   ! LUN for file I/O
+      CHARACTER(LEN=80), INTENT(IN) :: TITLE   ! Top-of-file title string
+!
+! !REVISION HISTORY:
 !  (1 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
 !  (2 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
 !  (3 ) Now reference IOERROR from "file_mod.f". (bmy, 6/26/02)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE FILE_MOD, ONLY : IOERROR
-
-      ! Arguments
-      INTEGER,           INTENT(IN) :: IUNIT
-      CHARACTER(LEN=80), INTENT(IN) :: TITLE
-
-      ! Local variable
+! !LOCAL VARIABLES:
+! 
       INTEGER                       :: IOS
       CHARACTER(LEN=40)             :: FTI = 'CTM bin 02'
 
@@ -282,69 +299,67 @@
 
       ! Return to calling program    
       END SUBROUTINE BPCH2_HDR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: bpch2
+!
+! !DESCRIPTION: Subroutine BPCH2 writes binary punch file (version 2.0) to 
+!  disk.  Information about the model grid is also stored with each data block.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE BPCH2( IUNIT,     MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NTRACER,    
      &                  UNIT,      TAU0,      TAU1,     RESERVED,   
      &                  NI,        NJ,        NL,       IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY )
 !
-!******************************************************************************
-!  Subroutine BPCH2 writes binary punch file (version 2.0) to disk.
-!  Information about the model grid is also stored with each data block.
-!  (bmy, 5/27/99, 7/30/02)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1    ) IUNIT      : INTEGER  - logical unit number of the file 
-!  (2    ) MODELNAME  : CHAR*40  - Name of model used to create output
-!  (3    ) LONRES     : REAL*4   - Longitude resolution of grid, in degrees
-!  (4    ) LATRES     : REAL*4   - Latitude resolution of grid, in degrees
-!  (4    ) HALFPOLAR  : INTEGER  - flag, =1 if model has half-polar boxes
-!  (5    ) CENTER180  : INTEGER  - flag, =1 if model has lon center on 180 deg
-!  (6    ) CATEGORY   : CHAR*40  - diagnostic category name
-!  (7    ) NTRACER    : INTEGER  - number of tracer
-!  (8    ) UNIT       : CHAR*40  - units of data
-!  (9    ) TAU0       : REAL*8   - TAU at start of diagnostic interval
-!  (10   ) TAU1       : REAL*8   - TAU at end   of diagnostic interval
-!  (11   ) RESERVED   : CHAR*40  - Reserved for future use
-!  (12-14) NI,NJ,NL   : INTEGER  - dimensions of ARRAY
-!  (15   ) IFIRST     : INTEGER  - I-index of the first grid box
-!  (16   ) JFIRST     : INTEGER  - J-index of the first grid box
-!  (17   ) LFIRST     : INTEGER  - L-index of the first grid box
-!  (18   ) ARRAY      : REAL*4   - data block to be written to the file
+      USE FILE_MOD, ONLY : IOERROR
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      ! Arguments
+      INTEGER,           INTENT(IN) :: IUNIT            ! LUN for file I/O
+      CHARACTER(LEN=20), INTENT(IN) :: MODELNAME        ! Met field type
+      REAL*4,            INTENT(IN) :: LONRES           ! Lon resolution [deg]
+      REAL*4,            INTENT(IN) :: LATRES           ! Lat resolution [deg]
+      INTEGER,           INTENT(IN) :: HALFPOLAR        ! 1/2-size polar boxes?
+      INTEGER,           INTENT(IN) :: CENTER180        ! 1st box center -180?
+      CHARACTER(LEN=40), INTENT(IN) :: CATEGORY         ! Diag. category name
+      INTEGER,           INTENT(IN) :: NTRACER          ! Tracer index #
+      CHARACTER(LEN=40), INTENT(IN) :: UNIT             ! Unit string
+      REAL*8,            INTENT(IN) :: TAU0             ! TAU values @ start &
+      REAL*8,            INTENT(IN) :: TAU1             !  end of diag interval
+      CHARACTER(LEN=40), INTENT(IN) :: RESERVED         ! Extra string
+      INTEGER,           INTENT(IN) :: NI, NJ, NL       ! Dimensions of ARRAY
+      INTEGER,           INTENT(IN) :: IFIRST           ! (I,J,L) indices of
+      INTEGER,           INTENT(IN) :: JFIRST           !  the first grid box
+      INTEGER,           INTENT(IN) :: LFIRST           !  in Fortran notation
+      REAL*4,            INTENT(IN) :: ARRAY(NI,NJ,NL)  ! Data array
+!
+! !REVISION HISTORY:
 !  (1 ) Added indices to IOERROR calls (e.g. "bpch2:1", "bpch2:2", etc.) 
 !        (bmy, 10/4/99)
 !  (2 ) Added this routine to "bpch_mod.f" (bmy, 6/28/00)
 !  (3 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
 !  (4 ) Now reference IOERROR from "file_mod.f". (bmy, 6/26/02)
-!******************************************************************************
-!  
-      ! References to F90 modules
-      USE FILE_MOD, ONLY : IOERROR
-
-      ! Arguments
-      INTEGER,           INTENT(IN) :: IUNIT
-      INTEGER,           INTENT(IN) :: NTRACER 
-      INTEGER,           INTENT(IN) :: NI, NJ, NL 
-      INTEGER,           INTENT(IN) :: IFIRST, JFIRST, LFIRST
-      INTEGER,           INTENT(IN) :: HALFPOLAR, CENTER180
-      REAL*4,            INTENT(IN) :: ARRAY( NI, NJ, NL )
-      REAL*4,            INTENT(IN) :: LONRES, LATRES
-      REAL*8,            INTENT(IN) :: TAU0,   TAU1
-      CHARACTER(LEN=20), INTENT(IN) :: MODELNAME
-      CHARACTER(LEN=40), INTENT(IN) :: CATEGORY
-      CHARACTER(LEN=40), INTENT(IN) :: RESERVED
-      CHARACTER(LEN=40), INTENT(IN) :: UNIT
-
-      ! Local variables
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER                       :: I, J, L, NSKIP, IOS
-
-      ! For computing NSKIP
+!
+! !DEFINED PARAMETERS:
+!
       INTEGER, PARAMETER            :: BYTES_PER_NUMBER = 4
       INTEGER, PARAMETER            :: END_OF_RECORD    = 8
 
@@ -381,32 +396,46 @@
       ! Return to calling program      
       !=================================================================
       END SUBROUTINE BPCH2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_bpch2
+!
+! !DESCRIPTION: Subroutine READ\_BPCH2 reads a binary punch file (v. 2.0) 
+!  and extracts a data block that matches the given category, tracer, and 
+!  tau value.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_BPCH2( FILENAME, CATEGORY_IN, TRACER_IN, 
      &                       TAU0_IN,  IX,          JX,          
      &                       LX,       ARRAY,       QUIET ) 
 !
-!******************************************************************************
-!  Subroutine READ_BPCH2 reads a binary punch file (v. 2.0) and extracts
-!  a data block that matches the given category, tracer, and tau value.
-!  (bmy, 12/10/99, 2/16/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1  ) FILENAME    : (CHARACTER) String for input file name
-!  (2  ) CATEGORY_IN : (CHARACTER) Category name for the desired data block
-!  (3  ) TRACER_IN   : (INTEGER  ) Tracer number for which to extract data
-!  (4  ) TAU0_IN     : (REAL*8   ) TAU value for which to extract data
-!  (5-7) IX, JX, LX  : (INTEGER  ) Dimensions of ARRAY (see below) 
-!  (9  ) QUIET       : (LOGICAL  ) Optional flag for suppressing printing
+      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
+
+#     include "define.h" 
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (8  ) ARRAY       : (REAL*4   ) Array to hold extracted data values
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      CHARACTER(LEN=*),  INTENT(IN)  :: FILENAME         ! Bpch file to read
+      CHARACTER(LEN=*),  INTENT(IN)  :: CATEGORY_IN      ! Diag. category name
+      INTEGER,           INTENT(IN)  :: TRACER_IN        ! Tracer index #
+      REAL*8,            INTENT(IN)  :: TAU0_IN          ! TAU timestamp 
+      INTEGER,           INTENT(IN)  :: IX, JX, LX       ! Dimensions of ARRAY
+      LOGICAL, OPTIONAL, INTENT(IN)  :: QUIET            ! Don't print output
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*4,            INTENT(OUT) :: ARRAY(IX,JX,LX)  ! Data array from file
+!
+! !REVISION HISTORY:
 !  (1 ) Assumes that we are reading in a global-size data block.
 !  (2 ) Trap all I/O errors with subroutine IOERROR.F.
 !  (3 ) Now stop with an error message if no matches are found. (bmy, 3/9/00)
@@ -428,22 +457,13 @@
 !        (bmy, 2/15/07)
 !  (15) Make TEMPARRAY large enough for 0.5 x 0.666 arrays -- but only if we
 !        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP
-      USE FILE_MOD,  ONLY : IU_FILE, IOERROR
-
-#     include "define.h" 
-
-      ! Arguments
-      LOGICAL, OPTIONAL, INTENT(IN)  :: QUIET
-      INTEGER,           INTENT(IN)  :: IX, JX, LX, TRACER_IN
-      CHARACTER(LEN=*),  INTENT(IN)  :: FILENAME, CATEGORY_IN 
-      REAL*8,            INTENT(IN)  :: TAU0_IN
-      REAL*4,            INTENT(OUT) :: ARRAY(IX, JX, LX)      
-
-      ! Local variables
+! !LOCAL VARIABLES:
+! 
       LOGICAL            :: FOUND, TMP_QUIET
       INTEGER            :: I,  J,  L,  N,  IOS, M
       INTEGER            :: I1, I2, J1, J2, L1,  L2
@@ -581,17 +601,32 @@
 
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_modelname
+!
+! !DESCRIPTION: Function GET\_MODELNAME returns the proper value of MODELNAME 
+!  for current GEOS or GCAP met field type.  MODELNAME is written to the 
+!  binary punch file and is also used by the GAMAP package.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_MODELNAME() RESULT( MODELNAME )
 !
-!******************************************************************************
-!  Function GET_MODELNAME returns the proper value of MODELNAME for GEOS-1,
-!  GEOS-STRAT, GEOS-2, or GEOS-3 data.  MODELNAME is written to the binary
-!  punch file and is used by the GAMAP package. (bmy, 6/22/00, 2/7/07)
+! !USES:
 !
-!  NOTES:
+#     include "CMN_SIZE"
+!
+! !RETURN_VALUE:
+!
+      CHARACTER(LEN=20) :: MODELNAME   ! Model name for the current met field
+!
+! !REVISION HISTORY:
 !  (1 ) Now use special model name for GEOS-3 w/ 30 layers (bmy, 10/9/01)
 !  (2 ) Added modelname for GEOS-4/fvDAS model type (bmy, 11/20/01)
 !  (3 ) Added "GEOS4_30L" for reduced GEOS-4 grid.  Also now use C-preprocessor
@@ -600,16 +635,10 @@
 !        simplicity. (swu, bmy, 5/24/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! MODELNAME holds the return value for the function
-      CHARACTER(LEN=20)   :: MODELNAME
-
-      !=================================================================
-      ! GET_MODELNAME begins here!
-      !=================================================================
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GEOS_3 ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOS3_30L'
@@ -636,25 +665,29 @@
 
       ! Return to calling program
       END FUNCTION GET_MODELNAME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_name_ext
+!
+! !DESCRIPTION: Function GET\_NAME\_EXT returns the proper filename extension 
+!  the current GEOS-Chem met field type (e.g. "geos3", "geos4", "geos5", or 
+!  "gcap").  
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NAME_EXT() RESULT( NAME_EXT )
 !
-!******************************************************************************
-!  Function GET_NAME_EXT returns the proper filename extension for CTM
-!  model name (i.e. "geos3", "geos4", "geos5", or "gcap").  
-!  (bmy, 6/28/00, 8/4/06)
-!  
-!  NOTES:
-!  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
-!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
-!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
-
+!
+! !RETURN VALUE:
+!
 #if   defined( GEOS_3 )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos3'
@@ -672,24 +705,50 @@
       NAME_EXT = 'gcap'
 
 #endif
-
-      ! Return to calling program
-      END FUNCTION GET_NAME_EXT
-
+!
+! !REVISION HISTORY:
+!  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
+!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
+!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      END FUNCTION GET_NAME_EXT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_name_ext_2d
+!
+! !DESCRIPTION: Function GET\_NAME\_EXT\_2D returns the proper filename 
+!  extension for CTM model name for files which do not contain any vertical 
+!  information (i.e. "geos" or "gcap").
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NAME_EXT_2D() RESULT( NAME_EXT_2D )
 !
-!******************************************************************************
-!  Function GET_NAME_EXT_2D returns the proper filename extension for CTM
-!  model name for files which do not contain any vertical information
-!  (i.e. "geos" or "gcap").  (bmy, 8/16/05)
+! !RETURN VALUE:
 !
-!  NOTES: 
-!******************************************************************************
+      CHARACTER(LEN=4) :: NAME_EXT_2D
+!
+! !REVISION HISTORY:
+!  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
+!  (2 ) Remove obsolete "geos2" model name strning (bmy, 11/3/03)
+!  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
+!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!
+! !LOCAL VARIABLES:
 !
       ! Local variables
-      CHARACTER(LEN=4) :: NAME_EXT_2D
       CHARACTER(LEN=5) :: TEMP_NAME
 
       !=================================================================
@@ -704,22 +763,28 @@
 
       ! Return to calling program
       END FUNCTION GET_NAME_EXT_2D 
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_res_ext
+!
+! !DESCRIPTION: Function GET\_RES\_EXT returns the proper filename extension 
+!  for the GEOS-Chem horizontal grid resolution (e.g. "1x1", "2x25", "4x5").
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_RES_EXT() RESULT( RES_EXT )
 !
-!******************************************************************************
-!  Function GET_RES_EXT returns the proper filename extension for CTM grid 
-!  resolution (i.e. "1x1", "2x25", "4x5").  (bmy, 6/28/00, 11/6/08)
-! 
-!  NOTES:
-!  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
-!  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
-
+!
+! !RETURN VALUE:
+!
 #if   defined( GRID4x5 )
       CHARACTER(LEN=3) :: RES_EXT
       RES_EXT = '4x5'
@@ -741,29 +806,46 @@
       RES_EXT = '05x0666'
 
 #endif
-
-      END FUNCTION GET_RES_EXT
-
+!
+! !REVISION HISTORY:
+!  (1 ) Added extension for 1 x 1.25 grid (bmy, 12/1/04)
+!  (2 ) Added extension for 0.5 x 0.666 grid (yxw, dan, bmy, 11/6/08)
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      END FUNCTION GET_RES_EXT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_halfpolar
+!
+! !DESCRIPTION: Function GET\_HALFPOLAR returns 1 if the current grid has 
+!  half-sized polar boxes (e.g. GEOS), or zero otherwise (e.g. GCAP).  
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_HALFPOLAR() RESULT( HALFPOLAR )
 !
-!******************************************************************************
-!  Function GET_HALFPOLAR returns 1 if the current grid has half-sized polar
-!  boxes (e.g. GEOS), or zero otherwise (e.g. GCAP).  (swu, bmy, 6/28/05)
-!
-!  NOTES: 
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
-
-      ! Local variables
-      INTEGER :: HALFPOLAR
-
-      !=================================================================
-      ! GET_HALFPOLAR begins here!
-      !=================================================================
-
+!
+! !RETURN VALUE:
+!
+      INTEGER :: HALFPOLAR  ! =1 if we have half-sized polar boxes, =0 if not
+!
+! !REVISION HISTORY:
+!  28 Jun 2005 - S. Wu & R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca         - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
 #if   defined( GCAP ) 
 
       ! GCAP grid does not have half-sized polar boxes
@@ -778,36 +860,55 @@
 
       ! Return to calling program
       END FUNCTION GET_HALFPOLAR
-
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_TAU0_6A( MONTH, DAY, YEAR, HOUR, MIN, SEC ) 
-     &         RESULT( THIS_TAU0 )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Function GET_TAU0_6A returns the corresponding TAU0 value for the first 
-!  day of a given MONTH of a given YEAR.  This is necessary to index monthly 
-!  mean binary punch files, which are used as input to GEOS-CHEM.
-!  (bmy, 9/26/01) 
+! !IROUTINE: get_tau0_6a
 !
+! !DESCRIPTION: Function GET\_TAU0\_6A returns the corresponding TAU0 value 
+!  for the first day of a given MONTH of a given YEAR.  This is necessary to 
+!  index monthly mean binary punch files, which are used as input to GEOS-Chem.
+!\\
+!\\
 !  This function takes 3 mandatory arguments (MONTH, DAY, YEAR) and 3 
 !  optional arguments (HOUR, MIN, SEC).  It is intended to replace the current 
-!  2-argument version of GET_TAU0.  The advantage being that GET_TAU0_3A can 
-!  compute a TAU0 for any date and time in the GEOS-CHEM epoch, rather than 
-!  just the first day of each month.  Overload this w/ an interface so that 
-!  the user can also choose the version of GET_TAU0 w/ 2 arguments 
+!  2-argument version of GET\_TAU0.  The advantage being that GET\_TAU0\_6A 
+!  can compute a TAU0 for any date and time in the GEOS-Chem epoch, rather 
+!  than just the first day of each month.  Overload this w/ an interface so 
+!  that the user can also choose the version of GET\_TAU0 w/ 2 arguments 
 !  (MONTH, YEAR), which is the prior version.
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) MONTH (INTEGER) : Month of year (1-12)
-!  (2 ) DAY   (INTEGER) : Day of month (1-31)
-!  (3 ) YEAR  (INTEGER) : 4-digit year number (e.g. 1985,2001)
-!  (4 ) HOUR  (INTEGER) : OPTIONAL: Hour of day (0-24)
-!  (5 ) MIN   (INTEGER) : OPTIONAL: Minute of hour (0-59)
-!  (6 ) SEC   (INTEGER) : OPTIONAL: Seconds of minute (0-59)
+      FUNCTION GET_TAU0_6A( MONTH, DAY, YEAR, 
+     &                      HOUR,  MIN, SEC  ) RESULT( THIS_TAU0 )
 !
-!  NOTES: 
+! !USES:
+!
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE JULDAY_MOD, ONLY : JULDAY
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)           :: MONTH       
+      INTEGER, INTENT(IN)           :: DAY         
+      INTEGER, INTENT(IN)           :: YEAR        
+      INTEGER, INTENT(IN), OPTIONAL :: HOUR        
+      INTEGER, INTENT(IN), OPTIONAL :: MIN
+      INTEGER, INTENT(IN), OPTIONAL :: SEC
+!
+! !RETURN VALUE:
+!
+      REAL*8                        :: THIS_TAU0   ! TAU0 timestamp
+!
+! !REMARKS:
+!  TAU0 is hours elapsed since 00:00 GMT on 01 Jan 1985.
+!
+! !REVISION HISTORY:
 !  (1 ) 1985 is the first year of the GEOS epoch.
 !  (2 ) Add TAU0 values for years 1985-2001 (bmy, 8/1/00)
 !  (3 ) Correct error for 1991 TAU values.  Also added 2002 and 2003.
@@ -815,26 +916,17 @@
 !  (4 ) Updated comments  (bmy, 9/26/01)
 !  (5 ) Now references JULDAY from "julday_mod.f" (bmy, 11/20/01)
 !  (6 ) Now references ERROR_STOP from "error_mod.f"  (bmy, 10/15/02)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Reference to F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-      USE JULDAY_MOD, ONLY : JULDAY
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: MONTH
-      INTEGER, INTENT(IN)           :: DAY
-      INTEGER, INTENT(IN)           :: YEAR
-      INTEGER, INTENT(IN), OPTIONAL :: HOUR
-      INTEGER, INTENT(IN), OPTIONAL :: MIN
-      INTEGER, INTENT(IN), OPTIONAL :: SEC
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER                       :: TMP_HOUR, TMP_MIN, TMP_SEC
       REAL*8                        :: DAYS
 
       ! Return value
-      REAL*8                        :: THIS_TAU0
       
       !=================================================================
       ! GET_TAU0_6A begins here!
@@ -881,8 +973,7 @@
 
       ! Return to calling program
       END FUNCTION GET_TAU0_6A
-
-!------------------------------------------------------------------------------
+!EOC
 
       ! End of module
       END MODULE BPCH2_MOD

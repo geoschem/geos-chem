@@ -1,0 +1,11 @@
+! $Id: util.intro,v 1.1 2009/11/20 21:43:00 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOI
+! !TITLE: The GEOS-Chem Model: Utility Modules
+! !AUTHORS: Bob Yantosca, Philippe Le Sager, and Claire Carouge
+! !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
+! !DATE: November 20, 2009
+!EOI
+!------------------------------------------------------------------------------

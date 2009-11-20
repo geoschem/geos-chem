@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.3 2009/09/24 20:18:03 bmy Exp $
+! $Id: chemistry_mod.f,v 1.4 2009/11/20 21:43:18 bmy Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -130,7 +130,11 @@
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
       USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
-      USE Kr85_MOD,        ONLY : CHEMKr85
+      !--------------------------------------------------------------------
+      ! Prior to 11/20/09:
+      ! Comment out from compilation (bmy, 11/20/09)
+      !USE Kr85_MOD,        ONLY : CHEMKr85
+      !--------------------------------------------------------------------
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
       USE MERCURY_MOD,     ONLY : CHEMMERCURY

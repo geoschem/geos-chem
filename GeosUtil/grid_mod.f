@@ -1,98 +1,85 @@
-! $Id: grid_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+! $Id: grid_mod.f,v 1.1 2009/11/20 21:43:05 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: grid_mod.f
+!
+! !DESCRIPTION: Module GRID\_MOD contains variables and routines which are 
+!  used to specify the parameters of a GEOS-CHEM horizontal grid.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GRID_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module GRID_MOD contains variables and routines which are used to specify 
-!  the parameters of a GEOS-CHEM horizontal grid. (bmy, 3/11/03, 4/20/06)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) IS_NESTED  (LOGICAL) : =T if we are using a nested-grid 
-!  (2 ) IIGLOB     (INTEGER) : Global longitude extent [# of boxes]
-!  (3 ) JJGLOB     (INTEGER) : Global latitude  extent [# of boxes]
-!  (4 ) I0         (INTEGER) : Nested-grid offset in longitude (X) dimension
-!  (5 ) J0         (INTEGER) : Nested-grid offset in latitude  (Y) dimension
-!  (6 ) XMID_G     (REAL*8 ) : GLOBAL array of grid-box lon centers [degrees]
-!  (7 ) XEDGE_G    (REAL*8 ) : GLOBAL array of grid-box lon edges   [degrees]
-!  (8 ) YMID_G     (REAL*8 ) : GLOBAL array of grid-box lat centers [degrees]
-!  (9 ) YEDGE_G    (REAL*8 ) : GLOBAL array of grid-box lat edges   [degrees]
-!  (10) YMID_R_G   (REAL*8 ) : GLOBAL array of grid-box lat centers [radians]
-!  (11) YEDGE_R_G  (REAL*8 ) : GLOBAL array of grid-box lat edges   [radians]
-!  (12) AREA_M2_G  (REAL*8 ) : GLOBAL array of grid-box surface areas [m2]
-!  (13) AREA_CM2_G (REAL*8 ) : GLOBAL array of grid-box surface areas [cm2]
-!  (14) XMID       (REAL*8 ) : WINDOW array of grid-box lon centers [degrees]
-!  (15) XEDGE      (REAL*8 ) : WINDOW array of grid-box lon edges   [degrees]
-!  (16) YMID       (REAL*8 ) : WINDOW array of grid-box lat centers [degrees]
-!  (17) YEDGE      (REAL*8 ) : WINDOW array of grid-box lat edges   [degrees]
-!  (18) YMID_R     (REAL*8 ) : WINDOW array of grid-box lat centers [radians]
-!  (19) YEDGE_R    (REAL*8 ) : WINDOW array of grid-box lat edges   [radians]
-!  (20) AREA_M2    (REAL*8 ) : WINDOW array of grid-box surface areas [m2]
-!  (21) AREA_CM2   (REAL*8 ) : WINDOW array of grid-box surface areas [cm2]
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) COMPUTE_GRID      : Computes all lon, lat, surface area quantities
-!  (2 ) SET_XOFFSET       : Initializes nested grid longitude (X) offset
-!  (3 ) SET_YOFFSET       : Initializes nested grid latitude  (Y) offset
-!  (4 ) GET_XOFFSET       : Returns     nested grid longitude (X) offset
-!  (5 ) GET_XOFFSET       : Returns     nested grid latitude  (Y) offset
-!  (6 ) GET_XMID          : Returns grid box center  longitude [degrees]
-!  (7 ) GET_XEDGE         : Returns grid box W. edge longitude [degrees]
-!  (8 ) GET_YMID          : Returns grid box center  latitude  [degrees]
-!  (9 ) GET_YEDGE         : Returns grid box S. edge latitude  [degrees]
-!  (10) GET_YMID_R        : Returns grid box center  latitude  [radians]
-!  (11) GET_YEDGE_R       : Returns grid box S. edge latitude  [radians]
-!  (12) GET_AREA_M2       : Returns grid box surface area      [m2]
-!  (13) GET_AREA_CM2      : Returns grid box surface area      [cm2]
-!  (14) GET_BOUNDING_BOX  : Returns indices for a region denoted by lats/lons
-!  (15) ITS_A_NESTED_GRID : Returns T for nested grid simulations; F otherwise
-!  (16) INIT_GRID         : Allocates and zeroes all module arrays
-!  (17) CLEANUP_GRID      : Deallocates all module arrays
+      PUBLIC  :: CLEANUP_GRID
+      PUBLIC  :: COMPUTE_GRID
+      PUBLIC  :: GET_AREA_M2
+      PUBLIC  :: GET_AREA_CM2
+      PUBLIC  :: GET_BOUNDING_BOX
+      PUBLIC  :: GET_XEDGE
+      PUBLIC  :: GET_XMID
+      PUBLIC  :: GET_XOFFSET
+      PUBLIC  :: GET_YOFFSET
+      PUBLIC  :: GET_YEDGE
+      PUBLIC  :: GET_YEDGE_R
+      PUBLIC  :: GET_YMID
+      PUBLIC  :: GET_YMID_R
+      PUBLIC  :: GET_YMID_R_W
+      PUBLIC  :: SET_XOFFSET
+      PUBLIC  :: SET_YOFFSET
+      PUBLIC  :: ITS_A_NESTED_GRID
 !
-!  GEOS-CHEM modules referenced by grid_mod.f:
-!  ============================================================================
-!  (1 ) error_mod.f       : Module containing I/O error and NaN check routines
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PRIVATE :: INIT_GRID
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Fixed typos in "grid_mod.f" (bmy, 4/28/03)
 !  (2 ) Added routine GET_BOUNDING_BOX.  Now define 1x125 grid. (bmy, 12/1/04)
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (4 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !  (5 ) Modifications for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
+!  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "grid_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC ::  COMPUTE_GRID
-      PUBLIC ::  SET_XOFFSET
-      PUBLIC ::  SET_YOFFSET
-      PUBLIC ::  GET_XOFFSET
-      PUBLIC ::  GET_YOFFSET
-      PUBLIC ::  GET_XMID
-      PUBLIC ::  GET_XEDGE
-      PUBLIC ::  GET_YMID
-      PUBLIC ::  GET_YEDGE
-      PUBLIC ::  GET_YMID_R
-      PUBLIC ::  GET_YMID_R_W
-      PUBLIC ::  GET_YEDGE_R
-      PUBLIC ::  GET_AREA_M2
-      PUBLIC ::  GET_AREA_CM2
-      PUBLIC ::  GET_BOUNDING_BOX
-      PUBLIC ::  ITS_A_NESTED_GRID
-      PUBLIC ::  CLEANUP_GRID
-
-      !==================================================================
-      ! MODULE VARIABLES
-      !==================================================================
+      !=======================================================================
+      ! MODULE VARIABLES:
+      !
+      ! (1 ) IS_NESTED  : =T if we are using a nested-grid 
+      ! (2 ) IIGLOB     : Global longitude extent [# of boxes]
+      ! (3 ) JJGLOB     : Global latitude  extent [# of boxes]
+      ! (4 ) I0         : Nested-grid offset in longitude (X) dimension
+      ! (5 ) J0         : Nested-grid offset in latitude  (Y) dimension
+      ! (6 ) XMID_G     : GLOBAL array of grid-box lon centers [degrees]
+      ! (7 ) XEDGE_G    : GLOBAL array of grid-box lon edges   [degrees]
+      ! (8 ) YMID_G     : GLOBAL array of grid-box lat centers [degrees]
+      ! (9 ) YEDGE_G    : GLOBAL array of grid-box lat edges   [degrees]
+      ! (10) YMID_R_G   : GLOBAL array of grid-box lat centers [radians]
+      ! (11) YEDGE_R_G  : GLOBAL array of grid-box lat edges   [radians]
+      ! (12) AREA_M2_G  : GLOBAL array of grid-box surface areas [m2]
+      ! (13) AREA_CM2_G : GLOBAL array of grid-box surface areas [cm2]
+      ! (14) XMID       : WINDOW array of grid-box lon centers [degrees]
+      ! (15) XEDGE      : WINDOW array of grid-box lon edges   [degrees]
+      ! (16) YMID       : WINDOW array of grid-box lat centers [degrees]
+      ! (17) YEDGE      : WINDOW array of grid-box lat edges   [degrees]
+      ! (18) YMID_R     : WINDOW array of grid-box lat centers [radians]
+      ! (19) YEDGE_R    : WINDOW array of grid-box lat edges   [radians]
+      ! (20) AREA_M2    : WINDOW array of grid-box surface areas [m2]
+      ! (21) AREA_CM2   : WINDOW array of grid-box surface areas [cm2]
+      !=======================================================================
       LOGICAL              :: IS_NESTED
       INTEGER              :: I0,           J0
       INTEGER              :: IIGLOB,       JJGLOB
@@ -106,35 +93,46 @@
       REAL*8,  ALLOCATABLE :: YMID_R_W(:),  YEDGE_R_W(:)
       REAL*8,  ALLOCATABLE :: AREA_M2(:),   AREA_CM2(:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: compute_grid
+!
+! !DESCRIPTION: Subroutine COMPUTE\_GRID initializes the longitude, 
+!  latitude and surface area arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE COMPUTE_GRID
 !
-!******************************************************************************
-!  Subroutine COMPUTE_GRID initializes the longitude, latitude and surface 
-!  area arrays. (bmy, 3/11/03, 4/20/06)
+! !USES:
 !
-!  NOTES:
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_GCTM"  ! Physical constants
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Added fancy output (bmy, 4/26/04)
 !  (2 ) Suppress some output lines (bmy, 7/20/04)
 !  (3 ) Now also support 1 x 1.25 grid (bmy, 12/1/04)
 !  (4 ) Now modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (5 ) Added comments re: surface area derivation (bmy, 4/20/06)
 !  (6 ) Compute YMID, YEDGE for 0.5x0.666 nested grids (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
-
-      ! Local variables
-      LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER             :: I,    J
-      REAL*8              :: FMID, FEDGE
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I,    J
+      REAL*8        :: FMID, FEDGE
 
       !=================================================================
       ! COMPUTE_GRID begins here!
@@ -355,81 +353,98 @@
       IF ( ALLOCATED( AREA_M2_G  ) ) DEALLOCATE( AREA_M2_G  )
       IF ( ALLOCATED( AREA_CM2_G ) ) DEALLOCATE( AREA_CM2_G )
 
-      ! Return to calling program
       END SUBROUTINE COMPUTE_GRID
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_xoffset
+!
+! !DESCRIPTION: Function SET\_XOFFSET initializes the nested-grid longitude 
+!  offset variable I0.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_XOFFSET( X_OFFSET )
 !
-!******************************************************************************
-!  Function SET_XOFFSET initializes the nested-grid latitude offset 
-!  variable I0. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X_OFFSET (INTEGER) : Nested grid longitude offset (# of grid boxes)
+      INTEGER, INTENT(IN) :: X_OFFSET  ! Value to assign to I0
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER, INTENT(IN) :: X_OFFSET
-
-      !=================================================================
-      ! SET_XOFFSET begins here!
-      !=================================================================
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       I0 = X_OFFSET
 
-      ! Return to calling program
       END SUBROUTINE SET_XOFFSET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_yoffset
+!
+! !DESCRIPTION: Function SET\_YOFFSET initializes the nested-grid latitude 
+!  offset variable J0.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_YOFFSET( Y_OFFSET )
 !
-!******************************************************************************
-!  Function SET_YOFFSET initializes the nested-grid latitude offset 
-!  variable J0. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) Y_OFFSET (INTEGER) : Nested grid latitude offset (# of grid boxes)
+      INTEGER, INTENT(IN) :: Y_OFFSET  ! Value to assign to J0
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER, INTENT(IN) :: Y_OFFSET
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !=================================================================
-      ! SET_XOFFSET begins here!
-      !=================================================================
       J0 = Y_OFFSET
 
-      ! Return to calling program
       END SUBROUTINE SET_YOFFSET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_xoffset
+!
+! !DESCRIPTION: Function GET\_XOFFSET returns the nested-grid longitude offset
+!  to the calling program. (bmy, 3/11/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_XOFFSET( GLOBAL ) RESULT( X_OFFSET )
 !
-!******************************************************************************
-!  Function GET_XOFFSET returns the nested-grid longitude offset to the
-!  calling program. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
+      ! If GLOBAL is passed, then return the actual window offset.
+      ! This is necessary for certain instances (e.g. diagnostics)
       LOGICAL, INTENT(IN), OPTIONAL :: GLOBAL
-
-      ! Function value
-      INTEGER :: X_OFFSET
-
-      !=================================================================
-      ! GET_XOFFSET begins here!
-      !=================================================================
+!
+! !RETURN VALUE:
+!
+      INTEGER                       :: X_OFFSET
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( GLOBAL ) ) THEN
 
          ! If GLOBAL is passed, then return the actual window offset.
@@ -444,29 +459,39 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_XOFFSET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_xoffset
+!
+! !DESCRIPTION: Function GET\_XOFFSET returns the nested-grid longitude offset
+!  to the calling program. (bmy, 3/11/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YOFFSET( GLOBAL ) RESULT( Y_OFFSET )
 !
-!******************************************************************************
-!  Function GET_YOFFSET returns the nested-grid latitude offset to the
-!  calling program. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
+      ! If GLOBAL is passed, then return the actual window offset.
+      ! This is necessary for certain instances (e.g. diagnostics)
       LOGICAL, INTENT(IN), OPTIONAL :: GLOBAL
-
-      ! Function value
-      INTEGER :: Y_OFFSET
-
-      !=================================================================
-      ! GET_XOFFSET begins here!
-      !=================================================================
+!
+! !RETURN VALUE:
+!
+      INTEGER                       :: Y_OFFSET
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( GLOBAL ) ) THEN 
 
          ! If GLOBAL is passed, then return the actual window offset.
@@ -481,304 +506,345 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_YOFFSET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_xmid
+!
+! !DESCRIPTION: Function GET\_XMID returns the longitude in degrees at the 
+!  center of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_XMID( I ) RESULT( X )
 !
-!******************************************************************************
-!  Function GET_XMID returns the longitude in degrees at the center of a 
-!  GEOS-CHEM grid box.  Works for nested-grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) I (INTEGER) : GEOS-CHEM grid-box index for longitude
+      INTEGER, INTENT(IN) :: I  ! Longitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I
-
-      ! Function value
-      REAL*8              :: X 
-
-      !=================================================================
-      ! GET_XMID begins here!
-      !=================================================================
+      REAL*8              :: X  ! Corresponding lon value @ grid box ctr
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       X = XMID( I )
 
-      ! Return to calling program
       END FUNCTION GET_XMID
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_xedge
+!
+! !DESCRIPTION: Function GET\_XEDGE returns the longitude in degrees at the 
+!  western edge of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_XEDGE( I ) RESULT( X )
 !
-!******************************************************************************
-!  Function GET_XEDGE returns the longitude in degrees at the western edge of 
-!  a GEOS-CHEM grid box.  Works for nested-grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) I (INTEGER) : GEOS-CHEM grid-box index for longitude
+      INTEGER, INTENT(IN) :: I  ! Longitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I
-
-      ! Function value
-      REAL*8              :: X 
-
-      !=================================================================
-      ! GET_XEDGE begins here!
-      !=================================================================
+      REAL*8              :: X  ! Corresponding lon value @ W edge of grid box
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       X = XEDGE( I )
 
-      ! Return to calling program
       END FUNCTION GET_XEDGE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ymid
+!
+! !DESCRIPTION: Function GET\_YMID returns the latitude in degrees at the 
+!  center of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YMID( J ) RESULT( Y )
 !
-!******************************************************************************
-!  Function GET_YMID returns the latitude in degrees at the center of 
-!  a GEOS-CHEM grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) I (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: Y
-
-      !=================================================================
-      ! GET_YMID begins here!
-      !=================================================================
+      REAL*8              :: Y  ! Latitude value at @ grid box ctr [degrees]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       Y = YMID( J )
 
-      ! Return to calling program
       END FUNCTION GET_YMID
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_yedge
+!
+! !DESCRIPTION: Function GET\_YEDGE returns the latitude in degrees at the 
+!  southern edge of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YEDGE( J ) RESULT( Y )
 !
-!******************************************************************************
-!  Function GET_EDGE returns the latitude in degrees at the southern edge of 
-!  a GEOS-CHEM grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: Y
-
-      !=================================================================
-      ! GET_YEDGE begins here!
-      !=================================================================
+      REAL*8              :: Y  ! Latitude value @ S edge of grid box [degrees]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       Y = YEDGE( J )
 
-      ! Return to calling program
       END FUNCTION GET_YEDGE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ymid
+!
+! !DESCRIPTION: Function GET\_YMID\_R returns the latitude in radians at the 
+!  center of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YMID_R( J ) RESULT( Y )
 !
-!******************************************************************************
-!  Function GET_YMID_R returns the latitude in radians at the center of 
-!  a GEOS-CHEM grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: Y
-
-      !=================================================================
-      ! GET_YMID_R begins here!
-      !=================================================================
+      REAL*8              :: Y  ! Latitude value at @ grid box ctr [radians]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       Y = YMID_R( J )
 
-      ! Return to calling program
       END FUNCTION GET_YMID_R
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ymid
+!
+! !DESCRIPTION: Function GET\_YMID\_R\_W returns the latitude in radians at 
+!  the center of a GEOS-Chem grid box for the GEOS-5 nested grid.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YMID_R_W( J ) RESULT( Y )
 !
-!******************************************************************************
-!  Function GET_YMID_R_W returns the latitude in radians at the center of 
-!  a GEOS-CHEM grid box for the GEOS-5 nested grid. (dan, bmy, 11/6/08)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: Y
-
-      !=================================================================
-      ! dan for tpcore window GET_YMID_R_W begins here!
-      !=================================================================
+      REAL*8              :: Y  ! Latitude value at @ grid box ctr [radians]
+!
+! !REVISION HISTORY:
+!  06 Nov 2008 - D. Chen & R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       Y = YMID_R_W( J )
 
-      ! Return to calling program
       END FUNCTION GET_YMID_R_W
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_yedge_r
+!
+! !DESCRIPTION: Function GET\_YEDGE\_R returns the latitude in radians at the 
+!  southern edge of a GEOS-Chem grid box.  Works for nested-grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YEDGE_R( J ) RESULT( Y )
 !
-!******************************************************************************
-!  Function GET_YEDGE_R returns the latitude in radians at the southern edge 
-!  of a GEOS-CHEM grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
+      REAL*8              :: Y  ! Latitude value @ S edge of grid box [radians]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      ! Function value
-      REAL*8              :: Y
-
-      !=================================================================
-      ! GET_YEDGE_R begins here!
-      !=================================================================
       Y = YEDGE_R( J )
 
-      ! Return to calling program
       END FUNCTION GET_YEDGE_R
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_area_m2
+!
+! !DESCRIPTION: Function GET\_AREA\_M2 returns the surface area [m2] of a 
+!  GEOS-Chem grid box.  Works for nested grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_AREA_M2( J ) RESULT( A )
 !
-!******************************************************************************
-!  Function GET_AREA_M2 returns the surface area [m2] of a GEOS-CHEM 
-!  grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!  (1 ) Surface area is only a function of latitude, since all grid boxes are 
-!        symmetrical in longitude. (bmy, 3/11/03)
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: A
-
-      !=================================================================
-      ! GET_AREA_M2 begins here!
-      !=================================================================
+      REAL*8              :: A  ! Grid box surface area [m2]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       A = AREA_M2( J )
 
-      ! Return to calling program
       END FUNCTION GET_AREA_M2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_area_cm2
+!
+! !DESCRIPTION: Function GET\_AREA\_CM2 returns the surface area [cm2] of a 
+!  GEOS-Chem grid box.  Works for nested grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_AREA_CM2( J ) RESULT( A )
 !
-!******************************************************************************
-!  Function GET_AREA_CM2 returns the surface area [cm2] of a GEOS-CHEM 
-!  grid box.  Works for nested grids too. (bmy, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1) J (INTEGER) : GEOS-CHEM grid-box index for latitude
+      INTEGER, INTENT(IN) :: J  ! Latitude index
 !
-!  NOTES:
-!  (1 ) Surface area is only a function of latitude, since all grid boxes are 
-!        symmetrical in longitude. (bmy, 3/11/03)
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: J
-
-      ! Function value
-      REAL*8              :: A
-
-      !=================================================================
-      ! GET_AREA_CM2 begins here!
-      !=================================================================
+      REAL*8              :: A  ! Grid box surface area [cm2]
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       A = AREA_CM2( J )
 
-      ! Return to calling program
       END FUNCTION GET_AREA_CM2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_bounding_box
+!
+! !DESCRIPTION: Subroutine GET\_BOUNDING\_BOX returns the indices which 
+!  specify the lower left (LL) and upper right (UR) corners of a rectangular 
+!  region, given the corresponding longitude and latitude values. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_BOUNDING_BOX( COORDS, INDICES )
 !
-!******************************************************************************
-!  Subroutine GET_BOUNDING_BOX returns the indices which specify the lower
-!  left (LL) and upper right (UR) corners of a rectangular region, given the 
-!  corresponding longitude and latitude values. (bmy, 12/1/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) COORDS  (REAL*8)  : Contains (/LON_LL, LAT_LL, LON_UR, LAT_UR/) values
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) INDICES (INTEGER) : Contains indices (/I_LL, J_LL, I_UR, J_UR/)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: COORDS(4)
-      INTEGER, INTENT(OUT) :: INDICES(4)
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN)  :: COORDS(4)   ! (/LON_LL, LAT_LL, LON_UR, LAT_UR/)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER, INTENT(OUT) :: INDICES(4)  ! (/I_LL, J_LL, I_UR, J_UR/)
+!
+! !REVISION HISTORY:
+!  01 Dec 2004 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER              :: I, J
       CHARACTER(LEN=255)   :: LOCATION
 
@@ -842,53 +908,72 @@
          CALL ERROR_STOP( 'Invalid upper-right lat index!', LOCATION )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE GET_BOUNDING_BOX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_nested_grid
+!
+! !DESCRIPTION: Function GET\_AREA\_CM2 returns the surface area [cm2] of a 
+!  GEOS-Chem grid box.  Works for nested grids too.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_NESTED_GRID() RESULT( IT_IS_NESTED )
 !
-!******************************************************************************
-!  Subroutine ITS_A_NESTED_GRID returns TRUE if we are using a nested-grid
-!  (i.e. a subset of a global grid) or FALSE otherwise. (bmy, 3/11/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      LOGICAL :: IT_IS_NESTED   ! =T if it's a nested grid; =F otherwise
 !
-      ! Function value
-      LOGICAL :: IT_IS_NESTED
-
-      !=================================================================
-      ! ITS_A_NESTED_GRID begins here!
-      !=================================================================
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IT_IS_NESTED = IS_NESTED
 
-      ! Return to calling program
       END FUNCTION ITS_A_NESTED_GRID
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_grid
+!
+! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GRID
 !
-!******************************************************************************
-!  Subroutine INIT_GRID initializes variables and allocates module arrays.
-!  (bmy, 3/11/03, 11/6/08)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+
+#     include "CMN_SIZE"
+!
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Fixed typos that caused AREA_CM2_G and AREA_CM2 to be initialized 
 !        before they were allocated. (bmy, 4/28/03)
 !  (2 ) Now define IIGLOB & JJGLOB for 1 x 1.25 grid (bmy, 12/1/04)
 !  (3 ) Modified for GCAP 4x5 horizontal grid (swu, bmy, 5/24/05)
 !  (4 ) Modifications for 0.5 x 0.666 nested grids (dan, bmy, 11/6/08)
-!******************************************************************************
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-#     include "CMN_SIZE"
-
-      ! Local variables
+! !LOCAL VARIABLES:
+! 
       INTEGER :: AS
 
       !=================================================================
@@ -1002,24 +1087,28 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_GRID
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_grid
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GRID deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GRID
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GRID deallocates all module arrays 
-!  (bmy, 3/11/03, 11/6/08)
-!
-!  NOTES:
-!  (1 ) Now also deallocate YMID_R_W (dan, bmy, 11/6/08)
-!******************************************************************************
-!
-      !=================================================================
-      ! CLEANUP_GRID begins here!
-      !=================================================================
-
-      ! Deallocate window arrays
+! !REVISION HISTORY:
+!  11 Mar 2003 - R. Yantosca - Initial version
+!  20 Nov 2009 - D. Chen     - Now also deallocate YMID_R_W
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( ALLOCATED( XMID       ) ) DEALLOCATE( XMID       )
       IF ( ALLOCATED( XEDGE      ) ) DEALLOCATE( XEDGE      )
       IF ( ALLOCATED( YMID       ) ) DEALLOCATE( YMID       )
@@ -1030,9 +1119,6 @@
       IF ( ALLOCATED( AREA_M2    ) ) DEALLOCATE( AREA_M2    )
       IF ( ALLOCATED( AREA_CM2   ) ) DEALLOCATE( AREA_CM2   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GRID
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GRID_MOD

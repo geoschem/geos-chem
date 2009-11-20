@@ -1,31 +1,35 @@
-! $Id: ifort_errmsg.f,v 1.1 2009/09/16 14:06:24 bmy Exp $
+! $Id: ifort_errmsg.f,v 1.1 2009/11/20 21:43:04 bmy Exp $
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ifort_errmsg
+!
+! !DESCRIPTION: Function IFORT\_ERRMSG returns an error message string that 
+!  corresponds to an I/O error number obtained via the IOSTAT or STAT 
+!  specifiers.  (This is specifically for the Intel Fortran compiler.)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IFORT_ERRMSG( ERROR_NUM ) RESULT( MSG )
 !
-!******************************************************************************
-!  Function IFORT_ERRMSG returns an error message string that corresponds
-!  to an I/O error number obtained via the IOSTAT or STAT specifiers 
-!  (bmy, 11/30/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) ERROR_NUM (INTEGER) : Error condition from IOSTAT
+      INTEGER, INTENT(IN) :: ERROR_NUM   ! Error condition from IOSTAT
 !
-!  Reference:
-!  ============================================================================
-!  (1 ) Intel Fortran Language Reference, v9.0
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      INTEGER, INTENT(IN) :: ERROR_NUM
-
-      ! Local variables
-      CHARACTER(LEN=255)  :: MSG
-
-      !=================================================================
-      ! IFORT_ERRMSG begins here!
-      !=================================================================
+      CHARACTER(LEN=255)  :: MSG         ! Descriptive error message
+!
+! !REVISION HISTORY:
+!  30 Nov 2005 - R. Yantosca - Initial version
+!  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! Select a error message based on the error codes 
       ! for Intel Fortran Compiler v9.0.
@@ -238,3 +242,4 @@
 
       ! Return to calling program
       END FUNCTION IFORT_ERRMSG
+!EOC

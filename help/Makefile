@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2009/09/24 16:56:51 bmy Exp $
+# $Id: Makefile,v 1.4 2009/11/20 21:43:00 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -26,6 +26,7 @@
 #  21 Sep 2009 - R. Yantosca - Initial version
 #  24 Sep 2009 - R. Yantosca - Added info about NONUMA option for PGI
 #  24 Sep 2009 - R. Yantosca - Now list rosenbrock as default solver
+#  19 Nov 2009 - R. Yantosca - Updated comments
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -43,6 +44,8 @@ help:
 	@echo 'TARGET may be one of the following:'
 	@echo 'all       Default target.  Synonym for libkpp lib exe'
 	@echo 'lib       Only build GEOS-Chem objects & libraries in GeosCore subdir'
+	@echo 'libbpch   Only build GEOS-Chem objects & libraries in GeosBpch subdir'
+	@echo 'libutil   Only build GEOS-Chem objects & libraries in GeosUtil subdir'
 	@echo 'libkpp    Only build GEOS-Chem objects & libraries in KPP subdir'
 	@echo 'exe       Build GEOS-Chem executable'
 	@echo 'clean     Removes *.o, *.mod files in source code subdirs only'
@@ -55,6 +58,7 @@ help:
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
 	@echo 'DEBUG=yes      Compiles GEOS-Chem for use w/ a debugger'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debugging purposes)'
+	@echo 'OMP=[yes|no]   Turns OpenMP parallelization on/off (default is yes)'
 	@echo 'IPO=yes        Turns on optmization options -ipo -static (ifort only)'
 	@echo 'TRACEBACK=yes  Turns on -traceback option (ifort only)'
 	@echo 'NONUMA=yes     Turns on -mp=nonuma option (pgi only)'

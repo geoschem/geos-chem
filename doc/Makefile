@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2009/09/23 14:36:35 bmy Exp $
+# $Id: Makefile,v 1.10 2009/11/20 21:43:00 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -25,6 +25,8 @@
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options
+#  19 Nov 2009 - R. Yantosca - Now build documentation for Makefiles in the
+#                              GeosUtil and GeosCore subdirectories
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -37,9 +39,11 @@
 SHELL   = /bin/sh
 ROOTDIR = ..
 BINDIR  = $(ROOTDIR)/bin
+BPCHDIR = $(ROOTDIR)/GeosBpch
 CODEDIR = $(ROOTDIR)/GeosCore
 HELPDIR = $(ROOTDIR)/help
 KPPDIR  = $(ROOTDIR)/KPP
+UTILDIR = $(ROOTDIR)/GeosUtil
 
 #==============================================================================
 # Makefile targets
@@ -47,7 +51,7 @@ KPPDIR  = $(ROOTDIR)/KPP
 
 .PHONY: all docclean help
 
-all: srcdoc makedoc
+all: srcdoc makedoc utildoc bpchdoc
 
 clean:
 	rm -f *.tex *.ps *.pdf
@@ -88,13 +92,15 @@ srcdoc:
 
 
 #==============================================================================
-# Build documentation for GEOS-Chem source code
+# Build documentation for GEOS-Chem Makefiles
 #==============================================================================
 
 SRC2 =                         \
 ./make.intro                   \
 $(ROOTDIR)/Makefile            \
 $(ROOTDIR)/Makefile_header.mk  \
+$(UTILDIR)/Makefile            \
+$(BPCHDIR)/Makefile            \
 $(CODEDIR)/Makefile            \
 $(KPPDIR)/Makefile             \
 $(KPPDIR)/43t/Makefile         \
@@ -116,5 +122,61 @@ makedoc:
 	dvipdf $(DVI2) $(PDF2)
 	dvips $(DVI2) -o $(PS2)
 	rm -f *.aux *.dvi *.log *.toc
+
+#==============================================================================
+# Build documentation for GEOS-Chem utility modules
+#==============================================================================
+
+SRC3 = ./util.intro         \
+$(UTILDIR)/charpak_mod.f    \
+$(UTILDIR)/directory_mod.f  \
+$(UTILDIR)/error_mod.f      \
+$(UTILDIR)/ifort_errmsg.f   \
+$(UTILDIR)/file_mod.f       \
+$(UTILDIR)/grid_mod.f       \
+$(UTILDIR)/julday_mod.f     \
+$(UTILDIR)/pressure_mod.f   \
+$(UTILDIR)/regrid_1x1_mod.f \
+$(UTILDIR)/time_mod.f       \
+$(UTILDIR)/transfer_mod.f   \
+$(UTILDIR)/unix_cmds_mod.f
+
+TEX3 = GEOS-Chem-Utility.tex
+DVI3 = GEOS-Chem-Utility.dvi
+PDF3 = GEOS-Chem-Utility.pdf
+PS3  = GEOS-Chem-Utility.ps
+
+utildoc: 
+	rm -f $(TEX3)
+	protex -sf $(SRC3) > $(TEX3)
+	latex $(TEX3)
+	latex $(TEX3)
+	latex $(TEX3)
+	dvipdf $(DVI3) $(PDF3)
+	dvips $(DVI3) -o $(PS3)
+	rm -f *.aux *.dvi *.log *.toc
+
+#==============================================================================
+# Build documentation for GEOS-Chem utility modules
+#==============================================================================
+
+SRC4 = ./bpch.intro    \
+$(BPCHDIR)/bpch2_mod.f
+
+TEX4 = GEOS-Chem-Bpch.tex
+DVI4 = GEOS-Chem-Bpch.dvi
+PDF4 = GEOS-Chem-Bpch.pdf
+PS4  = GEOS-Chem-Bpch.ps
+
+bpchdoc: 
+	rm -f $(TEX4)
+	protex -sf $(SRC4) > $(TEX4)
+	latex $(TEX4)
+	latex $(TEX4)
+	latex $(TEX4)
+	dvipdf $(DVI4) $(PDF4)
+	dvips $(DVI4) -o $(PS4)
+	rm -f *.aux *.dvi *.log *.toc
+
 
 #EOC

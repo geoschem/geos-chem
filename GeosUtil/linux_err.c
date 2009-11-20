@@ -1,4 +1,4 @@
-/* $Id: linux_err.c,v 1.1 2009/09/16 19:19:00 bmy Exp $ */
+/* $Id: linux_err.c,v 1.1 2009/11/20 21:43:04 bmy Exp $ */
 
 #include <math.h>
 
