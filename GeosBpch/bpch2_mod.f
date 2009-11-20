@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.1 2009/11/20 21:43:21 bmy Exp $
+! $Id: bpch2_mod.f,v 1.2 2009/11/20 21:57:54 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -31,15 +31,16 @@
       PUBLIC  :: GET_NAME_EXT_2D     
       PUBLIC  :: GET_RES_EXT         
       PUBLIC  :: GET_HALFPOLAR       
-!
-! !PRIVATE MEMBER FUNCTIONS:
-!
-      PRIVATE :: GET_TAU0_6A
+      PUBLIC  :: GET_TAU0
 
       INTERFACE GET_TAU0
          MODULE PROCEDURE GET_TAU0_6A
       END INTERFACE
 !
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: GET_TAU0_6A
+
 ! !REVISION HISTORY:
 !  (1 ) Added routine GET_TAU0 (bmy, 7/20/00)
 !  (2 ) Added years 1985-2001 for routine GET_TAU0 (bmy, 8/1/00)
