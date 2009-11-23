@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2009/09/23 14:36:36 bmy Exp $
+# $Id: Makefile,v 1.7 2009/11/23 17:15:02 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -56,6 +56,7 @@
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
 #                              "make -C int" calls 
+#  23 Nov 2009 - R. Yantosca - Added realclean target
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -92,7 +93,7 @@ SOLVER_TFILE=./$(NTRAC)t/gckpp_Integrator.f90
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: all lib kppintegrator clean doc help
+.PHONY: all lib kppintegrator clean realclean doc help
 
 all: lib
 
@@ -108,6 +109,10 @@ kppintegrator:
 
 clean:
 	@$(MAKE) -C $(NTRAC)t clean
+
+realclean:
+	@$(MAKE) -C 43t clean
+	@$(MAKE) -C 54t clean
 
 help:
 	@$(MAKE) -C $(HELP) 

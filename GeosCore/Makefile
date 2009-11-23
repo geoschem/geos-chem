@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.11 2009/11/20 21:43:19 bmy Exp $
+# $Id: Makefile,v 1.12 2009/11/23 17:15:03 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -129,7 +129,7 @@ clean:
 
 realclean:
 	@$(MAKE) clean
-	@$(MAKE) -C $(KPP) clean
+	@$(MAKE) -C $(KPP) realclean
 	@$(MAKE) -C $(BPCH) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) docclean

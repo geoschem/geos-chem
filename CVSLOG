@@ -1,5 +1,18 @@
-! $Id: CVSLOG,v 1.5 2009/11/20 21:43:22 bmy Exp $
+! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
+
+! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
 ! Revision 1.5  2009/11/20 21:43:22  bmy
 ! (1) Moved various utility modules to GeosUtil subdir
 ! (2) Moved bpch I/O code to GeosBpch subdir
@@ -7,8 +20,13 @@
 ! (4) Moved Kr85_mod.f to obsolete directory
 !
 
-! $Id: CVSLOG,v 1.5 2009/11/20 21:43:22 bmy Exp $
+! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
 ! Revision 1.5  2009/11/20 21:43:22  bmy
 ! (1) Moved various utility modules to GeosUtil subdir
 ! (2) Moved bpch I/O code to GeosBpch subdir
@@ -23,8 +41,13 @@
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
 !
-! $Id: CVSLOG,v 1.5 2009/11/20 21:43:22 bmy Exp $
+! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
 ! Revision 1.5  2009/11/20 21:43:22  bmy
 ! (1) Moved various utility modules to GeosUtil subdir
 ! (2) Moved bpch I/O code to GeosBpch subdir
@@ -43,6 +66,11 @@
 ! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
 !
 ! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
 ! Revision 1.5  2009/11/20 21:43:22  bmy
 ! (1) Moved various utility modules to GeosUtil subdir
 ! (2) Moved bpch I/O code to GeosBpch subdir
@@ -65,8 +93,13 @@
 ! Committed changes for LINOZ
 ! Updated comments (bmy, 10/19/09)
 !
-! $Id: CVSLOG,v 1.5 2009/11/20 21:43:22 bmy Exp $
+! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.6  2009/11/23 17:15:03  bmy
+! Minor fix: add "realclean" target to KPP/Makefile
+! Also various updates in seasalt aerosols from Becky & Lyatt
+! (bmy, 11/23/09)
+!
 ! Revision 1.5  2009/11/20 21:43:22  bmy
 ! (1) Moved various utility modules to GeosUtil subdir
 ! (2) Moved bpch I/O code to GeosBpch subdir
