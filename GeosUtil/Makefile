@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/11/20 21:43:08 bmy Exp $
+# $Id: Makefile,v 1.2 2009/11/23 21:44:57 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -49,6 +49,8 @@
 #
 # !REVISION HISTORY: 
 #  19 Nov 2009 - R. Yantosca - Initial version
+#  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
+#                              automatically written to the mod directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -70,8 +72,8 @@ include $(ROOTDIR)/Makefile_header.mk
 # as we will explicity define the dependencies listing below.
 #=============================================================================
 
-# Source code files
-SRC  = $(wildcard *.f)
+# Source file listing
+SRC   = $(wildcard *.f*)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
@@ -80,11 +82,11 @@ endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-SRC += linux_err.c
+SRC += linux_err.f
 endif
 
-# Object files
-OBJ  = $(SRC:.f=.o)
+# Object file listing
+OBJ   = $(SRC:.f=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -93,7 +95,6 @@ OBJ  = $(SRC:.f=.o)
 .PHONY: clean help
 
 lib: $(OBJ)
-	cp *.mod $(MOD)
 	$(AR) crs libGeosUtil.a $(OBJ)
 	mv libGeosUtil.a $(LIB)
 
@@ -110,15 +111,27 @@ help:
 # correct order of compilation (so we don't have to do that ourselves).
 # This also allows us to compile on multiple processors with "make -j".
 #
-# NOTE: Only specify object files that are within this directory.  
-# Object files in other directories will be referenced at link-time.
+# NOTES:
+# (1) Only specify object-file dependencies that are within this directory.  
+#      Object files in other directories will be referenced at link-time.
+# (2) For "make -j" to work, all files in this directory must have a 
+#      listed dependency.
 #=============================================================================
 
-file_mod.o       : error_mod.o
-grid_mod.o       : error_mod.o
-regrid_1x1_mod.o : charpak_mod.o  error_mod.o  grid_mod.o
-pressure_mod.o   : error_mod.o
-time_mod.o       : charpak_mod.o  error_mod.o  grid_mod.o  julday_mod.o 
-transfer_mod.o   : error_mod.o
+bpch2_mod.o      : bpch2_mod.f      error_mod.o    file_mod.o   julday_mod.o
+charpak_mod.o    : charpak_mod.f
+directory_mod.o  : directory_mod.f
+error_mod.o      : error_mod.f
+file_mod.o       : file_mod.f       error_mod.o
+grid_mod.o       : grid_mod.f       error_mod.o
+ifort_errmsg.o   : ifort_errmsg.f
+julday_mod.o     : julday_mod.f
+linux_err.o      : linux_err.c
+pressure_mod.o   : pressure_mod.f   error_mod.o
+regrid_1x1_mod.o : regrid_1x1_mod.f charpak_mod.o  error_mod.o  grid_mod.o
+time_mod.o       : time_mod.f       charpak_mod.o  error_mod.o  grid_mod.o  \
+                                    julday_mod.o 
+transfer_mod.o   : transfer_mod.f   error_mod.o
+unix_cmds_mod.o  : unix_cmds_mod.f
 
 #EOC

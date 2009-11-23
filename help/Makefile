@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2009/11/20 21:43:00 bmy Exp $
+# $Id: Makefile,v 1.5 2009/11/23 21:44:56 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 #  24 Sep 2009 - R. Yantosca - Added info about NONUMA option for PGI
 #  24 Sep 2009 - R. Yantosca - Now list rosenbrock as default solver
 #  19 Nov 2009 - R. Yantosca - Updated comments
+#  23 Nov 2009 - R. Yantosca - Updated comments
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -43,8 +44,8 @@ help:
 	@echo ''
 	@echo 'TARGET may be one of the following:'
 	@echo 'all       Default target.  Synonym for libkpp lib exe'
-	@echo 'lib       Only build GEOS-Chem objects & libraries in GeosCore subdir'
-	@echo 'libbpch   Only build GEOS-Chem objects & libraries in GeosBpch subdir'
+	@echo 'lib       Builds all GEOS-Chem source code (synonym for libkpp libutil libcore)'
+	@echo 'libcore   Only build GEOS-Chem objects & libraries in GeosCore subdir'
 	@echo 'libutil   Only build GEOS-Chem objects & libraries in GeosUtil subdir'
 	@echo 'libkpp    Only build GEOS-Chem objects & libraries in KPP subdir'
 	@echo 'exe       Build GEOS-Chem executable'

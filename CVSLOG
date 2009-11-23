@@ -1,13 +1,34 @@
-! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
+
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
+! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt
 ! (bmy, 11/23/09)
 !
 
-! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt
@@ -20,8 +41,14 @@
 ! (4) Moved Kr85_mod.f to obsolete directory
 !
 
-! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt
@@ -41,8 +68,14 @@
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
 !
-! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt
@@ -66,6 +99,12 @@
 ! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
 !
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt
@@ -93,8 +132,14 @@
 ! Committed changes for LINOZ
 ! Updated comments (bmy, 10/19/09)
 !
-! $Id: CVSLOG,v 1.6 2009/11/23 17:15:03 bmy Exp $
+! $Id: CVSLOG,v 1.7 2009/11/23 21:44:59 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.7  2009/11/23 21:44:59  bmy
+! Moved bpch2_mod from GeosBpch to GeosUtil
+! Updated Makefiles for parallel make and
+! Bug fix in emfossil.f for nested-grid tagged CO simulation
+! (bmy, 11/23/09)
+!
 ! Revision 1.6  2009/11/23 17:15:03  bmy
 ! Minor fix: add "realclean" target to KPP/Makefile
 ! Also various updates in seasalt aerosols from Becky & Lyatt

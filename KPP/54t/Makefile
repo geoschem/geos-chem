@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2009/09/21 18:53:21 bmy Exp $
+# $Id: Makefile,v 1.4 2009/11/23 21:44:57 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -41,6 +41,8 @@
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
 #                              display the help screen options
+#  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
+#                              automatically written to the mod directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -75,7 +77,6 @@ OBJ  = $(SRC:.f90=.o)
 .PHONY: clean help
 
 lib: $(OBJ)
-	cp *.mod $(MOD)
 	$(AR) crs libKpp.a $(OBJ)
 	mv libKpp.a $(LIB)
 

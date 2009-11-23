@@ -1,9 +1,9 @@
-! $Id: emfossil.f,v 1.3 2009/11/05 15:35:32 phs Exp $
+! $Id: emfossil.f,v 1.4 2009/11/23 21:44:58 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
 !  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 2/14/08)
+!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 11/23/09)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -68,6 +68,7 @@
 !  (34) Add a test on existing emissions for EPA/NEI. (hotp, ccc, 5/29/09)
 !  (35) Updated ship treatment (phs, 7/0/09)
 !  (36) Add NEI2005 (amv, phs, 10/20/09)
+!  (37) Bug fix for tagged CO and 0.5 x 0.666 Nested Grid (yxw, bmy, 11/23/09)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -762,12 +763,29 @@
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
          IF ( ITS_A_TAGCO_SIM() ) THEN           
+            !----------------------------------------------------------------
+            ! Prior to 11/23/09:
+            ! The reason for this change is because LNEI99 is set as .FALSE. 
+            ! for the NESTED_CH option so GET_USA_MASK doesn't have a 
+            ! definition which causes the run to crash.  So we need to
+            ! add an ELSE to the IF ( LICARTT ) block to cover for this.
+            ! (zie, yxw, bmy, 11/23/09)
+            !IF ( LICARTT ) THEN
+            !   IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
+            !      IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
+            !   ELSE
+            !      IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
+            !   ENDIF
+            !ENDIF
+            !----------------------------------------------------------------
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
                ELSE
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
                ENDIF
+            ELSE
+               IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
             ENDIF
          ELSE
             IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.02d0

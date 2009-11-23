@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.5 2009/11/20 21:43:22 bmy Exp $
+# $Id: Makefile_header.mk,v 1.6 2009/11/23 21:44:58 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -31,6 +31,14 @@
 #                                                                             .
 # FFLAGS is a local variables that is not returned to the "outside world".
 #                                                                             .
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%       NOTE: The IBM/XLF compiler has not been validated yet.         %%%
+# %%%                      Beta-testers welcome!                           %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# %%%       NOTE: GEOS-Chem has not yet been ported to GNU Fortran.        %%%
+# %%%                      Beta-testers welcome!                           %%%
+# %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  22 Sep 2009 - R. Yantosca - Bug fix, added -I$(HDR) to F90 compilation lines
@@ -38,6 +46,15 @@
 #  07 Oct 2009 - R. Yantosca - Replaced .SUFFIXES section w/ pattern rules
 #  19 Nov 2009 - R. Yantosca - Now use OMP variable to determine whether to
 #                              turn on OpenMP parallelization options 
+#  23 Nov 2009 - R. Yantosca - Now use -module $(MOD) instead of -I$(MOD) to 
+#                              specify the directory for *.mod files on both
+#                              IFORT and PGI compilers.
+#  23 Nov 2009 - R. Yantosca - Now use -moddir=$(MOD) and -M$(MOD) instead of
+#                              -I$(MOD) to specify the directory for *.mod 
+#                              files on the SunStudio compiler.
+#  23 Nov 2009 - R. Yantosca - Change DEBUG to allow for new version of 
+#                              Totalview which doesn't choke when debugging
+#                              parallel code (Totalview 8.6.1-1)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -52,32 +69,26 @@ ifndef OMP
 OMP = yes
 endif
 
-# Turn off OpenMP parallelization for debug runs
-ifdef DEBUG
-OMP = no
-endif
-
 #------------------------------------------------------------------------------
 # IFORT compilation options (default)
 #------------------------------------------------------------------------------
 ifeq ($(COMPILER),ifort) 
 
-# Pick correct options for debug run or regular run 
+# Turn on -traceback option by default for debugging runs
 ifdef DEBUG
+TRACEBACK=yes
+endif
 
-# %%% Compiler options for debug run %%%
-FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback 
-
+# Pick compiler options for debug run or regular run 
+ifdef DEBUG
+FFLAGS = -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-
-# %%% Compiler options for regular run %%%
 FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
+endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
 FFLAGS += -openmp -Dmultitask
-endif
-
 endif
 
 # Add special IFORT optimization commands
@@ -96,7 +107,7 @@ FFLAGS += -traceback
 endif
 
 CC       =
-F90      = ifort $(FFLAGS) -I$(HDR) -I$(MOD)
+F90      = ifort $(FFLAGS) -I$(HDR) -module $(MOD)
 LD       = ifort $(FFLAGS) -L$(LIB)
 FREEFORM = -free
 R8       = -r8
@@ -108,8 +119,12 @@ endif
 #------------------------------------------------------------------------------
 ifeq ($(COMPILER),pgi) 
 
-# Base options
-FFLAGS = -byteswapio -Mpreprocess -fast -Bstatic
+# Pick compiler options for debug run or regular run 
+ifdef DEBUG 
+FFLAGS = -byteswapio -Mpreprocess -Bstatic -g -O0 
+else
+FFLAGS = -byteswapio -Mpreprocess -Bstatic -fast 
+endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
@@ -127,7 +142,7 @@ FFLAGS += -C
 endif
 
 CC       = gcc
-F90      = pgf90 $(FFLAGS) -I$(HDR) -I$(MOD)
+F90      = pgf90 $(FFLAGS) -I$(HDR) -module $(MOD)
 LD       = pgf90 $(FFLAGS) -L$(LIB)
 FREEFORM = -Mfree
 R8       = -Mextend -r8
@@ -139,20 +154,18 @@ endif
 #------------------------------------------------------------------------------
 ifeq ($(COMPILER),sun) 
 
-# Default compilation options
+# Pick compiler options for debug run or regular run 
 # NOTE: -native builds in proper options for whichever chipset you have!
+ifdef DEBUG 
+FFLAGS = -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
+else
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
+endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
 FFLAGS += -openmp=parallel -Dmultitask
 endif
-
-# Prior to 11/19/09:
-## Additional flags for parallel run
-#ifndef DEBUG
-#FFLAGS += -openmp=parallel -Dmultitask
-#endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
@@ -162,11 +175,11 @@ endif
 CC       =
 #---------------------------------------------------------------
 # If your compiler is under the name "f90", use these lines!
-F90      = f90 $(FFLAGS) -I$(HDR) -M$(MOD)
+F90      = f90 $(FFLAGS) -I$(HDR) -moddir=$(MOD) -M$(MOD)
 LD       = f90 $(FFLAGS) -L$(LIB)
 #---------------------------------------------------------------
 # If your compiler is under the name "sunf90", use these lines!
-#F90      = sunf90 $(FFLAGS) -I$(HDR) -M$(MOD)
+#F90      = sunf90 $(FFLAGS) -I$(HDR) -moddir=$(MOD) -M$(MOD)
 #LD       = sunf90 $(FFLAGS) -L$(LIB)
 #---------------------------------------------------------------
 FREEFORM = -free

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.3 2009/09/24 16:56:52 bmy Exp $
+# $Id: Makefile,v 1.4 2009/11/23 21:44:58 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
+#  23 Nov 2009 - R. Yantosca - Added targets for libutil, libcore
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -39,7 +40,7 @@ GEOSDIR = GeosCore
 # Makefile targets: type "make help" for a complete list!
 #=============================================================================
 
-.PHONY: all lib exe clean realclean doc docclean help
+.PHONY: all lib libcore libkpp libutil exe clean realclean doc docclean help
 
 all:
 	@$(MAKE) -C $(GEOSDIR) all 
@@ -47,8 +48,14 @@ all:
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib
 
+libcore:
+	@$(MAKE) -C $(GEOSDIR) libcore
+
 libkpp:
 	@$(MAKE) -C $(GEOSDIR) libkpp
+
+libutil:
+	@$(MAKE) -C $(GEOSDIR) libutil
 
 exe:
 	@$(MAKE) -C $(GEOSDIR) exe
