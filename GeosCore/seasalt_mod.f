@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.1 2009/09/16 14:06:11 bmy Exp $
+! $Id: seasalt_mod.f,v 1.2 2009/11/23 16:55:53 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -625,7 +625,7 @@
 !  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
 !  aerosols for NSALT size bins.  The generation of sea salt aerosols
 !  has been parameterized following Monahan et al. [1986] parameterization
-!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 10/25/05)
+!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
 ! 
 !  Contact: Becky Alexander (bec@io.harvard.edu) or 
 !           Rokjin Park     (rjp@io.harvard.edu)
@@ -658,6 +658,11 @@
 !  (3 ) Now also compute alkalinity and number density of seasalt emissions.
 !        (bec, bmy, 4/13/05)
 !  (4 ) Now references XNUMOL & XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (5 ) The source function is for wet aerosol radius (RH=80%, with a radius
+!        twice the size of dry aerosols) so BETHA should be set to 2 
+!        instead of 1.  Also now use LOG10 instead of LOG in the expressions
+!        for the seasalt base source, since we need the logarithm to the base
+!        10. (jaegle, bec, bmy, 11/23/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -689,7 +694,14 @@
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
-      REAL*8, PARAMETER      :: BETHA = 1.d0
+      !-----------------------------------------------------------------------
+      ! Prior to 11/23/09:
+      ! The source function is for wet aerosol radius (RH=80%, with a 
+      ! radius twice the size of dry aerosols) so BETHA should be set to 2 
+      ! instead of 1 (jaegle, bec, bmy, 11/23/09)
+      !REAL*8, PARAMETER      :: BETHA = 1.d0
+      !-----------------------------------------------------------------------
+      REAL*8, PARAMETER      :: BETHA = 2.d0
 
       ! External functions
       REAL*8,  EXTERNAL      :: SFCWINDSQR
@@ -760,18 +772,45 @@
             ! Upper edge of IRth bin
             REDGE(R,N) = REDGE(R-1,N) + DR 
 
+!------------------------------------------------------------------------------
+! Prior to 11/23/09:
+!            ! Sea salt base source [kg/m2]
+!            SRC(R,N)  = CONST * SS_DEN( N ) 
+!     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
+!     &           * 10d0**( 1.19d0*
+!     &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
+!     &           / BETHA**2         
+!
+!            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
+!            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
+!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
+!     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
+!     &           /0.65d0)**2))/ BETHA**2  
+!------------------------------------------------------------------------------
+
+            !-----------------------------------------------------------
+            ! IMPORTANT NOTE!
+            !
+            ! In mathematics, "LOG" means "log10". 
+            ! In Fortran,     "LOG" means "ln" (and LOG10 is "log10").
+            !
+            ! The following equations require log to the base 10, so 
+            ! we need to use the Fortran function LOG10 instead of LOG. 
+            ! (jaegle, bmy, 11/23/09)
+            !-----------------------------------------------------------
+
             ! Sea salt base source [kg/m2]
-            SRC(R,N)  = CONST * SS_DEN( N ) 
+            SRC(R,N)  = CONST * SS_DEN( N )
      &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
      &           * 10d0**( 1.19d0*
-     &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
-     &           / BETHA**2         
+     &             EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
+     &           / BETHA**2
 
             ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
             SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
      &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
-     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
-     &           /0.65d0)**2))/ BETHA**2  
+     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))
+     &           /0.65d0)**2))/ BETHA**2
 
 !### Debug
 !###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
@@ -960,15 +999,29 @@
          IRH = MAX(  1, IRH )
          IRH = MIN( 99, IRH )
 
-         ! hygroscopic growth factor for sea-salt from Chin et al. (2002)
-         IF ( IRH < 100 ) HGF = 2.2d0
-         IF ( IRH < 99  ) HGF = 1.9d0
-         IF ( IRH < 95  ) HGF = 1.8d0
-         IF ( IRH < 90  ) HGF = 1.6d0
-         IF ( IRH < 80  ) HGF = 1.5d0
-         IF ( IRH < 70  ) HGF = 1.4d0
-         IF ( IRH < 50  ) HGF = 1.0d0
+         !--------------------------------------------------------------------
+         ! Prior to 11/23/09:
+         ! These hygroscopic growth factors are incorrect (bec, bmy, 11/23/09)
+         !! hygroscopic growth factor for sea-salt from Chin et al. (2002)
+         !IF ( IRH < 100 ) HGF = 2.2d0
+         !IF ( IRH < 99  ) HGF = 1.9d0
+         !IF ( IRH < 95  ) HGF = 1.8d0
+         !IF ( IRH < 90  ) HGF = 1.6d0
+         !IF ( IRH < 80  ) HGF = 1.5d0
+         !IF ( IRH < 70  ) HGF = 1.4d0
+         !IF ( IRH < 50  ) HGF = 1.0d0
+         !--------------------------------------------------------------------
 	
+         ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
+         ! Updated (bec, bmy, 11/23/09)
+         IF ( IRH < 100 ) HGF = 4.8d0
+         IF ( IRH < 99  ) HGF = 2.9d0
+         IF ( IRH < 95  ) HGF = 2.4d0
+         IF ( IRH < 90  ) HGF = 2.0d0
+         IF ( IRH < 80  ) HGF = 1.8d0
+         IF ( IRH < 70  ) HGF = 1.6d0
+         IF ( IRH < 50  ) HGF = 1.0d0
+
          ! radius of sea-salt aerosol size bins [cm] accounting for 
          ! hygroscopic growth
          RAD1 = SALA_REDGE_um(1) * HGF * 1.d-4 
