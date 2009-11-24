@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.2 2009/11/23 21:44:57 bmy Exp $
+# $Id: Makefile,v 1.3 2009/11/24 20:38:49 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -75,18 +75,18 @@ include $(ROOTDIR)/Makefile_header.mk
 # Source file listing
 SRC   = $(wildcard *.f*)
 
+# Object file listing
+OBJ   = $(SRC:.f=.o)
+
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
-SRC += ifort_errmsg.f
+OBJ += ifort_errmsg.o
 endif
 
 # Special files just for PGI
 ifeq ($(COMPILER),pgi) 
-SRC += linux_err.f
+OBJ += linux_err.o
 endif
-
-# Object file listing
-OBJ   = $(SRC:.f=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
