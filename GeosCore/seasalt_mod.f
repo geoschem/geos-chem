@@ -1,11 +1,11 @@
-! $Id: seasalt_mod.f,v 1.2 2009/11/23 16:55:53 bmy Exp $
+! $Id: seasalt_mod.f,v 1.3 2009/11/24 15:03:02 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
 !  Module SEASALT_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 7/18/08)
+!  (bec, rjp, bmy, 6/22/00, 11/23/09)
 !
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
@@ -77,6 +77,7 @@
 !  (9 ) Bug fix to remove a double-substitution in GET_ALK (bec, bmy, 7/18/08)
 !  (10) Save surface emissions separately (emis_save) for non-local scheme.
 !        (ccc, 5/14/09)
+!  (11) Bug fixes in GET_ALK and SRCSALT (bec, lyj, bmy, 11/23/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -915,7 +916,7 @@
 !******************************************************************************
 !  Function GET_ALK returns the seasalt alkalinity emitted at each timestep to
 !  sulfate_mod.f for chemistry on seasalt aerosols.
-!  (bec, 12/7/04, 9/5/06)
+!  (bec, 12/7/04, 11/23/09)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -924,6 +925,7 @@
 !  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
 !  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
 !        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
+!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
 !******************************************************************************
 !
       USE DAO_MOD,      ONLY : AD, RH

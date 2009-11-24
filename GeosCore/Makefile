@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.13 2009/11/23 21:44:58 bmy Exp $
+# $Id: Makefile,v 1.14 2009/11/24 15:03:02 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -56,18 +56,6 @@
 # %%% N = number of proceses that you want to run simultaneously (i.e.     %%%
 # %%% (when one file is finished compiling, "make" will immediately start  %%%
 # %%% on the next one).  Usually N is the # of processors on your system.  %%%
-# %%%                                                                      %%%
-# %%% The only caveat is that you will have to compile the code first, and %%%
-# %%% then build the executable.  This means that you will have to issue   %%%
-# %%% the following separate commands:                                     %%%
-# %%%                                                                      %%% 
-# %%%    make -jN lib                                                      %%%
-# %%%    make exe                                                          %%%
-# %%%                                                                      %%% 
-# %%% The reason for this is because if you try to build the executable in %%%
-# %%% the same process, depending on the ordering of compilation, make     %%%
-# %%% may try to build the executable while there are still one or two     %%%
-# %%% files left to be compiled.  This will cause an error.                %%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
 # !REVISION HISTORY: 
@@ -131,9 +119,11 @@ OBJ   = $(TMP:.f90=.o)
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: all clean realclean doc docclean help
+.PHONY: clean realclean doc docclean help
 
-all: lib exe
+all:
+	@$(MAKE) lib
+	@$(MAKE) exe
 
 lib: libkpp libutil libcore
 
