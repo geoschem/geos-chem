@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.5 2009/11/20 21:43:16 bmy Exp $
+! $Id: gamap_mod.f,v 1.6 2009/11/30 19:57:57 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -2775,7 +2775,7 @@
       IF ( ND46 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(46) = 6
+         NTRAC(46) = 13 ! was 6 (mpb,2009)
 
          ! Loop over tracers
          DO T = 1, NTRAC(46)
@@ -2800,6 +2800,27 @@
                CASE( 6 )
                   NAME(T,46) = 'C2H4'
                   MOLC(T,46) = 2
+               CASE( 7 )
+                  NAME(T,46) = 'APINE'
+                  MOLC(T,46) = 10
+               CASE( 8 )
+                  NAME(T,46) = 'BPINE'
+                  MOLC(T,46) = 10
+               CASE( 9 )
+                  NAME(T,46) = 'LIMON'
+                  MOLC(T,46) = 10
+               CASE( 10)
+                  NAME(T,46) = 'SABIN'
+                  MOLC(T,46) = 10
+               CASE( 11)
+                  NAME(T,46) = 'MYRCN'
+                  MOLC(T,46) = 10
+               CASE( 12)
+                  NAME(T,46) = 'CAREN'
+                  MOLC(T,46) = 10
+               CASE( 13)
+                  NAME(T,46) = 'OCIMN'
+                  MOLC(T,46) = 10
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2819,7 +2840,8 @@
       IF ( DO_TIMESERIES ) THEN 
 
          ! Number of tracers
-         NTRAC(48) = 26
+         ! Increased from 26 to 32 (mpb,2009)
+         NTRAC(48) = 32
 
          ! Loop over tracers
          DO T = 1, NTRAC(48)
@@ -2950,6 +2972,33 @@
                   NAME (T,48) = 'TOTAOD'
                   FNAME(T,48) = 'Total aerosol opt depth'
                   UNIT (T,48) = 'unitless'
+                  ! +++++++++++++++++++++++++++++++++++++
+                  ! Add in gamma factors (mpb,2008)
+                  ! +++++++++++++++++++++++++++++++++++++
+               CASE( 27 )
+                  NAME (T,48) = 'G_T'
+                  FNAME(T,48) = 'Temperature activity factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 28 )
+                  NAME (T,48) = 'G_PAR'
+                  FNAME(T,48) = 'Light activity factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 29 )              
+                  NAME (T,48) = 'G_AGE'
+                  FNAME(T,48) = 'Leaf-age activity factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 30 )
+                  NAME (T,48) = 'G_LAI'
+                  FNAME(T,48) = 'LAI activity factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 31 )
+                  NAME (T,48) = 'G_SM'
+                  FNAME(T,48) = 'Soil-moisture activity factor'
+                  UNIT (T,48) = 'unitless'
+               CASE( 32 )
+                  NAME (T,48) = 'D_LAI'
+                  FNAME(T,48) = 'Daily LAI'
+                  UNIT (T,48) = 'm2/m2'
                CASE DEFAULT
                   ! Nothing
             END SELECT

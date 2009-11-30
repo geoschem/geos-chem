@@ -1,4 +1,4 @@
-! $Id: main.f,v 1.5 2009/10/19 14:31:58 bmy Exp $
+! $Id: main.f,v 1.6 2009/11/30 19:57:56 ccarouge Exp $
       PROGRAM GEOS_CHEM
 ! 
 !******************************************************************************
@@ -651,13 +651,15 @@
          IF ( ITS_A_NEW_DAY() ) THEN 
 
             ! Read leaf-area index (needed for drydep)
-            CALL RDLAI( DAY_OF_YEAR, MONTH )
+            ! Now include the year (mpb,11/19/09)
+            CALL RDLAI( DAY_OF_YEAR, MONTH, YEAR )
 
             ! For MEGAN biogenics ...
             IF ( LMEGAN ) THEN
 
-               ! Read AVHRR daily leaf-area-index
-               CALL RDISOLAI( DAY_OF_YEAR, MONTH )
+               ! Read daily leaf-area-index
+               ! Now include the year (mpb,11/19/09)
+               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
 
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG

@@ -1,4 +1,4 @@
-! $Id: soilnoxems.f,v 1.1 2009/09/16 14:06:06 bmy Exp $
+! $Id: soilnoxems.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
@@ -55,6 +55,7 @@
 !        from soils if necessary. (swu, bmy, 5/30/06)
 !  (9 ) Bug fix: future emissions only need to be applied the fertilizer
 !        term in the NOx emissions below. (swu, bmy, 10/4/06)
+!  (10) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -63,6 +64,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxft
       USE GRID_MOD,             ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE MEGANUT_MOD,          ONLY : XLTMMP
 
       IMPLICIT NONE
  
@@ -86,7 +88,9 @@
       ! External functions
       REAL*8, EXTERNAL              :: BOXVL,      FERTADD,  PULSING
       REAL*8, EXTERNAL              :: SFCWINDSQR, SOILBASE, SOILCRF
-      REAL*8, EXTERNAL              :: SOILTEMP,   XLTMMP
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8, EXTERNAL              :: SOILTEMP,   XLTMMP
+      REAL*8, EXTERNAL              :: SOILTEMP
 
       !=================================================================
       ! SOILNOXEMS begins here!

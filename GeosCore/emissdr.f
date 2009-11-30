@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: emissdr.f,v 1.3 2009/11/30 19:57:57 ccarouge Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -69,7 +69,9 @@
 !      So there is no reference for it. Use of those emission factors have
 !      caused much confusion among users, so we should probably not use it 
 !      for the time being. (tmf, 1/20/09)
-
+!  (29) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!  (30) Change arguments order in some MEGAN functions for coherence
+!       (ccc, 11/30/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -95,6 +97,9 @@
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
       USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
       USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
+      USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009) 
+      USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
+      USE MEGANUT_MOD,       ONLY : XLTMMP
  
       IMPLICIT NONE
 
@@ -126,8 +131,20 @@
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
       ! External functions
-      REAL*8, EXTERNAL       :: BOXVL,   XLTMMP,    EMISOP 
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8, EXTERNAL       :: BOXVL,   XLTMMP,    EMISOP 
+      REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
       REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
+
+      ! Add in new monoterpene species (mpb,2009)
+       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
+       REAL*8                 :: MYRCN  , CAREN , OCIMN
+      ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
+       REAL*8                 :: GAMMA_LAI
+       REAL*8                 :: GAMMA_LEAF_AGE
+       REAL*8                 :: GAMMA_P
+       REAL*8                 :: GAMMA_T
+       REAL*8                 :: GAMMA_SM
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -180,6 +197,7 @@
       EMISRRN     = 0d0
       EMISRR      = 0d0
       GEMISNOX2   = 0d0
+      EMISS_BVOC  = 0d0  ! Add BVOC emissions (mpb,2009)
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -274,8 +292,12 @@
                   PDF  = PARDF(I,J)
 
                   ! Isoprene         
+!--- Change arguments order for coherence with other MEGAN functions
+!    (ccc, 11/23/09)
+!                  EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
+!     &                                      XNUMOL_C, PDR, PDF )
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
-     &                                      XNUMOL_C, PDR, PDF )
+     &                                      PDR, PDF, XNUMOL_C )
 
                ELSE  
 
@@ -295,12 +317,48 @@
                   ! MEGAN biogenics
                   !------------------
 
-                  ! Monoterpenes 
-                  EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_C )
-
                   ! Methyl butenol
+!--- Change arguments order for coherence with other MEGAN functions
+!    (ccc, 11/23/09)
+!                  EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
+!     &                                      XNUMOL_C, PDR, PDF )
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
-     &                                      XNUMOL_C, PDR, PDF )
+     &                                      PDR, PDF, XNUMOL_C )
+
+                  ! ------------------------------------------
+                  ! Aplha Pinene emissions
+                  APINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'APINE' )
+                  ! ------------------------------------------
+                  ! Beta Pinene emissions
+                  BPINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'BPINE' )
+                  ! ------------------------------------------
+                  ! Limonene emissions 
+                  LIMON = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'LIMON' )
+                  ! ------------------------------------------
+                  ! Sabinene emissions
+                  SABIN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'SABIN' )               
+                  ! ------------------------------------------
+                  ! Mycrene emissions
+                  MYRCN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'MYRCN' )
+                  ! ------------------------------------------
+                  ! 3-Carene emissions
+                  CAREN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                       PDR , PDF , XNUMOL_C , 'CAREN' )
+                  ! ------------------------------------------
+                  ! Ocimene emissions
+                  OCIMN = GET_EMMONOG_MEGAN( I , J , SC , TMMP ,  
+     &                       PDR , PDF , XNUMOL_C , 'OCIMN' )
+                  ! ------------------------------------------
+
+                  ! Total monoterpenes = sum of individual
+                  EMMO = APINE + BPINE + LIMON + SABIN + 
+     &                   MYRCN + CAREN + OCIMN
+
 
                ELSE  
 
@@ -333,6 +391,33 @@
                ! isoprene source.
                !--------------------------------------------------------------
                GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
+
+               ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+               ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)
+               !
+               ! Species            | Order 
+               ! ----------------------------
+               ! Isoprene           = 1
+               ! Total Monoterpenes = 2 
+               ! MBO                = 3 
+               ! Alpha-Pinene       = 4
+               ! Beta-Pinene        = 5
+               ! Limonene           = 6
+               ! Sabinene           = 7
+               ! Mycrene            = 8
+               ! 3-Carene           = 9
+               ! Ocimene            = 10
+
+               EMISS_BVOC( I , J , 1 ) =  EMIS   / AREA_CM2 / DTSRCE     
+               EMISS_BVOC( I , J , 2 ) =  EMMO   / AREA_CM2 / DTSRCE
+               EMISS_BVOC( I , J , 3 ) =  EMMB   / AREA_CM2 / DTSRCE                 
+               EMISS_BVOC( I , J , 4 ) =  APINE  / AREA_CM2 / DTSRCE     
+               EMISS_BVOC( I , J , 5 ) =  BPINE  / AREA_CM2 / DTSRCE
+               EMISS_BVOC( I , J , 6 ) =  LIMON  / AREA_CM2 / DTSRCE  
+               EMISS_BVOC( I , J , 7 ) =  SABIN  / AREA_CM2 / DTSRCE     
+               EMISS_BVOC( I , J , 8 ) =  MYRCN  / AREA_CM2 / DTSRCE
+               EMISS_BVOC( I , J , 9 ) =  CAREN  / AREA_CM2 / DTSRCE  
+               EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE 
 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
@@ -530,6 +615,33 @@
                   ! C2H4 emissions [atoms C/cm2/s] -- tracer #6 (tmf, 1/13/06)
                   AD46(I,J,6) = AD46(I,J,6) + 
      &            ( EMIS * BIOSCALEC2H4 / AREA_CM2 / DTSRCE )
+
+               ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+               !              MEGAN v2.1 - (mpb,2009)               !
+               ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+               ! Aplha Pinene emissions [atoms C/cm2/s] -- tracer #6
+               AD46(I,J,7) = AD46(I,J,7) + ( APINE / AREA_CM2 / DTSRCE ) 
+
+               ! Beta Pinene emissions [atoms C/cm2/s] -- tracer #7
+               AD46(I,J,8) = AD46(I,J,8) + ( BPINE / AREA_CM2 / DTSRCE ) 
+
+               ! Limonene emissions [atoms C/cm2/s] -- tracer #8
+               AD46(I,J,9) = AD46(I,J,9) + ( LIMON / AREA_CM2 / DTSRCE ) 
+ 
+               ! Sabinene emissions [atoms C/cm2/s] -- tracer #9
+              AD46(I,J,10) = AD46(I,J,10) + ( SABIN / AREA_CM2 / DTSRCE) 
+
+               ! Mycrene emissions [atoms C/cm2/s] -- tracer #10
+              AD46(I,J,11) = AD46(I,J,11) + ( MYRCN / AREA_CM2 / DTSRCE) 
+
+               ! 3-Carene emissions [atoms C/cm2/s] -- tracer #11
+              AD46(I,J,12) = AD46(I,J,12) + ( CAREN / AREA_CM2 / DTSRCE) 
+
+               ! Ocimene emissions [atoms C/cm2/s] -- tracer #12
+              AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
+
+               ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
                
                ENDIF  
             ENDIF

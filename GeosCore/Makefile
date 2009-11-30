@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.14 2009/11/24 15:03:02 bmy Exp $
+# $Id: Makefile,v 1.15 2009/11/30 19:57:57 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -406,13 +406,18 @@ diag_pl_mod.o               : diag_pl_mod.f                                  \
                               comode_mod.o            tracerid_mod.o         \
                               tracer_mod.o  
 
-diagoh.o                    : diagoh.f
+#drydep_mod.o                : comode_mod.o            dao_mod.o              \
+#                              diag_mod.o              logical_mod.o          \
+#                              pbl_mix_mod.o           tracerid_mod.o         \
+#                              tracer_mod.o  
 
-drydep_mod.o                : drydep_mod.f                                   \
-                              comode_mod.o            dao_mod.o              \
-                              diag_mod.o              logical_mod.o          \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o  
+drydep_mod.o                : drydep_mod.f             comode_mod.o          \
+                              dao_mod.o                diag_mod.o            \
+                              logical_mod.o            pbl_mix_mod.o         \
+                              tracerid_mod.o           tracer_mod.o          \
+                              meganut_mod.o 
+
+diagoh.o                    : diagoh.f
 
 dust_dead_mod.o             : dust_dead_mod.f         dao_mod.o              
 
@@ -689,6 +694,8 @@ MATIN4.o                    : MATIN4.f
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o      
 
+meganut_mod.o               : meganut_mod.f           dao_mod.o     
+
 mercury_mod.o               : mercury_mod.f                                  \
                               dao_mod.o               diag03_mod.o           \
                               diag_mod.o              drydep_mod.o   	     \
@@ -950,7 +957,7 @@ wetscav_mod.o               : wetscav_mod.f                                  \
                               logical_mod.o           ocean_mercury_mod.o    \
                               tracerid_mod.o          tracer_mod.o
 
-xltmmp.o                    : xltmmp.f                dao_mod.o
+#xltmmp.o                    : xltmmp.f               dao_mod.o
 
 XSEC1D.o                    : XSEC1D.f
 

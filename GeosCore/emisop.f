@@ -1,4 +1,4 @@
-C $Id: emisop.f,v 1.1 2009/09/16 14:06:32 bmy Exp $      
+C $Id: emisop.f,v 1.2 2009/11/30 19:57:57 ccarouge Exp $      
       FUNCTION EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL )
 !
 !******************************************************************************
@@ -33,10 +33,12 @@ C $Id: emisop.f,v 1.1 2009/09/16 14:06:32 bmy Exp $
 !        for the year 2001.  This will facilitate cross-model intercomparison.
 !        (jal, bmy, 3/15/05)
 !  (5 ) Bug fix: replace #else with #elif (swu, bmy, 6/16/05)
+!  (6 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD, ONLY : CLDFRC
+      USE DAO_MOD, ONLY     : CLDFRC
+      USE MEGANUT_MOD, ONLY : XLTMMP
 
       IMPLICIT NONE
 
@@ -53,7 +55,9 @@ C $Id: emisop.f,v 1.1 2009/09/16 14:06:32 bmy Exp $
       REAL*8              :: TLAI,   EMBIO, CLIGHT
 
       ! External functions
-      REAL*8,  EXTERNAL   :: XLTMMP, BIOFIT, TCORR
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8,  EXTERNAL   :: XLTMMP, BIOFIT, TCORR
+      REAL*8,  EXTERNAL   :: BIOFIT, TCORR
 
       ! Function value
       REAL*8              :: EMISOP

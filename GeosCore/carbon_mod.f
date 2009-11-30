@@ -1,4 +1,4 @@
-! $Id: carbon_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
+! $Id: carbon_mod.f,v 1.4 2009/11/30 19:57:57 ccarouge Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
@@ -3419,6 +3419,7 @@ c
 !  (6 ) Bug fix: add MEGAN emissions to TERP_ORGC when SOA emissions are
 !        turned on (dkh, bmy, 1/24/08)
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
+!  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3431,6 +3432,9 @@ c
       USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      ! For monoterpenes (mpb,2009)
+      USE DAO_MOD,       ONLY : PARDF, PARDR
+      USE MEGANUT_MOD,   ONLY : XLTMMP
 
 #     include "CMN_SIZE"      ! Size parameters
 
@@ -3452,8 +3456,12 @@ c
       ! Fraction of yield of OC (hydrophilic) from terpene emission
       REAL*8, PARAMETER      :: FBIOG = 1.0d-1
 
+      ! Cosine SZA & PAR (for calculation of monoterpenes) (mpb,2009)
+      REAL*8                 :: SC, PDF, PDR
+
       ! External functions
-      REAL*8,  EXTERNAL      :: XLTMMP
+!-- Moved to meganut_mod.f
+!      REAL*8,  EXTERNAL      :: XLTMMP
       REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
@@ -3478,7 +3486,7 @@ c
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, EMMO )
+!$OMP+PRIVATE( I, J, IJLOOP, TMMP, EMMO, SC, PDR, PDF )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -3488,9 +3496,23 @@ c
              ! Surface temperature [K]
             TMMP           = XLTMMP(I,J,IJLOOP)
 
+            ! +++++++++++++++++++++++++++++++++++++++++
+            ! ** MEGAN v2.1 **
+            ! Cosine of solar zenith angle   (mpb,2009) 
+            ! Diffuse and direct PAR         (mpb,2009)
+            SC   = SUNCOS(IJLOOP)   
+            PDR  = PARDR(I,J)
+            PDF  = PARDF(I,J)
+            ! +++++++++++++++++++++++++++++++++++++++++
+
             ! Get monoterpenes from MEGAN or GEIA [kg C/box]
             IF ( LMEGANMONO ) THEN
-               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
+               ! +++++++++++++++++++++++++++++++++++++++++
+               ! New formulation for MEGAN (mpb,2009)
+               EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0 )
+               ! +++++++++++++++++++++++++++++++++++++++++
+               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
             ELSE
                EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
@@ -3547,7 +3569,7 @@ c
          !------------------------------
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IJLOOP, TMMP, EMMO )
+!$OMP+PRIVATE( I, J, IJLOOP, TMMP, SC, PDR, PDF )
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
@@ -3558,8 +3580,23 @@ c
             TMMP           = XLTMMP(I,J,IJLOOP)
 
             ! Monoterpene emission [kg C/box/timestep]
+
+            ! +++++++++++++++++++++++++++++++++++++++++
+            ! ** MEGAN v2.1 **
+            ! Cosine of solar zenith angle   (mpb,2009) 
+            ! Diffuse and direct PAR         (mpb,2009)
+            SC   = SUNCOS(IJLOOP)   
+            PDR  = PARDR(I,J)
+            PDF  = PARDF(I,J)
+            ! +++++++++++++++++++++++++++++++++++++++++
+
+            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
             IF ( LMEGANMONO ) THEN
-               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
+               ! +++++++++++++++++++++++++++++++++++++++++
+               ! New formulation for MEGAN (mpb,2009)
+               TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0 )               
+               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
             ELSE
                TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF

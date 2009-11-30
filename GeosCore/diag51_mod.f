@@ -1,4 +1,4 @@
-! $Id: diag51_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
+! $Id: diag51_mod.f,v 1.4 2009/11/30 19:57:57 ccarouge Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
@@ -115,7 +115,9 @@
 !  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !  (15) Bug fix in GET_LOCAL_TIME (ccc, 12/10/08)
 !  (16) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
-!  (17) Updates in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
+!  (17) Updates in WRITE_DIAG51 (ccc, tai, bmy, 10/13/09)
+!  (18) Add GOOD_EMIS and GOOD_CT_EMIS to manage emission outputs
+!       (ccc, 11/20/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -144,7 +146,8 @@
       LOGICAL              :: DO_SAVE_DIAG51
       INTEGER              :: IOFF,           JOFF,    LOFF
       INTEGER              :: I0,             J0
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(100)
+      ! Increased to 120 from 100 (mpb,2009)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(120)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -164,9 +167,13 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
       INTEGER, ALLOCATABLE :: GOOD_CT(:)
+      ! For chemistry species
       INTEGER, ALLOCATABLE :: GOOD_CHEM(:)
       INTEGER, ALLOCATABLE :: GOOD_CT_CHEM(:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
+      ! For emissions
+      INTEGER, ALLOCATABLE :: GOOD_EMIS(:)
+      INTEGER, ALLOCATABLE :: GOOD_CT_EMIS(:)
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
 
       !=================================================================
@@ -326,17 +333,25 @@
 !  (11) We determine points corresponding to the time window at each timestep.
 !       But accumulate only when it's time for diagnostic (longest t.s.)
 !       (ccc, 8/12/09)
+!  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
+!       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
       USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
       USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
+      ! Now included T @ 2m (mpb,2009)
+      USE DAO_MOD,        ONLY : TS
+      ! Now included PAR direct and diffuse (mpb,2009)
+      USE DAO_MOD,        ONLY : PARDF, PARDR
+      ! Now included current (MODIS) LAI (mpb,2009)
+      USE LAI_MOD,        ONLY : ISOLAI
       USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM 
       USE TIME_MOD,       ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG
+      USE TIME_MOD,       ONLY : GET_TS_DIAG, GET_TS_EMIS
       USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,     ONLY : N_TRACERS, XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
@@ -353,7 +368,7 @@
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
-      LOGICAL           :: IS_CHEM,     IS_DIAG
+      LOGICAL           :: IS_CHEM,     IS_DIAG, IS_EMIS
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
       REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
@@ -387,6 +402,9 @@
       IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
      &                 GET_TS_CHEM() ) == 0 )
 
+      ! Is it an emissions timestep?
+      IS_EMIS = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(),
+     &                 GET_TS_EMIS() ) == 0 )
       ! Is it time for diagnostic accumulation ?
       IF ( GET_ELAPSED_MIN() == 0 ) THEN
          IS_DIAG = .FALSE.
@@ -421,6 +439,15 @@
          ENDDO
       ENDIF
 
+      ! Archive counter array of good points for emissions timesteps only
+      IF ( IS_EMIS ) THEN
+         DO X = 1, ND51_NI
+            I               = GET_I( X )
+            GOOD_CT_EMIS(X) = GOOD_CT_EMIS(X) + GOOD(I)
+            ! Save GOOD points only for chemistry time steps
+            GOOD_EMIS(X) = GOOD(I)
+         ENDDO
+      ENDIF
 
       ! Also increment 3-D counter for boxes in the tropopause
       IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
@@ -855,6 +882,192 @@
                !-----------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( T(I,J,L) * GOOD(I) )
 
+! =====================================================================
+! Added with MEGAN v2.1. (ccc, 11/20/09)
+
+            ELSE IF ( N == 100 ) THEN 
+
+               !-----------------------------------
+               ! PAR DR [W/m2] (mpb,2009)
+               !-----------------------------------
+              
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( PARDR(I,J) * GOOD(I) ) 
+               ENDIF
+
+            ELSE IF ( N == 101 ) THEN 
+
+               !-----------------------------------
+               ! PAR DF [W/m2] (mpb,2009)
+               !-----------------------------------
+              
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( PARDF(I,J) * GOOD(I) ) 
+               ENDIF
+
+            ELSE IF ( N == 102 ) THEN 
+
+               !-----------------------------------
+               ! DAILY LAI  [cm2/cm2] (mpb,2009)
+               !-----------------------------------
+              
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( ISOLAI(I,J) * GOOD(I) ) 
+               ENDIF
+
+
+            ELSE IF ( N == 103 ) THEN
+
+               !-----------------------------------
+               ! T at 2m [K] (mpb,2009)
+               !----------------------------------- 
+              
+               IF ( K == 1 ) THEN
+
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ( TS(I,J) * GOOD(I) )
+
+               ENDIF
+
+            ELSE IF ( N == 104 ) THEN
+
+               !-----------------------------------
+               ! ISOPRENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2008)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                         ( EMISS_BVOC(I,J,1) * GOOD_EMIS(I) ) 
+
+               ENDIF
+
+            ELSE IF ( N == 105 ) THEN
+
+               !------------------------------------
+               ! MONOTERPENE EMISSIONS [atomC/cm2/s]
+               ! (mpb,2008)
+               !------------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
+               ENDIF
+
+            ELSE IF ( N == 106 ) THEN
+
+               !-----------------------------------
+               ! MBO EMISSIONS [atom C/cm2/s]
+               ! (mpb,2008)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
+               ENDIF
+
+            ELSE IF ( N == 107 ) THEN
+
+               !-----------------------------------
+               ! A-PINENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
+               ENDIF
+
+           ELSE IF ( N == 108 ) THEN
+
+               !-----------------------------------
+               ! B-PINENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,5) * GOOD_EMIS(I) ) 
+               ENDIF
+
+
+           ELSE IF ( N == 109 ) THEN
+
+               !-----------------------------------
+               ! LIMONENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,6) * GOOD_EMIS(I) ) 
+               ENDIF
+
+
+           ELSE IF ( N == 110 ) THEN
+
+               !-----------------------------------
+               ! SABINE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
+               ENDIF
+
+           ELSE IF ( N == 111 ) THEN
+
+               !-----------------------------------
+               ! MYRCENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
+               ENDIF
+
+           ELSE IF ( N == 112 ) THEN
+
+               !-----------------------------------
+               ! 3-CARENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
+               ENDIF
+
+           ELSE IF ( N == 113 ) THEN
+
+               !-----------------------------------
+               ! OCIMENE EMISSIONS [atom C/cm2/s]
+               ! (mpb,2009)
+               !-----------------------------------
+
+               IF ( K == 1 ) THEN
+              
+                  Q(X,Y,K,W) =  Q(X,Y,K,W) +
+     &                     ( EMISS_BVOC(I,J,10) * GOOD_EMIS(I) ) 
+               ENDIF
+
+
             ENDIF
          ENDDO
          ENDDO
@@ -981,6 +1194,7 @@
 !  (9 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !  (10) Change timestamp used for filename.  Now save SLP under tracer #18 in 
 !       "DAO-FLDS". (ccc, tai, bmy, 10/13/09)
+!  (11) Add outputs ("DAO-FLDS" and emissions "BIOGSRCE") (ccc, 11/20/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1074,6 +1288,18 @@
                !--------------------------------------------------------
                IF ( GOOD_CT_CHEM(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X) 
+               ELSE
+                  Q(X,Y,K,W) = 0d0
+               ENDIF
+
+            CASE( 104:113 )
+
+               !--------------------------------------------------------
+               ! Avoid division by zero for tracers which are archived 
+               ! on each EMISSION timestep (at SURFACE)      (mpb,2009)
+               !--------------------------------------------------------
+               IF ( GOOD_CT_EMIS(X) > 0 ) THEN
+                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_EMIS(X) 
                ELSE
                   Q(X,Y,K,W) = 0d0
                ENDIF
@@ -1363,6 +1589,173 @@
             UNIT     = 'K'
             GMNL     = ND51_NL
             GMTRC    = 3
+
+! ================================================================
+! Added with MEGAN v2.1. (ccc, 11/20/09)
+         ELSE IF ( N == 100 ) THEN
+            
+            !-----------------------------------
+            ! PARDR [W/m2] (mpb,2009)
+            !-----------------------------------
+            CATEGORY = 'DAO-FLDS' 
+            UNIT     = 'W/m2'    
+            GMNL     = ND51_NL
+            GMTRC    = 20
+
+         ELSE IF ( N == 101 ) THEN
+            
+            !-----------------------------------
+            ! PARDR [W/m2] (mpb,2009)
+            !-----------------------------------
+            CATEGORY = 'DAO-FLDS' 
+            UNIT     = 'W/m2'    
+            GMNL     = ND51_NL
+            GMTRC    = 21
+
+         ELSE IF ( N == 102 ) THEN
+
+            !-----------------------------------
+            ! DAILY LAI [W/m2] (mpb,2009)
+            !-----------------------------------
+            CATEGORY = 'TIME-SER' 
+            UNIT     = 'm2/m2'    
+            GMNL     = ND51_NL
+            GMTRC    = 32
+
+         ELSE IF ( N == 103 ) THEN
+
+            !---------------------
+            ! T at 2m
+            ! (mpb,2008)
+            !---------------------  
+            CATEGORY = 'DAO-FLDS'
+            UNIT     = 'K'     
+            GMNL     = ND51_NL
+            GMTRC    = 5
+
+         ELSE IF ( N == 104 ) THEN
+
+            !---------------------
+            ! ISOPRENE emissions 
+            ! (mpb,2008)
+            !---------------------            
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 1     
+
+         ELSE IF ( N == 105 ) THEN
+
+            !---------------------
+            ! MONOTERPENE emissions 
+            ! (mpb,2008)
+            !---------------------       
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 4    
+
+         ELSE IF ( N == 106 ) THEN
+
+            !---------------------
+            ! MBO emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 5    
+
+
+         ELSE IF ( N == 107 ) THEN
+
+            !---------------------
+            ! a-pine emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 7    
+
+         ELSE IF ( N == 108 ) THEN
+
+            !---------------------
+            ! b-pine emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 8   
+
+         ELSE IF ( N == 109 ) THEN
+
+            !---------------------
+            ! Limonene emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 9    
+
+
+         ELSE IF ( N == 110 ) THEN
+
+            !---------------------
+            ! Sabinene emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 10    
+
+         ELSE IF ( N == 111 ) THEN
+
+            !---------------------
+            ! Myrcene emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 11    
+
+
+         ELSE IF ( N == 112 ) THEN
+
+            !---------------------
+            ! 3-carene emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 12    
+
+         ELSE IF ( N == 113 ) THEN
+
+            !---------------------
+            ! Ocimene emissions 
+            ! (mpb,2008)
+            !---------------------   
+
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'
+            GMNL     = ND51_NL
+            GMTRC    = 13    
+
+! ================================================================
             
          ELSE
 
@@ -1410,6 +1803,8 @@
       GOOD_CT      = 0d0
       GOOD_CHEM    = 0d0
       GOOD_CT_CHEM = 0d0
+      GOOD_EMIS    = 0d0
+      GOOD_CT_EMIS = 0d0
 
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG51
@@ -1487,6 +1882,7 @@
 !  (4 ) Now allow ND51_IMIN to be equal to ND51_IMAX and ND51_JMIN to be
 !        equal to ND51_JMAX.  This will allow us to save out longitude or
 !        latitude transects.  Allocate COUNT_CHEM3D. (cdh, bmy, phs, 1/24/07)
+!  (5 ) Allocate GOOD_EMIS and GOOD_CT_EMIS (ccc, 11/20/09)
 !******************************************************************************
 !    
       ! References to F90 modules
@@ -1664,6 +2060,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
       GOOD_CT_CHEM = 0
 
+      ! Array denoting where LT is between HR1 and HR2 for emissions
+      ALLOCATE( GOOD_EMIS( ND51_NI ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_EMIS' )
+      GOOD_EMIS = 0
+
+      ! Counter of "good" times per day at each grid box for emissions
+      ALLOCATE( GOOD_CT_EMIS( ND51_NI ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_EMIS' )
+      GOOD_CT_EMIS = 0
+
       ! Accumulating array
       ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, ND51_N_TRACERS), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
@@ -1688,6 +2094,7 @@
 !  NOTES:
 !  (1 ) Now deallocate GOOD_CT_CHEM (bmy, 10/25/04)
 !  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/24/07)
+!  (3 ) Deallocates GOOD_EMIS and GOOD_CT_EMIS (ccc, 11/20/09)
 !******************************************************************************
 ! 
       !=================================================================
@@ -1698,6 +2105,8 @@
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
       IF ( ALLOCATED( GOOD_CT_CHEM ) ) DEALLOCATE( GOOD_CT_CHEM )
       IF ( ALLOCATED( GOOD_CHEM    ) ) DEALLOCATE( GOOD_CHEM    )
+      IF ( ALLOCATED( GOOD_CT_EMIS ) ) DEALLOCATE( GOOD_CT_EMIS )
+      IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 
       ! Return to calling program

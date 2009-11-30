@@ -1,50 +1,71 @@
-! $Id: readlai.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
-      SUBROUTINE READLAI( MM )
+! $Id: readlai.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine READLAI reads the leaf area indices from disk for two months.
-!  (yhw, gmg, djj, 1994; bmy, 12/20/04)
+! !ROUTINE: READLAI
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MM (INTEGER) : Current month number (1-12)
+! !DESCRIPTION: Subroutine READLAI reads the leaf area indices from disk 
+!  for two months. (yhw, gmg, djj, 1994; bmy, 12/20/04)
+!\\
+!\\
+! !INTERFACE
 !
-!  NOTES:
-!  (1 ) Be sure to force double precision with the DBLE function and the "D" 
-!        exponent, wherever necessary (bmy, 10/6/99)             
-!  (2 ) Now reads the LAI files directly from the data directory, so you don't
-!        have to create symbolic links anymore (bmy, 7/5/01)           
-!  (3 ) Deleted obsolete code (bmy, 9/4/01, 2/27/02)                        
-!  (4 ) Replaced IMX with IGLOB and JMX with JGLOB (bmy, 6/25/02)
-!  (5 ) Now reference IU_FILE from "file_mod.f" (bmy, 7/31/02)   
-!  (6 ) Now define FILENAME and echo FILENAME to stdout.  Now use F90 style
-!        declaration statements.  Cleaned up old code. (bmy, 11/13/02)
-!  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (8 ) Now use AVHRR LAI derived leaf-area index data (stored in the
-!        leaf_area_index_200412 subdir of DATA_DIR) if the logical switch 
-!        LAVHRRLAI=T.  Otherwise use the old LAI data. (tmf, bmy, 12/20/04)
-!******************************************************************************
-!     
+      SUBROUTINE READLAI( MM, YYYY )
+!
+! !USES:
+!
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE
       USE LOGICAL_MOD,   ONLY : LAVHRRLAI
+      USE LOGICAL_MOD,   ONLY : LMODISLAI ! (mpb,2009)
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DEP"    ! IREG, ILAND, IUSE
 #     include "CMN_VEL"    ! XLAI, XLAI2
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
       INTEGER, INTENT(IN) :: MM
-      
-      ! Local variables
+      INTEGER, INTENT(IN) :: YYYY ! (mpb,2009)
+!
+!  !REVISION HISTORY:
+!  06 Oct 1999 - R. Yantosca - Be sure to force double precision with the 
+!                              DBLE function and the "D" exponent, wherever 
+!                              necessary             
+!  05 Jul 2001 - R. Yantosca - Now reads the LAI files directly from the data 
+!                              directory, so you don't have to create symbolic 
+!                              links anymore           
+!  27 Feb 2002 - R. Yantosca - Deleted obsolete code                        
+!  25 Jun 2002 - R. Yantosca - Replaced IMX with IGLOB and JMX with JGLOB
+!  31 Jul 2002 - R. Yantosca - Now reference IU_FILE from "file_mod.f"   
+!  13 Nov 2002 - R. Yantosca - Now define FILENAME and echo FILENAME to stdout.
+!                              Now use F90 style declaration statements.
+!                              Cleaned up old code.
+!  20 Jul 2004 - R. Yantosca - Now references DATA_DIR from "directory_mod.f"
+!  20 Dec 2004 - M. Fu       - Now use AVHRR LAI derived leaf-area index data 
+!                              (stored in the leaf_area_index_200412 subdir of 
+!                              DATA_DIR) if the logical switch LAVHRRLAI=T. 
+!                              Otherwise use the old LAI data.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!     
+! ! LOCAL VARIABLES
+!
       INTEGER             :: I, INDEX, J, K, MMM
       CHARACTER(LEN=2)    :: CMONTH(12) = (/ '01','02','03','04',
      &                                       '05','06','07','08',
      &                                       '09','10','11','12'/)
       CHARACTER(LEN=255)  :: FILENAME
+
+      ! New for MODIS & AVHRR (mpb,2009)
+      CHARACTER(LEN=4)    :: YEAR 
+      INTEGER             :: IYYYY, NYYYY 
 
       !=================================================================
       ! READLAI begins here!
@@ -60,6 +81,10 @@
       ENDDO
       ENDDO
 
+      ! Initialize (mpb,2009)
+      IYYYY = 0
+      NYYYY = 0
+
       !=================================================================
       ! Read current month's lai (XLAI) at (I,J) and for landtype K
       !=================================================================
@@ -68,7 +93,27 @@
       ! for AVHRR satellite-derived LAI (tmf, bmy, 12/20/04)
       IF ( LAVHRRLAI ) THEN
          FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
-     &              CMONTH(MM)       // '.global'
+     &        CMONTH(MM)       // '.global'
+      ELSE IF ( LMODISLAI ) THEN ! Now include MODIS LAI (mpb,2009)
+         
+         IYYYY = YYYY
+         
+         IF ( IYYYY >= 2000 .AND. IYYYY <= 2008 ) THEN 
+            
+            ! Filename 
+            WRITE( YEAR , '(I4)' ) IYYYY
+            
+            !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/' 
+            FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/' // 
+     &                 YEAR // '/lai' // CMONTH(MM) // '.global'
+
+            print*, 'The LAI filename is: ', FILENAME
+         ELSE 
+            !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/1985/' 
+            FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/1985/' //
+     &                 'lai' // CMONTH(MM) // '.global'
+         END IF
+         
       ELSE
          FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
      &              CMONTH(MM)       // '.global'
@@ -91,7 +136,10 @@
       
       ! Save for next month
       MMM = MM
-      IF(MMM .EQ. 12) MMM = 0
+      IF(MMM .EQ. 12) THEN
+         MMM = 0
+         IYYYY = YYYY + 1 ! Increment year by 1 (mpb,2009)
+      ENDIF
 
       !=================================================================
       ! Read following month's lai (XLAI2) at (I,J) and for landtype K 
@@ -102,6 +150,22 @@
       IF ( LAVHRRLAI ) THEN
          FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200412/lai' //
      &              CMONTH(MMM+1)    // '.global'
+
+      ELSE IF ( LMODISLAI ) THEN ! Now include MODIS LAI (mpb,2009)
+
+         IF ( IYYYY >= 2000 .AND. IYYYY <= 2008 ) THEN
+
+            WRITE( YEAR , '(I4)' ) IYYYY
+
+            !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/' 
+            FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/' // 
+     &                 YEAR // '/lai' // CMONTH(MMM+1) // '.global'
+         ELSE 
+            !FILENAME = TRIM( DATA_DIR ) // 
+            FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/1985/' // 
+     &                 'lai' // CMONTH(MMM+1) // '.global'
+         END IF
+
       ELSE
          FILENAME = TRIM( DATA_DIR ) // 'leaf_area_index_200202/lai' //
      &              CMONTH(MMM+1)    // '.global'
@@ -123,3 +187,4 @@
       
       ! Return to calling program
       END SUBROUTINE READLAI
+!EOC

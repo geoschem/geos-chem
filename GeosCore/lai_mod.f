@@ -1,4 +1,4 @@
-! $Id: lai_mod.f,v 1.1 2009/09/16 14:06:22 bmy Exp $
+! $Id: lai_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
       MODULE LAI_MOD
 !
 !******************************************************************************
@@ -65,7 +65,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE READISOLAI( MM )
+      SUBROUTINE READISOLAI_AVHRR( MM )
 !
 !******************************************************************************
 !  Subroutine READISOLAI reads AVHRR LAI data from bpch file for the current 
@@ -78,6 +78,8 @@
 !  NOTES:
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (7/8/03).  Updated  
 !        and modified for the standard code by May Fu (11/2004).
+!  (2 ) Renamed to READISOLAI_AVHRR to differentiate from the newer routine for
+!       reading in the MODIS LAI (mpb,2009).
 !******************************************************************************
 !
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
@@ -169,7 +171,281 @@
       CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
 
       ! Return to calling program
-      END SUBROUTINE READISOLAI
+      END SUBROUTINE READISOLAI_AVHRR
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READISOLAI_MODIS( MM , YYYY )
+!
+!******************************************************************************
+!  Subroutine READISOLAI reads MODIS LAI data from bpch file for the current 
+!  month, the previous month, and the next month. (mpb,2009)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) MM    (INTEGER) : Current month number (1-12)
+!  (2 ) YYYY  (INTEGER) : Current year 
+!
+!  NOTES:
+!  (1 ) I'm sure there is a much easier way of coding this (mpb,2009).
+!
+!******************************************************************************
+!
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2, GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
+     
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"      ! Size parameters
+   
+      ! Arguments
+      INTEGER, INTENT(IN)    :: MM , YYYY
+
+      ! Local variables
+      INTEGER                :: I, J, K, INDEX, MMM, PMM, IJLOOP
+      REAL*4                 :: ARRAY(I1x1,J1x1,1)
+      REAL*8                 :: TAU0
+      CHARACTER(LEN=255)     :: FILENAME 
+
+      ! For MODIS add past, current and next years (mpb,2009)                   
+      CHARACTER(LEN=4)       :: YEAR 
+      INTEGER                :: IYYYY !Current Year
+      INTEGER                :: NYYYY !Next Year
+      INTEGER                :: PYYYY !Past Year
+
+      CHARACTER(LEN=255)     :: MODIS_CLIM
+
+      !=================================================================
+      ! READISOLAI begins here!
+      !=================================================================     
+
+      ! Zero arrays
+      MISOLAI  = 0.d0
+      NMISOLAI = 0.d0
+      ARRAY    = 0.d0
+
+      ! Short name for MODIS climatology
+      !MODIS_CLIM =  TRIM( DATA_DIR_1x1 ) // 
+      MODIS_CLIM = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' //
+     &             '1985/MODIS.LAIv.V5.geos.1x1.1985'
+
+      IYYYY = 0
+      PYYYY = 0
+      NYYYY = 0
+
+      ! ++++++++++++++++++++++++++++++++++
+      ! Get LAI data for CURRENT month
+      ! ++++++++++++++++++++++++++++++++++
+
+      ! - Set current year -
+      IYYYY = YYYY
+
+      ! If valid (2000 to 2008) use data for that year 
+      IF ( IYYYY >= 2000 .AND. IYYYY <= 2008 ) THEN      
+
+         ! Filename 
+         WRITE( YEAR , '(I4)' ) IYYYY   
+
+         !FILENAME = TRIM( DATA_DIR_1x1 ) //  
+         FILENAME = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' // 
+     &              YEAR // '/MODIS.LAIv.V5.geos.1x1.' // YEAR
+
+        PRINT*, '    - current Month = ' , MM , 'Year = ' , IYYYY
+
+         ! Get TAU0 value
+         TAU0 = GET_TAU0( MM, 1, IYYYY )
+
+       ELSE
+          
+         ! Filename
+         FILENAME = TRIM( MODIS_CLIM )
+
+          PRINT*, '    - current : Month = ' , MM , 'Year = ' , 1985
+
+         ! Get TAU0 value
+         TAU0 = GET_TAU0( MM, 1, 1985 )
+
+      END IF 
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read 1x1 LAI data [cm2/cm2]
+      CALL READ_BPCH2( FILENAME, 'MODIS', 2,  
+     &                 TAU0,      I1x1,   J1x1,    
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, MISOLAI )
+
+      ! ++++++++++++++++++++++++++++++++++
+      ! Get LAI data for NEXT month
+      ! ++++++++++++++++++++++++++++++++++
+
+      ! MMM is next month
+      MMM = MM + 1
+
+      ! Is this the start of a new year... 
+      IF ( MMM == 13 ) THEN
+
+         MMM = 1
+
+         ! Increment the year by 1
+         NYYYY = IYYYY + 1 
+
+         ! ...does this new year fall into the valid MODIS range... 
+         IF ( NYYYY >= 2000 .AND. NYYYY <= 2008 ) THEN 
+
+            ! Filename 
+            WRITE( YEAR , '(I4)' ) NYYYY   
+
+            !FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' // 
+     &                 YEAR // '/MODIS.LAIv.V5.geos.1x1.'// YEAR
+
+            PRINT*, '    - next : Month = ' , MMM , 'Year = ' , NYYYY
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( MMM, 1, NYYYY )
+
+         ELSE ! ...if not use climatology...
+  
+            ! Filename
+            FILENAME = TRIM( MODIS_CLIM )
+            PRINT*, '    - next : Month = ' , MMM , 'Year = ' , 1985
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( MMM, 1, 1985 )
+
+         END IF 
+
+      ELSE ! If the year is the same when MM --> MM + 1  
+
+         ! If valid (2000 to 2008) use data for that year 
+         IF ( IYYYY >= 2000 .AND. IYYYY <= 2008 ) THEN      
+ 
+            ! Filename 
+            WRITE( YEAR , '(I4)' ) IYYYY   
+
+            !FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' // 
+     &                 YEAR // '/MODIS.LAIv.V5.geos.1x1.' //YEAR
+
+           PRINT*, '    - next : Month = ' , MMM , 'Year = ' , IYYYY
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( MMM, 1, IYYYY )
+         
+         ELSE ! ...if not use climatology...
+          
+            ! Filename
+            FILENAME = TRIM( MODIS_CLIM )
+            PRINT*, '    - next : Month = ' , MMM , 'Year = ' , 1985
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( MMM, 1, 1985 )
+
+         END IF 
+      END IF
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read 1x1 LAI data [cm2/cm2]
+      CALL READ_BPCH2( FILENAME, 'MODIS', 2,  
+     &                 TAU0,      I1x1,   J1x1,    
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, NMISOLAI )
+
+      ! ++++++++++++++++++++++++++++++++++
+      ! Get LAI data for PAST month
+      ! ++++++++++++++++++++++++++++++++++
+
+      ! PMM is previous month
+      PMM = MM - 1
+
+      ! If we dip back in to the previous year 
+      IF ( PMM == 0 ) THEN
+
+         PMM   = 12 
+         PYYYY = IYYYY - 1
+
+         ! Does this past year fall into the valid MODIS range...
+         IF ( PYYYY >= 2000 .AND. PYYYY <= 2008 ) THEN 
+
+            ! Filename 
+            WRITE( YEAR , '(I4)' ) PYYYY   
+
+            !FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' //
+     &                 YEAR // '/MODIS.LAIv.V5.geos.1x1.'// YEAR
+
+            PRINT*, '    - past : Month = ' , PMM , 'Year = ' , PYYYY
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( PMM, 1, PYYYY )
+
+         ELSE ! ...if not use climatology...
+
+            ! Filename
+            FILENAME = TRIM( MODIS_CLIM )
+            PRINT*, '    - past : Month = ' , PMM , 'Year = ' , 1985
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( PMM, 1, 1985 )
+
+         END IF 
+
+      ELSE ! If the year is the same when MM -->  MM - 1  
+
+         ! If valid (2000 to 2006) use data for that year 
+         IF ( IYYYY >= 2000 .AND. IYYYY <= 2008 ) THEN      
+ 
+            ! Filename 
+            WRITE( YEAR , '(I4)' ) IYYYY   
+
+            !FILENAME = TRIM( DATA_DIR_1x1 ) // 
+            FILENAME = TRIM( DATA_DIR_1x1 ) // 'MODIS_LAI_200911/' // 
+     &                 YEAR // '/MODIS.LAIv.V5.geos.1x1.' // YEAR
+
+            PRINT*, '   -  past : Month = ' , PMM , 'Year = ' , IYYYY
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( PMM, 1, IYYYY )
+         
+         ELSE ! ...if not use climatology...
+          
+            ! Filename
+            FILENAME = TRIM( MODIS_CLIM )
+            PRINT*, '    - past : Month = ' , PMM , 'Year = ' , 1985
+
+            ! Get TAU0 value
+            TAU0 = GET_TAU0( PMM, 1, 1985 )
+
+         END IF 
+
+      END IF 
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read 1x1 LAI data [cm2/cm2]
+      CALL READ_BPCH2( FILENAME, 'MODIS', 2,  
+     &                 TAU0,      I1x1,   J1x1,    
+     &                 1,         ARRAY,  QUIET=.TRUE. )
+
+      ! Regrid from 1x1 to current grid resolution
+      CALL DO_REGRID_1x1( 'cm2/cm2', ARRAY, PMISOLAI )
+
+100   FORMAT( '     - READISOLAI: Reading ', a )
+     
+      ! Return to calling program
+      END SUBROUTINE READISOLAI_MODIS
+
 
 !------------------------------------------------------------------------------
 
@@ -283,7 +559,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE RDISOLAI( JDAY, MONTH )
+      SUBROUTINE RDISOLAI( JDAY, MONTH, YEAR )
 !
 !******************************************************************************
 !  Subroutine RDISOLAI sets ISOLAI daily.  The stored monthly LAI are used for
@@ -304,14 +580,16 @@
 !
       ! References to F90 modules
       USE TIME_MOD,   ONLY : ITS_A_LEAPYEAR
+      USE LOGICAL_MOD, ONLY : LMODISLAI ! Include sensor (mpb,2009)
 
 #     include "CMN_SIZE"   ! Size parameters
    
       ! Arguments
-      INTEGER, INTENT(IN) :: JDAY, MONTH
+      INTEGER, INTENT(IN) :: JDAY, MONTH, YEAR ! Include year (mpb,2009)
 
       ! Local variables
       INTEGER             :: I, J, IMUL, ITD, IJLOOP, MM
+      INTEGER             :: YYYY              ! Include year (mpb,2009)
       INTEGER, SAVE       :: LAST_MM = -1 
       REAL*8              :: FRACTION
 
@@ -325,7 +603,8 @@
       !=================================================================
 
       ! Find the month if we index by midmonth
-      CALL FINDMON( JDAY, MONTH, MM, STARTDAY )
+      ! & now include the year (mpb,2009)
+      CALL FINDMON( JDAY, MONTH, YEAR, MM, YYYY, STARTDAY )
 
       ! Read new data if it's a new LAI month
       IF ( MM /= LAST_MM ) THEN
@@ -333,7 +612,14 @@
 #if   defined( GRID05x0666 )
          CALL READISOLAI_05x0666( MM )   ! GEOS-5 nested grid simulation
 #else 
-         CALL READISOLAI( MM )           ! Global simulations
+
+         ! Global simulations
+         IF ( LMODISLAI ) THEN
+            CALL READISOLAI_MODIS( MM , YYYY )
+         ELSE 
+            CALL READISOLAI_AVHRR( MM )
+         END IF 
+         ! CALL READISOLAI( MM )           ! Global simulations
 #endif
 
          ! Save for next month

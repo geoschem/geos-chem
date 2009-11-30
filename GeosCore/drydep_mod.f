@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.2 2009/10/19 18:32:54 bmy Exp $
+! $Id: drydep_mod.f,v 1.3 2009/11/30 19:57:57 ccarouge Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -524,12 +524,14 @@
 !        here.  Also now dimension AZO appropriately for GCAP or GEOS met
 !        fields.  Remove obsolete variables. (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (8 ) Move XLTMMP function to module MEGANUT_MOD. (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
       USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
+      USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Physical constants
@@ -557,7 +559,8 @@
       REAL*8                :: THIK
 
       ! External functions
-      REAL*8, EXTERNAL      :: XLTMMP
+!-- Moved to megan_mod.f. (ccc, 11/20/09)
+!      REAL*8, EXTERNAL      :: XLTMMP
 
       !=================================================================
       ! METERO begins here!
@@ -913,6 +916,7 @@
 !  NOTES:
 !  (1) Now deposit through the PBL. Commented but kept code related to soil
 !       temperature (phs, 5/16/07)
+!  (2) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -926,6 +930,7 @@
       USE DAO_MOD,      ONLY : BXHEIGHT
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE MEGANUT_MOD,  ONLY : XLTMMP
       
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! Diagnostic switches & arrays
@@ -944,7 +949,9 @@
       REAL*8      :: F_UNDER_TOP
 
       ! External functions, for calculating soil temperature
-      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8, EXTERNAL   :: SOILTEMP, XLTMMP
+      REAL*8, EXTERNAL   :: SOILTEMP
 
       !=================================================================
       ! DRYFLXH2HD begins here!!

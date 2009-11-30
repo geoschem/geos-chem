@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.4 2009/11/05 15:35:31 phs Exp $
+! $Id: input_mod.f,v 1.5 2009/11/30 19:57:56 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1330,6 +1330,7 @@
 !  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
 !        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
 !  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
+!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1348,7 +1349,7 @@
       USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-
+      USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_O3"      ! FSCALYR
@@ -1434,113 +1435,121 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
-      ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
+      ! Use PECCA model for biogenic emissions for? (mpb,2009)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
+      READ( SUBSTRS(1:N), * ) LPECCA
+
+      ! Use MEGAN biogenic emissions for MONOT and MBO ? (ccc, 2/2/09)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LMEGANMONO
 
       ! Include biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Scale lightning flash rate to OTD-LIS annual averate rate?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LOTDSCALE
 
       ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LOTDREG
 
       ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
+      ! Use MODIS-derived LAI fields? (mpb,2009)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      READ( SUBSTRS(1:N), * ) LMODISLAI
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
 
       !=================================================================
       ! Error check logical flags
@@ -1677,6 +1686,16 @@
       ELSE IF ( L8DAYBB ) THEN
          LGFED2BB = .FALSE.
       ENDIF
+
+      !=================================================================
+      ! Error check LAI switches (i.e. AVHRR or MODIS) (mpb,2009)
+      !=================================================================
+      IF ( LAVHRRLAI .AND. LMODISLAI ) THEN
+            CALL ERROR_STOP( 
+     &         ' AVHRR LAI &  MODIS LAI cannot both be turned on!', 
+     &         ' READ_EMISSIONS_MENU ("input_mod.f")' )
+         ENDIF
+      ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       
       !=================================================================
       ! Error check lightning switches
@@ -1779,6 +1798,7 @@
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
+      WRITE( 6, 100     ) 'Use PECCA BVOC model        : ', LPECCA
       WRITE( 6, 100     ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
@@ -1805,6 +1825,7 @@
       WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
       WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
+      WRITE( 6, 100     ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -3327,7 +3348,8 @@
       ! Local variables
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
-      INTEGER             :: ND49, N_TRACERS, TRACERS(100)
+      ! Increased to 120 from 100 (mpb,2009)
+      INTEGER             :: ND49, N_TRACERS, TRACERS(120)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND49
       INTEGER             :: LMIN, LMAX
@@ -3529,7 +3551,8 @@
       ! Local variables
       LOGICAL             :: DO_ND51
       INTEGER             :: N,      I,       AS
-      INTEGER             :: N_ND51, FREQ,    TRACERS(100)
+      ! Increased to 120 from 100 (mpb,2009)
+      INTEGER             :: N_ND51, FREQ,    TRACERS(120)
       INTEGER             :: IMIN,   IMAX,    JMIN
       INTEGER             :: JMAX,   LMIN,    LMAX
       REAL*8              :: HR1,    HR2,     HR_WRITE
@@ -4690,6 +4713,7 @@
 !  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
 !  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
 !  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
+!  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4722,6 +4746,7 @@
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
       USE LOGICAL_MOD,   ONLY : LLINOZ
+      USE LOGICAL_MOD,   ONLY : LMODISLAI, LPECCA
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4808,6 +4833,10 @@
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
+
+      ! Add flags for MODIS LAI & the PECCA model (mpb,2009)
+      LMODISLAI    = .FALSE.
+      LPECCA       = .FALSE.
 
       ! Initialize counters
       CT1          = 0

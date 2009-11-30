@@ -1,4 +1,4 @@
-! $Id: h2_hd_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: h2_hd_mod.f,v 1.3 2009/11/30 19:57:56 ccarouge Exp $
       MODULE H2_HD_MOD
 !
 !******************************************************************************
@@ -124,6 +124,7 @@
 !
 !  NOTES:
 !    (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
+!    (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -137,6 +138,7 @@
       USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB
       USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
+      USE MEGANUT_MOD,      ONLY : XLTMMP
       USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,       ONLY : STT
@@ -170,7 +172,9 @@
       REAL*8                 :: GMONOT(NVEGTYPE)
 
       ! External functions
-      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
+      REAL*8, EXTERNAL       :: EMISOP, BOXVL
       REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
 
       !=================================================================

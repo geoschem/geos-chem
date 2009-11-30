@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.1 2009/09/16 14:05:59 bmy Exp $
+! $Id: transport_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -325,7 +325,7 @@
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
      &                   IORD,     JORD,      KORD,     N_ADJ,     
      &                   XMASS(:,:,LLPAR:1:-1),    
-     &                   YMASS(:,:,LLPAR:1:-1),
+     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
      &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
      &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
      &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
@@ -672,7 +672,7 @@
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
      &                   IORD,     JORD,      KORD,     N_ADJ,     
      &                   XMASS(:,:,LLPAR:1:-1),    
-     &                   YMASS(:,:,LLPAR:1:-1),
+     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
      &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
      &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
      &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,

@@ -1,4 +1,4 @@
-! $Id: CMN_O3,v 1.1 2009/09/16 14:05:57 bmy Exp $
+! $Id: CMN_O3,v 1.2 2009/11/30 19:57:55 ccarouge Exp $
 
 !-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
 !
@@ -10,6 +10,7 @@
 ! (2 ) Removed obsolete variables (bmy, 10/25/05)
 ! (3 ) Add anthropgenic emission species: BENZ, TOLU, XYLE, C2H2, C2H4. 
 !      (tmf, 1/7/09)
+! (4 ) Add EMISS_BVOC for VOC emissions (mpb, ccc, 11/19/09)
 !
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -29,6 +30,32 @@
       COMMON /EMIS2/                                                    
      &   EMISRR (IIPAR,JJPAR,NEMPARA+NEMPARB),                          
      &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+!
+! New biogenic VOC emissions (mpb,2009) 
+!
+!     ---------------------------
+!     Species            | Order 
+!     ---------------------------
+!     Isoprene           = 1
+!     Total Monoterpenes = 2 
+!     MBO                = 3 
+!     Alpha-Pinene       = 4
+!     Beta-Pinene        = 5
+!     Limonene           = 6
+!     Sabinene           = 7
+!     Mycrene            = 8
+!     3-Carene           = 9
+!     Ocimene            = 10
+!     ---------------------------	
+
+      ! Define common block	
+      REAL*8 EMISS_BVOC
+      COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10)
+
+!+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
  
 ! Arrays to read emissions from updated merge file : 
 !        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK

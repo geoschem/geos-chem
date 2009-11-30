@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.1 2009/09/16 14:06:02 bmy Exp $
+! $Id: tagged_co_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -161,7 +161,7 @@
       REAL*8,  PARAMETER   :: XNUMOL_CO   = 6.022d+23/FMOL_CO
 
       ! FMOL_ISOP   - kg ISOP / mole ISOP
-      ! XNUMOL_ISOP - molecules CO / kg ISOP
+      ! XNUMOL_ISOP - molecules ISOP / kg ISOP
       REAL*8,  PARAMETER   :: FMOL_ISOP   = 12d-3
       REAL*8,  PARAMETER   :: XNUMOL_ISOP = 6.022d+23/FMOL_ISOP
 
@@ -412,6 +412,7 @@
 !        (yc, phs, 12/23/08)
 !  (24) Now include switch to use MEGAN biogenics instead of default GEIA.
 !        (jaf, 3/10/09)
+!  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -428,6 +429,7 @@
       USE LOGICAL_MOD,  ONLY : LBIOGENIC,        LMEGAN
       ! Add MEGAN biogenic routines (jaf, 3/10/09)
       USE MEGAN_MOD,    ONLY : GET_EMISOP_MEGAN, GET_EMMONOT_MEGAN
+      USE MEGANUT_MOD,  ONLY : XLTMMP
       USE PBL_MIX_MOD,  ONLY : GET_PBL_MAX_L, GET_FRAC_OF_PBL
       USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
@@ -457,7 +459,9 @@
       REAL*8                 :: SC,   PDF,  PDR
       
       ! External functions
-      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
+!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
+!      REAL*8, EXTERNAL       :: XLTMMP,  EMISOP, BOXVL
+      REAL*8, EXTERNAL       :: EMISOP, BOXVL
       REAL*8, EXTERNAL       :: EMMONOT, EMCH3OH
 
       !=================================================================
@@ -707,11 +711,17 @@
                PDF = PARDF(I,J)
 
                ! Isoprene [atoms C/box/timestep]
+!--- Change arguments order for coherence with other MEGAN functions
+!    (ccc, 11/23/09)
+!               EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
+!     &                                   XNUMOL_ISOP, PDR, PDF )
                EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP,
-     &                                   XNUMOL_ISOP, PDR, PDF )
+     &                                   PDR, PDF, XNUMOL_ISOP )
                ! Monoterpene [atoms C/box/timestep]
-               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
-
+! Previous to MEGAN v2.1
+!               EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, XNUMOL_MONO)
+               EMMO = GET_EMMONOT_MEGAN( I, J,  SC, TMMP, 
+     &                                   PDR, PDF, XNUMOL_MONO )
             ELSE
 
                !------------------

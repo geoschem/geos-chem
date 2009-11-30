@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.1 2009/09/16 14:06:01 bmy Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -375,13 +375,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Tpcore_FvDas( dt,       ae,       IM,      JM,     KM,       &
-                           JFIRST,   JLAST,    ng,      mg,     nq,       &
-                           ak,       bk,       u,       v,      ps1,      &
-                           ps2,      ps,       q,       iord,   jord,     &
-                           kord,     n_adj,    XMASS,   YMASS,  MASSFLEW, &
-                           MASSFLNS, MASSFLUP, AREA_M2, TCVV,   ND24,     &
-                           ND25,     ND26 )
+  SUBROUTINE Tpcore_FvDas( dt,       ae,       IM,       JM,      KM,       &
+                           JFIRST,   JLAST,    ng,       mg,      nq,       &
+                           ak,       bk,       u,        v,       ps1,      &
+                           ps2,      ps,       q,        iord,    jord,     &
+                           kord,     n_adj,    XMASS,    YMASS,   FILL,     &
+                           MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV,     &
+                           ND24,     ND25,     ND26 )
 !
 ! !USES:
 !
@@ -449,6 +449,8 @@ CONTAINS
     INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
     INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
     INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic 
+
+    LOGICAL, INTENT(IN)    :: FILL    ! Fill negatives ?
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -499,7 +501,6 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS:
 !
-    LOGICAL, PARAMETER :: FILL = .true.                 ! Fill negatives ?
     INTEGER, PARAMETER :: ADVEC_CONSRV_OPT = 2          ! 2=floating pressure
     LOGICAL, PARAMETER :: CROSS = .true.
 !

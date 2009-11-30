@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.3 2009/11/05 15:35:31 phs Exp $
+! $Id: logical_mod.f,v 1.4 2009/11/30 19:57:56 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -52,6 +52,7 @@
 !  16 Oct 2009 - R. Yantosca - Added LLINOZ switch for Linoz O3 strat chem
 !  16 Oct 2009 - R. Yantosca - Added ProTeX header
 !  30 Oct 2009 - A. v. Donkelaar - Added LNEI2005
+!  19 Nov 2009 - M. Barkley  - Added LMODISLAI and LPECCA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,6 +137,8 @@
       LOGICAL :: L8DAYBB         ! Use GFED2 8-day biomass burning?
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
+      LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
+      LOGICAL :: LPECCA          ! PECCA BVOC emission model (mpb,2009)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
