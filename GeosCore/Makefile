@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.15 2009/11/30 19:57:57 ccarouge Exp $
+# $Id: Makefile,v 1.16 2009/11/30 20:11:57 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ libutil:
 	@$(MAKE) -C $(UTIL)
 
 exe:
-	$(LD) $(LINK) -o $(EXE)
+	$(LD) -O3 $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
 clean:
@@ -260,7 +260,7 @@ carbon_mod.o                : carbon_mod.f                                   \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
-                              vdiff_pre_mod.o  
+                              vdiff_pre_mod.o         meganut_mod.o
 
 ch3i_mod.o                  : ch3i_mod.f                                     \
                               biofuel_mod.o           biomass_mod.o          \
@@ -406,11 +406,6 @@ diag_pl_mod.o               : diag_pl_mod.f                                  \
                               comode_mod.o            tracerid_mod.o         \
                               tracer_mod.o  
 
-#drydep_mod.o                : comode_mod.o            dao_mod.o              \
-#                              diag_mod.o              logical_mod.o          \
-#                              pbl_mix_mod.o           tracerid_mod.o         \
-#                              tracer_mod.o  
-
 drydep_mod.o                : drydep_mod.f             comode_mod.o          \
                               dao_mod.o                diag_mod.o            \
                               logical_mod.o            pbl_mix_mod.o         \
@@ -449,7 +444,8 @@ emfossil.o                  : emfossil.f                                     \
                               streets_anthro_mod.o    tracer_mod.o           \
                               tracerid_mod.o          vistas_anthro_mod.o    
 
-emisop.o                    : emisop.f                dao_mod.o
+emisop.o                    : emisop.f                dao_mod.o              \
+                              meganut_mod.o
 
 emisop_grass.o              : emisop_grass.f          dao_mod.o
 
@@ -460,7 +456,8 @@ emissdr.o                   : emissdr.f                                      \
                               biofuel_mod.o           dao_mod.o              \
                               diag_mod.o              lightning_nox_mod.o    \
                               logical_mod.o           megan_mod.o            \
-                              tracer_mod.o            tracerid_mod.o  
+                              tracer_mod.o            tracerid_mod.o         \
+                              meganut_mod.o
 
 emissions_mod.o             : emissions_mod.f                                \
                               arctas_ship_emiss_mod.o biomass_mod.o          \
@@ -579,7 +576,7 @@ h2_hd_mod.o                 : h2_hd_mod.f                                    \
                               global_oh_mod.o         logical_mod.o    	     \
                               scale_anthro_mod.o      tagged_co_mod.o        \
                               tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o  
+                              tropopause_mod.o        meganut_mod.o
 
 hcn_ch3cn_mod.o             : hcn_ch3cn_mod.f                                \
                               biomass_mod.o           dao_mod.o              \
@@ -692,7 +689,8 @@ main.o                      : main.f                                         \
 MATIN4.o                    : MATIN4.f
 
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
-                              lai_mod.o               logical_mod.o      
+                              lai_mod.o               logical_mod.o          \
+                              meganut_mod.o
 
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
@@ -840,7 +838,8 @@ soilcrf.o                   : soilcrf.f
 
 soilnoxems.o                : soilnoxems.f                                   \
                               dao_mod.o               diag_mod.o             \
-                              future_emissions_mod.o  logical_mod.o
+                              future_emissions_mod.o  logical_mod.o          \
+                              meganut_mod.o
 
 soiltemp.o                  : soiltemp.f
 
@@ -888,7 +887,7 @@ tagged_ox_mod.o             : tagged_ox_mod.f                                \
                               diag_pl_mod.o           drydep_mod.o           \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
-                              tropopause_mod.o  
+                              tropopause_mod.o        meganut_mod.o
 
 tcorr.o                     : tcorr.f
 
