@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.3 2009/11/30 19:57:57 ccarouge Exp $
+! $Id: emissdr.f,v 1.4 2009/12/01 15:50:44 ccarouge Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -69,6 +69,7 @@
 !      So there is no reference for it. Use of those emission factors have
 !      caused much confusion among users, so we should probably not use it 
 !      for the time being. (tmf, 1/20/09)
+!  (29) Update to MEGAN v2.1 (mpb, 11/20/09)
 !  (29) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (30) Change arguments order in some MEGAN functions for coherence
 !       (ccc, 11/30/09)

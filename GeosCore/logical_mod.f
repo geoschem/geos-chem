@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.4 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: logical_mod.f,v 1.5 2009/12/01 15:50:44 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -138,7 +138,7 @@
       LOGICAL :: L3HRBB          ! Use GFED2 3-hr biomass burning?
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
-      LOGICAL :: LPECCA          ! PECCA BVOC emission model (mpb,2009)
+      LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

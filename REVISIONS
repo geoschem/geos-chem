@@ -8,18 +8,13 @@ New in v8-02-04:
 ===============================================================================
 
 
-In the GeosBpch subdirectory:
------------------------------
-
-bpch_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-
 In the GeosCore subdirectory:
 -----------------------------
 
 linoz_mod.f		-- Module containing routines for the Linoz
 	 		   stratospheric chemistry algorithm
+
+megan_mod.f             -- Module completely rewritten.
 
 nei2005_anthro_mod.f    -- read, allocate, total, and deallocate NEI
 		       	   2005 emissions data 
@@ -29,6 +24,9 @@ sulfate_pbl_mix	        -- does the PBL mixing of a column of sulfate
 
 In the GeosUtil subdirectory:
 -----------------------------
+
+bpch_mod.f		-- Moved here from GeosCore
+			-- Added ProTeX documentation headers
 
 charpak_mod.f		-- Moved here from GeosCore
 			-- Added ProTeX documentation headers
@@ -63,13 +61,28 @@ transfer_mod.f		-- Moved here from GeosCore
 unix_cmds_mod.f		-- Moved here from GeosCore
 			-- Added ProTeX documentation headers
 
+In the GeosCore subdirectory:
+-----------------------------
+
+readisolai_avhrr        -- READISOLAI subroutine renamed to distinguish
+("lai_mod.f")              from READISOLAI_MODIS
+
+readisolai_modis        -- Read MODIS LAI
+("lai_mod.f")              
+
+meganut_mod.f           -- New module for subroutine xltmmp, xlpardr 
+			    and xlpardf
 
 Removed in v8-02-04:
 ===============================================================================
 
 Kr85_mod.f 		-- Moved to the "obsolete" folder for later reference
 
+xltmmp.f                -- Subroutine added to module "meganut_mod.f".
+			-- File moved to "obsolete" folder for later reference
 
+readisolai              -- Renamed to READISOLAI_AVHRR to distinguish
+("lai_mod.f")              from READISOLAI_MODIS
 
 Modified in v8-02-04:
 ===============================================================================
@@ -85,7 +98,8 @@ ratj.d     		-- Updated the branching ratio of HNO4.
 			   of OH, HO2 and NO3 in the UV photolysis of HO2NO2" 
 			   (jmao, bmy, 10/27/09)
 
-input.geos		-- has an additional lines for EPA2005, and LINOZ
+input.geos		-- has an additional lines for EPA2005, LINOZ, PCEEA,
+			   MODIS-LAI
 
 
 In the Headers subdirectory:
@@ -94,24 +108,28 @@ In the Headers subdirectory:
 define.h		-- Removed references to IN_CLOUD_OD
 			-- Added ProTeX headers
 
+CMN_DIAG                -- Increase PD46 to 13
+
+CMN_O3                  -- Add EMISS_BVOC in new common bloc EMISS100
+
 CMN_SIZE        	-- set NOXLEVELS and NOXEXTENT to 5
 
 
 In the GeosCore subdirectory:
 -----------------------------
 
+accumulate_diag51       -- Add outputs for EMISS_BVOC (10 tracers), TS, 
+("diag51_mod.f")            PARDR, PARDF and ISOLAI
+
 anthroems.f	        -- account for NOXLEVELS not equal to 2
+
+biogenic_oc             -- update MEGAN calculation to v2.1
+("carbon_mod.f")
 
 calcrate.f		-- FastJX has taken near-IR photolysis into account 
                            with cross section at 574nm, so we don't need to 
 	                   manually add 1e-5 to the JHNO4 rate anymore.
 
-compute_biomass_emissions -- Irrespective of inventory type, we need to 
-("biomass_mod.f")            scale biomass CO to account for CO production
-                             from VOC's that are not explicitly carried in the 
-                             chemistry mechanisms. This used to be done in 
-                             gc_biomass_mod.f but then is not used for GFED2, 
-                             FLAMBE, etc.
 
 chem_dms		-- Update reaction rate to match JPL06 and full chem
 ("sulfate_mod.f")
@@ -124,13 +142,29 @@ chem_tagged_ox		-- Now only compute loss rate in troposphere
 
 cleanup.f		-- Now references CLEANUP_LINOZ
 
+cleanup_diag51          -- Deallocate GOOD_EMIS and GOOD_CT_EMIS
+("diag51_mod.f")
+
 cleanup_sulfate		-- Deleted obsolete arrays from older SO2 volcanic
 ("sulfate_mod.f")          emissions inventory
+
+compute_biomass_emissions -- Irrespective of inventory type, we need to 
+("biomass_mod.f")            scale biomass CO to account for CO production
+                             from VOC's that are not explicitly carried in the 
+                             chemistry mechanisms. This used to be done in 
+                             gc_biomass_mod.f but then is not used for GFED2, 
+                             FLAMBE, etc.
 
 diag20			-- Bug fix: Now just zero arrays w/o loop indices
 ("diag_pl_mod.f")
 
 diag3.f                 -- accounts for 3D AD13_NH3_an
+
+diag49                  -- Add outputs for EMISS_BVOC (10 tracers), TS, 
+("diag49_mod.f")            PARDR, PARDF and ISOLAI
+
+diag51_mod.f            -- Add module variables GOOD_EMIS and GOOD_CT_EMIS
+                            to manage emission outputs
 
 diag_mod.f		-- AD13_NH3_an is declared as 3D
      
@@ -145,16 +179,24 @@ emisssulfate		-- Now read new volcanic SO2 emissions daily
 
 emfossil.f		-- account for NEI 2005
 
+emissdr.f               -- Update for MEGAN v2.1
+
 fast_j.f 		-- Removed references to IN_CLOUD_OD		
+
+findmon.f               -- Add year management (needed for MODIS-LAI)
 
 get_alk			-- Updated hygroscopic growth factors according to
 ("seasalt_mod.f")          recommendations from Becky Alexander
+
+init_diag51             -- Allocate GOOD_EMIS and GOOD_CT_EMIS
+("diag51_mod.f")
 
 init_drydep		-- Minor bug fix: ALPH, LIMO should have 
 ("drydep_mod.f")           molwt = 136.23, not 136 even
 
 init_input		-- Now initialize LLINOZ
-("input_mod.f")
+("input_mod.f")         -- Now initialize LMODILAI and LPCEEA
+			-- Now initialize LNEI05
 
 init_sulfate		-- Now redimension EEV & NEV arrays for new SO2 
 ("sulfate_mod.f")          volcanic emissions inventory
@@ -164,10 +206,18 @@ init_sulfate		-- Now redimension EEV & NEV arrays for new SO2
 init_tracerinfo		-- Previous bug for molecular weight of ALD2 had 
 ("gamap_mod.f")		   been applied to PRPE.  Now corrected, ALD2 has
 	 		   2 carbons and PRPE has 3 carbons.
+			-- NTRAC for ND46 increased from 6 to 13.
+                           Add definition of new tracers
+			-- NTRAC for time series increased from 26 to 32
+			   Add definition of new tracers
 
 logical_mod.f		-- added LNEI05
+		        -- added LLINOZ
+			-- added LMODISLAI
+			-- added LPECCA
      
 main.f			-- Now calls LINOZ_READ at startup
+			-- Add the year in call to RDLAI and RDISOLAI
 
 Makefile		-- added nei2005_anthro_mod.o
 
@@ -177,6 +227,13 @@ ndxx_setup.f		-- Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS
 
 open_a6_fields		-- Removed references to IN_CLOUD_OD
 ("a6_read_mod.f")
+
+readlai.f               -- Read files for MODIS-LAI. Add year as argument.
+
+rdisolai                -- Add YEAR for MODIS
+("lai_mod.f")           -- Add call to MODIS-LAI for global simulations only
+
+rdlai.f                 -- Add the year for MODIS
 
 read_a3			-- Removed references to IN_CLOUD_OD
 ("a3_read_mod.f")
@@ -194,9 +251,15 @@ read_emissions_menu	-- Bug fix: for now, if LEMEPSHIP is turned on but
 ("input_mod.f")            LEMEP is turned off, just turn off LEMEPSHIP and 
                            print a warning msg
 			-- Now reads for LNEI05
+			-- Now reads for LMODISLAI
+                           Add check on LAI switches.
+			-- Now reads for LPECCA (PCEEA model)
 
 read_erup_volc		-- Complete re-write as volcanic emissions are now 
 ("sulfate_mod.f")          monthly and stored as BPCH files
+
+read_nd49_menu          -- Increase # of tracers from 100 to 120
+("input_mod.f")
 
 read_nonerup_volc	-- Complete re-write as volcanic emissions are now 
 ("sulfate_mod.f")          monthly and stored as BPCH files
@@ -229,6 +292,9 @@ sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions
 tagged_ox_mod.f		-- Various updates for Linoz
 
 upbdflx_mod.f		-- Various updates for Linoz
+
+write_diag51            -- Add outputs for EMISS_BVOC (10 tracers), TS, 
+("diag51_mod.f")            PARDR, PARDF and ISOLAI
 
 
 Removed obsolete, commented out code from the following routines:

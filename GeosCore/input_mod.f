@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.5 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: input_mod.f,v 1.6 2009/12/01 15:50:44 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1331,6 +1331,7 @@
 !        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
 !  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
 !  (24) Included optional flag for using MODIS LAI data (mpb,2009).
+!  (25) Included optional flag for using PCEEA model (mpb, 2009)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1435,7 +1436,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:16' )
       READ( SUBSTRS(1:N), * ) LMEGAN
 
-      ! Use PECCA model for biogenic emissions for? (mpb,2009)
+      ! Use PCEEA model for biogenic emissions for? (mpb,2009)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:17' )
       READ( SUBSTRS(1:N), * ) LPECCA
 
@@ -1798,7 +1799,7 @@
       WRITE( 6, 100     ) 'Turn on BIOFUEL emissions?  : ', LFOSSIL
       WRITE( 6, 100     ) 'Turn on BIOGENIC emissions? : ', LBIOGENIC
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
-      WRITE( 6, 100     ) 'Use PECCA BVOC model        : ', LPECCA
+      WRITE( 6, 100     ) 'Use PCEEA BVOC model        : ', LPECCA
       WRITE( 6, 100     ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
@@ -4713,7 +4714,8 @@
 !  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
 !  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
 !  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
-!  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA 
+!  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
+!  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4742,6 +4744,7 @@
       USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
       USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
       USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
+      USE LOGICAL_MOD,   ONLY : LNEI05
       ! >> (dkh, 02/12/09) 
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
@@ -4808,6 +4811,7 @@
       LMFLUX       = .FALSE.
       LMONOT       = .FALSE.
       LNEI99       = .FALSE.
+      LNEI05       = .FALSE.
       LOTDLOC      = .FALSE.
       LOTDREG      = .FALSE.
       LOTDSCALE    = .FALSE.
