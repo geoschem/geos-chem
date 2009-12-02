@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.16 2009/11/30 20:11:57 ccarouge Exp $
+# $Id: Makefile,v 1.17 2009/12/02 18:45:28 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -78,6 +78,11 @@
 #  23 Nov 2009 - R. Yantosca - Removed libbpch; bundled that into libutil
 #  23 Nov 2009 - R. Yantosca - Added separate target libcore.  lib is now
 #                              a synonym for "libkpp libutil libcore"
+#  01 Dec 2009 - R. Yantosca - Modified the "exe" target for SunStudio compiler
+#                              which chokes at link time if the list of object
+#                              files is not explicitly passed
+#  02 Dec 2009 - R. Yantosca - Add conditional statements in dependencies list
+#                              for the SunStudio compiler
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -137,8 +142,19 @@ libkpp:
 libutil:
 	@$(MAKE) -C $(UTIL)
 
+#-----------------------------------------------------------------------------
+# NOTE: Comment this out for time being, to avoid a shortcoming of the 
+# SunStudio compiler.  The SunStudio compiler will choke at link time if 
+# object files are not listed (even though we are linking to objects in a 
+# library file).  Thus we need to specify the $(OBJ) list and then just link 
+# to the libKpp.a and libGeosUtil.a files in the $(LIB) subdirectory.  
+# (bmy, 12/1/09)
+#exe:
+#	$(LD) $(LINK) -o $(EXE)
+#	cp -f $(EXE) $(BIN)
+#-----------------------------------------------------------------------------
 exe:
-	$(LD) -O3 $(LINK) -o $(EXE)
+	$(LD) $(OBJ) -lKpp -lGeosUtil -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
 clean:
@@ -513,6 +529,9 @@ gamap_mod.o                 : gamap_mod.f                                    \
                               drydep_mod.o            logical_mod.o    	     \
                               tracerid_mod.o          tracer_mod.o           \
                               wetscav_mod.o  
+ifeq ($(COMPILER),sun)
+	$(F90) -c -O3 $<
+endif
 
 gasconc.o                   : gasconc.f                                      \
                               comode_mod.o            dao_mod.o              \
@@ -909,6 +928,8 @@ tpcore_window_mod.o         : tpcore_window_mod.f     dao_mod.o              \
                               tracer_mod.o
 	$(F90) -c $(R8) $<
 
+tracer_mod.o                : tracer_mod.f
+
 tracerid_mod.o              : tracerid_mod.f                                 \
                               logical_mod.o           tracer_mod.o
 
@@ -939,6 +960,9 @@ upbdflx_mod.o               : upbdflx_mod.f                                  \
 update.o                    : update.f
 
 vdiff_pre_mod.o             : vdiff_pre_mod.f         tracer_mod.o
+ifeq ($(COMPILER),sun)
+	$(F90) -c -O3 $<
+endif
 
 vdiff_mod.o                 : vdiff_mod.f90                                  \
                               comode_mod.o            dao_mod.o              \
@@ -955,8 +979,6 @@ wetscav_mod.o               : wetscav_mod.f                                  \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           ocean_mercury_mod.o    \
                               tracerid_mod.o          tracer_mod.o
-
-#xltmmp.o                    : xltmmp.f               dao_mod.o
 
 XSEC1D.o                    : XSEC1D.f
 

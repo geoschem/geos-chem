@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2009/11/24 14:41:57 bmy Exp $
+# $Id: Makefile,v 1.7 2009/12/02 18:45:28 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ GEOSDIR = GeosCore
 .PHONY: all lib libkpp libutil exe clean realclean doc docclean help
 
 all:
-	@$(MAKE) -C $(GEOSDIR) all 
+	@$(MAKE) -C $(GEOSDIR) all
 
 lib:
 	@$(MAKE) -C $(GEOSDIR) lib

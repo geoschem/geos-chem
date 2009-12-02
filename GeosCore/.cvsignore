@@ -1,7 +1,8 @@
+*.a
 *.mod
 *.o
-*.a
 *.pdf
 *.ps
 *.tex
+a.out
 geos
