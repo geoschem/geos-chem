@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.8 2009/11/24 14:41:57 bmy Exp $
+# $Id: Makefile_header.mk,v 1.9 2009/12/03 21:34:39 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -55,6 +55,8 @@
 #  23 Nov 2009 - R. Yantosca - Change DEBUG to allow for new version of 
 #                              Totalview which doesn't choke when debugging
 #                              parallel code (Totalview 8.6.1-1)
+#  02 Dec 2009 - R. Yantosca - Added SUN32 switch for building 32-bit 
+#                              executbable on the SunStudio compiler
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -160,6 +162,10 @@ ifdef DEBUG
 FFLAGS = -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
 else
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
+endif
+
+ifdef SUN32
+FFLAGS += -m32
 endif
 
 # Turn on OpenMP parallelization

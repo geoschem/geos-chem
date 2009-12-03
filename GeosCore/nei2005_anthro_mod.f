@@ -1,14 +1,13 @@
-! $Id: nei2005_anthro_mod.f,v 1.1 2009/11/05 15:35:30 phs Exp $
+! $Id: nei2005_anthro_mod.f,v 1.2 2009/12/03 21:34:39 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: NEI2005_ANTHRO_MOD
+! !MODULE: nei2005_anthro_mod
 !
 ! !DESCRIPTION: Module NEI2005\_ANTHRO\_MOD contains variables and routines to 
-!  read the NEI2005 anthropogenic emissions.
-!      
+!  read the NEI2005 anthropogenic emissions.   
 !\\
 !\\
 ! !INTERFACE: 
@@ -23,13 +22,16 @@
 ! !PUBLIC DATA MEMBERS:
 !
       REAL*8, PUBLIC, ALLOCATABLE :: USA_MASK(:,:)
-
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_NEI2005_ANTHRO
-      PUBLIC :: EMISS_NEI2005_ANTHRO
-      PUBLIC :: GET_NEI2005_ANTHRO
+      PUBLIC  :: CLEANUP_NEI2005_ANTHRO
+      PUBLIC  :: EMISS_NEI2005_ANTHRO
+      PUBLIC  :: GET_NEI2005_ANTHRO
+      !--------------------------------------
+      ! Leave for future use (bmy, 12/3/09)
+      !PUBLIC  :: GET_NEI2005_MASK
+      !--------------------------------------
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -46,9 +48,11 @@
 !        emitted in GEOS-Chem). 
 !     
 ! !REVISION HISTORY:
-!    7 Oct 2009 - A. van Donkelaar - initial version
-!   20 Oct 2009 - P. Le Sager - added handling of VOC & masks
-!   02 Nov 2009 - A. van Donkelaar - added seasonality, weekday factors
+!  07 Oct 2009 - A. van Donkelaar - initial version
+!  20 Oct 2009 - P. Le Sager - added handling of VOC & masks
+!  02 Nov 2009 - A. van Donkelaar - added seasonality, weekday factors
+!  02 Dec 2009 - R. Yantosca - Added GET_NEI2005_MASK function
+!  02 Dec 2009 - R. Yantosca - Updated comments etc.
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -104,7 +108,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_NEI2005_ANTHRO
+! !IROUTINE: get_nei2005_anthro
 !
 ! !DESCRIPTION: Function GET\_NEI2005\_ANTHRO returns the NEI2005
 !  emission for GEOS-Chem grid box (I,J,L) and tracer N.  Emissions can be 
@@ -338,7 +342,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_NEI2005_ANTHRO
+! !IROUTINE: emiss_nei2005_anthro
 !
 ! !DESCRIPTION: Subroutine EMISS\_NEI2005\_ANTHRO reads the NEI2005
 !  emission fields at 1x1 resolution and regrids them to the 
@@ -667,7 +671,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_NEI99_SEASON
+! !IROUTINE: get_nei99_season
 !
 ! !DESCRIPTION: Subroutine GET\_NEI\_SEASON returns monthly scale
 !  factors from EPA 1999
@@ -789,7 +793,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_VISTAS_SEASON
+! !IROUTINE: get_vistas_season
 !
 ! !DESCRIPTION: Subroutine GET_VISTAS_SEASON returns monthly scale
 !  factors to account for monthly variations in NOx emissions
@@ -950,7 +954,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_NEI99_WKSCALE
+! !IROUTINE: get_nei99_wkscale
 !
 ! !DESCRIPTION: Subroutine GET\_NEI99\_WKSCALE returns the scale
 !  factors to convert weekday to weekend emissions based 
@@ -1068,7 +1072,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_NEI2005_MASK
+! !IROUTINE: read_nei2005_mask
 !
 ! !DESCRIPTION: Subroutine READ\_NEI2005\_MASK reads the mask for NEI data 
 !  
@@ -1143,13 +1147,56 @@
       
       ! Return to calling program
       END SUBROUTINE READ_NEI2005_MASK
+!------------------------------------------------------------------------------
+! Prior to 12/3/09:
+! Leave for future use (bmy, 12/3/09)
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: get_nei2005_mask
+!!
+!! !DESCRIPTION: Subroutine GET\_NEI2005\_MASK returns the value of the 
+!!  NEI 2005 mask to the calling program.  Values of 1 denote grid boxes 
+!!  within the EPA/NEI2005 emission region.!  
+!!\\
+!!\\
+!! !INTERFACE:
+!      
+!      FUNCTION GET_NEI2005_MASK( I, J ) RESULT ( USA )
+!!
+!! !INPUT PARAMETERS:
+!!     
+!      INTEGER, INTENT(IN) :: I, J   ! GEOS-Chem lon & lat indices
+!!
+!! !RETURN VALUE:
+!!
+!      REAL*8              :: USA    ! Value of the mask  
+!!
+!! !REMARKS:
+!!  This is entended to encapsulate the USA_MASK variable.
+!!     
+!! !REVISION HISTORY: 
+!!  02 Dec 2009 - R. Yantosca - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      USA = USA_MASK(I,J)
+!
+!      END FUNCTION GET_NEI2005_MASK
+!------------------------------------------------------------------------------
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: NEI2005_SCALE_FUTURE
+! !IROUTINE: nei2005_scale_future
 !
 ! !DESCRIPTION: Subroutine NEI2005\_SCALE\_FUTURE applies the IPCC future scale 
 !  factors to the NEI2005 anthropogenic emissions.
@@ -1230,7 +1277,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ANTHRO_TG
+! !IROUTINE: total_anthro_Tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the totals for the 
 !  anthropogenic emissions of NOx, CO, SO2 and NH3.
@@ -1352,7 +1399,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_NEI2005_ANTHRO
+! !IROUTINE: init_nei2005_anthro
 !
 ! !DESCRIPTION: Subroutine INIT\_NEI2005\_ANTHRO allocates and zeroes all 
 !  module arrays.
@@ -1538,7 +1585,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_NEI2005_ANTHRO
+! !IROUTINE: cleanup_nei2005_anthro
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_NEI2005\_ANTHRO deallocates all module 
 !  arrays.

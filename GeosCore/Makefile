@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.17 2009/12/02 18:45:28 bmy Exp $
+# $Id: Makefile,v 1.18 2009/12/03 21:34:39 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -530,7 +530,7 @@ gamap_mod.o                 : gamap_mod.f                                    \
                               tracerid_mod.o          tracer_mod.o           \
                               wetscav_mod.o  
 ifeq ($(COMPILER),sun)
-	$(F90) -c -O3 $<
+	$(F90) -O3 -c $<
 endif
 
 gasconc.o                   : gasconc.f                                      \
@@ -961,7 +961,7 @@ update.o                    : update.f
 
 vdiff_pre_mod.o             : vdiff_pre_mod.f         tracer_mod.o
 ifeq ($(COMPILER),sun)
-	$(F90) -c -O3 $<
+	$(F90) -O3 -c $<
 endif
 
 vdiff_mod.o                 : vdiff_mod.f90                                  \

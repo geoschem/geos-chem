@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.6 2009/11/05 15:35:29 phs Exp $
+! $Id: sulfate_mod.f,v 1.7 2009/12/03 21:34:39 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 10/15/09)
+!  (rjp, bdf, bmy, 6/22/00, 12/3/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -214,6 +214,7 @@
 !  (47) Added new volcanic emissions of SO2 (jaf, bmy, 10/15/09)
 !  (48) Now accounts for NEI 2005 emissions, and multilevels SOxan emissions
 !        (amv, phs, 10/15/2009) 
+!  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -4304,7 +4305,7 @@
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
-!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 10/15/09)
+!  aircraft, biomass, and anthro sources. (rjp, bdf, bmy, 6/2/00, 12/3/09)
 !
 !  Arguments as Input/Output:
 !  ===========================================================================
@@ -4343,7 +4344,9 @@
 !  (13) Changed processing of volcanic SO2 emissions (jaf, bmy, 10/15/09)
 !  (14) Read NEI now (amv, 10/07/2009)
 !  (15) Now calls SULFATE_PBL_MIX to do the PBL mixing of
-!     emissions (phs, 10/27/09)
+!        emissions (phs, 10/27/09)
+!  (16) Rewrite Aerocom SO2 emissions section to avoid errors on SunStudio
+!        compiler. Also avoid division by zero. (bmy, 12/3/09)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -4356,7 +4359,8 @@
       USE DAO_MOD,        ONLY : BXHEIGHT, PBL
       USE EPA_NEI_MOD,    ONLY : GET_EPA_ANTHRO,   GET_EPA_BIOFUEL
       USE EPA_NEI_MOD,    ONLY : GET_USA_MASK
-      USE ERROR_MOD,      ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,      ONLY : ERROR_STOP,       GEOS_CHEM_STOP
+      USE ERROR_MOD,      ONLY : IS_SAFE_DIV
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE GRID_MOD,       ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,    ONLY : LBRAVO, LNEI99,   LSHIPSO2
@@ -4396,6 +4400,7 @@
       REAL*8                 :: SO2an(IIPAR,JJPAR,NOXLEVELS)
       REAL*8                 :: SO2bf(IIPAR,JJPAR)
       REAL*8                 :: TEMPEMISS(NOXLEVELS)
+      REAL*8                 :: T_DIFF, T_SUM
 
       ! Ratio of molecular weights: S/SO2
       REAL*8,  PARAMETER     :: S_SO2 = 32d0 / 64d0
@@ -4416,6 +4421,9 @@
       !=================================================================
       ! SRCSO2 begins here!
       !================================================================
+
+      print*, '### top of SRCSO2'
+      call flush(6)
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
@@ -4608,9 +4616,7 @@
     
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
-         JREF = J + J0
       DO I = 1, IIPAR
-         IREF = I + I0
     
          !==============================================================
          ! Loop over tropospheric GEOS-CHEM levels 
@@ -4640,7 +4646,7 @@
 
                ! Compute the fraction of each 1-km layer K that
                ! lies within the given GEOS-CHEM layer L
-               FRAC = 0.0
+               FRAC = 0.0d0
 
                ! GC grid box is completely below volcanic grid box
                IF ( PHIGH >= PVOLCLOW ) THEN
@@ -4665,41 +4671,77 @@
                ! All of volcanic box in GC box
                ELSE IF ( PHIGH <= PVOLCHIGH .AND. 
      &                   PLOW >= PVOLCLOW ) THEN
-                  FRAC = 1.0
+                  FRAC = 1.0d0
 
                ENDIF
 
-            ! Add contribution from this layer of volcanic grid (K)
-            ! to non-eruptive SO2 in model grid layer L.
-            ESO2_nv(IREF,JREF,L) = ESO2_nv(IREF,JREF,L) +
-     &                             FRAC * ENV(IREF,JREF,K)
-
-            ! Add contribution from this layer of volcanic grid (K)
-            ! to eruptive SO2 in model grid layer L.
-            ESO2_ev(IREF,JREF,L) = ESO2_ev(IREF,JREF,L) +
-     &                             FRAC * EEV(IREF,JREF,K)
+               ! Add contribution from this layer of volcanic grid (K)
+               ! to non-eruptive SO2 in model grid layer L.
+               ESO2_nv(I,J,L) = ESO2_nv(I,J,L) +
+     &                          FRAC * ENV(I,J,K)
+  
+               ! Add contribution from this layer of volcanic grid (K)
+               ! to eruptive SO2 in model grid layer L.
+               ESO2_ev(I,J,L) = ESO2_ev(I,J,L) +
+     &                          FRAC * EEV(I,J,K)
 
             ENDDO ! K
 
 10          CONTINUE
          ENDDO    ! L
 
-      ! Consistency check: columns before and after regridding should
-      ! be equal
-      IF ( ABS(SUM(ESO2_nv(IREF,JREF,:)) - SUM(ENV(IREF,JREF,:)))
-     &   / SUM(ENV(IREF,JREF,:)) .GT. 1e-5 ) THEN
-         PRINT*, 'Non-eruptive volcanic SO2 emissions before and ' //
-     &           'after regridding are not equivalent!'
-         CALL FLUSH(6)
-         CALL GEOS_CHEM_STOP
-      ENDIF
-      IF ( ABS(SUM(ESO2_ev(IREF,JREF,:)) - SUM(EEV(IREF,JREF,:)))
-     &   / SUM(EEV(IREF,JREF,:)) .GT. 1e-5 ) THEN
-         PRINT*, 'Eruptive volcanic SO2 emissions before and ' //
-     &           'after regridding are not equivalent!'
-         CALL FLUSH(6)
-         CALL GEOS_CHEM_STOP
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 12/3/09:
+! Rewrite these tests to avoid div-by-zero, which will choke on the SunStudio
+! compiler (bmy, 12/3/09)
+!         ! Consistency check: columns before and after regridding 
+!         ! should be equal.
+!      IF ( ABS(SUM(ESO2_nv(I,J,:)) - SUM(ENV(I,J,:)))
+!     &   / SUM(ENV(I,J,:)) .GT. 1e-5 ) THEN
+!         PRINT*, 'Non-eruptive volcanic SO2 emissions before and ' //
+!     &           'after regridding are not equivalent!'
+!         CALL FLUSH(6)
+!         CALL GEOS_CHEM_STOP
+!      ENDIF
+!      IF ( ABS(SUM(ESO2_ev(I,J,:)) - SUM(EEV(I,J,:)))
+!     &   / SUM(EEV(I,J,:)) .GT. 1e-5 ) THEN
+!         PRINT*, 'Eruptive volcanic SO2 emissions before and ' //
+!     &           'after regridding are not equivalent!'
+!         CALL FLUSH(6)
+!         CALL GEOS_CHEM_STOP
+!      ENDIF
+!------------------------------------------------------------------------------
+
+         !===========================================================
+         ! Consistency check: columns before and after regridding 
+         ! should be equal.  Be careful not to divide by zero!
+         !===========================================================
+
+         ! Non-eruptive volcanoes
+         T_SUM  = SUM( ENV(I,J,:) )
+         T_DIFF = ABS( SUM( ESO2_nv(I,J,:) ) - T_SUM )         
+
+         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
+            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
+               PRINT*, 'Non-eruptive volcanic SO2 emissions before ' //
+     &                 'and after regridding are not equivalent!'
+               CALL FLUSH(6)
+               CALL GEOS_CHEM_STOP
+            ENDIF
+         ENDIF
+
+         ! Eruptive volcanoes
+         T_SUM  = SUM( EEV(I,J,:) )
+         T_DIFF = ABS( SUM( ESO2_ev(I,J,:) ) - T_SUM )         
+
+         IF ( IS_SAFE_DIV( T_DIFF, T_SUM ) ) THEN
+            IF ( T_DIFF / T_SUM > 1d-5 ) THEN
+               PRINT*, 'Eruptive volcanic SO2 emissions before ' //
+     &                 'and after regridding are not equivalent!'
+               CALL FLUSH(6)
+               CALL GEOS_CHEM_STOP
+            ENDIF
+         ENDIF
 
       ENDDO       ! I
       ENDDO       ! J
@@ -4911,7 +4953,7 @@
             ! If we are using EPA/NEI 2005 over USA.
             ! Must be called after CAC and BRAVO to simply overwrite
             ! where they overlap
-            !-----------------------------------------------------------            
+            !-----------------------------------------------------------  
             IF ( LNEI05 ) THEN
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 

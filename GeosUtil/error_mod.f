@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.1 2009/11/20 21:43:06 bmy Exp $
+! $Id: error_mod.f,v 1.2 2009/12/03 21:34:39 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -904,7 +904,7 @@
 !
 ! !IROUTINE: is_safe_div
 !
-! !DESCRIPTION: Subroutine IS\_SAFE\_DIV tests for "safe division", that is 
+! !DESCRIPTION: Function IS\_SAFE\_DIV tests for "safe division", that is 
 !  check if the division will overflow/underflow or hold NaN.  .FALSE. is 
 !  returned if the division cannot be performed. (phs, 6/11/08)
 !\\
