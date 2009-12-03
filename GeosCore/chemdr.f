@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+! $Id: chemdr.f,v 1.3 2009/12/03 17:01:18 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -149,12 +149,13 @@
 !        resetting some of CSPEC elements (phs, 6/3/08)
 !  (32) Reading the CSPEC_FULL restart file if asked.(dkh, hotp, ccc 2/26/09)
 !  (33) Added optional call to gckpp_driver (phs,ks,dhk, 09/15/09)
+!  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
-      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
+!      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : SUNCOSB,  T
@@ -466,7 +467,8 @@
       !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
       IF ( LKPP ) THEN
          NTT = NTTLOOP
-         CSPEC_FOR_KPP = CSPEC
+!--- CSPEC_FOR_KPP not used anymore (ccc, 12/3/09)
+!         CSPEC_FOR_KPP = CSPEC
          CALL gckpp_Driver()
       ENDIF
       !********************************************

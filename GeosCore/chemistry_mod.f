@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.4 2009/11/20 21:43:18 bmy Exp $
+! $Id: chemistry_mod.f,v 1.5 2009/12/03 17:01:18 ccarouge Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -409,12 +409,13 @@
 !     Driver routine to perform integration of the full KPP chemistry mechanism.
 !     Based on Daven Henze's GCKPP_DRIVER.           (Kumaresh, 01/24/2008)
 !     Commented, and updated to call various forward solvers (phs, 09/16/09)
+!     Use CSPEC instead of CSPEC_FOR_KPP to save memory space (ccc, 12/03/09)
 !******************************************************************************
 !
       ! Reference to f90 modules
       USE COMODE_MOD,           ONLY : JLOP,   CSPEC
       USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
-      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP, CSPEC_FOR_KPP
+      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP !, CSPEC_FOR_KPP
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
       USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
@@ -568,9 +569,15 @@
            J = IYSAVE(JJLOOP)
            L = IZSAVE(JJLOOP)
 
-           ! Pass tracer concentrations from CSPEC_FOR_KPP to KPP working vector V_CSPEC
+!--- Use CSPEC instead of CSPEC_FOR_KPP to save memory space. (ccc, 12/3/09)
+!           ! Pass tracer concentrations from CSPEC_FOR_KPP to KPP working vector V_CSPEC
+!           DO N =1, NVAR
+!              V_CSPEC(N) = CSPEC_FOR_KPP(JLOOP,N)
+!           END DO
+
+           ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
            DO N =1, NVAR
-              V_CSPEC(N) = CSPEC_FOR_KPP(JLOOP,N)
+              V_CSPEC(N) = CSPEC(JLOOP,N)
            END DO
 
            ! Pass tracer concentrations from V_CSPEC to KPP working vector VAR.

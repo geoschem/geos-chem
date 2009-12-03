@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.3 2009/12/03 17:01:18 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -467,9 +467,13 @@ CONTAINS
     REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
 
     ! E/W, N/S, and up/down diagnostic mass fluxes
-    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
+!--- Previous to (ccc, 12/3/09)
+!    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
+!    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
+!    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
+    REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
+    REAL*8,  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
+    REAL*8,  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -494,7 +498,8 @@ CONTAINS
 !                               loops over vertical levels outside the 
 !                               horizontal transport routines for reducing
 !                               processing time.
-!
+!   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
+!                               MASSFLUP to save memory space.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -101,6 +101,7 @@ ratj.d     		-- Updated the branching ratio of HNO4.
 input.geos		-- has an additional lines for EPA2005, LINOZ, PCEEA,
 			   MODIS-LAI
 
+jv_spec.dat             -- Correct line 25: "HCHO=H+293 ..."
 
 In the Headers subdirectory:
 ----------------------------
@@ -224,6 +225,8 @@ Makefile		-- added nei2005_anthro_mod.o
 ndxx_setup.f		-- Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS
 			   levels to accomodate NEI 2005
 			-- accounts for 3D AD13_NH3_an
+                        -- MASSFLEW, MASSFLNS and MASSFLUP are scalar if 
+                           the diagnostics are not used.
 
 open_a6_fields		-- Removed references to IN_CLOUD_OD
 ("a6_read_mod.f")
@@ -290,6 +293,9 @@ sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions
 			-- Commented out LEEV and LENV flags
 
 tagged_ox_mod.f		-- Various updates for Linoz
+
+tpcore_fvdas            -- MASSFLEW, MASSFLNS and MASSFLUP declarations are 
+("tpcore_fvdas_mod.f90")   changed.
 
 upbdflx_mod.f		-- Various updates for Linoz
 

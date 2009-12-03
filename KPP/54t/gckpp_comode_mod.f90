@@ -20,10 +20,12 @@ MODULE GCKPP_COMODE_MOD
 
   REAL*8,  ALLOCATABLE :: R_KPP(:,:)
   REAL*8,  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
-  REAL*8,  ALLOCATABLE :: CSPEC_FOR_KPP(:,:) 
+!  REAL*8,  ALLOCATABLE :: CSPEC_FOR_KPP(:,:) 
 !    
 ! !REVISION HISTORY:
 !   16 Sep 2009 - P. Le Sager - init
+!   03 Dec 2009 - C. Carouge  - CSPEC_FOR_KPP not used anymore 
+!                               (use CSPEC instead)
 !EOP
 !------------------------------------------------------------------------------
     
@@ -82,12 +84,13 @@ CONTAINS
     ENDIF
     HSAVE_KPP = 0.d0 
 
-    ALLOCATE( CSPEC_FOR_KPP( ITLOOP, IGAS ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       RC=1
-       RETURN
-    ENDIF
-    CSPEC_FOR_KPP = 0d0
+!--- Previous to (ccc, 12/3/09)
+!    ALLOCATE( CSPEC_FOR_KPP( ITLOOP, IGAS ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       RC=1
+!       RETURN
+!    ENDIF
+!    CSPEC_FOR_KPP = 0d0
 
     ! Return to calling program
   END SUBROUTINE INIT_GCKPP_COMODE
@@ -114,7 +117,8 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC    
     IF ( ALLOCATED( R_KPP         ) ) DEALLOCATE( R_KPP         )
-    IF ( ALLOCATED( CSPEC_FOR_KPP ) ) DEALLOCATE( CSPEC_FOR_KPP )
+!--- Previous to (ccc, 12/3/09)
+!    IF ( ALLOCATED( CSPEC_FOR_KPP ) ) DEALLOCATE( CSPEC_FOR_KPP )
     IF ( ALLOCATED( HSAVE_KPP     ) ) DEALLOCATE( HSAVE_KPP     )
 
     ! Return to calling program
