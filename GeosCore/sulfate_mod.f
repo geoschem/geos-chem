@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.7 2009/12/03 21:34:39 bmy Exp $
+! $Id: sulfate_mod.f,v 1.8 2009/12/04 19:14:01 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -4421,9 +4421,6 @@
       !=================================================================
       ! SRCSO2 begins here!
       !================================================================
-
-      print*, '### top of SRCSO2'
-      call flush(6)
 
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
