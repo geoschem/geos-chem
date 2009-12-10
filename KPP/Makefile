@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2009/11/23 17:15:02 bmy Exp $
+# $Id: Makefile,v 1.8 2009/12/10 21:14:24 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -56,6 +56,7 @@
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  18 Sep 2009 - P. Le Sager - Added kppintegrator target & commented
 #                              "make -C int" calls 
+#  20 Nov 2009 - P. Le Sager - Added CHEM option
 #  23 Nov 2009 - R. Yantosca - Added realclean target
 #EOP
 #------------------------------------------------------------------------------
@@ -74,10 +75,24 @@ MOD     = $(ROOTDIR)/mod
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
-# Make the 43-tracer simulation the default
-ifndef NTRAC 
-NTRAC = 43
+# Make the standard 43-tracer simulation the default
+ifndef CHEM
+CHEM = standard
 endif
+
+# Check if NTRAC option is used
+ifdef NTRAC 
+
+ifeq ($(NTRAC),43)
+CHEM = standard
+endif
+
+ifeq ($(NTRAC),54)
+CHEM = standard
+endif
+
+endif
+
 
 # Make rosenbrock the default solver
 ifndef KPPSOLVER
@@ -86,7 +101,7 @@ endif
 
 # solver (S=Source, T=Target)
 SOLVER_SFILE=./int/gckpp_Integrator_$(KPPSOLVER).f90
-SOLVER_TFILE=./$(NTRAC)t/gckpp_Integrator.f90
+SOLVER_TFILE=./$(CHEM)/gckpp_Integrator.f90
 
 
 #=============================================================================
@@ -98,7 +113,7 @@ SOLVER_TFILE=./$(NTRAC)t/gckpp_Integrator.f90
 all: lib
 
 lib: kppintegrator
-	@$(MAKE) -C $(NTRAC)t
+	@$(MAKE) -C $(CHEM)
 
 kppintegrator:
 	@diff $(SOLVER_SFILE) $(SOLVER_TFILE) ;\
@@ -108,11 +123,11 @@ kppintegrator:
 	fi
 
 clean:
-	@$(MAKE) -C $(NTRAC)t clean
+	@$(MAKE) -C $(CHEM) clean
 
 realclean:
-	@$(MAKE) -C 43t clean
-	@$(MAKE) -C 54t clean
+	@$(MAKE) -C standard clean
+	@$(MAKE) -C SOA clean
 
 help:
 	@$(MAKE) -C $(HELP) 

@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.5 2009/11/23 21:44:56 bmy Exp $
+# $Id: Makefile,v 1.6 2009/12/10 21:14:21 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -63,6 +63,7 @@ help:
 	@echo 'IPO=yes        Turns on optmization options -ipo -static (ifort only)'
 	@echo 'TRACEBACK=yes  Turns on -traceback option (ifort only)'
 	@echo 'NONUMA=yes     Turns on -mp=nonuma option (pgi only)'
-	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver'
+	@echo 'CHEM=___       Specifies which simulation is done. Options: standard SOA'
+	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver. Should use CHEM flag instead.'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
 	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
