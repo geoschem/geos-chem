@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.3 2009/12/03 17:01:18 ccarouge Exp $
+! $Id: chemdr.f,v 1.4 2009/12/10 17:57:11 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -150,12 +150,12 @@
 !  (32) Reading the CSPEC_FULL restart file if asked.(dkh, hotp, ccc 2/26/09)
 !  (33) Added optional call to gckpp_driver (phs,ks,dhk, 09/15/09)
 !  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
+!  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
-!      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : SUNCOSB,  T
@@ -167,7 +167,6 @@
       USE LOGICAL_MOD,          ONLY : LCARB,        LDUST,     LEMBED
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
-      USE LOGICAL_MOD,          ONLY : LKPP
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
       USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
       USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
@@ -179,9 +178,12 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
-      ! KPP interface (phs,ks,dhk, 09/15/09))
-      USE GCKPP_GLOBAL,         ONLY : NTT
-      USE CHEMISTRY_MOD,        ONLY : GCKPP_DRIVER
+!--- Previous to (ccc, 12/9/09)
+!      USE LOGICAL_MOD,          ONLY : LKPP
+!      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
+!      ! KPP interface (phs,ks,dhk, 09/15/09))
+!      USE GCKPP_GLOBAL,         ONLY : NTT
+!      USE CHEMISTRY_MOD,        ONLY : GCKPP_DRIVER
 
       IMPLICIT NONE
 
@@ -463,15 +465,16 @@
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
       CALL PHYSPROC( SUNCOS, SUNCOSB )
-       
-      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
-      IF ( LKPP ) THEN
-         NTT = NTTLOOP
-!--- CSPEC_FOR_KPP not used anymore (ccc, 12/3/09)
-!         CSPEC_FOR_KPP = CSPEC
-         CALL gckpp_Driver()
-      ENDIF
-      !********************************************
+
+!--- Previous to (ccc, 12/9/09)
+!      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
+!      IF ( LKPP ) THEN
+!         NTT = NTTLOOP
+!!--- CSPEC_FOR_KPP not used anymore (ccc, 12/3/09)
+!!         CSPEC_FOR_KPP = CSPEC
+!!         CALL gckpp_Driver()
+!      ENDIF
+!      !********************************************
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

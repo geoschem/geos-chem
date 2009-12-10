@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.18 2009/12/03 21:34:39 bmy Exp $
+# $Id: Makefile,v 1.19 2009/12/10 17:57:11 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -760,8 +760,12 @@ pderiv.o                    : pderiv.f
 
 photoj.o                    : photoj.f
 
+#physproc.o                  : physproc.f                                     \
+#                              comode_mod.o            logical_mod.o
+
 physproc.o                  : physproc.f                                     \
-                              comode_mod.o            logical_mod.o
+                              comode_mod.o            logical_mod.o          \
+                              chemistry_mod.o
 
 pjc_pfix_geos5_window_mod.o : pjc_pfix_geos5_window_mod.f
 

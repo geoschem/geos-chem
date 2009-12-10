@@ -18,14 +18,18 @@ MODULE GCKPP_COMODE_MOD
 !  
   IMPLICIT NONE
 
-  REAL*8,  ALLOCATABLE :: R_KPP(:,:)
-  REAL*8,  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
+!--- Previous to (ccc, 12/9/09)
+!  REAL*8,  ALLOCATABLE :: R_KPP(:,:)
 !  REAL*8,  ALLOCATABLE :: CSPEC_FOR_KPP(:,:) 
+
+  REAL*8,  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
 !    
 ! !REVISION HISTORY:
 !   16 Sep 2009 - P. Le Sager - init
 !   03 Dec 2009 - C. Carouge  - CSPEC_FOR_KPP not used anymore 
 !                               (use CSPEC instead)
+!   09 Dec 2009 - C. Carouge  - R_KPP not used anymore
+!                               (use RRATE_FOR_KPP instead)
 !EOP
 !------------------------------------------------------------------------------
     
@@ -56,6 +60,7 @@ CONTAINS
 !    
 ! !REVISION HISTORY:
 !   16 Sep 2009 - P. Le Sager - init
+!   09 Dec 2009 - C. Carouge  - R_KPP and CSPEC_FOR_KPP are not used anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -70,12 +75,19 @@ CONTAINS
 100 FORMAT( '     - INIT_GCKPP_COMODE: Allocating arrays for GCKPP...' )
 
 
-    ALLOCATE( R_KPP( ITLOOP, NMTRATE ), STAT=AS )
-    IF ( AS /= 0 ) THEN
-       RC=1
-       RETURN
-    ENDIF
-    R_KPP = 0d0
+!--- Previous to (ccc, 12/9/09)
+!    ALLOCATE( R_KPP( ITLOOP, NMTRATE ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       RC=1
+!       RETURN
+!    ENDIF
+!    R_KPP = 0d0
+!    ALLOCATE( R_KPP( 24, NMTRATE ), STAT=AS )
+!    IF ( AS /= 0 ) THEN
+!       RC=1
+!       RETURN
+!    ENDIF
+!    R_KPP = 0d0
 
     ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLTROP ), STAT=AS )
     IF ( AS /= 0 ) THEN
@@ -113,12 +125,14 @@ CONTAINS
 !    
 ! !REVISION HISTORY:
 !   16 Sep 2009 - P. Le Sager - init
+!   09 Dec 2009 - C. Carouge  - R_KPP and CSPEC_FOR_KPP are not used anymore
 !EOP
 !------------------------------------------------------------------------------
 !BOC    
-    IF ( ALLOCATED( R_KPP         ) ) DEALLOCATE( R_KPP         )
-!--- Previous to (ccc, 12/3/09)
+!--- Previous to (ccc, 12/09/09)
+!    IF ( ALLOCATED( R_KPP         ) ) DEALLOCATE( R_KPP         )
 !    IF ( ALLOCATED( CSPEC_FOR_KPP ) ) DEALLOCATE( CSPEC_FOR_KPP )
+
     IF ( ALLOCATED( HSAVE_KPP     ) ) DEALLOCATE( HSAVE_KPP     )
 
     ! Return to calling program

@@ -20,7 +20,7 @@
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !   16 Sep 2009 - P. Le Sager - Replaced COMODE_MOD by GCKPP_COMODE_MOD
-! 
+!   10 Dec 2009 - C. Carouge  - Add R_KPP as input argument
 
 
 MODULE gckpp_Rates
@@ -181,16 +181,23 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SUBROUTINE Update_RCONST ( )
+!--- Previous to (ccc, 12/9/09)
+!SUBROUTINE Update_RCONST ()
+SUBROUTINE Update_RCONST (R_KPP)
 
 
-  USE gckpp_COMODE_MOD,        ONLY : R_KPP
+!--- Previous to (ccc, 12/9/09)
+!  USE gckpp_COMODE_MOD,        ONLY : R_KPP
   USE gckpp_Monitor
 
 ! Begin INLINED RCONST
 
 
 ! End INLINED RCONST
+
+  ! INPUT ARGUMENT:
+  REAL*8, INTENT(IN) :: R_KPP(:,:) 
+
 
   INTEGER :: N
 

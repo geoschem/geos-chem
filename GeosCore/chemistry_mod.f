@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.5 2009/12/03 17:01:18 ccarouge Exp $
+! $Id: chemistry_mod.f,v 1.6 2009/12/10 17:57:10 ccarouge Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -402,8 +402,9 @@
       END SUBROUTINE DO_CHEMISTRY
 
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE GCKPP_DRIVER( ) 
+!--- Previous to (ccc, 12/3/09)      
+!      SUBROUTINE GCKPP_DRIVER() 
+      SUBROUTINE GCKPP_DRIVER(KTLOOP, JLOOPLO, R_KPP) 
 !
 !******************************************************************************
 !     Driver routine to perform integration of the full KPP chemistry mechanism.
@@ -415,7 +416,9 @@
       ! Reference to f90 modules
       USE COMODE_MOD,           ONLY : JLOP,   CSPEC
       USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
-      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP !, CSPEC_FOR_KPP
+!--- Previous to (ccc, 12/3/09)
+!      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP, CSPEC_FOR_KPP
+      USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
       USE GCKPP_INITIALIZE,     ONLY : INITIALIZE
@@ -471,12 +474,19 @@
 !======================================================================
       
       
+      ! Arguments:
+      INTEGER, INTENT(IN)  :: KTLOOP, JLOOPLO
+
+      REAL*8, INTENT(IN)   :: R_KPP(:,:)
+
       ! Local variables
       REAL*8        :: T, TIN, TOUT
       INTEGER       :: ICNTRL(20)
       REAL(kind=dp) :: RCNTRL(20)
       INTEGER       :: ISTATUS(20)
-      INTEGER       :: I, J, L, N, JJLOOP, IERR
+!--- Previous to (ccc, 12/3/09)
+!      INTEGER       :: I, J, L, N, JJLOOP, IERR
+      INTEGER       :: I, J, L, N, KLOOP, IERR
       REAL(kind=dp) :: RSTATE(20)
       LOGICAL, SAVE :: FIRST = .TRUE.
       CHARACTER(LEN=255) :: ERR_MSG
@@ -554,68 +564,95 @@
      &       'Hexit, last accepted step before exit:    ', f11.4, /,
      &       'Hnew, last predicted step (not yet taken):', f11.4 )
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( JJLOOP, I, J, L, N, RSTATE, ISTATUS )
-!$OMP+FIRSTPRIVATE( RCNTRL, ICNTRL )
-!$OMP+COPYIN( TIME )
-!$OMP+SCHEDULE( DYNAMIC )
-        DO JJLOOP = 1,NTT
+!--- Previous to (ccc, 12/3/09)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( JJLOOP, I, J, L, N, RSTATE, ISTATUS )
+!!$OMP+FIRSTPRIVATE( RCNTRL, ICNTRL )
+!!$OMP+COPYIN( TIME )
+!!$OMP+SCHEDULE( DYNAMIC )
+!        DO JJLOOP = 1,NTT
 
-           JLOOP = JJLOOP
+      DO KLOOP = 1, KTLOOP
+!--- Previous to (ccc, 12/3/09)
+!           JLOOP = JJLOOP
+         ! 1D grid box index on the global grid
+         JLOOP         = JLOOPLO+KLOOP
            
-           ! Get 3D coords from SMVGEAR's 1D coords
-           I = IXSAVE(JJLOOP)
-           J = IYSAVE(JJLOOP)
-           L = IZSAVE(JJLOOP)
+         ! Get 3D coords from SMVGEAR's 1D coords
+!--- Previous to (ccc, 12/3/09)
+!           I = IXSAVE(JJLOOP)
+!           J = IYSAVE(JJLOOP)
+!           L = IZSAVE(JJLOOP)
+         I = IXSAVE(JLOOP)
+         J = IYSAVE(JLOOP)
+         L = IZSAVE(JLOOP)
 
 !--- Use CSPEC instead of CSPEC_FOR_KPP to save memory space. (ccc, 12/3/09)
-!           ! Pass tracer concentrations from CSPEC_FOR_KPP to KPP working vector V_CSPEC
-!           DO N =1, NVAR
-!              V_CSPEC(N) = CSPEC_FOR_KPP(JLOOP,N)
-!           END DO
+!!           ! Pass tracer concentrations from CSPEC_FOR_KPP to KPP working vector V_CSPEC
+!!           DO N =1, NVAR
+!!              V_CSPEC(N) = CSPEC_FOR_KPP(JLOOP,N)
+!!           END DO
+         ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
+         DO N =1, NVAR
+            V_CSPEC(N) = CSPEC(JLOOP,N)
+         END DO
 
-           ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
-           DO N =1, NVAR
-              V_CSPEC(N) = CSPEC(JLOOP,N)
-           END DO
-
-           ! Pass tracer concentrations from V_CSPEC to KPP working vector VAR.
-           ! This also initializes the constant rate constants FIX.
-           CALL Initialize()
-
-
-           ! starting value for integration time step
-           RCNTRL(3) = HSAVE_KPP(I,J,L)
-
-           ! Recalculate rate constants
-           CALL Update_RCONST()
+         ! Pass tracer concentrations from V_CSPEC to KPP working vector VAR.
+         ! This also initializes the constant rate constants FIX.
+         CALL Initialize()
 
 
-           ! Integrate FWD -- phs --
-           call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
-     $          RSTATE, IERR)
+         ! starting value for integration time step
+         RCNTRL(3) = HSAVE_KPP(I,J,L)
+
+         ! Recalculate rate constants
+!--- Previous to (ccc, 12/3/09)
+!         CALL Update_RCONST()
+
+         ! 1D grid box index in the KTLOOP subset.
+         ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
+         JLOOP = KLOOP
+         CALL Update_RCONST(R_KPP)
          
-           ! Try another time if it failed
-           IF ( IERR < 0 ) THEN
-              write(6,*) ''
-              write(6,100) istatus(1:8),rstate(1:3)
-              write(6,*) ''
-              write(ERR_MSG,'(a, i3)') 'Integrator error code :',IERR
-              write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
+         ! 1D grid box index on the global grid
+         JLOOP = JLOOPLO+KLOOP
 
-              ! Reset first time step and start concentrations
-              RCNTRL(3)  = 0d0
-              CALL Initialize( ) ! v2.1 
-              CALL Update_RCONST()
-              call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
-     $                       RSTATE, IERR)
-              IF ( IERR < 0 ) THEN              
-                 print*, 'failed twice !!! '
-                 CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
-              ENDIF
+
+         ! Integrate FWD -- phs --
+         call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
+     $        RSTATE, IERR)
+         
+         ! Try another time if it failed
+         IF ( IERR < 0 ) THEN
+            write(6,*) ''
+            write(6,100) istatus(1:8),rstate(1:3)
+            write(6,*) ''
+            write(ERR_MSG,'(a, i3)') 'Integrator error code :',IERR
+            write(6,*)  'JLOOP, I, J, L ', JLOOP, I, J, L
+
+            ! Reset first time step and start concentrations
+            RCNTRL(3)  = 0d0
+            CALL Initialize( )  ! v2.1 
+!--- Previous to (ccc, 12/3/09)
+!            CALL Update_RCONST()
+
+            ! 1D grid box index in the KTLOOP subset.
+            ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
+            JLOOP = KLOOP
+            CALL Update_RCONST(R_KPP)
+
+            ! 1D grid box index on the global grid
+            JLOOP = JLOOPLO+KLOOP
+
+            call integrate(TIN, TOUT, ICNTRL, RCNTRL, ISTATUS,
+     $           RSTATE, IERR)
+            IF ( IERR < 0 ) THEN              
+               print*, 'failed twice !!! '
+               CALL ERROR_STOP(ERR_MSG, 'INTEGRATE_KPP')
+            ENDIF
                             
-           ENDIF
+         ENDIF
 
 !--------- using the adjoint integrator (limited to Rosenbrock)           
 !adj!           ! using adjoint integrator           
@@ -645,26 +682,26 @@
 !--------- using the adjoint integrator (limited to Rosenbrock)           
 
 
-           ! Set negative values to SMAL2
-           DO N = 1, NVAR
-              VAR(N) = MAX(VAR(N),SMAL2)
-           ENDDO
+         ! Set negative values to SMAL2
+         DO N = 1, NVAR
+            VAR(N) = MAX(VAR(N),SMAL2)
+         ENDDO
 
-           ! save next integration time step
-           HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+         ! save next integration time step
+         HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
 
-           ! Pass KPP concentrations from VAR to V_CSPEC
-           CALL Shuffle_kpp2user(VAR,V_CSPEC)  
+         ! Pass KPP concentrations from VAR to V_CSPEC
+         CALL Shuffle_kpp2user(VAR,V_CSPEC)  
 
-           ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-           DO N =1, NVAR
-              CSPEC(JLOOP,N) = V_CSPEC(N)
-           END DO
+         ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
+         DO N =1, NVAR
+            CSPEC(JLOOP,N) = V_CSPEC(N)
+         END DO
 
-        ENDDO
-!$OMP END PARALLEL DO
+      ENDDO
+!!$OMP END PARALLEL DO
 
-        ! Return to calling program
+      ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
 
 !------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+! $Id: physproc.f,v 1.3 2009/12/10 17:57:10 ccarouge Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -23,15 +23,21 @@
 !        (bmy, 9/29/03)
 !  (4 ) Fixed case of small KULOOP (phs, 10/5/07)
 !  (5 ) Now only get the rx rates if not using SMVGEAR (phs,ks,dhk, 09/15/09)
+!  (6 ) Now calls KPP after calculating the reaction rates to save memory.
+!       (ccc, 12/9/09)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
       USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
      &                            CSUMC,  ERRMX2,  IXSAVE, 
      &                            IYSAVE, T3
-      USE GCKPP_COMODE_MOD,ONLY : R_KPP
+!--- Previous to (ccc, 12/9/09)
+!      USE GCKPP_COMODE_MOD,ONLY : R_KPP
       USE LOGICAL_MOD,     ONLY : LKPP
       USE TIME_MOD,        ONLY : TIMESTAMP_STRING
+      USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
+      USE GCKPP_GLOBAL,    ONLY : NTT
+
 
       use omp_lib
       
@@ -86,6 +92,7 @@ C
       REAL*8 RMSCUR,AVGHI,RMSCURH,FSTEPT,FITS,TSTEPIT,PHIDYN
       REAL*8 GMU
 
+      INTEGER :: AS
       ! For LINUX fix (bmy, 9/29/03)
       CHARACTER(LEN=16) :: STAMP
 
@@ -254,15 +261,20 @@ C *********************************************************************
 C                   START GRID BLOCK LOOP
 C *********************************************************************
 C
+!--- Moved from chemdr.f (ccc, 12/9/09)
+          IF ( LKPP) NTT = NTTLOOP
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( JLOOP,KLOOP,KBLK2,JNEW,JOLD)
 !$OMP+SCHEDULE( DYNAMIC )
+
          DO 640 KBLK2       = 1, NBLOCKUSE
           KBLK              = KBLK2
           JLOOPLO           = JLOWVAR(KBLK)
           KTLOOP            = KTLPVAR(KBLK)
 C
+
           IF (KTLOOP.EQ.0) GOTO 640
 
 C *********************************************************************
@@ -290,24 +302,30 @@ C
 
           CALL CALCRATE(SUNCOS)
 
-          !***************KPP_INTERFACE****************
-          IF ( LKPP ) THEN
-             DO KLOOP = 1, KTLOOP        
-                JLOOP         = JREORDER(JLOOPLO+KLOOP)
-                DO NK          = 1, NTRATES(NCS)
-                   R_KPP(JLOOP,NK) = RRATE_FOR_KPP(KLOOP,NK)
-                ENDDO
-             ENDDO
-          ENDIF
-          !********************************************
+!--- Previous to (ccc, 12/9/09)
+!          !***************KPP_INTERFACE****************
+!          IF ( LKPP ) THEN
+!             DO KLOOP = 1, KTLOOP        
+!                JLOOP         = JREORDER(JLOOPLO+KLOOP)
+!                DO NK          = 1, NTRATES(NCS)
+!                   R_KPP(JLOOP,NK) = RRATE_FOR_KPP(KLOOP,NK)
+!                ENDDO
+!             ENDDO
+!          ENDIF
+!          !********************************************
 
 C *********************************************************************
 C *                        SOLVE CHEMICAL ODES                        *
 C *********************************************************************
 C
-          IF (.NOT. LKPP ) THEN
-             CALL SMVGEAR
+!--- Move call to KPP here from chemdr.f to save memory space
+!    (ccc, 12/9/09)
+          IF ( LKPP) THEN
              
+             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP)
+
+          ELSE
+             CALL SMVGEAR
 C
 C *********************************************************************
 C * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *
