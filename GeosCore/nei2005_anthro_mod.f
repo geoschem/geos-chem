@@ -1,4 +1,4 @@
-! $Id: nei2005_anthro_mod.f,v 1.2 2009/12/03 21:34:39 bmy Exp $
+! $Id: nei2005_anthro_mod.f,v 1.3 2009/12/10 21:41:55 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -53,6 +53,7 @@
 !  02 Nov 2009 - A. van Donkelaar - added seasonality, weekday factors
 !  02 Dec 2009 - R. Yantosca - Added GET_NEI2005_MASK function
 !  02 Dec 2009 - R. Yantosca - Updated comments etc.
+!  10 Dec 2009 - D. Millet - Fix scaling, which is by ozone season
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -703,7 +704,8 @@
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
-!   3 Nov 2009 - P. Le Sager - update handling of boxes w/ zero emissions
+!   3 Nov 2009 - P. Le Sager      - update handling of boxes w/ zero emissions
+!  10 Dec 2009 - D. Millet        - Now scale to August, not an annual average
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -711,7 +713,8 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                 :: ARRAY(I1x1,J1x1,1)
-      REAL*4                 :: ANNUAL(I1x1,J1x1,1)
+!      REAL*4                 :: ANNUAL(I1x1,J1x1,1) dbm, 12/9/2009
+      REAL*4                 :: AUGUST(I1x1,J1x1,1) ! dbm, 12/9/2009
       REAL*4                 :: MONTHLY(I1x1,J1x1,1)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=6)       :: MYEAR
@@ -723,7 +726,8 @@
       !=================================================================
 
       ARRAY(:,:,1) = 0.d0
-      ANNUAL(:,:,1) = 0.d0
+!      ANNUAL(:,:,1) = 0.d0 dbm, 12/9/2009
+      AUGUST(:,:,1) = 0.d0 ! dbm, 12/9/2009
       MONTHLY(:,:,1) = 0.d0
 
       ThisMN = GET_MONTH()
@@ -739,47 +743,102 @@
       WRITE( 6, 100 ) TRACER
  100  FORMAT( '     - GET_NEI99_SEASON: Reading TRACER: ', i )
 
-      DO MN = 1, 12
+! %% dbm, 12/9/2009 =======================>>
+! The input EPA NEI 2005 data we used is an average for the "ozone season",
+! i.e. August, not  an annual average.
+! We need to do the seasonal scaling accordingly
+c$$$
+c$$$      DO MN = 1, 12
+c$$$
+c$$$         WRITE(MYEAR, '(i6)') 199900 + MN
+c$$$
+c$$$         ! File name
+c$$$         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+c$$$     &      'EPA_NEI_200708/wkday_avg_an.' // MYEAR // '.geos.1x1'
+c$$$
+c$$$         ! Read data
+c$$$         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', TRACER,
+c$$$     &                    GET_TAU0(MN,1,1999), I1x1,   J1x1,
+c$$$     &                    1,  ARRAY,   QUIET=.TRUE. )
+c$$$
+c$$$         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
+c$$$
+c$$$         IF (MN .eq. ThisMN) THEN
+c$$$            MONTHLY(:,:,1) = ARRAY(:,:,1)
+c$$$         ENDIF
+c$$$         
+c$$$
+c$$$      ENDDO
+c$$$
+c$$$!--prior to 11/3/09 (phs)
+c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12
+c$$$!
+c$$$!      ! avoid 0 / 0 
+c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
+c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
+c$$$!
+c$$$!      DO L = 1,5
+c$$$!         AS(:,:,L) = MONTHLY(:,:,1) / ANNUAL(:,:,1)
+c$$$!      ENDDO
+c$$$
+c$$$      
+c$$$      ANNUAL = ANNUAL / 12d0   ! to get unitless scale factor
+c$$$
+c$$$      WHERE ( ANNUAL == 0d0 )
+c$$$         ARRAY = 1d0
+c$$$      ELSEWHERE
+c$$$         ARRAY = MONTHLY / ANNUAL
+c$$$      ENDWHERE
 
-         WRITE(MYEAR, '(i6)') 199900 + MN
+      !---------------------------------
+      ! Read in data for August
+      !---------------------------------
 
-         ! File name
-         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-     &      'EPA_NEI_200708/wkday_avg_an.' // MYEAR // '.geos.1x1'
+      ! File name
+      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+     &     'EPA_NEI_200708/wkday_avg_an.199908.geos.1x1'
 
-         ! Read data
-         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', TRACER,
-     &                    GET_TAU0(MN,1,1999), I1x1,   J1x1,
-     &                    1,  ARRAY,   QUIET=.TRUE. )
+      ! TAU0 for 1999/08/01
+      TAU = GET_TAU0( 8, 1, 1999 )
 
-         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', TRACER,
+     &                 TAU,       I1x1,      J1x1,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
 
-         IF (MN .eq. ThisMN) THEN
-            MONTHLY(:,:,1) = ARRAY(:,:,1)
-         ENDIF
-         
+      AUGUST(:,:,1) = ARRAY(:,:,1)
 
-      ENDDO
+      !---------------------------------
+      ! Read in data for current month
+      !---------------------------------
 
-!--prior to 11/3/09 (phs)
-!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12
-!
-!      ! avoid 0 / 0 
-!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
-!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
-!
-!      DO L = 1,5
-!         AS(:,:,L) = MONTHLY(:,:,1) / ANNUAL(:,:,1)
-!      ENDDO
-
+      WRITE(MYEAR, '(i6)') 199900 + ThisMN
       
-      ANNUAL = ANNUAL / 12d0   ! to get unitless scale factor
+      ! File name
+      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+     &     'EPA_NEI_200708/wkday_avg_an.' // MYEAR // '.geos.1x1'
 
-      WHERE ( ANNUAL == 0d0 )
+      ! TAU for this month of 1999
+      TAU = GET_TAU0( ThisMN, 1, 1999 )
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', TRACER,
+     &                 TAU,       I1x1,      J1x1,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+      
+      MONTHLY(:,:,1) = ARRAY(:,:,1)
+
+      !---------------------------------
+      ! Normalize
+      !------------- -------------------
+
+      WHERE ( AUGUST == 0d0 )
          ARRAY = 1d0
       ELSEWHERE
-         ARRAY = MONTHLY / ANNUAL
+         ARRAY = MONTHLY / AUGUST
       ENDWHERE
+
+! %% dbm, 12/9/2009 =======================<<
 
       DO L = 1, SIZE(AS,3)
          AS(:,:,L) = ARRAY(:,:,1)
@@ -819,7 +878,8 @@
 !
 ! !REVISION HISTORY:
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
-!   3 Nov 2009 - P. Le Sager - update handling of boxes w/ zero emissions
+!   3 Nov 2009 - P. Le Sager      - update handling of boxes w/ zero emissions
+!  10 Dec 2009 - D. Millet        - Now scale to August, not an annual average
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -827,9 +887,11 @@
 ! !LOCAL VARIABLES:
 !
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
-      REAL*4                     :: ANNUAL(I1x1,J1x1,1)
+!      REAL*4                     :: ANNUAL(I1x1,J1x1,1) dbm, 12/9/2009
+      REAL*4                     :: AUGUST(I1x1,J1x1,1) ! dbm, 12/9/2009
       REAL*4                     :: MONTHLY(I1x1,J1x1,1)
       REAL*4                     :: O3SEASON(I1x1,J1x1,1)
+      REAL*4                     :: O3SEASON_AUGUST(I1x1,J1x1,1) ! dbm, 12/9/2009
       CHARACTER(LEN=255)         :: FILENAME, VISTAS_DIR
       CHARACTER(LEN=4)           :: SYEAR
       CHARACTER(LEN=1)           :: SSMN
@@ -843,9 +905,11 @@
       !=================================================================
 
       ARRAY(:,:,1) = 0.d0
-      ANNUAL(:,:,1) = 0.d0
+!      ANNUAL(:,:,1) = 0.d0
+      AUGUST(:,:,1) = 0.d0 ! dbm, 12/9/2009
       MONTHLY(:,:,1) = 0.d0
       O3SEASON(:,:,1) = 0.d0
+      O3SEASON_AUGUST(:,:,1) = 0.d0 ! dbm, 12/9/2009
 
       ! Get emissions year
       IF ( FSCALYR < 0 ) THEN
@@ -864,41 +928,89 @@
       TAU2002 = GET_TAU0( 1, 1, 2002)
       THISMONTH = GET_MONTH()
 
-      DO MN = 1,12
 
-         IF (MN .lt. 10) THEN
-            WRITE( SSMN, '(i1)' ) MN
-            FILENAME  = TRIM( VISTAS_DIR )
-     &            // 'Vistas-NOx-' // SSMN // '.1x1'
-         ELSE
-            WRITE( SMN, '(i2)' ) MN
-            FILENAME  = TRIM( VISTAS_DIR )
-     &            // 'Vistas-NOx-' // SMN // '.1x1'
-         ENDIF
+! %% dbm, 12/9/2009 =======================>>
+! The input EPA NEI 2005 data we used is an average for the "ozone season",
+! i.e. August, not  an annual average.
+! We need to do the seasonal scaling accordingly
+c$$$      DO MN = 1,12
+c$$$
+c$$$         IF (MN .lt. 10) THEN
+c$$$            WRITE( SSMN, '(i1)' ) MN
+c$$$            FILENAME  = TRIM( VISTAS_DIR )
+c$$$     &            // 'Vistas-NOx-' // SSMN // '.1x1'
+c$$$         ELSE
+c$$$            WRITE( SMN, '(i2)' ) MN
+c$$$            FILENAME  = TRIM( VISTAS_DIR )
+c$$$     &            // 'Vistas-NOx-' // SMN // '.1x1'
+c$$$         ENDIF
+c$$$
+c$$$         ! Echo info
+c$$$         WRITE( 6, 100 ) TRIM( FILENAME )
+c$$$ 100        FORMAT( '     - GET_VISTAS_SEASON: Reading ', a )
+c$$$
+c$$$         ! Read data
+c$$$         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
+c$$$     &                    TAU2002,   I1x1,      J1x1,
+c$$$     &                    1,         ARRAY,     QUIET=.TRUE. )
+c$$$
+c$$$         IF (MN .eq. THISMONTH) THEN
+c$$$            MONTHLY(:,:,1) = ARRAY(:,:,1)
+c$$$         ENDIF
+c$$$         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
+c$$$
+c$$$      ENDDO
+c$$$
+c$$$!see below (phs)      
+c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12.d0
+c$$$!
+c$$$!      ! avoid 0 / 0
+c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
+c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
 
-         ! Echo info
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100        FORMAT( '     - GET_VISTAS_SEASON: Reading ', a )
+      ! -------------------
+      ! Read in data for August
+      ! -------------------
 
-         ! Read data
-         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
-     &                    TAU2002,   I1x1,      J1x1,
-     &                    1,         ARRAY,     QUIET=.TRUE. )
+      FILENAME  = TRIM( VISTAS_DIR )
+     &     // 'Vistas-NOx-8.1x1'
 
-         IF (MN .eq. THISMONTH) THEN
-            MONTHLY(:,:,1) = ARRAY(:,:,1)
-         ENDIF
-         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - GET_VISTAS_SEASON: Reading ', a )
 
-      ENDDO
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
+     &                 TAU2002,   I1x1,      J1x1,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
 
-!see below (phs)      
-!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12.d0
-!
-!      ! avoid 0 / 0
-!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
-!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
+      AUGUST(:,:,1) = ARRAY(:,:,1)
 
+      ! -------------------
+      ! Read in data for current month
+      ! -------------------
+
+      IF (THISMONTH .lt. 10) THEN
+         WRITE( SSMN, '(i1)' ) THISMONTH
+         FILENAME  = TRIM( VISTAS_DIR )
+     &        // 'Vistas-NOx-' // SSMN // '.1x1'
+      ELSE
+         WRITE( SMN, '(i2)' ) THISMONTH
+         FILENAME  = TRIM( VISTAS_DIR )
+     &        // 'Vistas-NOx-' // SMN // '.1x1'
+      ENDIF
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
+     &                 TAU2002,   I1x1,      J1x1,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+  
+      MONTHLY(:,:,1) = ARRAY(:,:,1)
+      
+! %% dbm, 12/9/2009 =======================<<
 
       WRITE( SYEAR, '(i4)') THISYEAR
 
@@ -930,18 +1042,47 @@
 !     &                     * O3SEASON(:,:,1)
 !      ENDDO
 
+! %% dbm, 12/9/2009 =======================>>
+! These ozone season NOx adjustment also needs to account for the
+! fact that the input EPA NEI 2005 data we used is an average for the "ozone season",
+! i.e. August, not  an annual average.
+ 
+      ! August ozone season regulation factors
+      FILENAME  = TRIM( VISTAS_DIR )
+     &     // 'ARP-SeasonalVariation-' // SYEAR // '-8.1x1'
+     
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
 
-      ! --Get scalings
-      ANNUAL = ANNUAL / 12d0    ! to get unitless monthyl scale factor
+      ! Read data
+      CALL READ_BPCH2( FILENAME, 'RATIO-2D', 71,
+     &                 GET_TAU0(1,1,2002),  I1x1,    J1x1,
+     &                 1,         ARRAY,     QUIET=.TRUE. )
+      O3SEASON_AUGUST(:,:,1) = ARRAY(:,:,1)
 
-      WHERE ( ANNUAL == 0d0 )
+      ! First do seasonal scaling according to VISTAS
+      WHERE ( AUGUST == 0d0 )
          ARRAY = 1d0
       ELSEWHERE
-         ARRAY = MONTHLY / ANNUAL
+         ARRAY = MONTHLY / AUGUST
       ENDWHERE
-
-      ARRAY = ARRAY * O3SEASON
       
+      ! Now scale for summertime NOx reductions
+      ARRAY = ARRAY * O3SEASON / O3SEASON_AUGUST
+
+c$$$      ! --Get scalings
+c$$$      ANNUAL = ANNUAL / 12d0    ! to get unitless monthyl scale factor
+c$$$
+c$$$      WHERE ( ANNUAL == 0d0 )
+c$$$         ARRAY = 1d0
+c$$$      ELSEWHERE
+c$$$         ARRAY = MONTHLY / ANNUAL
+c$$$      ENDWHERE
+c$$$
+c$$$      ARRAY = ARRAY * O3SEASON
+c$$$      
+! %% dbm, 12/9/2009 =======================<<
+
       DO LEV = 1, SIZE(AS,3)
          AS(:,:,LEV) = ARRAY(:,:,1)
       ENDDO
