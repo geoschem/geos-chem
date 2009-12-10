@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.4 2009/11/30 19:57:55 ccarouge Exp $
+! $Id: define.h,v 1.5 2009/12/10 21:34:04 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -124,8 +124,8 @@
 !----- Model types -----
 !#define GCAP        'GCAP'
 !#define GEOS_3      'GEOS_3'
-#define GEOS_4      'GEOS_4'
-!#define GEOS_5      'GEOS_5'
+!#define GEOS_4      'GEOS_4'
+#define GEOS_5      'GEOS_5'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -141,8 +141,8 @@
 !#define IBM_AIX     'IBM_AIX'
 !#define IBM_XLF     'IBM_XLF'
 !#define LINUX_PGI   'LINUX_PGI'
-!#define LINUX_IFORT 'LINUX_IFORT'
-#define SPARC       'SPARC'
+#define LINUX_IFORT 'LINUX_IFORT'
+!#define SPARC       'SPARC'
 
 !------------------------------------------------------------------------------
 ! Prior to 10/15/09
