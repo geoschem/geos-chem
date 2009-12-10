@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.19 2009/12/10 17:57:11 ccarouge Exp $
+# $Id: Makefile,v 1.20 2009/12/10 18:08:14 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -285,15 +285,24 @@ ch3i_mod.o                  : ch3i_mod.f                                     \
                               tracerid_mod.o          tracer_mod.o           \
                               uvalbedo_mod.o
 
+#chemdr.o                    : chemdr.f                                       \
+#                              aerosol_mod.o           comode_mod.o           \
+#                              chemistry_mod.o         dao_mod.o              \
+#                              diag_oh_mod.o           diag_pl_mod.o          \
+#                              future_emissions_mod.o  dust_mod.o             \
+#                              logical_mod.o           planeflight_mod.o      \
+#                              restart_mod.o           tracer_mod.o           \
+#                              tracerid_mod.o          tropopause_mod.o       \
+#                              uvalbedo_mod.o   
+
 chemdr.o                    : chemdr.f                                       \
                               aerosol_mod.o           comode_mod.o           \
-                              chemistry_mod.o         dao_mod.o              \
-                              diag_oh_mod.o           diag_pl_mod.o          \
-                              future_emissions_mod.o  dust_mod.o             \
-                              logical_mod.o           planeflight_mod.o      \
-                              restart_mod.o           tracer_mod.o           \
-                              tracerid_mod.o          tropopause_mod.o       \
-                              uvalbedo_mod.o   
+                              dao_mod.o               diag_oh_mod.o          \
+                              diag_pl_mod.o           future_emissions_mod.o \
+                              dust_mod.o              logical_mod.o          \
+                              planeflight_mod.o       restart_mod.o          \
+                              tracer_mod.o            tracerid_mod.o         \
+                              tropopause_mod.o        uvalbedo_mod.o 
 
 chemistry_mod.o             : chemistry_mod.f                                \
                               acetone_mod.o           aerosol_mod.o          \
