@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.6 2009/12/10 21:14:21 ccarouge Exp $
+# $Id: Makefile,v 1.7 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -28,12 +28,14 @@
 #  24 Sep 2009 - R. Yantosca - Now list rosenbrock as default solver
 #  19 Nov 2009 - R. Yantosca - Updated comments
 #  23 Nov 2009 - R. Yantosca - Updated comments
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-# Define variables
-SHELL   = /bin/sh
+# Get the Unix shell (in SHELL variable) from Makefile_header.mk
+ROOTDIR = ..
+include $(ROOTDIR)/Makefile_header.mk
 
 help:
 	@echo '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'

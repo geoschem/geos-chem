@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2009/12/10 21:14:24 ccarouge Exp $
+# $Id: Makefile,v 1.9 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -58,12 +58,12 @@
 #                              "make -C int" calls 
 #  20 Nov 2009 - P. Le Sager - Added CHEM option
 #  23 Nov 2009 - R. Yantosca - Added realclean target
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL   = /bin/sh
 ROOTDIR = ..
 DOC     = $(ROOTDIR)/doc
 HDR     = $(ROOTDIR)/Headers
@@ -71,7 +71,7 @@ HELP    = $(ROOTDIR)/help
 LIB     = $(ROOTDIR)/lib
 MOD     = $(ROOTDIR)/mod
 
-# Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 

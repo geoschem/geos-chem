@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.7 2009/12/02 18:45:28 bmy Exp $
+# $Id: Makefile,v 1.8 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -22,19 +22,21 @@
 #                                                                             .
 # Variable   Description
 # --------   -----------
-# SHELL      Specifies the shell for "make" to use (usually SHELL=/bin/sh)
 # GEOSDIR    Specifies the directory where GEOS-Chem "core" routines are found
 #
 # !REVISION HISTORY: 
 #  16 Sep 2009 - R. Yantosca - Initial version
 #  24 Nov 2009 - R. Yantosca - Now call libbpch and libcore targets in
 #                              the Makefile in the GeosCore sub-directory
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
+# Get the Unix shell definition
+include ./Makefile_header.mk
+
 # Define variables
-SHELL   = /bin/sh
 GEOSDIR = GeosCore
 
 #=============================================================================

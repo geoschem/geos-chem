@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.20 2009/12/10 18:08:14 ccarouge Exp $
+# $Id: Makefile,v 1.21 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -83,12 +83,12 @@
 #                              files is not explicitly passed
 #  02 Dec 2009 - R. Yantosca - Add conditional statements in dependencies list
 #                              for the SunStudio compiler
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL   = /bin/sh
 ROOTDIR = ..
 BIN     = $(ROOTDIR)/bin
 BPCH    = $(ROOTDIR)/GeosBpch
@@ -105,7 +105,7 @@ UTIL    = $(ROOTDIR)/GeosUtil
 # NOTE: -lGeosCore should always be first, -lGeosUtil always last!
 LINK    = -lGeosCore -lKpp -lGeosUtil
 
-# Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
@@ -176,9 +176,6 @@ docclean:
 
 help:
 	@$(MAKE) -C $(HELP)
-
-print:
-	@echo $(OBJ)
 
 #==============================================================================
 # Dependencies listing (grep "USE " to get the list of module references!)
@@ -539,7 +536,7 @@ gamap_mod.o                 : gamap_mod.f                                    \
                               tracerid_mod.o          tracer_mod.o           \
                               wetscav_mod.o  
 ifeq ($(COMPILER),sun)
-	$(F90) -O3 -c $<
+	$(F90) -O0 -c $<
 endif
 
 gasconc.o                   : gasconc.f                                      \

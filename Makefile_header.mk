@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.9 2009/12/03 21:34:39 bmy Exp $
+# $Id: Makefile_header.mk,v 1.10 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -28,6 +28,7 @@
 # FREEFORM   Contains the command to force F90 "free format" compilation
 # LD         Contains the command to link to libraries & make executable
 # R8         Contains the command to force REAL -> REAL*8
+# SHELL      Contains the default Unix shell to use when building code
 #                                                                             .
 # FFLAGS is a local variables that is not returned to the "outside world".
 #                                                                             .
@@ -57,9 +58,22 @@
 #                              parallel code (Totalview 8.6.1-1)
 #  02 Dec 2009 - R. Yantosca - Added SUN32 switch for building 32-bit 
 #                              executbable on the SunStudio compiler
+#  11 Dec 2009 - R. Yantosca - Now define SHELL here and export to other 
+#                              Makefiles, so as to have a single place where
+#                              the Unix shell name is defined.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
+
+#------------------------------------------------------------------------------
+# Set default values
+#------------------------------------------------------------------------------
+
+# If your system uses "/bin/sh", then uncomment this line!
+SHELL = /bin/sh
+
+# If your system uses "/bin/bash", then uncomment this line!
+#SHELL = /bin/bash
 
 # Make ifort the default compiler
 ifndef COMPILER
@@ -164,6 +178,7 @@ else
 FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
 endif
 
+# Build Sun for 32-bit platform
 ifdef SUN32
 FFLAGS += -m32
 endif
@@ -252,6 +267,7 @@ export F90
 export FREEFORM
 export LD
 export R8
+export SHELL
 
 #EOC
 #------------------------------------------------------------------------------

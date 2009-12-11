@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2009/12/10 21:14:23 ccarouge Exp $
+# $Id: Makefile,v 1.2 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -43,19 +43,19 @@
 #                              display the help screen options
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-SHELL   = /bin/sh
 ROOTDIR = ../..
 HDR     = $(ROOTDIR)/Headers
 HELP    = $(ROOTDIR)/help
 LIB     = $(ROOTDIR)/lib
 MOD     = $(ROOTDIR)/mod
 
-# Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
+# Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 

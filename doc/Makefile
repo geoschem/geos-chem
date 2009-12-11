@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.10 2009/11/20 21:43:00 bmy Exp $
+# $Id: Makefile,v 1.11 2009/12/11 19:27:42 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 #                              display the help screen options
 #  19 Nov 2009 - R. Yantosca - Now build documentation for Makefiles in the
 #                              GeosUtil and GeosCore subdirectories
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -36,7 +37,6 @@
 #==============================================================================
 
 # Define variables
-SHELL   = /bin/sh
 ROOTDIR = ..
 BINDIR  = $(ROOTDIR)/bin
 BPCHDIR = $(ROOTDIR)/GeosBpch
@@ -44,6 +44,9 @@ CODEDIR = $(ROOTDIR)/GeosCore
 HELPDIR = $(ROOTDIR)/help
 KPPDIR  = $(ROOTDIR)/KPP
 UTILDIR = $(ROOTDIR)/GeosUtil
+
+# Get the Unix shell in SHELL from the Makefile_header.mk
+include $(ROOTDIR)/Makefile_header.mk
 
 #==============================================================================
 # Makefile targets

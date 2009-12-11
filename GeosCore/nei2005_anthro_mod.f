@@ -1,4 +1,4 @@
-! $Id: nei2005_anthro_mod.f,v 1.3 2009/12/10 21:41:55 bmy Exp $
+! $Id: nei2005_anthro_mod.f,v 1.4 2009/12/11 19:27:42 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -54,6 +54,7 @@
 !  02 Dec 2009 - R. Yantosca - Added GET_NEI2005_MASK function
 !  02 Dec 2009 - R. Yantosca - Updated comments etc.
 !  10 Dec 2009 - D. Millet - Fix scaling, which is by ozone season
+!  11 Dec 2009 - L. Zhang, A. Van Donkelaar - Add seasonality for NH3 
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -706,6 +707,7 @@
 !  30 Oct 2009 - A. van Donkelaar - Initial Version
 !   3 Nov 2009 - P. Le Sager      - update handling of boxes w/ zero emissions
 !  10 Dec 2009 - D. Millet        - Now scale to August, not an annual average
+!  11 Dec 2009 - L. Zhang, A. van Donkelaar - Add seasonality for NH3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -721,6 +723,11 @@
       REAL*8                 :: TAU
       INTEGER                :: MN, ThisMN, L
 
+      ! seasonal scalar for NH3 emission (lzh, amv, 12/11/2009)
+      REAL*8, PARAMETER :: NH3_SCALE(12) = (/ 
+     &     0.426d0, 0.445d0, 0.526d0, 0.718d0, 1.179d0, 1.447d0, 
+     &     1.897d0, 1.884d0, 1.577d0, 0.886d0, 0.571d0, 0.445d0 /)
+ 
       !=================================================================
       ! GET_NEI99_SEASON begins here!
       !=================================================================
@@ -732,12 +739,24 @@
 
       ThisMN = GET_MONTH()
 
-      ! NH3/ALD2/ISOP not available
-      IF (( TRACER .eq. IDTNH3 ) .or. (TRACER .eq. IDTALD2) .or.
-     &    ( TRACER .eq. IDTCH2O )) THEN
-         AS(:,:,:) = 1.d0
+!------------------------------------------------------------------------------
+! Prior to 12/11/09:
+!      ! NH3/ALD2/ISOP not available
+!      IF (( TRACER .eq. IDTNH3 ) .or. (TRACER .eq. IDTALD2) .or.
+!     &    ( TRACER .eq. IDTCH2O )) THEN
+!         AS(:,:,:) = 1.d0
+!         RETURN
+!      ENDIF
+!------------------------------------------------------------------------------
+ 
+      ! lzh, amv, 12/11/2009 add NH3 emission seasonality
+      IF ( TRACER == IDTALD2 .or. TRACER == IDTCH2O ) THEN
+         AS = 1.d0
          RETURN
-      ENDIF
+      ELSEIF ( TRACER == IDTNH3 ) THEN
+         AS = NH3_SCALE(ThisMN) / NH3_SCALE(8)   ! Normalize to August
+         RETURN
+      ENDIF 
 
       ! Echo info
       WRITE( 6, 100 ) TRACER
