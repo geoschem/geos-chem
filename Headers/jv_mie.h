@@ -1,4 +1,4 @@
-! $Id: jv_mie.h,v 1.2 2009/10/13 13:28:35 phs Exp $
+! $Id: jv_mie.h,v 1.3 2009/12/15 16:33:02 ccarouge Exp $
 !
 !----jv_mie.h-----COMMON BLOCKS for FAST-J code: 4x4x85 (prather 4/96)
 !
@@ -38,7 +38,11 @@
 !     Uncomment this line to restore the previous definition (phs, 10/9/09)
 !     PARAMETER (NL=750, N__=2*NL, M__=4)
 !-----------------------------------------------------------------------
-      PARAMETER (NL=1000, N__=2*NL, M__=4)
+!     NL=1000 was too small again, so we upped it to 1500.
+!     Uncomment this line to restore the previous definition (phs, 10/9/09)
+!     PARAMETER (NL=1000, N__=2*NL, M__=4)
+!-----------------------------------------------------------------------
+      PARAMETER (NL=1500, N__=2*NL, M__=4)
       REAL*8 A,B,C1,H,AA,CC,S,W,U1,V1,WT,EMU,PM,PM0,POMEGA
       REAL*8 ZTAU,FZ,FJ,DD,RR,ZREFL,ZFLUX,RADIUS,ZU0
       INTEGER ND,N,M,MFIT
