@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.4 2010/01/20 19:14:59 bmy Exp $
+! $Id: physproc.f,v 1.5 2010/01/20 19:31:58 ccarouge Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -317,9 +317,11 @@ C *********************************************************************
 C
 !--- Move call to KPP here from chemdr.f to save memory space
 !    (ccc, 12/9/09)
+!    NSPEC(1) is the # of active species for urban chemistry.
+!    (ccc, 01/20/10)
           IF ( LKPP) THEN
              
-             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP)
+             CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
              CALL SMVGEAR

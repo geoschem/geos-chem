@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.6 2009/12/10 17:57:10 ccarouge Exp $
+! $Id: chemistry_mod.f,v 1.7 2010/01/20 19:31:58 ccarouge Exp $
       MODULE CHEMISTRY_MOD
 !
 !******************************************************************************
@@ -404,13 +404,16 @@
 !------------------------------------------------------------------------------
 !--- Previous to (ccc, 12/3/09)      
 !      SUBROUTINE GCKPP_DRIVER() 
-      SUBROUTINE GCKPP_DRIVER(KTLOOP, JLOOPLO, R_KPP) 
+      SUBROUTINE GCKPP_DRIVER(KTLOOP, JLOOPLO, R_KPP, NSPEC_GC) 
 !
 !******************************************************************************
 !     Driver routine to perform integration of the full KPP chemistry mechanism.
 !     Based on Daven Henze's GCKPP_DRIVER.           (Kumaresh, 01/24/2008)
 !     Commented, and updated to call various forward solvers (phs, 09/16/09)
 !     Use CSPEC instead of CSPEC_FOR_KPP to save memory space (ccc, 12/03/09)
+!     Now call KPP driver from physproc.f to save memory. (ccc, 01/20/10)
+!     Now use the # of active species from GC to update CSPEC and not the 
+!     # of variable species from KPP. (ccc, 01/20/10)
 !******************************************************************************
 !
       ! Reference to f90 modules
@@ -476,8 +479,10 @@
       
       ! Arguments:
       INTEGER, INTENT(IN)  :: KTLOOP, JLOOPLO
+      INTEGER, INTENT(IN)  :: NSPEC_GC
 
       REAL*8, INTENT(IN)   :: R_KPP(:,:)
+
 
       ! Local variables
       REAL*8        :: T, TIN, TOUT
@@ -694,7 +699,10 @@
          CALL Shuffle_kpp2user(VAR,V_CSPEC)  
 
          ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-         DO N =1, NVAR
+         ! Now use NSPEC_GC (# of active species in GEOS-Chem).
+         ! (ccc, 01/20/10)       
+         ! DO N =1, NVAR
+         DO N =1, NSPEC_GC
             CSPEC(JLOOP,N) = V_CSPEC(N)
          END DO
 
