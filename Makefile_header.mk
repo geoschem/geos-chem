@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.10 2009/12/11 19:27:42 bmy Exp $
+# $Id: Makefile_header.mk,v 1.11 2010/01/20 19:14:59 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -61,6 +61,7 @@
 #  11 Dec 2009 - R. Yantosca - Now define SHELL here and export to other 
 #                              Makefiles, so as to have a single place where
 #                              the Unix shell name is defined.
+#  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -181,6 +182,8 @@ endif
 # Build Sun for 32-bit platform
 ifdef SUN32
 FFLAGS += -m32
+else
+FFLAGS += -m64
 endif
 
 # Turn on OpenMP parallelization

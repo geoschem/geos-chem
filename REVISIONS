@@ -1,12 +1,11 @@
 REVISIONS (v8-02-04)
-03 Dec 2009
-Bob Yantosca, Philippe Le Sager, and Claire Carouge
+20 Jan 2010
+Bob Yantosca, Claire Carouge, and Philippe Le Sager
 geos-chem-support@as.harvard.edu
 
 
 New in v8-02-04:
 ===============================================================================
-
 
 In the GeosCore subdirectory:
 -----------------------------
@@ -21,6 +20,7 @@ nei2005_anthro_mod.f    -- read, allocate, total, and deallocate NEI
 
 sulfate_pbl_mix	        -- does the PBL mixing of a column of sulfate
 (sulfate_mod.f)		   emissions  
+
 
 In the GeosUtil subdirectory:
 -----------------------------
@@ -61,6 +61,7 @@ transfer_mod.f		-- Moved here from GeosCore
 unix_cmds_mod.f		-- Moved here from GeosCore
 			-- Added ProTeX documentation headers
 
+
 In the GeosCore subdirectory:
 -----------------------------
 
@@ -73,6 +74,7 @@ readisolai_modis        -- Read MODIS LAI
 meganut_mod.f           -- New module for subroutine xltmmp, xlpardr 
 			    and xlpardf
 
+
 Removed in v8-02-04:
 ===============================================================================
 
@@ -84,8 +86,13 @@ xltmmp.f                -- Subroutine added to module "meganut_mod.f".
 readisolai              -- Renamed to READISOLAI_AVHRR to distinguish
 ("lai_mod.f")              from READISOLAI_MODIS
 
+
+
 Modified in v8-02-04:
 ===============================================================================
+
+Makefile_header.mk	-- Minor fix, add -m64 if SUN32 is not defined
+
 
 Input files for GEOS-Chem:
 --------------------------
@@ -103,6 +110,7 @@ input.geos		-- has an additional lines for EPA2005, LINOZ, PCEEA,
 
 jv_spec.dat             -- Correct line 25: "HCHO=H+293 ..."
 
+
 In the Headers subdirectory:
 ----------------------------
 
@@ -114,6 +122,7 @@ CMN_DIAG                -- Increase PD46 to 13
 CMN_O3                  -- Add EMISS_BVOC in new common bloc EMISS100
 
 CMN_SIZE        	-- set NOXLEVELS and NOXEXTENT to 5
+
 
 
 In the GeosCore subdirectory:

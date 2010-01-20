@@ -1,4 +1,4 @@
-! $Id: physproc.f,v 1.3 2009/12/10 17:57:10 ccarouge Exp $
+! $Id: physproc.f,v 1.4 2010/01/20 19:14:59 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
@@ -37,9 +37,6 @@
       USE TIME_MOD,        ONLY : TIMESTAMP_STRING
       USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,    ONLY : NTT
-
-
-      use omp_lib
       
       IMPLICIT NONE
 
