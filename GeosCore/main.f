@@ -1,4 +1,4 @@
-! $Id: main.f,v 1.6 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: main.f,v 1.7 2010/02/02 16:57:52 bmy Exp $
       PROGRAM GEOS_CHEM
 ! 
 !******************************************************************************
@@ -60,6 +60,7 @@
       USE DIAG49_MOD,        ONLY : DIAG49,          ITS_TIME_FOR_DIAG49
       USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
       USE DIAG51_MOD,        ONLY : DIAG51,          DO_SAVE_DIAG51
+      USE DIAG51b_MOD,       ONLY : DIAG51b,         DO_SAVE_DIAG51b
       USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
       USE DAO_MOD,           ONLY : AD,              AIRQNT  
       USE DAO_MOD,           ONLY : AVGPOLE,         CLDTOPS
@@ -95,7 +96,7 @@
       USE LOGICAL_MOD,       ONLY : LWAIT,     LTRAN, LUPBD,   LCONV
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
-      USE LOGICAL_MOD,       ONLY : LLINOZ
+      USE LOGICAL_MOD,       ONLY : LLINOZ,    LWINDO
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -132,6 +133,7 @@
       USE TIME_MOD,          ONLY : SET_CURRENT_TIME, PRINT_CURRENT_TIME
       USE TIME_MOD,          ONLY : SET_ELAPSED_MIN,  SYSTEM_TIMESTAMP
       USE TIME_MOD,          ONLY : TIMESTAMP_DIAG
+      USE TPCORE_BC_MOD,     ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,        ONLY : ITS_A_CH4_SIM
@@ -743,6 +745,10 @@
          !==============================================================
          IF ( ITS_TIME_FOR_DYN() ) THEN
 
+            ! Output BC's
+            ! Save boundary conditions (global grid) for future nested run
+            IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+
             ! Call the appropritate version of TPCORE
             IF ( LTRAN ) CALL DO_TRANSPORT               
 
@@ -957,6 +963,7 @@
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
+         IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
 
          ! Comment out for now 
          !! Column timeseries

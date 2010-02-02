@@ -1,4 +1,4 @@
-! $Id: emfossil.f,v 1.4 2009/11/23 21:44:58 bmy Exp $
+! $Id: emfossil.f,v 1.5 2010/02/02 16:57:53 bmy Exp $
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
 !******************************************************************************
@@ -763,21 +763,6 @@
          ! (jaf, ccc, 2/25/09)
          ! Added a nested if (phs, 7/9/09)
          IF ( ITS_A_TAGCO_SIM() ) THEN           
-            !----------------------------------------------------------------
-            ! Prior to 11/23/09:
-            ! The reason for this change is because LNEI99 is set as .FALSE. 
-            ! for the NESTED_CH option so GET_USA_MASK doesn't have a 
-            ! definition which causes the run to crash.  So we need to
-            ! add an ELSE to the IF ( LICARTT ) block to cover for this.
-            ! (zie, yxw, bmy, 11/23/09)
-            !IF ( LICARTT ) THEN
-            !   IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
-            !      IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0
-            !   ELSE
-            !      IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.19d0
-            !   ENDIF
-            !ENDIF
-            !----------------------------------------------------------------
             IF ( LICARTT ) THEN
                IF ( GET_USA_MASK(I,J) > 0.d0 ) THEN
                   IF ( NN == IDTCO ) EMX(1) = EMX(1) * 1.39d0

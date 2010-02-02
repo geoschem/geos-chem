@@ -1,10 +1,10 @@
-! $Id: gamap_mod.f,v 1.6 2009/11/30 19:57:57 ccarouge Exp $
+! $Id: gamap_mod.f,v 1.7 2010/02/02 16:57:53 bmy Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
 !  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
 !  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 11/19/09)
+!  simulation. (bmy, 5/3/05, 12/18/09)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -88,6 +88,9 @@
 !  (19) Add EFLUX to ND67 (lin, ccc, 5/29/09)
 !  (20) Minor bug fixes (bmy, phs, 10/9/09)
 !  (20) Minor bug fixes (dkh, bmy, 11/19/09)
+!  (21) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
+!        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
+!        hdf_mod. (amv, bmy, 12/1
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1301,6 +1304,8 @@
 !  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
 !        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
 !  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
+!  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
+!        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1312,6 +1317,7 @@
       USE DIAG49_MOD,   ONLY : DO_SAVE_DIAG49
       USE DIAG50_MOD,   ONLY : DO_SAVE_DIAG50
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
+      USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
       USE DIAG56_MOD,   ONLY : ND56
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
@@ -1341,7 +1347,8 @@
 
       ! Set a flag if any timeseries diagnostics are turned on
       DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
-     &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 )
+     &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 .or.
+     &                  DO_SAVE_DIAG51b )
 
       !----------------------------------
       ! General tracer information
@@ -2080,7 +2087,7 @@
       IF ( ND21 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(21) = 20
+         NTRAC(21) = 27
 
          ! Loop over tracers
          DO T = 1, NTRAC(21)
@@ -2110,7 +2117,7 @@
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 6  )
                   NAME (T,21) = 'OPSO4'
-                  FNAME(T,21) = 'Sulfate opt depth (400 nm)'
+                  FNAME(T,21) = 'Sulfate opt depth (550 nm)'
                CASE( 7  )
                   NAME (T,21) = 'HGSO4'
                   FNAME(T,21) = 'Hygr growth of SO4'
@@ -2120,7 +2127,7 @@
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 9  )
                   NAME (T,21) = 'OPBC'
-                  FNAME(T,21) = 'Black carbon opt depth (400 nm)'
+                  FNAME(T,21) = 'Black carbon opt depth (550 nm)'
                CASE( 10 )
                   NAME (T,21) = 'HGBC'
                   FNAME(T,21) = 'Hygr growth of BC'
@@ -2130,7 +2137,7 @@
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 12 )
                   NAME (T,21) = 'OPOC'
-                  FNAME(T,21) = 'Org carbon opt depth (400 nm)'
+                  FNAME(T,21) = 'Org carbon opt depth (550 nm)'
                CASE( 13 )
                   NAME (T,21) = 'HGOC'
                   FNAME(T,21) = 'Hygr growth of OC'
@@ -2140,7 +2147,7 @@
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 15 )
                   NAME (T,21) = 'OPSSa'
-                  FNAME(T,21) = 'Seasalt (accum) opt depth (400 nm)'
+                  FNAME(T,21) = 'Seasalt (accum) opt depth (550 nm)'
                CASE( 16 ) 
                   NAME (T,21) = 'HGSSa'
                   FNAME(T,21) = 'Hygr growth of seasalt (accum)'
@@ -2150,7 +2157,7 @@
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 18 )
                   NAME (T,21) = 'OPSSc'
-                  FNAME(T,21) = 'Seasalt (coarse) opt depth (400 nm)'
+                  FNAME(T,21) = 'Seasalt (coarse) opt depth (550 nm)'
                CASE( 19 ) 
                   NAME (T,21) = 'HGSSc'
                   FNAME(T,21) = 'Hygr growth of seasalt (coarse)'
@@ -2158,6 +2165,27 @@
                   NAME (T,21) = 'SSSc'
                   FNAME(T,21) = 'Seasalt (coarse) surface area'
                   UNIT (T,21) = 'cm2/cm3'
+               CASE( 21 )
+                  NAME (T,21) = 'OPD1'
+                  FNAME(T,21) = 'Dust bin 1 AOD (550 nm)'
+               CASE( 22 )
+                  NAME (T,21) = 'OPD2'
+                  FNAME(T,21) = 'Dust bin 2 AOD (550 nm)'
+               CASE( 23 )
+                  NAME (T,21) = 'OPD3'
+                  FNAME(T,21) = 'Dust bin 3 AOD (550 nm)'
+               CASE( 24 )
+                  NAME (T,21) = 'OPD4'
+                  FNAME(T,21) = 'Dust bin 4 AOD (550 nm)'
+               CASE( 25 )
+                  NAME (T,21) = 'OPD5'
+                  FNAME(T,21) = 'Dust bin 5 AOD (550 nm)'
+               CASE( 26 )
+                  NAME (T,21) = 'OPD6'
+                  FNAME(T,21) = 'Dust bin 6 AOD (550 nm)'
+               CASE( 27 )
+                  NAME (T,21) = 'OPD7'
+                  FNAME(T,21) = 'Dust bin 7 AOD (550 nm)'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2316,24 +2344,12 @@
                      NAME (T,28) = 'ALD2'
                      INDEX(T,28) = 11 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     !---------------------------------------------------
-                     ! Prior to 11/19/09:
-                     ! Oops, bug fix applied to PRPE, not ALD2.  
-                     ! ALD2 should have 2 carbons (dkh, bmy, 11/19/09)
-                     !MOLC (T,28) = 3
-                     !---------------------------------------------------
-                     MOLC (T,28) = 2
+                     MOLC (T,28) = 3
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 7  )
                      NAME (T,28) = 'PRPE'
                      INDEX(T,28) = 18 + ( SPACING * 45 )
                      MWT  (T,28) = 12e-3
-                     !---------------------------------------------------
-                     ! Prior to 11/19/09:
-                     ! Oops, bug fix applied to PRPE, not ALD2.  
-                     ! PRPE should have 3 carbons (dkh, bmy, 11/19/09)
-                     !MOLC (T,28) = 2
-                     !---------------------------------------------------
                      MOLC (T,28) = 3
                      UNIT (T,28) = 'atoms C/cm2/s'
                   CASE( 8  )
@@ -3464,11 +3480,23 @@
 !  (9 ) Updated ND36 for CH3I simulation (bmy, 7/25/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
+!  (12) Save output to HDF_MOD (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+      USE LOGICAL_MOD, ONLY : LND50_HDF, LND51_HDF, LND51b_HDF
+
+      USE HDF_MOD, ONLY : INIT_HDF
+      USE HDF_MOD, ONLY : HDFCATEGORY
+      USE HDF_MOD, ONLY : HDFDESCRIPT
+      USE HDF_MOD, ONLY : HDFNAME
+      USE HDF_MOD, ONLY : HDFFNAME
+      USE HDF_MOD, ONLY : HDFUNIT
+      USE HDF_MOD, ONLY : HDFMOLC
+      USE HDF_MOD, ONLY : HDFMWT
+      USE HDF_MOD, ONLY : HDFSCALE
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! NDxx flags
@@ -3553,6 +3581,22 @@
 
       ! Initialize arrays for "tracerinfo.dat"
       CALL INIT_TRACERINFO
+
+      ! Store values for hdf output
+      IF ( LND50_HDF .or. LND51_HDF .or. LND51b_HDF ) THEN
+
+         CALL INIT_HDF(MAXCAT, MAXTRACER, MAXDIAG)
+
+         HDFCATEGORY(:) = CATEGORY(:)
+         HDFDESCRIPT(:) = DESCRIPT(:)
+         HDFNAME(:,:) = NAME(:,:)
+         HDFFNAME(:,:) = FNAME(:,:)
+         HDFUNIT(:,:) = UNIT(:,:)
+         HDFMOLC(:,:) = MOLC(:,:)
+         HDFMWT(:,:) = MWT(:,:)
+         HDFSCALE(:,:) = SCALE(:,:)
+         
+      ENDIF
 
       ! Return to calling program
       END SUBROUTINE INIT_GAMAP

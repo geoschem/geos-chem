@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.4 2009/12/10 17:57:11 ccarouge Exp $
+! $Id: chemdr.f,v 1.5 2010/02/02 16:57:54 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -536,9 +536,6 @@
       ! (2) We also copy CSPEC to CSPEC_FULL if we want to write a 
       !     CSPEC_FULL restart file. (ccc, 2/26/09) 
       !=================================================================
-!-----------------------------------------------------------------------
-! Prior to 2/26/09
-!      IF ( LVARTROP ) THEN
       IF ( LVARTROP .or. LSVCSPEC ) THEN
          CALL SAVE_FULL_TROP
 

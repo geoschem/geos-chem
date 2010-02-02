@@ -1,10 +1,10 @@
-! $Id: gc_biomass_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: gc_biomass_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
       MODULE GC_BIOMASS_MOD
 !
 !******************************************************************************
 !  Module GC_BIOMASS_MOD contains arrays and routines to compute monthly
 !  biomass burning emissions for NOx, CO, ALK4, ACET, MEK, ALD2, PRPE, 
-!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 9/28/06)
+!  C3H8, CH2O, C2H6, CH4, and CH3I. (bmy, 9/11/00, 1/13/10)
 !
 !  NOTE: These biomass emissions are based on Bryan Duncan (Duncan et al 2001)
 !
@@ -158,6 +158,7 @@
 !       w.r.t. CO.  Details in Fu et al. [2008] (tmf, 1/7/09)
 !  (34) CO scaling for VOC production is transfered to biomass_mod.f.
 !        (jaf, 2/6/09)
+!  (35) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1946,7 +1947,7 @@
 !  and May 1993 - August 1996. 
 !
 !  Written by Bryan Duncan 8/2000.
-!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 12/1/04)
+!  Inserted into F90 module "biomass_mod.f" (bmy, 9/25/00, 1/13/10)
 !
 !  Subroutine TOMSAI is called from routine BIOBURN of "biomass_mod.f".
 !
@@ -1978,6 +1979,7 @@
 !  (5 ) Change VAL_ANN and VAL_SEAS to INTENT(IN). (bmy, 4/28/03)
 !  (6 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (7 ) Added space in #ifdef block for 1 x 1.25 grid (bmy, 12/1/04)
+!  (8 ) Modification for 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2059,9 +2061,8 @@
       IF (J == JJPAR ) CTM_LAT = 89 + 90
 
 #elif defined( GRID1x125 )
-      PRINT*, 'Need to compute CONVERT_LON for 1 x 1.25 grid!'
-      PRINT*, 'STOP in TOMSAI (biomass_mod.f)'
-      STOP
+      CTM_LON     = I
+      CTM_LAT     = J
 
 #elif defined( GRID1x1 )
       PRINT*, 'Need to compute CONVERT_LON for 1 x 1 grid!'

@@ -1,4 +1,4 @@
-! $Id: fast_j.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
+! $Id: fast_j.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
 !******************************************************************************
@@ -208,11 +208,6 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-!-----------------------------------------------------------
-! Prior to 10/15/09:
-! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
-!-----------------------------------------------------------
 #if   defined( GEOS_5 )
 
                ! Column cloud fraction (not less than zero)
@@ -243,11 +238,6 @@
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-!-------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
-!-------------------------------------------------------------
 #if   defined( GEOS_5 )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
@@ -351,11 +341,6 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-!------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
-!------------------------------------------------------------
 #if   defined( GEOS_5 )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with

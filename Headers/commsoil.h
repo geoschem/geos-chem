@@ -1,4 +1,4 @@
-! $Id: commsoil.h,v 1.1 2009/09/16 14:05:55 bmy Exp $
+! $Id: commsoil.h,v 1.2 2010/02/02 16:57:46 bmy Exp $
 !
 !**********************************************************************
 !                                                                     *
@@ -21,6 +21,7 @@
 !       space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
 ! (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
 ! (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
+! (6 ) Set # of land boxes for GEOS-5 EUROPE nested grid (amv, 10/19/09)
 !**********************************************************************
 !
 ! header file for soil NOx emissions
@@ -69,7 +70,12 @@
 #elif defined( GRID05x0666 ) && defined( NESTED_NA )
 
       !%%% NOTE: still to be determined
-      INTEGER, PARAMETER :: NLAND = 9999   
+      INTEGER, PARAMETER :: NLAND = 8568   
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+
+      !%%% NOTE: still to be determined
+      INTEGER, PARAMETER :: NLAND = 5536
 
 #endif
 

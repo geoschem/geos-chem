@@ -1,9 +1,9 @@
-! $Id: diag50_mod.f,v 1.3 2009/10/15 17:46:24 bmy Exp $
+! $Id: diag50_mod.f,v 1.4 2010/02/02 16:57:54 bmy Exp $
       MODULE DIAG50_MOD
 !
 !******************************************************************************
 !  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 10/13/09)
+!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 12/21/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -109,6 +109,8 @@
 !  (13) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, 10/7/08)
 !  (14) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
 !  (15) Updates & bug fixes in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
+!  (16) Updates to AOD output.  Also have the option to write to HDF 
+!        (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -135,8 +137,6 @@
       
       ! Scalars
       LOGICAL              :: DO_SAVE_DIAG50
-!--- Previous to (ccc, 8/12/09)
-!      INTEGER              :: COUNT,          COUNT_CHEM
       INTEGER              :: COUNT
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
@@ -195,7 +195,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/24/07)
+!  (bmy, 8/20/02, 12/21/09)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -220,6 +220,8 @@
 !  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
 !  (11) IS_CHEM check is not appropriate anymore. Keep COUNT_CHEM3D for 
 !       species known in troposphere only (ccc, 8/12/09)
+!  (12) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
+!        bin's individual AOD (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -249,8 +251,6 @@
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
-!--- Previous to (ccc, 8/12/09)
-!     LOGICAL             :: IS_CHEM
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
       REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
@@ -280,10 +280,6 @@
          FIRST       = .FALSE.
       ENDIF
 
-!--- Previous to (ccc, 8/12/09)
-!      ! Is it a chemistry timestep?
-!      IS_CHEM = ( MOD( GET_ELAPSED_MIN(), GET_TS_CHEM() ) == 0 )
-
       ! Echo time information to the screen
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
@@ -296,13 +292,7 @@
       ! Increment counter
       COUNT = COUNT + 1
 
-!--- Previous to (ccc, 8/12/09)
-!      ! Increment chemistry timestep counter
-!      IF ( IS_CHEM ) COUNT_CHEM = COUNT_CHEM + 1
-      
       ! Also increment 3-D counter for boxes in the tropopause
-!--- Previous to (ccc, 8/12/09)
-!      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
       IF ( IS_FULLCHEM ) THEN
          
          ! Loop over levels
@@ -310,8 +300,6 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-!--- Previous to (ccc, 8/12/09)
-!         DO K = 1, ND50_NL
          DO K = 1, MIN(ND50_NL, NPVERT)
             L = LOFF + K
 
@@ -328,8 +316,6 @@
             ! be a chemistry time step. Use JLOP instead:
             ! JLOP  = 0 if in stratosphere
             ! JLOP /= 0 if in troposphere
-!--- Previous to (ccc, 8/12/09)
-!ccc            IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
             IF ( JLOP( I, J, L ) > 0 ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
@@ -373,8 +359,20 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ((N .ge. 60) .and. (N .le. 66)) THEN
+
+               !--------------------------------------
+               ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               R = N - 59
+
+               ! Scaling factor to 400 nm
+               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
+
             ELSE IF ( N == 89 .and. IS_Ox ) THEN
 
                !--------------------------------------
@@ -385,8 +383,6 @@
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
             ELSE IF ( N == 90 .and. IS_NOx ) THEN
 
                !--------------------------------------
@@ -441,8 +437,6 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
             ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
@@ -451,8 +445,6 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
               
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
             ELSE IF ( N == 75 .and. IS_NOx ) THEN
 
                !--------------------------------------
@@ -512,8 +504,6 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE(I,J,CLDTOPS(I,J))
                ENDIF
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
             ELSE IF ( N == 82 ) THEN
 
                !--------------------------------------
@@ -523,14 +513,12 @@
                DO R = 1, NRH
                   
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+                  SCALE400nm = QAA(3,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
             ELSE IF ( N == 83 ) THEN
 
                !--------------------------------------
@@ -543,14 +531,12 @@
                   H          = NRH + R
                   
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  SCALE400nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
             ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
@@ -563,14 +549,12 @@
                   H          = 2*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
+                  SCALE400nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
             ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
@@ -583,14 +567,12 @@
                   H          = 3*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  SCALE400nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)
                  
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
             ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
@@ -603,14 +585,12 @@
                   H          = 4*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  SCALE400nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
                   
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 87 .and. IS_CHEM ) THEN
             ELSE IF ( N == 87 ) THEN
                
                !--------------------------------------
@@ -620,7 +600,7 @@
                DO R = 1, NDUST
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
@@ -729,12 +709,8 @@
       HR1      = GET_HOUR() + ( GET_MINUTE() / 60d0 )
 
       ! Hour at the next dynamic timestep
-!--- Previous to (ccc, 8/12/09)
-!      HR2      = HR1        + ( GET_TS_DYN() / 60d0 )
 
       ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 8/12/09)
-!      ITS_TIME = ( INT( HR2 ) == 24 )
       ITS_TIME = ( INT( HR1 ) == 0 )
 
       ! Return to calling program
@@ -746,7 +722,7 @@
 !
 !******************************************************************************
 !  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 10/7/08)  
+!  and saves to bpch file format. (bmy, 12/1/00, 12/21/09)  
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -767,6 +743,9 @@
 !  (10) Change timestamp for filename.  Now save SLP under tracer #18 in 
 !        "DAO-FLDS".  Also set unit to 'K' for temperature field. 
 !        (ccc, tai, bmy, 10/13/09)
+!  (11) Now have the option of saving out to HDF5 format.  NOTE: we have to
+!        bracket HDF-specific code with an #ifdef statement to avoid problems
+!        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -775,20 +754,28 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE FILE_MOD,   ONLY : IU_ND50
       USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,ONLY : LND50_HDF
       USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD_DIAG,   GET_NHMS
       USE TIME_MOD,   ONLY : GET_TAU,     GET_TS_DYN, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 
+#if   defined( USE_HDF5 )
+      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+      USE HDF_MOD,    ONLY : OPEN_HDF, CLOSE_HDF, WRITE_HDF
+      USE HDF5,       ONLY : HID_T
+      INTEGER(HID_T)      :: IU_ND50_HDF
+#endif
+
 #     include "CMN_SIZE"  ! Size Parameters
 
       ! Local variables
-      INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
-      INTEGER            :: I,    J,     L,   W, N  
-      INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
-      CHARACTER(LEN=16)  :: STAMP
-      CHARACTER(LEN=40)  :: CATEGORY
-      CHARACTER(LEN=40)  :: UNIT
-      CHARACTER(LEN=255) :: FILENAME
+      INTEGER             :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
+      INTEGER             :: I,    J,     L,   W, N  
+      INTEGER             :: GMNL, GMTRC, IOS, X, Y, K, NHMS
+      CHARACTER(LEN=16)   :: STAMP
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! WRITE_DIAG50 begins here!
@@ -802,8 +789,6 @@
       NHMS = GET_NHMS()
       IF ( NHMS == 0 ) NHMS = 240000
 
-!--- Previous to (ccc, 8/12/09)
-!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
       ! Echo info
@@ -811,7 +796,15 @@
  100  FORMAT( '     - DIAG50: Opening file ', a ) 
 
       ! Open output file
-      CALL OPEN_BPCH2_FOR_WRITE( IU_ND50, FILENAME, TITLE )
+      IF ( LND50_HDF ) THEN
+#if   defined( USE_HDF5 )
+         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+         CALL OPEN_HDF( IU_ND50_HDF, FILENAME,  ND50_IMAX, ND50_IMIN,   
+     &                  ND50_JMAX,   ND50_JMIN, ND50_NI,   ND50_NJ )
+#endif
+      ELSE
+         CALL OPEN_BPCH2_FOR_WRITE( IU_ND50, FILENAME, TITLE )
+      ENDIF
 
       ! Set ENDING TAU for this bpch write 
       TAU1 = GET_TAU()
@@ -835,9 +828,6 @@
          SELECT CASE ( ND50_TRACERS(W) )
             CASE( 89, 90, 74, 75 )
                DIVISOR = COUNT_CHEM3D
-!--- Previous to (ccc, 8/12/09)
-!            CASE( 82:87 )
-!               DIVISOR = COUNT_CHEM
             CASE DEFAULT
                DIVISOR = COUNT
          END SELECT
@@ -878,6 +868,16 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND50_NL
             GMTRC    = N
+
+         ELSE IF ((N .ge. 60) .and. (N .le. 66)) THEN
+
+            !---------------------
+            ! Total dust OD
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = N - 39
 
          ELSE IF ( N == 89 ) THEN
 
@@ -1136,15 +1136,29 @@
          ENDIF
 
          !------------------------
-         ! Save to bpch file
+         ! Save to bpch file 
+         ! or HDF5 file
          !------------------------
-         CALL BPCH2( IU_ND50,      MODELNAME,    LONRES,   
-     &               LATRES,       HALFPOLAR,    CENTER180, 
-     &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU0,         TAU1,         RESERVED,  
-     &               ND50_NI,      ND50_NJ,      GMNL,     
-     &               ND50_IMIN+I0, ND50_JMIN+J0, ND50_LMIN, 
-     &               REAL( Q(1:ND50_NI, 1:ND50_NJ, 1:GMNL, W) ) )
+         IF ( LND50_HDF ) THEN
+#if   defined( USE_HDF5 )
+            ! Only include this if we are linking to HDF5 library 
+            ! (bmy, 12/21/09)
+            CALL WRITE_HDF( IU_ND50_HDF,  N,
+     &                      CATEGORY,     GMTRC,        UNIT,
+     &                      TAU0,         TAU1,         RESERVED,
+     &                      ND50_NI,      ND50_NJ,      GMNL,
+     &                      ND50_IMIN+I0, ND50_JMIN+J0, ND50_LMIN,
+     &                      REAL( Q(1:ND50_NI, 1:ND50_NJ, 1:GMNL, W)))
+#endif
+         ELSE
+            CALL BPCH2( IU_ND50,      MODELNAME,    LONRES,   
+     &                  LATRES,       HALFPOLAR,    CENTER180, 
+     &                  CATEGORY,     GMTRC,        UNIT,      
+     &                  TAU0,         TAU1,         RESERVED,  
+     &                  ND50_NI,      ND50_NJ,      GMNL,     
+     &                  ND50_IMIN+I0, ND50_JMIN+J0, ND50_LMIN, 
+     &                  REAL( Q(1:ND50_NI, 1:ND50_NJ, 1:GMNL, W)))
+         ENDIF
       ENDDO
 
       ! Echo info
@@ -1152,7 +1166,14 @@
  120  FORMAT( '     - DIAG50: Closing file ', a )
 
       ! Close file
-      CLOSE( IU_ND50 )
+      IF ( LND50_HDF ) THEN
+#if   defined( USE_HDF5 )
+         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+         CALL CLOSE_HDF( IU_ND50_HDF )
+#endif
+      ELSE 
+         CLOSE( IU_ND50 )
+      ENDIF
 
       !=================================================================
       ! Re-initialize quantities for the next diagnostic cycle
@@ -1168,8 +1189,6 @@
 
       ! Zero counters
       COUNT        = 0
-!--- Previous to (ccc, 8/12/09)
-!      COUNT_CHEM   = 0
       COUNT_CHEM3D = 0  
       
       ! Zero accumulating array

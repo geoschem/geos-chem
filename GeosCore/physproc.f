@@ -1,10 +1,10 @@
-! $Id: physproc.f,v 1.5 2010/01/20 19:31:58 ccarouge Exp $
+! $Id: physproc.f,v 1.6 2010/02/02 17:00:02 bmy Exp $
       SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
 !
 !******************************************************************************
 !  Subroutine PHYSPROC is the driver for SMVGEAR II chemistry.  It calls both
 !  CALCRATE to compute the rxn rates and the SMVGEAR solver routine.
-!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 9/29/03)
+!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 1/20/10)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE,
@@ -25,19 +25,20 @@
 !  (5 ) Now only get the rx rates if not using SMVGEAR (phs,ks,dhk, 09/15/09)
 !  (6 ) Now calls KPP after calculating the reaction rates to save memory.
 !       (ccc, 12/9/09)
+!  (7 ) Remove obsolete print statements & formats (bmy, 12/18/09)
+!  (8 ) Now call GCKPP_DRIVER with NSPEC(1), which is the # of active species 
+!        for urban chemistry. (ccc, 1/20/10)
 !******************************************************************************
 !
       ! References to F90 modules (bmy, 10/19/00)
       USE COMODE_MOD,      ONLY : ABSHUM, AIRDENS,  CSPEC,   CSUMA,  
      &                            CSUMC,  ERRMX2,  IXSAVE, 
      &                            IYSAVE, T3
-!--- Previous to (ccc, 12/9/09)
-!      USE GCKPP_COMODE_MOD,ONLY : R_KPP
       USE LOGICAL_MOD,     ONLY : LKPP
       USE TIME_MOD,        ONLY : TIMESTAMP_STRING
       USE CHEMISTRY_MOD,   ONLY : GCKPP_DRIVER
       USE GCKPP_GLOBAL,    ONLY : NTT
-      
+
       IMPLICIT NONE
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -319,8 +320,7 @@ C
 !    (ccc, 12/9/09)
 !    NSPEC(1) is the # of active species for urban chemistry.
 !    (ccc, 01/20/10)
-          IF ( LKPP) THEN
-             
+          IF ( LKPP ) THEN
              CALL GCKPP_DRIVER(KTLOOP, JLOOPLO, RRATE_FOR_KPP, NSPEC(1))
 
           ELSE
@@ -581,137 +581,6 @@ C       ENDIF ISREORD.EQ.1
 C
  855   CONTINUE
  860  CONTINUE
-C     CONTINUE ISREORD = 1, 2
-C     CONTINUE NCS     = ILNCS, IHNCS
-C
-C *********************************************************************
-C * EITHER WRITE OUTPUT TO COMPARE.OUT IF ITESTGEAR=2 OR COMPARE      *
-C * ACCURATE RESULTS FROM COMPARE.DAT TO MODEL RESULTS IF ITESTGEAR=1 * 
-C *********************************************************************
-C AVGERR   = ABSOLUTE-VALUE AVERAGE SPECIES ERROR OVER ALL NGCOUNT SPECIES
-C AVGHI    = ABSOLUTE-VALUE AVERAGE SPECIES ERROR OVER ALL NGHI SPECIES
-C CMODEL   = CONCENTRATION FROM MODEL RESULTS
-C GEARCONC = CONCENTRATION FROM FILE compare.dat
-C NGCOUNT  = # SPECIES WITH CONCENTRATION GREATER THAN CLO1  
-C NGHI     = # SPECIES WITH CONCENTRATION GREATER THAN CLO2 
-C NOCC     = # OF TIMES ERRORS ARE CALCULATED (ONCE EACH TIME-INTERVAL)
-C RMSCUR   = ROOT-MEAN-SQUARE ERROR OVER ALL NGCOUNT SPECIES
-C RMSCURH  = ROOT-MEAN-SQUARE ERROR OVER ALL NGHI SPECIES
-C
-C OTHER PARAMETERS DEFINED IN DEFINE.DAT
-C
-!phs!       IF (ITESTGEAR.GT.0) THEN
-!phs!        NCS            = 1
-!phs!        IF (IRCHEM.EQ.1) WRITE(IOUT,980)
-!phs!        ICG            = ISCHANG(NCS)
-!phs!        CLO1           = 1.0d-05 
-!phs!        CLO2           = 1.0d+03    
-!phs! C
-!phs!        DO 970 JNEW    = 1, ICG
-!phs!         JOLD          = INEWOLD(JNEW,NCS)
-!phs!         CMODEL(JNEW)  = CSPEC(LLOOP,JOLD)
-!phs!  970   CONTINUE
-!phs! C
-!phs!        IF (ITESTGEAR.EQ.2) THEN
-!phs!         WRITE(KCPD,996) TIME,DELT,IRCHEM,(NAMENCS(INEWOLD(I,NCS),NCS),
-!phs!      1                  CMODEL(I),I=1,ICG)
-!phs!        ENDIF
-!phs! C
-!phs!        IF (ITESTGEAR.EQ.1) THEN
-!phs!         SUMFRACS      = 0.d0
-!phs!         SUMRMS        = 0.d0
-!phs!         SUMHI         = 0.d0
-!phs!         SUMRMSH       = 0.d0
-!phs!         NGCOUNT       = 0
-!phs!         NGHI          = 0
-!phs! C       WRITE(IOUT,982)
-!phs!         IF (IRCHEM.EQ.1)  WRITE(IOUT,988)
-!phs! C
-!phs!         DO 975 JNEW   = 1, ICG
-!phs!          JOLD         = INEWOLD(JNEW,NCS)
-!phs!          CMOD         = CMODEL(JNEW)
-!phs!          CGOOD        = GEARCONC(JNEW,IRCHEM,NCS)
-!phs!          IF (CGOOD.GT.CLO1.AND.CMOD.GT.CLO1.AND.CGOOD.GT.1.d-5*
-!phs!      1       CPREV(JNEW)) THEN 
-!phs!           FRACDIF     = (CMOD - CGOOD) / CGOOD
-!phs!           FRACABS     = ABS(FRACDIF)
-!phs!           SUMFRACS    = SUMFRACS + FRACABS 
-!phs!           SUMRMS      = SUMRMS   + FRACABS * FRACABS
-!phs!           NGCOUNT     = NGCOUNT + 1
-!phs!           IF (CGOOD.GT.CLO2.AND.CMOD.GT.CLO2) THEN
-!phs!            SUMHI      = SUMHI    + FRACABS 
-!phs!            SUMRMSH    = SUMRMSH  + FRACABS * FRACABS
-!phs!            NGHI       = NGHI     + 1
-!phs!            IAVG       = 2
-!phs!           ELSE
-!phs!            IAVG       = 1
-!phs!           ENDIF
-!phs!          ELSE
-!phs!           FRACDIF     = 0.d0
-!phs!           IAVG        = 0
-!phs!          ENDIF
-!phs!          CPREV(JNEW)  = CGOOD
-!phs! C        WRITE(IOUT,984) NAMENCS(JOLD,NCS),CGOOD,CMOD,FRACDIF*100.,IAVG
-!phs!  975    CONTINUE
-!phs! C
-!phs!         IF (NGCOUNT.GT.0) THEN
-!phs!          AVGERR     = 100.d0 * SUMFRACS     / NGCOUNT  
-!phs!          RMSCUR     = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
-!phs!         ELSE
-!phs!          AVGERR     = 0.d0
-!phs!          RMSCUR     = 0.d0
-!phs!         ENDIF
-!phs! C
-!phs!         IF (NGHI.GT.0) THEN
-!phs!          AVGHI       = 100.d0 * SUMHI        / NGHI  
-!phs!          RMSCURH     = 100.d0 * SQRT(SUMRMSH / NGHI)
-!phs!         ELSE
-!phs!          AVGHI       = 0.d0
-!phs!          RMSCURH     = 0.d0
-!phs!         ENDIF
-!phs! C
-!phs!         SUMAVGE     = SUMAVGE + AVGERR
-!phs!         SUMAVHI     = SUMAVHI + AVGHI
-!phs!         SUMRMSE     = SUMRMSE + RMSCUR
-!phs!         SUMRMHI     = SUMRMHI + RMSCURH
-!phs!         NOCC        = NOCC    + 1
-!phs! C
-!phs!         FSTEPT   = FLOAT(NPDERIV)
-!phs!         FITS     = FLOAT(NSUBFUN)
-!phs! C
-!phs!         TOTSTEP  = TOTSTEP + FSTEPT 
-!phs!         TOTIT    = TOTIT   + FITS
-!phs!         TELAPS   = TELAPS  + XELAPS 
-!phs!         WRITE(IOUT,992) IRCHEM,TIME,FSTEPT,FITS,FITS/FSTEPT,
-!phs!      1                  NGCOUNT,NGHI,AVGERR,AVGHI,RMSCUR,RMSCURH
-!phs!        ENDIF
-!phs!       ENDIF
-!phs! C
-C *********************************************************************
-C *                            FORMATS                                * 
-C *********************************************************************
-
- 980  FORMAT(20X,'RESULTS FROM SUBROUTINE CALCRATE.F')
-C982  FORMAT(4X,'SPECIES',5X,'GEARCONC      MODEL      % ERROR IFAVG')
-C984  FORMAT(A14,2(1X,1PE11.4),2X,0PF8.2,'%',3X,I1)
- 988  FORMAT(/8X,'STATISTICS FROM COMPARISON OF SMVGEAR RESULTS TO ', 
-     1       'compare.dat'//
-     1       'IRCHEM,ELAPST   PDERIV  SUBFUN  SF/PD  #AVG #HI ',
-     1       'AVGERR  AVGI    RMS    RMSHI')
- 992  FORMAT(I3,1X,3(F8.0,1X),F6.2,1X,I3,1X,I3,4(1X,0PF7.2)) 
- 994  FORMAT('***********************************OVERALL************', 
-     1       '***********************')
- 996  FORMAT('CONC (# CM-3 OR M L-1) AT TIME=',1PE10.2,' SECONDS. ',  
-     1       'DELT=',E10.2,' . RUN =',I3/3(A13,'=',E11.4,1X))
- 998  FORMAT('END')
-1000  FORMAT('END            9.9999E+99')
-1002  FORMAT(/3X,'FINAL STATISTICS FROM SMVGEAR. GRID-BLOCK     = ',I4/
-     1        '# CALLS TO SUBROUTINE SUBFUN                     = ',I8/
-     2        '# CALLS TO SUBROUTINE PDERIV                     = ',I8/ 
-     3        '# SUCCESSFUL TIME-STEPS                          = ',I8/  
-     4        '# CORRECTOR ITERATION FAILURES (IFAIL)           = ',I8/  
-     5        '# CORRECTOR FAILURES AFTER PDERIV CALLED (NFAIL) = ',I8/  
-     6        '# ACCUMULATED ERROR TEST FAILURES (LFAIL)        = ',I8)   
 C
 C *********************************************************************
 C ********************* END OF SUBROUTINE PHYSPROC.F ******************

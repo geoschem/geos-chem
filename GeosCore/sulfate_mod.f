@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.8 2009/12/04 19:14:01 bmy Exp $
+! $Id: sulfate_mod.f,v 1.9 2010/02/02 16:57:51 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -242,16 +242,6 @@
       ! Time variable
       INTEGER              :: ELAPSED_SEC
 
-!------------------------------------------------------------------------------
-! Prior to 8/10/09 (jaf)
-! These logical flags don't do anything since they are always set
-! to true and only used within this module (jaf, 8/10/09)
-!
-!      ! Logical Flags
-!      LOGICAL, PARAMETER   :: LENV = .TRUE.
-!      LOGICAL, PARAMETER   :: LEEV = .TRUE.
-!------------------------------------------------------------------------------
-      
       ! Parameters
       REAL*8,  PARAMETER   :: XNUMOL_OH  = 6.022d23 / 17d-3
       REAL*8,  PARAMETER   :: XNUMOL_O3  = 6.022d23 / 48d-3
@@ -294,25 +284,9 @@
       INTEGER, PARAMETER   :: LVOLC=20
 
       ! Eruptive volcanoes
-!---------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      INTEGER, PARAMETER   :: NEV=50
-!      INTEGER              :: NEVOL
-!      INTEGER, ALLOCATABLE :: IEV(:),   JEV(:)
-!      INTEGER, ALLOCATABLE :: IDAYs(:), IDAYe(:)
-!      INTEGER, ALLOCATABLE :: IHGHT(:), IELVe(:)
-!      REAL*8,  ALLOCATABLE :: EEV(:)
-!---------------------------------------------------------
       REAL*8,  ALLOCATABLE :: EEV(:,:,:)
 
       ! Non-eruptive volcanoes 
-!---------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      INTEGER, PARAMETER   :: NNV=50
-!      INTEGER              :: NNVOL
-!      INTEGER, ALLOCATABLE :: INV(:), JNV(:), IELVn(:)
-!      REAL*8,  ALLOCATABLE :: ENV(:)
-!---------------------------------------------------------
       REAL*8,  ALLOCATABLE :: ENV(:,:,:)
       
       ! Pointers to drydep species w/in DEPSAV
@@ -1007,11 +981,6 @@
             RK1 = ( 1.7d-42 * EXP( 7810.d0 / TK ) * O2 ) /
      &            ( 1.d0 + 5.5d-31 * EXP( 7460.d0 / TK ) * O2 ) * OH
 
-            !---------------------------------------------------------
-            ! Prior to 10/15/09:
-            !RK2 = 1.2d-11 * EXP( -260.d0 / TK ) * OH 
-            !---------------------------------------------------------
-
             ! Update reaction rate to match JPL06 and full chem
             ! (jaf, bmy, 10/15/09)
             RK2 = 1.1d-11 * EXP( -240.d0 / TK ) * OH 
@@ -1087,9 +1056,6 @@
          IF ( ND05 > 0 .and. L <= LD05 ) THEN
 
             ! P(SO2) from DMS+OH, DMS+NO3, and DMS+X
-!---prior 8/10/09 (pjh)
-! now correctly records P(SO2) from OH (pjh)
-!            XOH  = ( DMS0   - DMS_OH ) / Fx * AD(I,J,L) / TCVV_S
             XOH  = ( DMS0   - DMS_OH - PMSA_DMS(I,J,L) ) /
      $           Fx * AD(I,J,L) / TCVV_S
             XN3  = ( DMS_OH - DMS    ) / Fx * AD(I,J,L) / TCVV_S
@@ -1372,7 +1338,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 10/15/09) 
+!  (rjp, bmy, 11/26/02, 1/4/10) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1424,6 +1390,8 @@
 !        ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 8/22/05)
 !  (11) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
+!  (13) Now prevent floating-point exceptions when taking the exponential
+!        terms. (win, bmy, 1/4/10)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1431,6 +1399,7 @@
       USE DIAG_MOD,        ONLY : AD05,    AD44
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE DIRECTORY_MOD,   ONLY : DATA_DIR
+      USE ERROR_MOD,       ONLY : IS_SAFE_EXP
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE GRID_MOD,        ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
@@ -1461,7 +1430,7 @@
       REAL*8                :: ALK,    ALK1,    ALK2,    SO2_ss
       REAL*8                :: Kt1,    Kt2,     AREASS1, AREASS2
       REAL*8                :: PSO4E,  PSO4F,   Kt1N,    Kt2N
-      REAL*8                :: AREA_CM2
+      REAL*8                :: XX,     AREA_CM2
       REAL*8                :: ND44_TMP(IIPAR,JJPAR,LLTROP)
 
       ! Parameters
@@ -1488,11 +1457,6 @@
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F      = 1000.d0 / AIRMW * 6.022d23 * 1.d-6
-      !-----------------------------------------------
-      ! Prior to 10/15/09:
-      ! Moved this below (jaf, bmy, 10/15/09)
-      !Ki     = 1.5d-12
-      !-----------------------------------------------
 
       ! Zero ND44_TMP array
       ND44_TMP = 0d0
@@ -1504,7 +1468,7 @@
 !$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
 !$OMP+PRIVATE( KaqH2O2, KaqO3, AREA_CM2, FLUX, ALK, ALK1, ALK2         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
-!$OMP+PRIVATE( PSO4E, PSO4F                                            )
+!$OMP+PRIVATE( PSO4E, PSO4F, XX                                        )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP  
       DO J = 1, JJPAR
@@ -1530,17 +1494,6 @@
          TK     = T(I,J,L)
 
          IF ( IS_OFFLINE ) THEN
-
-            !-----------------------------------------------------------------
-            ! Prior to 10/15/09:
-            !! Gas phase SO4 production is done here in offline run only 
-            !! RK1: SO2 + OH(g) [s-1]  (rjp, bmy, 3/23/03)
-            !K0  = 3.0d-31 * ( 300.d0 / TK )**3.3d0
-            !M   = AIRDEN(L,I,J) * F
-            !KK  = K0 * M / Ki
-            !F1  = ( 1.d0 + ( LOG10( KK ) )**2 )**( -1 )
-            !RK1 = ( K0 * M / ( 1.d0 + KK ) ) * 0.6d0**F1 * GET_OH(I,J,L)
-            !-----------------------------------------------------------------
 
             ! Gas phase SO4 production is done here in offline run only 
             ! Updated to match JPL 2006 + full chem (jaf, 10/14/09)
@@ -1726,16 +1679,72 @@
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
      &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
 
-            ! Aqueous phase SO2 loss rate (v/v/timestep): 
-            L2  = EXP( ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM )  
-            L3  = EXP( ( SO2_ss - O3    ) * KaqO3   * DTCHEM )       
+!------------------------------------------------------------------------------
+! Prior to 1/4/10:
+! Add better error-checking for exponential terms (win, bmy, 1/4/10)
+!            ! Aqueous phase SO2 loss rate (v/v/timestep): 
+!            L2  = EXP( ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM )  
+!            L3  = EXP( ( SO2_ss - O3    ) * KaqO3   * DTCHEM )       
+!
+!            ! Loss by H2O2
+!            L2S = SO2_ss * H2O20 * (L2 - 1.D0) / ((SO2_ss * L2) - H2O20)  
+!
+!            ! Loss by O3
+!            L3S = SO2_ss * O3    * (L3 - 1.D0) / ((SO2_ss * L3) - O3)     
+!------------------------------------------------------------------------------
 
-            ! Loss by H2O2
-            L2S = SO2_ss * H2O20 * (L2 - 1.D0) / ((SO2_ss * L2) - H2O20)  
+            !----------------------------------------------------------
+            ! Compute loss by H2O2.  Prevent floating-point exception
+            ! by not allowing the exponential to go to infinity if 
+            ! the argument is too large.  (win, bmy, 1/4/09)
+            !----------------------------------------------------------
 
-            ! Loss by O3
-            L3S = SO2_ss * O3    * (L3 - 1.D0) / ((SO2_ss * L3) - O3)     
-          
+            ! Argument of the exponential
+            XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
+
+            ! Test if EXP(XX) can be computed w/o numerical exception
+            IF ( IS_SAFE_EXP( XX ) ) THEN
+
+               ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
+               L2  = EXP( XX )
+
+               ! Loss by H2O2
+               L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / 
+     &               ( (SO2_ss * L2) - H2O20 )  
+            ELSE
+
+               ! If exponential can't be computed, set to
+               ! the initial H2O2 concentration
+               L2S = H2O20
+
+            ENDIF
+
+            !----------------------------------------------------------
+            ! Compute loss by O3.  Prevent floating-point exception
+            ! by not allowing the exponential to go to infinity if 
+            ! the argument is too large. (win, bmy, 1/4/09)
+            !----------------------------------------------------------
+
+            ! Argument of the exponential
+            XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
+
+            ! Test if EXP(XX) can be computed w/o numerical exception
+            IF ( IS_SAFE_EXP( XX ) ) THEN
+
+               ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
+               L3  = EXP( XX )
+
+               ! Loss by O3
+               L3S = SO2_ss * O3 * (L3 - 1.D0) / ((SO2_ss * L3) - O3)  
+
+            ELSE
+ 
+               ! If exponential can't be computed, set to
+               ! the initial O3 concentration
+               L3S = O3
+
+            ENDIF
+
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             H2O20  = MAX( H2O20  - L2S,           MINDAT )
 
@@ -1893,7 +1902,11 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
-      USE ISOROPIA_MOD,    ONLY : GET_GNO3
+      !-----------------------------------------------------------------
+      ! Prior to 1/28/10:
+      ! Remove reference to GET_GNO3 (bmy, 1/28/10)
+      !USE ISOROPIA_MOD,    ONLY : GET_GNO3
+      !-----------------------------------------------------------------
  
       ! Add these for GET_GNO3 fix (lyj, bmy, 10/7/08)
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
@@ -1955,20 +1968,6 @@
          HNO3_eq = HNO3_vv * AD(I,J,L) / ( 28.97d0 / 63d0 ) / 63.d-3
 
       ELSE
-         
-         !--------------------------------------------------------------------
-         ! Prior to 10/7/08:
-         ! Now that we have switched from ISORROPIA to RPMARES, GET_GNO3
-         ! is no longer defined.  We therefore need to do the equivalent
-         ! computation.  NOTE: This is only an issue for the offline
-         ! aerosol simulation. (lyj, bmy, 10/7/08)
-         ! 
-         ! For more information, please see this Wiki post:
-         ! http://wiki.seas.harvard.edu/geos-chem/index.php/Aerosol_thermodynamical_equilibrium#Bug_in_sulfate_mod.f_caused_by_switch_to_RPMARES
-         ! 
-         !! Get gas-phase HNO3 from ISORROPIA code
-         !CALL GET_GNO3( I, J, L, HNO3_kg )         
-         !--------------------------------------------------------------------
          
          ! Get HNO3 in ug/m3, then multiply by volume in m3
          ! and 1e-6 kg/ug to get HNO3 in kg
@@ -2955,87 +2954,6 @@
       ENDIF
 
       ! Loop over tropospheric grid boxes
-!--------------------------
-!     pjh 8/18/2009      
-!     Change the loop from over L = 1, PBL_MAX to over the entire
-!     troposphere. Cycle if in the stratosphere. Allow dry dep only up to
-!     the PBL_MAX, otherwise add PMSA_DMS to the MSA tracer array above
-!     PBL. Previous changes had not accounted for PMSA_DMS into the MSA
-!     tracer array and therefore lost the MSA source above the PBL.
-!--------------
-
-
-!---- prior 24/8/09 (phs, pjh)
-!       
-! !$OMP PARALLEL DO
-! !$OMP+DEFAULT( SHARED )
-! !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
-! !$OMP+SCHEDULE( DYNAMIC )
-!       DO L = 1, PBL_MAX 
-!       DO J = 1, JJPAR
-!       DO I = 1, IIPAR
-! 
-!          ! Fraction of box (I,J,L) underneath the PBL top [unitless]
-!          F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
-! 
-!          ! Only apply drydep loss to boxes w/in the PBL
-!          IF ( F_UNDER_TOP > 0 ) THEN
-!          
-!             ! Initial MSA [v/v]
-!             MSA0 = STT(I,J,L,IDTMSA) 
-! 
-!             ! MSA drydep frequency [1/s].  Also accounts for the fraction
-!             ! of each grid box (I,J,L) that is located beneath the PBL top
-!             RKT = DEPSAV(I,J,DRYMSA) * F_UNDER_TOP
-! 
-!          ! Add option for non-local PBL (Lin, 03/31/09)
-!          IF (LNLPBL) RKT = 0.D0
-! 
-!             ! RKT > 0 denotes that we have drydep occurring
-!             IF ( RKT > 0.d0 ) THEN
-! 
-!                ! Fraction of MSA lost to drydep [unitless]
-!                RKT = RKT * DTCHEM
-! 
-!                ! Modified MSA concentration 
-!                MSA = ( MSA0 * EXP( -RKT )                        ) +
-!      &               ( PMSA_DMS(I,J,L)/RKT * ( 1d0 - EXP( -RKT ) ) )
-! 
-!             ELSE
-! 
-!                ! MSA production from DMS [v/v/timestep]
-!                MSA = MSA0 + PMSA_DMS(I,J,L)
-! 
-!             ENDIF
-! 
-!             ! Final MSA [v/v]
-!             IF ( MSA < SMALLNUM ) MSA = 0d0
-!             STT(I,J,L,IDTMSA) = MSA
-! 
-!             !===========================================================
-!             ! ND44 Diagnostic: Drydep flux of MSA [molec/cm2/s]
-!             !===========================================================
-!             IF ( ND44 > 0 .and. RKT > 0d0 ) THEN
-! 
-!                ! Surface area [cm2]
-!                AREA_CM2 = GET_AREA_CM2( J )
-! 
-!                ! Convert [v/v/timestep] to [molec/cm2/s]
-!                FLUX = MSA0 - MSA + PMSA_DMS(I,J,L)                    
-!                FLUX = FLUX * AD(I,J,L)      / TCVV(IDTMSA)            
-!                FLUX = FLUX * XNUMOL(IDTMSA) / AREA_CM2 / DTCHEM    
-!                
-!                ! Store dryd flux in ND44_TMP as a placeholder
-!                ND44_TMP(I,J,L) = ND44_TMP(I,J,L) + FLUX
-!             ENDIF
-!          ENDIF
-!       ENDDO
-!       ENDDO
-!       ENDDO
-! !$OMP END PARALLEL DO
-
-
-      
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, F_UNDER_TOP, MSA0, RKT, MSA, AREA_CM2, FLUX )
@@ -3917,14 +3835,6 @@
          ! Initialize arrays
          CALL INIT_SULFATE
 
-!-----------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-! Now read volcanic emissions daily (jaf, bmy, 10/15/09)
-!         ! Read emissions from volcanoes
-!         IF ( LENV ) CALL READ_NONERUP_VOLC
-!         IF ( LEEV ) CALL READ_ERUP_VOLC
-!-----------------------------------------------------------------
-
          ! We have now gone thru the first timestep
          FIRSTEMISS  = .FALSE.
       ENDIF
@@ -3975,10 +3885,6 @@
 
       ENDIF
 
-!prior to (win, 5/1/09)
-!      IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
-! w/o the LBIOMASS switch, GET_BIOMASS_SO2 is called but the biomass 
-! emission array was not setup properly, which then crashes the run (win, 5/1/09)
       IF(  ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
@@ -4384,13 +4290,6 @@
 
       ! Local variables
       LOGICAL                :: WEEKDAY, IS_LOCAL
-!-----------------------------------------------------------
-! Prior to 10/15/09(jaf)
-!      INTEGER                :: LV1, LV2, JDAY
-!      REAL*8                 :: ZH(0:LLPAR), DZ(LLPAR)
-!      REAL*8                 :: HGHT
-!      REAL*8                 :: SLAB,        SLAB1
-!-----------------------------------------------------------
       INTEGER                :: I, J, K, L, NTOP
       INTEGER                :: DAY_NUM
       REAL*8                 :: SO2(LLPAR)
@@ -4425,12 +4324,6 @@
       ! DTSRCE is the emission timestep in seconds
       DTSRCE  = GET_TS_EMIS() * 60d0
 
-!-------------------------------------------------------
-! Prior to 10/15/09(jaf)
-!      ! JDAY is the day of year (0-365 or 0-366)
-!      JDAY    = GET_DAY_OF_YEAR()
-!-------------------------------------------------------
-
       ! Get current day of the week
       DAY_NUM = GET_DAY_OF_WEEK()
 
@@ -4440,150 +4333,6 @@
       ! is it local PBL mixing scheme?
       IS_LOCAL = .NOT. LNLPBL      
       
-!----------------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      !=================================================================
-!      ! SO2 emissions from non-eruptive volcanoes [kg SO2/box/s].
-!      ! Assume that emission only occurs at the crater altitude.
-!      !=================================================================
-!
-!      IF ( LENV ) THEN
-!
-!         ! Initialize
-!         ESO2_nv = 0.d0
-!
-!         ! Loop thru each non-erupting volcano
-!         DO K = 1, NNVOL
-!
-!            ! Elevation of volcano crater
-!            HGHT  = DBLE( IELVn(k) )
-!
-!            ! Altitude of crater from the ground
-!            ZH(0) = 0.d0
-!
-!            ! Loop over levels
-!            DO L = 1, LLPAR
-!
-!               ! Thickness of layer [m] w/ crater
-!               DZ(L) = BXHEIGHT(INV(K),JNV(K),L)
-!
-!               ! Increment altitude
-!               ZH(L) = ZH(L-1) + DZ(L)
-!
-!               ! If we are at the crater altitude, add emissions and exit
-!               IF ( ZH(L-1) <= HGHT .AND. ZH(L) > HGHT ) THEN 
-!                  ESO2_nv(INV(K),JNV(K),L) = 
-!     &                 ESO2_nv(INV(K),JNV(K),L) + Env(K)
-!                  EXIT
-!               ENDIF
-!            ENDDO
-!         ENDDO
-!      ENDIF  
-!
-!      !=================================================================
-!      ! Calculate eruptive volcanic emission of SO2.
-!      !=================================================================
-!      IF ( LEEV ) THEN
-!
-!         ! Initialize
-!         ESO2_ev = 0.D0
-!
-!         ! Loop thru each erupting volcano
-!         DO K = 1, NEVOL
-!
-!            ! Test to see if the volcano is erupting
-!            IF ( JDAY < IDAYS(K) .OR. JDAY > IDAYe(K) ) GOTO 20
-!
-!            !===========================================================
-!            ! Define a slab at the top 1/3 of the volcano plume.
-!            !===========================================================
-!            HGHT  = DBLE( IHGHT(K) )
-!
-!            ! slab bottom height
-!            SLAB1 = HGHT - ( HGHT - DBLE ( IELVe(K) ) ) / 3.d0 
-!
-!            ! Slab thickness
-!            SLAB  = HGHT - SLAB1 
-!            ZH(0) = 0.d0 
-!        
-!            ! Loop over each level
-!            DO L = 1, LLPAR
-!
-!               ! DZ is the thickness of level L [m]
-!               DZ(L) = BXHEIGHT(IEV(K),JEV(K),L)
-!
-!               ! ZH is the height of the top edge of 
-!               ! level L, measured from the ground up [m]
-!               ZH(L) = ZH(L-1) + DZ(L) 
-!
-!               ! max model erup.height
-!               IF ( L == LLPAR .AND. HGHT > ZH(L) ) THEN 
-!                  LV2 = LLPAR
-!                  !HGHT = ZH(L)
-!                  !SLAB1 = SLAB1 - ( HGHT - ZH(L) )
-!               ENDIF
-!
-!               !========================================================
-!               ! If Zh(l) <= bottom of the slab, go to next level.
-!               !========================================================
-!               IF ( ZH(L) <= SLAB1 ) GOTO 22
-!
-!               !========================================================
-!               ! If the slab is only in current level: CASE 1
-!               !       ---------------------------------- ZH(L)
-!               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  
-!               !       ---------------------------------- ZH(L-1)
-!               !========================================================
-!               IF ( ZH(L-1) <= SLAB1 .AND. ZH(L) >= HGHT ) THEN
-!                  LV1   = L
-!                  LV2   = L
-!                  DZ(L) = SLAB
-!
-!               !========================================================
-!               ! The slab extends more then one level.  Find the 
-!               ! lowest (lv1) and the highest (lv2) levels:
-!               !       --------------------------------- ZH(L)
-!               ! HGHT  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!               !       --------------------------------- ZH(L-1)
-!               ! 
-!               !       --------------------------------- ZH(L)
-!               ! SLAB1 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!               !       --------------------------------- ZH(L-1)
-!               !========================================================
-!               ELSE IF (ZH(L-1) <= SLAB1 .AND. ZH(L) > SLAB1)  THEN
-!                  LV1   = L
-!                  DZ(L) = ZH(L) - SLAB1
-!                  
-!               ELSE IF (ZH(L-1) < HGHT  .AND. ZH(L) > HGHT )  THEN
-!                  LV2   = L
-!                  DZ(L) = HGHT - ZH(L-1)
-!                  EXIT          ! do 20 
-!        
-!               ENDIF
-!               
-!               ! Go to next level
-! 22            CONTINUE         
-!            ENDDO
-!
-!            !===========================================================
-!            ! Calculate SO2 emission in the levels between LV1 and LV2.  
-!            ! Convert Eev from [kg SO2/box/event] to [kg SO2/box/s].  
-!            ! ESO2_ev is distributed evenly with altitude among the slab.
-!            !===========================================================
-!            DO L = LV1, LV2
-!               ESO2_ev(IEV(K),JEV(K),L) = ESO2_ev(IEV(K),JEV(K),L) + 
-!     &              EEV(K) / ( (IDAYe(K)-IDAYs(K)+1) * 24.d0 * 3600.d0 )
-!     &              * DZ(L) / SLAB
-!            ENDDO
-!
-!            ! Go to next volcano
-! 20         CONTINUE 
-!         ENDDO
-!
-!      ENDIF  
-!
-!----------------------------------------------------------------------
       !=================================================================
       ! SO2 emissions from volcanoes [kg SO2/box/s].
       ! 
@@ -4686,28 +4435,6 @@
 
 10          CONTINUE
          ENDDO    ! L
-
-!------------------------------------------------------------------------------
-! Prior to 12/3/09:
-! Rewrite these tests to avoid div-by-zero, which will choke on the SunStudio
-! compiler (bmy, 12/3/09)
-!         ! Consistency check: columns before and after regridding 
-!         ! should be equal.
-!      IF ( ABS(SUM(ESO2_nv(I,J,:)) - SUM(ENV(I,J,:)))
-!     &   / SUM(ENV(I,J,:)) .GT. 1e-5 ) THEN
-!         PRINT*, 'Non-eruptive volcanic SO2 emissions before and ' //
-!     &           'after regridding are not equivalent!'
-!         CALL FLUSH(6)
-!         CALL GEOS_CHEM_STOP
-!      ENDIF
-!      IF ( ABS(SUM(ESO2_ev(I,J,:)) - SUM(EEV(I,J,:)))
-!     &   / SUM(EEV(I,J,:)) .GT. 1e-5 ) THEN
-!         PRINT*, 'Eruptive volcanic SO2 emissions before and ' //
-!     &           'after regridding are not equivalent!'
-!         CALL FLUSH(6)
-!         CALL GEOS_CHEM_STOP
-!      ENDIF
-!------------------------------------------------------------------------------
 
          !===========================================================
          ! Consistency check: columns before and after regridding 
@@ -4988,84 +4715,6 @@
           DO L = 1, LLPAR
              FEMIS(L)  = GET_FRAC_OF_PBL( I, J, L )
           ENDDO
-
-          
-!---  prior to 10/27/09          
-!phs          ! Zero SO2 array
-!phs          DO L = 1, LLPAR
-!phs             SO2(L) = 0d0
-!phs          ENDDO
-!phs 
-!phs          ! Sum of anthro (surface + 100m), biomass, biofuel SO2 at (I,J)
-!phs          TSO2  = SUM( SO2an(I,J,:) ) + ESO2_bb(I,J) + SO2bf(I,J)
-!phs 
-!phs          ! Also add SO2 from ship exhaust if necessary (bec, bmy, 5/20/04)
-!phs !         IF ( LSHIPSO2 ) TSO2 = TSO2 + ESO2_sh(I,J)
-!phs          TSO2 = TSO2 + ESO2_sh(I,J)
-!phs         
-!phs          ! Zero SO2SRC
-!phs          SO2SRC = 0d0
-!phs 
-!phs          !===============================================================
-!phs          ! Partition the total anthro and biomass SO2 emissions thru
-!phs          ! the entire boundary layer (if PBL top is higher than level 2)
-!phs          !===============================================================
-!phs          ! Add option for non-local PBL (Lin, 03/31/09)
-!phs          IF (.NOT. LNLPBL) THEN
-!phs 
-!phs             IF ( NTOP > 2 ) THEN
-!phs    
-!phs                ! Loop thru levels in the PBL
-!phs                DO L  = 1, NTOP
-!phs                  
-!phs                   ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-!phs                   FEMIS  = GET_FRAC_OF_PBL( I, J, L )
-!phs                  
-!phs                   ! Partition total SO2 into level K
-!phs                   SO2(L) = FEMIS * TSO2
-!phs 
-!phs                ENDDO
-!phs 
-!phs             !===============================================================
-!phs             ! If PBL top occurs lower than or close to the top of level 2,
-!phs             ! then then surface SO2 goes into level 1 and the smokestack
-!phs             ! stack SO2 goes into level 2.
-!phs             !===============================================================
-!phs             ELSE
-!phs                SO2(1) = SO2an(I,J,1) + ESO2_bb(I,J) + SO2bf(I,J)
-!phs 
-!phs                DO L = 2, NOXLEVELS
-!phs                   SO2(L) = SO2an(I,J,L) 
-!phs                ENDDO
-!phs 
-!phs                ! Also add ship exhaust SO2 into surface if necessary 
-!phs                ! (bec, bmy, 5/20/04)
-!phs !-- prior 6/08 (phs)
-!phs !               IF ( LSHIPSO2 ) SO2(1) = SO2(1) + ESO2_sh(I,J)
-!phs                SO2(1) = SO2(1) + ESO2_sh(I,J)
-!phs 
-!phs             ENDIF 
-!phs 
-!phs          ELSE
-!phs 
-!phs             ! constrain surface emissions to the lowest model layer
-!phs             ! (Lin, 04/28/08)
-!phs             SO2(1) = TSO2
-!phs 
-!phs          ENDIF
-!phs 
-!phs          ! Error check
-!phs          IF ( ABS( SUM( SO2 ) - TSO2 ) > 1.D-5 ) THEN
-!phs !$OMP CRITICAL
-!phs             PRINT*, '### ERROR in SRCSO2!'
-!phs             PRINT*, '### I, J, L, : ', I, J, L
-!phs             PRINT*, '### SUM(SO2) : ', SUM( SO2 )
-!phs             PRINT*, '### TSO2     : ', TSO2
-!phs !$OMP END CRITICAL
-!phs             CALL ERROR_STOP( 'Check SO2 redistribution!',
-!phs      &                       'SRCSO2 (sulfate_mod.f)' )
-!phs          ENDIF
-!phs
 
          !=============================================================
          ! Do PBL mixing of anthro (multilevel) + biomass + biofuel +
@@ -5423,112 +5072,6 @@
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-      !=================================================================
-      ! Compute SO4 emissions 
-      !=================================================================
-!---- prior to 10/27/09 (phs)
-!phs !$OMP PARALLEL DO
-!phs !$OMP+DEFAULT( SHARED )
-!phs !$OMP+PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS )
-!phs !$OMP+SCHEDULE( DYNAMIC )
-!phs 
-!phs       DO J = 1, JJPAR
-!phs       DO I = 1, IIPAR
-!phs
-!phs          ! Top level of boundary layer at (I,J)
-!phs          NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
-!phs 
-!phs          ! Zero SO4 array at all levels 
-!phs          DO L = 1, LLPAR
-!phs             SO4(L) = 0.0
-!phs          ENDDO
-!phs 
-!phs          ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
-!phs          TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
-!phs 
-!phs          !==============================================================
-!phs          ! Partition the total anthro SO4 emissions thru the entire 
-!phs          ! boundary layer (if PBL top is higher than level 2)  
-!phs          !==============================================================
-!phs          ! Add option for non-local PBL (Lin, 03/31/09)
-!phs          IF (.NOT. LNLPBL) THEN
-!phs             IF ( NTOP > 2 ) THEN
-!phs    
-!phs                ! Loop thru boundary layer
-!phs                DO L = 1, NTOP
-!phs                  
-!phs                   ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-!phs                   FEMIS  = GET_FRAC_OF_PBL( I, J, L )
-!phs                   
-!phs                   ! Fraction of total SO4 in layer L
-!phs                   SO4(L) = FEMIS * TSO4
-!phs 
-!phs                ENDDO
-!phs 
-!phs             !==============================================================
-!phs             ! If PBL height is low and lower or similar to the second 
-!phs             ! model layer then surface emission is emitted to the first
-!phs             ! model layer and the stack emission goes to the second model
-!phs             ! layer.  Also add biofuel SO4 into the surface layer.
-!phs             !==============================================================
-!phs             ELSE
-!phs 
-!phs                SO4(1) = SO4an(I,J,1) + SO4bf(I,J)
-!phs                DO L = 2, NOXLEVELS
-!phs                   SO4(L) = SO4an(I,J,L) 
-!phs                ENDDO
-!phs             
-!phs             ENDIF 
-!phs 
-!phs          ELSE
-!phs          
-!phs             SO4(1) = TSO4
-!phs 
-!phs          ENDIF
-!phs 
-!phs          IF ( ABS( SUM( SO4 ) - TSO4 ) > 1.D-5 ) THEN
-!phs !$OMP CRITICAL
-!phs             PRINT*, '### ERROR in SRCSO4!'
-!phs             PRINT*, '### I, J, L, : ', I, J, L
-!phs             PRINT*, '### SUM(SO4) : ', SUM( SO4 )
-!phs             PRINT*, '### TSO4     : ', TSO4
-!phs !$OMP END CRITICAL
-!phs             CALL ERROR_STOP( 'Check SO4 redistribution',
-!phs      &                       'SRCSO4 (sulfate_mod.f)' )
-!phs          ENDIF
-!phs 
-!phs           !=============================================================
-!phs           ! Add SO4 emissions to tracer array 
-!phs           ! Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
-!phs           !=============================================================
-!phs           DO L = 1, LLPAR
-!phs              ! Add option for non-local PBL (Lin, 03/31/09)
-!phs              IF (.NOT. LNLPBL) THEN
-!phs                 TC(I,J,L) = TC(I,J,L) + ( SO4(L) * DTSRCE )
-!phs              ELSE
-!phs                 emis_save(I,J,IDTSO4) = SO4(1) * DTSRCE
-!phs              ENDIF
-!phs           ENDDO
-!phs 
-!phs          !==============================================================
-!phs          ! ND13 Diagnostic: SO4 emission in [kg S/box/timestep]       
-!phs          !==============================================================
-!phs          IF ( ND13 > 0 ) THEN 
-!phs 
-!phs             ! Anthro SO4
-!phs             DO L = 1, NOXLEVELS      
-!phs                AD13_SO4_an(I,J,L) = AD13_SO4_an(I,J,L) + 
-!phs      &                              ( SO4an(I,J,L) * S_SO4 * DTSRCE )
-!phs             ENDDO
-!phs 
-!phs             ! Biofuel SO4
-!phs             AD13_SO4_bf(I,J) = AD13_SO4_bf(I,J) + 
-!phs      &                         ( SO4bf(I,J) * S_SO4 * DTSRCE ) 
-!phs          ENDIF
-!phs       ENDDO
-!phs       ENDDO
-!phs !$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE SRCSO4
@@ -6211,12 +5754,6 @@
 !******************************************************************************
 ! 
       ! References to F90 modules
-!-------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-!      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-!      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
-!-------------------------------------------------------
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
@@ -6228,11 +5765,6 @@
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
      
       ! Local variables
-!--------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      INTEGER              :: I, IOS, J, K
-!      REAL*8               :: EE
-!---------------------------------------------------------------
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
       REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
       REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
@@ -6245,63 +5777,6 @@
       !=================================================================
       ! READ_NONERUP_VOLC begins here!
       !=================================================================
-
-!----------------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!
-!      ! Initialize
-!      K        = 1
-!      Env      = 0.d0
-!      FILENAME = TRIM( DATA_DIR )                  // 
-!     &           'sulfate_sim_200508/volcano.con.' // GET_RES_EXT()
-!8/10/09)
-!      !=================================================================
-!      ! Read NON-eruptive volcanic SO2 emission (GEIA) into Env.  
-!      ! Convert Env from [Mg SO2/box/day] to [kg SO2/box/s].
-!      !=================================================================
-!
-!      ! Fancy output
-!      WRITE( 6, 100 ) TRIM( FILENAME ) 
-! 100  FORMAT( '     - READ_NONERUP_VOLC: Reading ', a )
-!     
-!      ! Open file 
-!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:1' )
-!
-!      ! Read header lines
-!      DO L = 1, 2
-!         READ( IU_FILE, '(a)', IOSTAT=IOS )             
-!         IF ( IOS > 0 ) THEN
-!            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:2' )
-!         ENDIF
-!      ENDDO
-!
-!      ! Read data values
-!      DO 
-!         READ( IU_FILE, '(49x,i4,e11.3,1x,2i4)', IOSTAT=IOS ) 
-!     &        IELVn(k), EE, INV(K), JNV(k) 
-!         
-!         ! Check for EOF
-!         IF ( IOS < 0 ) EXIT
-!
-!         ! Trap I/O error
-!         IF ( IOS > 0 ) THEN
-!            CALL IOERROR( IOS, IU_FILE, 'read_nonerup_volc:3' )
-!         ENDIF
-!
-!         ! Unit conversion: [Mg SO2/box/day] -> [kg SO2/box/s]
-!         Env(k) = EE * 1000.d0 / ( 24.d0 * 3600.d0 )
-!
-!         ! Increment counter
-!         K = K + 1 
-!      ENDDO
-!
-!      ! Close file
-!      CLOSE( IU_FILE )
-!
-!      ! NNVOL = Number of non-eruptive volcanoes
-!      NNVOL = K - 1
-!----------------------------------------------------------------------
 
       ! Set year based on availability of volcanic emission files
       THISYEAR = INYEAR
@@ -6383,12 +5858,6 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-!-------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      USE BPCH2_MOD,      ONLY : GET_RES_EXT
-!      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-!      USE FILE_MOD,       ONLY : IU_FILE, IOERROR
-!-------------------------------------------------------
       USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
@@ -6400,11 +5869,6 @@
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
  
       ! Local variables
-!------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      INTEGER              :: I, IOS, IUNIT, J, K, M
-!      REAL*8               :: A, B, Fe, X, EE
-!------------------------------------------------------
       REAL*4               :: ARRAY_GEN(I1x1,J1x1-1,LVOLC)
       REAL*8               :: ARRAY_GEN8(I1x1,J1x1-1)
       REAL*8               :: ARRAY_1x1(I1x1,J1x1,1)
@@ -6417,71 +5881,6 @@
       !==================================================================
       ! READ_ERUP_VOLC begins here
       !==================================================================
-
-!----------------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!
-!      ! Initialize
-!      K        = 1
-!      Eev(:)   = 0.d0
-!      FILENAME = TRIM( DATA_DIR )                        // 
-!     &           'sulfate_sim_200508/volcano.erup.1990.' // 
-!     &           GET_RES_EXT()
-!      
-!      !==================================================================
-!      ! Read eruptive volcanic SO2 emission (based on Smithsonian data 
-!      ! base, SO2 emission and cloud height are a function of VEI.  
-!      ! Data are over-written if TOMS observations are available.  
-!      ! Also define a slab with a thickness of 1/3 of the cloud column, 
-!      ! and SO2 are emitted uniformely within the slab.  
-!      !
-!      ! Convert Ee from [kton SO2] to [kg SO2/box] and store in Eev.
-!      ! ESO2_ev(i,j,l) in [kg SO2/box/s] will be calculated in SRCSO2.  
-!      !==================================================================
-!      
-!      ! Fancy output
-!      WRITE( 6, 100 ) TRIM( FILENAME ) 
-! 100  FORMAT( '     - READ_ERUP_VOLC: Reading ', a )
-!   
-!      ! Open file 
-!      OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-!      IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:1' )
-!
-!      ! Read header lines
-!      DO L = 1, 2
-!         READ( IU_FILE, '(a)', IOSTAT=IOS )
-!         IF ( IOS > 0 ) THEN
-!            CALL IOERROR( IOS, IU_FILE, 'read_erup_volc:2' )
-!         ENDIF
-!      ENDDO
-!
-!         ! Read data values
-!      DO 
-!         READ( IU_FILE, '(47x,3i6,6x,i6,es11.3,1x,2i4)', IOSTAT=IOS )
-!     &        IELVe(K), IDAYs(K), IDAYe(K), IHGHT(K), 
-!     &        Ee,       IEV(K),   JEV(K)
-!         
-!         ! Check for EOF
-!         IF ( IOS < 0 ) EXIT
-!
-!          ! Trap I/O error
-!         IF ( IOS > 0 ) THEN
-!            CALL IOERROR( IOS, IU_FILE, 'sulfate_readyr:6' )
-!         ENDIF
-!
-!         ! Unit conversion: [kton SO2/box/event] -> [kg SO2/box/event]
-!         Eev(k) = Ee * 1.d6
-!
-!         ! Increment count
-!         K = K + 1
-!      ENDDO
-!
-!      ! Close file
-!      CLOSE( IU_FILE )
-!
-!      ! NEVOL = Number of eruptive volcanoes
-!      NEVOL = K - 1
-!----------------------------------------------------------------------
 
       ! If the current year falls within the range of available data,
       ! get eruptive volcanic emissions (jaf, 10/15/09)
@@ -6687,13 +6086,6 @@
 
                   IF (GET_EUROPE_MASK(I,J) > 0d0) THEN
 
-!-----------------------------------------------------------------------------
-! Prior to 11/14/08:
-! BUG FIX: Using tracer #26 in the call to GET_EMEP_ANTHRO can cause 
-! problems when adding or removing species.  Replace w/ IDTSO2. 
-! (phs, 11/14/08) 
-!                     EDG_SO2 = GET_EMEP_ANTHRO( I, J, 26, KG_S=.TRUE. )
-!-----------------------------------------------------------------------------
                      EDG_SO2 = GET_EMEP_ANTHRO( I,      J,
      $                                          IDTSO2, KG_S=.TRUE. )
 
@@ -6769,33 +6161,6 @@
          ! Read in yearly SO2 scale factors here
          ! (For now we only have 1998, deal w/ other years later)
          !=================================================================
-!-- prior to 3/11/08
-         !IF ( LASTYEAR < 0 ) THEN
-         !
-         !   ! put in SOX scale year here (hardwired to 1998 for now)
-         !   SYEAR    = '1998'
-         !   FILENAME = TRIM( DATA_DIR )                    // 
-         !&                 'sulfate_sim_200508/scalefoss.SOx.' //  
-         !&                 GET_RES_EXT()  // '.' // SYEAR
-         !
-         !   ! Echo output
-         !   WRITE( 6, 100 ) TRIM( FILENAME )
-         !
-         !   ! Get TAU value (use Jan 1, 1998 for scale factors)
-         !   XTAU = GET_TAU0( 1, 1, 1998 )
-         !
-         !   ! Read anthropogenic SOx [molec/cm2/s] 
-         !   CALL READ_BPCH2( FILENAME, 'SCALFOSS', 3, 
-         !&                       XTAU,      IGLOB,     JGLOB,     
-         !&                       1,         ARRAY,     QUIET=.TRUE. )
-         !
-         !   ! Cast from REAL*4 to REAL*8
-         !   CALL TRANSFER_2D( ARRAY(:,:,1), SOx_SCALE )
-         !
-         !   ! Reset LASTYEAR
-         !   LASTYEAR = GET_YEAR()
-         !ENDIF
-
 
          ! Get annual scalar factor (amv, 08/24/07)
          CALL GET_ANNUAL_SCALAR( 73, 1985, SCALEYEAR, SOx_SCALE )
@@ -6889,13 +6254,6 @@
                   ENDIF
 
                ENDIF
-
-!--- prior 6/23/08
-!      Now calculate SO4 from SO2, since SOx not available with STREETS and EMEP
-!               ! Compute SO4 (tracer #3) from SOx
-!               ! Convert from [molec SOx/cm2/s] to [kg SO4/box/s]
-!               ESO4_an(I,J,L) = E_SOx(I,J,L) * Fe *
-!     &                          AREA_CM2 / XNUMOL(IDTSO4)
 
                 ESO4_an(I,J,L) = ESO2_an(I,J,L) * Fe / (1.d0-Fe)
 
@@ -7027,11 +6385,6 @@
       ! READ_SST begins here!
       !==================================================================
 
-      !---------------------------------------------------------
-      ! Prior to 7/13/09:
-      ! Max year is now 2008 (bmy, 7/13/09)
-      !IF ( THISYEAR >= 1985 .and. THISYEAR <= 2004 ) THEN 
-      !---------------------------------------------------------
       IF ( THISYEAR >= 1985 .and. THISYEAR <= 2008 ) THEN 
          
          !------------------------------------
@@ -7152,8 +6505,6 @@
       INTEGER                       :: I, J, THISYEAR
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                        :: BIOCO(IIPAR,JJPAR)
-!-- prior 12/23/08            
-!      REAL*8                        :: CONV, XTAU
       REAL*8                        :: XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
@@ -7198,30 +6549,12 @@
   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!----------------------------------------------------------------------
-! Prior to 1/28/09:
-! Need to remove CONV from the PRIVATE statement (bmy, 1/28/09)
-!!$OMP+PRIVATE( I, J, CONV )
-!----------------------------------------------------------------------
 !$OMP+PRIVATE( I, J )
       ! Loop over longitudes
       DO J = 1, JJPAR
 
-!-- prior 12/23/08            
-!         ! Conversion factor for [cm2 * kg/molec]
-!         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTSO2)
-
          ! Loop over latitudes
          DO I = 1, IIPAR
-
-!-- prior 12/23/08            
-!            ! Convert biomass SO2 from [molec SO2/cm2/s] -> [kg SO2/s] 
-!            ! NOTE: Future scale has already been applied by this point
-!            IF ( LBIOMASS ) THEN
-!               ESO2_bb(I,J) = BIOMASS(I,J,IDBSO2) * CONV
-!            ELSE
-!               ESO2_bb(I,J) = 0d0
-!            ENDIF
 
             ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
             ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
@@ -7957,31 +7290,13 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!------------------------------------------------------------------
-! Prior to 1/28/09:
-! Need to remove CONV from the PRIVATE statement (bmy, 1/28/09)
-!!$OMP+PRIVATE( I, J, CONV )
-!------------------------------------------------------------------
 !$OMP+PRIVATE( I, J )
 
       ! Loop over latitudes
       DO J = 1, JJPAR
  
-!-- prior 12/23/08            
-!         ! Conversion factor for [cm2 * kg/molec]
-!         CONV = GET_AREA_CM2( J ) / XNUMOL(IDTNH3)
-
          ! Loop over longitudes
          DO I = 1, IIPAR
-
-!-- prior 12/23/08            
-!            ! Convert biomass NH3 from [molec NH3/cm2/s] -> [kg NH3/s]
-!            ! NOTE: Future scale is applied by this point (if necessary)
-!            IF ( LBIOMASS ) THEN
-!               ENH3_bb(I,J) = BIOMASS(I,J,IDBNH3) * CONV
-!            ELSE
-!               ENH3_bb(I,J) = 0d0
-!            ENDIF
 
             ! Scale biofuel NH3 to IPCC future scenario (if necessary)
             IF ( LFUTURE ) THEN
@@ -8367,22 +7682,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMSo' )
       DMSo = 0d0
 
-!----------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      ALLOCATE( EEV( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'Eev' )
-!      Eev = 0d0
-!----------------------------------------------------
       ALLOCATE( EEV( IIPAR, JJPAR, LVOLC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EEV' )
       EEV = 0d0
 
-!----------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      ALLOCATE( ENV( NNV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENV' )
-!      ENV = 0d0
-!----------------------------------------------------
       ALLOCATE( ENV( IIPAR, JJPAR, LVOLC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ENV' )
       ENV = 0d0
@@ -8434,45 +7737,6 @@
       ALLOCATE( ESO4_an( IIPAR, JJPAR, NOXLEVELS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ESO4_an' )
       ESO4_an = 0d0
-
-!---------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      ALLOCATE( IDAYe( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYe' )
-!      IDAYe = 0d0
-!
-!      ALLOCATE( IDAYs( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IDAYs' )
-!      IDAYs = 0d0
-!
-!      ALLOCATE( IELVe( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVe' )
-!      IELVe = 0d0
-!
-!      ALLOCATE( IELVn( NNV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IELVn' )
-!      IELVn = 0d0
-!
-!      ALLOCATE( IEV( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IEV' )
-!      IEV = 0d0
-!
-!      ALLOCATE( IHGHT( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'IHGHT' )
-!      IHGHT = 0d0
-!
-!      ALLOCATE( INV( NNV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'INV' )
-!      INV = 0d0
-!
-!      ALLOCATE( JEV( NEV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JEV' )
-!      JEV = 0d0
-!
-!      ALLOCATE( JNV( NNV ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNV' )
-!      JNV = 0d0
-!---------------------------------------------------------
 
       ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLTROP ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PMSA_DMS' )
@@ -8635,18 +7899,6 @@
       IF ( ALLOCATED( ESO2_bf   ) ) DEALLOCATE( ESO2_bf   )
       IF ( ALLOCATED( ESO2_sh   ) ) DEALLOCATE( ESO2_sh   )
       IF ( ALLOCATED( ESO4_an   ) ) DEALLOCATE( ESO4_an   )
-!------------------------------------------------------------------
-! Prior to 10/15/09 (jaf)
-!      IF ( ALLOCATED( IDAYs     ) ) DEALLOCATE( IDAYs     )
-!      IF ( ALLOCATED( IDAYe     ) ) DEALLOCATE( IDAYe     )
-!      IF ( ALLOCATED( IELVe     ) ) DEALLOCATE( IELVe     )
-!      IF ( ALLOCATED( IELVn     ) ) DEALLOCATE( IELVn     )
-!      IF ( ALLOCATED( IEV       ) ) DEALLOCATE( IEV       )
-!      IF ( ALLOCATED( IHGHT     ) ) DEALLOCATE( IHGHT     )
-!      IF ( ALLOCATED( INV       ) ) DEALLOCATE( INV       )
-!      IF ( ALLOCATED( JEV       ) ) DEALLOCATE( JEV       )
-!      IF ( ALLOCATED( JNV       ) ) DEALLOCATE( JNV       )
-!------------------------------------------------------------------
       IF ( ALLOCATED( JH2O2     ) ) DEALLOCATE( JH2O2     )
       IF ( ALLOCATED( O3m       ) ) DEALLOCATE( O3m       )
       IF ( ALLOCATED( PH2O2m    ) ) DEALLOCATE( PH2O2m    )

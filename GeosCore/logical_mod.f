@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.5 2009/12/01 15:50:44 ccarouge Exp $
+! $Id: logical_mod.f,v 1.6 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -51,8 +51,11 @@
 !  18 Aug 2009 - K. Wecht    - Added switches for CH4 emissions & budget  
 !  16 Oct 2009 - R. Yantosca - Added LLINOZ switch for Linoz O3 strat chem
 !  16 Oct 2009 - R. Yantosca - Added ProTeX header
-!  30 Oct 2009 - A. v. Donkelaar - Added LNEI2005
+!  30 Oct 2009 - Aaron van D - Added LNEI2005
 !  19 Nov 2009 - M. Barkley  - Added LMODISLAI and LPECCA
+!  18 Dec 2009 - Aaron van D - Added HDF5 logical switches
+!  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
+!  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,8 +149,13 @@
       LOGICAL :: LTRAN           ! Turns advection on/off
       LOGICAL :: LTPFV           ! Are we using the GEOS-4 
       LOGICAL :: LUPBD           ! Use stratospheric O3, NOY bdry conditions
-      LOGICAL :: LWINDO          ! Use nested-grid simulation?
       LOGICAL :: LLINOZ          ! Use LINOZ chemistry in the stratosphere?
+      LOGICAL :: LWINDO          ! Use nested-grid simulation?
+      LOGICAL :: LWINDO2x25      ! Use nested-grid BC's @ 2 x 2.5 resolution?
+      LOGICAL :: LWINDO_NA       
+      LOGICAL :: LWINDO_EU
+      LOGICAL :: LWINDO_CH
+      LOGICAL :: LWINDO_CU
 
       !%%%% Met fields %%%%
       LOGICAL :: LUNZIP          ! Unzip met fields on-the-fly?
@@ -185,6 +193,11 @@
       LOGICAL :: LBFCH4          ! Use CH4 biofuel emissions?
       LOGICAL :: LBMCH4          ! Use CH4 biomass emissions?
       LOGICAL :: LCH4BUD         ! Use computing CH4 budget
+
+      !%%%% HDF5 output %%%%
+      LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?
+      LOGICAL :: LND51_HDF       ! Save ND51  diagnostic in HDF5?
+      LOGICAL :: LND51b_HDF      ! Save ND51b diagnostic in HDF5?
 
       END MODULE LOGICAL_MOD
 !EOC

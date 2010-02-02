@@ -1,10 +1,10 @@
-! $Id: carbon_mod.f,v 1.4 2009/11/30 19:57:57 ccarouge Exp $
+! $Id: carbon_mod.f,v 1.5 2010/02/02 16:57:54 bmy Exp $
       MODULE CARBON_MOD
 !
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 2/19/09)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 1/11/10)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -166,6 +166,10 @@
 !        GC source, which can be monthly/8 days/3hr.
 !        Implement changes for reading new Bond files (eml, phs, 5/18/09)
 !  (23) Add option for non-local PBL scheme (lin, 06/09/08)
+!  (24) Now added NESTED_EU grid.  Updated formulation of SOG condensation 
+!        onto OC aerosol, according to recommendations of Aerosol Working 
+!        Group. (amv, clh, bmy, 12/21/09)
+!  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -1570,7 +1574,7 @@
 !******************************************************************************
 !  Subroutine SOA_CHEMISTRY performs SOA formation.  This code is from the
 !  Caltech group (Hong Liao, Serena Chung, et al) and was modified for 
-!  GEOS-CHEM. (rjp, bmy, 7/8/04, 8/3/06)
+!  GEOS-CHEM. (rjp, bmy, 7/8/04, 12/21/09)
 !
 !  Procedure:
 !  ============================================================================
@@ -1620,6 +1624,8 @@
 !        (dkh, bmy, 6/1/06)
 !  (3 ) Now consider SOG condensation onto SO4, NH4, NIT aerosols (if SO4,
 !        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06) 
+!  (4 ) Updated formulation of SOG condensation onto OC aerosol, according
+!        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1633,7 +1639,11 @@
       USE TRACERID_MOD, ONLY : IDTSOG4, IDTSO4,  IDTNH4,  IDTNIT
       USE TIME_MOD,     ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
-      USE LOGICAL_MOD,  ONLY : LDICARB
+!--------------------------------------------------------------------------
+! Prior to 12/21/09:
+!      USE LOGICAL_MOD,  ONLY : LDICARB
+!--------------------------------------------------------------------------
+
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
@@ -1715,87 +1725,28 @@
             ORG_AER(IPR,JHC) = AM0(IPR,JHC) * FAC
          ENDDO
          ENDDO
-                
-         IF ( IDTSO4 > 0 .and. IDTNH4 > 0 .and. IDTNIT > 0 ) THEN
 
-            !-----------------------------------------------------------
-            ! Condensation of SOG onto seed aerosols (rjp, bmy, 8/3/06)
-            !
-            ! If SO4, NH4, and NIT are defined tracers in this run
-            ! (i.e. as in full-chemistry simulations), then:
-            !  
-            ! (1) Compute the condensation of SOG on seed aerosols 
-            !     including preexisting OC and inorganic aerosols
-            !
-            ! (2) Use higher ratio (2.1) of molecular weight of 
-            !     organic mass per carbon mass accounting for non-carbon 
-            !     components attached to OC [Turpin and Lim, 2001]
-            !
-            ! NOTE...The remaining question is:
-            !
-            !     Do we have to include other types of aerosols such 
-            !     as dust, sea salt, and aerosol water which should be 
-            !     available in ISORROPIA?
-            !
-            ! I think that aerosol water is valuable information for 
-            ! this and also AOD computation so at least we need to 
-            ! archive it if including it as a tracer is too expensive.
-            ! (Rokjin Park, 8/3/06)
-            !-----------------------------------------------------------
-
-            !-----------------------------------------------------------
-            ! The standard code reversibly-partitions SOA mass onto all 
-            ! aqueous aerosols.
-            ! However, if the dicarbonyl SOA formation pathway is included, 
-            ! this would lead to an overestimate of SOA mass compare to 
-            ! observations during ICARTT. So LDICARB was introduced to 
-            ! change to partitioning only onto pre-existing organic aerosols
-            ! when adding the dicarbonyl SOA formation pathway. (tmf, 3/06/09)
-            !-----------------------------------------------------------
- 
-	    IF ( .not. LDICARB ) THEN
-               ! First compute SOG condensation onto OC aerosol
-               MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
-               MPOC = MPOC * 2.1d0
-            ENDIF
-
-            ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
-            MPOC = MPOC + ( STT(I,J,L,IDTSO4) + 
-     &                      STT(I,J,L,IDTNH4) + 
-     &                      STT(I,J,L,IDTNIT) ) * FAC
-
-         ELSE
-
-            !-----------------------------------------------------------
-            ! If SO4, NIT, and NH3 are all undefined for this run, 
-            ! then we will omit SOG condensation onto these aerosols 
-            ! (at least for the time being).
-            !
-            ! We carry carbon mass only in STT array and here multiply 
-            ! by the ratio (2.1) of molecular weight of organic mass
-            ! per carbon mass.  This ratio accounts for non-carbon 
-            ! components attached to OC [Turpin and Lim, 2001].
-            !
-            ! %%% NOTE: Ideally we should read in offline monthly    %%%
-            ! %%% mean concentrations of SO4, NH4, NIT, and then use %%%
-            ! %%% these to compute SOG condensation.  Implement this %%%
-            ! %%% later.                                             %%%
-            ! %%%                                                    %%%
-            ! %%% For the time being, GEOS-Chem users are STRONGLY   %%%
-            ! %%% encouraged to include sulfate aerosol and 2dary    %%%
-            ! %%% organic aerosol tracers in offline carbon aerosol  %%%
-            ! %%% simulations.  Without these extra aerosol tracers, %%%
-            ! %%% the carbon aerosol simulation alone may under-     %%%
-            ! %%% estimate SOA formation.                            %%%
-            !
-            ! (rjp, bmy, 8/3/06)
-            !-----------------------------------------------------------
- 
-            ! Compute SOG condensation onto OC aerosol
-            MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
-            MPOC = MPOC * 2.1d0
-
-         ENDIF
+         !-----------------------------------------------------------
+         ! Compute SOG condensation onto OC aerosol
+         !
+         ! Primary organic aerosol concentrations [ug/m3]
+         ! We carry carbon mass only in the STT array and here
+         ! multiply by 2.1 to account for non-carbon mass in the SOA.
+         !
+         ! Partitioning theory (Pankow, 1994) describes organic
+         ! phase partitioning assuming absorption into pre-existing
+         ! organic mass.  There is currently no theoretical or
+         ! laboratory support for absorption of organics into
+         ! inorganics.
+         !
+         ! Note that previous versions of the standard code
+         ! (v7-04-07 through v8-02-04) did include absorption into
+         ! inorganics.
+         !
+         ! (Colette Heald, 12/3/09)
+         !-----------------------------------------------------------
+         MPOC = ( STT(I,J,L,IDTOCPI) + STT(I,J,L,IDTOCPO) ) * FAC
+         MPOC = MPOC * 2.1d0
 
          !==============================================================
          ! Solve for MNEW by solving for SOA=0
@@ -4406,7 +4357,7 @@ c
 !
 !******************************************************************************
 !  Subroutine EMITHIGH mixes tracer completely from the surface to the PBL
-!  top. (rjp, bmy, 4/2/04, 2/17/05)
+!  top. (rjp, bmy, 4/2/04, 1/11/10)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -4421,6 +4372,8 @@ c
 !        "pbl_mix_mod.f".  (bmy, 2/17/05)
 !  (4 ) Add emis_save to save surface emissions for non-local PBL scheme. 
 !        (lin, 5/29/09)
+!  (5 ) Bug fix: EMIS_SAVE should be EMIS_SAVE(I,J,...) instead of
+!        EMIS_SAVE(:,:,...) since we are in a parallel loop (bmy, 1/11/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4464,21 +4417,34 @@ c
          DO J = 1, JJPAR
          DO I = 1, IIPAR
    
-         IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
-         IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
-         IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
-         IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
-         IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
-         IF ( IS_LIMO ) THEN
-            EMIS_SAVE(:,:,IDTLIMO) = BIOG_LIMO(I,J)
-            ! lead to too much ORVC_TERP in the 1st layer?
-            ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
-         ENDIF
-         IF ( IS_ALCO ) THEN
-            EMIS_SAVE(:,:,IDTALCO) = BIOG_ALCO(I,J)
-            ! lead to too much ORVC_SESQ in the 1st layer?
-            ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
-         ENDIF
+            IF ( IS_BCPI ) EMIS_SAVE(I,J,IDTBCPI) = BCSRC(I,J,1)
+            IF ( IS_OCPI ) EMIS_SAVE(I,J,IDTOCPI) = OCSRC(I,J,1)
+            IF ( IS_BCPO ) EMIS_SAVE(I,J,IDTBCPO) = BCSRC(I,J,2)
+            IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
+            IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
+            IF ( IS_LIMO ) THEN
+               !------------------------------------------------------------
+               ! Prior to 1/11/09:
+               ! Bug fix: Should be EMIS_SAVE(I,J,IDTLIMO) since we are
+               ! within a parallel loop.
+               !EMIS_SAVE(:,:,IDTLIMO) = BIOG_LIMO(I,J)
+               !------------------------------------------------------------
+               EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
+               ! lead to too much ORVC_TERP in the 1st layer?
+               ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
+            ENDIF
+            IF ( IS_ALCO ) THEN
+               !------------------------------------------------------------
+               ! Prior to 1/11/09:
+               ! Bug fix: Should be EMIS_SAVE(I,J,IDTALCO) since we are
+               ! within a parallel loop.
+               !EMIS_SAVE(:,:,IDTALCO) = BIOG_ALCO(I,J)
+               !------------------------------------------------------------
+               EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
+
+               ! lead to too much ORVC_SESQ in the 1st layer?
+               ORVC_SESQ(I,J,1)   = ORVC_SESQ(I,J,1) + BIOG_SESQ(I,J)
+            ENDIF
    
          ENDDO
          ENDDO
@@ -5786,7 +5752,7 @@ c
 !
 !******************************************************************************
 !  Subroutine INIT_CARBON initializes all module arrays. 
-!  (rjp, bmy, 4/1/04, 11/6/08)
+!  (rjp, bmy, 4/1/04, 12/19/09)
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
@@ -5798,6 +5764,7 @@ c
 !        (tmf, havala, bmy, 2/6/07)
 !  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
 !        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5960,6 +5927,14 @@ c
 
 #elif defined( NESTED_CH )
       ! For 1x1 China nested grid: we don't cover N. America region
+      ! Setting these to zero will turn off Cooke/RJP emissions
+      I1_NA = 0
+      J1_NA = 0
+      I2_NA = 0
+      J2_NA = 0
+
+#elif defined( NESTED_EU )
+      ! For EU nested grid: we don't cover N. America region
       ! Setting these to zero will turn off Cooke/RJP emissions
       I1_NA = 0
       J1_NA = 0

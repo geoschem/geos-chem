@@ -1,9 +1,9 @@
-! $Id: acetone_mod.f,v 1.1 2009/09/16 14:06:44 bmy Exp $
+! $Id: acetone_mod.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
       MODULE ACETONE_MOD
 !
 !******************************************************************************
 !  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 8/4/06)
+!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 1/13/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -63,6 +63,8 @@
 !        et al 2000b formulation for piston velocity KL. (swu, bmy, 8/16/05)
 !  (17) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (18) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (19) Updates for nested EU and NA grids (amv, bmy, 12/18/09)
+!  (20) Updates for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -290,7 +292,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 11/6/08)
+!  (bdf, bmy, 9/12/01, 1/13/10)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -331,6 +333,9 @@
 !        (swu, bmy, 8/16/05)
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (14) Adjust SCALE_FACTOR for 0.5 x 0.667 grid (dan, bmy, 11/6/08)
+!  (15) Additional scale factors for NESTED_NA and NESTED_EU calculated and 
+!        included (amv, bmy, 12/18/09)
+!  (16) Added scale factor for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -379,6 +384,9 @@
       ! The sacle factor for GEOS5 where calculated using 2005/07 to 
       ! 2006/06. (tmf, 3/5/09)
       ! 
+      ! GEOS_5 2x2.5 and NESTED EU and NA scale factors calculated using
+      ! 2005/01-2007/01 (amv, Nov 9, 2009)
+      ! 
       ! Model  Res   ACET Produced    Target        Scale factor  
       ! ----------------------------------------------------------------
       ! GEOS-4 4x5   19.0973 Tg C   16.74 Tg C  16.74/19.0973 = 0.8765
@@ -392,8 +400,13 @@
       ! GEOS_5 4x5 NESTED_CH DOMAIN     produces ACET  2.16838 Tg C
       ! GEOS_5 05x0666 NESTED_CH DOMAIN produces ACET 134.757 Tg C
       ! GEOS_5 05X0666 scale factor = 0.9551 * (2.16838 / 134.757) = 0.01537
-      !     
-      !
+      ! GEOS_5 2x25  18.92 Tg C     16.74 Tg C  16.74/18.92   = 
+      ! GEOS_5 2x25 NESTED_NA DOMAIN produces 1.6794 Tg C
+      ! GEOS_5 05x0666 NESTED_NA DOMAIN produces 1.724 TgC
+      ! GEOS_5 05x0666 scale factor = 0.015369 * 1.6794/1.724  = 0.01497
+      ! GEOS_5 2x25 NESTED_EU DOMAIN produces 0.2868 Tg C
+      ! GEOS_5 05x0666 NESTED_EU DOMAIN produces 0.2689 Tg C
+      ! GEOS_5 05x0666 scale factor = 0.015369 * 0.2868/0.2689  = 0.01639
       !=================================================================
 #if   defined( GEOS_4 ) && defined( GRID4x5 )
  
@@ -407,8 +420,8 @@
  
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
  
-      ! GEOS-4 1 x 1.25: NOTE: NEED TO DEFINE THIS!! (bmy, 12/1/04)
-      REAL*8, PARAMETER :: SCALE_FACTOR = ???
+      ! GEOS-4 1 x 1.25 (accounts for 1x1.25 surface area) (lok, bmy, 1/13/10)
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05764d0
  
 #elif  defined( GEOS_3 ) && defined( GRID4x5 )
  
@@ -433,14 +446,23 @@
       ! This scale factor produces too little acetone. (tmf, 3/05/09)
       !REAL*8, PARAMETER :: SCALE_FACTOR = 0.0008d0
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
+
+#elif defined( GRID05x0666 ) && defined ( NESTED_NA )
+
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01497d0
  
+#elif defined( GRID05x0666 ) && defined ( NESTED_EU )
+
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01639d0
+
 #elif defined( GRID4x5 )
  
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.9551d0
  
 #elif defined( GRID2x25 )
  
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+      !REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0
  
 #endif
  

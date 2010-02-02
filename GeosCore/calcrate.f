@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.3 2009/10/27 14:56:03 bmy Exp $
+! $Id: calcrate.f,v 1.4 2010/02/02 16:57:54 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -956,36 +956,6 @@ C
             ENDDO
          ENDDO
          
-         !---------------------------------------------------------------------
-         ! Prior to 10/27/09:
-         ! FastJX has taken near-IR photolysis into account with
-         ! cross section at 574nm, so we don't need to add 1e-5 anymore.
-         ! According to Jimenez et al., "Quantum yields of OH, HO2 and
-         ! NO3 in the UV photolysis of HO2NO2", PCCP, 2005, we also
-         ! changed the branch ratio from 0.67(HO2)/0.33(OH) to 0.95/0.05
-         ! This will put most weight of near-IR photolysis on HO2 channel.
-         ! (jmao, bmy, 10/27/09)
-         !
-         !!==============================================================
-         !! HARDWIRE addition of 1e-5 s-1 photolysis rate to 
-         !! HNO4 -> HO2+NO2 to account for HNO4 photolysis in near-IR -- 
-         !! see Roehl et al. 'Photodissociation of peroxynitric acid in 
-         !! the near-IR', 2002. (amf, bmy, 1/7/02)
-         !!
-         !! Add NCS index to NKHNO4 for SMVGEAR II (gcc, bmy, 4/1/03)
-         !!==============================================================
-         !IF ( NKHNO4(NCS) > 0 ) THEN
-         !
-         !   ! Put J(HNO4) in correct spot for SMVGEAR II
-         !   PHOTVAL = NKHNO4(NCS) - NRATES(NCS)
-         !   NKN     = NKNPHOTRT(PHOTVAL,NCS)
-         !
-         !   DO KLOOP=1,KTLOOP
-         !      RRATE(KLOOP,NKN)=RRATE(KLOOP,NKN) + 1d-5
-         !   ENDDO
-         !ENDIF
-         !---------------------------------------------------------------------
-
          !==============================================================
          ! HARDWIRE the effect of branching ratio of HOC2H4O in EP photolysis
          !   HOC2H4O ------> HO2 + 2CH2O    : marked as I in P column of 

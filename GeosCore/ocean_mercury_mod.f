@@ -1,4 +1,4 @@
-! $Id: ocean_mercury_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: ocean_mercury_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
       MODULE OCEAN_MERCURY_MOD
 !
 !******************************************************************************
@@ -245,7 +245,7 @@
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 7/8/09)
+!  the ocean in [kg/s].  (sas, bmy, 1/19/05, 1/13/10)
 !
 !  NOTE: The emitted flux may be negative when ocean conc. is very low. 
 !
@@ -262,6 +262,7 @@
 !  (2 ) Rewritten to include Sarah Strode's latest ocean Hg model code.
 !        Also now accounts for 2x25 grid. (sas, cdh, bmy, 4/6/06)
 !  (3 ) Bug fix to prevent error on XLF compiler (morin, bmy, 7/8/09)
+!  (4 ) Modifications for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -404,6 +405,13 @@
       ! to account for the smaller grid size (sas, bmy, 4/17/06) 
       Ks     = Ks * 4d0
       Kc     = Kc * 4d0
+#endif
+
+#if   defined( GRID1x125 )
+      ! If we are using the 1x125 grid, then multiply Ks and Kc by 16
+      ! to account for the smaller grid size (LL 13/01/09) 
+      Ks     = Ks * 16d0
+      Kc     = Kc * 16d0
 #endif
 
       ! Diffused mass of (Hg0, Hg2, HgC) across thermocline [kg/m2/timestep]

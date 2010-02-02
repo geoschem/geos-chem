@@ -1,9 +1,9 @@
-! $Id: regrid_1x1_mod.f,v 1.1 2009/11/20 21:43:03 bmy Exp $
+! $Id: regrid_1x1_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
       MODULE REGRID_1x1_MOD
 !
 !******************************************************************************
 !  Module REGRID_1x1_MOD does online regridding of data on the GEOS-Chem 1x1 
-!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 11/6/08)
+!  grid to 1x1, 2x25, or 4x5 GEOS/GCAP grids. (bdf, bmy, 10/24/05, 12/18/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !  (5 ) Bug fix in REGRID_MASS_TO_2x25 (barkley, bmy, 10/17/07)
 !  (6 ) Added routines for regridding to 0.5 x 0.666 GEOS-5 nested grid
 !        (yxw, dan, bmy, 11/6/08)
+!  (7 ) Updated nested grid parameters for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -580,6 +581,11 @@
       CALL REGRID_05x0666_NESTED( I1x1,  J1x1,  L1x1, UNIT, 
      &                                INDATA, OUTDATA )
 
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+
+      CALL REGRID_05x0666_NESTED( I1x1,  J1x1,  L1x1, UNIT,
+     &                                INDATA, OUTDATA )
+
 #else 
 
       write(*,*) 'regrid_1x1_mod.f : no match in DO_THE_REGRIDDING '
@@ -611,6 +617,7 @@
 !  (4 ) OUTDATA (REAL*8  ) : Output data array 
 !
 !  NOTES:
+!  (1 ) Updated nested grid limits for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
 #     include "CMN_SIZE"             ! Size parameters
@@ -644,6 +651,18 @@
       ! which corresponds to 05x0666 indices (376,159) and (496,291)
       OUTDATA(1:IIPAR,1:JJPAR,1) = INDATA( 376:496, 159:291,1)
 
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+
+      ! NA nested grid has corners (140W,10N) and (40W,70N)
+      ! which corresponds to 05x0666 indices (61,201) and (211,321)
+      OUTDATA(1:IIPAR,1:JJPAR,1) = INDATA( 61:211, 201:321,1)
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+
+      ! EU nested grid has corners (30W,30N) and (50E,70N)
+      ! which corresponds to 05x0666 indices (226,241) and (246,321)
+      OUTDATA(1:IIPAR,1:JJPAR,1) = INDATA( 226:346, 241:321,1)
+
 #endif
 
       ! Return to calling program
@@ -657,7 +676,7 @@
 !******************************************************************************
 !  Subroutine DO_THE_REGRIDDING_05x0666_2D is the driver routine for the 
 !  regridding global 3-D GEOS-5 0.5 x 0.667 data to the GEOS-5 nested grids.
-!  (bmy, 11/6/05)
+!  (bmy, 11/6/05, 12/18/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -670,6 +689,7 @@
 !  (4 ) OUTDATA (REAL*8  ) : Output data array 
 !
 !  NOTES:
+!  (1 ) Updated nested grid limits for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
 #     include "CMN_SIZE"             ! Size parameters
@@ -703,6 +723,18 @@
       ! which corresponds to 05x0666 indices (376,159) and (496,291)
       OUTDATA(1:IIPAR,1:JJPAR) = INDATA( 376:496, 159:291, 1)
 
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+
+      ! NA nested grid has corners (140W,10N) and (40W,70N)
+      ! which corresponds to 05x0666 indices (61,201) and (211,321)
+      OUTDATA(1:IIPAR,1:JJPAR) = INDATA( 61:211, 201:321,1)
+
+#elif defined( GRID05x0666 ) && defined( NESTED_EU )
+
+      ! EU nested grid has corners (30W,30N) and (50E,70N)
+      ! which corresponds to 05x0666 indices (226,241) and (246,321)
+      OUTDATA(1:IIPAR,1:JJPAR) = INDATA( 226:346, 241:321,1)
+
 #endif
 
       ! Return to calling program
@@ -715,7 +747,7 @@
 !
 !******************************************************************************
 !  Subroutine REGRID_05x0666_NESTED regrid 1x1 data to 0.5 x 0.667 data and
-!  can work with different /geos/u23/GC_DATA_/ctm/GEOS_1x1/anth_scale_factors_200811/NOxScalar-2005-2000.geos.1x1nested region (win, 5/5/09)
+!  can work with different /geos/u23/GC_DATA_/ctm/GEOS_1x1/anth_scale_factors_200811/NOxScalar-2005-2000.geos.1x1nested region (win, 5/5/09, 12/18/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -731,7 +763,9 @@
 !
 !  NOTES:
 !  (1 ) Currently the code is hard-wired for China and N.America regions
-!       so this needs modifications for other regions in the future (win, 5/5/09)
+!       so this needs modifications for other regions in the future 
+!       (win, 5/5/09)
+!  (2 ) Updated nested grid parameters for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !  
 
@@ -761,11 +795,21 @@
 #elif defined ( NESTED_NA ) 
 
       INTEGER, PARAMETER           :: II_NEST = 101
-      INTEGER, PARAMETER           :: JJ_NEST = 51
+      INTEGER, PARAMETER           :: JJ_NEST = 61
       INTEGER, PARAMETER           :: I1_NEST = 41
       INTEGER, PARAMETER           :: I2_NEST = 141
       INTEGER, PARAMETER           :: J1_NEST = 101
-      INTEGER, PARAMETER           :: J2_NEST = 151
+      INTEGER, PARAMETER           :: J2_NEST = 161
+      LOGICAL                      :: check_reg = .TRUE.
+
+#elif defined ( NESTED_EU )
+
+      INTEGER, PARAMETER           :: II_NEST = 81
+      INTEGER, PARAMETER           :: JJ_NEST = 41
+      INTEGER, PARAMETER           :: I1_NEST = 151
+      INTEGER, PARAMETER           :: I2_NEST = 231
+      INTEGER, PARAMETER           :: J1_NEST = 121
+      INTEGER, PARAMETER           :: J2_NEST = 161
       LOGICAL                      :: check_reg = .TRUE.
 
 #else

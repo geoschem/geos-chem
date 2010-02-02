@@ -1,4 +1,4 @@
-! $Id: a6_read_mod.f,v 1.2 2009/10/15 14:52:20 bmy Exp $
+! $Id: a6_read_mod.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
       MODULE A6_READ_MOD
 !
 !******************************************************************************
@@ -440,11 +440,6 @@
          ! is the # of fields contained in the file
          READ( IDENT(7:8), '(i2.2)' ) N_A6_FIELDS
 
-!--------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD ) 
-!--------------------------------------------------------------
 #if   defined( GEOS_5 )
          !%%% KLUDGE: set N_A6_FIELDS=21 when using the reprocessed
          !%%% GEOS-5 met.   This accounts for CMFMC (which doesn't seem
@@ -897,11 +892,6 @@
       !=================================================================
 
       ! Get number of A-6 fields
-!-------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
-!-------------------------------------------------------------
 #if   defined( GEOS_5 )
       N_A6 = N_A6_FIELDS
 #else
@@ -1552,19 +1542,6 @@
       !------------------------------
       ! Special handling for GEOS-5
       !------------------------------
-
-!------------------------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   !defined( IN_CLOUD_OD )
-!      !%%%%% KLUDGE FOR GEOS-5: If we are not using GEOS-5 met fields
-!      !%%%%% that have been reprocessed to fix the bug in optical depth,
-!      !%%%%% then multiply optical depth by the cloud fraction for a
-!      !%%%%% quick fix. (bmy, phs, 10/10/08)
-!      IF ( PRESENT( OPTDEPTH ) ) OPTDEPTH = OPTDEPTH * CLDTOT
-!#endif
-!------------------------------------------------------------------------------
-
 
       ! Convert RH from unitless to percent (phs, bmy, 3/28/08)
       ! %%% NOTE: GEOS-5 file spec says units of RH are % but that's wrong!

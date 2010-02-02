@@ -1,4 +1,4 @@
-! $Id: gfed2_biomass_mod.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.2 2010/02/02 16:57:53 bmy Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
@@ -426,11 +426,6 @@
       !-------------------------------
       ELSE IF ( LGFED2BB ) THEN
          
-         !-----------------------------------------------------------
-         ! Prior to 7/8/09:
-         ! GFED2 2008 monthly data is now available (bmy, 7/8/09)
-         !CALL GFED2_AVAILABLE( YYYY, 1997, 2007 )
-         !-----------------------------------------------------------
          CALL GFED2_AVAILABLE( YYYY, 1997, 2008 )
 
          WRITE( 6, 410 ) YYYY, MM

@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.6 2009/12/01 15:50:44 ccarouge Exp $
+! $Id: input_mod.f,v 1.7 2010/02/02 16:57:52 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -39,6 +39,7 @@
 !  (16) READ_ND49_MENU        : Reads the GEOS-Chem ND49 timeseries menu
 !  (17) READ_ND50_MENU        : Reads the GEOS-Chem ND50 timeseries menu
 !  (18) READ_ND51_MENU        : Reads the GEOS-Chem ND51 timeseries menu
+!  (18) READ_ND51b_MENU       : Reads the GEOS-Chem ND51b timeseries menu
 !  (19) READ_PROD_LOSS_MENU   : Reads the GEOS-Chem ND65 timeseries menu
 !  (20) READ_UNIX_CMDS_MENU   : Reads the GEOS-Chem unix commands menu
 !  (21) READ_NESTED_GRID_MENU : Reads the GEOS-Chem nested grid menu
@@ -181,12 +182,13 @@
 !
 !******************************************************************************
 !  Subroutine READ_INPUT_FILE is the driver program for reading the GEOS_CHEM
-!  input file "input.geos" from disk. (bmy, 7/20/04)
+!  input file "input.geos" from disk. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
 !  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
 !        "tracerinfo.dat" files after all diagnostic menus have been read in
 !  (2 ) Now call NDXX_setup from this routine (phs, 11/18/08)
+!  (3 ) Now call READ_ND51b_MENU (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -301,6 +303,9 @@
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
             CALL READ_ND51_MENU                   
                                                   
+         ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
+            CALL READ_ND51b_MENU  
+
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
             CALL READ_PROD_LOSS_MENU               
                                                   
@@ -1101,7 +1106,6 @@
       READ( SUBSTRS(1:N), * ) LDICARB
 
       ! Separator line
-!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
 
       !=================================================================
@@ -1295,7 +1299,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 10/18/09)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1332,6 +1336,7 @@
 !  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
 !  (24) Included optional flag for using MODIS LAI data (mpb,2009).
 !  (25) Included optional flag for using PCEEA model (mpb, 2009)
+!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1608,8 +1613,26 @@
       !=================================================================
 #if defined( GRID05x0666 ) || defined( NESTED_CH )
 
-      LEDGAR   = .FALSE.
       LEMEP    = .FALSE.
+      LBRAVO   = .FALSE.
+      LCAC     = .FALSE.
+      LNEI99   = .FALSE.
+      LVISTAS  = .FALSE.
+      LICARTT  = .FALSE.
+
+#endif
+
+#if defined( NESTED_NA )
+
+      LSTREETS = .FALSE.
+      LEMEP    = .FALSE.
+
+#endif
+
+#if defined( NESTED_EU )
+
+      LSTREETS = .FALSE.
+      LEDGAR   = .FALSE.
       LBRAVO   = .FALSE.
       LCAC     = .FALSE.
       LNEI99   = .FALSE.
@@ -3442,22 +3465,25 @@
 !
 !******************************************************************************
 !  Subroutine READ_ND50_MENU reads the ND50 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04)
+!  input file. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
+!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
+!        (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG50_MOD, ONLY : INIT_DIAG50
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE DIAG50_MOD,  ONLY : INIT_DIAG50
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LND50_HDF
 
       ! Local variables
-      LOGICAL             :: DO_ND50
-      INTEGER             :: N,      I,       AS  
-      INTEGER             :: N_ND50, IMIN,    IMAX, TRACERS(100)   
-      INTEGER             :: JMIN,   JMAX,    LMIN, LMAX
-      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
-      CHARACTER(LEN=255)  :: FILE
+      LOGICAL              :: DO_ND50
+      INTEGER              :: N,      I,       AS  
+      INTEGER              :: N_ND50, IMIN,    IMAX, TRACERS(100)   
+      INTEGER              :: JMIN,   JMAX,    LMIN, LMAX
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)   :: FILE
 
       !=================================================================
       ! READ_ND50_MENU begins here!
@@ -3480,26 +3506,36 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:2' )
       READ( SUBSTRS(1:N), '(a)' ) FILE
 
+      ! Output as hdf
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:3' )
+      READ( SUBSTRS(1:N), * ) LND50_HDF
+
+#if   !defined( USE_HDF5 )
+      ! Reset HDF5 option to FALSE if we are not linking to HDF library
+      ! (bmy, 12/21/09)
+      LND50_HDF = .FALSE.
+#endif
+
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND50, -1, 'read_nd50_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND50, -1, 'read_nd50_menu:4' )
       DO N = 1, N_ND50
          READ( SUBSTRS(N), * ) TRACERS(N)
       ENDDO
 
       ! IMIN, IMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:5' )
       READ( SUBSTRS(1:N), * ) IMIN, IMAX
 
       ! JMIN, JMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:6' )
       READ( SUBSTRS(1:N), * ) JMIN, JMAX
 
       ! LMIN, LMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd50_menu:7' )
       READ( SUBSTRS(1:N), * ) LMIN, LMAX
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd50_menu:8' )
 
       !=================================================================
       ! Print to screen
@@ -3508,6 +3544,7 @@
       WRITE( 6, '(  a)' ) '---------------------------------'
       WRITE( 6, 100     ) 'Turn on ND50 timeseries?    : ', DO_ND50
       WRITE( 6, 110     ) 'ND50 timeseries file name   : ', TRIM( FILE )
+      WRITE( 6, 100     ) 'Output as HDF?              : ', LND50_HDF
       WRITE( 6, 120     ) 'ND50 timeseries tracers     : ', 
      &                     ( TRACERS(N), N=1, N_ND50 )
       WRITE( 6, 130     ) 'ND50 longitude limits       : ', IMIN, IMAX
@@ -3537,28 +3574,31 @@
 !
 !******************************************************************************
 !  Subroutine READ_ND51_MENU reads the ND51 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04)
+!  input file. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
+!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
+!        (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG51_MOD, ONLY : INIT_DIAG51
-      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE DIAG51_MOD,  ONLY : INIT_DIAG51
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LND51_HDF
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! NDxx flags
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
 
       ! Local variables
-      LOGICAL             :: DO_ND51
-      INTEGER             :: N,      I,       AS
+      LOGICAL              :: DO_ND51
+      INTEGER              :: N,      I,       AS
       ! Increased to 120 from 100 (mpb,2009)
-      INTEGER             :: N_ND51, FREQ,    TRACERS(120)
-      INTEGER             :: IMIN,   IMAX,    JMIN
-      INTEGER             :: JMAX,   LMIN,    LMAX
-      REAL*8              :: HR1,    HR2,     HR_WRITE
-      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
-      CHARACTER(LEN=255)  :: FILE
+      INTEGER              :: N_ND51, FREQ,    TRACERS(120)
+      INTEGER              :: IMIN,   IMAX,    JMIN
+      INTEGER              :: JMAX,   LMIN,    LMAX
+      REAL*8               :: HR1,    HR2,     HR_WRITE
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)   :: FILE
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -3581,34 +3621,44 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:2' )
       READ( SUBSTRS(1:N), '(a)' ) FILE
 
+      ! Output as hdf
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:3' )
+      READ( SUBSTRS(1:N), * ) LND51_HDF
+
+#if   !defined( USE_HDF5 )
+      ! Reset HDF5 option to FALSE if we are not linking to HDF library
+      ! (bmy, 12/21/09)
+      LND51_HDF = .FALSE.
+#endif
+
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND51, -1, 'read_nd51_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND51, -1, 'read_nd51_menu:4' )
       DO N = 1, N_ND51
          READ( SUBSTRS(N), * ) TRACERS(N)
       ENDDO
 
       ! NHMS_WRITE
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:6' )
       READ( SUBSTRS(1:N), * ) HR_WRITE
 
       ! HR1, HR2
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:7' )
       READ( SUBSTRS(1:N), * ) HR1, HR2
 
       ! IMIN, IMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:8' )
       READ( SUBSTRS(1:N), * ) IMIN, IMAX
 
       ! JMIN, JMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:9' )
       READ( SUBSTRS(1:N), * ) JMIN, JMAX
 
       ! LMIN, LMAX
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:10' )
       READ( SUBSTRS(1:N), * ) LMIN, LMAX
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51_menu:11' )
 
       !=================================================================
       ! Print to screen
@@ -3617,6 +3667,7 @@
       WRITE( 6, '(  a)' ) '-----------------------------------------'
       WRITE( 6, 100     ) 'Turn on ND51 timeseries?    : ', DO_ND51
       WRITE( 6, 110     ) 'ND51 timeseries file name   : ', TRIM( FILE )
+      WRITE( 6, 100     ) 'Output as HDF?              : ', LND51_HDF
       WRITE( 6, 120     ) 'ND41 timeseries tracers     : ', 
      &                     ( TRACERS(N), N=1, N_ND51 )
       WRITE( 6, 140     ) 'ND51 hour to write to disk  : ', HR_WRITE
@@ -3643,6 +3694,130 @@
 
       ! Return to calling program
       END SUBROUTINE READ_ND51_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_ND51b_MENU
+!
+!******************************************************************************
+!  Subroutine READ_ND51b_MENU reads the ND51 MENU section of the GEOS-CHEM
+!  input file. (amv, 12/21/09)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DIAG51b_MOD, ONLY : INIT_DIAG51b
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LND51b_HDF
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
+
+      ! Local variables
+      LOGICAL              :: DO_ND51
+      INTEGER              :: N,      I,       AS
+      INTEGER              :: N_ND51, FREQ,    TRACERS(100)
+      INTEGER              :: IMIN,   IMAX,    JMIN
+      INTEGER              :: JMAX,   LMIN,    LMAX
+      REAL*8               :: HR1,    HR2,     HR_WRITE
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)   :: FILE
+
+      !=================================================================
+      ! READ_ND51_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_ND51b_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! Initialize
+      TRACERS(:) = 0
+
+      ! Turn on ND51 diagnostic
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:1' )
+      READ( SUBSTRS(1:N), * ) DO_ND51
+
+      ! Instantaneous 3-D timeseries file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) FILE
+
+      ! Output as hdf
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:3' )
+      READ( SUBSTRS(1:N), * ) LND51b_HDF
+
+#if   !defined( USE_HDF5 )
+      ! Reset HDF5 option to FALSE if we are not linking to HDF library
+      ! (bmy, 12/21/09)
+      LND51b_HDF = .FALSE.
+#endif
+
+      ! Tracers to include
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND51, -1, 'read_nd51b_menu:4' )
+      DO N = 1, N_ND51
+         READ( SUBSTRS(N), * ) TRACERS(N)
+      ENDDO
+
+      ! NHMS_WRITE
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:5' )
+      READ( SUBSTRS(1:N), * ) HR_WRITE
+
+      ! HR1, HR2
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51b_menu:6' )
+      READ( SUBSTRS(1:N), * ) HR1, HR2
+
+      ! IMIN, IMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51b_menu:7' )
+      READ( SUBSTRS(1:N), * ) IMIN, IMAX
+
+      ! JMIN, JMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51b_menu:8' )
+      READ( SUBSTRS(1:N), * ) JMIN, JMAX
+
+      ! LMIN, LMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51b_menu:9' )
+      READ( SUBSTRS(1:N), * ) LMIN, LMAX
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:10' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'ND51b MORNING OR AFTERNOON TIMESERIES MENU'
+      WRITE( 6, '(  a)' ) '-----------------------------------------'
+      WRITE( 6, 100     ) 'Turn on ND51b timeseries?   : ', DO_ND51
+      WRITE( 6, 110     ) 'ND51b timeseries file name  : ', TRIM( FILE )
+      WRITE( 6, 100     ) 'Output as HDF?              : ', LND51b_HDF
+      WRITE( 6, 120     ) 'ND41 timeseries tracers     : ',
+     &                     ( TRACERS(N), N=1, N_ND51 )
+      WRITE( 6, 140     ) 'ND51b hour to write to disk  : ', HR_WRITE
+      WRITE( 6, 140     ) 'ND51b averaging period [GMT] : ', HR1,  HR2
+      WRITE( 6, 130     ) 'ND51b longitude limits       : ', IMIN, IMAX
+      WRITE( 6, 130     ) 'ND51b latitude  limits       : ', JMIN, JMAX
+      WRITE( 6, 130     ) 'ND51b altitude  limits       : ', LMIN, LMAX
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+ 120  FORMAT( A, 100I3 )
+ 130  FORMAT( A, 2I5   )
+ 140  FORMAT( A, 2F5.1 )
+
+      !=================================================================
+      ! Call setup routine from other F90 modules
+      !=================================================================
+
+      ! Initialize parameters for ND51b timeseries
+      CALL INIT_DIAG51b( DO_ND51, N_ND51, TRACERS, HR_WRITE,
+     &                  HR1,     HR2,    IMIN,    IMAX,
+     &                  JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+
+      ! Return to calling program
+      END SUBROUTINE READ_ND51b_MENU
 
 !------------------------------------------------------------------------------
 
@@ -3935,14 +4110,20 @@
 !
 !******************************************************************************
 !  Subroutine READ_NESTED_GRID_MENU reads the NESTED GRID MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
+!  (1 ) Now give user the option of saving out nested grid boundary conditions 
+!        at 2 x 2.5 resolution for the EU, CH, or NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
-      USE LOGICAL_MOD,   ONLY : LWINDO
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH
+      USE LOGICAL_MOD,   ONLY : LWINDO, LWINDO2x25
+      USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
+      USE LOGICAL_MOD,   ONLY : LWINDO_CU
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
  
       ! Local variables
@@ -3957,28 +4138,60 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:1' )
       READ( SUBSTRS(1:N), * ) LWINDO
 
-      ! Directory where 4x5 TPCORE BC's are stored
+      ! Save out TPCORE BC's at 2x2.5?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:2' )
+      READ( SUBSTRS(1:N), * ) LWINDO2x25
+
+      ! Save out TPCORE BC's over NA
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:3' )
+      READ( SUBSTRS(1:N), * ) LWINDO_NA
+
+      ! Directory where NA TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:4' )
+      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_NA
+
+      ! Save out TPCORE BC's over EU
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:5' )
+      READ( SUBSTRS(1:N), * ) LWINDO_EU
+
+      ! Directory where EU TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:6' )
+      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_EU
+
+      ! Save out TPCORE BC's over CH
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:7' )
+      READ( SUBSTRS(1:N), * ) LWINDO_CH
+
+      ! Directory where CH TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:8' )
+      READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR_CH
+
+      ! Save out TPCORE BC's over Custom Region
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:9' )
+      READ( SUBSTRS(1:N), * ) LWINDO_CU
+
+      ! Directory where TPCORE BC's are stored
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:10' )
       READ( SUBSTRS(1:N), '(a)' ) TPBC_DIR
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:11' )
       READ( SUBSTRS(1:N), * ) TS
 
       ! Lower left box
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:12' )
       READ( SUBSTRS(1:N), * ) I1, J1
 
       ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:13' )
       READ( SUBSTRS(1:N), * ) I2, J2
 
       ! 1x1 transport region offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_nested_grid_menu:14' )
       READ( SUBSTRS(1:N), * ) I0W, J0W     
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nested_grid_menu:15' )
 
       !=================================================================
       ! Print to screen
@@ -4337,13 +4550,14 @@
 !******************************************************************************
 !  Subroutine VALIDATE_DIRECTORIES makes sure that each of the directories
 !  that we have read from the GEOS-CHEM input file are valid.  Also, trailing
-!  separator characters will be added. (bmy, 7/20/04, 8/4/06)
+!  separator characters will be added. (bmy, 7/20/04, 12/18/09)
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
 !        GCAP and GEOS-5 directories. (bmy, 10/3/05)
 !  (2 ) Now references DATA_DIR_1x1 from directory_mod.f (bmy, 10/24/05)
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4351,9 +4565,11 @@
       USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
       USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR   
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR_EU, TPBC_DIR_CH
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
-      USE LOGICAL_MOD,   ONLY : LWINDO,      LUNZIP
+      USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
+      USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
 
 #     include "define.h" 
@@ -4381,9 +4597,29 @@
       IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )
 
       ! Only validate the TPCORE BC directory if we need it
-      IF ( LWINDO .or. ITS_A_NESTED_GRID() ) THEN
+      IF ( ITS_A_NESTED_GRID() ) THEN
+#if   defined( NESTED_NA)
+         CALL CHECK_DIRECTORY( TPBC_DIR_NA )
+#elif defined( NESTED_EU)
+         CALL CHECK_DIRECTORY( TPBC_DIR_EU )
+#elif defined( NESTED_CH)
+         CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+#endif
+
+      ENDIF
+      IF ( LWINDO_CU ) THEN
          CALL CHECK_DIRECTORY( TPBC_DIR )
       ENDIF
+      IF ( LWINDO_NA ) THEN
+         CALL CHECK_DIRECTORY( TPBC_DIR_NA )
+      ENDIF
+      IF ( LWINDO_EU ) THEN
+         CALL CHECK_DIRECTORY( TPBC_DIR_EU )
+      ENDIF
+      IF ( LWINDO_CH ) THEN
+         CALL CHECK_DIRECTORY( TPBC_DIR_CH )
+      ENDIF
+
 
 #if   defined( GEOS_3 )
 

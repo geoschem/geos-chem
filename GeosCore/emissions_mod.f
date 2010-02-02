@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.4 2009/11/20 21:43:18 bmy Exp $
+! $Id: emissions_mod.f,v 1.5 2010/02/02 16:57:53 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -46,6 +46,7 @@
 !  (19) Now references "vistas_anthro_mod.f" (amv, 12/02/08)
 !  (20) Bug fixe : add specific calls for Streets for the grid 0.5x0.666.
 !        (dan, ccc, 3/11/09)
+!  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !EOP
 !------------------------------------------------------------------------------
 
@@ -60,7 +61,6 @@
 !
 ! !DESCRIPTION: Subroutine DO\_EMISSIONS is the driver routine which calls 
 !  the appropriate emissions subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 2/14/08)
 !\\
 !\\
 ! !INTERFACE:
@@ -75,25 +75,23 @@
       USE BRAVO_MOD,              ONLY : EMISS_BRAVO
       USE C2H6_MOD,               ONLY : EMISSC2H6
       USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO
+      USE CAC_ANTHRO_MOD,         ONLY : EMISS_CAC_ANTHRO_05x0666
       USE CARBON_MOD,             ONLY : EMISSCARBON
       USE CH3I_MOD,               ONLY : EMISSCH3I
       USE CO2_MOD,                ONLY : EMISSCO2
       USE DUST_MOD,               ONLY : EMISSDUST
       USE EDGAR_MOD,              ONLY : EMISS_EDGAR
       USE EMEP_MOD,               ONLY : EMISS_EMEP
+      USE EMEP_MOD,               ONLY : EMISS_EMEP_05x0666
       USE EPA_NEI_MOD,            ONLY : EMISS_EPA_NEI
       USE ERROR_MOD,              ONLY : DEBUG_MSG
       USE GLOBAL_CH4_MOD,         ONLY : EMISSCH4
       USE H2_HD_MOD,              ONLY : EMISS_H2_HD
       USE HCN_CH3CN_MOD,          ONLY : EMISS_HCN_CH3CN
-      !------------------------------------------------------------------
-      ! Prior to 11/20/09:
-      ! Comment out from compilation (bmy, 11/20/09)
-      !USE Kr85_MOD,               ONLY : EMISSKr85
-      !------------------------------------------------------------------
       USE LOGICAL_MOD                
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
@@ -144,6 +142,7 @@
 !        EMEP, and Streets every month (amv, 12/2/08)
 !  (21) Now references EMISS_EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
+!  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,14 +209,31 @@
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EMEP (Europe) emissions once per year
-         IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) CALL EMISS_EMEP
+         IF ( LEMEP  .and. ITS_A_NEW_MONTH()  ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666
+#else
+            CALL EMISS_EMEP
+#endif
+         ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) CALL EMISS_CAC_ANTHRO
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_CAC_ANTHRO_05x0666
+#else
+            CALL EMISS_CAC_ANTHRO
+#endif
+         ENDIF
 
          ! Read NEI2005 (USA) emissions
-         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) 
-     &        CALL EMISS_NEI2005_ANTHRO
+         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+#else
+            CALL EMISS_NEI2005_ANTHRO
+#endif
+         ENDIF
 
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
@@ -253,7 +269,11 @@
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_CAC_ANTHRO_05x0666
+#else
             CALL EMISS_CAC_ANTHRO
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month
@@ -264,15 +284,26 @@
          ! Read EPA/NEI99 emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
-         ! Read NEI2005 emissions once per year
-         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) 
-     &      CALL EMISS_NEI2005_ANTHRO
+         ! Read NEI2005 emissions once per month
+         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if    defined(GRID05x0666)
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+#else
+            CALL EMISS_NEI2005_ANTHRO
+#endif
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EMEP (Europe) emissions once per year
-         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666
+#else       
+            CALL EMISS_EMEP
+#endif
+         ENDIF
 
          ! Read SO2 ARCTAS emissions
          IF ( LARCSHIP .AND. ITS_A_NEW_YEAR() )
@@ -330,7 +361,11 @@
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_CAC_ANTHRO_05x0666
+#else
             CALL EMISS_CAC_ANTHRO
+#endif
          ENDIF
 
          ! Read EDGAR emissions once per month
@@ -342,14 +377,25 @@
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
          ! Read NEI2005 (USA) emissions once per year
-         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) 
-     &      CALL EMISS_NEI2005_ANTHRO
+         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+#else
+            CALL EMISS_NEI2005_ANTHRO
+#endif
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EPA (Europe) emissions once per year
-         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666
+#else
+            CALL EMISS_EMEP
+#endif
+         ENDIF
 
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN
@@ -444,20 +490,37 @@
          ENDIF
 
          ! Read CAC (Canada) emissions
-         IF ( LCAC .and. ITS_A_NEW_YEAR() ) CALL EMISS_CAC_ANTHRO
+         IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_CAC_ANTHRO_05x0666
+#else
+            CALL EMISS_CAC_ANTHRO
+#endif
+         ENDIF
 
          ! Read EPA (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 
          ! Read NEI2005 (USA) emissions
-         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) 
-     &      CALL EMISS_NEI2005_ANTHRO
+         IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_NEI2005_ANTHRO_05x0666
+#else
+            CALL EMISS_NEI2005_ANTHRO
+#endif
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
 
          ! Read EPA (Europe) emissions once per year
-         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) CALL EMISS_EMEP
+         IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
+#if   defined(GRID05x0666)
+            CALL EMISS_EMEP_05x0666
+#else
+            CALL EMISS_EMEP
+#endif
+         ENDIF
 
          ! Read ICOADS ship emissions once per month !(cklee, 7/09/09)
          IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN

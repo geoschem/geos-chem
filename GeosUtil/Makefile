@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.4 2009/12/11 19:27:42 bmy Exp $
+# $Id: Makefile,v 1.5 2010/02/02 16:57:47 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -52,6 +52,8 @@
 #  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
 #                              automatically written to the mod directory
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  21 Dec 2009 - R. Yantosca - If HDF5=yes, then look for hdf5.mod in the
+#                              HDF5 include path $(HDF5_INC).
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -72,11 +74,12 @@ include $(ROOTDIR)/Makefile_header.mk
 # as we will explicity define the dependencies listing below.
 #=============================================================================
 
-# Source file listing
-SRC   = $(wildcard *.f*)
+# List of source files
+SRC = $(wildcard *.f) $(wildcard *.f90)
 
-# Object file listing
-OBJ   = $(SRC:.f=.o)
+# Replace .f and .f90 extensions with *.o
+TMP = $(SRC:.f=.o)
+OBJ = $(TMP:.f90=.o)
 
 # Special files just for IFORT
 ifeq ($(COMPILER),ifort) 
@@ -133,5 +136,12 @@ time_mod.o       : time_mod.f       charpak_mod.o  error_mod.o  grid_mod.o  \
                                     julday_mod.o 
 transfer_mod.o   : transfer_mod.f   error_mod.o
 unix_cmds_mod.o  : unix_cmds_mod.f
+
+# NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
+# in the HDF5 include path (bmy, 12/21/09)
+hdf_mod.o        : hdf_mod.f       error_mod.o    grid_mod.o
+ifeq ($(HDF5),yes)
+	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<
+endif
 
 #EOC

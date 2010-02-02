@@ -1,146 +1,120 @@
-! $Id: time_mod.f,v 1.1 2009/11/20 21:43:02 bmy Exp $
+! $Id: time_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: time_mod
+!
+! !DESCRIPTION: Module TIME\_MOD contains GEOS-Chem date and time variables
+!  and timesteps, and routines for accessing them.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE TIME_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  TIME_MOD contains GEOS-CHEM date and time variables and timesteps, and 
-!  routines for accessing them. (bmy, 6/21/00, 2/2/07) 
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) NYMDb       (INTEGER) : YYYYMMDD at beginning of GEOS-CHEM run
-!  (2 ) NHMSb       (INTEGER) : HHMMSS   at beginning of GEOS-CHEM run
-!  (3 ) NYMDe       (INTEGER) : YYYYMMDD at end       of GEOS-CHEM run
-!  (4 ) NHMSe       (INTEGER) : HHMMSS   at end       of GEOS-CHEM run
-!  (5 ) NYMD        (INTEGER) : YYYYMMDD at current timestep
-!  (6 ) NHMS        (INTEGER) : HHMMSS   at current timestep
-!  (7 ) MONTH       (INTEGER) : Current month value (1-12)
-!  (8 ) DAY         (INTEGER) : Current day of the month (1-31)
-!  (9 ) YEAR        (INTEGER) : Current year (YYYY format)
-!  (10) HOUR        (INTEGER) : Current hour of the day (0-23)
-!  (11) MINUTE      (INTEGER) : Current minute of the hour (0-59)
-!  (12) SECOND      (INTEGER) : Current second of the minute (0-59)
-!  (13) NSEASON     (INTEGER) : Season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
-!  (14) DAY_OF_YEAR (INTEGER) : Current day of year (0-365 or 0-366)
-!  (15) ELAPSED_MIN (INTEGER) : Elapsed minutes since the end   of the run
-!  (16) TAU         (REAL*8 ) : Current TAU value (hours since 0 GMT 1/1/1985)
-!  (17) TAUb        (REAL*8 ) : TAU value at beginning of GEOS-CHEM run
-!  (18) TAUe        (REAL*8 ) : TAU value at end       of GEOS-CHEM run
-!  (19) DIAGb       (REAL*8 ) : TAU value at beginning of diagnostic interval
-!  (20) DIAGe       (REAL*8 ) : TAU value at end       of diagnostic interval
-!  (21) GMT         (REAL*8 ) : Current Greenwich Mean Time (0.0 - 23.999 hrs)
-!  (22) TS_CHEM     (INTEGER) : Chemistry timestep in minutes
-!  (23) TS_CONV     (INTEGER) : Convection timestep in minutes
-!  (24) TS_DIAG     (INTEGER) : Diagnostic timestep in minutes
-!  (25) TS_DYN      (INTEGER) : Dynamic timestep in minutes
-!  (26) TS_EMIS     (INTEGER) : Emission timestep in minutes
-!  (27) TS_UNIT     (INTEGER) : Unit conversion timestep in minutes
-!  (28) CT_CHEM     (INTEGER) : Number of chemistry timesteps executed so far
-!  (29) CT_CONV     (INTEGER) : Number of convection timesteps executed so far
-!  (30) CT_DYN      (INTEGER) : Number of dynamic timesteps executed so far
-!  (31) CT_EMIS     (INTEGER) : Number of emission timesteps executed so far
-!  (32) JD85        (REAL*8 ) : Astronomical Julian Day at 0 GMT 1/1/1985 
-!  (33) NDIAGTIME   (INTEGER) : Time of day (HHMMSS) to write bpch file
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) SET_CURRENT_TIME  : Updates time variables for current timestep
-!  (2 ) SET_BEGIN_TIME    : Initializes NYMDb, NHMSb, TAUb variables
-!  (3 ) SET_END_TIME      : Initializes NYMDe, NHMSe, TAUe variables
-!  (4 ) SET_NDIAGTIME     : Initializes NDIAGTIME (time to write bpch file)
-!  (5 ) SET_DIAGb         : Updates DIAGb and DIAGe diagnostic interval times
-!  (6 ) SET_DIAGe         : Updates DIAGb and DIAGe diagnostic interval times
-!  (7 ) SET_TIMESTEPS     : Updates the elapsed minutes since the start of run
-!  (8 ) SET_CT_CHEM       : Increments/resets the chemistry timestep counter
-!  (9 ) SET_CT_CONV       : Increments/resets the convection timestep counter
-!  (10) SET_CT_DYN        : Increments/resets the dynamic timestep counter
-!  (11) SET_CT_EMIS       : Increments/resets the emissions timestep counter
-!  (12) SET_CT_DIAG       : Increments/resets the diagnostics timestep counter
-!  (13) SET_CT_A3         : Increments/resets the A-3 fields timestep counter
-!  (14) SET_CT_A6         : Increments/resets the A-6 fields timestep counte
-!  (15) SET_CT_I6         : Increments/resets the I-6 fields timestep counter
-!  (16) SET_CT_XTRA      : Increments/resets the I-6 fields timestep counter
-!  (17) SET_ELAPSED_MIN   : Updates the elapsed minutes since the start of run
-!  (18) GET_JD            : Returns Astronomical Julian Date for NYMD, NHMS
-!  (19) GET_ELAPSED_MIN   : Returns the elapsed minutes since the start of run
-!  (20) GET_ELAPSED_SEC   : Returns the elapsed seconds since the start of run 
-!  (21) GET_NYMDb         : Returns the YYYYMMDD at the beginning of the run
-!  (22) GET_NHMSb         : Returns the HHMMSS   at the beginning of the run
-!  (23) GET_NYMDe         : Returns the YYYYMMDD at the end of the run
-!  (24) GET_NHMSe         : Returns the HHMMSS   at the end of the run
-!  (25) GET_NYMD          : Returns the YYYYMMDD at the current time
-!  (26) GET_NHMS          : Returns the HHMMSS   at the current time
-!  (27) GET_NDIAGTIME     : Returns NDIAGTIME (time of day to write bpch file)
-!  (28) GET_TIME_AHEAD    : Returns the YYYYMMDD, HHMMSS for N_MINS from now
-!  (29) GET_MONTH         : Returns the current month (1-12)
-!  (30) GET_DAY           : Returns the current day of month (1-31)
-!  (31) GET_YEAR          : Returns the current year (YYYY)
-!  (32) GET_HOUR          : Returns the current hour (0-23)
-!  (33) GET_MINUTE        : Returns the current minute (0-59)
-!  (34) GET_SECOND        : Returns the current second (0-59)
-!  (35) GET_DAY_OF_YEAR   : Returns the current day of the year (0-366)
-!  (36) GET_DAY_OF_WEEK   : Returns the current day of the week (0-6)
-!  (37) GET_GMT           : Returns the current GMT (0.0 - 23.999)
-!  (38) GET_TAU           : Returns the current TAU value (hrs since 1/1/1985)
-!  (39) GET_TAUb          : Returns TAU value at beginning of GEOS-CHEM run
-!  (40) GET_TAUe          : Returns TAU value at end of GEOS-CHEM run
-!  (41) GET_DIAGb         : Returns TAU value at start of diagnostic interval
-!  (42) GET_DIAGe         : Returns TAU value at end of diagnostic interval
-!  (43) GET_LOCALTIME     : Returns local time for a grid box (0.0 - 23.999)
-!  (44) GET_SEASON        : Returns season flag (1=DJF, 2=MAM, 3=JJA, 4=SON)
-!  (45) GET_TS_CHEM       : Returns chemistry timestep in minutes
-!  (46) GET_TS_CONV       : Returns convection timestep in minutes
-!  (47) GET_TS_DIAG       : Returns diagnostic timestep in minutes
-!  (48) GET_TS_DYN        : Returns dynamic timestep in minutes
-!  (49) GET_TS_EMIS       : Returns emissions timestep in minutes
-!  (50) GET_TS_UNIT       : Returns unit conversion timestep in minutes
-!  (51) GET_CT_CHEM       : Returns # of chemistry timesteps already executed
-!  (52) GET_CT_CONV       : Returns # of convection timesteps already executed
-!  (53) GET_CT_DYN        : Returns # of dynamic timesteps already executed
-!  (54) GET_CT_EMIS       : Returns # of emission timesteps already executed
-!  (55) GET_CT_A3         : Returns # of times A-3 fields have been read in
-!  (56) GET_CT_A6         : Returns # of times A-6 fields have been read in
-!  (57) GET_CT_I6         : Returns # of times I-6 fields have been read in
-!  (58) GET_CT_XTRA       : Returns # of times I-6 fields have been read in
-!  (59) GET_CT_DIAG       : Returns # of times diag. have been incremented
-!  (60) GET_A3_TIME       : Returns YYYYMMDD and HHMMSS for the A-3 fields
-!  (61) GET_A6_TIME       : Returns YYYYMMDD and HHMMSS for the A-6 fields
-!  (62) GET_I6_TIME       : Returns YYYYMMDD and HHMMSS for the I-6 fields
-!  (63) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-3 read
-!  (64) GET_FIRST_A3_TIME : Returns YYYYMMDD and HHMMSS for the first A-6 read
-!  (65) ITS_TIME_FOR_CHEM : Returns TRUE if it is time to do chemistry
-!  (66) ITS_TIME_FOR_CONV : Returns TRUE if it is time to do convection
-!  (67) ITS_TIME_FOR_DYN  : Returns TRUE if it is time to do dynamics
-!  (68) ITS_TIME_FOR_EMIS : Returns TRUE if it is time to do emissions
-!  (69) ITS_TIME_FOR_UNIT : Returns TRUE if it is time to do unit conversions
-!  (70) ITS_TIME_FOR_DIAG : Returns TRUE if it is time to write diagnostics
-!  (71) ITS_TIME_FOR_A3   : Returns TRUE if it is time to read in A-3 fields
-!  (72) ITS_TIME_FOR_A6   : Returns TRUE if it is time to read in A-6 fields
-!  (73) ITS_TIME_FOR_I6   : Returns TRUE if it is time to read in I-6 fields
-!  (74) ITS_TIME_FOR_UNZIP: Returns TRUE if it is the end of the run
-!  (75) ITS_TIME_FOR_DEL  : Returns TRUE if it is time to delete temp files
-!  (76) ITS_TIME_FOR_EXIT : Returns TRUE if it is the end of the run
-!  (77) ITS_TIME_FOR_BPCH : Returns TRUE if it's time to write bpch output
-!  (78) ITS_A_LEAPYEAR    : Returns TRUE if the current year is a leapyear
-!  (79) ITS_A_NEW_YEAR    : Returns TRUE if it's a new year
-!  (80) ITS_A_NEW_MONTH   : Returns TRUE if it's a new month
-!  (81) ITS_MIDMONTH      : Returns TRUE if it's 0 GMT on the 16th of the month
-!  (82) ITS_A_NEW_DAY     : Returns TRUE if it's a new day
-!  (83) ITS_A_NEW_SEASON  : Returns TRUE if it's a new season
-!  (84) TIMESTAMP_STRING  : Returns a string "YYYY/MM/DD HH:MM:SS"
-!  (85) PRINT_CURRENT_TIME: Prints date time in YYYY/MM/DD, HH:MM:SS format
-!  (86) YMD_EXTRACT       : Extracts YYYY, MM, DD from a YYYYMMDD format number
-!  (87) EXPAND_DATE       : Replaces date/time tokens w/ actual values
-!  (88) SYSTEM_DATE_TIME  : Returns the system date and time
-!  (89) SYSTEM_TIMESTAMP  : Returns a string with the system date and time
+      PUBLIC  :: SET_CURRENT_TIME
+      PUBLIC  :: SET_BEGIN_TIME
+      PUBLIC  :: SET_END_TIME
+      PUBLIC  :: SET_NDIAGTIME
+      PUBLIC  :: SET_DIAGb
+      PUBLIC  :: SET_DIAGe
+      PUBLIC  :: SET_TIMESTEPS
+      PUBLIC  :: SET_CT_CHEM
+      PUBLIC  :: SET_CT_CONV
+      PUBLIC  :: SET_CT_DYN
+      PUBLIC  :: SET_CT_EMIS
+      PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_A3
+      PUBLIC  :: SET_CT_A6
+      PUBLIC  :: SET_CT_I6
+      PUBLIC  :: SET_CT_XTRA
+      PUBLIC  :: SET_ELAPSED_MIN
+      PUBLIC  :: GET_JD
+      PUBLIC  :: GET_ELAPSED_MIN
+      PUBLIC  :: GET_ELAPSED_SEC
+      PUBLIC  :: GET_NYMDb
+      PUBLIC  :: GET_NHMSb
+      PUBLIC  :: GET_NYMDe
+      PUBLIC  :: GET_NHMSe
+      PUBLIC  :: GET_NYMD
+      PUBLIC  :: GET_NHMS
+      PUBLIC  :: GET_NDIAGTIME
+      PUBLIC  :: GET_TIME_AHEAD
+      PUBLIC  :: GET_MONTH
+      PUBLIC  :: GET_DAY
+      PUBLIC  :: GET_YEAR
+      PUBLIC  :: GET_HOUR
+      PUBLIC  :: GET_MINUTE
+      PUBLIC  :: GET_SECOND
+      PUBLIC  :: GET_DAY_OF_YEAR
+      PUBLIC  :: GET_DAY_OF_WEEK
+      PUBLIC  :: GET_GMT
+      PUBLIC  :: GET_TAU
+      PUBLIC  :: GET_TAUb
+      PUBLIC  :: GET_TAUe
+      PUBLIC  :: GET_DIAGb
+      PUBLIC  :: GET_DIAGe
+      PUBLIC  :: GET_LOCALTIME
+      PUBLIC  :: GET_SEASON
+      PUBLIC  :: GET_TS_CHEM
+      PUBLIC  :: GET_TS_CONV
+      PUBLIC  :: GET_TS_DIAG
+      PUBLIC  :: GET_TS_DYN
+      PUBLIC  :: GET_TS_EMIS
+      PUBLIC  :: GET_TS_UNIT
+      PUBLIC  :: GET_CT_CHEM
+      PUBLIC  :: GET_CT_CONV
+      PUBLIC  :: GET_CT_DYN
+      PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_A3
+      PUBLIC  :: GET_CT_A6
+      PUBLIC  :: GET_CT_I6
+      PUBLIC  :: GET_CT_XTRA
+      PUBLIC  :: GET_CT_DIAG
+      PUBLIC  :: GET_A3_TIME
+      PUBLIC  :: GET_A6_TIME
+      PUBLIC  :: GET_I6_TIME
+      PUBLIC  :: GET_FIRST_A3_TIME
+      PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: ITS_TIME_FOR_CHEM
+      PUBLIC  :: ITS_TIME_FOR_CONV
+      PUBLIC  :: ITS_TIME_FOR_DYN
+      PUBLIC  :: ITS_TIME_FOR_EMIS
+      PUBLIC  :: ITS_TIME_FOR_UNIT
+      PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: ITS_TIME_FOR_A3
+      PUBLIC  :: ITS_TIME_FOR_A6
+      PUBLIC  :: ITS_TIME_FOR_I6
+      PUBLIC  :: ITS_TIME_FOR_UNZIP     
+      PUBLIC  :: ITS_TIME_FOR_DEL
+      PUBLIC  :: ITS_TIME_FOR_EXIT
+      PUBLIC  :: ITS_TIME_FOR_BPCH
+      PUBLIC  :: ITS_A_LEAPYEAR
+      PUBLIC  :: ITS_A_NEW_YEAR
+      PUBLIC  :: ITS_A_NEW_MONTH
+      PUBLIC  :: ITS_MIDMONTH
+      PUBLIC  :: ITS_A_NEW_DAY
+      PUBLIC  :: ITS_A_NEW_SEASON
+      PUBLIC  :: PRINT_CURRENT_TIME
+      PUBLIC  :: TIMESTAMP_STRING
+      PUBLIC  :: YMD_EXTRACT
+      PUBLIC  :: EXPAND_DATE
+      PUBLIC  :: SYSTEM_DATE_TIME
+      PUBLIC  :: SYSTEM_TIMESTAMP
+      PUBLIC  :: TIMESTAMP_DIAG
+      PUBLIC  :: GET_NYMD_DIAG
 !
-!  GEOS-CHEM modules referenced by time_mod.f
-!  ============================================================================
-!  (1 ) charpak_mod.f   : Module containing string handling routines
-!  (2 ) error_mod.f     : Module containing NaN and other error check routines
-!  (3 ) grid_mod.f      : Module containing horizontal grid information
-!  (4 ) julday_mod.f    : Module containing astronomical Julian date routines
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  21 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Updated comments (bmy, 9/4/01)
 !  (2 ) Added routine YMD_EXTRACT.  Also rewrote TIMECHECK using astronomical
 !        Julian day routines from "julday_mod.f". (bmy, 11/21/01)
@@ -187,39 +161,10 @@
 !       (ccc, 5/21/09)
 !  (29) Add NYMD_DIAG, GET_NYMD_DIAG, TIMESTAMP_DIAG to get the good timestamp
 !       for diagnostic filenames (ccc, 8/12/09)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "time_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC ...
-      PUBLIC
-
-      ! ... except these variables
-      PRIVATE           :: NYMDb,      NHMSb,       NYMDe   
-      PRIVATE           :: NHMSe,      NYMD,        NHMS
-      PRIVATE           :: NYMD_DIAG
-      PRIVATE           :: MONTH,      DAY,         YEAR
-      PRIVATE           :: HOUR,       MINUTE,      SECOND
-      PRIVATE           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
-      PRIVATE           :: TAU,        TAUb,        TAUe  
-      PRIVATE           :: DIAGb,      DIAGe,       GMT
-      PRIVATE           :: TS_CHEM,    TS_CONV,     TS_DIAG
-      PRIVATE           :: TS_DYN,     TS_EMIS,     TS_UNIT
-      PRIVATE           :: CT_CHEM,    CT_CONV,     CT_DYN
-      PRIVATE           :: CT_EMIS,    CT_A3,       CT_A6
-      PRIVATE           :: CT_I6,      CT_XTRA,     JD85
-      PRIVATE           :: CT_DIAG
-      PRIVATE           :: NDIAGTIME
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! Date and time variables
       INTEGER           :: NYMDb,      NHMSb,       NYMDe   
       INTEGER           :: NHMSe,      NYMD,        NHMS
@@ -244,35 +189,45 @@
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_current_time
+!
+! !DESCRIPTION: Subroutine SET\_CURRENT\_TIME takes in the elapsed time in 
+!  minutes since the start of a GEOS-Chem simulation and sets the GEOS-Chem 
+!  time variables accordingly.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CURRENT_TIME
 !
-!******************************************************************************
-!  Subroutine SET_CURRENT_TIME takes in the elapsed time in minutes since the 
-!  start of a GEOS-CHEM simulation and sets the GEOS-CHEM time variables 
-!  accordingly. (bmy, 2/5/03, 10/3/06)
+! !USES:
 !
-!  NOTES:
+      USE JULDAY_MOD, ONLY : JULDAY, CALDATE
+
+#     include "define.h"
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2006 - R. Yantosca - Initial Version
 !  (1 ) GCAP/GISS fields don't have leap years, so if JULDAY says it's 
 !        Feb 29th, reset MONTH, DAY, JD1 to Mar 1st. (swu, bmy, 8/29/05)
 !  (2 ) Now references "define.h".  Now add special handling to skip from
 !        Feb 28th to Mar 1st for GCAP model. (swu, bmy, 4/24/06)
 !  (3 ) Fix bug in case of GCAP fields for runs that start during leap year
 !       and after February 29 (phs, 9/27/06)  
-!******************************************************************************
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE JULDAY_MOD, ONLY : JULDAY, CALDATE
-
-#     include "define.h"
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL :: IS_LEAPYEAR
       REAL*4  :: TMP
       REAL*8  :: JD0, JD1, JD_JAN_1
@@ -281,7 +236,7 @@
       ! SET_CURRENT_TIME begins here!
       !=================================================================
 
-      ! JD0: Astronomical Julian Date at start of GEOS-CHEM run
+      ! JD0: Astronomical Julian Date at start of GEOS-Chem run
       JD0 = GET_JD( NYMDb, NHMSb )
 
       ! JD1: Astronomical Julian Date at current time
@@ -328,7 +283,7 @@
       IF ( MOD( MINUTE+1, 10 ) == 0  ) MINUTE = MINUTE + 1
 
       !=================================================================
-      ! Compute other GEOS-CHEM timing variables
+      ! Compute other GEOS-Chem timing variables
       !=================================================================
 
       ! Current Greenwich Mean Time
@@ -358,33 +313,42 @@
 
       ! Return to calling program
       END SUBROUTINE SET_CURRENT_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_begin_time
+!
+! !DESCRIPTION: Subroutine SET\_BEGIN\_TIME initializes NYMDb, NHMSb, and TAUb,
+!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
+!  the beginning date and time of a GEOS-Chem run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_BEGIN_TIME( THISNYMDb, THISNHMSb )
 !
-!******************************************************************************
-!  Subroutine SET_BEGIN_TIME initializes NYMDb, NHMSb, and TAUb, which are the
-!  YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to the beginning 
-!  date and time of a GEOS-CHEM run. (bmy, 2/5/03, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISNYMDb (INTEGER) : YYYYMMDD at beginning of GEOS-CHEM run
-!  (2 ) THISNHMSb (INTEGER) : HHMMSS   at beginning of GEOS-CHEM run
-!
-!  NOTES:
-!  (1 ) Added error check for THISNHMSb (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISNYMDb, THISNHMSb
-      
-      ! Local variables
-      REAL*4              :: TMP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISNYMDb   ! YYYYMMDD @ start of G-C simulation
+      INTEGER, INTENT(IN) :: THISNHMSb   ! HHMMSS   @ start of G-C simulation
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4 :: TMP
 
       !=================================================================
       ! SET_BEGIN_TIME begins here!
@@ -417,33 +381,42 @@
 
       ! Return to calling program
       END SUBROUTINE SET_BEGIN_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_end_time
+!
+! !DESCRIPTION: Subroutine SET\_END\_TIME initializes NYMDe, NHMSe, and TAUe, 
+!  which are the YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to 
+!  the ending date and time of a GEOS-Chem run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_END_TIME( THISNYMDe, THISNHMSe )
 !
-!******************************************************************************
-!  Subroutine SET_END_TIME initializes NYMDe, NHMSe, and TAUe, which are the
-!  YYYYMMDD, HHMMSS, and hours since 1/1/1985 corresponding to the ending 
-!  date and time of a GEOS-CHEM run. (bmy, 2/5/03, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISNYMDe (INTEGER) : YYYYMMDD at end of GEOS-CHEM run
-!  (2 ) THISNHMSe (INTEGER) : HHMMSS   at end of GEOS-CHEM run
-!
-!  NOTES:
-!  (1 ) Added error check for THISNHMSb (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISNYMDe, THISNHMSe
-      
-      ! Local variables
-      REAL*4              :: TMP
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISNYMDe   ! YYYYMMDD @ end of G-C simulation
+      INTEGER, INTENT(IN) :: THISNHMSe   ! HHMMSS   @ end of G-C simulation
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4 :: TMP
 
       !=================================================================
       ! SET_END_TIME begins here!
@@ -473,114 +446,129 @@
 
       ! Return to calling program
       END SUBROUTINE SET_END_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ndiagtime
+!
+! !DESCRIPTION:Subroutine SET\_NDIAGTIME initializes NDIAGTIME, the time of 
+!  day at which the binary punch file will be written out to disk.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_NDIAGTIME( THIS_NDIAGTIME )
 !
-!******************************************************************************
-!  Subroutine SET_NDIAGTIME initializes NDIAGTIME, the time of day at which
-!  the binary punch file will be written out to disk. (bmy, 7/20/04)
-! 
-!  NOTES:
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: THIS_NDIAGTIME
-
-      !=================================================================
-      ! SET_NDIAGTIME begins here!
-      !=================================================================
-      NDIAGTIME = THIS_NDIAGTIME
-      
-      ! Return to calling program
-      END SUBROUTINE SET_NDIAGTIME
-
+      INTEGER, INTENT(IN) :: THIS_NDIAGTIME  ! Initial NDIAGTIMEe [hrs]
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      NDIAGTIME = THIS_NDIAGTIME
 
+      END SUBROUTINE SET_NDIAGTIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_diagb
+!
+! !DESCRIPTION: Subroutine SET\_DIAGb initializes DIAGb, the TAU value at the 
+!  start of the diagnostic averaging interval.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_DIAGb( THISDIAGb )
 !
-!******************************************************************************
-!  Subroutine SET_DIAGb initializes DIAGb, the TAU value at the beginning 
-!  of the diagnostic averaging interval. (bmy, 3/21/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISDIAGb (INTEGER) : TAU value at beginning of diagnostic interval
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      REAL*8, INTENT(IN) :: THISDIAGb
-
-      !=================================================================
-      ! SET_DIAGb begins here!
-      !=================================================================
+      REAL*8, INTENT(IN) :: THISDIAGb  ! Initial DIAGb value [hrs from 1/1/85]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       DIAGb = THISDIAGb
 
-      ! Return to calling program
       END SUBROUTINE SET_DIAGb
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_diage
+!
+! !DESCRIPTION: Subroutine SET\_DIAGe initializes DIAGe, the TAU value at the 
+!  end of the diagnostic averaging interval.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_DIAGe( THISDIAGe )
 !
-!******************************************************************************
-!  Subroutine SET_DIAGe initializes DIAGe, the TAU value at the end
-!  of the diagnostic averaging interval. (bmy, 3/21/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISDIAGe (INTEGER) : TAU value at end of diagnostic interval
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      REAL*8, INTENT(IN) :: THISDIAGe
-
-      !=================================================================
-      ! SET_DIAGe begins here!
-      !=================================================================
+      REAL*8, INTENT(IN) :: THISDIAGe  ! Initial DIAGe value [hrs from 1/1/85]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       DIAGe = THISDIAGe
 
-      ! Return to calling program
       END SUBROUTINE SET_DIAGe
-
+!EOC
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, 
-     &                          DYNAMICS,  EMISSION,  UNIT_CONV,
-     &                          DIAGNOS )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SET_TIMESTEPS initializes the timesteps for dynamics, convection,
-!  chemistry, and emissions.  Counters are also zeroed. (bmy, 3/21/03,10/20/05)
+! !IROUTINE: set_timesteps
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) CHEMISTRY  (INTEGER) : Chemistry timestep        [minutes]
-!  (2 ) CONVECTION (INTEGER) : Convective timestep       [minutes]
-!  (3 ) DYNAMICS   (INTEGER) : Dynamic timestep          [minutes]
-!  (4 ) EMISSION   (INTEGER) : Emissions timestep        [minutes]
-!  (5 ) UNIT_CONV  (INTEGER) : Unit conversion timestep  [minutes]
-!  (6 ) DIAGNOS    (INTEGER) : Diagnostic timestep       [minutes]
+! !DESCRIPTION: Subroutine SET\_TIMESTEPS initializes the timesteps for 
+!  dynamics, convection, chemistry, emissions, and diagnostics.  
+!  Counters are also zeroed. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
+     &                          EMISSION,  UNIT_CONV,  DIAGNOS )
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [min]
+      INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [min]
+      INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [min]
+      INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
+      INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
+      INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
 !  (1 ) Suppress some output lines (bmy, 7/20/04)
 !  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
 !  (3 ) Add TS_DIAG as the diagnostic timestep. (ccc, 5/13/09)
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER, INTENT(IN) :: CHEMISTRY, CONVECTION, DYNAMICS
-      INTEGER, INTENT(IN) :: EMISSION,  UNIT_CONV, DIAGNOS
-      
-      !=================================================================
-      ! SET_TIMESTEPS begins here!
-      !=================================================================
-
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! Initialize timesteps
       TS_CHEM  = CHEMISTRY
       TS_CONV  = CONVECTION
@@ -601,7 +589,7 @@
       CT_DIAG = 0
 
       ! Echo to stdout
-      WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-CHEM timesteps!'
+      WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
       WRITE( 6, '(  a)' ) '-------------------------------------------'
       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
       WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
@@ -612,332 +600,378 @@
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_chem
+!
+! !DESCRIPTION: Subroutine SET\_CT\_CHEM increments CT\_CHEM, the counter
+!  of chemistry timesteps executed thus far. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_CHEM( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_CHEM increments CT_CHEM, the counter of chemistry 
-!  timesteps executed thus far. (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If specified, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If specified, then will reset counter to zero
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_CHEM begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2009 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_CHEM = CT_CHEM + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_CHEM = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_CHEM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_conv
+!
+! !DESCRIPTION: Subroutine SET\_CT\_CONV increments CT\_CONV, the counter
+!  of convection timesteps executed thus far. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_CONV( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_CONV increments CT_CONV, the counter of convection 
-!  timesteps executed thus far. (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_CONV begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2009 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_CONV = CT_CONV + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_CONV = 0 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_CONV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_dyn
+!
+! !DESCRIPTION: Subroutine SET\_CT\_DYN increments CT\_DYN, the counter
+!  of dynamical timesteps executed thus far. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_DYN( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_DYN increments CT_DYN, the counter of dynamic
-!  timesteps executed thus far. (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_DYN begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2009 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_DYN = CT_DYN + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_DYN = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_DYN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_emis
+!
+! !DESCRIPTION: Subroutine SET\_CT\_EMIS increments CT\_EMIS, the counter
+!  of emission timesteps executed thus far. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_EMIS( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_EMIS increments CT_EMIS, the counter of emission
-!  timesteps executed thus far. (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_EMIS begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2009 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_EMIS = CT_EMIS + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_EMIS = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_EMIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_diag
+!
+! !DESCRIPTION: Subroutine SET\_CT\_DIAG increments CT\_DIAG, the counter
+!  of largest timesteps executed thus far. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_DIAG( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_DIAG increments CT_DIAG, the counter of largest
-!  timesteps executed thus far. (ccc, 5/13/09)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_DIAG begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  13 May 2009 - C. Carouge  - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_DIAG = CT_DIAG + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_DIAG = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_DIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_a3
+!
+! !DESCRIPTION: Subroutine SET\_CT\_A3 increments CT\_A3, the counter of the 
+!  number of times we have read in A-3 fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_A3( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_A3 increments CT_A3, the counter of the number of times
-!  we have read in A-3 fields.  (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_A3 begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_A3 = CT_A3 + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_A3 = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_A3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_a6
+!
+! !DESCRIPTION: Subroutine SET\_CT\_A6 increments CT\_A6, the counter of the 
+!  number of times we have read in A-6 fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_A6( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_A6 increments CT_A6, the counter of the number of times
-!  we have read in A-6 fields.  (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_A3 begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_A6 = CT_A6 + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_A6 = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_i6
+!
+! !DESCRIPTION: Subroutine SET\_CT\_I6 increments CT\_I6, the counter of the 
+!  number of times we have read in I-6 fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_I6( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_I6 increments CT_I6, the counter of the number of times
-!  we have read in I-6 fields.  (bmy, 3/21/03)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_I6 begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_I6 = CT_I6 + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_I6 = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_I6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_xtra
+!
+! !DESCRIPTION: Subroutine SET\_CT\_XTRA increments CT\_XTRA, the counter of 
+!  the number of times we have read in GEOS-3 XTRA fields. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_CT_XTRA( INCREMENT, RESET )
 !
-!******************************************************************************
-!  Subroutine SET_CT_XTRA increments CT_XTRA, the counter of the number of 
-!  times we have read in GEOS-3 XTRA fields.  (tmf, bmy, 10/20/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INCREMENT (LOGICAL) : If T, then will increment counter
-!  (2 ) RESET     (LOGICAL) : If T, then will reset counter to zero!
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Arguments
-      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT, RESET
-
-      !=================================================================
-      ! SET_CT_I6 begins here!
-      !=================================================================
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  20 Oct 2009 - T-M Fu, R. Yantosca - Initial Version
+!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( PRESENT( INCREMENT ) ) THEN
          CT_XTRA = CT_XTRA + 1
       ELSE IF ( PRESENT( RESET ) ) THEN
          CT_XTRA = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE SET_CT_XTRA
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_elapsed_min
+!
+! !DESCRIPTION: Subroutine SET\_ELAPSED\_MIN increments the number of elapsed 
+!  minutes by the dynamic timestep TS\_DYN.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_ELAPSED_MIN
-!
-!******************************************************************************
-!  Subroutine SET_ELAPSED_MIN increments the number of elapsed minutes by
-!  the dynamic timestep TS_DYN. (bmy, 3/21/03)
-!******************************************************************************
-!
-      !=================================================================
-      ! SET_ELAPSED_MIN begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ELAPSED_MIN = ELAPSED_MIN + TS_DYN
 
-      ! Return to calling program
       END SUBROUTINE SET_ELAPSED_MIN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_jd
+!
+! !DESCRIPTION: Function GET\_JD is a wrapper for the JULDAY routine.  Given 
+!  the current NYMD and NHMS values, GET\_JD will return the current 
+!  astronomical Julian date.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_JD( THISNYMD, THISNHMS ) RESULT( THISJD )
 !
-!******************************************************************************
-!  Function GET_JD is a wrapper for the JULDAY routine.  Given the current
-!  NYMD and NHMS values, GET_JD will return the current astronomical Julian
-!  date. (bmy, 3/21/03)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISNYMD (INTEGER) : YYYYMMDD value
-!  (2 ) THISNHMS (INTEGER) : HHMMSS value
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 m odules
       USE JULDAY_MOD, ONLY : JULDAY
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISNYMD, THISNHMS
-
-      ! Local variables
-      INTEGER              :: Y, M, D, H, MI, S
-      REAL*8               :: DAY
-
-      ! Function variable
-      REAL*8               :: THISJD
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)  :: THISNYMD   ! YYYY/MM/DD value
+      INTEGER, INTENT(IN)  :: THISNHMS   ! hh:mm:ss   value
+!
+! !RETURN VALUE:
+!
+      REAL*8               :: THISJD     ! Output value
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: Y, M, D, H, MI, S
+      REAL*8  :: DAY
 
       !=================================================================
       ! GET_JD begins here!
@@ -959,234 +993,309 @@
 
       ! Return to the calling program
       END FUNCTION GET_JD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_elapsed_min
+!
+! !DESCRIPTION: Function GET\_ELAPSED\_MIN returns the elapsed minutes since 
+!  the start of a GEOS-chem run.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_ELAPSED_MIN() RESULT( THIS_ELAPSED_MIN )
 !
-!******************************************************************************
-!  Function GET_ELAPSED_MIN returns the elapsed minutes since the start of
-!  a GEOS_CHEM run to the calling program (bmy, 3/21/03) 
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       INTEGER :: THIS_ELAPSED_MIN
-
-      !=================================================================
-      ! GET_ELAPSED_MIN begins here!
-      !=================================================================     
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_ELAPSED_MIN = ELAPSED_MIN
 
-      ! Return to calling program
       END FUNCTION GET_ELAPSED_MIN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_elapsed_sec
+!
+! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed minutes since 
+!  the start of a GEOS-Chem run to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_ELAPSED_SEC() RESULT( THIS_ELAPSED_SEC )
 !
-!******************************************************************************
-!  Function GET_ELAPSED_SEC returns the elapsed minutss since the start of
-!  a GEOS_CHEM run to the calling program (bmy, 3/21/03) 
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       INTEGER :: THIS_ELAPSED_SEC
-
-      !=================================================================
-      ! GET_ELAPSED_SEC begins here!
-      !=================================================================     
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_ELAPSED_SEC = ELAPSED_MIN * 60
 
-      ! Return to calling program
       END FUNCTION GET_ELAPSED_SEC
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nymdb
+!
+! !DESCRIPTION: Function GET\_NYMDb returns the NYMDb value (YYYYMMDD at the 
+!  beginning of the run).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NYMDb() RESULT( THISNYMDb )
 !
-!******************************************************************************
-!  Function GET_NYMDb returns the NYMDb value (YYYYMMDD at the beginning of 
-!  the run) to the calling program. (bmy, 3/21/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNYMDb
-
-      !=================================================================
-      ! GET_NYMDb begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNYMDb = NYMDb
 
-      ! Return to calling program
       END FUNCTION GET_NYMDb
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nhmsb
+!
+! !DESCRIPTION: Function GET\_NHMSb returns the NHMSb value (HHMMSS at the 
+!  beginning of the run) to the calling program. (bmy, 3/21/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NHMSb() RESULT( THISNHMSb )
 !
-!******************************************************************************
-!  Function GET_NHMSb returns the NHMSb value (HHMMSS at the beginning
-!  of the run) to the calling program. (bmy, 3/21/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNHMSb
-
-      !=================================================================
-      ! GET_NHMSb begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNHMSb = NHMSb
 
-      ! Return to calling program
       END FUNCTION GET_NHMSb
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nymde
+!
+! !DESCRIPTION: Function GET\_NYMDe returns the NYMDe value (YYYYMMDD at the 
+!  end of the run) to the calling program. (bmy, 3/21/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NYMDe() RESULT( THISNYMDe )
 !
-!******************************************************************************
-!  Function GET_NYMDe returns the NYMDe value (YYYYMMDD at the end of 
-!  the run) to the calling program. (bmy, 3/21/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNYMDe
-
-      !=================================================================
-      ! GET_NYMDe begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNYMDe = NYMDe
 
-      ! Return to calling program
       END FUNCTION GET_NYMDe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nhmse
+!
+! !DESCRIPTION: Function GET\_NHMSe returns the NHMSe value (HHMMSS at the end
+!  of the run).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NHMSe() RESULT( THISNHMSe )
 !
-!******************************************************************************
-!  Function GET_NHMSe returns the NHMSe value (HHMMSS at the end
-!  of the run) to the calling program. (bmy, 3/21/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNHMSe
-
-      !=================================================================
-      ! GET_NHMSe begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNHMSe = NHMSe
 
-      ! Return to calling program
       END FUNCTION GET_NHMSe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nymd
+!
+! !DESCRIPTION: Function GET\_NYMD returns the current NYMD value (YYYYMMDD).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NYMD() RESULT( THISNYMD )
 !
-!******************************************************************************
-!  Function GET_NYMD returns the current NYMD value (YYYYMMDD) to the 
-!  calling program. (bmy, 2/5/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNYMD
-
-      !=================================================================
-      ! GET_NYMD begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNYMD = NYMD
 
-      ! Return to calling program
       END FUNCTION GET_NYMD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nhms
+!
+! !DESCRIPTION: Function GET\_NHMS returns the current NHMS value (HHMMSS).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NHMS() RESULT( THISNHMS )
 !
-!******************************************************************************
-!  Function GET_NHMS returns the current NHMS value (HHMMSS) to the 
-!  calling program. (bmy, 2/5/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNHMS
-
-      !=================================================================
-      ! GET_NHMS begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISNHMS = NHMS
 
-      ! Return to calling program
       END FUNCTION GET_NHMS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ndiagtime
+!
+! !DESCRIPTION: Subroutine GET\_NDIAGTIME returns to the calling program 
+!  NDIAGTIME, the time of day at which the binary punch file will be written 
+!  out to disk. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NDIAGTIME() RESULT( THIS_NDIAGTIME )
 !
-!******************************************************************************
-!  Subroutine GET_NDIAGTIME returns to the calling program NDIAGTIME, the 
-!  time of day at which the binary punch file will be written out to disk. 
-!  (bmy, 7/20/04)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Local variables
       INTEGER :: THIS_NDIAGTIME
-
-      !=================================================================
-      ! GET_NDIAGTIME begins here!
-      !=================================================================
-      THIS_NDIAGTIME = NDIAGTIME
-      
-      ! Return to calling program
-      END FUNCTION GET_NDIAGTIME
-
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      THIS_NDIAGTIME = NDIAGTIME
 
+      END FUNCTION GET_NDIAGTIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_time_ahead
+!
+! !DESCRIPTION: Function GET\_3h\_AHEAD returns to the calling program a 
+!  2-element vector containing the YYYYMMDD and HHMMSS values at the current 
+!  time plus N\_MINS minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TIME_AHEAD( N_MINS ) RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_3h_AHEAD returns to the calling program a 2-element vector
-!  containing the YYYYMMDD and HHMMSS values at the current time plus N_MINS
-!   minutes. (bmy, 3/21/03, 12/8/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N_MINS (INTEGER) : Minutes ahead of time to compute YYYYMMDD,HHMMSS
-! 
-!  NOTES:
-!  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE JULDAY_MOD, ONLY : CALDATE
 
 #     include "define.h"   ! C-preprocessor flags
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N_MINS
-
-      ! Local variables
-      INTEGER             :: DATE(2), THISYEAR, THISMONTH, THISDAY
-      REAL*8              :: JD
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: N_MINS   ! Minutes ahead to compute date & time
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: DATE(2)  ! Date & time output
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+      INTEGER :: THISYEAR, THISMONTH, THISDAY
+      REAL*8  :: JD
 
       !=================================================================
       ! GET_TIME_AHEAD begins here!
@@ -1218,180 +1327,243 @@
 
       ! Return to calling program
       END FUNCTION GET_TIME_AHEAD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_month
+!
+! !DESCRIPTION: Function GET\_MONTH returns the current GMT month.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_MONTH() RESULT( THISMONTH )
 !
-!******************************************************************************
-!  Function GET_MONTH returns the current month to the calling program.
-!  (bmy, 2/5/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISMONTH
-
-      !=================================================================
-      ! GET_MONTH begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISMONTH = MONTH
 
-      ! Return to calling program
       END FUNCTION GET_MONTH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day
+!
+! !DESCRIPTION: Function GET\_DAY returns the current GMT day.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DAY() RESULT( THISDAY )
 !
-!******************************************************************************
-!  Function GET_DAY returns the current day to the calling program.
-!  (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       INTEGER :: THISDAY
-
-      !=================================================================
-      ! GET_DAY begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISDAY = DAY
 
-      ! Return to calling program
       END FUNCTION GET_DAY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_year
+!
+! !DESCRIPTION: Function GET\_YEAR returns the current GMT year.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_YEAR() RESULT( THISYEAR )
 !
-!******************************************************************************
-!  Function GET_YEAR returns the current year to the calling program.
-!  (bmy, 2/5/03)
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISYEAR
-
-      !=================================================================
-      ! GET_YEAR begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISYEAR = YEAR
 
-      ! Return to calling program
       END FUNCTION GET_YEAR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_hour
+!
+! !DESCRIPTION: Function GET\_HOUR returns the current GMT hour.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_HOUR() RESULT( THISHOUR )
 !
-!******************************************************************************
-!  Function GET_HOUR returns the current hour to the calling program.
-!  (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       INTEGER :: THISHOUR
-
-      !=================================================================
-      ! GET_HOUR begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISHOUR = HOUR
 
-      ! Return to calling program
       END FUNCTION GET_HOUR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_minute
+!
+! !DESCRIPTION: Function GET\_MINUTE returns the current GMT minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_MINUTE() RESULT( THISMINUTE )
 !
-!******************************************************************************
-!  Function GET_MINUTE returns the current minute to the calling program
-!  (bmy, 2/5/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISMINUTE
-
-      !=================================================================
-      ! GET_MINUTE begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISMINUTE = MINUTE
 
-      ! Return to calling program
       END FUNCTION GET_MINUTE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_second
+!
+! !DESCRIPTION: Function GET\_SECOND returns the current GMT seconds.
+!  calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_SECOND() RESULT( THISSECOND )
 !
-!******************************************************************************
-!  Function GET_SECOND returns the current seconds to the calling program.
-!  (bmy, 2/5/03)
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISSECOND
-
-      !=================================================================
-      ! GET_SECOND begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISSECOND = SECOND
 
-      ! Return to calling program
       END FUNCTION GET_SECOND
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day_of_year
+!
+! !DESCRIPTION: Function GET\_DAY\_OF\_YEAR returns the current day of the
+!  year (0-365 or 0-366 for leap years) to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DAY_OF_YEAR() RESULT( THISDAYOFYEAR )
 !
-!******************************************************************************
-!  Function GET_DAY_OF_YEAR returns the current day of the year (0-365 or
-!  0-366 for leap years) to the calling program. (bmy, 2/5/03)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
-      INTEGER :: THISDAYOFYEAR
-
-      !=================================================================
-      ! GET_DAY_OF_YEAR begins here!
-      !=================================================================
+      INTEGER :: THISDAYOFYEAR  ! Day of year
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISDAYOFYEAR = DAY_OF_YEAR
 
-      ! Return to calling program
       END FUNCTION GET_DAY_OF_YEAR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_day_of_week
+!
+! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week as a 
+!  number: Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DAY_OF_WEEK() RESULT( DAY_NUM )
 !
-!******************************************************************************
-!  Function GET_DAY_OF_WEEK returns the day of the week as a number:
-!  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.  (bmy, 11/5/04)
+! !USES:
 !
+      USE JULDAY_MOD, ONLY : JULDAY
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DAY_NUM   ! Day number of week
+! 
+! !REMARKS:
 !  Reference:
-!  ============================================================================
+!  ----------
 !  "Practical Astronomy with Your Calculator", 3rd Ed.  Peter Duffett-Smith,
 !    Cambridge UP, 1992, p9.
 !
-!  NOTES:
-!******************************************************************************
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE JULDAY_MOD, ONLY : JULDAY
-      
-      ! Return value
-      INTEGER :: DAY_NUM
-
-      ! Local variables
+! !LOCAL VARIABLES:
+! 
       REAL*8  :: A, B, JD, THISDAY
 
       !=================================================================
@@ -1414,169 +1586,216 @@
       ! Round to nearest integer -- this is the day number!
       DAY_NUM = INT( B + 0.5d0 )
       
-      ! Return to calling program
       END FUNCTION GET_DAY_OF_WEEK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gmt
+!
+! !DESCRIPTION:  Function GET\_GMT returns the current Greenwich Mean Time 
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_GMT() RESULT( THISGMT )
 !
-!******************************************************************************
-!  Function GET_GMT returns the current Greenwich Mean Time to the calling
-!  program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      REAL*8 :: THISGMT   ! Greenwich mean time [hrs]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Function value
-      REAL*8 :: THISGMT
-
-      !=================================================================
-      ! GET_GMT begins here!
-      !=================================================================
       THISGMT = GMT
 
-      ! Return to calling program
       END FUNCTION GET_GMT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_tau
+!
+! !DESCRIPTION: Function GET\_TAU returns TAU (hours since 1 Jan 
+!  1985 at the start of a GEOS-Chem run) to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TAU() RESULT( THISTAU )
 !
-!******************************************************************************
-!  Function GET_TAU returns the current TAU (# of hours since 1 Jan 1985) 
-!  value to the calling program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      REAL*8 :: THISTAU
-
-      !=================================================================
-      ! GET_TAUb begins here!
-      !=================================================================
+      REAL*8 :: THISTAU  ! TAUb [hrs since 1/1/1985]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISTAU = TAU
 
-      ! Return to calling program
       END FUNCTION GET_TAU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_taub
+!
+! !DESCRIPTION: Function GET\_TAUb returns TAUb (hours since 1 Jan 1985 
+!  at the start of a GEOS-Chem run) to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TAUb() RESULT( THISTAUb )
 !
-!******************************************************************************
-!  Function GET_TAUb returns TAUb (# of hours since 1 Jan 1985 at the
-!  start of a GEOS-CHEM run) to the calling program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      REAL*8 :: THISTAUb
-
-      !=================================================================
-      ! GET_TAUb begins here!
-      !=================================================================
+      REAL*8 :: THISTAUb  ! TAUb [hrs since 1/1/1985]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISTAUb = TAUb
 
-      ! Return to calling program
       END FUNCTION GET_TAUb
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_taue
+!
+! !DESCRIPTION: Function GET\_TAUe returns TAUe (hours since 1 Jan 1985 
+!  at the end of a GEOS-Chem run) to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TAUe() RESULT( THISTAUe )
 !
-!******************************************************************************
-!  Function GET_TAUe returns TAUe (# of hours since 1 Jan 1985 at the 
-!  end of a GEOS-CHEM run) to the calling program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:  
-!******************************************************************************
-!
-      ! Function value
-      REAL*8 :: THISTAUe
-
-      !=================================================================
-      ! GET_TAUe begins here!
-      !=================================================================
+      REAL*8 :: THISTAUe  ! TAUe [hrs since 1/1/1985]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISTAUe = TAUe
 
-      ! Return to calling program
       END FUNCTION GET_TAUe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_diagb
+!
+! !DESCRIPTION: Function GET\_DIAGb returns DIAGb (hours since 1 Jan 1985
+!  at the start of a diagnostic interval) to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DIAGb() RESULT( THISDIAGb )
 !
-!******************************************************************************
-!  Function GET_DIAGb returns DIAGb (# of hours since 1 Jan 1985 at the
-!  start of a diagnostic interval) to the calling program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      REAL*8 :: THISDIAGb
-
-      !=================================================================
-      ! GET_DIAGb begins here!
-      !=================================================================
+      INTEGER :: THISDIAGb   ! DIAGb [hrs sincd 1/1/1985]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISDIAGb = DIAGb
 
-      ! Return to calling program
       END FUNCTION GET_DIAGb
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_diage
+!
+! !DESCRIPTION: Function GET\_DIAGe returns DIAGe (hours since 1 Jan 1985
+!  at the end of a diagnostic interval) to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_DIAGe() RESULT( THISDIAGe )
 !
-!******************************************************************************
-!  Function GET_DIAGb returns DIAGe (# of hours since 1 Jan 1985 at the
-!  end of a diagnostic interval) to the calling program. (bmy, 2/5/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THISDIAGe
-
-      !=================================================================
-      ! GET_DIAGe begins here!
-      !=================================================================
+      INTEGER :: THISDIAGe   ! DIAGe [hrs sincd 1/1/1985]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISDIAGe = DIAGe
 
-      ! Return to calling program
       END FUNCTION GET_DIAGe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_localtime
+!
+! !DESCRIPTION: Function GET\_LOCALTIME returns the local time of a grid
+!  box to the calling program. (bmy, 2/5/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_LOCALTIME( I ) RESULT( THISLOCALTIME )
 !
-!******************************************************************************
-!  Function GET_LOCALTIME returns the local time of a grid box to the 
-!  calling program. (bmy, 2/5/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : Grid box longitude index
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I
-
-      ! Function value
-      REAL*8              :: THISLOCALTIME
-
-      !=================================================================
-      ! GET_LOCALTIME begins here!
-      !=================================================================
-
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I              ! Longitude index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: THISLOCALTIME  ! Local time [hrs]
+! 
+! !REVISION HISTORY: 
+!  05 Feb 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! Local Time = GMT + ( longitude / 15 ) since each hour of time
       ! corresponds to 15 degrees of longitude on the globe
       THISLOCALTIME = GET_GMT() + ( GET_XMID( I ) / 15d0 )
@@ -1587,387 +1806,507 @@
 
       ! Return to calling program
       END FUNCTION GET_LOCALTIME
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_season
+!
+! !DESCRIPTION: Function GET\_SEASON returns the climatological season number 
+!  (1=DJF, 2=MAM, 3=JJA, 4=SON) to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_SEASON() RESULT( THISSEASON )
 !
-!******************************************************************************
-!  Function GET_SEASON returns the climatological season number 
-!  (1=DJF, 2=MAM, 3=JJA, 4=SON) to the calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month (1-12)
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! Function value
-      INTEGER :: THISSEASON
-
-      !=================================================================
-      ! GET_SEASON begins here!
-      !=================================================================
+      INTEGER :: THISSEASON   ! Current season
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THISSEASON = NSEASON
 
-      ! Return to calling program
       END FUNCTION GET_SEASON
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_chem
+!
+! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in 
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_CHEM() RESULT( THIS_TS_CHEM )
 !
-!******************************************************************************
-!  Function GET_TS_CHEM returns the chemistry timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_CHEM
-
-      !=================================================================
-      ! GET_TS_CHEM begins here!
-      !=================================================================
+! !RETURN VALUE:
+! 
+      INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_CHEM = TS_CHEM
 
-      ! Return to calling program
       END FUNCTION GET_TS_CHEM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_conv
+!
+! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in 
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_CONV() RESULT( THIS_TS_CONV )
 !
-!******************************************************************************
-!  Function GET_TS_CONV returns the convection timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_CONV
-
-      !=================================================================
-      ! GET_TS_CONV begins here!
-      !=================================================================
+      INTEGER :: THIS_TS_CONV   ! Convective timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_CONV = TS_CONV
 
-      ! Return to calling program
       END FUNCTION GET_TS_CONV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_diag
+!
+! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_DIAG() RESULT( THIS_TS_DIAG )
 !
-!******************************************************************************
-!  Function GET_TS_DIAG returns the diagnostic timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_DIAG
-
-      !=================================================================
-      ! GET_TS_DIAG begins here!
-      !=================================================================
+      INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_DIAG = TS_DIAG
 
-      ! Return to calling program
       END FUNCTION GET_TS_DIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_dyn
+!
+! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_DYN() RESULT( THIS_TS_DYN )
 !
-!******************************************************************************
-!  Function GET_TS_DIAG returns the diagnostic timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_DYN
-
-      !=================================================================
-      ! GET_TS_DYN begins here!
-      !=================================================================
+      INTEGER :: THIS_TS_DYN    ! Dynamic timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_DYN = TS_DYN
 
-      ! Return to calling program
       END FUNCTION GET_TS_DYN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_emis
+!
+! !DESCRIPTION: Function GET\_TS\_EMIS returns the emission timestep in 
+!  minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_EMIS() RESULT( THIS_TS_EMIS )
 !
-!******************************************************************************
-!  Function GET_TS_EMIS returns the emission timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_EMIS
-
-      !=================================================================
-      ! GET_TS_EMIS begins here!
-      !=================================================================
+      INTEGER :: THIS_TS_EMIS   ! Emissions timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_EMIS = TS_EMIS
 
-      ! Return to calling program
       END FUNCTION GET_TS_EMIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_unit
+!
+! !DESCRIPTION: Function GET\_TS\_UNIT returns the unit-conversion timestep
+!  in minutes.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_TS_UNIT() RESULT( THIS_TS_UNIT )
 !
-!******************************************************************************
-!  Function GET_TS_EMIS returns the emission timestep in minutes to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_TS_UNIT
-
-      !=================================================================
-      ! GET_TS_UNIT begins here!
-      !=================================================================
+      INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [min]
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_TS_UNIT = TS_UNIT
 
-      ! Return to calling program
       END FUNCTION GET_TS_UNIT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_chem
+!
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the chemistry timestep counter 
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_CHEM() RESULT( THIS_CT_CHEM )
 !
-!******************************************************************************
-!  Function GET_CT_CHEM returns the chemistry timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       INTEGER :: THIS_CT_CHEM
-
-      !=================================================================
-      ! GET_CT_CHEM begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_CHEM = CT_CHEM
 
-      ! Return to calling program
       END FUNCTION GET_CT_CHEM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_conv
+!
+! !DESCRIPTION: Function GET\_CT\_CONV returns the convection timestep 
+!  counter to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_CONV() RESULT( THIS_CT_CONV )
 !
-!******************************************************************************
-!  Function GET_CT_CONV returns the convection timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_CONV
-
-      !=================================================================
-      ! GET_CT_CONV begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_CONV   ! # of convection timesteps
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_CONV = CT_CONV
 
-      ! Return to calling program
       END FUNCTION GET_CT_CONV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_dyn
+!
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the dynamic timestep counter 
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_DYN() RESULT( THIS_CT_DYN )
 !
-!******************************************************************************
-!  Function GET_CT_CHEM returns the dynamic timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_DYN
-
-      !=================================================================
-      ! GET_CT_DYN begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_DYN   ! # of dynamics timesteps
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_DYN = CT_DYN
 
-      ! Return to calling program
       END FUNCTION GET_CT_DYN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_emis
+!
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the emissions timestep counter
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_EMIS() RESULT( THIS_CT_EMIS )
 !
-!******************************************************************************
-!  Function GET_CT_CHEM returns the emission timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      INTEGER :: THIS_CT_EMIS  ! # of emissions timesteps
 !
-      ! Function value
-      INTEGER :: THIS_CT_EMIS
-
-      !=================================================================
-      ! GET_CT_EMIS begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_EMIS = CT_EMIS
 
-      ! Return to calling program
       END FUNCTION GET_CT_EMIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_a3
+!
+! !DESCRIPTION: Function GET\_CT\_CHEM returns the A-3 fields timestep 
+!  counter to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_A3() RESULT( THIS_CT_A3 )
 !
-!******************************************************************************
-!  Function GET_CT_CHEM returns the A-3 fields timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      INTEGER :: THIS_CT_A3   ! # of A-3 timesteps
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Function value
-      INTEGER :: THIS_CT_A3
-
-      !=================================================================
-      ! GET_CT_A3 begins here!
-      !=================================================================
       THIS_CT_A3 = CT_A3
 
-      ! Return to calling program
       END FUNCTION GET_CT_A3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_a6
+!
+! !DESCRIPTION: Function GET\_CT\_A6 returns the A-6 fields timestep counter 
+!  to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_A6() RESULT( THIS_CT_A6 )
 !
-!******************************************************************************
-!  Function GET_CT_A6 returns the A-6 fields timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_A6
-
-      !=================================================================
-      ! GET_CT_A6 begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_A6   ! # of A-6 timesteps
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_A6 = CT_A6
 
-      ! Return to calling program
       END FUNCTION GET_CT_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_i6
+!
+! !DESCRIPTION: Function GET\_CT\_I6 returns the I-6 fields timestep counter
+!  to the calling program
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_I6() RESULT( THIS_CT_I6 )
 !
-!******************************************************************************
-!  Function GET_CT_I6 returns the I-6 fields timestep counter to the
-!  calling program. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_I6
-
-      !=================================================================
-      ! GET_CT_I6 begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_I6   ! # of I-6 timesteps
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_I6 = CT_I6
 
-      ! Return to calling program
       END FUNCTION GET_CT_I6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_xtra
+!
+! !DESCRIPTION: Function GET\_CT\_XTRA returns the XTRA fields timestep 
+!  counter to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_XTRA() RESULT( THIS_CT_XTRA )
 !
-!******************************************************************************
-!  Function GET_CT_XTRA returns the XTRA fields timestep counter to the
-!  calling program. (tmf, bmy, 10/20/05)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_XTRA
-
-      !=================================================================
-      ! GET_CT_XTRA begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_XTRA    ! # of XTRA timesteps
+! 
+! !REVISION HISTORY: 
+!  20 Oct 2005 - T-M Fu, R. Yantosca - Initial Version
+!  15 Jan 2010 -         R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_XTRA = CT_XTRA
 
-      ! Return to calling program
       END FUNCTION GET_CT_XTRA
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ct_diag
+!
+! !DESCRIPTION: Function GET\_CT\_DIAG returns the DIAG timestep counter to the
+!  calling program.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_CT_DIAG() RESULT( THIS_CT_DIAG )
 !
-!******************************************************************************
-!  Function GET_CT_DIAG returns the DIAG timestep counter to the
-!  calling program. (ccc, 5/21/09)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: THIS_CT_DIAG
-
-      !=================================================================
-      ! GET_CT_DIAG begins here!
-      !=================================================================
+      INTEGER :: THIS_CT_DIAG   ! # of diagnostic timesteps
+ ! 
+! !REVISION HISTORY: 
+!  21 May 2009 - C. Carouge  - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       THIS_CT_DIAG = CT_DIAG
 
-      ! Return to calling program
       END FUNCTION GET_CT_DIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_a3_time
+!
+! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS 
+!  values that are needed to read in the next average 3-hour (A-3) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_A3_TIME() RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_A3_TIME returns the correct YYYYMMDD and HHMMSS values
-!  that are needed to read in the next average 3-hour (A-3) fields. 
-!  (bmy, 3/21/03, 8/4/06)
+! !USES:
 !
-!  NOTES:
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Now return proper time for GEOS-4/fvDAS fields (bmy, 6/19/03)
 !  (2 ) Remove reference to FIRST variable (bmy, 12/10/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
-!
-#     include "define.h"
 
-      ! Function value
-      INTEGER :: DATE(2)
-
-      !=================================================================
-      ! GET_A3_TIME begins here!
-      !=================================================================
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GEOS_3 )
 
@@ -1985,57 +2324,68 @@
 
 #endif
 
-
-      ! Return to calling program
       END FUNCTION GET_A3_TIME
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_a6_time
+!
+! !DESCRIPTION: Function GET\_A6\_TIME returns the correct YYYYMMDD and HHMMSS 
+!  values that are needed to read in the next average 6-hour (A-6) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_A6_TIME() RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_A6_TIME returns the correct YYYYMMDD and HHMMSS values
-!  that are needed to read in the next average 6-hour (A-6) fields. 
-!  (bmy, 3/21/03, 6/26/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!  (1 ) Updated comments (bmy, 6/26/03)
-!******************************************************************************
-!
-      ! Function value
-      INTEGER :: DATE(2)
-
-      !=================================================================
-      ! GET_A6_TIME begins here!
-      !=================================================================
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS time
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! Return the time 3h (180m) from now, since there is a 3-hour 
       ! offset between the actual time when the A-6 fields are read
       ! and the time that the A-6 fields are stamped with.
       DATE = GET_TIME_AHEAD( 180 )      
 
-      ! Return to calling program
       END FUNCTION GET_A6_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i6_time
+!
+! !DESCRIPTION: Function GET\_I6\_TIME returns the correct YYYYMMDD and 
+!  HHMMSS values that are needed to read in the next instantaneous 6-hour 
+!  (I-6) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_I6_TIME() RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_I6_TIME returns the correct YYYYMMDD and HHMMSS values
-!  that are needed to read in the next instantaneous 6-hour (I-6) fields. 
-!  (bmy, 3/21/03, 4/24/06)
+! !RETURN VALUE:
 !
-!  NOTES:
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!  
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for GCAP: skip over Feb 29th (no leapyears). (bmy, 4/24/06)
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER :: DATE(2)
-
-      !=================================================================
-      ! GET_I6_TIME begins here!
-      !=================================================================
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GCAP ) 
 
@@ -2058,31 +2408,40 @@
       ! We need to read in the I-6 fields 6h (360 mins) ahead of time
       DATE = GET_TIME_AHEAD( 360 )
 
-      ! Return to calling program
       END FUNCTION GET_I6_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_a3_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_A3\_TIME returns the correct YYYYMMDD
+!  and HHMMSS values the first time that A-3 fields are read in from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FIRST_A3_TIME() RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_FIRST_A3_TIME returns the correct YYYYMMDD and HHMMSS 
-!  values the first time that A-3 fields are read in from disk. 
-!  (bmy, 6/26/03, 8/4/06)
-!
-!  NOTES:
-!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"
-
-      ! Arguments
-      INTEGER :: DATE(2)
-
-      !=================================================================
-      ! GET_FIRST_A3_TIME begins here!
-      !=================================================================
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  26 Jun 2003 - R. Yantosca - Initial Version
+!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
 #if   defined( GEOS_3 )
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
@@ -2096,30 +2455,39 @@
     
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_FIRST_A3_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_a6_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_A6\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that A-6 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FIRST_A6_TIME() RESULT( DATE )
 !
-!******************************************************************************
-!  Function GET_FIRST_A6_TIME returns the correct YYYYMMDD & HHMMSS values the
-!  first time that A-6 fields are read in from disk. (bmy, 6/26/03, 5/24/05)
+! !USES:
+! 
+#     include "define.h"
 !
-!  NOTES:
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  26 Jun 2003 - R. Yantosca - Initial Version
 !  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!******************************************************************************
-!
-#     include "define.h"
-
-      ! Arguments
-      INTEGER :: DATE(2)
-
-      !=================================================================
-      ! GET_FIRST_A6_TIME begins here!
-      !=================================================================
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GCAP )
 
@@ -2134,191 +2502,256 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_FIRST_A6_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_chem
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_CHEM returns TRUE if it is time to do 
+!  chemistry, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_CHEM() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_CHEM returns TRUE if it is time to do chemistry
-!  and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_CHEM begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Is it time for chemistry?
       FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_CHEM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_conv
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_CONV returns TRUE if it is time to do 
+!  convection, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_CONV() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_CONV returns TRUE if it is time to do chemistry
-!  and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_CONV begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Is it time for convection?
       FLAG = ( MOD( ELAPSED_MIN, TS_CONV ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_CONV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_dyn
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DYN returns TRUE if it is time to do 
+!  chemistry and false otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_DYN() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_DYN returns TRUE if it is time to do chemistry
-!  and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_DYN begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Is it time for dynamics?
       FLAG = ( MOD( ELAPSED_MIN, TS_DYN ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DYN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_emis
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_EMIS returns TRUE if it is time to do 
+!  emissions, or FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_EMIS() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_EMIS returns TRUE if it is time to do emissions
-!  and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_EMIS begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Is it time for emissions?
       FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_EMIS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_unit
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNIT returns TRUE if it is time to do 
+!  unit conversion, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_UNIT() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_UNIT returns TRUE if it is time to do unit conversion
-!  and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !=================================================================
-      ! ITS_TIME_FOR_UNIT begins here!
-      !=================================================================
+      ! Is it time for unit conversion?
       FLAG = ( MOD( ELAPSED_MIN, TS_DYN ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_UNIT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_diag
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG returns TRUE if it is time to 
+!  archive certain diagnostics, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_DIAG() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_DIAG returns TRUE if it is time to archive
-!  certain diagnostics false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!  (1 ) Use TS_DIAG now and not 60 minutes. (ccc, 7/20/09)
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_DIAG begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  20 Jul 2009 - C. Carouge  - Use TS_DIAG now and not 60 minutes
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Is it time for diagnostics?
       FLAG = ( MOD( ELAPSED_MIN, TS_DIAG ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_a3
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
+!  in A-3 (average 3-h fields) and FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_A3() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_A3 returns TRUE if it is time to read in A-3
-!  (average 3-h fields) and FALSE otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_A3 begins here!
-      !=================================================================
-
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! We read A-3 fields every 3 hours
       FLAG = ( MOD( NHMS, 030000 ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_A3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_a6
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
+!  in A-6 (average 6-h fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_A6() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_A6 returns TRUE if it is time to read in A-6
-!  (average 6-h fields) and FALSE otherwise. (bmy, 3/21/03, 5/24/05)
+! !USES:
 !
-!  NOTES:
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
-!******************************************************************************
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "define.h"
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: DATE(2)
-
-      ! Function value
-      LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_A6 begins here!
-      !=================================================================
 
 #if   defined( GCAP )
 
@@ -2338,53 +2771,67 @@
       ! If so, then it is time to read A-6 fields from disk.
       FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_i6
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
+!  in I-6 (instantaneous 6-h fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_I6() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_I6 returns TRUE if it is time to read in I-6
-!  (instantaneous 6-h fields) and FALSE otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_I6 begins here!
-      !=================================================================
-
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! We read in I-6 fields at 00, 06, 12, 18 GMT
       FLAG = ( MOD( NHMS, 060000 ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_I6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_unzip
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_UNZIP Treturns TRUE if it is time to 
+!  unzip the next day's met field files, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_UNZIP() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_UNZIP Treturns TRUE if it is time to unzip
-!  the next day's met field files (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      LOGICAL :: FLAG
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: DATE(2)
-
-      ! Function value
-      LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_TIME_FOR_UNZIP begins here!
-      !=================================================================
 
       ! Get YYYYMMDD and HHMMSS 12 hours (720 mins) from now
       DATE = GET_TIME_AHEAD( 720 )
@@ -2392,77 +2839,111 @@
       ! If HHMMSS = 0 then it's time to unzip!
       FLAG = ( DATE(2) == 000000 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_UNZIP     
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_del
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DEL returns TRUE if it is time to 
+!  delete the previous day's met field files in the temporary directory. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_DEL() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_DEL returns TRUE if it is time to delete the previous
-!  day's met field files in the temporary directory. (bmy, 3/21/03, 6/19/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!  (1 ) Now delete files at 23 GMT each day, since the last fvDAS A-3 field is 
-!        22:30 GMT and the last fvDAS A-6 field is 21 GMT. (bmy, 6/19/03)
-!******************************************************************************
-!
-      ! Local variables
-      INTEGER :: DATE(2)
-
-      ! Function value
       LOGICAL :: FLAG 
 
-      !=================================================================
-      ! ITS_TIME_FOR_DEL begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  19 Jun 2003 - R. Yantosca - Now delete files at 23 GMT each day, since the 
+!                              last fvDAS A-3 field is 22:30 GMT and the last 
+!                              fvDAS A-6 field is 21 GMT
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: DATE(2)
 
       ! Delete files when it's 23 GMT
       FLAG = ( NHMS == 230000 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DEL
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_exit
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_EXIT returns TRUE if it is the end of
+!  the GEOS-Chem simulation (i.e. TAU >= TAUe), or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_EXIT() RESULT( FLAG )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_EXIT returns TRUE if it is the end of the run 
-!  (i.e. TAU >= TAUe) and false otherwise. (bmy, 3/21/03)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: FLAG 
-
-      !=================================================================
-      ! ITS_FOR_EXIT begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      ! Test if it's end of run
       FLAG = ( TAU >= TAUe )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_EXIT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_bpch
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_BPCH returns TRUE if it's time to 
+!  write output to the bpch file, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_BPCH returns true if it's time to write output
-!  to the bpch file. (bmy, 2/2/07)
-!
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! NJDAY
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: DO_BPCH
+! 
+! !REVISION HISTORY: 
+!  02 Feb 2007 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! Local variables
-      INTEGER            :: DOY, THIS_NJDAY
-      LOGICAL            :: DO_BPCH
+      INTEGER :: DOY, THIS_NJDAY
 
       !=================================================================
       ! ITS_TIME_FOR_BPCH begins here!
@@ -2492,23 +2973,34 @@
          DO_BPCH = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_BPCH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_leapyear
+!
+! !DESCRIPTION: Function ITS\_A\_LEAPYEAR tests to see if a year is really a 
+!  leapyear. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_LEAPYEAR( YEAR_IN, FORCE ) RESULT( IS_LEAPYEAR )
 !
-!******************************************************************************
-!  Function ITS_A_LEAPYEAR tests to see if a year is really a leapyear. 
-!  (bmy, 3/17/99, 4/24/06)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YEAR_IN (INTEGER) : (OPTIONAL) Specify a year to test for leapyear
-!  (2 ) FORCE   (LOGICAL) : (OPTIONAL) Do not exit if using GCAP met fields  
+      INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN   ! Year to test if leapyear
+      LOGICAL, INTENT(IN), OPTIONAL :: FORCE     ! Do not exit if using GCAP
 !
-!  NOTES: 
+! !RETURN VALUE:
+!
+      LOGICAL                       :: IS_LEAPYEAR  ! =T if it's a leapyear
+! 
+! !REVISION HISTORY: 
+!  17 Mar 1999 - R. Yantosca - Initial Version
 !  (1 ) Now remove YEAR from ARG list; use the module variable (bmy, 3/21/03)
 !  (2 ) Now add YEAR_IN as an optional argument.  If YEAR_IN is not passed,
 !        then test if the current year is a leapyear (bmy, 9/25/03)
@@ -2516,18 +3008,15 @@
 !  (4 ) Now add FORCE argument to force ITS_A_LEAPYEAR to return a value
 !        instead of just returning with FALSE for the GCAP met fields.
 !        (swu, bmy, 4/24/06)
-!******************************************************************************
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN), OPTIONAL :: YEAR_IN
-      LOGICAL, INTENT(IN), OPTIONAL :: FORCE
-      
-      ! Local variables
-      INTEGER                       :: THISYEAR
-      LOGICAL                       :: THISFORCE
-
-      ! Function value
-      LOGICAL                       :: IS_LEAPYEAR
+! !LOCAL VARIABLES:
+!
+      INTEGER  :: THISYEAR
+      LOGICAL  :: THISFORCE
 
       !=================================================================
       ! LEAPYEAR begins here!
@@ -2584,28 +3073,35 @@
          ENDIF
       ENDIF        
 
-      ! Return to calling program
       END FUNCTION ITS_A_LEAPYEAR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_new_year
+!
+! !DESCRIPTION: Function ITS\_A\_NEW\_YEAR returns TRUE if it's the first 
+!  of a new month (it also returns TRUE on the first timestep of the run).  
+!  This is useful for setting flags for reading in data.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_NEW_YEAR() RESULT( IS_NEW_YEAR )
 !
-!******************************************************************************
-!  Function ITS_A_NEW_YEAR returns TRUE if it's the first of a new month
-!  (it also returns TRUE on the first timestep of the run).  This is useful
-!  for setting flags for reading in data. (bmy, 4/1/04)
+! !RETURN VALUE:
 !
-!  NOTES:
-!  (1 ) Bug fix: Need month & day to be 1 (bmy, 11/1/05)
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: IS_NEW_YEAR
-      
-      !=================================================================
-      ! ITS_A_NEW_YEAR begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Yantosca - Initial Version
+!  01 Nov 2005 - R. Yantosca - Bug fix: Need month & day to be 1
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( MONTH == 1 .and. DAY == 1 .and. NHMS == 000000 ) THEN
 
          ! A new year is Jan 1 at 0 GMT
@@ -2624,27 +3120,34 @@
          
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_A_NEW_YEAR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_new_month
+!
+! !DESCRIPTION: Function ITS\_A\_NEW\_MONTH returns TRUE if it's the first 
+!  of a new month (it also returns TRUE on the first timestep of the run).  
+!  This is useful for setting flags for reading in data. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_NEW_MONTH() RESULT( IS_NEW_MONTH )
 !
-!******************************************************************************
-!  Function ITS_A_NEW_MONTH returns TRUE if it's the first of a new month
-!  (it also returns TRUE on the first timestep of the run).  This is useful
-!  for setting flags for reading in data. (bmy, 4/1/04)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: IS_NEW_MONTH
-      
-      !=================================================================
-      ! ITS_A_NEW_MONTH begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( DAY == 1 .and. NHMS == 000000 ) THEN
 
          ! Test for the 1st of the month at 0 GMT
@@ -2663,51 +3166,65 @@
          
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_A_NEW_MONTH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_midmonth
+!
+! !DESCRIPTION: Function ITS\_MIDMONTH returns TRUE if it's the middle of a 
+!  month.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_MIDMONTH() RESULT( IS_MIDMONTH )
 !
-!******************************************************************************
-!  Function ITS_MIDMONTH returns TRUE if it's the middle of a month
-!  -sas 10/10/05
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Function value
       LOGICAL :: IS_MIDMONTH
-      
-      !=================================================================
-      ! ITS_MIDMONTH begins here!
-      !=================================================================
+!
+! !REVISION HISTORY: 
+!  10 Oct 2005 - S. Strode   - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! Test for the 16th of the month at 0 GMT
       IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
 
-      ! Return to calling program
       END FUNCTION ITS_MIDMONTH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_new_season
+!
+! !DESCRIPTION: Function ITS\_A\_NEW\_DAY returns TRUE if it's the first 
+!  timestep of a new day (it also returns TRUE on the first timestep of the
+!  run).  This is useful for setting flags for reading in data.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_NEW_DAY( ) RESULT( IS_NEW_DAY )
 !
-!******************************************************************************
-!  Function ITS_A_NEW_DAY returns TRUE if it's the first timestep of a new
-!  day (it also returns TRUE on the first timestep of the run).  This is 
-!  useful for setting flags for reading in data. (bmy, 4/1/04)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
       LOGICAL :: IS_NEW_DAY
-      
-      !=================================================================
-      ! ITS_A_NEW_DAY begins here!
-      !=================================================================
+!
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( NHMS == 000000 ) THEN
 
          ! Test if it's 0 GMT
@@ -2726,30 +3243,39 @@
          
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_A_NEW_DAY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_a_new_season
+!
+! !DESCRIPTION: Function ITS\_A\_NEW\_SEASON returns TRUE if it's a new season 
+!  or FALSE if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 
+!  4=SON).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_A_NEW_SEASON( ) RESULT( IS_NEW_SEASON )
 !
-!******************************************************************************
-!  Function ITS_A_NEW_SEASON returns TRUE if it's a new season or FALSE
-!  if it's not a new season.  Seasons are (1=DJF, 2=MAM, 3=JJA, 4=SON).
-!  (bmy, 7/20/04)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
+      LOGICAL :: IS_NEW_SEASON  
 !
-      ! Function value
-      LOGICAL       :: IS_NEW_SEASON
-      
-      ! Local variables
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER, SAVE :: LAST_SEASON = -1
       
-      !=================================================================
-      ! ITS_A_NEW_SEASON begins here!
-      !=================================================================
       IF ( NSEASON /= LAST_SEASON ) THEN
          IS_NEW_SEASON = .TRUE.
          LAST_SEASON   = NSEASON
@@ -2757,26 +3283,33 @@
          IS_NEW_SEASON = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_A_NEW_SEASON
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: print_current_time
+!
+! !DESCRIPTION: Subroutine PRINT\_CURRENT\_TIME prints the date, GMT time, and 
+!  elapsed hours of a GEOS-Chem simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE PRINT_CURRENT_TIME
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Subroutine PRINT_CURRENT_TIME prints the date, GMT time, and elapsed
-!  hours of a GEOS-CHEM simulation. (bmy, 3/21/03)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       REAL*4 :: E_HOURS
-
-      !=================================================================
-      ! PRINT_CURRENT_TIME begins here!
-      !=================================================================
 
       ! Hours since start of run
       E_HOURS = REAL( ELAPSED_MIN ) / 60e0 
@@ -2788,40 +3321,52 @@
  100  FORMAT( '---> DATE: ', i4.4, '/', i2.2, '/', i2.2, 
      &            '  GMT: ', i2.2, ':', i2.2, '  X-HRS: ', f11.3 )
 
-      ! Return to calling program
       END SUBROUTINE PRINT_CURRENT_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: timestamp_string
+!
+! !DESCRIPTION: Function TIMESTAMP\_STRING returns a formatted string 
+!  "YYYY/MM/DD hh:mm" for the a date and time specified by YYYYMMDD and hhmmss.
+!  If YYYYMMDD and hhmmss are omitted, then TIMESTAMP\_STRING will create a 
+!  formatted string for the current date and time.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION TIMESTAMP_STRING( YYYYMMDD, HHMMSS ) RESULT( TIME_STR )
 !
-!******************************************************************************
-!  TIMESTAMP_STRING returns a formatted string "YYYY/MM/DD HH:MM" for the a
-!  date and time specified by YYYYMMDD and HHMMSS.  If YYYYMMDD and HHMMSS are
-!  omitted, then TIMESTAMP_STRING will create a formatted string for the 
-!  current date and time. (bmy, 3/21/03, 12/2/03)
-!                                                                          
-!  NOTES:
+! !USES:
+!
+#     include "define.h"
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD   ! YYYY/MM/DD date
+      INTEGER, INTENT(IN), OPTIONAL :: HHMMSS     ! hh:mm:ss time
+!
+! !RETURN VALUE:
+!
+      CHARACTER(LEN=16)             :: TIME_STR
+!
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (2 ) Now add optional arguments YYYYMMDD and HHMMSS (bmy, 10/27/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!******************************************************************************
-!     
-#     include "define.h"
-
-      ! Arguments
-      INTEGER, INTENT(IN), OPTIONAL :: YYYYMMDD, HHMMSS 
-
-      ! Local variables
-      INTEGER                       :: THISYEAR, THISMONTH,  THISDAY
-      INTEGER                       :: THISHOUR, THISMINUTE, THISSECOND
-
-      ! Function value
-      CHARACTER(LEN=16)             :: TIME_STR
-      
-      !=================================================================
-      ! TIMESTAMP_STRING begins here!
-      !=================================================================
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: THISYEAR, THISMONTH,  THISDAY
+      INTEGER :: THISHOUR, THISMINUTE, THISSECOND
 
       ! If YYYYMMDD is passed, then use that date.  Otherwise use the 
       ! current date stored in global variables YEAR, MONTH, DAY.
@@ -2860,41 +3405,42 @@
       ! Format statement
  100  FORMAT( i4.4, '/', i2.2, '/', i2.2, ' ', i2.2, ':', i2.2 )
 
-      ! Return to calling program
       END FUNCTION TIMESTAMP_STRING
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ymd_extract
+!
+! !DESCRIPTION: Subroutine YMD\_EXTRACT extracts the year, month, and date 
+!  from an integer variable in YYYYMMDD format.  It can also extract the 
+!  hours, minutes, and seconds from a variable in HHMMSS format.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE YMD_EXTRACT( NYMD, Y, M, D )
 !
-!******************************************************************************
-!  Subroutine YMD_EXTRACT extracts the year, month, and date from an integer
-!  variable in YYYYMMDD format.  It can also extract the hours, minutes, and
-!  seconds from a variable in HHMMSS format. (bmy, 11/21/01)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : Variable in YYYYMMDD (or HHMMSS) format
-!  
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) Y    (INTEGER) : Variable that returns YYYY (or HH - hours  )
-!  (3 ) M    (INTEGER) : Variable that returns MM   (or MM - minutes)
-!  (4 ) D    (INTEGER) : Variable that returns DD   (or SS - seconds)
+      INTEGER, INTENT(IN)  :: NYMD      ! YYYY/MM/DD format date
 !
-!  NOTES:
-!******************************************************************************
+! !OUTPUT PARAMETERS:
 !
-      ! Arguments
-      INTEGER, INTENT(IN)  :: NYMD
-      INTEGER, INTENT(OUT) :: Y, M, D
-
-      ! Local variables
-      REAL*8               :: REM
-
-      !=================================================================
-      ! YMD_EXTRACT begins here!
-      !=================================================================
+      INTEGER, INTENT(OUT) :: Y, M, D   ! Separated YYYY, MM, DD values
+! 
+! !REVISION HISTORY: 
+!  21 Nov 2001 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: REM
 
       ! Extract YYYY from YYYYMMDD 
       Y = INT( DBLE( NYMD ) / 1d4 )
@@ -2909,50 +3455,57 @@
 
       ! Return to calling program
       END SUBROUTINE YMD_EXTRACT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: expand_date
+!
+! !DESCRIPTION: Subroutine EXPAND\_DATE replaces "YYYYMMDD" and "hhmmss" 
+!  tokens within a filename string with the actual values.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
 !
-!******************************************************************************
-!  Subroutine EXPAND_DATE replaces "YYYYMMDD" and "hhmmss" tokens within
-!  a filename string with the actual values. (bmy, 6/27/02, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FILENAME (CHARACTER) : Filename with tokens to replace
-!  (2 ) YYYYMMDD (INTEGER  ) : Current Year-Month-Day (must have 8 digits!)
-!  (3 ) HHMMSS   (INTEGER  ) : Current Hour-Minute-Seconds
-!  
+      USE CHARPAK_MOD, ONLY : STRREPL
+
+#     include "define.h"
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) FILENAME (CHARACTER) : Modified filename 
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER,          INTENT(IN)    :: YYYYMMDD   ! YYYY/MM/DD date
+      INTEGER,          INTENT(IN)    :: HHMMSS     ! hh:mm:ss time
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(INOUT) :: FILENAME   ! Filename to modify
+! 
+! !REVISION HISTORY: 
+!  27 Jun 2002 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for Linux: use ENCODE statement to convert number to string 
 !        instead of F90 internal read. (bmy, 9/29/03)
 !  (2 ) Now replace 2 and 4 digit year strings for all models (bmy, 10/23/03)
 !  (3 ) Renamed LINUX to LINUX_PGI (bmy, 12/2/03)
-!  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-CHEM
+!  (4 ) Now do not replace "ss" with seconds, as the smallest GEOS-Chem
 !        timestep is in minutes. (bmy, 7/20/04)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : STRREPL
-
-#     include "define.h"
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(INOUT) :: FILENAME
-      INTEGER,          INTENT(IN)    :: YYYYMMDD, HHMMSS
-
-      ! Local variables
-      INTEGER                         :: YYYY, YY, MM, DD, HH, II, SS
-      CHARACTER(LEN=2)                :: MM_STR, DD_STR
-      CHARACTER(LEN=2)                :: HH_STR, II_STR, SS_STR
-      CHARACTER(LEN=2)                :: YY_STR
-      CHARACTER(LEN=4)                :: YYYY_STR
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: YYYY, YY, MM, DD, HH, II, SS
+      CHARACTER(LEN=2)  :: MM_STR, DD_STR
+      CHARACTER(LEN=2)  :: HH_STR, II_STR, SS_STR
+      CHARACTER(LEN=2)  :: YY_STR
+      CHARACTER(LEN=4)  :: YYYY_STR
 
       !=================================================================
       ! EXPAND_DATE begins here!
@@ -2999,28 +3552,41 @@
       CALL STRREPL( FILENAME, 'hh',   HH_STR   )
       CALL STRREPL( FILENAME, 'mm',   II_STR   )
 
-      ! Return to calling program
       END SUBROUTINE EXPAND_DATE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: system_date_time
+!
+! !DESCRIPTION: Subroutine SYSTEM\_DATE\_TIME returns the actual local date 
+!  and time (as opposed to the model date and time).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SYSTEM_DATE_TIME( SYS_NYMD, SYS_NHMS )
 !
-!******************************************************************************
-!  Subroutine SYSTEM_DATE_TIME returns the actual local date and time 
-!  (as opposed to the model date and time).  (bmy, 5/2/05)
+! !OUTPUT PARAMETERS:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) SYS_NYMD (INTEGER) : System date (local time) in YYYYMMDD format
-!  (2 ) SYS_NHMS (INTEGER) : System time (local time) in HHMMSS   format
+      INTEGER, INTENT(OUT) :: SYS_NYMD   ! System date in YYYY/MM/DD format
+      INTEGER, INTENT(OUT) :: SYS_NHMS   ! System time in YYYY/MM/DD format
 !
-!  NOTES: 
-!******************************************************************************
+! !REMARKS:
+!  Uses the F90 intrinsic function DATE_AND_TIME.
+!
+! !REVISION HISTORY: 
+!  02 May 2005 - R. Yantosca - Initial Version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 !
       ! Arguments
-      INTEGER, INTENT(OUT) :: SYS_NYMD
-      INTEGER, INTENT(OUT) :: SYS_NHMS
 
       ! Local variables
       INTEGER              :: V(8)
@@ -3043,23 +3609,37 @@
       SYS_NYMD = ( V(1) * 10000 ) + ( V(2) * 100 ) + V(3) 
       SYS_NHMS = ( V(5) * 10000 ) + ( V(6) * 100 ) + V(7)
 
-      ! Return to calling program
       END SUBROUTINE SYSTEM_DATE_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: system_timestamp
+!
+! !DESCRIPTION: Function SYSTEM\_TIMESTAMP returns a 16 character string with 
+!  the system date and time in YYYY/MM/DD HH:MM format.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION SYSTEM_TIMESTAMP() RESULT( STAMP )
 !
-!******************************************************************************
-!  Function SYSTEM_TIMESTAMP returns a 16 character string with the system
-!  date and time in YYYY/MM/DD HH:MM format. (bmy, 5/3/05)
+! !RETURN VALUE:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
-      INTEGER           :: SYS_NYMD, SYS_NHMS
       CHARACTER(LEN=16) :: STAMP
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: SYS_NYMD, SYS_NHMS
 
       !=================================================================
       ! SYSTEM_TIMESTAMP begins here!
@@ -3071,56 +3651,66 @@
       ! Create a string w/ system date & time
       STAMP = TIMESTAMP_STRING( SYS_NYMD, SYS_NHMS )
 
-      ! Return to calling program 
       END FUNCTION SYSTEM_TIMESTAMP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: timestamp_diag
+!
+! !DESCRIPTION: Subroutine TIMESTAMP\_DIAG save timestamps to be used in 
+!  filenames for diagnostics. We do not want the time when the diagnostic 
+!  is saved but the time for previous dynamic time step because midnight is
+!  considered as the beginning of next day (and not ending of previous day).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TIMESTAMP_DIAG
-!
-!******************************************************************************
-!  Subroutine TIMESTAMP_DIAG save timestamps to be used in filenames for
-!  diagnostics. We do not want the time when the diagnostic is saved but 
-!  the time for previous dynamic time step because midnight is considered
-!  as the beginning of next day (and not ending of previous day). 
-!  (ccc, 8/12/09)
-!
-!  NOTES:
-!******************************************************************************
-!
-      !=================================================================
-      ! TIMESTAMP_DIAG begins here!
-      !=================================================================
+! 
+! !REVISION HISTORY: 
+!  12 Aug 2009 - C. Carouge  - Initial version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       NYMD_DIAG = GET_NYMD()
 
-      ! Return to calling program
       END SUBROUTINE TIMESTAMP_DIAG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nymd_diag
+!
+! !DESCRIPTION: Function GET\_NYMD\_DIAG returns the previous NYMD value 
+!  (YYYYMMDD) to the calling program.  Used for diagnostic filenames. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NYMD_DIAG() RESULT( THISNYMD )
 !
-!******************************************************************************
-!  Function GET_NYMD_DIAG returns the previous NYMD value (YYYYMMDD) to the 
-!  calling program. Used for diagnostic filenames (ccc, 8/12/09)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Function value
       INTEGER :: THISNYMD
+! 
+! !REVISION HISTORY:
+!  12 Aug 2009 - C. Carouge  - Initial version
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
-      !=================================================================
-      ! GET_NYMD_DIAG begins here!
-      !=================================================================
       THISNYMD = NYMD_DIAG
 
-      ! Return to calling program
       END FUNCTION GET_NYMD_DIAG
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE TIME_MOD
 
 

@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+! $Id: diag1.f,v 1.2 2010/02/02 16:57:54 bmy Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -487,9 +487,6 @@
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
-!---- Prior to (ccc, 7/20/09) ----
-!                  AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
-!     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTOTH(I,J) )
                   AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
                ENDDO            

@@ -1,4 +1,4 @@
-! $Id: meganut_mod.f,v 1.2 2009/12/02 18:45:28 bmy Exp $
+! $Id: meganut_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -25,9 +25,8 @@
       PUBLIC :: XLPARDR
 !
 ! !REVISION HISTORY
-!
-! 20 Nov 2009 - C. Carouge - Create the module with xltmmp, xlpardf and xlpardr
-!                            functions.
+!  20 Nov 2009 - C. Carouge - Create the module with xltmmp, xlpardf and 
+!                             xlpardr functions.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -40,13 +39,12 @@
 !
 ! !FUNCTION: XLTMMP
 !
-! !DESCRIPTION: Function XLTMMP passes the value of the DAO meterological field 
-!  TS(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
-!  functionality of the H/G/I CTM function XLTMMP.
-!  XLTMMP is written in Fixed-Form Fortran 90.
-!  I, J are the long/lat indices of the grid box.  IJLOOP is passed
-!  in order to maintain compatibility with the H/G/I subroutines,
-!  but is not used. 
+! !DESCRIPTION: Function XLTMMP passes the value of the DAO meterological 
+!  field TS(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
+!  functionality of the H/G/I CTM function XLTMMP.  XLTMMP is written in 
+!  Fixed-Form Fortran 90.  I, J are the long/lat indices of the grid box.  
+!  IJLOOP is passed in order to maintain compatibility with the H/G/I 
+!  subroutines, but is not used. 
 !\\
 !\\
 ! !INTERFACE:
@@ -101,12 +99,11 @@
 !
 ! !FUNCTION: XLPARDR
 !
-! !DESCRIPTION: Function XLPARDR passes the value of the DAO meterological field 
-!  PARDR(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
-!  functionality of the H/G/I CTM function PARDR.
-!  I, J are the long/lat indices of the grid box. IJLOOP is passed
-!  in order to maintain compatibility with the H/G/I subroutines,
-!  but is not used.
+! !DESCRIPTION: Function XLPARDR passes the value of the DAO meterological 
+!  field PARDR(IIPAR,JJPAR) back to the calling subroutine.  This preserves 
+!  the functionality of the H/G/I CTM function PARDR.  I, J are the long/lat 
+!  indices of the grid box. IJLOOP is passed in order to maintain compatibility
+!  with the H/G/I subroutines, but is not used.
 !\\
 !\\
 !!INTERFACE
@@ -151,12 +148,11 @@
 !
 ! !FUNCTION: XLPARDF
 !
-! !DESCRIPTION: Function XLPARDF passes the value of the DAO meterological field 
-!  PARDF(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
-!  functionality of the H/G/I CTM function PARDF.
-!  I, J are the long/lat indices of the grid box. IJLOOP is passed
-!  in order to maintain compatibility with the H/G/I subroutines,
-!  but is not used.
+! !DESCRIPTION: Function XLPARDF passes the value of the DAO meterological 
+!  field PARDF(IIPAR,JJPAR) back to the calling subroutine.  This preserves 
+!  the functionality of the H/G/I CTM function PARDF.  I, J are the long/lat 
+!  indices of the grid box. IJLOOP is passed in order to maintain compatibility
+!  with the H/G/I subroutines, but is not used.
 !\\
 !\\
 !!INTERFACE
@@ -175,10 +171,8 @@
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 !
 ! !REVISION HISTORY
-!
-! 20 Nov 2009 - M. Barkley - Original version
-!
-!EOP
+!  20 Nov 2009 - M. Barkley - Original version
+!!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -194,6 +188,5 @@
  
       ! Return to calling program
       END FUNCTION XLPARDF
-
-      END MODULE MEGANUT_MOD
 !EOC
+      END MODULE MEGANUT_MOD

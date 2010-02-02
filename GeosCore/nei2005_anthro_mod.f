@@ -1,4 +1,4 @@
-! $Id: nei2005_anthro_mod.f,v 1.4 2009/12/11 19:27:42 bmy Exp $
+! $Id: nei2005_anthro_mod.f,v 1.5 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -27,6 +27,7 @@
 !
       PUBLIC  :: CLEANUP_NEI2005_ANTHRO
       PUBLIC  :: EMISS_NEI2005_ANTHRO
+      PUBLIC  :: EMISS_NEI2005_ANTHRO_05x0666
       PUBLIC  :: GET_NEI2005_ANTHRO
       !--------------------------------------
       ! Leave for future use (bmy, 12/3/09)
@@ -40,8 +41,11 @@
       PRIVATE :: TOTAL_ANTHRO_TG
       PRIVATE :: READ_NEI2005_MASK
       PRIVATE :: GET_NEI99_SEASON
+      PRIVATE :: GET_NEI99_SEASON_05x0666
       PRIVATE :: GET_VISTAS_SEASON
+      PRIVATE :: GET_VISTAS_SEASON_05x0666
       PRIVATE :: GET_NEI99_WKSCALE
+      PRIVATE :: GET_NEI99_WKSCALE_05x0666
 !
 ! !REMARKS:
 !   (1) NIT is available in the data file but not read here (it is not
@@ -55,6 +59,7 @@
 !  02 Dec 2009 - R. Yantosca - Updated comments etc.
 !  10 Dec 2009 - D. Millet - Fix scaling, which is by ozone season
 !  11 Dec 2009 - L. Zhang, A. Van Donkelaar - Add seasonality for NH3 
+!  21 Dec 2009 - R. Yantosca - Added support for 0.5 x 0.666 nested grids
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -669,13 +674,324 @@
       END SUBROUTINE EMISS_NEI2005_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
+!       Dalhousie University Atmospheric Compositional Analysis Group         !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: EMISS_NEI2005_ANTHRO_05x0666
+!
+! !DESCRIPTION: Subroutine EMISS\_NEI2005\_ANTHRO reads the NEI2005
+!  emission fields at 1/2 x 2.3 resolution
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
+!
+! !USES:
+!
+      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR
+      USE LOGICAL_MOD,       ONLY : LFUTURE
+      USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
+      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+      USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_O3"            ! FSCALYR
+!
+! !REVISION HISTORY:
+!   03 Nov 2009 - A. van Donkelaar - initial version
+!
+! !REMARKS:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE              :: FIRST = .TRUE.
+      INTEGER                    :: I, J,   THISYEAR,       SNo, ScNo
+      INTEGER                    :: L, KLM, SPECIES_ID(15), ID,  MN
+      REAL*4                     :: ARRAY(IIPAR,JJPAR,5)
+      REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,5)
+      REAL*4                     :: SC_05x0666(IIPAR,JJPAR)
+      REAL*8                     :: TAU2005, TAU
+      CHARACTER(LEN=255)         :: FILENAME
+      CHARACTER(LEN=4)           :: SYEAR
+      CHARACTER(LEN=5)           :: SNAME
+      CHARACTER(LEN=1)           :: SSMN
+      CHARACTER(LEN=2)           :: SMN
+
+      !=================================================================
+      ! EMISS_NEI2005_ANTHRO begins here!
+      !=================================================================
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_NEI2005_ANTHRO
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Get emissions year
+      IF ( FSCALYR < 0 ) THEN
+         THISYEAR = GET_YEAR()
+      ELSE
+         THISYEAR = FSCALYR
+      ENDIF
+
+#if defined( GEOS_5 )
+      SNAME = 'GEOS5'
+#elif defined( GEOS_4 )
+      SNAME = 'GEOS4'
+#elif defined( GEOS_3 )
+      SNAME = 'GEOS3'
+#endif
+
+      ! list of ID of available species
+      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
+     $                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
+     $                IDTOCPI, IDTBCPI,
+     $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
+     $     /)
+
+      ! Loop over species
+      DO KLM = 1, SIZE( SPECIES_ID )
+
+         SNo  = SPECIES_ID( KLM )
+
+         ! corresponding annual scale factor # if any
+         ScNo = 0
+         IF ( SNo == IDTNOx                    ) ScNo = 71
+         IF ( SNo == IDTCO                     ) ScNo = 72
+         IF ( SNo == IDTSO2 .or. SNo == IDTSO4 ) ScNo = 73
+
+         ! TAU values for 2005
+         TAU2005 = GET_TAU0( 1, 1, 2005 )
+
+         ! File name
+         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200910/' //
+!         FILENAME  = '/home/phs/data/NEI2005/data/version2/' //
+     &            'NEI2005.' // TRIM( SNAME ) 
+     &             // '.1t2x2t3.AVG.na.bpch'
+
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - EMISS_NEI2005_ANTHRO_05x0666: 
+     &                   Reading ', a )
+
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                    TAU2005,  IIPAR,       JJPAR,
+     &                    5,        ARRAY,      QUIET=.TRUE. )
+
+         GEOS_05x0666(:,:,:) = ARRAY(:,:,:)
+
+         ! Apply annual scalar factor. Available for 1985-2005,
+         ! and NOx, CO and SO2 only.
+         IF ( ScNo .ne. 0 ) THEN
+
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo,2005,
+     &                             THISYEAR, SC_05x0666 )
+
+            DO L = 1, 5
+               GEOS_05x0666(:,:,L) = GEOS_05x0666(:,:,L) 
+     &                               * SC_05x0666(:,:)
+            ENDDO
+
+         ENDIF
+
+         ! Apply Seasonality
+         IF ( SNo .eq. IDTNOx ) THEN
+            CALL GET_VISTAS_SEASON_05x0666( ARRAY )
+         ELSE
+            CALL GET_NEI99_SEASON_05x0666( SNo, ARRAY )
+         ENDIF
+         GEOS_05x0666(:,:,:) = GEOS_05x0666(:,:,:) 
+     &                         * ARRAY(:,:,:)
+
+         CALL GET_NEI99_WKSCALE_05x0666( SNo, ARRAY )
+
+         IF ( SNo .eq. IDTNOx) THEN
+
+            NOx(:,:,:) = GEOS_05x0666
+            NOx_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               NOx(:,:,L) = NOx(:,:,L) * USA_MASK(:,:)
+               NOx_WKEND(:,:,L) =
+     &                NOx_WKEND(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTCO ) THEN
+
+            CO(:,:,:) = GEOS_05x0666
+            CO_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               CO(:,:,L) = CO(:,:,L) * USA_MASK(:,:)
+               CO_WKEND(:,:,L) =
+     &                CO_WKEND(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTSO2 ) THEN
+
+            SO2(:,:,:) = GEOS_05x0666
+            SO2_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               SO2_WKEND(:,:,L) =
+     &                SO2_WKEND(:,:,L) * USA_MASK(:,:)
+               SO2(:,:,L) = SO2(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTSO4 ) THEN
+
+            SO4(:,:,:) = GEOS_05x0666
+            SO4_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               SO4_WKEND(:,:,L) =
+     &                SO4_WKEND(:,:,L) * USA_MASK(:,:)
+               SO4(:,:,L) = SO4(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTNH3 ) THEN
+
+            NH3(:,:,:) = GEOS_05x0666
+            NH3_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               NH3_WKEND(:,:,L) =
+     &                NH3_WKEND(:,:,L) * USA_MASK(:,:)
+               NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+
+            OC(:,:,:) = GEOS_05x0666
+            OC_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               OC_WKEND(:,:,L) =
+     &                OC_WKEND(:,:,L) * USA_MASK(:,:)
+               OC(:,:,L) = OC(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSEIF ( SNo .eq. IDTBCPI ) THEN
+
+            BC(:,:,:) = GEOS_05x0666
+            BC_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               BC_WKEND(:,:,L) =
+     &               BC_WKEND(:,:,L) * USA_MASK(:,:)
+               BC(:,:,L) = BC(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         !--VOC
+         ELSEIF ( SNo == IDTALK4 ) THEN
+
+            ALK4(:,:,:) = GEOS_05x0666
+            ALK4_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               ALK4_WKEND(:,:,L) =
+     &                ALK4_WKEND(:,:,L) * USA_MASK(:,:)
+               ALK4(:,:,L) = ALK4(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTACET ) THEN
+
+            ACET(:,:,:) = GEOS_05x0666
+            ACET_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               ACET_WKEND(:,:,L) =
+     &                ACET_WKEND(:,:,L) * USA_MASK(:,:)
+               ACET(:,:,L) = ACET(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTMEK ) THEN
+
+            MEK(:,:,:) = GEOS_05x0666
+            MEK_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               MEK_WKEND(:,:,L) =
+     &                MEK_WKEND(:,:,L) * USA_MASK(:,:)
+               MEK(:,:,L) = MEK(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTPRPE ) THEN
+
+            PRPE(:,:,:) = GEOS_05x0666
+            PRPE_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               PRPE_WKEND(:,:,L) =
+     &                PRPE_WKEND(:,:,L) * USA_MASK(:,:)
+               PRPE(:,:,L) = PRPE(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTC3H8 ) THEN
+
+            C3H8(:,:,:) = GEOS_05x0666
+            C3H8_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               C3H8_WKEND(:,:,L) =
+     &                C3H8_WKEND(:,:,L) * USA_MASK(:,:)
+               C3H8(:,:,L) = C3H8(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTCH2O ) THEN
+
+            CH2O(:,:,:) = GEOS_05x0666
+            CH2O_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               CH2O_WKEND(:,:,L) =
+     &                CH2O_WKEND(:,:,L) * USA_MASK(:,:)
+               CH2O(:,:,L) = CH2O(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTC2H6 ) THEN
+
+            C2H6(:,:,:) = GEOS_05x0666
+            C2H6_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               C2H6_WKEND(:,:,L) =
+     &                C2H6_WKEND(:,:,L) * USA_MASK(:,:)
+               C2H6(:,:,L) = C2H6(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ELSE IF ( SNo == IDTALD2 ) THEN
+
+            ALD2(:,:,:) = GEOS_05x0666
+            ALD2_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)
+            DO L = 1, 5
+               ALD2_WKEND(:,:,L) =
+     &                ALD2_WKEND(:,:,L) * USA_MASK(:,:)
+               ALD2(:,:,L) = ALD2(:,:,L) * USA_MASK(:,:)
+            ENDDO
+
+         ENDIF
+
+      ENDDO
+
+      !--------------------------
+      ! Compute future emissions
+      !--------------------------
+      IF ( LFUTURE ) THEN
+         CALL NEI2005_SCALE_FUTURE
+      ENDIF
+
+      !--------------------------
+      ! Print emission totals
+      !--------------------------
+      CALL TOTAL_ANTHRO_Tg( THISYEAR )
+
+      ! Return to calling program
+      END SUBROUTINE EMISS_NEI2005_ANTHRO_05x0666
+!EOC
+!------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: get_nei99_season
 !
-! !DESCRIPTION: Subroutine GET\_NEI\_SEASON returns monthly scale
+! !DESCRIPTION: Subroutine GET\_NEI99\_SEASON returns monthly scale
 !  factors from EPA 1999
 !\\
 !\\
@@ -739,16 +1055,6 @@
 
       ThisMN = GET_MONTH()
 
-!------------------------------------------------------------------------------
-! Prior to 12/11/09:
-!      ! NH3/ALD2/ISOP not available
-!      IF (( TRACER .eq. IDTNH3 ) .or. (TRACER .eq. IDTALD2) .or.
-!     &    ( TRACER .eq. IDTCH2O )) THEN
-!         AS(:,:,:) = 1.d0
-!         RETURN
-!      ENDIF
-!------------------------------------------------------------------------------
- 
       ! lzh, amv, 12/11/2009 add NH3 emission seasonality
       IF ( TRACER == IDTALD2 .or. TRACER == IDTCH2O ) THEN
          AS = 1.d0
@@ -761,53 +1067,6 @@
       ! Echo info
       WRITE( 6, 100 ) TRACER
  100  FORMAT( '     - GET_NEI99_SEASON: Reading TRACER: ', i )
-
-! %% dbm, 12/9/2009 =======================>>
-! The input EPA NEI 2005 data we used is an average for the "ozone season",
-! i.e. August, not  an annual average.
-! We need to do the seasonal scaling accordingly
-c$$$
-c$$$      DO MN = 1, 12
-c$$$
-c$$$         WRITE(MYEAR, '(i6)') 199900 + MN
-c$$$
-c$$$         ! File name
-c$$$         FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-c$$$     &      'EPA_NEI_200708/wkday_avg_an.' // MYEAR // '.geos.1x1'
-c$$$
-c$$$         ! Read data
-c$$$         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', TRACER,
-c$$$     &                    GET_TAU0(MN,1,1999), I1x1,   J1x1,
-c$$$     &                    1,  ARRAY,   QUIET=.TRUE. )
-c$$$
-c$$$         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
-c$$$
-c$$$         IF (MN .eq. ThisMN) THEN
-c$$$            MONTHLY(:,:,1) = ARRAY(:,:,1)
-c$$$         ENDIF
-c$$$         
-c$$$
-c$$$      ENDDO
-c$$$
-c$$$!--prior to 11/3/09 (phs)
-c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12
-c$$$!
-c$$$!      ! avoid 0 / 0 
-c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
-c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
-c$$$!
-c$$$!      DO L = 1,5
-c$$$!         AS(:,:,L) = MONTHLY(:,:,1) / ANNUAL(:,:,1)
-c$$$!      ENDDO
-c$$$
-c$$$      
-c$$$      ANNUAL = ANNUAL / 12d0   ! to get unitless scale factor
-c$$$
-c$$$      WHERE ( ANNUAL == 0d0 )
-c$$$         ARRAY = 1d0
-c$$$      ELSEWHERE
-c$$$         ARRAY = MONTHLY / ANNUAL
-c$$$      ENDWHERE
 
       !---------------------------------
       ! Read in data for August
@@ -857,14 +1116,64 @@ c$$$      ENDWHERE
          ARRAY = MONTHLY / AUGUST
       ENDWHERE
 
-! %% dbm, 12/9/2009 =======================<<
-
       DO L = 1, SIZE(AS,3)
          AS(:,:,L) = ARRAY(:,:,1)
       ENDDO
          
-
       END SUBROUTINE GET_NEI99_SEASON
+!EOC
+!------------------------------------------------------------------------------
+!      Dalhousie University Atmospheric Composition Analysis Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nei99_season_05x0666
+!
+! !DESCRIPTION: Subroutine GET\_NEI\_SEASON returns monthly scale
+!  factors from EPA 1999, for the 0.5 x 0.666 nested grids.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_NEI99_SEASON_05x0666( TRACER, AS )
+!
+! !USES:
+!
+      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+
+#     include "CMN_SIZE"                         ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)       :: TRACER   ! Tracer number
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+!
+! !REVISION HISTORY:
+!  30 Oct 2009 - A. van Donkelaar - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                     :: ARRAY(I1x1,J1x1,5)
+      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
+
+      !=================================================================
+      ! GET_NEI99_SEASON_05x0666 begins here!
+      !=================================================================
+
+      ARRAY(:,:,:) = 0.d0
+
+      CALL GET_NEI99_SEASON( TRACER, ARRAY )
+
+      CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
+      AS(:,:,:) = ARRAY_R8(:,:,:)
+
+      END SUBROUTINE GET_NEI99_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -906,7 +1215,6 @@ c$$$      ENDWHERE
 ! !LOCAL VARIABLES:
 !
       REAL*4                     :: ARRAY(I1x1,J1x1,1)
-!      REAL*4                     :: ANNUAL(I1x1,J1x1,1) dbm, 12/9/2009
       REAL*4                     :: AUGUST(I1x1,J1x1,1) ! dbm, 12/9/2009
       REAL*4                     :: MONTHLY(I1x1,J1x1,1)
       REAL*4                     :: O3SEASON(I1x1,J1x1,1)
@@ -924,7 +1232,6 @@ c$$$      ENDWHERE
       !=================================================================
 
       ARRAY(:,:,1) = 0.d0
-!      ANNUAL(:,:,1) = 0.d0
       AUGUST(:,:,1) = 0.d0 ! dbm, 12/9/2009
       MONTHLY(:,:,1) = 0.d0
       O3SEASON(:,:,1) = 0.d0
@@ -946,46 +1253,6 @@ c$$$      ENDWHERE
 
       TAU2002 = GET_TAU0( 1, 1, 2002)
       THISMONTH = GET_MONTH()
-
-
-! %% dbm, 12/9/2009 =======================>>
-! The input EPA NEI 2005 data we used is an average for the "ozone season",
-! i.e. August, not  an annual average.
-! We need to do the seasonal scaling accordingly
-c$$$      DO MN = 1,12
-c$$$
-c$$$         IF (MN .lt. 10) THEN
-c$$$            WRITE( SSMN, '(i1)' ) MN
-c$$$            FILENAME  = TRIM( VISTAS_DIR )
-c$$$     &            // 'Vistas-NOx-' // SSMN // '.1x1'
-c$$$         ELSE
-c$$$            WRITE( SMN, '(i2)' ) MN
-c$$$            FILENAME  = TRIM( VISTAS_DIR )
-c$$$     &            // 'Vistas-NOx-' // SMN // '.1x1'
-c$$$         ENDIF
-c$$$
-c$$$         ! Echo info
-c$$$         WRITE( 6, 100 ) TRIM( FILENAME )
-c$$$ 100        FORMAT( '     - GET_VISTAS_SEASON: Reading ', a )
-c$$$
-c$$$         ! Read data
-c$$$         CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1,
-c$$$     &                    TAU2002,   I1x1,      J1x1,
-c$$$     &                    1,         ARRAY,     QUIET=.TRUE. )
-c$$$
-c$$$         IF (MN .eq. THISMONTH) THEN
-c$$$            MONTHLY(:,:,1) = ARRAY(:,:,1)
-c$$$         ENDIF
-c$$$         ANNUAL(:,:,1) = ANNUAL(:,:,1) + ARRAY(:,:,1)
-c$$$
-c$$$      ENDDO
-c$$$
-c$$$!see below (phs)      
-c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) / 12.d0
-c$$$!
-c$$$!      ! avoid 0 / 0
-c$$$!      ANNUAL(:,:,1) = ANNUAL(:,:,1) + 1.d0
-c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
 
       ! -------------------
       ! Read in data for August
@@ -1029,8 +1296,6 @@ c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
   
       MONTHLY(:,:,1) = ARRAY(:,:,1)
       
-! %% dbm, 12/9/2009 =======================<<
-
       WRITE( SYEAR, '(i4)') THISYEAR
 
       ! Load ozone season regulation factors
@@ -1055,17 +1320,6 @@ c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
      &                 1,         ARRAY,     QUIET=.TRUE. )
       O3SEASON(:,:,1) = ARRAY(:,:,1)
 
-!--see below
-!      DO LEV = 1,5
-!         AS(:,:,LEV) = MONTHLY(:,:,1) / ANNUAL(:,:,1)
-!     &                     * O3SEASON(:,:,1)
-!      ENDDO
-
-! %% dbm, 12/9/2009 =======================>>
-! These ozone season NOx adjustment also needs to account for the
-! fact that the input EPA NEI 2005 data we used is an average for the "ozone season",
-! i.e. August, not  an annual average.
- 
       ! August ozone season regulation factors
       FILENAME  = TRIM( VISTAS_DIR )
      &     // 'ARP-SeasonalVariation-' // SYEAR // '-8.1x1'
@@ -1089,25 +1343,62 @@ c$$$!      MONTHLY(:,:,1) = MONTHLY(:,:,1) + 1.d0
       ! Now scale for summertime NOx reductions
       ARRAY = ARRAY * O3SEASON / O3SEASON_AUGUST
 
-c$$$      ! --Get scalings
-c$$$      ANNUAL = ANNUAL / 12d0    ! to get unitless monthyl scale factor
-c$$$
-c$$$      WHERE ( ANNUAL == 0d0 )
-c$$$         ARRAY = 1d0
-c$$$      ELSEWHERE
-c$$$         ARRAY = MONTHLY / ANNUAL
-c$$$      ENDWHERE
-c$$$
-c$$$      ARRAY = ARRAY * O3SEASON
-c$$$      
-! %% dbm, 12/9/2009 =======================<<
-
       DO LEV = 1, SIZE(AS,3)
          AS(:,:,LEV) = ARRAY(:,:,1)
       ENDDO
       
       
       END SUBROUTINE GET_VISTAS_SEASON
+!EOC
+!------------------------------------------------------------------------------
+!      Dalhousie University Atmospheric Composition Analysis Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_vistas_season_05x0666
+!
+! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON\05x0666 returns monthly scale
+!  factors to account for monthly variations in NOx emissions
+!  for the 0.5 x 0.666 nested grids. (amv, 11/02/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_VISTAS_SEASON_05x0666( AS )
+!
+! !USES:
+!
+      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+
+#     include "CMN_SIZE"                         ! Size parameters
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+!
+! !REVISION HISTORY:
+!  03 Nov 2009 - A. van Donkelaar - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                     :: ARRAY(I1x1,J1x1,5)
+      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
+
+      !=================================================================
+      ! GET_VISTAS_SEASON_05x0666 begins here!
+      !=================================================================
+
+      ARRAY(:,:,:) = 0.d0
+
+      CALL GET_VISTAS_SEASON( ARRAY )
+
+      CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
+      AS(:,:,:) = ARRAY_R8(:,:,:)
+
+      END SUBROUTINE GET_VISTAS_SEASON_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1118,7 +1409,7 @@ c$$$
 !
 ! !DESCRIPTION: Subroutine GET\_NEI99\_WKSCALE returns the scale
 !  factors to convert weekday to weekend emissions based 
-!  on the NEI99
+!  on the NEI99.
 !\\
 !\\
 ! !INTERFACE:
@@ -1226,6 +1517,60 @@ c$$$
 
       
       END SUBROUTINE GET_NEI99_WKSCALE
+!EOC
+!------------------------------------------------------------------------------
+!      Dalhousie University Atmospheric Composition Analysis Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nei99_wkscale_05x0666
+!
+! !DESCRIPTION: Subroutine GET\_NEI99\_WKSCALE\_05x0666 returns the scale
+!  factors (for 0.5 x 0.666 nested grids) to convert weekday to weekend 
+!  emissions based on the NEI99.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_NEI99_WKSCALE_05x0666( TRACER, AS )
+!
+! !USES:
+!
+      USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+
+#     include "CMN_SIZE"                         ! Size parameters
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)       :: TRACER   ! Tracer number
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR,5)  ! Scale factor array
+!
+! !REVISION HISTORY:
+!  30 Oct 2009 - A. van Donkelaar - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                     :: ARRAY(I1x1,J1x1,5)
+      REAL*8                     :: ARRAY_R8(IIPAR,JJPAR,5)
+
+      !=================================================================
+      ! GET_NEI99_SEASON_05x0666 begins here!
+      !=================================================================
+
+      ARRAY(:,:,:) = 0.d0
+
+      CALL GET_NEI99_WKSCALE( TRACER, ARRAY )
+
+      CALL DO_REGRID_1x1( 5, 'unitless', ARRAY, ARRAY_R8 )
+      AS(:,:,:) = ARRAY_R8(:,:,:)
+
+      END SUBROUTINE GET_NEI99_WKSCALE_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

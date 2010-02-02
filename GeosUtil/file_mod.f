@@ -1,4 +1,4 @@
-! $Id: file_mod.f,v 1.1 2009/11/20 21:43:06 bmy Exp $
+! $Id: file_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,9 +33,13 @@
       INTEGER, PUBLIC, PARAMETER :: IU_ND49    = 14  ! "tsYYYYMMDD.bpch" 
       INTEGER, PUBLIC, PARAMETER :: IU_ND50    = 15  ! "ts24h.bpch"
       INTEGER, PUBLIC, PARAMETER :: IU_ND51    = 16  ! "ts10_12am.bpch" etc.
+      INTEGER, PUBLIC, PARAMETER :: IU_ND51b   = 23  ! for ND51b diagnostic
       INTEGER, PUBLIC, PARAMETER :: IU_ND52    = 17  ! ND52 output (NRT only)
       INTEGER, PUBLIC, PARAMETER :: IU_PLANE   = 18  ! "plane.log"
       INTEGER, PUBLIC, PARAMETER :: IU_BC      = 19  ! TPCORE BC files
+      INTEGER, PUBLIC, PARAMETER :: IU_BC_NA   = 20  ! TPCORE BC files: NA grid
+      INTEGER, PUBLIC, PARAMETER :: IU_BC_EU   = 21  ! TPCORE BC files: EU grid
+      INTEGER, PUBLIC, PARAMETER :: IU_BC_CH   = 22  ! TPCORE BC files: CH grid
       INTEGER, PUBLIC, PARAMETER :: IU_FILE    = 65  ! Generic file
       INTEGER, PUBLIC, PARAMETER :: IU_TP      = 69  ! "YYYYMMDD.tropp.*"
       INTEGER, PUBLIC, PARAMETER :: IU_PH      = 70  ! "YYYYMMDD.phis.*"
@@ -84,6 +88,7 @@
 !  (14) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (15) Remove support for SGI & COMPAQ compilers (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  18 Dec 2009 - Aaron van D - Added file units IU_BC_NA, IU_BC_EU, IU_BC_CH  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -374,6 +379,7 @@
 !  20 Jul 2004 - R. Yantosca - Also renamed IU_TS to IU_ND48.
 !  20 Oct 2005 - R. Yantosca - Also close IU_XT.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -390,6 +396,9 @@
       CLOSE( IU_ND52    )
       CLOSE( IU_PLANE   )
       CLOSE( IU_BC      )
+      CLOSE( IU_BC_NA   )
+      CLOSE( IU_BC_EU   )
+      CLOSE( IU_BC_CH   )
       CLOSE( IU_FILE    )
       CLOSE( IU_PH      )
       CLOSE( IU_TP      )

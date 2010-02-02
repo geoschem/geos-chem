@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.11 2009/12/11 19:27:42 bmy Exp $
+# $Id: Makefile,v 1.12 2010/02/02 16:57:45 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -28,6 +28,8 @@
 #  19 Nov 2009 - R. Yantosca - Now build documentation for Makefiles in the
 #                              GeosUtil and GeosCore subdirectories
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  28 Jan 2010 - R. Yantosca - Now add the Makefiles in the GeosTomas and
+#                              ISOROPIA subdirs to the documentation
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -38,12 +40,14 @@
 
 # Define variables
 ROOTDIR = ..
-BINDIR  = $(ROOTDIR)/bin
-BPCHDIR = $(ROOTDIR)/GeosBpch
-CODEDIR = $(ROOTDIR)/GeosCore
-HELPDIR = $(ROOTDIR)/help
-KPPDIR  = $(ROOTDIR)/KPP
-UTILDIR = $(ROOTDIR)/GeosUtil
+BIN     = $(ROOTDIR)/bin
+BPCH    = $(ROOTDIR)/GeosBpch
+CORE    = $(ROOTDIR)/GeosCore
+HELP    = $(ROOTDIR)/help
+ISO     = $(ROOTDIR)/ISOROPIA
+KPP     = $(ROOTDIR)/KPP
+TOM     = $(ROOTDIR)/GeosTomas
+UTIL    = $(ROOTDIR)/GeosUtil
 
 # Get the Unix shell in SHELL from the Makefile_header.mk
 include $(ROOTDIR)/Makefile_header.mk
@@ -68,15 +72,15 @@ help:
 
 SRC1 =                               \
 ./geos_chem.intro                    \
-$(CODEDIR)/tpcore_fvdas_mod.f90      \
-$(CODEDIR)/pjc_pfix_mod.f            \
-$(CODEDIR)/emissions_mod.f           \
-$(CODEDIR)/arctas_ship_emiss_mod.f   \
-$(CODEDIR)/bravo_mod.f               \
-$(CODEDIR)/cac_anthro_mod.f          \
-$(CODEDIR)/emep_mod.f                \
-$(CODEDIR)/scale_anthro_mod.f        \
-$(CODEDIR)/vistas_anthro_mod.f 
+$(CORE)/tpcore_fvdas_mod.f90      \
+$(CORE)/pjc_pfix_mod.f            \
+$(CORE)/emissions_mod.f           \
+$(CORE)/arctas_ship_emiss_mod.f   \
+$(CORE)/bravo_mod.f               \
+$(CORE)/cac_anthro_mod.f          \
+$(CORE)/emep_mod.f                \
+$(CORE)/scale_anthro_mod.f        \
+$(CORE)/vistas_anthro_mod.f 
 
 TEX1 = GEOS-Chem.tex
 DVI1 = GEOS-Chem.dvi
@@ -93,7 +97,6 @@ srcdoc:
 	dvips $(DVI1) -o $(PS1)
 	rm -f *.aux *.dvi *.log *.toc
 
-
 #==============================================================================
 # Build documentation for GEOS-Chem Makefiles
 #==============================================================================
@@ -102,14 +105,15 @@ SRC2 =                         \
 ./make.intro                   \
 $(ROOTDIR)/Makefile            \
 $(ROOTDIR)/Makefile_header.mk  \
-$(UTILDIR)/Makefile            \
-$(BPCHDIR)/Makefile            \
-$(CODEDIR)/Makefile            \
-$(KPPDIR)/Makefile             \
-$(KPPDIR)/43t/Makefile         \
-$(KPPDIR)/54t/Makefile         \
+$(UTIL)/Makefile               \
+$(ISO)/Makefile                \
+$(CODE)/Makefile               \
+$(KPP)/Makefile                \
+$(KPP)/standard/Makefile       \
+$(KPP)/SOA/Makefile            \
+$(TOM)/Makefile                \
 ./Makefile                     \
-$(HELPDIR)/Makefile
+$(HELP)/Makefile
 
 TEX2 = GEOS-Chem-Makefiles.tex
 DVI2 = GEOS-Chem-Makefiles.dvi
@@ -130,19 +134,21 @@ makedoc:
 # Build documentation for GEOS-Chem utility modules
 #==============================================================================
 
-SRC3 = ./util.intro         \
-$(UTILDIR)/charpak_mod.f    \
-$(UTILDIR)/directory_mod.f  \
-$(UTILDIR)/error_mod.f      \
-$(UTILDIR)/ifort_errmsg.f   \
-$(UTILDIR)/file_mod.f       \
-$(UTILDIR)/grid_mod.f       \
-$(UTILDIR)/julday_mod.f     \
-$(UTILDIR)/pressure_mod.f   \
-$(UTILDIR)/regrid_1x1_mod.f \
-$(UTILDIR)/time_mod.f       \
-$(UTILDIR)/transfer_mod.f   \
-$(UTILDIR)/unix_cmds_mod.f
+SRC3 = ./util.intro      \
+$(UTIL)/bpch2_mod.f      \
+$(UTIL)/charpak_mod.f    \
+$(UTIL)/directory_mod.f  \
+$(UTIL)/error_mod.f      \
+$(UTIL)/ifort_errmsg.f   \
+$(UTIL)/file_mod.f       \
+$(UTIL)/grid_mod.f       \
+$(UTIL)/hdf_mod.f        \
+$(UTIL)/julday_mod.f     \
+$(UTIL)/pressure_mod.f   \
+$(UTIL)/regrid_1x1_mod.f \
+$(UTIL)/time_mod.f       \
+$(UTIL)/transfer_mod.f   \
+$(UTIL)/unix_cmds_mod.f
 
 TEX3 = GEOS-Chem-Utility.tex
 DVI3 = GEOS-Chem-Utility.dvi
@@ -158,28 +164,5 @@ utildoc:
 	dvipdf $(DVI3) $(PDF3)
 	dvips $(DVI3) -o $(PS3)
 	rm -f *.aux *.dvi *.log *.toc
-
-#==============================================================================
-# Build documentation for GEOS-Chem utility modules
-#==============================================================================
-
-SRC4 = ./bpch.intro    \
-$(BPCHDIR)/bpch2_mod.f
-
-TEX4 = GEOS-Chem-Bpch.tex
-DVI4 = GEOS-Chem-Bpch.dvi
-PDF4 = GEOS-Chem-Bpch.pdf
-PS4  = GEOS-Chem-Bpch.ps
-
-bpchdoc: 
-	rm -f $(TEX4)
-	protex -sf $(SRC4) > $(TEX4)
-	latex $(TEX4)
-	latex $(TEX4)
-	latex $(TEX4)
-	dvipdf $(DVI4) $(PDF4)
-	dvips $(DVI4) -o $(PS4)
-	rm -f *.aux *.dvi *.log *.toc
-
 
 #EOC

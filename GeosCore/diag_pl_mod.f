@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.3 2009/10/26 20:34:47 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.4 2010/02/02 16:57:53 bmy Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -801,28 +801,6 @@
 
          ! Write P(Ox) and L(Ox) to disk
          CALL WRITE20
-
-!------------------------------------------------------------
-! Prior to 10/26/09
-! Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
-!         ! Zero counter
-!         COUNT(I,J,L) = 0
-!
-!         ! Zero PL24H array
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N )
-!         DO N = 1, 2
-!         DO L = 1, LD65
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            PL24H(I,J,L,N) = 0d0
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO 
-!------------------------------------------------------------
 
          ! Zero arrays
          COUNT = 0

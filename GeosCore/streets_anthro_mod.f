@@ -1,10 +1,10 @@
-! $Id: streets_anthro_mod.f,v 1.2 2009/10/15 17:46:23 bmy Exp $
+! $Id: streets_anthro_mod.f,v 1.3 2010/02/02 16:57:51 bmy Exp $
       MODULE STREETS_ANTHRO_MOD
 !
 !******************************************************************************
 !  Module STREETS_ANTHRO_MOD contains variables and routines to read the 
 !  David Streets et al Asian anthropogenic emissions for NOx and CO. 
-!  (yxw, bmy, 8/16/06, 3/11/09)
+!  (yxw, bmy, 8/16/06, 12/18/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -75,6 +75,11 @@
 !  (5 ) Implemented monthly variations (phs, 4/12/08)
 !  (6 ) Bug fix: call READ_STREETS_05x0666 in routine 
 !        EMISS_STREETS_ANTHRO_05x0666 (ccc, 3/11/09)
+!  (7 ) Now backscale from 2006 (to maximum of 2000) rather than forward 
+!        scale 2000 (to maximum of 2005).  Addresses irregularity in 2005 to 
+!        2006 emission output, but new irregularity likely now occurs at 2000 
+!        to 2001 (although this is likely less relevant to current studies).
+!        Initiated 1/2x2/3 annual scaling. (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -407,7 +412,12 @@
 !       (phs,3/07/08)
 !  (3 ) Added int'annual scale factors (amv, 08/24/07)
 !  (4 ) Now accounts for FSCALYR and monthly variation (phs, 3/17/08)
-!  (5 ) Now NH3 2000 is used for all simulation years (phs, 2/27/09)  
+!  (5 ) Now NH3 2000 is used for all simulation years (phs, 2/27/09) 
+!  (6 ) Now backscale from 2006 (to maximum of 2000) rather than forward 
+!        scale 2000 (to maximum of 2005).  Addresses irregularity in 2005 to 
+!        2006 emission output, but new irregularity likely now occurs at 2000 
+!        to 2001 (although this is likely less relevant to current studies).
+!        Initiated 1/2x2/3 annual scaling. (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -635,9 +645,9 @@
 
          ! Annual scalar factor (phs, 3/10/08)
          !--------------------------
-         IF ( BASE_YEAR == 2000 ) THEN
+         IF ((BASE_YEAR == 2000) .or. (BASE_YEAR == 2006)) THEN
             
-            CALL GET_ANNUAL_SCALAR( 71, 2000, SIM_YEAR, SCALFAC )
+            CALL GET_ANNUAL_SCALAR( 71, BASE_YEAR, SIM_YEAR, SCALFAC )
 
             NOX = NOX * SCALFAC
          ENDIF
@@ -699,6 +709,10 @@
      $                         TAUMONTH_2001, TEMP,     'unitless' )
 
             CO = CO * TEMP
+
+            ! Annual scalar factor (amv, 10/29/09)
+            CALL GET_ANNUAL_SCALAR( 72, 2006, SIM_YEAR, SCALFAC )
+            CO = CO * SCALFAC
 
          ! Base year = 2000 (2001 for China)
          ELSE
@@ -770,7 +784,10 @@
             CALL GET_ANNUAL_SCALAR( 73, 2000, SIM_YEAR, SCALFAC )
             SO2 = SO2 * SCALFAC
          ENDIF
-
+         IF ( IS_2006  ) THEN
+            CALL GET_ANNUAL_SCALAR( 73, 2006, SIM_YEAR, SCALFAC )
+            SO2 = SO2 * SCALFAC
+         ENDIF
 
          !---------------------------------------------
          ! Read NH3 only available for base year 2000
@@ -1126,7 +1143,7 @@
       USE DIRECTORY_MOD,    ONLY : DATA_DIR              
       USE TIME_MOD,         ONLY : GET_MONTH, GET_YEAR  
       USE TRACER_MOD,       ONLY : XNUMOL
-!      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_O3"         ! FSCALYR
@@ -1339,15 +1356,19 @@
 
          ENDDO
 
-!------------------------------------------------------------------------
-! Not available yet
-!         ! Annual scalar factor (phs, 3/10/08)
-!         IF ( BASE_YEAR == 2000 ) THEN
-!            CALL GET_ANNUAL_SCALAR_05x0666( 71,       2000,
-!     &                                      SIM_YEAR, SCALFAC )
-!            NOX = NOX * SCALFAC
-!         ENDIF
-!------------------------------------------------------------------------
+         ! Annual scalar factor (phs, 3/10/08), (amv, 10/20/2009)
+         IF ( BASE_YEAR == 2000 ) THEN
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 71,   2000,
+     &                                      SIM_YEAR, SCALFAC )
+            NOX = NOX * SCALFAC
+         ENDIF
+         IF ( BASE_YEAR == 2006 ) THEN
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 71,   2006,
+     &                                      SIM_YEAR, SCALFAC )
+            NOX = NOX * SCALFAC
+         ENDIF
+
+
          !--------------------------
          ! Seasonal Variation for NOx 
          !--------------------------
@@ -1406,6 +1427,11 @@
 
             CO = CO * TEMP
 
+            ! (amv, 10/29/2009)
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 72,    2006,
+     &                                      SIM_YEAR, SCALFAC )
+            CO = CO * SCALFAC 
+
          !------------------------------
          ! Read CO 2000 (2001 for China)
          !-----------------------------
@@ -1419,12 +1445,10 @@
             CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 4,
      $                                 TAU2000,   CO )
 
-!------------------------------------------------------------------------
-! Not available yet
-!            CALL GET_ANNUAL_SCALAR_05x0666( 72,       2000,
-!     &                                      SIM_YEAR, SCALFAC )
-!            CO = CO * SCALFAC            
-!------------------------------------------------------------------------
+            ! (amv, 10/29/2009)
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 72,    2000,
+     &                                      SIM_YEAR, SCALFAC )
+            CO = CO * SCALFAC            
          
 
             !-- PART 2 -- File name for 2001 CO over China only
@@ -1435,12 +1459,10 @@
             CALL READ_STREETS_05x0666( FILENAME,      'ANTHSRCE', 4,
      $                                 TAUMONTH_2001, TEMP )
 
-!------------------------------------------------------------------------
-! Not available yet
-!            CALL GET_ANNUAL_SCALAR_05x0666( 72,       2001,
-!     &                                      SIM_YEAR, SCALFAC )
-!            TEMP = TEMP * SCALFAC            
-!------------------------------------------------------------------------
+            ! (amv, 10/29/2009)
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 72,    2001,
+     &                                      SIM_YEAR, SCALFAC )
+            TEMP = TEMP * SCALFAC            
 
             
             !-- PART 3 -- Replace SE Asia CO for 2000 with China CO for 2001
@@ -1484,16 +1506,17 @@
 
          ENDDO
 
-!------------------------------------------------------------------------
-! Not available yet
-!         ! Annual scalar factor (amv, phs, 3/10/08)
-!         IF ( .NOT. IS_2006  ) THEN
-!            CALL GET_ANNUAL_SCALAR_05x0666( 73,       2000,
-!     $                                      SIM_YEAR, SCALFAC )
-!            SO2 = SO2 * SCALFAC
-!         ENDIF
-!------------------------------------------------------------------------
-         
+          ! Annual scalar factor (amv, phs, 3/10/08, 10/29/09)
+         IF ( .NOT. IS_2006  ) THEN
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 73,    2000,
+     $                                      SIM_YEAR, SCALFAC )
+            SO2 = SO2 * SCALFAC
+         ENDIF
+         IF ( IS_2006  ) THEN
+            CALL GET_ANNUAL_SCALAR_05x0666_NESTED( 73,    2006,
+     $                                      SIM_YEAR, SCALFAC )
+            SO2 = SO2 * SCALFAC
+         ENDIF
 
 
          !---------------------------------------------

@@ -1,9 +1,9 @@
-! $Id: cleanup.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
+! $Id: cleanup.f,v 1.4 2010/02/02 16:57:54 bmy Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
 !  Subroutine CLEANUP deallocates the memory assigned to dynamic allocatable 
-!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 10/2/07)
+!  arrays just before exiting the GEOS-CHEM model. (bmy, 11/29/99, 12/21/09)
 !
 !  NOTES:
 !  (1 ) CLEANUP is written in Fixed-Format F90.
@@ -82,6 +82,8 @@
 !  (40) Now references CLEANUP_ARCTAS_SHIP (phs, 3/10/08)
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
+!  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
+!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -124,6 +126,8 @@
       USE GLOBAL_OH_MOD,           ONLY : CLEANUP_GLOBAL_OH
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
+      USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -201,6 +205,8 @@
       CALL CLEANUP_GLOBAL_OH
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
+      CALL CLEANUP_HDF
+      CALL CLEANUP_ISOROPIAII
       CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ

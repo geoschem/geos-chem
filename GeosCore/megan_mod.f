@@ -1,86 +1,124 @@
-! $Id: megan_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: megan_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: megan_mod
+!
+! !DESCRIPTION: Module MEGAN\_MOD contains variables and routines specifying 
+!  the algorithms that control the MEGAN inventory of biogenic emissions.
+!\\
+!\\
+!  References:
+!  \begin{itemize}
+!  \item Guenther, A., et al., \emph{A global model of natural volatile 
+!        organic compound emissions}, \underline{J.Geophys. Res.}, 
+!        \textbf{100}, 8873-8892, 1995.
+!  \item Wang, Y., D. J. Jacob, and J. A. Logan, \emph{Global simulation of 
+!        tropospheric O3-Nox-hydrocarbon chemistry: 1. Model formulation}, 
+!        \underline{J. Geophys. Res.}, \textbf{103}, D9, 10713-10726, 1998.
+!  \item Guenther, A., B. Baugh, G. Brasseur, J. Greenberg, P. Harley, L. 
+!        Klinger, D. Serca, and L. Vierling, \emph{Isoprene emission estimates 
+!        and uncertanties for the Central African EXPRESSO study domain}, 
+!        \underline{J. Geophys. Res.}, \textbf{104}, 30,625-30,639, 1999.
+!  \item Guenther, A. C., T. Pierce, B. Lamb, P. Harley, and R. Fall, 
+!        \emph{Natural emissions of non-methane volatile organic compounds, 
+!        carbon monoxide, and oxides of nitrogen from North America}, 
+!        \underline{Atmos. Environ.}, \textbf{34}, 2205-2230, 2000.
+!  \item Guenther, A., and C. Wiedinmyer, \emph{User's guide to Model of 
+!        Emissions of Gases and Aerosols from Nature}. http://cdp.ucar.edu. 
+!        (Nov. 3, 2004) 
+!  \item Guenther, A., \emph{AEF for methyl butenol}, personal commucation. 
+!        (Nov, 2004)
+!  \end{itemize}
+!
+! !INTERFACE:
+!
       MODULE MEGAN_MOD
 !
-!******************************************************************************
-!  Module MEGAN_MOD contains variables and routines specifying the 
-!  algorithms that control the MEGAN inventory of biogenic emissions.
-!  (dsa, tmf, bmy, 11/17/04, 11/6/08)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) T_DAY(R(MAXIJ,DAY_DIM)    : TS at each gridbox for last 8 3 hour periods
-!  (2 ) T_15(MAXIJ,NUM_DAYS   )   : Holds average daily TS for past NUM_DAYS days
-!  (3 ) T_15_AVG(MAXIJ)           : Is the average TS over past NUM_DAYS days 
-!  (4 ) T_DAILY(MAXIJ)            : Daily average TS at each gridbox
-!  (5 ) PARDR_DAY(R(MAXIJ,DAY_DIM): PARDR at each gridbox for last 8 3-hour periods
-!  (6 ) PARDR_15(MAXIJ,NUM_DAYS)  : Holds average daily PARDR for past NUM_DAYS days
-!  (7 ) PARDR_15_AVG(MAXIJ)       : Is the average PARDR over past NUM_DAYS days 
-!  (8 ) PARDR_DAILY(MAXIJ)        : Daily average PARDR at each gridbox
-!  (9 ) PARDF_DAY(R(MAXIJ,DAY_DIM): PARDF at each gridbox for last 8 3-hour periods
-!  (10) PARDF_15(MAXIJ,NUM_DAYS)  : Holds average daily PARDF for past NUM_DAYS days
-!  (11) PARDF_15_AVG(MAXIJ)       : Is the average PARDF over past NUM_DAYS days 
-!  (12) PARDF_DAILY(MAXIJ)        : Daily average PARDF at each gridbox
-!  (13) DAY_DIM                   : number 3h periods in a day
-!  (14) NUM_DAYS                  : Number days in averaging periods
-!  (15) AEF_ISOP(MAXIJ)           : Annual emission factor for isoprene
-!  (16) AEF_MONOT(MAXIJ)          : Annual emission factor for (total) monoterpenes
-!  (17) AEF_MBO(MAXIJ)            : Annual emission factor for methyl butenol
-!  (18) AEF_OVOC(MAXIJ)           : Annual emission factor for other biogenic VOCs
-!  (19) AEF_APINE(MAXIJ)          : Annual emission factor for alpha-pinene
-!  (20) AEF_BPINE(MAXIJ)          : Annual emission factor for beta-pinene
-!  (21) AEF_LIMON(MAXIJ)          : Annual emission factor for limonene
-!  (22) AEF_SABIN(MAXIJ)          : Annual emission factor for sabine
-!  (23) AEF_MYRCN(MAXIJ)          : Annual emission factor for myrcene
-!  (24) AEF_CAREN(MAXIJ)          : Annual emission factor for 3-carene
-!  (25) AEF_OCIMN(MAXIJ)          : Annual emission factor for ocimene
-!  (26) AEF_SPARE(MAXIJ)          : Temporary array for holding monoterpenes
+      USE ERROR_MOD, ONLY : ERROR_STOP
 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_EMISOP_MEGAN  : Returns ISOPRENE Emission at a gridbox 
-!  (2 ) GET_EMMONOT_MEGAN : Returns MONOTERPENE Emission at a gridbox 
-!  (3 ) GET_EMMBO_MEGAN   : Returns METHYL BUTENOL Emission at a gridbox 
-!  (4 ) GET_EMOVOC_MEGAN  : Returns other BVOC Emission at a gridbox 
-!  (5 ) GET_AEF           : Reads archived Annual emission factor (AEF) 
+      IMPLICIT NONE
+      PRIVATE
+!
+! !DEFINED PARAMETERS:
+! 
+      ! Scalar
+      INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
+      INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
+      REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
-!  (9 ) UPDATE_T_DAY      : Get TSKIN for each gridbox, update T_DAY, 
-!                           call once every 3h
-!  (10) UPDATE_T_15_AVG   : Update T_15 and T_15_AVG, call once a day
-!  (11) INIT_MEGAN        : Allocate + Initialize module variables
-!  (12) CLEANUP_MEGAN     : Deallocate module variables
+      ! Some conversions factors (mpb,2009)
+      REAL*8, PARAMETER   :: D2RAD =  3.14159d0 /   180.0d0  ! Deg -> Radians
+      REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0  ! Radians -> Deg
+      REAL*8, PARAMETER   :: PI    =  3.14159d0              ! PI
 !
-!  GEOS-CHEM modules referenced by megan_mod.f
-!  ============================================================================
-!  (1 ) a3_read_mod.f     : Module for reading A-3 fields
-!  (2 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
-!  (3 ) error_mod.f       : Module w/ I/O error and NaN check routines
-!  (4 ) julday_mod.f      : Module w/ astronomical Julian date routines
-!  (5 ) lai_mod.f         : Module w/ routines & arrays to read AVHRR LAI
-!  (6 ) regrid_1x1_mod.f  : Module w/ routines to regrid 1x1 data  
-!  (8 ) time_mod.f        : Module w/ routines for computing time & date
+! !PRIVATE TYPES:
 !
+      ! Past light & temperature conditions (mpb,2009)
+      ! (1) Temperature at 2m (TS):
+      REAL*8, ALLOCATABLE :: T_DAILY(:,:)       ! Daily averaged sfc temp
+      REAL*8, ALLOCATABLE :: T_DAY(:,:,:)       ! Holds 1 day of sfc temp data
+      REAL*8, ALLOCATABLE :: T_15(:,:,:)        ! Holds 15 days of daily avg T
+      REAL*8, ALLOCATABLE :: T_15_AVG(:,:)      ! Sfc temp avg'd over NUM_DAYS
+
+      ! (2) PAR Direct: 
+      REAL*8, ALLOCATABLE :: PARDR_DAILY(:,:)   ! Average daily PARDR
+      REAL*8, ALLOCATABLE :: PARDR_DAY(:,:,:)   ! Holds 1 day of PARDR data
+      REAL*8, ALLOCATABLE :: PARDR_15(:,:,:)    ! 10 days of daily avg'd PARDR
+      REAL*8, ALLOCATABLE :: PARDR_15_AVG(:,:)  ! PARDR averaged over NUM_DAYS
+
+      ! (3) PAR Diffuse: 
+      REAL*8, ALLOCATABLE :: PARDF_DAILY(:,:)   ! Average daily PARDR
+      REAL*8, ALLOCATABLE :: PARDF_DAY(:,:,:)   ! Holds 1-day of PARDR data
+      REAL*8, ALLOCATABLE :: PARDF_15(:,:,:)    ! 10 days of daily avg'd PARDR 
+      REAL*8, ALLOCATABLE :: PARDF_15_AVG(:,:)  ! PARDF averaged over NUM_DAYS
+
+      ! Annual emission factor arrays (mpb,2009)
+      REAL*8, ALLOCATABLE :: AEF_ISOP(:,:)      ! Isoprene 
+      REAL*8, ALLOCATABLE :: AEF_MONOT(:,:)     ! Total monoterpenes
+      REAL*8, ALLOCATABLE :: AEF_MBO(:,:)       ! Methyl butenol
+      REAL*8, ALLOCATABLE :: AEF_OVOC(:,:)      ! Other biogenic VOC's
+      REAL*8, ALLOCATABLE :: AEF_APINE(:,:)     ! Alpha-pinene
+      REAL*8, ALLOCATABLE :: AEF_BPINE(:,:)     ! Beta-pinene
+      REAL*8, ALLOCATABLE :: AEF_LIMON(:,:)     ! Limonene
+      REAL*8, ALLOCATABLE :: AEF_SABIN(:,:)     ! Sabine
+      REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)     ! Myrcene
+      REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)     ! 3-Carene
+      REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)     ! Ocimene
+      REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
+
+      ! Path to MEGAN emission factors
+      CHARACTER(LEN=20)   :: MEGAN_SUBDIR = 'MEGAN_200909/'
 !
+! !PUBLIC MEMBER FUNCTIONS: 
 !
-!  References:
-!  ============================================================================
-!  (1 ) Guenther, A., et al., A global model of natural volatile organic 
-!        commpound emissions, J.Geophys. Res., 100, 8873-8892, 1995.
-!  (2 ) Wang, Y., D. J. Jacob, and J. A. Logan, Global simulation of 
-!        tropospheric O3-Nox-hydrocarbon chemistry: 1. Model formulation, J. 
-!        Geophys. Res., 103, D9, 10713-10726, 1998.
-!  (3 ) Guenther, A., B. Baugh, G. Brasseur, J. Greenberg, P. Harley, L. 
-!        Klinger, D. Serca, and L. Vierling, Isoprene emission estimates and 
-!        uncertanties for the Central African EXPRESSO study domain, J. 
-!        Geophys. Res., 104, 30,625-30,639, 1999.
-!  (4 ) Guenther, A. C., T. Pierce, B. Lamb, P. Harley, and R. Fall, Natural 
-!        emissions of non-methane volatile organic compounds, carbon 
-!        monoxide, and oxides of nitrogen from North America, Atmos. Environ.,
-!        34, 2205-2230, 2000.
-!  (5 ) Guenther, A., and C. Wiedinmyer, User's guide to Model of Emissions of 
-!        Gases and Aerosols from Nature. http://cdp.ucar.edu. (Nov. 3, 2004) 
-!  (6 ) Guenther, A., AEF for methyl butenol, personal commucation. (Nov, 2004)
+      PUBLIC  :: ACTIVITY_FACTORS
+      PUBLIC  :: CLEANUP_MEGAN   
+      PUBLIC  :: GET_EMISOP_MEGAN  
+      PUBLIC  :: GET_EMMBO_MEGAN    
+      PUBLIC  :: GET_EMMONOG_MEGAN 
+      PUBLIC  :: GET_EMMONOT_MEGAN 
+      PUBLIC  :: GET_AEF   
+      PUBLIC  :: GET_AEF_05x0666        
+      PUBLIC  :: INIT_MEGAN        
+      PUBLIC  :: UPDATE_T_DAY      
+      PUBLIC  :: UPDATE_T_15_AVG   
 !
-!  NOTES:
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: GET_GAMMA_LAI
+      PRIVATE :: GET_GAMMA_LEAF_AGE
+      PRIVATE :: GET_GAMMA_P
+      PRIVATE :: GET_GAMMA_T_ISOP
+      PRIVATE :: GET_GAMMA_T_NISOP
+      PRIVATE :: GET_GAMMA_P_PECCA
+      PRIVATE :: SOLAR_ANGLE
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code (biogen_em_mod.f) by Dorian Abbot (6/2003).  Updated to 
 !        latest algorithm and modified for the standard code by May Fu 
 !        (11/2004).
@@ -94,137 +132,71 @@
 !  (6 ) Bug fix: Skip Feb 29th if GCAP in INIT_MEGAN (phs, 9/18/07)
 !  (7 ) Added routine GET_AEF_05x0666 to read hi-res AEF data for the GEOS-5
 !        0.5 x 0.666 nested grid simulations (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
-!
-      ! Error module
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "megan_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE :: DAY_DIM, NUM_DAYS
-      PRIVATE :: T_DAY,     T_15,     T_15_AVG,     T_DAILY
-      PRIVATE :: PARDR_DAY, PARDR_15, PARDR_15_AVG, PARDR_DAILY
-      PRIVATE :: PARDF_DAY, PARDF_15, PARDF_15_AVG, PARDF_DAILY  
-
-      ! PRIVATE module functions (mpb,2009)
-      PRIVATE :: GET_GAMMA_LAI
-      PRIVATE :: GET_GAMMA_LEAF_AGE
-      PRIVATE :: GET_GAMMA_P
-      PRIVATE :: GET_GAMMA_T_ISOP
-      PRIVATE :: GET_GAMMA_T_NISOP
-      PRIVATE :: GET_GAMMA_P_PECCA
-
-      ! PUBLIC module functios (mpb,2009)
-      PUBLIC  :: ACTIVITY_FACTORS
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Scalars
-      INTEGER, PARAMETER  :: DAY_DIM        = 8
-      INTEGER, PARAMETER  :: NUM_DAYS       = 10      ! (mpb,2009)
-      REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0
-
-      ! Some conversions factors (mpb,2009)
-      REAL*8, PARAMETER   :: D2RAD =  3.14159d0 /   180.0d0
-      REAL*8, PARAMETER   :: RAD2D =    180.0d0 / 3.14159d0 
-      REAL*8, PARAMETER   :: PI    =  3.14159d0
-
-      ! Past light & temperature conditions (mpb,2009)
-      ! (1) Temperature at 2m (TS):
-      REAL*8, ALLOCATABLE :: T_DAY(:,:,:)
-      REAL*8, ALLOCATABLE :: T_15(:,:,:)
-      REAL*8, ALLOCATABLE :: T_15_AVG(:,:)
-      REAL*8, ALLOCATABLE :: T_DAILY(:,:)
-      ! (2) PAR Direct:
-      REAL*8, ALLOCATABLE :: PARDR_DAILY(:,:)
-      REAL*8, ALLOCATABLE :: PARDR_DAY(:,:,:)
-      REAL*8, ALLOCATABLE :: PARDR_15(:,:,:)
-      REAL*8, ALLOCATABLE :: PARDR_15_AVG(:,:)
-      ! (3) PAR Diffuse: 
-      REAL*8, ALLOCATABLE :: PARDF_DAILY(:,:)
-      REAL*8, ALLOCATABLE :: PARDF_DAY(:,:,:)
-      REAL*8, ALLOCATABLE :: PARDF_15(:,:,:)
-      REAL*8, ALLOCATABLE :: PARDF_15_AVG(:,:)
-
-      ! Basal emission factors (mpb,2009)
-      REAL*8, ALLOCATABLE :: AEF_ISOP(:,:)    
-      REAL*8, ALLOCATABLE :: AEF_MONOT(:,:)
-      REAL*8, ALLOCATABLE :: AEF_MBO(:,:)    
-      REAL*8, ALLOCATABLE :: AEF_OVOC(:,:)    
-      REAL*8, ALLOCATABLE :: AEF_APINE(:,:)
-      REAL*8, ALLOCATABLE :: AEF_BPINE(:,:)
-      REAL*8, ALLOCATABLE :: AEF_LIMON(:,:)
-      REAL*8, ALLOCATABLE :: AEF_SABIN(:,:)    
-      REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)
-      REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)    
-      REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)      
-      REAL*8, ALLOCATABLE :: AEF_SPARE(:,:) 
-
-      ! Path to MEGAN emission factors
-      CHARACTER(LEN=20)   :: MEGAN_SUBDIR = 'MEGAN_200909/'
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_EMISOP_MEGAN( I,  J,      SUNCOS, 
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_emisop_megan
+!
+! !DESCRIPTION: Subroutine GET\_EMISOP\_MEGAN computes isoprene emissions in 
+!  units of [atoms C/box] using the MEGAN inventory.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_EMISOP_MEGAN( I,  J,     SUNCOS, 
      &                           TS, Q_DIR, Q_DIFF, XNUMOL )
      &         RESULT( EMISOP )
 !
-!******************************************************************************
-!  Subroutine GET_EMISOP_MEGAN computes ISOPRENE EMISSIONS in units of 
-!  [atoms C/box] using the MEGAN inventory. (dsa, tmf, 9/03, 10/24/05)  
-!  
-!  Function GET_EMISOP_MEGAN is called from "emissdr.f"
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I         (INTEGER ) : GEOS-CHEM longitude index
-!  (2 ) J         (INTEGER ) : GEOS-CHEM latitude index
-!  (3 ) SUNCOS    (REAL*8  ) : Cos( solar zenith angle )
-!  (4 ) TS        (REAL*8  ) : Local surface air temperature [K]
-!  (5 ) Q_DIR     (REAL*8  ) : Flux of direct PAR above canopy [W/m2]
-!  (6 ) Q_DIFF    (REAL*8  ) : Flux of diffuser PAR above canopy [W/m2]
-!  (7 ) XNUMOL    (REAL*8  ) : Number of atoms C / kg C 
+      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE LOGICAL_MOD, ONLY : LPECCA 
+
+#     include "CMN_SIZE"             ! Size parameters
 !
+! !INPUT PARAMETERS: 
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J    ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMISOP  ! Isoprene emissions [atoms C/box]
+!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2000, 2004, 2006
 !  (2 ) Wang,    et al, 1998
 !  (3 ) Guenther et al, 2007, MEGAN v2.1 User mannual 
-!
-!  Notes:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest 
 !        algorithm and modified for the standard code by May Fu (11/20/04)
 !  (2 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
 !        met field. TS is the surface air temperature, which should be 
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
-      ! References to F90 modules
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I,      J
-      REAL*8,  INTENT(IN) :: SUNCOS, TS, XNUMOL, Q_DIR, Q_DIFF
-
-      ! Local variables
       INTEGER             :: IJLOOP
       REAL*8              :: GAMMA_LAI
       REAL*8              :: GAMMA_LEAF_AGE
@@ -234,9 +206,6 @@
       REAL*8              :: GAMMA_SM
       REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
             
-      ! Function return value
-      REAL*8              :: EMISOP
-
       !=================================================================
       ! GET_EMISOP_MEGAN begins here!
       !================================================================= 
@@ -322,55 +291,65 @@
 
       ! return to calling program
       END FUNCTION GET_EMISOP_MEGAN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine GET\_EMMBO\_MEGAN computes methylbutenol emissions
+!  in units of [atoms C/box] using the MEGAN inventory.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_EMMBO_MEGAN( I,  J,      SUNCOS, 
-     &                          TS, Q_DIR, Q_DIFF, XNUMOL ) 
+     &                          TS, Q_DIR,  Q_DIFF, XNUMOL ) 
      &         RESULT( EMMBO )
 !
-!******************************************************************************
-!  Subroutine GET_EMMBO_MEGAN computes METHYLBUTENOL EMISSIONS in units of 
-!  [atoms C/box] using the MEGAN inventory. (dsa, tmf, bmy, 9/03, 10/24/05)  
+! !USES:
 !
-!  Function GET_EMMBO_MEGAN is called from "emissdr.f"
+      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE LOGICAL_MOD, ONLY : LPECCA 
+
+#     include "CMN_SIZE"   ! Size parameters
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER ) : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER ) : GEOS-CHEM latitude index
-!  (3 ) TS     (REAL*8  ) : Local surface air temperature (K)
-!  (4 ) XNUMOL (REAL*8  ) : Number of atoms C / kg C 
-!  (5 ) Q_DIR  (REAL*8 )  : flux of direct PAR above canopy (W m-2)
-!  (6 ) Q_DIFF (REAL*8 )  : flux of diffuser PAR above canopy (W m-2)
+! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN) :: I, J    ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMMBO   ! Methylbutenol emissions [atoms C/box]
+! 
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2000, 2004, 2006
 !  (2 ) Wang,    et al, 1998
 !  (3 ) Guenther et al, 2007, MEGAN v2.1 User mannual 
 !
-!  NOTES:
+! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003).  Updated to the latest 
 !        algorithm and modified for the standard code by May Fu (11/20/04)
 !  (2 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
 !        met field. TS is the surface air temperature, which should be 
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (3 ) Restructing of function & implementation of activity factors (mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
-      ! References to F90 modules
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I,      J
-      REAL*8,  INTENT(IN) :: SUNCOS, TS, XNUMOL, Q_DIR, Q_DIFF
-
-      ! Local variable
       REAL*8              :: GAMMA_LAI
       REAL*8              :: GAMMA_LEAF_AGE
       REAL*8              :: GAMMA_P
@@ -379,9 +358,6 @@
       REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
       REAL*8, PARAMETER   :: BETA = 0.09
 
-      ! Function return value
-      REAL*8              :: EMMBO
-            
       !=================================================================
       ! GET_EMMBO_MEGAN begins here!
       !================================================================= 
@@ -461,68 +437,78 @@
 
       ! Return to calling program
       END FUNCTION GET_EMMBO_MEGAN
-
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_EMMONOG_MEGAN( I , J , SUNCOS , TS , Q_DIR ,
-     &                            Q_DIFF , XNUMOL , MONO_SPECIES ) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_emmonog_megan
+!
+! !DESCRIPTION: Subroutine GET\_EMMONOG\_MEGAN computes generic ('G') 
+!  monoterpene emissions for individual monoterpene species in units of 
+!  [atoms C/box] using the new v2.1 MEGAN inventory emission factor maps.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_EMMONOG_MEGAN( I,     J,      SUNCOS, TS, 
+     &                            Q_DIR, Q_DIFF, XNUMOL, MONO_SPECIES ) 
      &            RESULT( EMMONOT )
 !
-!******************************************************************************
-!  Subroutine GET_EMMONOG_MEGAN computes generic ('G') MONOTERPENE EMISSIONS for 
-!  individual monoterpene species in units of [atoms C/box] using the new v2.1 
-!  MEGAN inventory emission factor maps. (mpb,2008)  
+! !USES:
 !
-!  Function GET_EMMONOG_MEGAN is called from "emissdr.f"
+      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE LOGICAL_MOD, ONLY : LPECCA 
+
+#     include "CMN_SIZE"    ! Size parameters
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER )               : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER )               : GEOS-CHEM latitude index
-!  (3 ) SUNCOS (REAL*8  )               : Cos( solar zenith angle )
-!  (4 ) TS     (REAL*8  )               : Local surface air temperature (K)
-!  (5 ) Q_DIR  (REAL*8  )               : flux of direct PAR above canopy (W m-2)
-!  (6 ) Q_DIFF (REAL*8  )               : flux of diffuser PAR above canopy (W m-2) 
-!  (7 ) XNUMOL (REAL*8  )               : Number of atoms C / kg C 
-!  (8 ) MONO_SPECIES (CHARACTER(LEN=5)) : Monoterpene species
+! !INPUT PARAMETERS: 
 !
+      INTEGER,          INTENT(IN) :: I, J          ! Lon & lat indices
+      REAL*8,           INTENT(IN) :: SUNCOS        ! Cos(solar zenith angle)
+      REAL*8,           INTENT(IN) :: TS            ! Surface temperature [K]
+      REAL*8,           INTENT(IN) :: Q_DIR         ! Direct PAR [W/m2]
+      REAL*8,           INTENT(IN) :: Q_DIFF        ! Diffuse PAR [W/m2]
+      REAL*8,           INTENT(IN) :: XNUMOL        ! Number of atoms C / kg C 
+      CHARACTER(LEN=5), INTENT(IN) :: MONO_SPECIES  ! Monoterpene species name
+!
+! !RETURN VALUE:
+!
+      REAL*8                       :: EMMONOT       ! Emissions [atoms C/box]
+!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2004, 2006
 !  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!
-!  Notes:
-!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by dsa,tmf.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
+!       dsa,tmf.
 !  (2 ) Uses gamma factors instead of exchange factors, this includes
-!        calling of a new temperature algorithm which use a beta factor.(mpb,2008)
-!******************************************************************************
+!        calling of a new temperature algorithm which use a beta factor.
+!        (mpb,2008)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I,  J
-      REAL*8,  INTENT(IN)           :: TS, XNUMOL, Q_DIR, Q_DIFF
-      CHARACTER(LEN=5), INTENT(IN)  :: MONO_SPECIES
-      REAL*8,  INTENT(IN)           :: SUNCOS
-
-      ! Local variable
-      INTEGER             :: IJLOOP
-      REAL*8              :: GAMMA_LAI
-      REAL*8              :: GAMMA_LEAF_AGE
-      REAL*8              :: GAMMA_P
-      REAL*8              :: GAMMA_T
-      REAL*8              :: GAMMA_SM
-      REAL*8              :: D_BTW_M
-      REAL*8              :: LDF 
-      REAL*8,PARAMETER    :: BETA = 0.09
-      REAL*8              :: Q_DIR_2, Q_DIFF_2
-
-      ! Function return value
-      REAL*8              :: EMMONOT
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: BETA = 0.09
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: IJLOOP
+      REAL*8            :: GAMMA_LAI
+      REAL*8            :: GAMMA_LEAF_AGE
+      REAL*8            :: GAMMA_P
+      REAL*8            :: GAMMA_T
+      REAL*8            :: GAMMA_SM
+      REAL*8            :: D_BTW_M
+      REAL*8            :: LDF 
+      REAL*8            :: Q_DIR_2, Q_DIFF_2
 
       !=================================================================
       ! GET_EMMONOT_MEGAN begins here!
@@ -645,54 +631,59 @@
 
       ! return to calling program
       END FUNCTION GET_EMMONOG_MEGAN
-
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_EMMONOT_MEGAN( I , J , SUNCOS , TS , Q_DIR ,
-     &                            Q_DIFF , XNUMOL ) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_emmonot_megan
+!
+! !DESCRIPTION: Subroutine GET\_EMMONOT\_MEGAN computes the total 
+!  monoterpene emissions in units of [atoms C/box] using the MEGAN v2.1 
+!  inventory.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_EMMONOT_MEGAN( I,  J,     SUNCOS, 
+     &                            TS, Q_DIR, Q_DIFF, XNUMOL ) 
      &            RESULT( EMMONOT )
 !
-!******************************************************************************
-!  Subroutine GET_EMMONOT_MEGAN computes the TOTAL MONOTERPENE EMISSIONS in 
-!  units of [atoms C/box] using the MEGAN v2.1 inventory. (mpb,2009)  
+! !USES:
 !
-!  Function GET_EMMONOT_MEGAN is called from "emissdr.f"
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER ) : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER ) : GEOS-CHEM latitude index
-!  (3 ) SUNCOS (REAL*8  ) : Cos( solar zenith angle )
-!  (4 ) TS     (REAL*8  ) : Local surface air temperature (K)
-!  (5 ) Q_DIR  (REAL*8  ) : flux of direct PAR above canopy (W m-2)
-!  (6 ) Q_DIFF (REAL*8  ) : flux of diffuser PAR above canopy (W m-2) 
+      USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
 
-!  (7 ) XNUMOL (REAL*8  ) : Number of atoms C / kg C 
+#     include "CMN_SIZE"   ! Size parameters
 !
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I, J      ! Lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS    ! Cos( solar zenith angle ) 
+      REAL*8,  INTENT(IN) :: TS        ! Local surface air temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR     ! Direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF    ! Diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL    ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMMONOT   ! Monoterpene emissions [atoms C/box]
+!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2000, 2006
 !  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
-!
-!  Notes:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code by Michael Barkley (mpb,2009).
-
-!******************************************************************************
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I,  J
-      REAL*8,  INTENT(IN)           :: TS, XNUMOL, Q_DIR, Q_DIFF
-      REAL*8,  INTENT(IN)           :: SUNCOS
-
-      ! Function return value
-      REAL*8              :: EMMONOT
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*8                        :: MONO
       INTEGER                       :: K 
       INTEGER, PARAMETER            :: N = 7
@@ -709,65 +700,71 @@
 
       DO K = 1 , N
 
-         MONO = GET_EMMONOG_MEGAN( I , J , TS , SUNCOS , Q_DIR ,
-     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
+         MONO = GET_EMMONOG_MEGAN( I,     J,      TS,     SUNCOS, 
+     &                             Q_DIR, Q_DIFF, XNUMOL, SPECIES(K) ) 
 
          EMMONOT = EMMONOT + MONO
-
-      END DO
+      ENDDO
 
       ! Return to calling program
       END FUNCTION GET_EMMONOT_MEGAN
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE ACTIVITY_FACTORS( I , J , TS , SUNCOS , Q_DIR  ,
-     &                             Q_DIFF , XNUMOL , SPECIES    , 
-     &                             GAMMA_LAI , GAMMA_LEAF_AGE   , 
-     &                             GAMMA_P , GAMMA_T , GAMMA_SM )
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine ACTIVITY_FACTORS computes the gamma activity factors which adjust
-!  the emission factors to the current weather & vegetation conditions. 
-!  Here they are calculated by (default) for isoprene. 
+! !IROUTINE: activity_factors
 !
-!  Function ACTIVITY_FACTORS is called from "emissdr.f"
+! !DESCRIPTION: Subroutine ACTIVITY\_FACTORS computes the gamma activity 
+!  factors which adjust the emission factors to the current weather & 
+!  vegetation conditions.  Here they are calculated by (default) for isoprene. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I         (INTEGER )    : GEOS-CHEM longitude index
-!  (2 ) J         (INTEGER )    : GEOS-CHEM latitude index
-!  (3 ) TS        (REAL*8  )    : Local surface air temperature [K]
-!  (4 ) SUNCOS    (REAL*8  )    : Cos( solar zenith angle )
-!  (5 ) Q_DIR     (REAL*8  )    : Flux of direct PAR above canopy [W/m2]
-!  (6 ) Q_DIFF    (REAL*8  )    : Flux of diffuser PAR above canopy [W/m2]
-!  (7 ) XNUMOL    (REAL*8  )    : Number of atoms C / kg C 
-!  (8 ) SPECIES   (CHAR, LEN=4) : Species (ISOP,MONO,MBOT); not used at present.
+      SUBROUTINE ACTIVITY_FACTORS( I,              J,       TS,     
+     &                             SUNCOS,         Q_DIR,   Q_DIFF, 
+     &                             XNUMOL,         SPECIES, GAMMA_LAI, 
+     &                             GAMMA_LEAF_AGE, GAMMA_P, GAMMA_T, 
+     &                             GAMMA_SM )
 !
-!  Notes:
-!  (1 ) Original code written by Michael Barkley (mpb,2009).
-! 
-!******************************************************************************
-
-      ! References to F90 modules
+! !USES:
+!
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
 
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I,      J
-      REAL*8,  INTENT(IN)           :: SUNCOS, TS, XNUMOL, Q_DIR, Q_DIFF
-      CHARACTER(LEN=4), INTENT(IN)  :: SPECIES
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,          INTENT(IN)   :: I, J     ! Lon & lat indices
+      REAL*8,           INTENT(IN)   :: SUNCOS   ! Cos( solar zenith angle ) 
+      REAL*8,           INTENT(IN)   :: TS       ! Surface air temperature [K]
+      REAL*8,           INTENT(IN)   :: XNUMOL   ! Number of atoms C / kg C 
+      REAL*8,           INTENT(IN)   :: Q_DIR    ! Direct PAR [W/m2]
+      REAL*8,           INTENT(IN)   :: Q_DIFF   ! Diffuse PAR [W/m2]
+      CHARACTER(LEN=4), INTENT(IN)   :: SPECIES  ! Species (ISOP,MONO,MBOT)
+!
+! !OUTPUT PARAMETERS:
+!
+      ! GAMMA factors for:
+      REAL*8,           INTENT(OUT)  :: GAMMA_LAI       ! LAI
+      REAL*8,           INTENT(OUT)  :: GAMMA_LEAF_AGE  ! Leaf age
+      REAL*8,           INTENT(OUT)  :: GAMMA_P         ! Light
+      REAL*8,           INTENT(OUT)  :: GAMMA_T         ! Temperature
+      REAL*8,           INTENT(OUT)  :: GAMMA_SM        ! Soil moisture
+!
+! !REVISION HISTORY: 
+!  (1 ) Original code written by Michael Barkley (mpb,2009).
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: IJLOOP
-      REAL*8,  INTENT(OUT):: GAMMA_LAI
-      REAL*8,  INTENT(OUT):: GAMMA_LEAF_AGE
-      REAL*8,  INTENT(OUT):: GAMMA_P
-      REAL*8,  INTENT(OUT):: GAMMA_T
-      REAL*8,  INTENT(OUT):: GAMMA_SM
       REAL*8              :: D_BTW_M, Q_DIR_2, Q_DIFF_2
       REAL*8, PARAMETER   :: BETA = 0.09
 
@@ -846,56 +843,63 @@
 
       ! return to calling program
       END SUBROUTINE  ACTIVITY_FACTORS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_p_pecca
+!
+! !DESCRIPTION: Computes the PECCA gamma activity factor with sensitivity 
+!  to LIGHT.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_GAMMA_P_PECCA( I , J , Q_DIR_2, Q_DIFF_2 ,
      &                            PARDR_AVG_SIM ,  PARDF_AVG_SIM  )
      &              RESULT( GAMMA_P_PECCA )
-
 !
-!******************************************************************************
-!  Computes the PECCA gamma activity factor with sensitivity to LIGHT 
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I             (INTEGER) : Index of longitude box
-!  (2 ) J             (INTEGER) : Index of latitude box
-!  (3 ) Q_DIR_2       (REAL*8 ) : flux of direct PAR above canopy [umol m-2 s-1]
-!  (4 ) Q_DIFF_2      (REAL*8 ) : flux of diffuse PAR above canopy [umol m-2 s-1]
-!  (5 ) PARDR_AVG_SIM (REAL*8 ) : Avg. flux of direct PAR above canopy [W/m2]
-!  (6 ) PARDR_AVG_SIM (REAL*8 ) : Avg. flux of diffuse PAR above canopy [W/m2]
-!
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 2006
-!  (2 ) Guenther et al, 2007, MEGAN v2.1 user guide
-!
-!  NOTES:
-!  (1 ) Here PAR*_AVG_SIM is the average light conditions over the simulation 
-!       period. I've set this = 10 days to be consistent with temperature & as 
-!       outlined in Guenther et al, 2006. (mpb,2009)
-!  (2 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
-!       (mpb,2009)
-!
-!******************************************************************************
+! !USES:
 !
       USE TIME_MOD,   ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,   ONLY : GET_LOCALTIME
       USE GRID_MOD,   ONLY : GET_YMID  
 
 #     include "CMN_GCTM"   ! Physical constants (why?!)
-
-      ! Arguments as input
-      INTEGER, INTENT(IN) :: I , J
-      REAL*8,  INTENT(IN) :: PARDR_AVG_SIM
-      REAL*8,  INTENT(IN) :: PARDF_AVG_SIM
-      REAL*8,  INTENT(IN) :: Q_DIR_2, Q_DIFF_2
-
-      ! Return value
-      REAL*8              :: GAMMA_P_PECCA
-
-      ! Local Variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I,  J             ! Lon & lat indices 
+      REAL*8,  INTENT(IN) :: PARDR_AVG_SIM     ! Average direct PAR [W/m2]
+      REAL*8,  INTENT(IN) :: PARDF_AVG_SIM     ! Average diffuse PAR [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIR_2           ! Direct PAR [umol/m2/s]
+      REAL*8,  INTENT(IN) :: Q_DIFF_2          ! Diffuse PAR [umol/m2/s]
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: GAMMA_P_PECCA     ! GAMMA factor for light
+!
+! !REMARKS:
+!  References (see above for full citations):
+!  ============================================================================
+!  (1 ) Guenther et al, 2006
+!  (2 ) Guenther et al, 2007, MEGAN v2.1 user guide
+! 
+! !REVISION HISTORY: 
+!  (1 ) Here PAR*_AVG_SIM is the average light conditions over the simulation 
+!       period. I've set this = 10 days to be consistent with temperature & as 
+!       outlined in Guenther et al, 2006. (mpb,2009)
+!  (2 ) Code was taken & adapted directly from the MEGAN v2.1 source code.
+!       (mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8              :: LUT , LAT 
       REAL*8              :: mmPARDR_DAILY
       REAL*8              :: mmPARDF_DAILY
@@ -962,43 +966,52 @@
 
       ! return to calling program
       END FUNCTION GET_GAMMA_P_PECCA
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function SOLAR\_ANGLE computes the local solar angle for a 
+!  given day of year, latitude and longitude (or local time).  Called from  
+!  routine GAMMA\_P\_PECCA.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SOLAR_ANGLE( DOY, SHOUR, LAT ) RESULT( SINbeta )
+!
+! !USES:
+!
 
-      FUNCTION SOLAR_ANGLE( DOY , SHOUR , LAT )
-     &            RESULT( SINbeta )
-
-!******************************************************************************
-!  Computes the local solar angle for a given day of year, latitude and 
-!  longitude (or local time) (mpb, 2009)
 !
-!  Function SOLAR_ANGLE is called from GAMMA_P_PECCA of "megan_mod.f"
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DOY   (INTEGER )   : Day of year
-!  (2 ) SHOUR (REAL*8  )   : Local time at longitude
-!  (3 ) LAT   (REAL*8  )   : Latitude
-!
-!  ============================================================================
-!  References (see above for full citations):
-!  ============================================================================
-!  (1 ) Guenther et al, 2006
-!  (2 ) Guenther et al, MEGAN v2.1 user mannual 2007-09
-!
-!  Notes:
-!  (1 ) This code was taken directly from the MEGAN v2.1 source code.(mpb, 2009)
-!
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
       ! Arguments
-      INTEGER, INTENT(IN)           :: DOY 
-      REAL*8,  INTENT(IN)           :: SHOUR
-      REAL*8,  INTENT(IN)           :: LAT 
-
-      ! Function return value
-      REAL*8    :: SINbeta
-
+      INTEGER, INTENT(IN) :: DOY       ! Day of year
+      REAL*8,  INTENT(IN) :: SHOUR     ! Local time 
+      REAL*8,  INTENT(IN) :: LAT       ! Latitude
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: SINbeta   ! Sin of the local solar angle
+!
+! !REMARKS:
+!  References (see above for full citations):
+!  (1 ) Guenther et al, 2006
+!  (2 ) Guenther et al, MEGAN v2.1 user mannual 2007-09
+! 
+! !REVISION HISTORY: 
+!  (1 ) This code was taken directly from the MEGAN v2.1 source code.(mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       REAL*8    :: BETA                 ! solar elevation angle
       REAL*8    :: sindelta, cosdelta, A, B
@@ -1015,41 +1028,60 @@
       SINbeta = A + B * COS( 2.0d0 * PI * ( SHOUR-12 ) / 24 ) 
 
       END FUNCTION SOLAR_ANGLE 
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_t_isop
+!
+! !DESCRIPTION: Function GET\_GAMMA\_T\_ISOP computes the temperature 
+!  sensitivity for ISOPRENE ONLY.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_T_ISOP( T, PT_15, PT_1 ) RESULT( GAMMA_T )
+!
+! !INPUT PARAMETERS: 
+!
 
-      FUNCTION GET_GAMMA_T_ISOP( T, PT_15 , PT_1 ) RESULT( GAMMA_T )
+      ! Current leaf temperature, the surface air temperature field (TS) 
+      ! is assumed equivalent to the leaf temperature over forests.
+      REAL*8,  INTENT(IN) :: T 
+
+ 
+      ! Average leaf temperature over the past 15 days
+      REAL*8,  INTENT(IN) :: PT_15
+
+      ! Average leaf temperature over the past arbitray day(s).
+      ! This is not used at present (but might be soon!).
+      REAL*8,  INTENT(IN) :: PT_1
 !
-!******************************************************************************
-!  Computes the temperature sensitivity for ISOPRENE ONLY (mpb, 2009)
+! !RETURN VALUE:
 !
-!  Function GET_HEA_T is called from GET_EMISOP_MEGAN, GET_EMMBO_MEGAN 
-!  and GET_EMMONOG_MEGAN of "megan_mod.f"
+      ! GAMMA factor for temperature (isoprene only)
+      REAL*8              :: GAMMA_T
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) T     (REAL*8 ) : Current leaf temperature, the surface air 
-!                          temperature field (TS) is assumed equivalent to 
-!                          the leaf temperature over forests.
-!  (2 ) PT_15 (REAL*8 ) : Average leaf temperature over the past 15 days
-!  (3 ) PT_1  (REAL*8 ) : Average leaf temperature over the past arbitray day(s).
-!                         This is not used at present (but might be soon!).
-!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995
 !  (2 ) Guenther et al, 2006
 !  (3 ) Guenther et al, MEGAN v2.1 user mannual 2007-08
-!
-!  Notes:
+! 
+! 
+! !REVISION HISTORY: 
 !  (1 ) Includes the latest MEGAN v2.1 temperature algorithm (mpb, 2009).
 !       Note, this temp-dependence is the same for the PECCA & hybrid models.
-!******************************************************************************
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      REAL*8,  INTENT(IN) :: T, PT_15 , PT_1
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       REAL*8              :: C_T,   CT1,   CT2
       REAL*8              :: E_OPT, T_OPT, X
 
@@ -1057,7 +1089,6 @@
       REAL*8, PARAMETER   :: R   = 8.314d-3
 
       ! Function return value
-      REAL*8              :: GAMMA_T
 
       ! Normalization Factor 
       REAL*8, PARAMETER   ::  NORM = 0.99558166894501043d0    
@@ -1085,51 +1116,61 @@
 
       ! Return to calling program
       END FUNCTION GET_GAMMA_T_ISOP
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_t_nisop
+!
+! !DESCRIPTION: Function GET\_GAMMA\_T\_NISOP computes the temperature 
+!  activity factor (GAMMA_T) for BVOCs OTHER than isoprene.  Called from 
+!  routines GET_EMMONOG_MEGAN and GET_EMMBO_MEGAN.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_T_NISOP( T, BETA ) RESULT( GAMMA_T )
+!
+! !INPUT PARAMETERS: 
+!
+      ! Current leaf temperature [K], the surface air temperature field (TS) 
+      ! is assumed equivalent to the leaf temperature over forests.
+      REAL*8, INTENT(IN) :: T        
 
-      FUNCTION GET_GAMMA_T_NISOP( T , BETA ) RESULT( GAMMA_T )
+      ! Temperature factor per species (from MEGAN user manual). 
+      ! Beta = 0.09 for MBO and for monoterpene species (APINE, BPINE, LIMON, 
+      ! SABIN, MYRCN, CAREN, OCIMN). Pass as an argument in case this changes.
+      REAL*8, INTENT(IN) :: BETA     
 !
-!******************************************************************************
-!  Computes the temperature activity factor (GAMMA_T) for BVOCs OTHER than 
-!  isoprene. (mpb,2008)
-!    
+! !RETURN VALUE:
+!
+      REAL*8             :: GAMMA_T  ! 
+!
+! !REMARKS:
 !  GAMMA_T =  exp[BETA*(T-Ts)]
-!
+!                                                                             .
 !             where BETA   = temperature dependent parameter
 !                   Ts     = standard temperature (normally 303K, 30C)
-!
-!  Function GET_GAMMA_T_NISOP is called by GET_EMMONOG_MEGAN and GET_EMMBO_MEGAN
-!  of "megan_mod.f"
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) T     (REAL*8 ) : Current leaf temperature, the surface air 
-!                          temperature field (TS) is assumed equivalent to 
-!                          the leaf temperature over forests.
-!  (2 ) BETA  (REAL*8)  : Temperature factor per species (from MEGAN user 
-!                          mannual). Beta = 0.09 for MBO and for monoterpene 
-!                          sepecies (APINE, BPINE, LIMON, SABIN, MYRCN, CAREN 
-!                          & OCIMN). Pass as an argument in case this changes.
-!
+!                                                                             .
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 2006
 !  (2 ) Guenther et al, MEGAN user mannual 2007-08
-!
-!  Notes:
+
+! !REVISION HISTORY: 
 !  (1 ) Original code by Michael Barkley (2009).
 !       Note: If T = Ts  (i.e. standard conditions) then GAMMA_T = 1 
-!******************************************************************************
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      REAL*8,  INTENT(IN) :: T , BETA
-
+! !DEFINED PARAMETERS:
+!
       ! Standard reference temperature [K]
       REAL*8, PARAMETER   :: Ts = 303.0
-
-      ! Function return value
-      REAL*8              :: GAMMA_T
 
       !=================================================================
       ! GET_GAMMAT_NISOP begins here!
@@ -1139,57 +1180,71 @@
 
       ! Return to calling program
       END FUNCTION GET_GAMMA_T_NISOP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gamma_p
+!
+! !DESCRIPTION: Function GET\_GAMMA\_P computes the gamma activity factor with
+!  sensitivity to LIGHT (aka 'PAR').  Called by the functions GET_EMISOP_MEGAN,
+!  GET_EMMBO_MEGAN, and GET_EMMONOG_MEGAN.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_GAMMA_P( LAI, SUNCOS1, Q_DIR_2, Q_DIFF_2 ) 
      &              RESULT( GAMMA_P )
 !
-!******************************************************************************
-!  *** REVAMPED FUNCTION ***
-!  Computes the gamma activity factor with sensitivity to LIGHT (aka 'PAR')
+! !USES:
 !
+#     include "CMN_GCTM"   ! Physical constants
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: LAI        ! Cumulative leaf area index 
+      REAL*8,  INTENT(IN) :: SUNCOS1    ! Cosine of solar zenith angle 
+      REAL*8,  INTENT(IN) :: Q_DIR_2    ! Direct PAR above canopy [umol/m2/s]
+      REAL*8,  INTENT(IN) :: Q_DIFF_2   ! Diffuse PAR above canopy [umol/m2/s]
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: GAMMA_P    ! Gamma activity factor w/r/t light
+!
+! !REMARKS:
+!  *** REVAMPED FUNCTION ***
+!                                                                             .
 !  C_PPFD: Effect of increasing PPFD up to a saturation point, where emission 
 !          level off, based on Eq 4abc from Guenther et al. (1999)
 !          In addition, a 5 layered canopy model based on Eqs 12-16 
 !          from Guenther et al. (1995) is included to correct for light 
 !          attenuation in the canopy.
-!  
-!  Function GET_GAMMA_P is called by the functions GET_EMISOP_MEGAN, GET_EMMBO_MEGAN 
-!  GET_EMMONOG_MEGAN of "megan_mod.f"
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (3 ) LAI  (REAL*8 )    : cumulative leaf area index above leaf
-!  (4 ) SUNCOS1 (REAL*8 ) : Cosine of solar zenith angle
-!  (5 ) Q_DIR_2 (REAL*8 ) : flux of direct PAR above canopy [umol m-2 s-1]
-!  (6 ) Q_DIFF_2(REAL*8 ) : flux of diffuser PAR above canopy [umol m-2 s-1]
-!
+!                                                                             .
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995
 !  (2 ) Wang     et al, 1998
 !  (3 ) Guenther et al, 1999
 !  (5 ) Guenther et al, 2004
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot and by May Fu.
-!  (2 ) This code was extracted from the previous GET_HEA_TL function. (mpb,2009)
-!******************************************************************************
+!  (2 ) This code was extracted from the previous GET_HEA_TL function. 
+!       (mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_GCTM"   ! Physical constants
-
-      ! Arguments
-      REAL*8,  INTENT(IN) :: LAI, SUNCOS1, Q_DIR_2, Q_DIFF_2
-
-      ! Local Variables
-
+! !LOCAL VARIABLES:
+!
       !-----------------------------------------------------------------
       ! Canopy model variables (Eqs 12-16 from Guenther et al, 1995)
       !-----------------------------------------------------------------
 
       ! Return value
-      REAL*8              :: GAMMA_P
 
       ! C_PPFD: Effect of increasing PPFD up to a saturation point, where 
       ! emissions level off, based on Eq 4abc from Guenther et al. (1999)
@@ -1342,34 +1397,44 @@
 
       ! return to calling program
       END FUNCTION GET_GAMMA_P
-
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_GAMMA_LEAF_AGE( CMLAI, PMLAI, T , SPECIES , TT ) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function GET\_GAMMA\_LEAF\_AGE computes the gamma exchange 
+!  activity factor which is sensitive to leaf age (= GAMMA\_LEAF\_AGE).
+!  Called from GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_GAMMA_LEAF_AGE( CMLAI, PMLAI, T, SPECIES, TT ) 
      &            RESULT( GAMMA_LEAF_AGE )
 !
-!******************************************************************************
-!  Computes the gamma exchange activity factor which is sensitive to leaf
-!    age (= GAMMA_LEAF_AGE).
-!  
-!  Function GET_GAMMA_LEAF_AGE is called from GET_EMISOP_MEGAN, GET_EMMBO_MEGAN 
-!  and GET_EMMONOG_MEGAN of "megan_mod.f"
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) CMLAI   (REAL*8 )   : Current month leaf area index at gridbox 
-!  (2 ) PMLAI   (REAL*8 )   : Last month leaf area index at gridbox 
-!  (3 ) T       (REAL*8 )   : Number of days between current and previous LAI.
-!  (4 ) SPECIES (CHARACTER) : BVOC species 
-!  (5 ) TT      (REAL*8 )   : Daily average temperature
+      REAL*8,           INTENT(IN) :: T        ! Number of days between 
+                                               !  current and previous LAI.
+      REAL*8,           INTENT(IN) :: CMLAI    ! Current month's LAI [cm2/cm2]
+      REAL*8,           INTENT(IN) :: PMLAI    ! Previous months LAI [cm2/cm2]
+      CHARACTER(LEN=4), INTENT(IN) :: SPECIES  ! BVOC species name
+      REAL*8,           INTENT(IN) :: TT       ! Daily average temperature [K]
 !
+! !RETURN VALUE:
+!
+      REAL*8                       :: GAMMA_LEAF_AGE   ! Activity factor    
+!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (3 ) Guenther et al, 2006
 !  (5 ) Guenther et al, MEGAN user mannual 2007-08
-!
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003). Modified for the standard 
 !        code by May Fu (11/2004)
 !  (2 ) Update to publically released (as of 11/2004) MEGAN algorithm and 
@@ -1386,19 +1451,13 @@
 !       i.e. if LAI has increased with time, and used new values for 
 !       all foilage fractions if ( CMLAI = PMLAI ). Also removed TG variable 
 !       as not now needed. (mpb,2000)
-!******************************************************************************
-
-      ! Arguments
-      REAL*8, INTENT(IN)            :: T
-      REAL*8, INTENT(IN)            :: CMLAI, PMLAI
-      CHARACTER(LEN=4), INTENT(IN)  :: SPECIES
-      REAL*8, INTENT(IN)            :: TT
-
-      ! Function return value
-      REAL*8             :: GAMMA_LEAF_AGE      
-          
-      ! Local Variables
-
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! M_AGE: leaf age factor
       REAL*8             :: M_AGE
 
@@ -1535,40 +1594,47 @@
 
       ! return to calling program
       END FUNCTION GET_GAMMA_LEAF_AGE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function GET\_GAMMA\_LAI computes the gamma exchange activity 
+!  factor which is sensitive to leaf area (= GAMMA_LAI).  Called from
+!  GET_EMISOP_MEGAN, GET_EMMBO_MEGAN, and GET_EMMONOG_MEGAN.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_GAMMA_LAI( CMLAI ) RESULT( GAMMA_LAI )
 !
-!******************************************************************************
-!  Computes the gamma exchange activity factor which is sensitive to leaf
-!    area (= GAMMA_LAI).
-!  
-!  Function GET_GAMMA_LAI is called from GET_EMISOP_MEGAN, GET_EMMBO_MEGAN 
-!  and GET_EMMONOG_MEGAN of "megan_mod.f"
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) CMLAI   (REAL*8 )   : Current month leaf area index at gridbox 
+      REAL*8, INTENT(IN)  :: CMLAI       ! Current month's LAI [cm2/cm2]
 !
+! !RETURN VALUE:
+!
+      REAL*8              :: GAMMA_LAI 
+!
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 2006
 !  (2 ) Guenther et al, MEGAN user mannual 2007-08
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
 !  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
 !        code by May Fu (11/2004)
 !  (2 ) Update to publically released (as of 11/2004) MEGAN algorithm and 
 !        modified for the standard code by May Fu (11/2004).
 !  (3 ) Algorithm is based on the latest MEGAN v2.1 User's Guide (mpb,2009)
-!******************************************************************************
-
-      ! Arguments
-      REAL*8, INTENT(IN)  :: CMLAI
-
-      ! Return value
-      REAL*8              :: GAMMA_LAI 
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       !-----------------------
       ! Compute GAMMA_LAI
@@ -1576,29 +1642,24 @@
       GAMMA_LAI = 0.49d0 * CMLAI / SQRT( 1.d0 + 0.2d0 * CMLAI*CMLAI )
 
       END FUNCTION GET_GAMMA_LAI 
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_aef
+!
+! !DESCRIPTION: Subroutine GET\_AEF reads Annual Emission Factor for all
+!  biogenic VOC species from disk.  Called from GET\_AEF is called from 
+!  "main.f".
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_AEF
 !
-!******************************************************************************
-!  Subroutine GET_AEF reads Annual Emission Factor for all biogenic VOC 
-!  species from disk.  Function GET_AEF is called from "main.f"
-!  (tmf, bmy, 10/24/05)
-!
-!  Reference
-!  ============================================================================
-!  (5 ) Guenther et al, 2004 
-!
-!  Notes:
-!  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
-!        code by May Fu (11/2004)
-!  (2 ) AEF detailed in the latest MEGAN User's Guide (tmf, 11/19/04)
-!  (3 ) Bug fix (tmf, 11/30/04)
-!  (4 ) Now reads 1x1 files and regrids to current resolution (bmy, 10/24/05)
-!  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
-!        species, download in 2009. (mpb,2009)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
@@ -1608,8 +1669,25 @@
       USE GRID_MOD,       ONLY : GET_AREA_M2
 
 #     include "CMN_SIZE"       ! Size parameters
-
-      ! Local Variables
+!
+! !REMARKS:
+!  Reference: (5 ) Guenther et al, 2004 
+! 
+! !REVISION HISTORY: 
+!  (1 ) Original code by Dorian Abbot (9/2003).  Modified for the standard 
+!        code by May Fu (11/2004)
+!  (2 ) AEF detailed in the latest MEGAN User's Guide (tmf, 11/19/04)
+!  (3 ) Bug fix (tmf, 11/30/04)
+!  (4 ) Now reads 1x1 files and regrids to current resolution (bmy, 10/24/05)
+!  (5 ) Uses new v2.1 emission factors maps for isoprene, MBO and 7 monoterpene
+!        species, download in 2009. (mpb,2009)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                 :: I, J, IJLOOP
       REAL*4                  :: ARRAY(I1x1,J1x1,1)
       REAL*8                  :: DTSRCE, AREA_M2, FACTOR
@@ -2053,25 +2131,26 @@
 
       ! Return to calling program
       END SUBROUTINE GET_AEF
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine GET_AEF_05x0666 reads Annual Emission Factor for 
+!  all biogenic VOC species from disk.  Called from "main.f".  Specially
+!  constructed to read 0.5 x 0.666 nested grid data for the GEOS-5 nested
+!  grid simulations.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_AEF_05x0666
 !
-!******************************************************************************
-!  Subroutine GET_AEF reads Annual Emission Factor for all biogenic VOC 
-!  species from disk.  Function GET_AEF is called from "main.f".  Specially
-!  constructed to read 0.5 x 0.666 nested grid data for the GEOS-5 nested
-!  grid simulations. (yxw, dan, bmy, 11/6/08)
+! !USES:
 !
-!  Reference
-!  ============================================================================
-!  (5 ) Guenther et al, 2004 
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
@@ -2081,8 +2160,20 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
 
 #     include "CMN_SIZE"       ! Size parameters
-
-      ! Local Variables
+!
+! !REMARKS:
+!  Reference: (5 ) Guenther et al, 2004 
+! 
+! !REVISION HISTORY: 
+!  (1) Specially constructed to read 0.5 x 0.666 nested grid data for the 
+!      GEOS-5 nested grid simulations. (yxw, dan, bmy, 11/6/08)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                 :: I, J, IJLOOP
       REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
       REAL*8                  :: GEOS_05x0666(I05x0666,J05x0666,1)  !(dan)
@@ -2260,28 +2351,42 @@
 
       ! Return to calling program
       END SUBROUTINE GET_AEF_05x0666
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: update_t_day
+!
+! !DESCRIPTION: Subroutine UPDATE\_T\_DAY must be called every time the 
+!  A-3 fields are updated. Each 3h TS value for each gridbox is moved up one 
+!  spot in the matrix and the current value is put in the last spot.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UPDATE_T_DAY
 !
-!******************************************************************************
-!  Subroutine UPDATE_T_DAY must be called every time the A-3 fields are 
-!  updated. Each 3h TS value for each gridbox is moved up one spot in the 
-!  matrix and the current value is put in the last spot. (dsa, 6/17/03)
+! !USES:
 !
-!  NOTES:
+      USE MEGANUT_MOD     ! We use all functions from the module
+
+#     include "CMN_SIZE"  ! Size parameters
+! 
+! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
 !        met field. TS is the surface air temperature, which should be 
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
-!******************************************************************************
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE MEGANUT_MOD    ! We use all functions from the module
-#     include "CMN_SIZE" ! Size parameters
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER           :: I, J, D
 
 !--- Moved all functions to module MEGANUT_MOD
@@ -2289,7 +2394,6 @@
 !      REAL*8, EXTERNAL  :: XLTMMP
 !      REAL*8, EXTERNAL  :: XLPARDR ! (mpb,2009)
 !      REAL*8, EXTERNAL  :: XLPARDF ! (mpb,2009)
-
 
       !=================================================================
       ! UPDATE_T_DAY begins here!
@@ -2319,33 +2423,49 @@
           
       ! return to calling program
       END SUBROUTINE UPDATE_T_DAY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine UPDATE\_T\_15\_AVG should be called at the 
+!  beginningof each day. It loops through the gridboxes doing the following:
+!
+!  \begin{enumerate}
+!  \item Average T\_DAY over the 8 TS values during the day.  
+!  \item Push the daily average TS values through T_15, throwing out the 
+!        oldest and putting the newest (the T\_DAY average) in the last spot 
+!  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
+!  \end{enumerate}
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UPDATE_T_15_AVG
 !
-!******************************************************************************
-!  Subroutine UPDATE_T_15_AVG should be called at the beginning of each day.
-!  It loops through the gridboxes doing the following:
-!     1. Average T_DAY over the 8 TS values during the day.  
-!     2. Push the daily average TS values through T_15, throwing out the 
-!        oldest and putting the newest (the T_DAY average) in the last spot 
-!     3. Get T_15_AVG by averaging T_15 over the 15 day period. 
-!  (dsa, tmf, bmy, 6/17/03, 10/24/05)
+! !USES:
 !
-!  NOTES:
+      IMPLICIT NONE
+
+#     include "CMN_SIZE" ! MAXIJ
+! 
+! !REVISION HISTORY: 
+!  01 Oct 1995 - M. Prather  - Initial version
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
 !        met field. TS is the surface air temperature, which should be 
 !        carefully distinguished from TSKIN. (tmf, 11/20/04)
 !  (2 ) In GEOS4, TS are originally T2M in the A3 files, read in 
 !        'a3_read_mod.f'. 
-!******************************************************************************
-! 
-      IMPLICIT NONE
-
-#     include "CMN_SIZE" ! MAXIJ
-
-      ! Local Variables
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER           :: I,     J,      D
       REAL*8            :: D_DIM, D_DAYS, TMP_T
       REAL*8            :: TMP_PARDR , TMP_PARDF ! (mpb,2009)
@@ -2406,22 +2526,24 @@
 
       ! Return to calling program
       END SUBROUTINE UPDATE_T_15_AVG
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_megan
+!
+! !DESCRIPTION: Subroutine INIT\_MEGAN allocates and initializes all
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_MEGAN
 !
-!******************************************************************************
-!  Subroutine INIT_MEGAN allocates and initializes the T_DAY, T_15,  
-!  T_15_AVG, and AEF_* arrays. (dsa, tmf, bmy, 10/24/05, 11/6/08)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
-!  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
-!  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE A3_READ_MOD
       USE FILE_MOD,    ONLY : IU_A3
       USE JULDAY_MOD,  ONLY : CALDATE
@@ -2432,8 +2554,18 @@
       USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
       
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local Variables
+! 
+! !REVISION HISTORY: 
+!  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
+!  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
+!  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL              :: GCAP_LEAP
       INTEGER              :: AS
       INTEGER              :: DATE_T15b(2)
@@ -2670,19 +2802,27 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_MEGAN
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine CLEANUP\_MEGAN deallocates all allocated arrays 
+!  at the end of a GEOS-Chem model run.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_MEGAN
-!
-!******************************************************************************
-!  Subroutine CLEANUP_MEGAN deallocates all allocated arrays at the
-!  end of a GEOS-CHEM model run. (dsa, tmf, bmy, 6/17/03, 10/24/05)
-!
-!  NOTES:
-!******************************************************************************
-!
-    
+! 
+! !REVISION HISTORY: 
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_MEGAN begins here!
       !=================================================================
@@ -2715,8 +2855,5 @@
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_MEGAN
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE MEGAN_MOD

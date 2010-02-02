@@ -1,11 +1,11 @@
-! $Id: dust_dead_mod.f,v 1.2 2009/11/05 15:35:33 phs Exp $
+! $Id: dust_dead_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
       MODULE DUST_DEAD_MOD
 !
 !******************************************************************************
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but
 !  have been modified and/or cleaned up for inclusion into GEOS-Chem.
-!  (tdf, rjp, bmy, 4/6/04, 11/6/08)
+!  (tdf, rjp, bmy, 4/6/04, 12/19/09)
 !
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% NOTE: The current [dust] code was validated at 2 x 2.5 resolution.  %%%
@@ -143,6 +143,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now uses GOCART source function (tdf, bmy, 1/25/07)
 !  (7 ) Modifications for 0.5 x 0.667 grid (yxw, dan, bmy, 11/6/08)
+!  (8 ) Updates for nested grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -256,7 +257,7 @@
 !  It is designed to require only single layer surface fields, allowing for
 !  easier implementation.  DST_MBL is called once per latitude.  Modified
 !  for GEOS-CHEM by Duncan Fairlie and Bob Yantosca.
-!  (tdf, bmy, 1/25/07, 11/6/08)
+!  (tdf, bmy, 1/25/07, 12/18/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -290,6 +291,9 @@
 !        the 4x5 totals from the GEOS-5 4x5 v8-01-01-Run0 benchmark. 
 !        (yxw, bmy, dan, 11/6/08)
 !  (4 ) New scale parameter for 2x2.5 GEOS-5 (tdf, jaf, phs, 10/30/09)
+!  (5 ) Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, GEOS_5 2x2.5, NESTED_NA and 
+!        NESTED_EU.  Redefined FLX_MSS_FDG_FCT for NESTED_CH, based upon above
+!        changes. (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -323,18 +327,32 @@
       !--------------
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if   defined( GEOS_5 ) && defined( GRID05x0666 )  
+#if   defined( GEOS_5 ) && defined( GRID05x0666 )
 
+#if defined(NESTED_CH)  
+      !-------------------------------------------------------------------
+      ! Prior to 12/18/09:
       ! We need to tune the global dust emissions to the same 
       ! as the 2 x 2.5 simulation (yxw, dan, bmy, 11/6/08)
-      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
+      !REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
+      !-------------------------------------------------------------------
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
+#elif defined(NESTED_EU)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.54d-4
+#elif defined(NESTED_NA)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 2.16d-4
+#endif
+
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.5d-4
 
       
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 
-      ! for the 2x2.5 GEOS-5 to be consistent with GEOS-4
-      REAL*8, PARAMETER      :: FLX_MSS_FDG_FCT = 4.9d-4      
-      
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 
       ! For the GEOS-3 1x1 N. America Nested grid (as used by the MIT/FAA-ULS
@@ -3646,7 +3664,7 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !  Subroutine LND_FRC_MBL_GET returns the fraction of each GEOS-CHEM grid
 !  box which is suitable for dust mobilization.  This routine is called
-!  by DST_MBL. (tdf, bmy, 4/5/04, 1/25/07)
+!  by DST_MBL. (tdf, bmy, 4/5/04, 1/13/10)
 !
 !  The DATE is used to obtain the time-varying vegetation cover.
 !  Routine currently uses latitude slice of VAI from time-dependent surface
@@ -3684,6 +3702,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !  (2 ) For the GOCART source function, we don't use VAI, so set FLG_VAI_TVBDS
 !         = .FALSE. and disable calls to ERROR_STOP (tdf, bmy, 1/25/07)
+!  (3 ) Modification for GEOS-4 1 x 1.25 grids (lok, bmy, 1/13/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3888,6 +3907,11 @@ ctdf        print *,' no mobilisation candidates'
          LND_FRC_MBL(LON_IDX) = LND_FRC_MBL(LON_IDX)
      &                        * LND_FRC_DRY(LON_IDX)
      &                        * ( 1.0D0 - SNW_FRC(LON_IDX) )
+
+         ! Temporary fix for 1 x 1.25 grids -- Lok Lamsal 1/13/10
+         IF ( LND_FRC_MBL(LON_IDX) .GT. 1.0D0 ) THEN
+            LND_FRC_MBL(LON_IDX) = 0.99D0
+         ENDIF         
 
          ! Error check
          IF ( LND_FRC_MBL(lon_idx) > 1.0D0 ) THEN

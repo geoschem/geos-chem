@@ -1,0 +1,2615 @@
+! $Id: tracerid_mod.f,v 1.1 2010/02/02 16:57:47 bmy Exp $
+      MODULE TRACERID_MOD
+!
+!******************************************************************************
+!  Module TRACERID_MOD contains variables which point to SMVGEAR species,
+!  CTM Tracers, Biomass species, and biofuel species located within various
+!  GEOS-CHEM arrays. (bmy, 11/12/02, 2/14/08)
+!
+!  Module Variables:
+!  ============================================================================
+!  (1  ) NNNTRID   (INTEGER) : Max # of tracers
+!  (2  ) MMMEMBER  (INTEGER) : Max # of members per chemical family
+!  (3  ) NMEMBER   (INTEGER) : Number of members per each family tracer
+!  (4  ) IDTRMB    (INTEGER) : Species # for each component of family tracer
+!  (5  ) IDEMIS    (INTEGER) : Emission array for SMVGEAR
+!  (6  ) CTRMB     (REAL*8 ) : Array for # of moles member/moles tracer
+!  (7  ) IDO3      (INTEGER) : O3     index w/in CSPEC array ("comode_mod.f")
+!  (8  ) IDNO2     (INTEGER) : NO2    index w/in CSPEC array ("comode_mod.f")
+!  (9  ) IDNO3     (INTEGER) : NO3    index w/in CSPEC array ("comode_mod.f")
+!  (10 ) IDN2O5    (INTEGER) : N2O5   index w/in CSPEC array ("comode_mod.f")
+!  (11 ) IDHNO4    (INTEGER) : HNO4   index w/in CSPEC array ("comode_mod.f") 
+!  (12 ) IDOX      (INTEGER) : OX     index w/in CSPEC array ("comode_mod.f")
+!  (13 ) IDNOX     (INTEGER) : NOX    index w/in CSPEC array ("comode_mod.f") 
+!  (14 ) IDHC1     (INTEGER) : HC1    index w/in CSPEC array ("comode_mod.f")
+!  (15 ) IDNO      (INTEGER) : NO     index w/in CSPEC array ("comode_mod.f") 
+!  (16 ) IDHNO2    (INTEGER) : HNO2   index w/in CSPEC array ("comode_mod.f") 
+!  (17 ) IDCO      (INTEGER) : CO     index w/in CSPEC array ("comode_mod.f") 
+!  (18 ) IDPRPE    (INTEGER) : PRPE   index w/in CSPEC array ("comode_mod.f")
+!  (19 ) IDISOP    (INTEGER) : ISOP   index w/in CSPEC array ("comode_mod.f")
+!  (20 ) IDALK4    (INTEGER) : ALK4   index w/in CSPEC array ("comode_mod.f")
+!  (21 ) IDC3H8    (INTEGER) : C3H8   index w/in CSPEC array ("comode_mod.f") 
+!  (22 ) IDPAN     (INTEGER) : PAN    index w/in CSPEC array ("comode_mod.f")
+!  (23 ) IDGLPAN   (INTEGER) : GLPAN  index w/in CSPEC array ("comode_mod.f")
+!  (24 ) IDGPAN    (INTEGER) : GPAN   index w/in CSPEC array ("comode_mod.f")
+!  (25 ) IDPMN     (INTEGER) : PMN    index w/in CSPEC array ("comode_mod.f")
+!  (26 ) IDPPN     (INTEGER) : PPN    index w/in CSPEC array ("comode_mod.f")
+!  (27 ) IDHNO3    (INTEGER) : HNO3   index w/in CSPEC array ("comode_mod.f")
+!  (28 ) IDOH      (INTEGER) : OH     index w/in CSPEC array ("comode_mod.f")
+!  (29 ) IDHO2     (INTEGER) : HO2    index w/in CSPEC array ("comode_mod.f")
+!  (30 ) IDH2O2    (INTEGER) : H2O2   index w/in CSPEC array ("comode_mod.f")
+!  (31 ) IDACET    (INTEGER) : ACET   index w/in CSPEC array ("comode_mod.f")
+!  (32 ) IDMEK     (INTEGER) : MEK    index w/in CSPEC array ("comode_mod.f")
+!  (33 ) IDALD2    (INTEGER) : ALD2   index w/in CSPEC array ("comode_mod.f")
+!  (34 ) IDRCHO    (INTEGER) : RCHO   index w/in CSPEC array ("comode_mod.f") 
+!  (35 ) IDMVK     (INTEGER) : MVK    index w/in CSPEC array ("comode_mod.f") 
+!  (36 ) IDMACR    (INTEGER) : MACR   index w/in CSPEC array ("comode_mod.f") 
+!  (37 ) IDISN2    (INTEGER) : ISN2   index w/in CSPEC array ("comode_mod.f") 
+!  (38 ) IDR4N2    (INTEGER) : R4N2   index w/in CSPEC array ("comode_mod.f")
+!  (39 ) IDCH2O    (INTEGER) : CH2O   index w/in CSPEC array ("comode_mod.f")
+!  (40 ) IDC2H6    (INTEGER) : C2H6   index w/in CSPEC array ("comode_mod.f")
+!  (41 ) IDMP      (INTEGER) : MP     index w/in CSPEC array ("comode_mod.f")
+!  (42 ) IDDMS     (INTEGER) : DMS    index w/in CSPEC array ("comode_mod.f")
+!  (43 ) IDSO2     (INTEGER) : SO2    index w/in CSPEC array ("comode_mod.f")
+!  (44 ) IDSO4     (INTEGER) : SO4    index w/in CSPEC array ("comode_mod.f")
+!  (45 ) IDMSA     (INTEGER) : MSA    index w/in CSPEC array ("comode_mod.f")
+!  (46 ) IDDRYO3   (INTEGER) : DRYO3  index w/in CSPEC array ("comode_mod.f")
+!  (47 ) IDDRYPAN  (INTEGER) : DRYPAN index w/in CSPEC array ("comode_mod.f")
+!  (48 ) IDDRYNO2  (INTEGER) : DRYNO2 index w/in CSPEC array ("comode_mod.f")
+!  (49 ) IDTNOX    (INTEGER) : NOx   index w/in STT array ("tracer_mod.f")
+!  (50 ) IDTOX     (INTEGER) : Ox    index w/in STT array ("CMN")     
+!  (51 ) IDTPAN    (INTEGER) : PAN   index w/in STT array ("tracer_mod.f")
+!  (52 ) IDTCO     (INTEGER) : CO    index w/in STT array ("tracer_mod.f")     
+!  (53 ) IDTALK4   (INTEGER) : ALK4  index w/in STT array ("tracer_mod.f")    
+!  (54 ) IDTISOP   (INTEGER) : ISOP  index w/in STT array ("tracer_mod.f")    
+!  (55 ) IDTHNO3   (INTEGER) : HNO3  index w/in STT array ("tracer_mod.f")     
+!  (56 ) IDTH2O2   (INTEGER) : H2O2  index w/in STT array ("tracer_mod.f")    
+!  (57 ) IDTACET   (INTEGER) : ACET  index w/in STT array ("tracer_mod.f")    
+!  (58 ) IDTMEK    (INTEGER) : MEK   index w/in STT array ("tracer_mod.f")    
+!  (59 ) IDTALD2   (INTEGER) : ALD2  index w/in STT array ("tracer_mod.f")    
+!  (60 ) IDTRCHO   (INTEGER) : RCHO  index w/in STT array ("tracer_mod.f")     
+!  (61 ) IDTMVK    (INTEGER) : MVK   index w/in STT array ("tracer_mod.f")    
+!  (62 ) IDTMACR   (INTEGER) : MACR  index w/in STT array ("tracer_mod.f")    
+!  (63 ) IDTPMN    (INTEGER) : PMN   index w/in STT array ("tracer_mod.f")    
+!  (64 ) IDTPPN    (INTEGER) : PPN   index w/in STT array ("tracer_mod.f")    
+!  (65 ) IDTISN2   (INTEGER) : ISN2  index w/in STT array ("tracer_mod.f")     
+!  (66 ) IDTR4N2   (INTEGER) : R4N2  index w/in STT array ("tracer_mod.f")    
+!  (67 ) IDTPRPE   (INTEGER) : PRPE  index w/in STT array ("tracer_mod.f")    
+!  (68 ) IDTC3H8   (INTEGER) : C3H8  index w/in STT array ("tracer_mod.f")    
+!  (69 ) IDTCH2O   (INTEGER) : CH2O  index w/in STT array ("tracer_mod.f")    
+!  (70 ) IDTMP     (INTEGER) : MP    index w/in STT array ("tracer_mod.f")    
+!  (71 ) IDTN2O5   (INTEGER) : N2O5  index w/in STT array ("tracer_mod.f")    
+!  (72 ) IDTHNO4   (INTEGER) : HNO4  index w/in STT array ("tracer_mod.f")    
+!  (73 ) IDTC2H6   (INTEGER) : C2H6  index w/in STT array ("tracer_mod.f")    
+!  (74 ) IDTDMS    (INTEGER) : DMS   index w/in STT array ("tracer_mod.f")     
+!  (75 ) IDTSO2    (INTEGER) : SO2   index w/in STT array ("tracer_mod.f")
+!  (76 ) IDTSO4    (INTEGER) : SO4   index w/in STT array ("tracer_mod.f")    
+!  (77 ) IDTSO4aq  (INTEGER) : SO4aq index w/in STT array ("tracer_mod.f")    
+!  (78 ) IDTSO4s   (INTEGER) : SO4s  index w/in STT array ("tracer_mod.f")    
+!  (79 ) IDTMSA    (INTEGER) : MSA   index w/in STT array ("tracer_mod.f")    
+!  (80 ) IDTNH3    (INTEGER) : NH3   index w/in STT array ("tracer_mod.f")    
+!  (81 ) IDTNH4    (INTEGER) : NH4   index w/in STT array ("tracer_mod.f")    
+!  (82 ) IDTNIT    (INTEGER) : NIT   index w/in STT array ("tracer_mod.f")    
+!  (83 ) IDTNITs   (INTEGER) : NITs  index w/in STT array ("tracer_mod.f")    
+!  (84 ) IDTRN     (INTEGER) : Rn    index w/in STT array ("tracer_mod.f")    
+!  (85 ) IDTPB     (INTEGER) : Pb    index w/in STT array ("tracer_mod.f")    
+!  (86 ) IDTBE7    (INTEGER) : Be7   index w/in STT array ("tracer_mod.f")    
+!  (87 ) IDTBCPI   (INTEGER) : BCPI  index w/in STT array ("tracer_mod.f")
+!  (88 ) IDTBCPO   (INTEGER) : BCPO  index w/in STT array ("tracer_mod.f")
+!  (89 ) IDTOCPI   (INTEGER) : OCPI  index w/in STT array ("tracer_mod.f")
+!  (90 ) IDTOCPO   (INTEGER) : OCPO  index w/in STT array ("tracer_mod.f")
+!  (91 ) IDTALPH   (INTEGER) : ALPH  index w/in STT array ("tracer_mod.f")
+!  (92 ) IDTLIMO   (INTEGER) : LIMO  index w/in STT array ("tracer_mod.f")
+!  (93 ) IDTALCO   (INTEGER) : ALCO  index w/in STT array ("tracer_mod.f")
+!  (94 ) IDTSOG1   (INTEGER) : SOG1  index w/in STT array ("tracer_mod.f")
+!  (95 ) IDTSOG2   (INTEGER) : SOG2  index w/in STT array ("tracer_mod.f")
+!  (96 ) IDTSOG3   (INTEGER) : SOG3  index w/in STT array ("tracer_mod.f")
+!  (97 ) IDTSOA1   (INTEGER) : SOA1  index w/in STT array ("tracer_mod.f")
+!  (98 ) IDTSOA2   (INTEGER) : SOA2  index w/in STT array ("tracer_mod.f")
+!  (99 ) IDTSOA3   (INTEGER) : SOA3  index w/in STT array ("tracer_mod.f")
+!  (100) IDTDST1   (INTEGER) : DST1  index w/in STT array ("tracer_mod.f")
+!  (101) IDTDST2   (INTEGER) : DST2  index w/in STT array ("tracer_mod.f")
+!  (102) IDTDST3   (INTEGER) : DST3  index w/in STT array ("tracer_mod.f")
+!  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
+!  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
+!  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
+!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
+!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
+!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
+!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
+!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
+!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("CMN_O3")     
+!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("CMN_O3")    
+!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("CMN_O3")    
+!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("CMN_O3")     
+!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("CMN_O3")     
+!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("CMN_O3")    
+!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
+!  (121) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
+!  (122) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
+!  (132) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
+!  (133) IDBALK4   (INTEGER) : ALD4 index w/in BURNEMIS array (biomass_mod.f)
+!  (134) IDBFNOX   (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (135) IDBFCO    (INTEGER) : CO   index w/in BIOFUEL array (biofuel_mod.f)
+!  (136) IDBFALK4  (INTEGER) : ALK4 index w/in BIOFUEL array (biofuel_mod.f)
+!  (137) IDBFACET  (INTEGER) : ACET index w/in BIOFUEL array (biofuel_mod.f)
+!  (138) IDBFMEK   (INTEGER) : MEK  index w/in BIOFUEL array (biofuel_mod.f)
+!  (139) IDBFALD2  (INTEGER) : ALD2 index w/in BIOFUEL array (biofuel_mod.f)
+!  (140) IDBFPRPE  (INTEGER) : PRPE index w/in BIOFUEL array (biofuel_mod.f)
+!  (141) IDBFC3H8  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (142) IDBFCH2O  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)
+!  (143) IDBFC2H6  (INTEGER) : NOx  index w/in BIOFUEL array (biofuel_mod.f)   
+!
+!  Module Routines:
+!  ============================================================================
+!  (1 ) TRACERID      : Defines tracer, biomass, biofuel, & anthro ID numbers
+!  (2 ) SETTRACE      : Defines ID numbers for species in SMVGEAR mechanism
+!  (3 ) INIT_TRACERID : Zeroes all module variables
+!
+!  GEOS-CHEM modules referenced by tracerid_mod.f
+!  ============================================================================
+!  (1 ) charpak_mod.f : Module containing string handling routines
+!  (2 ) error_mod.f   : Module containing I/O error and NaN check routines
+!
+!  NOTES:
+!  (1 ) Added additional SMVGEAR species flags for DMS, SO2, SO4, MSA, so that
+!        these species can be handled w/in SMVGEAR (rjp, bmy, 3/23/03)
+!  (2 ) Added modifications for SMVGEAR II (bdf, bmy, 4/1/03)
+!  (3 ) Added extra flags for carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
+!  (4 ) Added extra flags for seasalt tracers (rjp, bec, bmy, 4/20/04)
+!  (5 ) Increase NNNTRID for carb+dust+seasalt tracers (bmy, 4/26/04)
+!  (6 ) Increase NNNTRID & add extra flags for SOA tracers. (rjp, bmy, 7/13/04)
+!  (7 ) Bug fix: reverse IDECH2O and IDEISOP (bmy, 11/15/04)
+!  (8 ) Added IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
+!  (9 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
+!  (10) Added IDTSO4s, IDTNITs
+!  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (12) Added functions IS_Hg0, IS_Hg2, IS_HgP.  Also now use index arrays
+!        ID_Hg0, ID_Hg2, ID_HgP for tagged Hg tracers.  (cdh, bmy, 1/5/06)
+!  (13) Remove IDBxxxx biomass flags; these aren't needed. (bmy, 4/5/06)
+!  (14) Add IDTSOG4 and IDTSOA4 (dkh, bmy, 5/18/06)
+!  (15) Minor fixes for CH3I simulation (bmy, 7/25/06)
+!  (16) Add IDTH2 and IDTHD for H2/HD simulation (hup, lyj, phs, 9/18/07)
+!  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
+!  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
+!  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
+!  (20) Increase NNNTRID for TOMAS species 30bin*(8mass+1number) from 
+!       73 to 320 (win, 6/23/09)
+!  (21) Added IDH2SO4 for SMVGEAR species (win, 6/23/09)
+!  (22) Added TOMAS tracers IDTH2SO4, IDTNK1-IDTNK30, IDTSF1-IDTSF30, 
+!        IDTSS1-IDTSS30, IDTECIL1-IDTECIL30, IDTECOB1-IDTECOB30, 
+!        IDTOCIL1-IDTOCIL30, IDTOCOB1-IDTOCOB30, and IDTAW1-IDTAW30 (win, 6/23/09)
+!******************************************************************************
+!
+      IMPLICIT NONE
+
+      ! for CTM tracers
+      INTEGER, PARAMETER :: NNNTRID  = 320
+      INTEGER, PARAMETER :: MMMEMBER = 10
+      INTEGER            :: NMEMBER(NNNTRID) 
+      INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)
+      INTEGER            :: IDEMIS(NNNTRID)
+      REAL*8             :: CTRMB(NNNTRID,MMMEMBER)
+     
+      ! ID's for SMVGEAR species
+      INTEGER            :: IDO3,    IDNO2,    IDNO3,   IDN2O5,  IDHNO4
+      INTEGER            :: IDOX,    IDNOX,    IDHC1,   IDNO,    IDHNO2
+      INTEGER            :: IDCO,    IDPRPE,   IDISOP,  IDALK4,  IDC3H8
+      INTEGER            :: IDPAN,   IDGLPAN,  IDGPAN,  IDPMN,   IDPPN
+      INTEGER            :: IDHNO3,  IDOH,     IDHO2,   IDH2O2,  IDACET
+      INTEGER            :: IDMEK,   IDALD2,   IDRCHO,  IDMVK,   IDMACR
+      INTEGER            :: IDISN2,  IDR4N2,   IDCH2O,  IDC2H6,  IDMP
+      INTEGER            :: IDDMS,   IDSO2,    IDSO4,   IDMSA
+      INTEGER            :: IDDRYO3, IDDRYPAN, IDDRYNO2, IDSO4s         
+      INTEGER            :: IDGLYX,  IDMGLY
+      INTEGER            :: IDBENZ,  IDTOLU,   IDXYLE,  IDMONX
+      INTEGER            :: IDDRYGLYX, IDDRYMGLY
+      INTEGER            :: IDC2H2, IDC2H4
+      INTEGER            :: IDMBO, IDGLYC
+      INTEGER            :: IDHAC
+      INTEGER            :: IDAPAN, IDENPAN, IDMPAN, IDNIPAN
+      INTEGER            :: IDDRYAPAN, IDDRYENPAN, IDDRYGLPAN
+      INTEGER            :: IDDRYGPAN, IDDRYMPAN, IDDRYNIPAN
+      INTEGER            :: IDH2SO4   !(win, 6/23/09)
+
+      ! GEOS-CHEM tracer ID's
+      INTEGER            :: IDTNOX,  IDTOX,    IDTPAN,  IDTCO,   IDTALK4
+      INTEGER            :: IDTISOP, IDTHNO3,  IDTH2O2, IDTACET, IDTMEK
+      INTEGER            :: IDTALD2, IDTRCHO,  IDTMVK,  IDTMACR, IDTPMN
+      INTEGER            :: IDTPPN,  IDTISN2,  IDTR4N2, IDTPRPE, IDTC3H8
+      INTEGER            :: IDTCH2O, IDTMP,    IDTN2O5, IDTHNO4, IDTC2H6
+      INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
+      INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
+      INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
+      INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
+      INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
+      INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
+      INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
+      INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
+      INTEGER            :: IDTNITs
+      INTEGER            :: IDTBENZ,  IDTTOLU,   IDTXYLE,  IDTMONX
+      INTEGER            :: IDTGLYX, IDTMGLY
+      INTEGER            :: IDTSOAG, IDTSOAM
+      INTEGER            :: IDTC2H2, IDTC2H4
+      INTEGER            :: IDTMBO, IDTGLYC
+      INTEGER            :: IDTAPAN, IDTENPAN, IDTMPAN, IDTNIPAN
+      INTEGER            :: IDTGLPAN,  IDTGPAN
+      INTEGER            :: IDTHAC
+
+      ! TOMAS tracer ID's  !(win, 6/23/09)
+      INTEGER            :: IDTH2SO4
+      INTEGER            :: IDTNK1,  IDTNK2,   IDTNK3,  IDTNK4,  IDTNK5
+      INTEGER            :: IDTNK6,  IDTNK7,   IDTNK8,  IDTNK9,  IDTNK10
+      INTEGER            :: IDTNK11, IDTNK12,  IDTNK13, IDTNK14, IDTNK15
+      INTEGER            :: IDTNK16, IDTNK17,  IDTNK18, IDTNK19, IDTNK20
+      INTEGER            :: IDTNK21, IDTNK22,  IDTNK23, IDTNK24, IDTNK25
+      INTEGER            :: IDTNK26, IDTNK27,  IDTNK28, IDTNK29, IDTNK30
+      INTEGER            :: IDTSF1,  IDTSF2,   IDTSF3,  IDTSF4,  IDTSF5
+      INTEGER            :: IDTSF6,  IDTSF7,   IDTSF8,  IDTSF9,  IDTSF10
+      INTEGER            :: IDTSF11, IDTSF12,  IDTSF13, IDTSF14, IDTSF15
+      INTEGER            :: IDTSF16, IDTSF17,  IDTSF18, IDTSF19, IDTSF20
+      INTEGER            :: IDTSF21, IDTSF22,  IDTSF23, IDTSF24, IDTSF25
+      INTEGER            :: IDTSF26, IDTSF27,  IDTSF28, IDTSF29, IDTSF30
+      INTEGER            :: IDTSS1,  IDTSS2,   IDTSS3,  IDTSS4,  IDTSS5
+      INTEGER            :: IDTSS6,  IDTSS7,   IDTSS8,  IDTSS9,  IDTSS10
+      INTEGER            :: IDTSS11, IDTSS12,  IDTSS13, IDTSS14, IDTSS15
+      INTEGER            :: IDTSS16, IDTSS17,  IDTSS18, IDTSS19, IDTSS20
+      INTEGER            :: IDTSS21, IDTSS22,  IDTSS23, IDTSS24, IDTSS25
+      INTEGER            :: IDTSS26, IDTSS27,  IDTSS28, IDTSS29, IDTSS30
+      INTEGER            :: IDTECOB1,  IDTECOB2,  IDTECOB3,  IDTECOB4
+      INTEGER            :: IDTECOB5,  IDTECOB6,  IDTECOB7,  IDTECOB8
+      INTEGER            :: IDTECOB9,  IDTECOB10, IDTECOB11, IDTECOB12
+      INTEGER            :: IDTECOB13, IDTECOB14, IDTECOB15, IDTECOB16
+      INTEGER            :: IDTECOB17, IDTECOB18, IDTECOB19, IDTECOB20
+      INTEGER            :: IDTECOB21, IDTECOB22, IDTECOB23, IDTECOB24
+      INTEGER            :: IDTECOB25, IDTECOB26, IDTECOB27, IDTECOB28
+      INTEGER            :: IDTECOB29, IDTECOB30                      
+      INTEGER            :: IDTECIL1,  IDTECIL2,  IDTECIL3,  IDTECIL4
+      INTEGER            :: IDTECIL5,  IDTECIL6,  IDTECIL7,  IDTECIL8
+      INTEGER            :: IDTECIL9,  IDTECIL10, IDTECIL11, IDTECIL12
+      INTEGER            :: IDTECIL13, IDTECIL14, IDTECIL15, IDTECIL16
+      INTEGER            :: IDTECIL17, IDTECIL18, IDTECIL19, IDTECIL20
+      INTEGER            :: IDTECIL21, IDTECIL22, IDTECIL23, IDTECIL24
+      INTEGER            :: IDTECIL25, IDTECIL26, IDTECIL27, IDTECIL28
+      INTEGER            :: IDTECIL29, IDTECIL30                      
+      INTEGER            :: IDTOCOB1,  IDTOCOB2,  IDTOCOB3,  IDTOCOB4
+      INTEGER            :: IDTOCOB5,  IDTOCOB6,  IDTOCOB7,  IDTOCOB8
+      INTEGER            :: IDTOCOB9,  IDTOCOB10, IDTOCOB11, IDTOCOB12
+      INTEGER            :: IDTOCOB13, IDTOCOB14, IDTOCOB15, IDTOCOB16
+      INTEGER            :: IDTOCOB17, IDTOCOB18, IDTOCOB19, IDTOCOB20
+      INTEGER            :: IDTOCOB21, IDTOCOB22, IDTOCOB23, IDTOCOB24
+      INTEGER            :: IDTOCOB25, IDTOCOB26, IDTOCOB27, IDTOCOB28
+      INTEGER            :: IDTOCOB29, IDTOCOB30                      
+      INTEGER            :: IDTOCIL1,  IDTOCIL2,  IDTOCIL3,  IDTOCIL4
+      INTEGER            :: IDTOCIL5,  IDTOCIL6,  IDTOCIL7,  IDTOCIL8
+      INTEGER            :: IDTOCIL9,  IDTOCIL10, IDTOCIL11, IDTOCIL12
+      INTEGER            :: IDTOCIL13, IDTOCIL14, IDTOCIL15, IDTOCIL16
+      INTEGER            :: IDTOCIL17, IDTOCIL18, IDTOCIL19, IDTOCIL20
+      INTEGER            :: IDTOCIL21, IDTOCIL22, IDTOCIL23, IDTOCIL24
+      INTEGER            :: IDTOCIL25, IDTOCIL26, IDTOCIL27, IDTOCIL28
+      INTEGER            :: IDTOCIL29, IDTOCIL30                      
+      INTEGER            :: IDTDUST1,  IDTDUST2,  IDTDUST3,  IDTDUST4
+      INTEGER            :: IDTDUST5,  IDTDUST6,  IDTDUST7,  IDTDUST8
+      INTEGER            :: IDTDUST9,  IDTDUST10, IDTDUST11, IDTDUST12
+      INTEGER            :: IDTDUST13, IDTDUST14, IDTDUST15, IDTDUST16
+      INTEGER            :: IDTDUST17, IDTDUST18, IDTDUST19, IDTDUST20
+      INTEGER            :: IDTDUST21, IDTDUST22, IDTDUST23, IDTDUST24
+      INTEGER            :: IDTDUST25, IDTDUST26, IDTDUST27, IDTDUST28
+      INTEGER            :: IDTDUST29, IDTDUST30                      
+      INTEGER            :: IDTAW1,  IDTAW2,   IDTAW3,  IDTAW4,  IDTAW5
+      INTEGER            :: IDTAW6,  IDTAW7,   IDTAW8,  IDTAW9,  IDTAW10
+      INTEGER            :: IDTAW11, IDTAW12,  IDTAW13, IDTAW14, IDTAW15
+      INTEGER            :: IDTAW16, IDTAW17,  IDTAW18, IDTAW19, IDTAW20
+      INTEGER            :: IDTAW21, IDTAW22,  IDTAW23, IDTAW24, IDTAW25
+      INTEGER            :: IDTAW26, IDTAW27,  IDTAW28, IDTAW29, IDTAW30
+
+      ! For H2/HD simulation
+      INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
+
+      ! For tagged Hg simulation
+      INTEGER              :: N_Hg_CATS
+      INTEGER, ALLOCATABLE :: ID_Hg0(:),  ID_Hg2(:), ID_HgP(:)
+      INTEGER              :: ID_Hg_tot,  ID_Hg_na,  ID_Hg_eu 
+      INTEGER              :: ID_Hg_as,   ID_Hg_rw,  ID_Hg_oc
+      INTEGER              :: ID_Hg_ln,   ID_Hg_nt
+
+      ! GEOS-CHEM emission ID's
+      INTEGER            :: IDENOX,  IDEOX,    IDECO,   IDEPRPE, IDEC3H8
+      INTEGER            :: IDEALK4, IDEC2H6,  IDEISOP, IDEACET, IDEMEK
+      INTEGER            :: IDEALD2, IDECH2O,  IDEHNO3
+      INTEGER            :: NEMBIOG, NEMANTHRO
+      INTEGER            :: IDEBENZ,  IDETOLU,   IDEXYLE,  IDEMONX
+      INTEGER            :: IDEC2H2, IDEC2H4
+      INTEGER            :: IDEMBO
+      INTEGER            :: IDEGLYC
+      INTEGER            :: IDEGLYX, IDEMGLY
+      INTEGER            :: IDEHAC
+
+      ! GEOS-CHEM biofuel ID's
+      INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
+      INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
+      INTEGER            :: IDBFCH2O, IDBFC2H6
+      INTEGER            :: IDBFBENZ,  IDBFTOLU,   IDBFXYLE
+      INTEGER            :: IDBFC2H2, IDBFC2H4
+      INTEGER            :: IDBFGLYC
+      INTEGER            :: IDBFGLYX, IDBFMGLY
+      INTEGER            :: IDBFHAC
+
+      CONTAINS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE TRACERID
+!
+!******************************************************************************
+!  Subroutine TRACERID reads the "tracer.dat" file and determines which
+!  tracers, emission species, biomass burning species, and biofuel burning
+!  species are turned on/off. (bmy, 3/16/01, 9/18/07)
+!
+!  NOTES:
+!  (1 ) Original code from Loretta's version of the GISS-II model.  Now we
+!        loop thru the tracer names and flag tracers that way. (bmy, 11/12/02)
+!  (2 ) Added extra CASEs to the CASE statement for carbon & dust tracers.
+!        (rjp, tdf, bmy, 4/1/04)
+!  (3 ) Added extra CASEs to the CASE statement for seasalt tracers.
+!        (rjp, bec, bmy, 4/20/04)
+!  (4 ) Added extra CASEs to the CASE statement for SOA tracers.
+!        (rjp, bmy, 7/13/04)
+!  (5 ) Now references "tracer_mod.f".  NAME is now CHAR*14. (bmy, 7/20/04)
+!  (6 ) Reverse the position of IDEISOP and IDECH2O so as to keep all of the
+!        anthropogenic tracers together in IDEMS (bmy, 11/15/04)
+!  (7 ) Added IDTHG0, IDTHG2, IDTHGP flags (eck, bmy, 12/7/04)
+!  (8 ) Added IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq.  Now no longer need 
+!        to declare IDTCO, IDBCO, IDBFCO for offline aerosol simulations. 
+!        (cas, bmy, 1/26/05)
+!  (9 ) Added IDTSO4s and IDTNITs (bec, bmy, 4/13/05)
+!  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (11) Add alternate names for tagged Hg tracers.  Also define ocean mercury 
+!        flux categories.  Now references LSPLIT from "logical_mod.f".
+!        (cdh, bmy, 12/15/05)
+!  (12) Now remove IDBxxx biomass flags (bmy, 4/5/06)
+!  (13) Now look for IDTSOG4 and IDTSOA4 (bmy, 5/18/06)
+!  (14) Minor fixes for CH3I simulation (bmy, 7/25/06)
+!  (15) Now define IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
+!  (16) To satisfy IF statement in EMISSDR for using EMFOSSIL, we need 
+!        to set IDECO=1 instead of IDECO=2. (jaf, mak, bmy, 2/14/08)
+!  (17) Increase NEMANTHRO from 10 to 12 and set IDEOX and IDEHNO3 (phs, 3/4/08)
+!  (18) Added CASE matching for TOMAS tracers (win, 6/23/09)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE CHARPAK_MOD, ONLY : TRANUC
+      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
+      USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "comode.h"    ! IDEMS
+
+      ! Local variables
+      INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
+      CHARACTER(LEN=14)    :: NAME
+      
+      !=================================================================
+      ! TRACERID begins here!
+      !
+      ! NOTE: There are still some vestiges of historical baggage, we
+      !       will get rid of this as time allows (bmy, 11/12/02)
+      !=================================================================
+
+      ! Zero all ID #'s and allocate Hg index arrays (if necessary)
+      CALL INIT_TRACERID
+      
+      ! Initialize counters
+      COUNT     = 0
+      COUNT_Hg0 = 0
+      COUNT_Hg2 = 0
+      COUNT_HgP = 0
+
+      !=================================================================
+      ! Assign tracer, biomass, biofuel, and anthro emission ID's
+      !=================================================================
+      DO N = 1, N_TRACERS
+
+         ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
+         ! file -- we might use something better later on (bmy, 11/12/02)
+         NAME = TRACER_NAME(N)
+         CALL TRANUC( NAME )
+
+         ! Find each tracer
+         SELECT CASE ( TRIM( NAME ) )
+        
+            !------------------------
+            ! Full chem tracers
+            !------------------------
+            CASE ( 'NOX' )
+               COUNT    = COUNT + 1
+               IDTNOX   = N
+               IDBFNOX  = COUNT
+
+            CASE ( 'OX' )
+               IDTOX    = N
+
+            CASE ( 'PAN' )
+               IDTPAN   = N
+               
+            CASE ( 'CO' )
+               COUNT    = COUNT + 1
+               IDTCO    = N
+               IDBFCO   = COUNT
+
+               ! Special case: Tagged CO
+               ! Set some emission flags and then exit
+               ! NOTE: To satisfy IF statement in EMISSDR for using 
+               ! EMFOSSIL, we need to set IDECO=1 instead of IDECO=2.
+               ! (jaf, mak, bmy, 2/14/08)
+               IF ( ITS_A_TAGCO_SIM() ) THEN 
+                  NEMANTHRO = 1
+                  IDECO     = 1
+                  IDTISOP   = 1
+                  EXIT
+               ENDIF
+
+            !-----------------------------------
+            ! FEW ASSUMPTIONS FOR H2HD SIM:
+            ! IDTH2=1, IDTHD=2, IDTCO=N('H2')
+            ! H2/HD simulation requires CO...
+            ! (hup, lyj, phs, 9/18/07)
+            !-----------------------------------
+            CASE ( 'H2' )
+               COUNT    = COUNT + 1
+               IDTCO    = N
+               IDBFCO   = COUNT
+
+               ! Special case: Tagged H2 (hup 4/28/2004)
+               ! Set some emissions flags then exit
+               IF ( ITS_A_H2HD_SIM() ) THEN
+                  NEMANTHRO = 1
+                  IDECO     = 2
+                  IDTISOP   = 1
+		  IDTH2     = 1 ! (hup 7/14/2004)
+
+               ENDIF
+
+            ! ... and HD
+            CASE ( 'HD' )
+               COUNT    = COUNT + 1
+               IDTHD    = N
+
+            CASE ( 'ALK4' )
+               COUNT    = COUNT + 1
+               IDTALK4  = N
+               IDBFALK4 = COUNT
+
+            CASE ( 'ISOP' )
+               IDTISOP  = N
+               
+            CASE ( 'HNO3' )
+               IDTHNO3  = N
+
+            CASE ( 'H2O2' )
+               IDTH2O2  = N
+
+            CASE ( 'ACET' )
+               COUNT    = COUNT + 1
+               IDTACET  = N
+               IDBFACET = COUNT
+
+            CASE ( 'MEK' )
+               COUNT    = COUNT + 1
+               IDTMEK   = N
+               IDBFMEK  = COUNT
+
+            CASE ( 'ALD2' )
+               COUNT    = COUNT + 1
+               IDTALD2  = N
+               IDBFALD2 = COUNT
+
+            CASE ( 'RCHO' )
+               IDTRCHO  = N
+
+            CASE ( 'MVK' )
+               IDTMVK   = N
+
+            CASE ( 'MACR' )
+               IDTMACR  = N
+
+            CASE ( 'PMN' )
+               IDTPMN   = N
+
+            CASE ( 'PPN' )
+               IDTPPN   = N
+
+            CASE ( 'R4N2' )
+               IDTR4N2  = N
+
+            CASE ( 'PRPE' )
+               COUNT    = COUNT + 1
+               IDTPRPE  = N
+               IDBFPRPE = COUNT
+
+            CASE ( 'C3H8' )
+               COUNT    = COUNT + 1
+               IDTC3H8  = N
+               IDBFC3H8 = COUNT
+
+            CASE ( 'CH2O' )
+               COUNT    = COUNT + 1
+               IDTCH2O  = N
+               IDBFCH2O = COUNT
+
+            CASE ( 'C2H6' )
+               COUNT    = COUNT + 1
+               IDTC2H6  = N
+               IDBFC2H6 = COUNT
+
+               ! Special case: tagged C2H6
+               ! Set emission flags and then exit
+               IF ( ITS_A_C2H6_SIM() ) THEN
+                  NEMANTHRO = 1
+                  IDEC2H6   = 1
+                  EXIT
+               ENDIF
+
+            CASE ( 'N2O5' )
+               IDTN2O5  = N
+
+            CASE ( 'HNO4' )
+               IDTHNO4  = N
+
+            CASE ( 'MP' )
+               IDTMP    = N
+
+            !--------------------------------
+            ! Sulfur & nitrate aerosols
+            !--------------------------------
+            CASE ( 'DMS' )
+               IDTDMS   = N
+
+            CASE ( 'SO2' )
+               IDTSO2   = N
+
+            CASE ( 'SO4' )
+               IDTSO4   = N
+
+            CASE ( 'SO4S' )
+               IDTSO4s  = N
+
+            CASE ( 'MSA' )
+               IDTMSA   = N
+
+            CASE ( 'NH3' )
+               IDTNH3   = N
+
+            CASE ( 'NH4' )
+               IDTNH4   = N
+
+            CASE ( 'NIT' )
+               IDTNIT   = N
+
+            CASE ( 'NITS' )
+               IDTNITs  = N
+
+            !--------------------------------
+            ! Crystalline & aqueous aerosols
+            !--------------------------------
+            CASE ( 'AS' ) 
+               IDTAS    = N
+
+            CASE ( 'AHS' ) 
+               IDTAHS   = N
+
+            CASE ( 'LET' )
+               IDTLET   = N
+
+            CASE ( 'NH4AQ' )
+               IDTNH4aq = N
+              
+            CASE ( 'SO4AQ' )
+               IDTSO4aq = N
+             
+            !--------------------------------
+            ! Carbon & 2dy organic aerosols
+            !--------------------------------
+            CASE ( 'BCPI' )
+               IDTBCPI  = N
+
+            CASE ( 'OCPI' )
+               IDTOCPI  = N
+
+            CASE ( 'BCPO' )
+               IDTBCPO  = N
+    
+            CASE ( 'OCPO' )
+               IDTOCPO  = N
+
+            CASE ( 'ALPH' )
+               IDTALPH  = N
+
+            CASE ( 'LIMO' )
+               IDTLIMO  = N
+
+            CASE ( 'ALCO' )
+               IDTALCO  = N
+
+            CASE ( 'SOG1' )
+               IDTSOG1  = N
+
+            CASE ( 'SOG2' )
+               IDTSOG2  = N
+
+            CASE ( 'SOG3' )
+               IDTSOG3  = N
+
+            CASE ( 'SOG4' )
+               IDTSOG4  = N
+
+            CASE ( 'SOA1' )
+               IDTSOA1  = N
+
+            CASE ( 'SOA2' )
+               IDTSOA2  = N
+
+            CASE ( 'SOA3' )
+               IDTSOA3  = N
+
+            CASE ( 'SOA4' )
+               IDTSOA4  = N
+
+            !--------------------------------
+            ! Mineral dust aerosols
+            !--------------------------------
+            CASE ( 'DST1' )
+               IDTDST1  = N
+
+            CASE ( 'DST2' )
+               IDTDST2  = N
+        
+            CASE ( 'DST3' )
+               IDTDST3  = N
+
+            CASE ( 'DST4' )
+               IDTDST4  = N
+
+            !--------------------------------
+            ! Seasalt aerosols
+            !--------------------------------
+            CASE ( 'SALA' )
+               IDTSALA  = N
+
+            CASE ( 'SALC' )
+               IDTSALC  = N
+
+            !--------------------------------
+            ! Dicarbonyls GLYX & MGLY
+            !--------------------------------
+            CASE ( 'GLYX' )
+               COUNT    = COUNT + 1
+               IDTGLYX  = N
+               IDBFGLYX = COUNT
+
+            CASE ( 'MGLY' )
+               COUNT    = COUNT + 1
+               IDTMGLY  = N
+               IDBFMGLY = COUNT
+
+            !--------------------------------
+            ! Aromatics tracers
+            !--------------------------------
+            CASE ( 'BENZ' )
+               COUNT    = COUNT + 1
+               IDTBENZ  = N
+               IDBFBENZ = COUNT
+
+            CASE ( 'TOLU' )
+               COUNT    = COUNT + 1
+               IDTTOLU  = N
+               IDBFTOLU = COUNT
+
+            CASE ( 'XYLE' )
+               COUNT    = COUNT + 1
+               IDTXYLE  = N
+               IDBFXYLE = COUNT
+
+            !--------------------------------
+            ! Monoterpene
+            !--------------------------------
+            CASE ( 'MONX' )
+               IDTMONX  = N
+
+            !--------------------------------
+            ! SOA from GLYX and MGLY
+            !--------------------------------
+            CASE ( 'SOAG' )
+               IDTSOAG  = N
+
+            CASE ( 'SOAM' )
+               IDTSOAM  = N
+
+            !--------------------------------
+            ! C2H4
+            !--------------------------------
+            CASE ( 'C2H4' )
+               COUNT    = COUNT + 1
+               IDTC2H4  = N
+               IDBFC2H4 = COUNT
+
+            !--------------------------------
+            ! C2H2
+            !--------------------------------
+            CASE ( 'C2H2' )
+               COUNT    = COUNT + 1
+               IDTC2H2  = N
+               IDBFC2H2 = COUNT
+
+            !--------------------------------
+            ! MBO
+            !--------------------------------
+            CASE ( 'MBO' )
+               IDTMBO   = N
+
+            !--------------------------------
+            ! GLYC
+            !--------------------------------
+            CASE ( 'GLYC' )
+               COUNT    = COUNT + 1
+               IDTGLYC  = N
+               IDBFGLYC = COUNT
+
+            !--------------------------------
+            ! HAC
+            !--------------------------------
+            CASE ( 'HAC' )
+               COUNT    = COUNT + 1
+               IDTHAC   = N
+               IDBFHAC  = COUNT
+
+            !--------------------------------
+            ! new PAN species
+            !--------------------------------
+            CASE ( 'APAN' )
+               IDTAPAN   = N
+
+            CASE ( 'ENPAN' )
+               IDTENPAN   = N
+
+            CASE ( 'GLPAN' )
+               IDTGLPAN   = N
+
+            CASE ( 'GPAN' )
+               IDTGPAN   = N
+
+            CASE ( 'MPAN' )
+               IDTMPAN   = N
+
+            CASE ( 'NIPAN' )
+               IDTNIPAN   = N
+
+            !--------------------------------
+            ! Rn-Pb-Be tracers
+            !--------------------------------
+            CASE ( 'RN' )
+               IDTRN    = N
+ 
+            CASE ( 'PB' )
+               IDTPB    = N
+
+            CASE ( 'BE7' )
+               IDTBE7   = N
+
+            !--------------------------------
+            ! CH3I and HCN tracers
+            !--------------------------------
+
+            ! Special case: CH3I needs CO biomass/biofuel
+            CASE ( 'CH3I', 'CH3IOC' )
+               COUNT    = COUNT + 1
+               IDTCO    = 1
+               IDBFCO   = COUNT
+               NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
+               EXIT
+
+            ! Special case: HCN needs CO biomass/biofuel
+            CASE ( 'HCN' )
+               COUNT    = COUNT + 1
+               IDTCO    = 1
+               IDBFCO   = COUNT
+               EXIT
+
+            !--------------------------------
+            ! Total & tagged mercury tracers 
+            ! (eck, cdh, bmy, 12/15/05)
+            !--------------------------------
+            CASE ( 'HG0' )
+               COUNT_Hg0         = COUNT_Hg0 + 1              
+               ID_Hg_tot         = COUNT_Hg0
+               IDTHg0            = N
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG2' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HGP' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HG0_AN_NA', 'HG0_AN' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_na          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_EU', 'HG0_AE' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_eu          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_AS', 'HG0_AA' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_as          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_AN_RW', 'HG0_AR' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_rw          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_OC' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_oc          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_LN' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_ln          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG0_NT' )
+               COUNT_Hg0         = COUNT_Hg0 + 1
+               ID_Hg_nt          = COUNT_Hg0
+               ID_Hg0(COUNT_Hg0) = N
+
+            CASE ( 'HG2_AN_NA', 'HG2_AN' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_EU', 'HG2_AE' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_AS', 'HG2_AA' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_AN_RW', 'HG2_AR' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_OC' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_LN' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HG2_NT' )
+               COUNT_Hg2         = COUNT_Hg2 + 1
+               ID_Hg2(COUNT_Hg2) = N
+
+            CASE ( 'HGP_AN_NA', 'HGP_AN' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_EU', 'HGP_AE' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_AS', 'HGP_AA' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_AN_RW', 'HGP_AR' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_OC' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_LN' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+            CASE ( 'HGP_NT' )
+               COUNT_HgP         = COUNT_HgP + 1
+               ID_HgP(COUNT_HgP) = N
+
+
+            !-----------------------------------
+            ! TOMAS Aerosol microphysics tracers (win, 6/23/09)
+            !-----------------------------------
+               
+            CASE ('H2SO4')
+               IDTH2SO4   = N
+
+            CASE ('NK1')
+               IDTNK1   = N
+            CASE ('NK2')
+               IDTNK2   = N               
+            CASE ('NK3')
+               IDTNK3   = N               
+            CASE ('NK4')
+               IDTNK4   = N
+            CASE ('NK5')
+               IDTNK5   = N
+            CASE ('NK6')
+               IDTNK6   = N
+            CASE ('NK7')
+               IDTNK7   = N
+            CASE ('NK8')
+               IDTNK8   = N
+            CASE ('NK9')
+               IDTNK9   = N
+            CASE ('NK10')
+               IDTNK10  = N
+            CASE ('NK11')
+               IDTNK11   = N
+            CASE ('NK12')
+               IDTNK12   = N
+            CASE ('NK13')
+               IDTNK13   = N
+            CASE ('NK14')
+               IDTNK14   = N
+            CASE ('NK15')
+               IDTNK15   = N
+            CASE ('NK16')
+               IDTNK16   = N
+            CASE ('NK17')
+               IDTNK17   = N
+            CASE ('NK18')
+               IDTNK18   = N
+            CASE ('NK19')
+               IDTNK19   = N
+            CASE ('NK20')
+               IDTNK20   = N
+            CASE ('NK21')
+               IDTNK21   = N
+            CASE ('NK22')
+               IDTNK22   = N
+            CASE ('NK23')
+               IDTNK23   = N               
+            CASE ('NK24')
+               IDTNK24   = N
+            CASE ('NK25')
+               IDTNK25   = N
+            CASE ('NK26')
+               IDTNK26   = N
+            CASE ('NK27')
+               IDTNK27   = N
+            CASE ('NK28')
+               IDTNK28   = N
+            CASE ('NK29')
+               IDTNK29   = N
+            CASE ('NK30')
+               IDTNK30   = N
+
+            CASE ('SF1')
+               IDTSF1   = N
+            CASE ('SF2')
+               IDTSF2   = N               
+            CASE ('SF3')
+               IDTSF3   = N               
+            CASE ('SF4')
+               IDTSF4   = N
+            CASE ('SF5')
+               IDTSF5   = N
+            CASE ('SF6')
+               IDTSF6   = N
+            CASE ('SF7')
+               IDTSF7   = N
+            CASE ('SF8')
+               IDTSF8   = N
+            CASE ('SF9')
+               IDTSF9   = N
+            CASE ('SF10')
+               IDTSF10  = N
+            CASE ('SF11')
+               IDTSF11   = N
+            CASE ('SF12')
+               IDTSF12   = N
+            CASE ('SF13')
+               IDTSF13   = N
+            CASE ('SF14')
+               IDTSF14   = N
+            CASE ('SF15')
+               IDTSF15   = N
+            CASE ('SF16')
+               IDTSF16   = N
+            CASE ('SF17')
+               IDTSF17   = N
+            CASE ('SF18')
+               IDTSF18   = N
+            CASE ('SF19')
+               IDTSF19   = N
+            CASE ('SF20')
+               IDTSF20   = N
+            CASE ('SF21')
+               IDTSF21   = N
+            CASE ('SF22')
+               IDTSF22   = N
+            CASE ('SF23')
+               IDTSF23   = N               
+            CASE ('SF24')
+               IDTSF24   = N
+            CASE ('SF25')
+               IDTSF25   = N
+            CASE ('SF26')
+               IDTSF26   = N
+            CASE ('SF27')
+               IDTSF27   = N
+            CASE ('SF28')
+               IDTSF28   = N
+            CASE ('SF29')
+               IDTSF29   = N
+            CASE ('SF30')
+               IDTSF30   = N
+
+            CASE ('SS1')
+               IDTSS1   = N
+            CASE ('SS2')
+               IDTSS2   = N               
+            CASE ('SS3')
+               IDTSS3   = N               
+            CASE ('SS4')
+               IDTSS4   = N
+            CASE ('SS5')
+               IDTSS5   = N
+            CASE ('SS6')
+               IDTSS6   = N
+            CASE ('SS7')
+               IDTSS7   = N
+            CASE ('SS8')
+               IDTSS8   = N
+            CASE ('SS9')
+               IDTSS9   = N
+            CASE ('SS10')
+               IDTSS10  = N
+            CASE ('SS11')
+               IDTSS11   = N
+            CASE ('SS12')
+               IDTSS12   = N
+            CASE ('SS13')
+               IDTSS13   = N
+            CASE ('SS14')
+               IDTSS14   = N
+            CASE ('SS15')
+               IDTSS15   = N
+            CASE ('SS16')
+               IDTSS16   = N
+            CASE ('SS17')
+               IDTSS17   = N
+            CASE ('SS18')
+               IDTSS18   = N
+            CASE ('SS19')
+               IDTSS19   = N
+            CASE ('SS20')
+               IDTSS20   = N
+            CASE ('SS21')
+               IDTSS21   = N
+            CASE ('SS22')
+               IDTSS22   = N
+            CASE ('SS23')
+               IDTSS23   = N               
+            CASE ('SS24')
+               IDTSS24   = N
+            CASE ('SS25')
+               IDTSS25   = N
+            CASE ('SS26')
+               IDTSS26   = N
+            CASE ('SS27')
+               IDTSS27   = N
+            CASE ('SS28')
+               IDTSS28   = N
+            CASE ('SS29')
+               IDTSS29   = N
+            CASE ('SS30')
+               IDTSS30   = N
+
+            CASE ('ECOB1')
+               IDTECOB1   = N
+            CASE ('ECOB2')
+               IDTECOB2   = N               
+            CASE ('ECOB3')
+               IDTECOB3   = N               
+            CASE ('ECOB4')
+               IDTECOB4   = N
+            CASE ('ECOB5')
+               IDTECOB5   = N
+            CASE ('ECOB6')
+               IDTECOB6   = N
+            CASE ('ECOB7')
+               IDTECOB7   = N
+            CASE ('ECOB8')
+               IDTECOB8   = N
+            CASE ('ECOB9')
+               IDTECOB9   = N
+            CASE ('ECOB10')
+               IDTECOB10  = N
+            CASE ('ECOB11')
+               IDTECOB11   = N
+            CASE ('ECOB12')
+               IDTECOB12   = N
+            CASE ('ECOB13')
+               IDTECOB13   = N
+            CASE ('ECOB14')
+               IDTECOB14   = N
+            CASE ('ECOB15')
+               IDTECOB15   = N
+            CASE ('ECOB16')
+               IDTECOB16   = N
+            CASE ('ECOB17')
+               IDTECOB17   = N
+            CASE ('ECOB18')
+               IDTECOB18   = N
+            CASE ('ECOB19')
+               IDTECOB19   = N
+            CASE ('ECOB20')
+               IDTECOB20   = N
+            CASE ('ECOB21')
+               IDTECOB21   = N
+            CASE ('ECOB22')
+               IDTECOB22   = N
+            CASE ('ECOB23')
+               IDTECOB23   = N               
+            CASE ('ECOB24')
+               IDTECOB24   = N
+            CASE ('ECOB25')
+               IDTECOB25   = N
+            CASE ('ECOB26')
+               IDTECOB26   = N
+            CASE ('ECOB27')
+               IDTECOB27   = N
+            CASE ('ECOB28')
+               IDTECOB28   = N
+            CASE ('ECOB29')
+               IDTECOB29   = N
+            CASE ('ECOB30')
+               IDTECOB30   = N
+
+
+            CASE ('ECIL1')
+               IDTECIL1   = N
+            CASE ('ECIL2')
+               IDTECIL2   = N               
+            CASE ('ECIL3')
+               IDTECIL3   = N               
+            CASE ('ECIL4')
+               IDTECIL4   = N
+            CASE ('ECIL5')
+               IDTECIL5   = N
+            CASE ('ECIL6')
+               IDTECIL6   = N
+            CASE ('ECIL7')
+               IDTECIL7   = N
+            CASE ('ECIL8')
+               IDTECIL8   = N
+            CASE ('ECIL9')
+               IDTECIL9   = N
+            CASE ('ECIL10')
+               IDTECIL10  = N
+            CASE ('ECIL11')
+               IDTECIL11   = N
+            CASE ('ECIL12')
+               IDTECIL12   = N
+            CASE ('ECIL13')
+               IDTECIL13   = N
+            CASE ('ECIL14')
+               IDTECIL14   = N
+            CASE ('ECIL15')
+               IDTECIL15   = N
+            CASE ('ECIL16')
+               IDTECIL16   = N
+            CASE ('ECIL17')
+               IDTECIL17   = N
+            CASE ('ECIL18')
+               IDTECIL18   = N
+            CASE ('ECIL19')
+               IDTECIL19   = N
+            CASE ('ECIL20')
+               IDTECIL20   = N
+            CASE ('ECIL21')
+               IDTECIL21   = N
+            CASE ('ECIL22')
+               IDTECIL22   = N
+            CASE ('ECIL23')
+               IDTECIL23   = N               
+            CASE ('ECIL24')
+               IDTECIL24   = N
+            CASE ('ECIL25')
+               IDTECIL25   = N
+            CASE ('ECIL26')
+               IDTECIL26   = N
+            CASE ('ECIL27')
+               IDTECIL27   = N
+            CASE ('ECIL28')
+               IDTECIL28   = N
+            CASE ('ECIL29')
+               IDTECIL29   = N
+            CASE ('ECIL30')
+               IDTECIL30   = N
+
+            CASE ('OCOB1')
+               IDTOCOB1   = N
+            CASE ('OCOB2')
+               IDTOCOB2   = N               
+            CASE ('OCOB3')
+               IDTOCOB3   = N               
+            CASE ('OCOB4')
+               IDTOCOB4   = N
+            CASE ('OCOB5')
+               IDTOCOB5   = N
+            CASE ('OCOB6')
+               IDTOCOB6   = N
+            CASE ('OCOB7')
+               IDTOCOB7   = N
+            CASE ('OCOB8')
+               IDTOCOB8   = N
+            CASE ('OCOB9')
+               IDTOCOB9   = N
+            CASE ('OCOB10')
+               IDTOCOB10  = N
+            CASE ('OCOB11')
+               IDTOCOB11   = N
+            CASE ('OCOB12')
+               IDTOCOB12   = N
+            CASE ('OCOB13')
+               IDTOCOB13   = N
+            CASE ('OCOB14')
+               IDTOCOB14   = N
+            CASE ('OCOB15')
+               IDTOCOB15   = N
+            CASE ('OCOB16')
+               IDTOCOB16   = N
+            CASE ('OCOB17')
+               IDTOCOB17   = N
+            CASE ('OCOB18')
+               IDTOCOB18   = N
+            CASE ('OCOB19')
+               IDTOCOB19   = N
+            CASE ('OCOB20')
+               IDTOCOB20   = N
+            CASE ('OCOB21')
+               IDTOCOB21   = N
+            CASE ('OCOB22')
+               IDTOCOB22   = N
+            CASE ('OCOB23')
+               IDTOCOB23   = N               
+            CASE ('OCOB24')
+               IDTOCOB24   = N
+            CASE ('OCOB25')
+               IDTOCOB25   = N
+            CASE ('OCOB26')
+               IDTOCOB26   = N
+            CASE ('OCOB27')
+               IDTOCOB27   = N
+            CASE ('OCOB28')
+               IDTOCOB28   = N
+            CASE ('OCOB29')
+               IDTOCOB29   = N
+            CASE ('OCOB30')
+               IDTOCOB30   = N
+
+            CASE ('OCIL1')
+               IDTOCIL1   = N
+            CASE ('OCIL2')
+               IDTOCIL2   = N               
+            CASE ('OCIL3')
+               IDTOCIL3   = N               
+            CASE ('OCIL4')
+               IDTOCIL4   = N
+            CASE ('OCIL5')
+               IDTOCIL5   = N
+            CASE ('OCIL6')
+               IDTOCIL6   = N
+            CASE ('OCIL7')
+               IDTOCIL7   = N
+            CASE ('OCIL8')
+               IDTOCIL8   = N
+            CASE ('OCIL9')
+               IDTOCIL9   = N
+            CASE ('OCIL10')
+               IDTOCIL10  = N
+            CASE ('OCIL11')
+               IDTOCIL11   = N
+            CASE ('OCIL12')
+               IDTOCIL12   = N
+            CASE ('OCIL13')
+               IDTOCIL13   = N
+            CASE ('OCIL14')
+               IDTOCIL14   = N
+            CASE ('OCIL15')
+               IDTOCIL15   = N
+            CASE ('OCIL16')
+               IDTOCIL16   = N
+            CASE ('OCIL17')
+               IDTOCIL17   = N
+            CASE ('OCIL18')
+               IDTOCIL18   = N
+            CASE ('OCIL19')
+               IDTOCIL19   = N
+            CASE ('OCIL20')
+               IDTOCIL20   = N
+            CASE ('OCIL21')
+               IDTOCIL21   = N
+            CASE ('OCIL22')
+               IDTOCIL22   = N
+            CASE ('OCIL23')
+               IDTOCIL23   = N               
+            CASE ('OCIL24')
+               IDTOCIL24   = N
+            CASE ('OCIL25')
+               IDTOCIL25   = N
+            CASE ('OCIL26')
+               IDTOCIL26   = N
+            CASE ('OCIL27')
+               IDTOCIL27   = N
+            CASE ('OCIL28')
+               IDTOCIL28   = N
+            CASE ('OCIL29')
+               IDTOCIL29   = N
+            CASE ('OCIL30')
+               IDTOCIL30   = N
+
+            CASE ('DUST1')
+               IDTDUST1   = N
+            CASE ('DUST2')
+               IDTDUST2   = N               
+            CASE ('DUST3')
+               IDTDUST3   = N               
+            CASE ('DUST4')
+               IDTDUST4   = N
+            CASE ('DUST5')
+               IDTDUST5   = N
+            CASE ('DUST6')
+               IDTDUST6   = N
+            CASE ('DUST7')
+               IDTDUST7   = N
+            CASE ('DUST8')
+               IDTDUST8   = N
+            CASE ('DUST9')
+               IDTDUST9   = N
+            CASE ('DUST10')
+               IDTDUST10  = N
+            CASE ('DUST11')
+               IDTDUST11   = N
+            CASE ('DUST12')
+               IDTDUST12   = N
+            CASE ('DUST13')
+               IDTDUST13   = N
+            CASE ('DUST14')
+               IDTDUST14   = N
+            CASE ('DUST15')
+               IDTDUST15   = N
+            CASE ('DUST16')
+               IDTDUST16   = N
+            CASE ('DUST17')
+               IDTDUST17   = N
+            CASE ('DUST18')
+               IDTDUST18   = N
+            CASE ('DUST19')
+               IDTDUST19   = N
+            CASE ('DUST20')
+               IDTDUST20   = N
+            CASE ('DUST21')
+               IDTDUST21   = N
+            CASE ('DUST22')
+               IDTDUST22   = N
+            CASE ('DUST23')
+               IDTDUST23   = N               
+            CASE ('DUST24')
+               IDTDUST24   = N
+            CASE ('DUST25')
+               IDTDUST25   = N
+            CASE ('DUST26')
+               IDTDUST26   = N
+            CASE ('DUST27')
+               IDTDUST27   = N
+            CASE ('DUST28')
+               IDTDUST28   = N
+            CASE ('DUST29')
+               IDTDUST29   = N
+            CASE ('DUST30')
+               IDTDUST30   = N
+
+            CASE ('AW1')
+               IDTAW1   = N
+            CASE ('AW2')
+               IDTAW2   = N               
+            CASE ('AW3')
+               IDTAW3   = N               
+            CASE ('AW4')
+               IDTAW4   = N
+            CASE ('AW5')
+               IDTAW5   = N
+            CASE ('AW6')
+               IDTAW6   = N
+            CASE ('AW7')
+               IDTAW7   = N
+            CASE ('AW8')
+               IDTAW8   = N
+            CASE ('AW9')
+               IDTAW9   = N
+            CASE ('AW10')
+               IDTAW10  = N
+            CASE ('AW11')
+               IDTAW11   = N
+            CASE ('AW12')
+               IDTAW12   = N
+            CASE ('AW13')
+               IDTAW13   = N
+            CASE ('AW14')
+               IDTAW14   = N
+            CASE ('AW15')
+               IDTAW15   = N
+            CASE ('AW16')
+               IDTAW16   = N
+            CASE ('AW17')
+               IDTAW17   = N
+            CASE ('AW18')
+               IDTAW18   = N
+            CASE ('AW19')
+               IDTAW19   = N
+            CASE ('AW20')
+               IDTAW20   = N
+            CASE ('AW21')
+               IDTAW21   = N
+            CASE ('AW22')
+               IDTAW22   = N
+            CASE ('AW23')
+               IDTAW23   = N               
+            CASE ('AW24')
+               IDTAW24   = N
+            CASE ('AW25')
+               IDTAW25   = N
+            CASE ('AW26')
+               IDTAW26   = N
+            CASE ('AW27')
+               IDTAW27   = N
+            CASE ('AW28')
+               IDTAW28   = N
+            CASE ('AW29')
+               IDTAW29   = N
+            CASE ('AW30')
+               IDTAW30   = N
+
+            CASE DEFAULT
+               ! Nothing
+
+         END SELECT
+      ENDDO
+      
+      !=================================================================
+      ! SPECIAL CASE: we need to hardwire the emission flags so that
+      ! they are in the same order as the old emissions code.  The 
+      ! order should be: 1 4 18 19 5 21 9 10 11 20 6.  Think of a 
+      ! better way to implement this later on. (bmy, 12/20/04)
+      ! Added HNO3 and Ox to deal with ship NOx emissions (3/4/08, phs)
+      !=================================================================
+      IF ( ITS_A_FULLCHEM_SIM() ) THEN
+         NEMANTHRO = 21 !phs - replaces 10
+         NEMBIOG   = 3
+         IDENOX    = 1
+         IDECO     = 2
+         IDEPRPE   = 3
+         IDEC3H8   = 4
+         IDEALK4   = 5
+         IDEC2H6   = 6
+         IDEACET   = 7
+         IDEMEK    = 8
+         IDEALD2   = 9
+         IDECH2O   = 10
+         IDEOX     = 11 !PHS
+         IDEHNO3   = 12 !PHS
+         IDEGLYX   = 13
+         IDEMGLY   = 14
+         IDEBENZ   = 15
+         IDETOLU   = 16
+         IDEXYLE   = 17
+         IDEC2H4   = 18
+         IDEC2H2   = 19
+         IDEGLYC   = 20
+         IDEHAC    = 21
+         IDEISOP   = 22
+         IDEMONX   = 23
+         IDEMBO    = 24
+      ENDIF
+      
+      !=================================================================
+      ! Fill IDEMS with appropriate tracer ID #'s
+      !
+      ! NOTE: IDEMS is in "comode.h", maybe later split this off into
+      ! an F90 module somehow.  Think about this later. (bmy, 11/12/02)
+      !=================================================================
+      IF ( IDENOX  /= 0 ) IDEMS(IDENOX ) = IDTNOX
+      IF ( IDECO   /= 0 ) IDEMS(IDECO  ) = IDTCO
+      IF ( IDEPRPE /= 0 ) IDEMS(IDEPRPE) = IDTPRPE
+      IF ( IDEC3H8 /= 0 ) IDEMS(IDEC3H8) = IDTC3H8
+      IF ( IDEALK4 /= 0 ) IDEMS(IDEALK4) = IDTALK4
+      IF ( IDEC2H6 /= 0 ) IDEMS(IDEC2H6) = IDTC2H6
+      IF ( IDEISOP /= 0 ) IDEMS(IDEISOP) = IDTISOP
+      IF ( IDEACET /= 0 ) IDEMS(IDEACET) = IDTACET
+      IF ( IDEMEK  /= 0 ) IDEMS(IDEMEK ) = IDTMEK
+      IF ( IDEALD2 /= 0 ) IDEMS(IDEALD2) = IDTALD2
+      IF ( IDECH2O /= 0 ) IDEMS(IDECH2O) = IDTCH2O
+      IF ( IDEOX   /= 0 ) IDEMS(IDEOX  ) = IDTOX    ! PHS
+      IF ( IDEHNO3 /= 0 ) IDEMS(IDEHNO3) = IDTHNO3  ! PHS
+      IF ( IDEGLYX /= 0 ) IDEMS(IDEGLYX) = IDTGLYX
+      IF ( IDEMGLY /= 0 ) IDEMS(IDEMGLY) = IDTMGLY
+      IF ( IDEBENZ /= 0 ) IDEMS(IDEBENZ) = IDTBENZ
+      IF ( IDETOLU /= 0 ) IDEMS(IDETOLU) = IDTTOLU
+      IF ( IDEXYLE /= 0 ) IDEMS(IDEXYLE) = IDTXYLE
+      IF ( IDEMONX /= 0 ) IDEMS(IDEMONX) = IDTMONX
+      IF ( IDEC2H4 /= 0 ) IDEMS(IDEC2H4) = IDTC2H4
+      IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
+      IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
+      IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
+      IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
+
+      ! Echo anthro & biogenic emitted tracers
+      WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
+ 100  FORMAT( /, 'TRACERID: Emitted tracers (anthro & bio) :', 20i3 )
+
+      ! Return to calling program
+      END SUBROUTINE TRACERID
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE SETTRACE
+!
+!******************************************************************************
+!  Subroutine SETTRACE flags certain chemical species w/in the SMVGEAR full
+!  chemistry mechanism. (lwh, jyl, gmg, djj, 1990's; bmy, 11/12/02, 10/3/05)
+!
+!  Arguments as Input: 
+!  ============================================================================
+!  (1 ) NTRACER : Number of GEOS-CHEM tracers to process
+!
+!  NOTES:
+!  (1 ) Added comment header.
+!  (2 ) Now initialize IDDMS, IDSO2, IDSO4, IDMSA.  Updated comments,
+!        cosmetic changes. (rjp, bmy, 3/23/03)
+!  (3 ) Currently there are only families for the troposphere, so manually 
+!        set NCS = NCSURBAN.  Replace NAMESPEC w/ NAMEGAS for SMVGEAR II. 
+!        (bdf, bmy, 4/23/03)
+!  (4 ) Make sure IDEMIS etc doesn't go out of array bounds (bmy, 4/26/04)
+!  (5 ) Removed NTRACER from the arg list, we can use N_TRACERS from 
+!        "tracer_mod.f".  Now references "tracer_mod.f".  Now does not have 
+!        to read the "tracer.dat" file. (bmy, 7/20/04)
+!  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (7 ) Added matching for IDH2SO4 for sulfuric acid (win, 6/23/09)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE TRACER_MOD, ONLY : ID_EMITTED,     N_TRACERS
+      USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
+      USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "comode.h"   ! NAMEGAS
+
+      ! Local variabales
+      INTEGER             :: I, J, T, C
+ 
+      !=================================================================
+      ! SETTRACE begins here!
+      !=================================================================
+
+      ! Reset NCS = NCSURBAN, since we have defined our GEOS-CHEM
+      ! mechanism in the urban slot of SMVGEAR II (bmy, 4/21/03)
+      NCS = NCSURBAN
+
+      DO I = 1, NSPEC(NCS)
+         IF ( NAMEGAS(I) == 'O3'     ) IDO3     = I
+         IF ( NAMEGAS(I) == 'NO2'    ) IDNO2    = I
+         IF ( NAMEGAS(I) == 'NO3'    ) IDNO3    = I
+         IF ( NAMEGAS(I) == 'N2O5'   ) IDN2O5   = I
+         IF ( NAMEGAS(I) == 'HNO4'   ) IDHNO4   = I
+         IF ( NAMEGAS(I) == 'HNO2'   ) IDHNO2   = I
+         IF ( NAMEGAS(I) == 'NO'     ) IDNO     = I
+         IF ( NAMEGAS(I) == 'CO'     ) IDCO     = I
+         IF ( NAMEGAS(I) == 'PRPE'   ) IDPRPE   = I
+         IF ( NAMEGAS(I) == 'C3H8'   ) IDC3H8   = I
+         IF ( NAMEGAS(I) == 'ISOP'   ) IDISOP   = I
+         IF ( NAMEGAS(I) == 'ALK4'   ) IDALK4   = I
+         IF ( NAMEGAS(I) == 'PAN'    ) IDPAN    = I
+         IF ( NAMEGAS(I) == 'GLPAN'  ) IDGLPAN  = I
+         IF ( NAMEGAS(I) == 'GPAN'   ) IDGPAN   = I
+         IF ( NAMEGAS(I) == 'PMN'    ) IDPMN    = I
+         IF ( NAMEGAS(I) == 'PPN'    ) IDPPN    = I
+         IF ( NAMEGAS(I) == 'HNO3'   ) IDHNO3   = I
+         IF ( NAMEGAS(I) == 'OH'     ) IDOH     = I
+         IF ( NAMEGAS(I) == 'HO2'    ) IDHO2    = I !(rvm, bmy, 2/27/02)
+         IF ( NAMEGAS(I) == 'H2O2'   ) IDH2O2   = I
+         IF ( NAMEGAS(I) == 'ACET'   ) IDACET   = I
+         IF ( NAMEGAS(I) == 'MEK'    ) IDMEK    = I
+         IF ( NAMEGAS(I) == 'ALD2'   ) IDALD2   = I
+         IF ( NAMEGAS(I) == 'RCHO'   ) IDRCHO   = I
+         IF ( NAMEGAS(I) == 'MVK'    ) IDMVK    = I
+         IF ( NAMEGAS(I) == 'MACR'   ) IDMACR   = I
+         IF ( NAMEGAS(I) == 'ISN2'   ) IDISN2   = I
+         IF ( NAMEGAS(I) == 'R4N2'   ) IDR4N2   = I
+         IF ( NAMEGAS(I) == 'CH2O'   ) IDCH2O   = I
+         IF ( NAMEGAS(I) == 'C2H6'   ) IDC2H6   = I
+         IF ( NAMEGAS(I) == 'DMS'    ) IDDMS    = I !(rjp, bmy, 3/23/03)
+         IF ( NAMEGAS(I) == 'SO2'    ) IDSO2    = I !(rjp, bmy, 3/23/03)
+         IF ( NAMEGAS(I) == 'SO4'    ) IDSO4    = I !(rjp, bmy, 3/23/03)
+         IF ( NAMEGAS(I) == 'MSA'    ) IDMSA    = I !(rjp, bmy, 3/23/03)
+         IF ( NAMEGAS(I) == 'DRYNO2' ) IDDRYNO2 = I
+         IF ( NAMEGAS(I) == 'DRYPAN' ) IDDRYPAN = I
+         IF ( NAMEGAS(I) == 'DRYO3 ' ) IDDRYO3  = I
+         IF ( NAMEGAS(I) == 'BENZ'   ) IDBENZ   = I 
+         IF ( NAMEGAS(I) == 'TOLU'   ) IDTOLU   = I 
+         IF ( NAMEGAS(I) == 'XYLE'   ) IDXYLE   = I 
+         IF ( NAMEGAS(I) == 'MONX'   ) IDMONX   = I 
+         IF ( NAMEGAS(I) == 'GLYX'   ) IDGLYX   = I
+         IF ( NAMEGAS(I) == 'MGLY'   ) IDMGLY   = I
+         IF ( NAMEGAS(I) == 'DRYGLYX') IDDRYGLYX = I
+         IF ( NAMEGAS(I) == 'DRYMGLY') IDDRYMGLY = I
+         IF ( NAMEGAS(I) == 'C2H4'   ) IDC2H4    = I
+         IF ( NAMEGAS(I) == 'C2H2'   ) IDC2H2    = I
+         IF ( NAMEGAS(I) == 'MBO'    ) IDMBO     = I
+         IF ( NAMEGAS(I) == 'GLYC'   ) IDGLYC    = I
+         IF ( NAMEGAS(I) == 'HAC'    ) IDHAC     = I
+         IF ( NAMEGAS(I) == 'APAN'   ) IDAPAN    = I
+         IF ( NAMEGAS(I) == 'ENPAN'  ) IDENPAN   = I
+         IF ( NAMEGAS(I) == 'MPAN'   ) IDMPAN    = I
+         IF ( NAMEGAS(I) == 'NIPAN'  ) IDNIPAN   = I
+
+         IF ( NAMEGAS(I) == 'DRYAPAN' )  IDDRYAPAN  = I
+         IF ( NAMEGAS(I) == 'DRYENPAN')  IDDRYENPAN = I
+         IF ( NAMEGAS(I) == 'DRYGLPAN')  IDDRYGLPAN = I
+         IF ( NAMEGAS(I) == 'DRYGPAN' )  IDDRYGPAN  = I
+         IF ( NAMEGAS(I) == 'DRYMPAN' )  IDDRYMPAN  = I
+         IF ( NAMEGAS(I) == 'DRYNIPAN')  IDDRYNIPAN = I
+
+         IF ( NAMEGAS(I) == 'H2SO4'  ) IDH2SO4  = I !(win, 6/23/09)
+      ENDDO
+
+      !=================================================================
+      ! Initialize arrays
+      !=================================================================
+      DO I=1, NNNTRID
+         NMEMBER(I)  = 0
+         IDEMIS(I)   = 0   
+         DO J=1, MMMEMBER
+            IDTRMB(I, J)= 0
+            CTRMB(I, J)= 0.
+         ENDDO
+      ENDDO
+
+      !=================================================================
+      ! Save IDs for tracers (sequence in NAMESPEC.)
+      !
+      ! IDTRMB(T,C)  = species number for J'th component of tracer I
+      ! CTRMB(T,C)+1 = coefficient of tracer constituent (e.g., each NO3
+      !                molec. represents 2 units of Ox, so CTRMB=1)
+      ! TRACER_N(T)   = number of component species in tracer I
+      ! IDEMIS(T)    = which component of tracer I (in IDTRMB sense)
+      !                receives the emissions
+      ! NIDEMIS      = 0,1 -- indicates which species is emitting species.
+      !                If there is only one species in tracer family and
+      !                it's emitted, you still need a "1" in the spot.
+      ! ljm changes: now read input from data file, tracer.dat
+      !=================================================================
+
+      ! Loop over tracers
+      DO T = 1, N_TRACERS
+         
+         ! Number of constituents that tracer T has
+         NMEMBER(T) = TRACER_N_CONST(T)
+
+         ! Index of which tracer constituent
+         ! will receive the emissions
+         IF ( ID_EMITTED(T) > 0 ) THEN 
+            IDEMIS(T) = ID_EMITTED(T)
+         ENDIF
+
+         ! Loop over all the species which make up the tracer
+         DO C = 1, NMEMBER(T)
+            
+            ! Store tracer coefficient in CTRMB
+            CTRMB(T,C) = TRACER_COEFF(T,C) - 1
+
+            ! Loop over all species in "globchem.dat"
+            DO J = 1, NSPEC(NCS)
+
+               ! Special case: hydrocarbon tracers as atoms C 
+               IF ( TRACER_CONST(T,C) == 'C' ) THEN
+
+                  ! Test SMVGEAR species name against TRACER_NAME
+                  IF ( NAMEGAS(J) == TRACER_NAME(T) ) THEN
+                     IDTRMB(T,C) = J 
+                  ENDIF
+
+               ELSE 
+
+                  ! Test SMVGEAR species name TRACER_CONST
+                  IF ( NAMEGAS(J) == TRACER_CONST(T,C) ) THEN
+                     IDTRMB(T,C) = J
+                  ENDIF
+
+               ENDIF
+            ENDDO
+
+            !### Debug
+            !PRINT*, '###--------------------'
+            !PRINT*, '### T, C       : ', T, C
+            !PRINT*, '### NAME       : ', TRACER_NAME(T)
+            !PRINT*, '### NMEMBER    : ', NMEMBER(T)
+            !PRINT*, '### CONST(T,C) : ', TRACER_CONST(T,C)
+            !PRINT*, '### CTRMB(T,C) : ', CTRMB(T,C)
+            !PRINT*, '### IDEMIS(T)  : ', IDEMIS(T)
+            !PRINT*, '### IDTRMB(T,C): ', IDTRMB(T,C)
+
+         ENDDO
+      ENDDO
+
+      ! Return to calling program
+      END SUBROUTINE SETTRACE
+    
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_Hg0( N ) RESULT( IT_IS_Hg0 )
+!
+!******************************************************************************
+!  Function IS_Hg0 returns TRUE if tracer N is a total or tagged Hg0 tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_Hg0
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_Hg0 begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_Hg0 = .FALSE.
+
+      ! Loop over Hg0 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an Hg0 tracer
+         IF ( N == ID_Hg0(C) ) THEN
+            IT_IS_Hg0 = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_Hg0
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_Hg2( N ) RESULT( IT_IS_Hg2 )
+!
+!******************************************************************************
+!  Function IS_Hg2 returns TRUE if tracer N is a total or tagged Hg2 tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_Hg2
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_Hg2 begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_Hg2 = .FALSE.
+
+      ! Loop over Hg2 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an Hg2 tracer
+         IF ( N == ID_Hg2(C) ) THEN
+            IT_IS_Hg2 = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_Hg2
+
+!------------------------------------------------------------------------------
+
+      FUNCTION IS_HgP( N ) RESULT( IT_IS_HgP )
+!
+!******************************************************************************
+!  Function IS_HgP returns TRUE if tracer N is a total or tagged HgP tracer.
+!  (cdh, bmy, 12/15/05)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+
+      ! Local variables
+      LOGICAL             :: IT_IS_HgP
+      INTEGER             :: C
+
+      !=================================================================
+      ! IS_HgP begins here!
+      !=================================================================
+
+      ! Initialize
+      IT_IS_HgP = .FALSE.
+
+      ! Loop over Hg2 categories
+      DO C = 1, N_Hg_CATS
+         
+         ! Exit with TRUE if corresponds to an HgP tracer
+         IF ( N == ID_HgP(C) ) THEN
+            IT_IS_HgP = .TRUE.
+            EXIT
+         ENDIF
+
+      ENDDO
+
+      ! Return to calling program
+      END FUNCTION IS_HgP
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_Hg0_CAT( N ) RESULT( NN )
+!
+!******************************************************************************
+!  Function GET_Hg0_CAT the Hg0 category number given the tracer number. 
+!  (eck, sas, cdh, bmy, 1/6/05)
+!
+!  Arguments as Input:
+!  ----------------------------------------------------------------------------
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+      
+      ! Function value
+      INTEGER             :: NN
+
+      !=================================================================
+      ! GET_Hg2_CAT begins here!
+      !=================================================================
+
+      ! Pick the Hg2 category number from the tracer number
+      IF ( N == ID_Hg0(ID_Hg_tot) ) THEN 
+
+         ! Total
+         NN = ID_Hg_tot
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_na) ) THEN 
+
+         ! Anthro North America
+         NN = ID_Hg_na
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_eu) ) THEN 
+
+         ! Anthro Europe
+         NN = ID_Hg_eu
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_as) ) THEN 
+
+         ! Anthro Asia
+         NN = ID_Hg_as
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_rw) ) THEN 
+
+         ! Anthro Rest of World
+         NN = ID_Hg_rw
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_oc) ) THEN 
+
+         ! Oceans
+         NN = ID_Hg_oc
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_ln) ) THEN 
+
+         ! Land re-emission
+         NN = ID_Hg_ln
+
+      ELSE IF ( N == ID_Hg0(ID_Hg_nt) ) THEN 
+
+         ! Natural source
+         NN = ID_Hg_nt
+
+      ELSE
+
+         ! Invalid category
+         NN = -1
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_Hg0_CAT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_Hg2_CAT( N ) RESULT( NN )
+!
+!******************************************************************************
+!  Function GET_Hg2_CAT the Hg2 category number (i.e. index for DD_Hg2 and
+!  WD_Hg2) given the tracer number. (eck, sas, cdh, bmy, 1/6/05)
+!
+!  Arguments as Input:
+!  ----------------------------------------------------------------------------
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+      
+      ! Function value
+      INTEGER             :: NN
+
+      !=================================================================
+      ! GET_Hg2_CAT begins here!
+      !=================================================================
+
+      ! Pick the Hg2 category number from the tracer number
+      IF ( N == ID_Hg2(ID_Hg_tot) ) THEN 
+
+         ! Total
+         NN = ID_Hg_tot
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_na) ) THEN 
+
+         ! Anthro North America
+         NN = ID_Hg_na
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_eu) ) THEN 
+
+         ! Anthro Europe
+         NN = ID_Hg_eu
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_as) ) THEN 
+
+         ! Anthro Asia
+         NN = ID_Hg_as
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_rw) ) THEN 
+
+         ! Anthro Rest of World
+         NN = ID_Hg_rw
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_oc) ) THEN 
+
+         ! Oceans
+         NN = ID_Hg_oc
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_ln) ) THEN 
+
+         ! Land re-emission
+         NN = ID_Hg_ln
+
+      ELSE IF ( N == ID_Hg2(ID_Hg_nt) ) THEN 
+
+         ! Natural source
+         NN = ID_Hg_nt
+
+      ELSE
+
+         ! Invalid category
+         NN = -1
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_Hg2_CAT
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE INIT_TRACERID
+!
+!******************************************************************************
+!  Subroutine INIT_TRACERID zeroes module variables. (bmy, 11/12/02, 9/18/07)
+!
+!  NOTES:
+!  (1 ) Now also zero IDDMS, IDSO2, IDSO4, IDMSA (rjp, bmy, 3/23/03)
+!  (2 ) Now zero extra flags for carbon & dust tracers (rjp, tdf, bmy, 4/1/04)
+!  (3 ) Now zero extra flags for seasalt tracers (rjp, bec, bmy, 4/1/04)
+!  (4 ) Now zero extra flags for SOA tracers (rjp, bmy, 7/13/04)
+!  (5 ) Now zero IDTHG0, IDTHG2, IDTHGP + tagged Hg's (eck, bmy, 12/7/04)
+!  (6 ) Now zero IDTAS, IDTAHS, IDTLET, IDTNH4aq, IDTSO4aq (cas, bmy, 12/20/04)
+!  (7 ) Now allocate ID_Hg0, ID_Hg2, ID_HgP (bmy, 12/16/05)
+!  (8 ) Now zero IDTSOG4, IDTSOA4 (dkh, bmy, 5/18/06)
+!  (9 ) Now zero IDTH2, IDTHD (hup, lyj, phs, 9/18/07)
+!  (10) Now zero IDEHNO3 (PHS, 3/4/08)
+!  (11) Zero IDTNK1-30, IDTSF1-30, IDTSS1-30, IDTAW1-30, IDTH2SO4, 
+!       IDTECOC1-30, IDTECIL1-30, IDTOCOB1-30, IDTOCIL1-30 and 
+!       IDTDUST1..IDTDUST30 (win, 6/23/09)
+!!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM
+      
+      ! Local variables
+      INTEGER              :: AS
+
+      ! SMVGEAR species ID #'s
+      IDO3      = 0
+      IDNO2     = 0
+      IDNO3     = 0 
+      IDN2O5    = 0
+      IDHNO4    = 0
+      IDOX      = 0
+      IDNOX     = 0
+      IDHC1     = 0
+      IDNO      = 0
+      IDHNO2    = 0
+      IDCO      = 0
+      IDPRPE    = 0
+      IDISOP    = 0
+      IDALK4    = 0
+      IDC3H8    = 0
+      IDPAN     = 0
+      IDGLPAN   = 0
+      IDGPAN    = 0
+      IDPMN     = 0
+      IDPPN     = 0
+      IDHNO3    = 0
+      IDOH      = 0
+      IDHO2     = 0
+      IDH2O2    = 0
+      IDACET    = 0
+      IDMEK     = 0
+      IDALD2    = 0
+      IDRCHO    = 0 
+      IDMVK     = 0
+      IDMACR    = 0
+      IDISN2    = 0
+      IDR4N2    = 0
+      IDCH2O    = 0
+      IDC2H6    = 0
+      IDMP      = 0
+      IDDMS     = 0
+      IDSO2     = 0
+      IDSO4     = 0
+      IDMSA     = 0
+      IDDRYO3   = 0
+      IDDRYPAN  = 0
+      IDDRYNO2  = 0       
+      IDBENZ    = 0
+      IDTOLU    = 0
+      IDXYLE    = 0
+      IDMONX    = 0
+      IDGLYX    = 0
+      IDMGLY    = 0
+      IDDRYGLYX = 0
+      IDDRYMGLY = 0
+      IDC2H4    = 0
+      IDC2H2    = 0
+      IDMBO     = 0
+      IDGLYC    = 0
+      IDHAC     = 0
+
+      IDAPAN    = 0
+      IDENPAN   = 0
+      IDMPAN    = 0
+      IDNIPAN   = 0
+
+      IDDRYAPAN  = 0
+      IDDRYENPAN = 0
+      IDDRYGLPAN = 0
+      IDDRYGPAN  = 0
+      IDDRYMPAN  = 0
+      IDDRYNIPAN = 0
+      IDH2SO4    = 0 !(win, 6/23/09)
+
+      ! GEOS-CHEM Tracer ID #'s
+      IDTNOX    = 0
+      IDTOX     = 0  
+      IDTPAN    = 0
+      IDTCO     = 0
+      IDTH2     = 0 ! (hup, 7/14/2004)
+      IDTHD     = 0 ! (jaegle, 11/07/2005)
+      IDTALK4   = 0
+      IDTISOP   = 0
+      IDTHNO3   = 0
+      IDTH2O2   = 0
+      IDTACET   = 0
+      IDTMEK    = 0
+      IDTALD2   = 0
+      IDTRCHO   = 0
+      IDTMVK    = 0
+      IDTMACR   = 0
+      IDTPMN    = 0
+      IDTPPN    = 0
+      IDTISN2   = 0
+      IDTR4N2   = 0
+      IDTPRPE   = 0
+      IDTC3H8   = 0
+      IDTCH2O   = 0
+      IDTC2H6   = 0
+      IDTN2O5   = 0
+      IDTHNO4   = 0
+      IDTMP     = 0
+      IDTDMS    = 0 
+      IDTSO2    = 0 
+      IDTSO4    = 0    
+      IDTMSA    = 0 
+      IDTNH3    = 0 
+      IDTNH4    = 0 
+      IDTNIT    = 0 
+      IDTAS     = 0
+      IDTAHS    = 0
+      IDTNH4aq  = 0
+      IDTLET    = 0
+      IDTSO4aq  = 0
+      IDTBCPI   = 0
+      IDTOCPI   = 0
+      IDTBCPO   = 0
+      IDTOCPO   = 0
+      IDTALPH   = 0
+      IDTLIMO   = 0
+      IDTALCO   = 0
+      IDTSOG1   = 0
+      IDTSOG2   = 0
+      IDTSOG3   = 0
+      IDTSOG4   = 0
+      IDTSOA1   = 0
+      IDTSOA2   = 0
+      IDTSOA3   = 0
+      IDTSOA4   = 0
+      IDTDST1   = 0
+      IDTDST2   = 0
+      IDTDST3   = 0
+      IDTDST4   = 0
+      IDTSALA   = 0
+      IDTSALC   = 0
+      IDTRN     = 0
+      IDTPB     = 0
+      IDTBE7    = 0
+      IDTGLYX   = 0
+      IDTMGLY   = 0
+      IDTBENZ   = 0
+      IDTTOLU   = 0
+      IDTXYLE   = 0
+      IDTMONX   = 0
+      IDTSOAG   = 0
+      IDTSOAM   = 0
+      IDTC2H4   = 0
+      IDTC2H2   = 0
+      IDTMBO    = 0
+      IDTGLYC   = 0
+      IDTHAC    = 0
+      IDTAPAN   = 0
+      IDTENPAN  = 0
+      IDTGLPAN  = 0
+      IDTGPAN   = 0
+      IDTMPAN   = 0
+      IDTNIPAN  = 0
+      IDTH2SO4  = 0 !(win, 6/23/09)
+      IDTNK1= 0
+      IDTNK2= 0
+      IDTNK3= 0
+      IDTNK4= 0
+      IDTNK5= 0
+      IDTNK6= 0
+      IDTNK7= 0
+      IDTNK8= 0
+      IDTNK9= 0
+      IDTNK10= 0
+      IDTNK11= 0
+      IDTNK12= 0
+      IDTNK13= 0
+      IDTNK14= 0
+      IDTNK15= 0
+      IDTNK16= 0
+      IDTNK17= 0
+      IDTNK18= 0
+      IDTNK19= 0
+      IDTNK20= 0
+      IDTNK21= 0
+      IDTNK22= 0
+      IDTNK23= 0
+      IDTNK24= 0
+      IDTNK25= 0
+      IDTNK26= 0
+      IDTNK27= 0
+      IDTNK28= 0
+      IDTNK29= 0
+      IDTNK30= 0
+      IDTSF1= 0
+      IDTSF2= 0
+      IDTSF3= 0
+      IDTSF4= 0
+      IDTSF5= 0
+      IDTSF6= 0
+      IDTSF7= 0
+      IDTSF8= 0
+      IDTSF9= 0
+      IDTSF10= 0
+      IDTSF11= 0 
+      IDTSF12= 0
+      IDTSF13= 0 
+      IDTSF14= 0
+      IDTSF15= 0
+      IDTSF16= 0 
+      IDTSF17= 0
+      IDTSF18= 0 
+      IDTSF19= 0
+      IDTSF20= 0
+      IDTSF21= 0 
+      IDTSF22= 0
+      IDTSF23= 0 
+      IDTSF24= 0
+      IDTSF25= 0
+      IDTSF26= 0 
+      IDTSF27= 0
+      IDTSF28= 0 
+      IDTSF29= 0
+      IDTSF30= 0
+      IDTSS1= 0 
+      IDTSS2= 0 
+      IDTSS3= 0 
+      IDTSS4= 0
+      IDTSS5= 0
+      IDTSS6= 0 
+      IDTSS7= 0 
+      IDTSS8= 0 
+      IDTSS9= 0
+      IDTSS10= 0
+      IDTSS11= 0 
+      IDTSS12= 0
+      IDTSS13= 0 
+      IDTSS14= 0
+      IDTSS15= 0
+      IDTSS16= 0 
+      IDTSS17= 0
+      IDTSS18= 0 
+      IDTSS19= 0
+      IDTSS20= 0
+      IDTSS21= 0 
+      IDTSS22= 0
+      IDTSS23= 0 
+      IDTSS24= 0
+      IDTSS25= 0
+      IDTSS26= 0 
+      IDTSS27= 0
+      IDTSS28= 0 
+      IDTSS29= 0
+      IDTSS30= 0
+      IDTECOB1= 0 
+      IDTECOB2= 0 
+      IDTECOB3= 0 
+      IDTECOB4= 0
+      IDTECOB5= 0
+      IDTECOB6= 0 
+      IDTECOB7= 0 
+      IDTECOB8= 0 
+      IDTECOB9= 0
+      IDTECOB10= 0
+      IDTECOB11= 0 
+      IDTECOB12= 0
+      IDTECOB13= 0 
+      IDTECOB14= 0
+      IDTECOB15= 0
+      IDTECOB16= 0 
+      IDTECOB17= 0
+      IDTECOB18= 0 
+      IDTECOB19= 0
+      IDTECOB20= 0
+      IDTECOB21= 0 
+      IDTECOB22= 0
+      IDTECOB23= 0 
+      IDTECOB24= 0
+      IDTECOB25= 0
+      IDTECOB26= 0 
+      IDTECOB27= 0
+      IDTECOB28= 0 
+      IDTECOB29= 0
+      IDTECOB30= 0
+      IDTECIL1= 0 
+      IDTECIL2= 0 
+      IDTECIL3= 0 
+      IDTECIL4= 0
+      IDTECIL5= 0
+      IDTECIL6= 0 
+      IDTECIL7= 0 
+      IDTECIL8= 0 
+      IDTECIL9= 0
+      IDTECIL10= 0
+      IDTECIL11= 0 
+      IDTECIL12= 0
+      IDTECIL13= 0 
+      IDTECIL14= 0
+      IDTECIL15= 0
+      IDTECIL16= 0 
+      IDTECIL17= 0
+      IDTECIL18= 0 
+      IDTECIL19= 0
+      IDTECIL20= 0
+      IDTECIL21= 0 
+      IDTECIL22= 0
+      IDTECIL23= 0 
+      IDTECIL24= 0
+      IDTECIL25= 0
+      IDTECIL26= 0 
+      IDTECIL27= 0
+      IDTECIL28= 0 
+      IDTECIL29= 0
+      IDTECIL30= 0
+      IDTOCOB1= 0 
+      IDTOCOB2= 0 
+      IDTOCOB3= 0 
+      IDTOCOB4= 0
+      IDTOCOB5= 0
+      IDTOCOB6= 0 
+      IDTOCOB7= 0 
+      IDTOCOB8= 0 
+      IDTOCOB9= 0
+      IDTOCOB10= 0
+      IDTOCOB11= 0 
+      IDTOCOB12= 0
+      IDTOCOB13= 0 
+      IDTOCOB14= 0
+      IDTOCOB15= 0
+      IDTOCOB16= 0 
+      IDTOCOB17= 0
+      IDTOCOB18= 0 
+      IDTOCOB19= 0
+      IDTOCOB20= 0
+      IDTOCOB21= 0 
+      IDTOCOB22= 0
+      IDTOCOB23= 0 
+      IDTOCOB24= 0
+      IDTOCOB25= 0
+      IDTOCOB26= 0 
+      IDTOCOB27= 0
+      IDTOCOB28= 0 
+      IDTOCOB29= 0
+      IDTOCOB30= 0
+      IDTOCIL1= 0 
+      IDTOCIL2= 0 
+      IDTOCIL3= 0 
+      IDTOCIL4= 0
+      IDTOCIL5= 0
+      IDTOCIL6= 0 
+      IDTOCIL7= 0 
+      IDTOCIL8= 0 
+      IDTOCIL9= 0
+      IDTOCIL10= 0
+      IDTOCIL11= 0 
+      IDTOCIL12= 0
+      IDTOCIL13= 0 
+      IDTOCIL14= 0
+      IDTOCIL15= 0
+      IDTOCIL16= 0 
+      IDTOCIL17= 0
+      IDTOCIL18= 0 
+      IDTOCIL19= 0
+      IDTOCIL20= 0
+      IDTOCIL21= 0 
+      IDTOCIL22= 0
+      IDTOCIL23= 0 
+      IDTOCIL24= 0
+      IDTOCIL25= 0
+      IDTOCIL26= 0 
+      IDTOCIL27= 0
+      IDTOCIL28= 0 
+      IDTOCIL29= 0
+      IDTOCIL30= 0
+      IDTDUST1= 0 
+      IDTDUST2= 0 
+      IDTDUST3= 0 
+      IDTDUST4= 0
+      IDTDUST5= 0
+      IDTDUST6= 0 
+      IDTDUST7= 0 
+      IDTDUST8= 0 
+      IDTDUST9= 0
+      IDTDUST10= 0
+      IDTDUST11= 0 
+      IDTDUST12= 0
+      IDTDUST13= 0 
+      IDTDUST14= 0
+      IDTDUST15= 0
+      IDTDUST16= 0 
+      IDTDUST17= 0
+      IDTDUST18= 0 
+      IDTDUST19= 0
+      IDTDUST20= 0
+      IDTDUST21= 0 
+      IDTDUST22= 0
+      IDTDUST23= 0 
+      IDTDUST24= 0
+      IDTDUST25= 0
+      IDTDUST26= 0 
+      IDTDUST27= 0
+      IDTDUST28= 0 
+      IDTDUST29= 0
+      IDTDUST30= 0
+      IDTAW1= 0 
+      IDTAW2= 0 
+      IDTAW3= 0 
+      IDTAW4= 0
+      IDTAW5= 0
+      IDTAW6= 0 
+      IDTAW7= 0 
+      IDTAW8= 0 
+      IDTAW9= 0
+      IDTAW10= 0
+      IDTAW11= 0 
+      IDTAW12= 0
+      IDTAW13= 0 
+      IDTAW14= 0
+      IDTAW15= 0
+      IDTAW16= 0 
+      IDTAW17= 0
+      IDTAW18= 0 
+      IDTAW19= 0
+      IDTAW20= 0
+      IDTAW21= 0 
+      IDTAW22= 0
+      IDTAW23= 0 
+      IDTAW24= 0
+      IDTAW25= 0
+      IDTAW26= 0 
+      IDTAW27= 0
+      IDTAW28= 0 
+      IDTAW29= 0
+      IDTAW30= 0
+
+      ! GEOS-CHEM Emission ID #'s
+      NEMANTHRO = 0
+      NEMBIOG   = 0
+      IDENOX    = 0
+      IDEOX     = 0
+      IDECO     = 0
+      IDEPRPE   = 0
+      IDEC3H8   = 0
+      IDEALK4   = 0
+      IDEC2H6   = 0
+      IDEACET   = 0
+      IDEMEK    = 0
+      IDEALD2   = 0
+      IDEISOP   = 0
+      IDECH2O   = 0 
+      IDEHNO3   = 0 !phs (3/4/08)
+      IDEGLYX   = 0
+      IDEMGLY   = 0
+      IDEBENZ   = 0
+      IDETOLU   = 0
+      IDEXYLE   = 0
+      IDEMONX   = 0
+      IDEC2H4   = 0
+      IDEC2H2   = 0
+      IDEMBO    = 0
+      IDEGLYC   = 0
+      IDEHAC    = 0
+      
+      ! GEOS-CHEM Biofuel ID #'s
+      IDBFNOX   = 0
+      IDBFCO    = 0
+      IDBFALK4  = 0
+      IDBFACET  = 0
+      IDBFMEK   = 0
+      IDBFALD2  = 0
+      IDBFPRPE  = 0 
+      IDBFC3H8  = 0
+      IDBFCH2O  = 0
+      IDBFC2H6  = 0
+      IDBFBENZ  = 0
+      IDBFTOLU  = 0
+      IDBFXYLE  = 0
+      IDBFC2H2  = 0
+      IDBFC2H4  = 0
+      IDBFGLYC  = 0
+      IDBFGLYX  = 0
+      IDBFMGLY  = 0
+      IDBFHAC   = 0
+
+      !-----------------------------------
+      ! Initialize tagged Hg index arrays
+      !-----------------------------------
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+
+         ! Initialize category flags
+         ID_Hg_tot = 0
+         ID_Hg_na  = 0
+         ID_Hg_eu  = 0
+         ID_Hg_as  = 0
+         ID_Hg_rw  = 0
+         ID_Hg_oc  = 0
+         ID_Hg_ln  = 0
+         ID_Hg_nt  = 0
+
+         ! Number of Hg categories
+         IF ( LSPLIT ) THEN
+            N_Hg_CATS = 8
+         ELSE
+            N_Hg_CATS = 1
+         ENDIF
+
+         ! Index array for Hg0 tracers
+         ALLOCATE( ID_Hg0( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_Hg0' )
+         ID_Hg0 = 0
+
+         ! Index array for Hg2 tracers
+         ALLOCATE( ID_Hg2( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_Hg2' )
+         ID_Hg2 = 0
+
+         ! Index array for HgP tracers
+         ALLOCATE( ID_HgP( N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_HgP' )
+         ID_HgP = 0
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE INIT_TRACERID
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE CLEANUP_TRACERID
+!
+!******************************************************************************
+!  Subroutine CLEANUP_TRACERID deallocates all module arrays (bmy, 12/16/05)
+!
+!  NOTES:
+!******************************************************************************
+!      
+      !=================================================================
+      ! CLEANUP_TRACERID begins here!
+      !=================================================================
+      IF ( ALLOCATED( ID_Hg0 ) ) DEALLOCATE( ID_Hg0 )
+      IF ( ALLOCATED( ID_Hg2 ) ) DEALLOCATE( ID_Hg2 )
+      IF ( ALLOCATED( ID_HgP ) ) DEALLOCATE( ID_HgP )
+      
+      ! Return to calling program
+      END SUBROUTINE CLEANUP_TRACERID
+
+!------------------------------------------------------------------------------
+
+      ! End of module
+      END MODULE TRACERID_MOD

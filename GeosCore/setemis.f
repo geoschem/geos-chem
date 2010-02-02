@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.3 2009/11/05 15:35:30 phs Exp $
+! $Id: setemis.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -235,8 +235,6 @@
 
                ! Sum anthro NOx emissions over all levels [molec NOx/box/s]
                NOXTOT = 0d0
-!--prior to 27/10/09 (phs)
-!               DO L = 1, NOXEXTENT
                DO L = 1, TOPMIX
                   NOXTOT = NOXTOT + EMISRRN(I,J,L)
                ENDDO

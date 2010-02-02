@@ -1,9 +1,9 @@
-! $Id: geia_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: geia_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
       MODULE GEIA_MOD
 !
 !******************************************************************************
 !  Module GEIA_MOD contains routines used to read and scale the GEIA fossil 
-!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 11/6/08)
+!  fuel emissions for NOx, CO, and hydrocarbons (bmy, 7/28/00, 1/13/10)
 !
 !  Module Routines:
 !  ============================================================================
@@ -47,6 +47,7 @@
 !  (13) Now can read data from both GEOS and GCAP grids (bmy, 8/16/05)
 !  (14) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (15) Modifications for 0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
+!  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -239,7 +240,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_TODX reads the time-of-day emission scale factors and 
-!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 11/6/08)
+!  weekday/weekend scale factors for GEIA emissions. (bmy, 7/18/00, 1/13/09)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -264,6 +265,7 @@
 !  (9) BUG: Jintai Lin reported issues with some of the data read here. The
 !       sum of TODB is not 6, which points to a problem. However this is not
 !       used in the code. (phs, 4/16/09)
+!  (10) Now read data for GEOS-4 1 x 1.25 grid (bmy, 1/13/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -348,7 +350,29 @@
 
 #elif defined( GRID1x125 )
 
-      ! NOTE: Need to define this!
+      ! Define the file name
+      FILENAME = TRIM( DATA_DIR ) // 'fossil_200104/MELD1x125'
+
+      ! Echo file name to stdout
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_TODX: Reading: ', a ) 
+
+      ! Open the 1 x 1.25 file
+      OPEN( IUNIT, FILE=TRIM( FILENAME ), STATUS='OLD', 
+     &             FORM='FORMATTED',      IOSTAT=IOS )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:5' )
+
+      ! Read time-of-day scale factors
+      READ( IUNIT, '(6E12.4)', IOSTAT=IOS ) TODN, TODH, TODB
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:6' )
+      
+      ! Read Weekday/Saturday/Sunday emission scale factors
+      READ( IUNIT, '(3F7.4)', IOSTAT=IOS ) 
+     &     ( ( SCNR89(I,J), J=1,3 ), I=1,3 )
+      IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'read_todx:7' )      
+
+      ! Close the file
+      CLOSE( IUNIT )
 
 #elif defined( GRID1x1 )
 

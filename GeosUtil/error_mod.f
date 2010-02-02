@@ -1,4 +1,4 @@
-! $Id: error_mod.f,v 1.2 2009/12/03 21:34:39 bmy Exp $
+! $Id: error_mod.f,v 1.3 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -26,9 +26,13 @@
       PUBLIC  :: ERROR_STOP
       PUBLIC  :: GEOS_CHEM_STOP
       PUBLIC  :: IS_SAFE_DIV
+      PUBLIC  :: IS_SAFE_EXP
       PUBLIC  :: IT_IS_NAN
       PUBLIC  :: IT_IS_FINITE
       PUBLIC  :: SAFE_DIV
+      PUBLIC  :: SAFE_EXP
+      PUBLIC  :: SAFE_LOG
+      PUBLIC  :: SAFE_LOG10
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -92,6 +96,8 @@
 !  (22) Updated routine SAFE_DIV (phs, 4/14/09)
 !  (23) Remove support for SGI, COMPAQ compilers (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  04 Jan 2010 - R. Yantosca - Added SAFE_EXP and IS_SAFE_EXP functions
+!  04 Jan 2010 - R. Yantosca - Added SAVE_LOG and SAFE_LOG10 functions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -966,5 +972,172 @@
       ! Return to calling program
       END FUNCTION IS_SAFE_DIV
 !EOC
-      ! End of module
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: safe_exp
+!
+! !DESCRIPTION: Function SAFE\_EXP performs a "safe exponential", that is to 
+!  prevent overflow, underlow, NaN, or infinity errors when taking the
+!  value EXP( x ).  An alternate value is returned if the exponential
+!  cannot be performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SAFE_EXP( X, ALT ) RESULT( VALUE ) 
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: X      ! Argument of EXP
+      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: VALUE  ! Output from the exponential
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( IS_SAFE_EXP( X ) ) THEN 
+         VALUE = EXP( X )          
+      ELSE 
+         VALUE = ALT               
+      ENDIF
+
+      END FUNCTION SAFE_EXP
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_safe_exp
+!
+! !DESCRIPTION: Function IS\_SAFE\_EXP returns TRUE if it is safe to take
+!  the value EXP( x ) without encountering a floating point exception.  FALSE
+!  is returned if the exponential cannot be performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION IS_SAFE_EXP( X ) RESULT( F )
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: X    ! Argument to the exponential function
+!
+! !OUTPUT PARAMETERS:
+!
+      LOGICAL            :: F    ! =F if exponential isn't allowed
+                                 ! =T otherwise
+!
+! !REMARKS:
+!  Empirical testing has revealed that -600 < X < 600 will not result in
+!  a floating-point exception on Sun and IFORT compilers.  This is good
+!  enough for most purposes.
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: CUTOFF = 600d0
+
+      ! If -CUTOFF < x < CUTOFF, then it is safe to take EXP( x )
+      F = ( ABS( X ) < CUTOFF )
+
+      END FUNCTION IS_SAFE_EXP
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: safe_log
+!
+! !DESCRIPTION: Function SAFE\_LOG performs a "safe natural logarithm", that 
+!  is to prevent overflow, underlow, NaN, or infinity errors when taking the
+!  value LOG( x ).  An alternate value is returned if the logarithm
+!  cannot be performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SAFE_LOG( X, ALT ) RESULT( VALUE ) 
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: X      ! Argument of LOG
+      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: VALUE  ! Output from the natural logarithm
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      IF ( X > 0d0 ) THEN
+         VALUE = LOG( X )          ! Take LOG(x) for positive-definite X
+      ELSE 
+         VALUE = ALT               ! Otherwise return alternate value
+      ENDIF
+
+      END FUNCTION SAFE_LOG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: safe_log10
+!
+! !DESCRIPTION: Function SAFE\_LOG10 performs a "safe log10", that 
+!  is to prevent overflow, underlow, NaN, or infinity errors when taking the
+!  value LOG10( x ).  An alternate value is returned if the logarithm
+!  cannot be performed.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SAFE_LOG10( X, ALT ) RESULT( VALUE ) 
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: X      ! Argument of LOG10
+      REAL*8, INTENT(IN) :: ALT    ! Alternate value to be returned
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: VALUE  ! Output from the natural logarithm
+!
+! !REVISION HISTORY:
+!  04 Jan 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      IF ( X > 0d0 ) THEN
+         VALUE = LOG10( X )        ! Take LOG10(x) for positive-definite X
+      ELSE 
+         VALUE = ALT               ! Otherwise return alternate value
+      ENDIF
+
+      END FUNCTION SAFE_LOG10
+!EOC
       END MODULE ERROR_MOD

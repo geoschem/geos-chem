@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.3 2009/11/30 19:57:57 ccarouge Exp $
+! $Id: drydep_mod.f,v 1.4 2010/02/02 16:57:53 bmy Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -3553,11 +3553,6 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'ALPH'
             HSTAR(NUMDEP)   = 0.023d0
             F0(NUMDEP)      = 0d0
-            !----------------------------------------------------------
-            ! Prior to 10/19/09:
-            ! Molwt should be 136.23 not 136 even (bmy, 10/19/09)
-            !XMW(NUMDEP)     = 136d-3
-            !----------------------------------------------------------
             XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3569,11 +3564,6 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'LIMO'
             HSTAR(NUMDEP)   = 0.07d0
             F0(NUMDEP)      = 0d0
-            !----------------------------------------------------------
-            ! Prior to 10/19/09:
-            ! Molwt should be 136.23 not 136 even (bmy, 10/19/09)
-            !XMW(NUMDEP)     = 136d-3
-            !----------------------------------------------------------
             XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 

@@ -1,4 +1,4 @@
-C $Id: OPMIE.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+C $Id: OPMIE.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
       SUBROUTINE OPMIE(KW,WAVEL,XQO2,XQO3,FMEAN)
 C-----------------------------------------------------------------------
 C  NEW Mie code for J's, only uses 8-term expansion, 4-Gauss pts
@@ -224,11 +224,6 @@ c
 ! PART 2: We just trim the largest JADDLV until the condition is satisfied 
 !         instead of simply stopping.  Remove the STOP statement.
 !
-         !-------------------
-         ! Prior to 7/1/08:
-         !stop
-         !-------------------
-
          ! trim
          do while( (SUM( jaddlv(J1:nc) ) + NC) >= NL )
             loc=maxloc(jaddlv)

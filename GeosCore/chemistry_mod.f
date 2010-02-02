@@ -1,41 +1,30 @@
-! $Id: chemistry_mod.f,v 1.7 2010/01/20 19:31:58 ccarouge Exp $
+! $Id: chemistry_mod.f,v 1.8 2010/02/02 16:57:54 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: 
+!
+! !DESCRIPTION: Module CHEMISTRY\_MOD is used to call the proper chemistry 
+!  subroutine for the various GEOS-Chem simulations. 
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE CHEMISTRY_MOD
 !
-!******************************************************************************
-!  Module CHEMISTRY_MOD is used to call the proper chemistry subroutine
-!  for the various GEOS-CHEM simulations. (bmy, 4/14/03, 4/2/08)
-! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_CHEMISTRY       : Driver which calls various chemistry routines
-!  (2 ) GCKPP_DRIVER       : KPP chemistry driver subroutine
+! !USES:
 !
-!  GEOS-CHEM modules referenced by chemistry_mod.f
-!  ============================================================================
-!  (1 ) acetone_mod.f      : Module w/ routines for ACET chemistry
-!  (2 ) c2h6_mod.f         : Module w/ routines for C2H6 chemistry
-!  (3 ) carbon_mod.f       : Module w/ routines for carbon arsl chem.
-!  (4 ) ch3i_mod.f         : Module w/ routines for CH3I chemistry
-!  (5 ) dao_mod.f          : Module w/ arrays for DAO met fields
-!  (6 ) diag_pl_mod.f      : Module w/ routines to save P(Ox), L(Ox)
-!  (7 ) drydep_mod.f       : Module w/ GEOS-CHEM drydep routines
-!  (8 ) dust_mod.f         : Module w/ routines for dust arsl chem.
-!  (9 ) error_mod.f        : Module w/ NaN and error checks
-!  (10) global_ch4_mod.f   : Module w/ routines for CH4 chemistry
-!  (11) hcn_ch3cn_mod.f    : Module w/ routines for HCN and CH3CN chemistry
-!  (12) Kr85_mod.f         : Module w/ routines for Kr85 chemistry
-!  (13) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (14) RnPbBe_mod.f       : Module w/ routines for Rn-Pb-Be chemistry
-!  (15) rpmares_mod.f      : Module w/ routines for arsl phase equilib.
-!  (16) seasalt_mod.f      : Module w/ routines for seasalt chemistry
-!  (17) sulfate_mod.f      : Module w/ routines for sulfate chemistry
-!  (18) tagged_co_mod.f    : Module w/ routines for Tagged CO chemistry
-!  (19) tagged_ox_mod.f    : Module w/ routines for Tagged Ox chemistry
-!  (20) time_mod.f         : Module w/ routines to compute time & date
-!  (21) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc. 
-!  (22) tracerid_mod.f     : Module w/ pointers to tracers & emissions
+      IMPLICIT NONE
+      PRIVATE
 !
-!  NOTES:
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: DO_CHEMISTRY
+      PUBLIC :: GCKPP_DRIVER
+!
+! !REVISION HISTORY: 
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
 !  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !  (3 ) Now references "tagged_ox_mod.f"(bmy, 8/18/03)
@@ -55,25 +44,83 @@
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (16) For now, replace use RPMARES instead of ISORROPIA. (bmy, 4/2/08)
 !  (17) Added KPP chemistry driver subroutine (phs,ks,dhk, 09/15/09)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!EOP
 !------------------------------------------------------------------------------
-      
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine DO\_CHEMISTRY is the driver routine which calls 
+!  the appropriate chemistry subroutine for the various GEOS-Chem simulations. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_CHEMISTRY
 !
-!******************************************************************************
-!  Subroutine DO_CHEMISTRY is the driver routine which calls the appropriate
-!  chemistry subroutine for the various GEOS-CHEM simulations. 
-!  (bmy, 2/11/03, 9/18/07)
+! !USES:
 !
-!  NOTES:
+      ! References to F90 modules
+      USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX
+      USE AEROSOL_MOD,     ONLY : RDAER,        SOILDUST
+      USE C2H6_MOD,        ONLY : CHEMC2H6
+      USE CARBON_MOD,      ONLY : CHEMCARBON
+      USE CH3I_MOD,        ONLY : CHEMCH3I
+      USE DAO_MOD,         ONLY : CLDF,    DELP
+      USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
+      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
+      USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
+      USE ERROR_MOD,       ONLY : DEBUG_MSG
+      USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
+      USE H2_HD_MOD,       ONLY : CHEM_H2_HD
+      USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
+      !--------------------------------------------------------------------
+      ! Prior to 1/28/10:
+      ! Modified for ISOROPIA II (ccc, bmy, 1/28/10)
+      !USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
+      !-------------------------------------------------------------------
+      USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
+      USE MERCURY_MOD,     ONLY : CHEMMERCURY
+      USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
+      USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
+      USE RPMARES_MOD,     ONLY : DO_RPMARES
+      USE SEASALT_MOD,     ONLY : CHEMSEASALT
+      USE SULFATE_MOD,     ONLY : CHEMSULFATE
+      USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
+      USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
+      USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TRACER_MOD,      ONLY : N_TRACERS,       STT  
+      USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGCO_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
+      USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
+      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+
+#     include "CMN_SIZE"        ! Size parameters
+#     include "CMN_DIAG"        ! NDxx flags
+#     include "comode.h"        ! NPHOT
+!
+! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
 !        to OPTDEPTH for GEOS-1 or GEOS-STRAT met fields (bnd, bmy, 4/14/03)
 !  (2 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -112,61 +159,14 @@
 !        unphysical values at low RH.  Wait for ISORROPIA II. (bmy, 4/2/08)
 !  (18) The dry deposition diagnostic (ND44) is done in vdiff_mod if using non-
 !        local PBL (lin, ccc, 5/29/09)
-!******************************************************************************
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
-      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX
-      USE AEROSOL_MOD,     ONLY : RDAER,        SOILDUST
-      USE C2H6_MOD,        ONLY : CHEMC2H6
-      USE CARBON_MOD,      ONLY : CHEMCARBON
-      USE CH3I_MOD,        ONLY : CHEMCH3I
-      USE DAO_MOD,         ONLY : CLDF,    DELP
-      USE DAO_MOD,         ONLY : OPTDEP,  OPTD,   T
-      USE DRYDEP_MOD,      ONLY : DRYFLX, DRYFLXRnPbBe, DRYFLXH2HD
-      USE DUST_MOD,        ONLY : CHEMDUST, RDUST_ONLINE
-      USE ERROR_MOD,       ONLY : DEBUG_MSG
-      USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
-      USE H2_HD_MOD,       ONLY : CHEM_H2_HD
-      USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
-      USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
-      !--------------------------------------------------------------------
-      ! Prior to 11/20/09:
-      ! Comment out from compilation (bmy, 11/20/09)
-      !USE Kr85_MOD,        ONLY : CHEMKr85
-      !--------------------------------------------------------------------
-      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
-      USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
-      USE MERCURY_MOD,     ONLY : CHEMMERCURY
-      USE OPTDEPTH_MOD,    ONLY : OPTDEPTH
-      USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
-      USE RPMARES_MOD,     ONLY : DO_RPMARES
-      USE SEASALT_MOD,     ONLY : CHEMSEASALT
-      USE SULFATE_MOD,     ONLY : CHEMSULFATE
-      USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
-      USE TAGGED_OX_MOD,   ONLY : CHEM_TAGGED_OX
-      USE TIME_MOD,        ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TRACER_MOD,      ONLY : N_TRACERS,       STT  
-      USE TRACER_MOD,      ONLY : ITS_A_C2H6_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_HCN_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
-      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,      ONLY : ITS_NOT_COPARAM_OR_CH4
-      USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
-
-#     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_DIAG"        ! NDxx flags
-#     include "comode.h"        ! NPHOT
-
-      ! Local variables
+! !LOCAL VARIABLES:
+! 
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER                  :: N_TROP
 
@@ -194,32 +194,30 @@
 
              ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
- 
+
              ! Also do sulfate chemistry
              IF ( LSULF ) THEN
- 
+
                 ! Do sulfate chemistry
                 CALL CHEMSULFATE
  
                 ! Do aerosol thermodynamic equilibrium
-                !------------------------------------------------------------
-                ! Prior to 4/2/08:
-                ! Bug fix: ISORROPIA can return very unphysical values when
-                ! RH is very low.  We will replace the current version of
-                ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
-                ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
-                !IF ( LSSALT ) THEN
-                !
-                !   ! ISOROPIA takes Na+, Cl- into account
-                !   CALL DO_ISOROPIA
-                !
-                !ELSE
+                IF ( LSSALT ) THEN
+                
+                   ! ISOROPIA takes Na+, Cl- into account
+                   !-------------------------------------------
+                   ! Prior to 1/28/10:
+                   ! Modified for ISORROPIA II (bmy, 1/28/10)
+                   !CALL DO_ISOROPIA
+                   !-------------------------------------------
+                   CALL DO_ISOROPIAII
+                
+                ELSE
  
                    ! RPMARES does not take Na+, Cl- into account
                    CALL DO_RPMARES
  
-                !ENDIF
-                !------------------------------------------------------------
+                ENDIF
                 
              ENDIF
  
@@ -277,25 +275,23 @@
              CALL RDAER
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-             !-------------------------------------------------------------
-             ! Prior to 4/2/08:
-             ! Bug fix: ISORROPIA can return very unphysical values when
-             ! RH is very low.  We will replace the current version of
-             ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
-             ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
-             !IF ( LSSALT ) THEN
-             !
-             !   ! ISOROPIA takes Na+, Cl- into account
-             !   CALL DO_ISOROPIA
-             !
-             !ELSE
+             IF ( LSSALT ) THEN
+             
+                ! ISOROPIA takes Na+, Cl- into account
+                !-------------------------------------------------------
+                ! Prior to 1/28/10:
+                ! Modified for ISOROPIA II (ccarouge, bmy, 1/28/10)
+                !CALL DO_ISOROPIA
+                !-------------------------------------------------------
+                CALL DO_ISOROPIAII
+             
+             ELSE
  
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
                 IF ( .not. LCRYST ) CALL DO_RPMARES
  
-             !ENDIF
-             !-------------------------------------------------------------
+             ENDIF
  
              !*** SEASALT AEROSOLS ***
              IF ( LSSALT ) CALL CHEMSEASALT
@@ -383,15 +379,6 @@
              CALL CHEM_H2_HD
              CALL DRYFLXH2HD
   
- !-----------------------------------------------------------------------------
- ! Prior to 7/19/04:
- ! Fully install Kr85 run later (bmy, 7/19/04)
- !            !---------------------------------
- !            ! Kr85   
- !            !---------------------------------
- !            CASE ( 12 )
- !               CALL CHEMKr85
- !-----------------------------------------------------------------------------
           ENDIF
 
          !### Debug
@@ -400,27 +387,26 @@
          
       ! Return to calling program
       END SUBROUTINE DO_CHEMISTRY
-
+!EOC
 !------------------------------------------------------------------------------
-!--- Previous to (ccc, 12/3/09)      
-!      SUBROUTINE GCKPP_DRIVER() 
-      SUBROUTINE GCKPP_DRIVER(KTLOOP, JLOOPLO, R_KPP, NSPEC_GC) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!     Driver routine to perform integration of the full KPP chemistry mechanism.
-!     Based on Daven Henze's GCKPP_DRIVER.           (Kumaresh, 01/24/2008)
-!     Commented, and updated to call various forward solvers (phs, 09/16/09)
-!     Use CSPEC instead of CSPEC_FOR_KPP to save memory space (ccc, 12/03/09)
-!     Now call KPP driver from physproc.f to save memory. (ccc, 01/20/10)
-!     Now use the # of active species from GC to update CSPEC and not the 
-!     # of variable species from KPP. (ccc, 01/20/10)
-!******************************************************************************
+! !IROUTINE: gckpp_driver
 !
-      ! Reference to f90 modules
+! !DESCRIPTION: Subroutine GCKPP\_DRIVER is the driver routine to perform 
+!  integration with the full KPP chemistry mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GCKPP_DRIVER( KTLOOP, JLOOPLO, R_KPP, NSPEC_GC ) 
+!
+! !USES:
+!
       USE COMODE_MOD,           ONLY : JLOP,   CSPEC
       USE COMODE_MOD,           ONLY : IXSAVE, IYSAVE,    IZSAVE
-!--- Previous to (ccc, 12/3/09)
-!      USE GCKPP_COMODE_MOD,     ONLY : R_KPP,  HSAVE_KPP, CSPEC_FOR_KPP
       USE GCKPP_COMODE_MOD,     ONLY : HSAVE_KPP 
       USE TIME_MOD,             ONLY : GET_TS_CHEM
       USE GCKPP_UTIL,           ONLY : SHUFFLE_KPP2USER
@@ -431,66 +417,75 @@
       USE GCKPP_MONITOR,        ONLY : SPC_NAMES
       USE GCKPP_FUNCTION
       USE ERROR_MOD,            ONLY : ERROR_STOP
-
       USE GCKPP_INTEGRATOR,     ONLY : NHNEW, NHEXIT, INTEGRATE
-      
-!======================================================================
-! Variables used to pass the last/first step size b/w call 
-!      
-! For Rosenbrock:
-!----------------
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: KTLOOP       ! Local loop index
+      INTEGER, INTENT(IN) :: JLOOPLO      ! JLOOPLO + KLOOP = JLOOP
+      REAL*8,  INTENT(IN) :: R_KPP(:,:)   ! Array of reaction rates
+      INTEGER, INTENT(IN) :: NSPEC_GC     ! # of active chemical species
+!
+! !REMARKS:
+!  Variables used to pass the last/first step size b/w call 
+!                                                                             .
+!  For Rosenbrock:
+!  ----------------
 !      Nhexit=2, Nhnew = 3
-! OUT    
-!     RSTATUS(2)  -> Hexit, last accepted step before exit
-!     RSTATUS(3)  -> Hnew, last predicted step (not yet taken)
-!     For multiple restarts, use Hnew as Hstart 
-!     in the subsequent run
-! IN
-!    RCNTRL(3)  -> Hstart, starting value for the integration step size
+!  OUT    
+!      RSTATUS(2)  -> Hexit, last accepted step before exit
+!      RSTATUS(3)  -> Hnew, last predicted step (not yet taken)
+!      For multiple restarts, use Hnew as Hstart in the subsequent run
+!  IN
+!      RCNTRL(3)   -> Hstart, starting value for the integration step size
+!                                                                             .
+!                                                                             .
+!  For LSODE:
+!  ------------
+!  OUT
+!      RSTATUS(1)  -> Texit, the time corresponding to the
+!                     computed Y upon return
+!      RSTATUS(2)  -> Hexit, last predicted step before exit
+!      For multiple restarts, use Hexit as Hstart in the following run
 !
-!      
-! For LSODE:
-!------------
-! OUT
-!     RSTATUS(1)  -> Texit, the time corresponding to the
-!     computed Y upon return
-!     RSTATUS(2)  -> Hexit, last predicted step before exit
-!     For multiple restarts, use Hexit as Hstart in the following run
-!
-! IN      
-!     RCNTRL(3)  -> Hstart, starting value for the integration step size
-!
-!
-! For RADAU5:
-!------------
-! OUT
-!     RSTATUS(1)  -> final time     
-! IN      
-!     RCNTRL(3)  -> not used
-!
-!
+!  IN      
+!      RCNTRL(3)  -> Hstart, starting value for the integration step size
+!                                                                             .
+!                                                                             .
+!  For RADAU5:
+!  ------------
+!  OUT
+!      RSTATUS(1)  -> final time     
+!  IN      
+!      RCNTRL(3)   -> not used
+!                                                                             .
+!                                                                             .
 ! For RUNGE-KUTTA
 ! ---------------
 ! OUT
 !     same as Rosenbrock
+! 
+! !REVISION HISTORY: 
+!  24 Jan 2008 - Kumaresh    - Based on Daven Henze's GCKPP_DRIVER.
+!  16 Sep 2009 - R. Yantosca - Commented, and updated to call various 
+!  03 Dec 2009 - C. Carouge  - Use CSPEC instead of CSPEC_FOR_KPP 
+!                              to save memory space
+!  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  20 Jan 2010 - C. Carouge  - Now call GCKPP_DRIVER from physproc.f to save 
+!                              memory. 
+!  20 Jan 2010 - C. Carouge  - Now use the # of active species from GC to 
+!                              update CSPEC and not the of variable species 
+!                              from KPP.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!======================================================================
-      
-      
-      ! Arguments:
-      INTEGER, INTENT(IN)  :: KTLOOP, JLOOPLO
-      INTEGER, INTENT(IN)  :: NSPEC_GC
-
-      REAL*8, INTENT(IN)   :: R_KPP(:,:)
-
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*8        :: T, TIN, TOUT
       INTEGER       :: ICNTRL(20)
       REAL(kind=dp) :: RCNTRL(20)
       INTEGER       :: ISTATUS(20)
-!--- Previous to (ccc, 12/3/09)
-!      INTEGER       :: I, J, L, N, JJLOOP, IERR
       INTEGER       :: I, J, L, N, KLOOP, IERR
       REAL(kind=dp) :: RSTATE(20)
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -569,35 +564,17 @@
      &       'Hexit, last accepted step before exit:    ', f11.4, /,
      &       'Hnew, last predicted step (not yet taken):', f11.4 )
 
-!--- Previous to (ccc, 12/3/09)
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( JJLOOP, I, J, L, N, RSTATE, ISTATUS )
-!!$OMP+FIRSTPRIVATE( RCNTRL, ICNTRL )
-!!$OMP+COPYIN( TIME )
-!!$OMP+SCHEDULE( DYNAMIC )
-!        DO JJLOOP = 1,NTT
 
       DO KLOOP = 1, KTLOOP
-!--- Previous to (ccc, 12/3/09)
-!           JLOOP = JJLOOP
+
          ! 1D grid box index on the global grid
          JLOOP         = JLOOPLO+KLOOP
            
          ! Get 3D coords from SMVGEAR's 1D coords
-!--- Previous to (ccc, 12/3/09)
-!           I = IXSAVE(JJLOOP)
-!           J = IYSAVE(JJLOOP)
-!           L = IZSAVE(JJLOOP)
          I = IXSAVE(JLOOP)
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-!--- Use CSPEC instead of CSPEC_FOR_KPP to save memory space. (ccc, 12/3/09)
-!!           ! Pass tracer concentrations from CSPEC_FOR_KPP to KPP working vector V_CSPEC
-!!           DO N =1, NVAR
-!!              V_CSPEC(N) = CSPEC_FOR_KPP(JLOOP,N)
-!!           END DO
          ! Pass tracer concentrations from CSPEC to KPP working vector V_CSPEC
          DO N =1, NVAR
             V_CSPEC(N) = CSPEC(JLOOP,N)
@@ -610,10 +587,6 @@
 
          ! starting value for integration time step
          RCNTRL(3) = HSAVE_KPP(I,J,L)
-
-         ! Recalculate rate constants
-!--- Previous to (ccc, 12/3/09)
-!         CALL Update_RCONST()
 
          ! 1D grid box index in the KTLOOP subset.
          ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
@@ -639,8 +612,6 @@
             ! Reset first time step and start concentrations
             RCNTRL(3)  = 0d0
             CALL Initialize( )  ! v2.1 
-!--- Previous to (ccc, 12/3/09)
-!            CALL Update_RCONST()
 
             ! 1D grid box index in the KTLOOP subset.
             ! R_KPP is only defined on KTLOOP boxes (ccc, 12/3/09)
@@ -699,20 +670,19 @@
          CALL Shuffle_kpp2user(VAR,V_CSPEC)  
 
          ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
+         !---------------------------------------------------------
+         ! Prior to 1/20/10:
          ! Now use NSPEC_GC (# of active species in GEOS-Chem).
-         ! (ccc, 01/20/10)       
-         ! DO N =1, NVAR
+         ! (ccc, 01/20/10)   
+         !DO N =1, NVAR
+         !---------------------------------------------------------
          DO N =1, NSPEC_GC
             CSPEC(JLOOP,N) = V_CSPEC(N)
-         END DO
+         ENDDO
 
       ENDDO
-!!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE CHEMISTRY_MOD

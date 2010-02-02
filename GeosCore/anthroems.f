@@ -1,10 +1,10 @@
-! $Id: anthroems.f,v 1.2 2009/11/05 15:35:34 phs Exp $
+! $Id: anthroems.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
       SUBROUTINE ANTHROEMS( NSEASON )
 !
 !******************************************************************************
 !  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
 !  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 7/18/06)
+!  (bmy, 6/4/98, 12/18/09)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -89,6 +89,8 @@
 !  (31) As default, use EDGARv2.0 emission (fossil fuel + industry) 
 !        for year 1985, scale to target year with CO2 from liquid fuel, 
 !        for aromatics, C2H4, and C2H2. (tmf, 6/13/07)
+!  (32) GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed to 
+!        GET_ANNUAL_SCALAR_05x0666_NESTED (amv, bmy, 12/18/09)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -118,7 +120,7 @@
       USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
       USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
       USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
-      USE SCALE_ANTHRO_MOD,   ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
       USE EDGAR_MOD,           ONLY : READ_C2H2
       USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666

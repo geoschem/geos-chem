@@ -1,4 +1,4 @@
-! $Id: cac_anthro_mod.f,v 1.1 2009/09/16 14:06:38 bmy Exp $
+! $Id: cac_anthro_mod.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -24,6 +24,7 @@
 !
       PUBLIC :: CLEANUP_CAC_ANTHRO
       PUBLIC :: EMISS_CAC_ANTHRO
+      PUBLIC :: EMISS_CAC_ANTHRO_05x0666
       PUBLIC :: GET_CANADA_MASK
       PUBLIC :: GET_CAC_ANTHRO
 !
@@ -31,11 +32,14 @@
 !
       PRIVATE :: CAC_SCALE_FUTURE
       PRIVATE :: READ_CANADA_MASK
+      PRIVATE :: READ_CANADA_MASK_05x0666
       PRIVATE :: INIT_CAC_ANTHRO
       PRIVATE :: TOTAL_ANTHRO_TG
 !
 ! !REVISION HISTORY:
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  18 Dec 2009 - Aaron van D - Added EMISS_CAC_ANTHRO_05x0666 routine
+!  18 Dec 2009 - Aaron van D - Added READ_CANADA_MASK_05x0666 routine
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -243,6 +247,7 @@
 !  (1 ) Emissions are read for a year b/w 2002-2005, and scaled
 !        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
 !  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
+!  18 Dec 2009 - Aaron van D - Use 2005 scale factors for years beyond 2005
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -322,11 +327,18 @@
             ! Cast to REAL*8 before regridding
             GEOS_1x1(:,:,1) = ARRAY(:,:,1)
 
-            ! Apply annual scalar factor. Available for 1985-2005,
+            ! Apply annual scalar factor. Available for 1985-2006,
             ! and NOx, CO and SO2 only.
             IF ( ( THISYEAR .lt. 2002 ) .and. SPECIES .ne. 4 ) THEN
 
                CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2002, 
+     &                                     THISYEAR, SC_1x1 )
+
+               GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
+
+            ELSE IF ((THISYEAR .gt. 2005) .and. SPECIES .ne. 4) THEN
+
+               CALL GET_ANNUAL_SCALAR_1x1( ScNo,     2005,
      &                                     THISYEAR, SC_1x1 )
 
                GEOS_1x1(:,:,1) = GEOS_1x1(:,:,1) * SC_1x1(:,:)
@@ -417,6 +429,220 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_CAC_ANTHRO
+!EOC
+!------------------------------------------------------------------------------
+!             Dalhousie Atmospheric Compositional Analysis Group              !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: EMISS_CAC_ANTHRO_05x0666
+!
+! !DESCRIPTION: Subroutine EMISS\_CAC\_ANTHRO_05x0666 reads the Critical Air
+!  Contaminants emission fields at nested NA resolution (1/2 x 2/3)
+!  (amv, phs, 11/03/2009)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISS_CAC_ANTHRO_05x0666
+!
+! !USES:
+!
+      USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR
+      USE LOGICAL_MOD,       ONLY : LFUTURE
+      USE TIME_MOD,          ONLY : GET_YEAR
+      USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_O3"            ! FSCALYR
+!
+! !REVISION HISTORY:
+!  3 Nov 2009 - A. van Donkelaar - Initial Version
+!
+! !REMARKS:
+!  (1 ) Emissions are read for a year b/w 2002-2005, and scaled
+!        (except NH3) between 1985-2003 if needed (phs, 3/10/08)
+!  (2 ) Now accounts for FSCALYR (phs, 3/17/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE              :: FIRST = .TRUE.
+      INTEGER                    :: I, J, THISYEAR, SPECIES, SNo, ScNo
+      REAL*4                     :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8                     :: GEOS_05x0666(IIPAR,JJPAR,1)
+      REAL*8                     :: GEOS_05x0666_2002(IIPAR,JJPAR,1)
+      REAL*8                     :: GEOS_05x0666_2005(IIPAR,JJPAR,1)
+      REAL*4                     :: SC_05x0666(IIPAR,JJPAR)
+      REAL*8                     :: TAU2002, TAU2005, TAU
+      CHARACTER(LEN=255)         :: FILENAME
+      CHARACTER(LEN=4)           :: SYEAR, SNAME
+
+      !=================================================================
+      ! EMISS_CAC_ANTHRO begins here!
+      !=================================================================
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_CAC_ANTHRO
+         FIRST = .FALSE.
+      ENDIF
+
+      ! Get emissions year
+      IF ( FSCALYR < 0 ) THEN
+         THISYEAR = GET_YEAR()
+      ELSE
+         THISYEAR = FSCALYR
+      ENDIF
+
+
+      DO SPECIES = 1,4
+
+         IF ( SPECIES .eq. 1 ) THEN
+            SNAME = 'NOx'
+            SNo = 1
+            ScNo = 71
+         ELSEIF ( SPECIES .eq. 2 ) THEN
+            SNAME = 'CO'
+            SNo = 4
+            ScNo = 72
+         ELSEIF ( SPECIES .eq. 3 ) THEN
+            SNAME = 'SOx'
+            SNo = 26
+            ScNo = 73
+         ELSEIF ( SPECIES .eq. 4 ) THEN
+            SNAME = 'NH3'
+            SNo = 30
+            ScNo = 0
+         ENDIF
+
+         IF ( ( THISYEAR .le. 2002 ) .OR.
+     &        ( THISYEAR .ge. 2005 ) ) THEN
+
+            ! TAU values for 2002/2005
+            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2005 ) )
+            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2005 )
+
+            ! File name
+            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC' //
+     &                  SYEAR // '-' // TRIM( SNAME ) // 
+     &                  '.geos.na.1t2x2t3'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+ 100        FORMAT( '     - EMISS_CAC_ANTHRO_05x0666: Reading ', a )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                       TAU,      IIPAR,       JJPAR,
+     &                       1,        ARRAY,      QUIET=.TRUE. )
+
+            ! Cast to REAL*8 before regridding
+            GEOS_05x0666(:,:,1) = ARRAY(:,:,1)
+
+            ! Apply annual scalar factor. Available for 1985-2006,
+            ! and NOx, CO and SO2 only.
+            IF ( ( THISYEAR .lt. 2002 ) .and. SPECIES .ne. 4 ) THEN
+
+               CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo, 2002,
+     &                                     THISYEAR, SC_05x0666 )
+
+               GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1) 
+     &                               * SC_05x0666(:,:)
+
+            ELSE IF ((THISYEAR .gt. 2005) .and. SPECIES .ne. 4) THEN
+
+               CALL GET_ANNUAL_SCALAR_05x0666_NESTED( ScNo, 2005,
+     &                                     THISYEAR, SC_05x0666 )
+
+              GEOS_05x0666(:,:,1) = GEOS_05x0666(:,:,1) 
+     &                               * SC_05x0666(:,:)
+
+            ENDIF
+
+         ELSE
+
+            TAU2002 = GET_TAU0( 1, 1, 2002)
+            TAU2005 = GET_TAU0( 1, 1, 2005)
+
+            ! File name for 2002 data
+            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2002-'
+     &                 // TRIM(SNAME) // '.geos.na.1t2x2t3'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                       TAU2002,   IIPAR,      JJPAR,
+     &                       1,         ARRAY,     QUIET=.TRUE. )
+
+            ! Cast to REAL*8 before regridding
+            GEOS_05x0666_2002(:,:,1) = ARRAY(:,:,1)
+
+            ! File name for 2005 data
+            FILENAME  = TRIM( DATA_DIR ) // 'CAC_200911/CAC2005-'
+     &                  // TRIM(SNAME) // '.geos.na.1t2x2t3'
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data
+            CALL READ_BPCH2( FILENAME, 'ANTHSRCE', SNo,
+     &                       TAU2005,   IIPAR,    JJPAR,
+     &                       1,         ARRAY,     QUIET=.TRUE. )
+
+            ! Cast to REAL*8 before regridding
+            GEOS_05x0666_2005(:,:,1) = ARRAY(:,:,1)
+
+            ! Scale b/w 2002-2005
+            GEOS_05x0666(:,:,1) = GEOS_05x0666_2002(:,:,1) + 
+     &              ( THISYEAR - 2002.) / 3. *
+     &              ( GEOS_05x0666_2005(:,:,1) 
+     &                - GEOS_05x0666_2002(:,:,1) )
+
+         ENDIF
+
+         IF ( SPECIES .eq. 1 ) THEN
+
+            NOx(:,:) =  GEOS_05x0666(:,:,1)
+
+         ELSEIF ( SPECIES .eq. 2 ) THEN
+
+            CO(:,:) = GEOS_05x0666(:,:,1)
+
+         ELSEIF ( SPECIES .eq. 3 ) THEN
+
+            ! Convert SOx to SO2, where SOx is assumed to be 1.4% SO4 and
+            ! 98.6% SO2 over NA, based upon Chin et al, 2000, and as
+            ! utilized in sulfate_mod.f
+            SO2(:,:) = GEOS_05x0666(:,:,1) * 0.986
+
+         ELSEIF ( SPECIES .eq. 4 ) THEN
+
+            NH3(:,:) = GEOS_05x0666(:,:,1)
+
+         ENDIF
+
+      ENDDO
+
+      !--------------------------
+      ! Compute future emissions
+      !--------------------------
+      IF ( LFUTURE ) THEN
+         CALL CAC_SCALE_FUTURE
+      ENDIF
+
+      !--------------------------
+      ! Print emission totals
+      !--------------------------
+      CALL TOTAL_ANTHRO_Tg( THISYEAR )
+
+      ! Return to calling program
+      END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -624,6 +850,67 @@
 
       ! Return to calling program
       END SUBROUTINE READ_CANADA_MASK
+!EOC
+!------------------------------------------------------------------------------
+!       Dalhousie University Atmospheric Compositional Analysis Group         !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_CANADA_MASK_05x0666
+!
+! !DESCRIPTION: Subroutine READ_CANADA_MASK_05x0666 reads the Canadian
+!  geographic mask from disk. (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_CANADA_MASK_05x0666
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : GET_TAU0, READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+
+#     include "CMN_SIZE"       ! Size parameters
+!
+! !REVISION HISTORY:
+!  11 Nov 2009 - A. van Donkelaar - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8                  :: GEOS_05x0666(IIPAR,JJPAR,1)
+      REAL*8                  :: TAU2000
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! READ_CANADA_MASK begins here!
+      !=================================================================
+
+      TAU2000 = GET_TAU0(1,1,2000)
+
+      ! File name
+      FILENAME  = TRIM( DATA_DIR ) //
+     &            'CAC_200911/CanadaMask.geos.na.1t2x2t3'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_CANADA_MASK_05x0666: Reading ', a )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2,
+     &                 TAU2000,   IIPAR,     JJPAR,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      ! Cast to REAL*8 before regridding
+      MASK_CANADA(:,:) = ARRAY(:,:,1)
+
+      ! Return to calling program
+      END SUBROUTINE READ_CANADA_MASK_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

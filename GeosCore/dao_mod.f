@@ -1,10 +1,10 @@
-! $Id: dao_mod.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+! $Id: dao_mod.f,v 1.2 2010/02/02 16:57:54 bmy Exp $
       MODULE DAO_MOD
 !
 !******************************************************************************
 !  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
 !  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 6/11/08)
+!  data. (bmy, 6/27/00, 12/18/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -161,6 +161,7 @@
 !  (30) Add heat flux EFLUX for GEOS5. (lin, ccc, 5/29/09)
 !  (31) Add fractions of land and water, FRLAND, FROCEAN, FRLANDIC, FRLAKE 
 !        for methane (kjw, 8/18/09)
+!  (32) Bug fix in AVGPOLE (bmy, 12/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -285,7 +286,7 @@
 !
 !******************************************************************************
 !  Subroutine AVGPOLE computes average quantity near polar caps, defined 
-!  by (J = 1, 2) and (J = JJPAR-1, JJPAR).  (bmy, 1/30/98, 12/1/04)
+!  by (J = 1, 2) and (J = JJPAR-1, JJPAR).  (bmy, 1/30/98, 12/18/09)
 ! 
 !  Arguments as Input:
 !  ===========================================================================
@@ -303,6 +304,8 @@
 !        Now also return immediately if GRID1x1 is selected. (bmy, 3/11/03)
 !  (6 ) Now use cpp switches NESTED_CH and NESTED_NA to denote nested
 !        grids...GRID1x1 can now also denote a global grid (bmy, 12/1/04)
+!  (7 ) Also need to RETURN for 0.5 x 0.666 nested grid simulations 
+!        (mpb, bmy, 12/18/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -323,8 +326,14 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if   defined( GRID1x1 )
-#if   defined( NESTED_CH ) || defined( NESTED_NA ) 
+!-----------------------------------------------------------------------
+! Prior to 12/18/09:
+! Also need to RETURN for 0.5 x 0.666 nested grid simulations
+! (mpb, bmy, 12/18/09)
+!#if   defined( GRID1x1 )
+!-----------------------------------------------------------------------
+#if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
+#if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
       RETURN

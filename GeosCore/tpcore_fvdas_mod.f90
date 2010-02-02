@@ -1,4 +1,4 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.3 2009/12/03 17:01:18 ccarouge Exp $
+! $Id: tpcore_fvdas_mod.f90,v 1.4 2010/02/02 16:57:51 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -694,20 +694,6 @@ CONTAINS
     
     if (advec_consrv_opt == 0) then
           
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit DO loops to facilitate
-       ! OpenMP parallelization (bmy, 12/5/08)
-       !do ik = 1, km
-       !   
-       !   delp2(:,:,ik) =  &
-       !        dap(ik) +  &
-       !        (dbk(ik) * (ps1(:,:) +  &
-       !        dps_ctm(:,:)))
-       !     
-       !end do
-       !----------------------------------------------------------------
-          
        !$OMP PARALLEL DO           &
        !$OMP DEFAULT( SHARED     ) &
        !$OMP PRIVATE( IK, IJ, IL )
@@ -727,19 +713,6 @@ CONTAINS
     else if ((advec_consrv_opt == 1) .or.  &
          (advec_consrv_opt == 2)) then
         
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit DO loops to facilitate
-       ! OpenMP parallelization (bmy, 12/5/08)
-       !do il = 1, im
-       !   
-       !   delp2(:,:,ik) =  &
-       !        dap(ik) +  &
-       !        (dbk(ik) * ps2(:,:))
-       !   
-       !end do
-       !----------------------------------------------------------------
-
        !$OMP PARALLEL DO           &
        !$OMP DEFAULT( SHARED     ) &
        !$OMP PRIVATE( IK, IJ, IL )
@@ -926,12 +899,6 @@ CONTAINS
     DO iq=1,nq
        
        ! Calculate fluxes for diag. (ccc, 11/20/08)
-       !--------------------------------------------------------------
-       ! Prior to 12/11/08:
-       ! Set with J1P and J2P for extended polar cap (bmy, 12/11/08)
-       !js2g0  = max(2,jfirst)          !  No ghosting
-       !jn2g0  = min(jm-1,jlast)        !  No ghosting
-       !--------------------------------------------------------------
        JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
        JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
 
@@ -1435,28 +1402,6 @@ CONTAINS
 !   Compute vertical mass flux from mass conservation.
 !   --------------------------------------------------
     
-    !---------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! Need to add explicit IJ and IL loops for OpenMP parallelization
-    ! (bmy, 12/5/08)
-    ! 
-    !wz(:,:,k1) =  &
-    !     dpi(:,:,k1) -  &
-    !     (dbk(k1) * dps_ctm(i1:i2,ju1:j2))
-    !
-    !wz(:,:,k2) = 0.0d0
-    !
-    !
-    !do ik = k1 + 1, k2 - 1
-    !   
-    !   wz(:,:,ik) =  &
-    !        wz (:,:,ik-1) +  &
-    !        dpi(:,:,ik)   -  &
-    !        (dbk(ik) * dps_ctm(i1:i2,ju1:j2))
-    !
-    !end do
-    !---------------------------------------------------------------------
-
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( IJ, IL )
@@ -1727,24 +1672,6 @@ CONTAINS
     !     Begin execution.
     !     ----------------
     
-    !----------------------------------------------------------------
-    ! Prior to 12/5/08
-    ! Now add explicit IJ and IK loops for OpenMP parallelization
-    ! (bmy, 12/5/08)
-    !do i = 1, i2
-    !   qtmp(i,:,:) = qq1(i,:,:)
-    !enddo
-    !
-    !do il = -i2/3, 0
-    !   qtmp(il,:,:) = qq1(i2+il,:,:)
-    !enddo
-    !
-    !do il = i2+1,i2+i2/3
-    !   qtmp(il,:,:) = qq1(il-i2,:,:)
-    !enddo
-    ! IK loop was removed. (ccc, 4/1/09)
-    !----------------------------------------------------------------
-
     do ij = julo, jhi
        do i = 1, i2
           qtmp(i,ij) = qq1(i,ij)
@@ -1840,18 +1767,6 @@ CONTAINS
           end do
        end do
           
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08
-       ! Now add explicit IJ and IK loops for OpenMP parallelization
-       ! (bmy, 12/5/08)
-       !qqu(i1:i2,ju1:j2,:) =  &
-       !     qtmp(i1:i2,ju1:j2,:) + (0.5d0 * qqu(i1:i2,ju1:j2,:))
-       !
-       !qqv(i1:i2,ju1:j2,:) =  &
-       !     qtmp(i1:i2,ju1:j2,:) + (0.5d0 * qqv(i1:i2,ju1:j2,:))
-       ! IK loop was removed. (ccc, 4/1/09)
-       !----------------------------------------------------------------
-
        do ij = ju1, j2
        do il = i1,  i2
           qqu(il,ij) =  &
@@ -2347,38 +2262,6 @@ CONTAINS
     crx(:,:) = 0.0d0
     cry(:,:) = 0.0d0
 
-!-----------------------------------------------------------------------------
-! Prior to 12/4/08:
-! We need to add an outer IK loop for OpenMP parallelization.  
-! Preserve original code here! (bmy, 12/4/08)
-!!   -----------------------------------
-!!   Calculate E-W horizontal mass flux.
-!!   -----------------------------------
-!
-!    do ij = j1p, j2p
-!    
-!       crx(:,ij,:) =  &
-!            xmass(:,ij,:) / pu(:,ij,:)
-!    
-!    end do
-!
-!
-!!   -----------------------------------
-!!   Calculate N-S horizontal mass flux.
-!!   -----------------------------------
-!
-!    do ij = j1p, j2p+1
-!       
-!       cry(:,ij,:) =  &
-!            ymass(:,ij,:) /  &
-!            ((0.5d0 * cose(ij)) *  &
-!            (delpm(:,ij,:) + delpm(:,ij-1,:)))
-!       
-!    end do
-! The IK loop was moved outside the subroutine. (ccc, 4/1/09)
-!-----------------------------------------------------------------------------
-
-
 !      ---------------------------------------------
 !      Calculate E-W and N-S horizontal mass fluxes.
 !      ---------------------------------------------
@@ -2489,42 +2372,6 @@ CONTAINS
 !   Begin execution.
 !   ----------------
 
-!------------------------------------------------------------------------------
-! Prior to 12/4/08:
-! We need to add an outer IK loop for OpenMP parallelization.  
-! Preserve original code here! (bmy, 12/4/08)
-!   -------------------------
-!   Calculate N-S divergence.
-!!   -------------------------
-!
-!    do ij = j1p, j2p
-!
-!       dpi(:,ij,:) =  &
-!            (ymass(:,ij,:) - ymass(:,ij+1,:)) *  &
-!            geofac(ij)
-!
-!    end do
-!
-!
-!!     -------------------------
-!!     Calculate E-W divergence.
-!!     -------------------------
-!
-!    do ij = j1p, j2p
-!       do il = i1, i2-1
-!          
-!          dpi(il,ij,:) =  &
-!               dpi(il,ij,:) +  &
-!               xmass(il,ij,:) - xmass(il+1,ij,:)
-!
-!       end do
-!       dpi(i2,ij,:) =  &
-!            dpi(i2,ij,:) +  &
-!            xmass(i2,ij,:) - xmass(1,ij,:)
-!    end do
-! IK loop was moved outside the subroutine (ccc, 4/1/09)
-!------------------------------------------------------------------------------
-
 !      -------------------------
 !      Calculate N-S divergence.
 !      -------------------------
@@ -2567,15 +2414,6 @@ CONTAINS
 !       Polar cap enlarged:  copy dpi to polar ring.
 !       --------------------------------------------
        
-       !--------------------------------------------------------------
-       ! Prior to 12/4/08: 
-       ! We need to add an outer IK loop for OpenMP parallelization
-       ! Preserve original code here! (bmy, 12/4/08)
-       !dpi(:,ju1+1,:) = dpi(:,ju1,:)
-       !dpi(:,j2-1,:)  = dpi(:,j2,:)
-       ! IK loop was moved outside the subroutine (ccc, 4/1/09)
-       !--------------------------------------------------------------
-
           dpi(:,ju1+1) = dpi(:,ju1)
           dpi(:,j2-1)  = dpi(:,j2)
     end if
@@ -2800,56 +2638,6 @@ CONTAINS
     if (j1p == ju1_gl+1) then
 !   ====================
 
-!------------------------------------------------------------------------------
-! Prior to 12/4/08:
-! We need to add outer IK loops OpenMP parallelization.  
-! Preserve original code here! (bmy, 12/4/08)
-!!       ---------------------------------------------
-!!       Polar Cap NOT Enlarged:
-!!       Get cross terms for N-S horizontal advection.
-!!       ---------------------------------------------
-!
-!!      ==================
-!       if (ju1 == ju1_gl) then
-!!      ==================
-!
-!          do il = i1, i2d2
-!
-!             va(il,ju1,:) =  &
-!                  0.5d0 * (cry(il,ju1+1,:) - cry(il+i2d2,ju1+1,:))
-!
-!             va(il+i2d2,ju1,:) = -va(il,ju1,:)
-!
-!          end do
-!
-!!      ======
-!       end if
-!!      ======
-!
-!
-!!      ================
-!       if (j2 == j2_gl) then
-!!      ================
-!
-!          do il = i1, i2d2
-!
-!             va(il,j2,:) =  &
-!                  0.5d0 * (cry(il,j2,:) - cry(il+i2d2,j2-1,:))
-!
-!             va(il+i2d2,j2,:) = -va(il,j2,:)
-!
-!          end do
-!
-!!      ======
-!       end if
-!!      ======
-!
-!!   ======
-!    end if
-!!   ======
-! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-!------------------------------------------------------------------------------
-
 !      ---------------------------------------------
 !      Polar Cap NOT Enlarged:
 !      Get cross terms for N-S horizontal advection.
@@ -2995,24 +2783,6 @@ CONTAINS
     ! Zero output array
     adx = 0d0
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add outer IJ and IK loops for OpenMP parallelization.
-    ! Preserve original code here. (bmy, 12/5/08)
-    !do il=1,i2
-    !   qtmp(il,:,:) = qqv(il,:,:)
-    !enddo
-    !  
-    !do il=-i2/3,0
-    !   qtmp(il,:,:) = qqv(i2+il,:,:)
-    !enddo
-    !
-    !do il=i2+1,i2+i2/3
-    !   qtmp(il,:,:) = qqv(il-i2,:,:)
-    !enddo
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
-
        do ij = julo, jhi
   
           do il=1,i2
@@ -3149,20 +2919,6 @@ CONTAINS
       
     if (ju1 == ju1_gl) then
        
-       !---------------------------------------------------------------
-       ! Prior to 12/4/08:
-       ! We need to rewrite the DO loop below for OpenMP.  
-       ! Preserve original code here! (bmy, 12/4/08)
-       !adx(i1:i2,ju1,:) = 0.0d0
-       !  
-       !if (j1p /= ju1_gl+1) then
-       !     
-       !   adx(i1:i2,ju1+1,:) = 0.0d0
-       !     
-       !end if
-       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-       !---------------------------------------------------------------
-
           adx(i1:i2,ju1) = 0.0d0
          
           if (j1p /= ju1_gl+1) then
@@ -3175,20 +2931,6 @@ CONTAINS
       
       
     if (j2 == j2_gl) then
-
-       !---------------------------------------------------------------
-       ! Prior to 12/4/08:
-       ! We need to rewrite the DO loop below for OpenMP.  
-       ! Preserve original code here! (bmy, 12/4/08)
-       !adx(i1:i2,j2,:) = 0.0d0
-       !  
-       !if (j1p /= ju1_gl+1) then
-       !     
-       !   adx(i1:i2,j2-1,:) = 0.0d0
-       !     
-       !end if
-       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-       !---------------------------------------------------------------
 
           adx(i1:i2,j2) = 0.0d0
          
@@ -3459,21 +3201,6 @@ CONTAINS
        if (ju1 == ju1_gl) then
 !      ==================
 
-          !-----------------------------------------------------------------
-          ! Prior to 12/4/08:
-          ! We need to add an outer IK loop for OpenMP parallelization
-          ! Preserve original code here (bmy, 12/4/08)
-          !do il = i1, i2d2
-          !   do inb = 1, 2
-          !       
-          !      qquwk(il,     ju1-inb,:) = qqu(il+i2d2,ju1+inb,:)
-          !      qquwk(il+i2d2,ju1-inb,:) = qqu(il,     ju1+inb,:)
-          !       
-          !   end do
-          !end do
-          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-          !-----------------------------------------------------------------
-
           do il = i1, i2d2
              do inb = 1, 2
                  
@@ -3492,21 +3219,6 @@ CONTAINS
 !      ================
        if (j2 == j2_gl) then
 !      ================
-
-          !-----------------------------------------------------------------
-          ! Prior to 12/4/08:
-          ! We need to add an outer IK loop for OpenMP parallelization
-          ! Preserve original code here (bmy, 12/4/08)
-          !do il = i1, i2d2
-          !   do inb = 1, 2
-          !       
-          !      qquwk(il,     j2+inb,:) = qqu(il+i2d2,j2-inb,:)
-          !      qquwk(il+i2d2,j2+inb,:) = qqu(il,     j2-inb,:)
-          !       
-          !   end do
-          !end do
-          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-          !-----------------------------------------------------------------
 
           do il = i1, i2d2
              do inb = 1, 2
@@ -3620,10 +3332,6 @@ CONTAINS
           sumsp = 0.0d0
           sumnp = 0.0d0
             
-          !------------------------------
-          ! Prior to 12/11/08:
-          !if (j1p /= ju1_gl+1) then
-          !------------------------------
           if ( IS_EXT_POLAR_CAP ) then
 
              ! For a 2-latitude polar cap (S. Pole + next Northward latitude)
@@ -3649,10 +3357,6 @@ CONTAINS
           sumsp = sumsp / i2_gl
           sumnp = sumnp / i2_gl
           
-          !------------------------------
-          ! Prior to 12/11/08:
-          !if (j1p /= ju1_gl+1) then
-          !------------------------------
           if ( IS_EXT_POLAR_CAP ) then
              
              ! For a 2-latitude polar cap (S. Pole + next Northward latitude)
@@ -3877,13 +3581,6 @@ CONTAINS
 
              end if
 
-             !---------------------------------------------------------------
-             ! Prior to 12/5/08:
-             ! We need to write this as an explicit loop over IL
-             ! to facilitate OpenMP parallelization.  Preserve original
-             ! code here. (bmy, 12/5/08)
-             !fx(i1:i2,ij,ik) = fx(i1:i2,ij,ik) * xmass(i1:i2,ij,ik)
-             !---------------------------------------------------------------
              do il = i1, i2  
                 fx(il,ij) = fx(il,ij) * xmass(il,ij)
              enddo
@@ -3947,13 +3644,6 @@ CONTAINS
 
              end do
 
-             !---------------------------------------------------------------
-             ! Prior to 12/5/08:
-             ! We need to write this as an explicit loop over IL
-             ! to facilitate OpenMP parallelization.  Preserve original
-             ! code here. (bmy, 12/5/08)
-             !fx(i1:i2,ij,ik) = pu(i1:i2,ij,ik) * fx(i1:i2,ij,ik)
-             !---------------------------------------------------------------
              do il = i1, i2
                 fx(il,ij) = pu(il,ij) * fx(il,ij)
              enddo
@@ -4078,21 +3768,6 @@ CONTAINS
           end do
        end do
 
-    !--------------------------------------------------------------------
-    ! Prior to 12/4/08:
-    ! We need to add outer IK and IJ loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/4/08)
-    !! Populate ghost zones of dcx (ccc, 11/20/08)
-    !do il = -i2/3, 0
-    !   dcx(il,:,:) = dcx(i2+il,:,:)
-    !enddo
-    !  
-    !do il = i2+1, i2+i2/3
-    !   dcx(il,:,:) = dcx(il-i2,:,:)
-    !enddo
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !--------------------------------------------------------------------
-
     ! Populate ghost zones of dcx (ccc, 11/20/08)
 
     do ij = julo, jhi
@@ -4184,38 +3859,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 ! 
     ! Scalars
-    !-------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! Remove this (explanation below).
-    !LOGICAL,             SAVE :: first = .true.
-    !-------------------------------------------------------------------------
-
     INTEGER                   :: il
     INTEGER                   :: ilm1
     INTEGER                   :: lenx
     REAL*8                    :: r13, r23
     REAL*8                    :: rval
  
-    !------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! NOTE: It is a bad idea to make these arrays allocatable.  The way this
-    ! was implemented, it tried to create these arrays once for each thread.
-    ! This led to a segmentation fault.  Better to just define these arrays
-    ! with the appropriate dimensions.  Also note, we don't really need to
-    ! use SAVE since these arrays are being reset to zero on each call
-    ! to Fxppm. (bmy, 12/5/08)
-    !
-    !! Arrays
-    !REAL*8, ALLOCATABLE, SAVE :: a6(:)
-    !REAL*8, ALLOCATABLE, SAVE :: al(:)
-    !REAL*8, ALLOCATABLE, SAVE :: ar(:)
-    !REAL*8, ALLOCATABLE, SAVE :: a61(:)
-    !REAL*8, ALLOCATABLE, SAVE :: al1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: ar1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: dcxi1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: qqvi1(:)
-    !------------------------------------------------------------------------
-
     ! Arrays
     REAL*8                    :: a6( ILO:IHI )
     REAL*8                    :: al( ILO:IHI )
@@ -4229,33 +3878,6 @@ CONTAINS
     !     ----------------
     !     Begin execution.
     !     ----------------
-
-!------------------------------------------------------------------------------
-! Prior to 12/5/08:
-! Remove the ALLOCATE command, since we are now declaring these as regular
-! subroutine arrays and not making them allocatable. (bmy, 12/5/08)
-!!   ==========
-!    if (first) then
-!!   ==========
-!         
-!       first = .false.
-!         
-!       Allocate (a6(ilo:ihi))
-!       Allocate (al(ilo:ihi))
-!       Allocate (ar(ilo:ihi))
-!       a6 = 0.0d0; al = 0.0d0; ar = 0.0d0
-!         
-!       Allocate (a61((ihi-1)-(ilo+1)+1))
-!       Allocate (al1((ihi-1)-(ilo+1)+1))
-!       Allocate (ar1((ihi-1)-(ilo+1)+1))
-!       a61 = 0.0d0; al1 = 0.0d0; ar1 = 0.0d0
-!         
-!       Allocate (dcxi1((ihi-1)-(ilo+1)+1))
-!       Allocate (qqvi1((ihi-1)-(ilo+1)+1))
-!       dcxi1 = 0.0d0; qqvi1 = 0.0d0
-!       
-!    end if 
-!------------------------------------------------------------------------------
      
     ! Zero arrays (bmy, 12/5/08)
     a6    = 0.0d0
@@ -4761,16 +4383,6 @@ CONTAINS
          
     end if
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add an outer IK loop for OpenMP parallelization.  
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = j1p, j2p+1
-    !   qqv(i1:i2,ij,:) = qqv(i1:i2,ij,:) * ymass(i1:i2,ij,:)
-    !end do
-    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
-
     do ij = j1p, j2p+1
        qqv(i1:i2,ij) = qqv(i1:i2,ij) * ymass(i1:i2,ij)
     end do
@@ -4779,21 +4391,6 @@ CONTAINS
        do ij = i1,i2
           fy(ij,j1p:j2p+1) = qqv(ij,j1p:j2p+1) * geofac(j1p:j2p+1)
        enddo
-
-    !--------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add an outer IK loop for OpenMP parallelization.  
-    ! Preserve original code here (bmy, 12/5/08)
-    !!... meridional flux update
-    !do ij = j1p, j2p
-    !     
-    !   dq1(i1:i2,ij,:) =  &
-    !        dq1(i1:i2,ij,:) +  &
-    !        (qqv(i1:i2,ij,:) - qqv(i1:i2,ij+1,:)) * geofac(ij)
-    !     
-    !end do
-    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
-    !--------------------------------------------------------------------
 
     !... meridional flux update
     do ij = j1p, j2p
@@ -5261,16 +4858,6 @@ CONTAINS
                 
              end do
 
-          !----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! We need to add and outer IK loop for OpenMP parallelization.
-          ! Preserve original code here (bmy, 12/5/08)
-          !do il = i1 + i2d2, i2
-          !   dcy(il,ju1,:) = -dcy(il-i2d2,ju1,:)
-          !end do
-          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-          !----------------------------------------------------------------
-          
           do il = i1 + i2d2, i2
              dcy(il,ju1) = -dcy(il-i2d2,ju1)
           end do
@@ -5316,16 +4903,6 @@ CONTAINS
                      Sign (Min (Abs (tmp), pmax, pmin), tmp)
 
              end do
-
-          !----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! We need to add and outer IK loop for OpenMP parallelization.
-          ! Preserve original code here (bmy, 12/5/08)
-          !do il = i1 + i2d2, i2
-          !   dcy(il,j2,:) = -dcy(il-i2d2,j2,:)
-          !end do
-          ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-          !----------------------------------------------------------------
 
           do il = i1 + i2d2, i2
              dcy(il,j2) = -dcy(il-i2d2,j2)
@@ -5451,18 +5028,6 @@ CONTAINS
     r13 = 1.0d0 / 3.0d0
     r23 = 2.0d0 / 3.0d0
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = julo + 1, jhi
-    !   al(i1:i2,ij,:) =  &
-    !        0.5d0 * (qqu(i1:i2,ij-1,:) + qqu(i1:i2,ij,:)) +  &
-    !        (dcy(i1:i2,ij-1,:) - dcy(i1:i2,ij,:)) * r13
-    !end do
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
-
     do ij = julo+1, jhi
     do il = ilo,    ihi
        al(il,ij) =  &
@@ -5472,37 +5037,12 @@ CONTAINS
     end do
     end do
 
-    !-------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    ! NOTE: This DO loop doesn't parallelize, so leave it alone (bmy, 12/5/08)
-    !do ij = julo, jhi - 1
-    !   ar(i1:i2,ij,:) = al(i1:i2,ij+1,:)
-    !end do
-    !-------------------------------------------------------------------------
-
 !   =======================
     call Do_Fyppm_Pole_I2d2 &
 !   =======================
          (al, ar, &
           i1_gl, i2_gl, ju1_gl, j2_gl, &
           ilo, ihi, julo, jhi, i1, i2, ju1, j2)
-
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = julo + 1, jhi - 1
-    !
-    !   a6(i1:i2,ij,:) =  &
-    !        3.0d0 *  &
-    !        (qqu(i1:i2,ij,:) + qqu(i1:i2,ij,:) -  &
-    !        (al(i1:i2,ij,:) + ar(i1:i2,ij,:)))
-    !   
-    !end do
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
 
     do ij = julo+1, jhi-1
     do il = ilo,    ihi
@@ -5523,8 +5063,6 @@ CONTAINS
           lenx = 0
 
           do ij = julo + 1, jhi - 1
-             !=== Prior to 12/5/08
-             !do il = i1, i2
              do il = ilo, ihi
 
                 lenx = lenx + 1
@@ -5546,8 +5084,6 @@ CONTAINS
           lenx = 0
 
           do ij = julo + 1, jhi - 1
-             !=== Prior to 12/5/08
-             !do il = i1, i2
              do il = ilo, ihi
 
                 lenx = lenx + 1
@@ -5567,8 +5103,6 @@ CONTAINS
 
           ijm1 = ij - 1
 
-          !=== Prior to 12/5/08
-          !do il = i1, i2
           do il = ilo, ihi
 
              if (cry(il,ij) > 0.0d0) then
@@ -5665,18 +5199,6 @@ CONTAINS
 
     i2d2 = i2_gl / 2
 
-
-
-       !-----------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! We need to add an IK loop for OpenMP parallelization.
-       ! Preserve original code here. (bmy, 12/5/08)
-       !do il = i1, i2d2
-       !   al(il,     ju1,:) = al(il+i2d2,ju1+1,:)
-       !   al(il+i2d2,ju1,:) = al(il,     ju1+1,:)
-       !end do
-       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-       !-----------------------------------------------------------
 
        do il = i1, i2d2
           al(il,     ju1) = al(il+i2d2,ju1+1)
@@ -6039,20 +5561,6 @@ CONTAINS
 !         ============
        end if
 
-
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !dca(:,:) = dc(:,ij,:)  ! the monotone slope
-       !wza(:,:) = wz(:,ij,:)
-       !
-       !dlp1a(:,:) = delp1(i1:i2,ij,:)
-       !qq1a (:,:) = qq1  (i1:i2,ij,:)
-       !----------------------------------------------------------------
-
        do ik = k1, k2
        do il = i1, i2
           dca  (il,ik) = dc   (il,ij,ik)  ! the monotone slope
@@ -6173,17 +5681,6 @@ CONTAINS
           end do
        end do
 
-       !-----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       !  Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !do ik = k1, k2m1
-       !   ar(:,ik) = al(:,ik+1)
-       !end do         
-       !-----------------------------------------------------------------
-
        do ik = k1, k2m1
        do il = i1, i2
           ar(il,ik) = al(il,ik+1)
@@ -6243,17 +5740,6 @@ CONTAINS
 !         -------------------------------
 !         KORD=7, Huynh's 2nd constraint.
 !         -------------------------------
-
-          !-----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! Replace these with explicit loops below to facilitate
-          ! OpenMP parallelization.  Preserve original code here.
-          ! (bmy, 12/5/08)
-          !
-          !do ik = k1p1, k2m1
-          !   dca(:,ik) = dpi(:,ij,ik) - dpi(:,ij,ik-1)
-          !end do
-          !-----------------------------------------------------------------
 
           do ik = k1p1, k2m1
           do il = i1,   i2
@@ -6373,30 +5859,7 @@ CONTAINS
                
           end do
        end do
-         
-         
-       !-----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !do ik = k1, k2m1
-       !   dca(:,ik+1) = wza(:,ik) * dca(:,ik+1)
-       !   !.sds.. save vertical flux for species as diagnostic
-       !   fz(i1:i2,ij,ik+1) = dca(:,ik+1)
-       !end do
-       !
-       !dq1(i1:i2,ij,k1) = dq1(i1:i2,ij,k1) - dca(:,k1p1)
-       !dq1(i1:i2,ij,k2) = dq1(i1:i2,ij,k2) + dca(:,k2)
-       !
-       !do ik = k1p1, k2m1
-       !     
-       !   dq1(i1:i2,ij,ik) =  &
-       !        dq1(i1:i2,ij,ik) + dca(:,ik) - dca(:,ik+1)
-       !     
-       !end do
-       !-----------------------------------------------------------------
+                  
        do ik = k1, k2m1
        do il = i1, i2
           dca(il,ik+1) = wza(il,ik) * dca(il,ik+1)

@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: transport_mod.f,v 1.3 2010/02/02 16:57:51 bmy Exp $
       MODULE TRANSPORT_MOD
 !
 !******************************************************************************
@@ -231,8 +231,12 @@
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
 
+      !------------------------------------------------------------------
+      ! Prior ot 12/18/09:
       ! Save boundary conditions (global grid) for future nested run
-      IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+      ! moved to main.f
+      !IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
+      !------------------------------------------------------------------
        
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -886,6 +890,7 @@
       ! for diagnostics.  Flip in the vertial for TPCORE.
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
+
 
       ! Do the advection
       CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,

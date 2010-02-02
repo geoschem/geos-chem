@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.11 2010/01/20 19:14:59 bmy Exp $
+# $Id: Makefile_header.mk,v 1.12 2010/02/02 16:57:55 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -27,10 +27,13 @@
 # F90        Contains the Fortran compilation commands
 # FREEFORM   Contains the command to force F90 "free format" compilation
 # LD         Contains the command to link to libraries & make executable
+# LINK       Contains the commands to link to GEOS-Chem built libraries
 # R8         Contains the command to force REAL -> REAL*8
 # SHELL      Contains the default Unix shell to use when building code
 #                                                                             .
-# FFLAGS is a local variables that is not returned to the "outside world".
+# FFLAGS is a local variable that is not returned to the "outside world", 
+# but is only used locally.  COMPILER, HDF5, and OMP are all input via the
+# command line or via environment variables.
 #                                                                             .
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%       NOTE: The IBM/XLF compiler has not been validated yet.         %%%
@@ -61,14 +64,46 @@
 #  11 Dec 2009 - R. Yantosca - Now define SHELL here and export to other 
 #                              Makefiles, so as to have a single place where
 #                              the Unix shell name is defined.
+#  21 Dec 2009 - R. Yantosca - Add H5I and H5L variables to specify the
+#                              HDF5 library and include paths.  Also set
+#                              the default to not link to the HDF5 libraries.
+#  21 Dec 2009 - R. Yantosca - Now pass LINK back to the outside world, so
+#                              that the Makefile that builds the executable
+#                              can reference it.
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
+#  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
+#  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
-#------------------------------------------------------------------------------
-# Set default values
-#------------------------------------------------------------------------------
+#==============================================================================
+# Default settings for Makefile options
+#==============================================================================
+
+# IFORT is default compiler
+ifndef COMPILER
+COMPILER = ifort
+endif
+
+# OpenMP is turned on by default
+ifndef OMP
+OMP = yes
+endif
+
+# HDF5 output is turned off by defautl
+ifndef HDF5
+HDF5 = no
+endif
+
+# TOMAS runs on single processor (at least for now!)
+ifeq ($(TOMAS),yes)
+OMP = no
+endif
+
+#==============================================================================
+# Default values for variables
+#==============================================================================
 
 # If your system uses "/bin/sh", then uncomment this line!
 SHELL = /bin/sh
@@ -76,19 +111,23 @@ SHELL = /bin/sh
 # If your system uses "/bin/bash", then uncomment this line!
 #SHELL = /bin/bash
 
-# Make ifort the default compiler
-ifndef COMPILER
-COMPILER = ifort
+# If you have HDF5 installed on your system, then define both the include
+# (H5I) and library paths (H5L) here!  Otherwise leave these blank.
+H5I = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/include/hdf5
+H5L = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib
+
+# Link to library files created from code in the various subdirs
+# NOTE: -lGeosUtil should always be last!
+LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil
+
+# Add the HDF5 library link commands if necessary
+ifeq ($(HDF5),yes) 
+LINK += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
 endif
 
-# Turn OpenMP on by default
-ifndef OMP
-OMP = yes
-endif
-
-#------------------------------------------------------------------------------
+#==============================================================================
 # IFORT compilation options (default)
-#------------------------------------------------------------------------------
+#==============================================================================
 ifeq ($(COMPILER),ifort) 
 
 # Turn on -traceback option by default for debugging runs
@@ -98,123 +137,162 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS = -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian
+FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian
 endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
-FFLAGS += -openmp -Dmultitask
+FFLAGS  += -openmp -Dmultitask
+endif
+
+# Also add TOMAS aerosol microphysics option
+ifeq ($(TOMAS),yes) 
+FFLAGS  += -DTOMAS
 endif
 
 # Add special IFORT optimization commands
 ifdef IPO
-FFLAGS += -ipo -static
+FFLAGS  += -ipo -static
 endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
-FFLAGS += -CB
+FFLAGS  += -CB
 endif
 
 # Also add traceback option
 ifdef TRACEBACK
-FFLAGS += -traceback
+FFLAGS  += -traceback
+endif
+
+# Include options (i.e. for finding *.h, *.mod files)
+INCLUDE  = -I$(HDR) -module $(MOD)
+
+# Also append HDF5 include commands if necessary
+ifeq ($(HDF5),yes)
+INCLUDE += -DUSE_HDF5 -I$(H5I)
 endif
 
 CC       =
-F90      = ifort $(FFLAGS) -I$(HDR) -module $(MOD)
-LD       = ifort $(FFLAGS) -L$(LIB)
+F90      = ifort $(FFLAGS) $(INCLUDE)
+LD       = ifort $(FFLAGS)
 FREEFORM = -free
 R8       = -r8
 
 endif
 
-#------------------------------------------------------------------------------
+#==============================================================================
 # Portland Group (PGI) compilation options
-#------------------------------------------------------------------------------
+#==============================================================================
 ifeq ($(COMPILER),pgi) 
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG 
-FFLAGS = -byteswapio -Mpreprocess -Bstatic -g -O0 
+FFLAGS   = -byteswapio -Mpreprocess -Bstatic -g -O0 
 else
-FFLAGS = -byteswapio -Mpreprocess -Bstatic -fast 
+FFLAGS   = -byteswapio -Mpreprocess -Bstatic -fast 
 endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
-FFLAGS += -mp -Mnosgimp -Dmultitask
+FFLAGS  += -mp -Mnosgimp -Dmultitask
 endif
 
 # Add option for suppressing PGI non-uniform memory access (numa) library 
 ifeq ($(NONUMA),yes) 
-FFLAGS += -mp=nonuma
+FFLAGS  += -mp=nonuma
+endif
+
+# Also add TOMAS aerosol microphysics option
+ifeq ($(TOMAS),yes) 
+FFLAGS  += -DTOMAS
 endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
-FFLAGS += -C
+FFLAGS  += -C
+endif
+
+# Include options (i.e. for finding *.h, *.mod files)
+INCLUDE  = -I$(HDR) -module $(MOD)
+
+# Also append HDF5 include commands if necessary
+ifeq ($(HDF5),yes)
+INCLUDE += -DUSE_HDF5 -I$(H5I)
 endif
 
 CC       = gcc
-F90      = pgf90 $(FFLAGS) -I$(HDR) -module $(MOD)
-LD       = pgf90 $(FFLAGS) -L$(LIB)
+F90      = pgf90 $(FFLAGS) $(INCLUDE)
+LD       = pgf90 $(FFLAGS)
 FREEFORM = -Mfree
 R8       = -Mextend -r8
 
 endif
 
-#------------------------------------------------------------------------------
+#==============================================================================
 # SunStudio compilation options
-#------------------------------------------------------------------------------
+#==============================================================================
 ifeq ($(COMPILER),sun) 
 
 # Pick compiler options for debug run or regular run 
 # NOTE: -native builds in proper options for whichever chipset you have!
 ifdef DEBUG 
-FFLAGS = -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
+FFLAGS   = -fpp -g -O0 -stackvar -xfilebyteorder=big16:%all -native
 else
-FFLAGS = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
+FFLAGS   = -fpp -fast -stackvar -xfilebyteorder=big16:%all -native
 endif
 
 # Build Sun for 32-bit platform
 ifdef SUN32
-FFLAGS += -m32
+FFLAGS  += -m32
 else
-FFLAGS += -m64
+FFLAGS  += -m64
 endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
-FFLAGS += -openmp=parallel -Dmultitask
+FFLAGS  += -openmp=parallel -Dmultitask
+endif
+
+# Also add TOMAS aerosol microphysics option
+ifeq ($(TOMAS),yes) 
+FFLAGS  += -DTOMAS
 endif
 
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
-FFLAGS += -C
+FFLAGS  += -C
+endif
+
+# Include options (i.e. for finding *.h, *.mod files)
+INCLUDE  = -I$(HDR) -moddir=$(MOD) -M$(MOD)
+
+# Also append HDF5 include commands if necessary
+ifeq ($(HDF5),yes)
+INCLUDE += -DUSE_HDF5 -I$(H5I)
 endif
 
 CC       =
 #---------------------------------------------------------------
 # If your compiler is under the name "f90", use these lines!
-F90      = f90 $(FFLAGS) -I$(HDR) -moddir=$(MOD) -M$(MOD)
-LD       = f90 $(FFLAGS) -L$(LIB)
+F90      = f90 $(FFLAGS) $(INCLUDE)
+LD       = f90 $(FFLAGS)
 #---------------------------------------------------------------
 # If your compiler is under the name "sunf90", use these lines!
-#F90      = sunf90 $(FFLAGS) -I$(HDR) -moddir=$(MOD) -M$(MOD)
-#LD       = sunf90 $(FFLAGS) -L$(LIB)
+#F90      = sunf90 $(FFLAGS) $(INCLUDE)
+#LD       = sunf90 $(FFLAGS)
 #---------------------------------------------------------------
 FREEFORM = -free
 R8       = -xtypemap=real:64
 
 endif
 
-#------------------------------------------------------------------------------
+#==============================================================================
 # IBM/XLF compilation options
 # NOTE: someone who runs on IBM compiler should check this !!!
-#------------------------------------------------------------------------------
+#==============================================================================
 ifeq ($(COMPILER),xlf) 
 
 # Default compilation options
@@ -234,23 +312,36 @@ endif
 #FFLAGS += -qsmp=omp:opt -WF,-Dmultitask -qthreaded
 #endif
 
+# Also add TOMAS aerosol microphysics option
+ifeq ($(TOMAS),yes) 
+FFLAGS  += -DTOMAS
+endif
+
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS += -C
 endif
 
+# Include options (i.e. for finding *.h, *.mod files)
+INCLUDE  = -I$(HDR) -I $(MOD)
+
+# Also append HDF5 include commands if necessary
+ifeq ($(HDF5),yes)
+INCLUDE += -DUSE_HDF5 -I$(H5I)
+endif
+
 CC       =
-F90      = xlf90_r $(FFLAGS) -I$(HDR) -I$(MOD)
-LD       = xlf90_r $(FFLAGS) -L$(LIB)
+F90      = xlf90_r $(FFLAGS) $(INCLUDE)
+LD       = xlf90_r $(FFLAGS)
 FREEFORM = -qrealsize=8
 R8       = -r8
 
 endif
 
-#------------------------------------------------------------------------------
+#==============================================================================
 # Specify pattern rules for compiliation 
 # (i.e. tell "make" how to compile different types of source code files)
-#------------------------------------------------------------------------------
+#==============================================================================
 %.o : %.f
 	$(F90) -c $<
 %.o : %.F
@@ -262,20 +353,21 @@ endif
 %.o : %.c
 	$(CC) -c $*.c
 
-#------------------------------------------------------------------------------
+#==============================================================================
 # Export global variables so that the main Makefile will see these
-#------------------------------------------------------------------------------
+#==============================================================================
 export CC
 export F90
 export FREEFORM
 export LD
+export LINK
 export R8
 export SHELL
 
 #EOC
-#------------------------------------------------------------------------------
+#==============================================================================
 # Print variables for testing/debugging purposes (uncomment if necessary)
-#------------------------------------------------------------------------------
+#==============================================================================
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########' 
 #	@@echo "compiler: $(COMPILER)"

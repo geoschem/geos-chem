@@ -1,4 +1,4 @@
-! $Id: seasalt_mod.f,v 1.3 2009/11/24 15:03:02 bmy Exp $
+! $Id: seasalt_mod.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
       MODULE SEASALT_MOD
 !
 !******************************************************************************
@@ -695,13 +695,6 @@
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
-      !-----------------------------------------------------------------------
-      ! Prior to 11/23/09:
-      ! The source function is for wet aerosol radius (RH=80%, with a 
-      ! radius twice the size of dry aerosols) so BETHA should be set to 2 
-      ! instead of 1 (jaegle, bec, bmy, 11/23/09)
-      !REAL*8, PARAMETER      :: BETHA = 1.d0
-      !-----------------------------------------------------------------------
       REAL*8, PARAMETER      :: BETHA = 2.d0
 
       ! External functions
@@ -772,22 +765,6 @@
 
             ! Upper edge of IRth bin
             REDGE(R,N) = REDGE(R-1,N) + DR 
-
-!------------------------------------------------------------------------------
-! Prior to 11/23/09:
-!            ! Sea salt base source [kg/m2]
-!            SRC(R,N)  = CONST * SS_DEN( N ) 
-!     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
-!     &           * 10d0**( 1.19d0*
-!     &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
-!     &           / BETHA**2         
-!
-!            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
-!            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
-!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
-!     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
-!     &           /0.65d0)**2))/ BETHA**2  
-!------------------------------------------------------------------------------
 
             !-----------------------------------------------------------
             ! IMPORTANT NOTE!
@@ -1001,19 +978,6 @@
          IRH = MAX(  1, IRH )
          IRH = MIN( 99, IRH )
 
-         !--------------------------------------------------------------------
-         ! Prior to 11/23/09:
-         ! These hygroscopic growth factors are incorrect (bec, bmy, 11/23/09)
-         !! hygroscopic growth factor for sea-salt from Chin et al. (2002)
-         !IF ( IRH < 100 ) HGF = 2.2d0
-         !IF ( IRH < 99  ) HGF = 1.9d0
-         !IF ( IRH < 95  ) HGF = 1.8d0
-         !IF ( IRH < 90  ) HGF = 1.6d0
-         !IF ( IRH < 80  ) HGF = 1.5d0
-         !IF ( IRH < 70  ) HGF = 1.4d0
-         !IF ( IRH < 50  ) HGF = 1.0d0
-         !--------------------------------------------------------------------
-	
          ! Hygroscopic growth factor for sea-salt from Chin et al. (2002)
          ! Updated (bec, bmy, 11/23/09)
          IF ( IRH < 100 ) HGF = 4.8d0

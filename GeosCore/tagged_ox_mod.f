@@ -1,4 +1,4 @@
-! $Id: tagged_ox_mod.f,v 1.3 2009/10/26 20:34:47 bmy Exp $
+! $Id: tagged_ox_mod.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
       MODULE TAGGED_OX_MOD
 !
 !******************************************************************************
@@ -605,11 +605,6 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
             IF ( N == 1 ) CALL GET_REGIONAL_POX( I, J, L, PP )
             
             ! L(Ox) is originally in [1/cm3/s]; convert to [kg] 
-            !----------------------------------------------------------------
-            ! Prior to 10/26/09:
-            ! Only compute loss rate in the stratosphere (dbj, bmy, 10/26/09)
-            !LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM 
-            !----------------------------------------------------------------
             IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                LL = STT(I,J,L,N) * L24H(I,J,L) * BOXVL(I,J,L) * DTCHEM
             ELSE

@@ -1,10 +1,10 @@
-! $Id: epa_nei_mod.f,v 1.2 2009/11/05 15:35:31 phs Exp $
+! $Id: epa_nei_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
       MODULE EPA_NEI_MOD
 !
 !******************************************************************************
 !  Module EPA_NEI_MOD contains variables and routines to read the
 !  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 5/30/06)
+!  (rch, bmy, 11/10/04, 12/18/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -62,7 +62,9 @@
 !  ============================================================================
 !  (1 ) EMISS_EPA       : Driver routine for EPA emissions
 !  (2 ) READ_EPA        : Reads EPA emissions from disk
+!  (2b) READ_EPA_05x0666 : Reads EPA emissions from disk
 !  (3 ) READ_USA_MASK   : Reads USA Mask from disk
+!  (3b) READ_USA_MASK_05x0666 : Reads USA Mask from disk
 !  (4 ) TOTAL_ANTHRO_TG : Prints monthly anthro  emission sums in Tg or Tg C
 !  (5 ) TOTAL_BIOFUEL_TG: Prints monthly biofuel emission sums in Tg or Tg C
 !  (6 ) GET_USA_MASK    : Returns value of USA mask  at a (I,J) location
@@ -95,6 +97,7 @@
 !             doi:10.1029/2006JD007912
 !        (b) Hudman et al., 2008, Geophys. Res. Lett., 35, L04801, 
 !             doi:10.1029/2007GL032393
+!  (8 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -188,11 +191,12 @@
 !
 !******************************************************************************
 !  Subroutine EMISS_EPA_NEI reads all EPA emissions from disk at the start
-!  of a new month. (rch, bmy, 11/10/04, 5/30/06)
+!  of a new month. (rch, bmy, 11/10/04, 12/18/09)
 !
 !  NOTES:
 !  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
+!  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
 !******************************************************************************
 !                               
       ! References to F90 modules
@@ -238,7 +242,11 @@
          CALL INIT_EPA_NEI
 
          ! Read mask over the USA
+#if   defined(GRID05_0666)
+         CALL READ_USA_MASK_05x0666
+#else
          CALL READ_USA_MASK
+#endif
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -276,11 +284,19 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Read weekday data 
+#if defined(GRID05x0666)
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4,
+     &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE,
+     &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6,
+     &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3, 0)
+#else
       CALL READ_EPA( FILENAME,       
      &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4, 
      &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE, 
      &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6, 
      &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3 )
+#endif
 
       !=================================================================
       ! Read EPA weekend average anthropogenic emissions
@@ -302,11 +318,19 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Read weekend data 
+#if defined(GRID05x0666)
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4,
+     &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE,
+     &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6,
+     &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3, 0)
+#else
       CALL READ_EPA( FILENAME,       
      &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4, 
      &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE, 
      &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6, 
      &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3 )
+#endif
 
       !=================================================================
       ! Read EPA weekday average biofuel emissions
@@ -321,11 +345,19 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Read weekday data 
+#if defined(GRID05x0666)
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4,
+     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE,
+     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6,
+     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3, 1)
+#else
       CALL READ_EPA( FILENAME,       
      &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4, 
      &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE, 
      &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6, 
      &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3 )
+#endif
 
       !=================================================================
       ! Read EPA weekend average biofuel emissions
@@ -340,11 +372,19 @@
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
       ! Read weekend data 
+#if defined(GRID05x0666)
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4,
+     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE,
+     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6,
+     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3, 1)
+#else
       CALL READ_EPA( FILENAME,       
      &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4, 
      &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE, 
      &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6, 
      &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3 )
+#endif
 
       !=================================================================
       ! Apply USA Mask (keep emissions over US, zero elsewhere)
@@ -688,6 +728,163 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE READ_EPA_05x0666( FILENAME, NOX, CO, ALK4, ACET, MEK,
+     &                     PRPE,  C3H8, CH2O, C2H6, SO2,  SO4,  NH3, BF)
+!
+!******************************************************************************
+!  Subroutine READ_EPA reads an EPA data file (biomass or anthro) from disk.
+!  The entire file is read through on one pass for better I/O optimization.
+!  (rch, bmy, 7/1/04)
+!
+!  Arguments as Input:
+!  ============================================================================
+!  (1 ) FILENAME (CHARACTER) : Name of anthro or biomass file to read
+!
+!  Arguments as Output:
+!  ============================================================================
+!  (2 ) NOx      (REAL*4   ) : Array for NOx  anthro or biomass data
+!  (3 ) CO       (REAL*4   ) : Array for CO   anthro or biomass data
+!  (4 ) ALK4     (REAL*4   ) : Array for ALK4 anthro or biomass data
+!  (5 ) ACET     (REAL*4   ) : Array for ACET anthro or biomass data
+!  (6 ) MEK      (REAL*4   ) : Array for MEK  anthro or biomass data
+!  (7 ) PRPE     (REAL*4   ) : Array for PRPE anthro or biomass data
+!  (8 ) C3H8     (REAL*4   ) : Array for C3H8 anthro or biomass data
+!  (9 ) CH2O     (REAL*4   ) : Array for CH2O anthro or biomass data
+!  (10) C2H6     (REAL*4   ) : Array for C2H6 anthro or biomass data
+!  (11) NH3      (REAL*4   ) : Array for NH3  anthro or biomass data
+!  (12) SO2      (REAL*4   ) : Array for SO4  anthro or biomass data
+!  (13) SO4      (REAL*4   ) : Array for SO4  anthro or biomass data
+!
+!  NOTES:
+!    (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
+!    (2 ) Now accounts for FSCLYR (phs, 3/17/08)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE BPCH2_MOD,        ONLY : READ_BPCH2, GET_TAU0
+      USE LOGICAL_MOD,      ONLY : LICARTT
+      USE TRANSFER_MOD,     ONLY : TRANSFER_2D
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
+      USE TIME_MOD,         ONLY : GET_YEAR, GET_MONTH
+
+#     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_O3"               ! FSCLYR
+
+      ! Arguments
+      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
+      REAL*4,           INTENT(INOUT) :: NOX(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: CO(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: SO2(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: SO4(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: NH3(IIPAR,JJPAR)
+      INTEGER,          INTENT(IN)    :: BF
+
+      ! Local variables
+      INTEGER                         :: I,  J,  L,  N,  IOS
+      INTEGER                         :: NTRACER,   NSKIP
+      INTEGER                         :: HALFPOLAR, CENTER180
+      INTEGER                         :: SCALEYEAR, BASEYEAR
+      REAL*4                          :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                          :: LONRES,    LATRES
+      REAL*8                          :: ZTAU0,     ZTAU1, XTAU
+      REAL*4                          :: SC(IIPAR,JJPAR)
+      CHARACTER(LEN=20)               :: MODELNAME
+      CHARACTER(LEN=40)               :: CATEGORY
+      CHARACTER(LEN=40)               :: UNIT
+      CHARACTER(LEN=40)               :: RESERVED
+      CHARACTER(LEN=8)                :: CAT
+
+      !=================================================================
+      ! READ_EPA begins here!
+      !=================================================================
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( 'READ_EPA: Reading ', a )
+
+      XTAU = GET_TAU0(GET_MONTH(), 1, 1999)
+
+      CAT = 'ANTHSRCE'
+      IF (BF .EQ. 1) CAT = 'BIOFSRCE'
+
+      CALL READ_BPCH2( FILENAME, CAT, 1, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      NOx(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT, 4, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      CO(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT, 5, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      ALK4(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT, 9, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      ACET(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,10, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      MEK(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,18, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      PRPE(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,19, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      C3H8(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,21, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      C2H6(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,26, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      SO2(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,27, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      SO4(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, CAT,29, XTAU,
+     &    IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      NH3(:,:) = ARRAY(:,:,1)
+
+      ! Get/Apply annual scalar factor (amv, 08/24/07)
+      IF ( FSCALYR < 0 ) THEN
+         SCALEYEAR = GET_YEAR()
+      ELSE
+         SCALEYEAR = FSCALYR
+      ENDIF
+
+      BASEYEAR = 1999
+      IF ( LICARTT ) BASEYEAR = 2004
+
+      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
+      NOx(:,:) = NOx(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 72, BASEYEAR, SCALEYEAR, SC)
+      CO(:,:) = CO(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
+      SO2(:,:) = SO2(:,:) * SC(:,:)
+
+      CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
+      SO4(:,:) = SO4(:,:) * SC(:,:)
+
+      ! Return to calling program
+      END SUBROUTINE READ_EPA_05x0666
+
+!------------------------------------------------------------------------------
+
       SUBROUTINE READ_USA_MASK
 !
 !******************************************************************************
@@ -767,6 +964,88 @@
 
       ! Return to calling program
       END SUBROUTINE READ_USA_MASK
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_USA_MASK_05x0666
+!
+!******************************************************************************
+!  Subroutine READ_USA_MASK reads the USA mask from disk.   The USA mask is
+!  the fraction of the grid box (I,J) which lies w/in the continental USA.
+!  (rch, bmy, 11/10/04, 10/3/05)
+!
+!  NOTES:
+!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
+!       regional inventories are used. From README file:
+!       "the mask files have been updated to deal correctly with the boxes on
+!       the border. They are simply set to include boxes where EPA emissions
+!       are non-zero. We assume that BRAVO and CAC are also used when EPA is
+!       used. If you use neither BRAVO nor CAC, you should use the older masks
+!       to avoid double counting emissions along the borders. Masks for the
+!       case that either BRAVO or CAC (but not both) is used w/ EPA have not
+!       been produced" (phs, 12/23/08)
+!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
+!       the NA window, are available) nested NA runs.
+!******************************************************************************
+!
+      ! Reference to F90 modules
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
+      USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"  ! Size parameters
+
+      ! Local variables
+      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=14 ) :: MASK_DIR
+
+      !=================================================================
+      ! READ_USA_MASK begins here!
+      !=================================================================
+
+      ! File name
+      IF ( LCAC .AND. LBRAVO ) THEN
+         MASK_DIR = 'EPA_NEI_200806'
+      ELSE IF ( LCAC .OR. LBRAVO ) THEN
+         WRITE( 6, * ) '!! WARNING !! : WITH EPA, EITHER NONE OR ' //
+     $        ' BOTH BRAVO AND CAC INVENTORIES SHOULD BE USED !!!'
+         MASK_DIR = 'EPA_NEI_200806'
+      ELSE
+         MASK_DIR = 'EPA_NEI_200411'
+      ENDIF
+
+#if   defined( NESTED_NA )
+      MASK_DIR = 'EPA_NEI_200411'
+#endif
+
+
+      FILENAME = TRIM( DATA_DIR )         //
+     &           MASK_DIR // '/usa_mask.' // GET_NAME_EXT_2D() //
+     &           '.'                      // GET_RES_EXT()
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_USA_MASK: Reading ', a )
+
+      ! Get TAU0 for Jan 1985
+      XTAU  = GET_TAU0( 1, 1, 1985 )
+
+      ! USA mask is stored in the bpch file as #2
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2,
+     &                 XTAU,      IIPAR,    JJPAR,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      ! Cast to REAL*8
+      CALL TRANSFER_2D( ARRAY(:,:,1), USA_MASK )
+
+      ! Return to calling program
+      END SUBROUTINE READ_USA_MASK_05x0666
 
 !------------------------------------------------------------------------------
 

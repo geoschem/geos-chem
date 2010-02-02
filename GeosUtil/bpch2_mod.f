@@ -1,4 +1,4 @@
-! $Id: bpch2_mod.f,v 1.1 2009/11/23 21:44:57 bmy Exp $
+! $Id: bpch2_mod.f,v 1.2 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -459,6 +459,7 @@
 !  (15) Make TEMPARRAY large enough for 0.5 x 0.666 arrays -- but only if we
 !        are doing a 0.5 x 0.666 nested simulation. (yxw, dan, bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  18 Dec 2009 - Aaron van D - Add NESTED_EU flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -559,8 +560,8 @@
 
 #if   defined( GRID1x1 )   || defined( GRID05x0666 )
 
-#if   defined( NESTED_CH ) || defined( NESTED_NA )
-         ! *** NOTE: now use NESTED_CH or NESTED_NA cpp switches ***
+#if   defined(NESTED_CH) || defined(NESTED_NA) || defined( NESTED_EU ) 
+         ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
          ! This is a kludge to overwrite the IFIRST, JFIRST, LFIRST For
          ! the 1x1 nested grid.  1x1 met fields & other data are already

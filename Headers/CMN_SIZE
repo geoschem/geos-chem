@@ -1,65 +1,21 @@
-! $Id: CMN_SIZE,v 1.1 2009/09/16 14:05:56 bmy Exp $
-      !=======================================================================
-      ! CMN_SIZE: size parameters for GEOS-CHEM arrays (bmy, 3/16/01, 4/3/07)
-      !
-      ! NOTES:
-      ! (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
-      ! (2 ) Eliminated obsolete commented-out code (bmy, 4/20/01)
-      ! (3 ) Now set MAXFAM = 12 for more P-L families (bmy, 6/28/01)  
-      ! (4 ) Comment out {IJL}GCMPAR -- these are obosolete (bmy, 9/24/01)
-      ! (5 ) Also set LLPAR = 30 for GEOS-3, will regrid online (bmy, 9/24/01) 
-      ! (6 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
-      ! (7 ) Removed NAIR, LAIREMS, these are now defined 
-      !       in "aircraft_nox_mod.f" (bmy, 2/14/02)
-      ! (8 ) Eliminated commented-out code from 2/14/02.  Also added NAER 
-      !       and NRH parameters for aerosols. (rvm, bmy, 2/27/02)
-      ! (9 ) Removed IM, JM, IMX, JMX to avoid namespace pollution.  This
-      !       is needed to get the new TPCORE to work.  Also changed RCS
-      !       ID tag comment character from "C" to "!" to allow freeform
-      !       compilation. (bmy, 6/25/02)
-      ! (10) Removed obsolete code from 6/02 (bmy, 8/26/02)
-      ! (11) Added NUMDEP_SULF in a common block for sulfate dry deposition. 
-      !       Also set MAXDEP=31 and NNPAR=31 for coupled fullchem/sulfate
-      !       simulations. (rjp, bdf, bmy, 11/15/02)
-      ! (12) Removed I0, J0; these are now superseded by "grid_mod.f"
-      !       (bmy, 2/11/03)
-      ! (13) Added parameters for GEOS-4 (bmy, 6/18/03)
-      ! (14) Now defines both 55 level and 30 level GEOS-4 grids.  Also
-      !       define LLTROP=19 for GEOS-4 grids.  Also remove obsolete
-      !       GEOS-2 grid declarations. (bmy, 10/31/03)
-      ! (15) LLTROP should be 17 for GEOS-4...based on the ND55 diagnostic
-      !       when computed for 2003 met fields (bmy, 2/18/04)
-      ! (16) Increase NNPAR from 31 to 39 for carbon & dust tracers.  Also
-      !       declare NDSTBIN as # of dust bins. (rvm, tdf, bmy, 4/1/04)
-      ! (17) Increase NNPAR to 41 for seasalt tracers (rjp, bec, bmy, 4/20/04)
-      ! (18) Increase NNPAR to 50 for SOA tracers (rjp, bmy, 7/15/04)
-      ! (19) Now use NESTED_CH and NESTED_NA cpp switches to define 
-      !       parameters for 1x1 nested grids.  Also add parameters for
-      !       the 1 x 1.25 global grid. (bmy, 12/1/04)
-      ! (20) Now add parameters for GCAP and GEOS-5 grids.  Remove references
-      !       to obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
-      ! (21) Now add I1x1 and J1x1 parameters for data on the 1x1 GEOS
-      !       grid. (bmy, 10/24/05)
-      ! (22) Increase NNPAR to 52 (bmy, 12/6/05)
-      ! (23) Increase NNPAR to 54 (dkh, bmy, 5/22/06)
-      ! (24) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-      ! (25) Added variable tropopause case (bmy, phs, bdf, 8/21/06)
-      ! (26) Set LLTROP to level of first box entirely above 20km for GEOS-3 
-      !      and GEOS-4 (phS, 9/14/06)
-      ! (27) Bug fix: set LLTROP_FIX = LLPAR for GCAP (bmy, 11/29/06)
-      ! (28) Reset vertical coordinates for GEOS-5.  Also renamed GRID30LEV
-      !       to GRIDREDUCED (bmy, 4/3/07)
-      ! (29) New parameters for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
-      ! (30) NEMPARA set to 12 to emit O3 and HNO3 (phs, 4/3/08)
-      ! (31) Add tracers to NNPAR = 73. (tmf, 1/7/09)
-      ! (32) NEMPARA set to 21 to emit new tracers for GLYX chemistry 
-      !      (tmf, ccc, 3/2/09)
-      ! (33) NEMPARB set to 3 to emit MBO, MONX (tmf, ccc, 3/2/09)
-      !=======================================================================
-
+! $Id: CMN_SIZE,v 1.2 2010/02/02 16:57:46 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !INCLUDE: CMN_SIZE
+!
+! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
+!\\
+!\\
+! !USES:
+!
       ! C Preprocessor #define statements for conditional compilation
 #     include "define.h"
-
+!
+! !DEFINED PARAMETERS:
+!
       !=================================================================
       ! DISIZE = size (in degrees) of a longitude grid box
       ! DJSIZE = size (in degrees) of a latitude  grid box
@@ -83,7 +39,6 @@
 #elif defined( GRID05x0666  )
       REAL*8, PARAMETER :: DISIZE = 2d0/3d0
       REAL*8, PARAMETER :: DJSIZE = 0.5d0
-
 
 #endif
 
@@ -372,18 +327,24 @@
       ! GEOS-5 0.5 x 0.666
       !--------------------
 #if   defined( NESTED_CH )
+
       ! Parameters for the 0.5x0.667 CHINA NESTED GRID
       INTEGER, PARAMETER :: IGLOB      = 121
       INTEGER, PARAMETER :: JGLOB      = 133
       INTEGER, PARAMETER :: LGLOB      = 72
 
-
 #elif defined( NESTED_NA )
 
       ! Parameters for the 0.5x0.667 NORTH AMERICA NESTED GRIDi
-      ! (need to figure out)  (dan,09/21/07)
-      INTEGER, PARAMETER :: IGLOB      = ??
-      INTEGER, PARAMETER :: JGLOB      = ??
+      INTEGER, PARAMETER :: IGLOB      = 151
+      INTEGER, PARAMETER :: JGLOB      = 121
+      INTEGER, PARAMETER :: LGLOB      = 72
+
+#elif defined( NESTED_EU )
+
+      ! Parameters for the 0.5x0.667 EUROPE NESTED GRIDi
+      INTEGER, PARAMETER :: IGLOB      = 121
+      INTEGER, PARAMETER :: JGLOB      = 81
       INTEGER, PARAMETER :: LGLOB      = 72
 
 #endif
@@ -394,7 +355,6 @@
 
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 47    
-
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB  ! 72 levels
 #endif
@@ -427,11 +387,15 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-      INTEGER, PARAMETER :: NNPAR   = 73
+#if   defined( TOMAS )
+      INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
+#else
+      INTEGER, PARAMETER :: NNPAR   = 73    ! For non-TOMAS simulations
+#endif
 
-! new emissions HNO3 and O3 (phs)
-!  Add non-biogenic emission species:
-!  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
+      ! new emissions HNO3 and O3 (phs)
+      !  Add non-biogenic emission species:
+      !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
       INTEGER, PARAMETER :: NEMPARA = 21 
 
       ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
@@ -475,5 +439,79 @@
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER, PARAMETER :: NRH = 5
 
+#if   defined( TOMAS )
+
+      ! NDSTBIN -- redimensioned for TOMAS (dwest, bmy, 2/1/10)
+      INTEGER, PARAMETER :: NDSTBIN   = 30
+
+      ! Number of TOMAS bins 
+      INTEGER, PARAMETER :: TOMASBIN  = 30
+      INTEGER, PARAMETER :: TOMASSPEC = 8
+
+#else
+
       ! NDSTBIN -- number of dust size bins for transport (tdf, bmy, 3/31/04)
-      INTEGER, PARAMETER :: NDSTBIN = 4
+      INTEGER, PARAMETER :: NDSTBIN   = 4
+
+#endif
+!
+! !REVISION HISTORY:
+!  (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
+!  (2 ) Eliminated obsolete commented-out code (bmy, 4/20/01)
+!  (3 ) Now set MAXFAM = 12 for more P-L families (bmy, 6/28/01)  
+!  (4 ) Comment out {IJL}GCMPAR -- these are obosolete (bmy, 9/24/01)
+!  (5 ) Also set LLPAR = 30 for GEOS-3, will regrid online (bmy, 9/24/01) 
+!  (6 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
+!  (7 ) Removed NAIR, LAIREMS, these are now defined 
+!        in "aircraft_nox_mod.f" (bmy, 2/14/02)
+!  (8 ) Eliminated commented-out code from 2/14/02.  Also added NAER 
+!        and NRH parameters for aerosols. (rvm, bmy, 2/27/02)
+!  (9 ) Removed IM, JM, IMX, JMX to avoid namespace pollution.  This
+!        is needed to get the new TPCORE to work.  Also changed RCS
+!        ID tag comment character from "C" to "!" to allow freeform
+!        compilation. (bmy, 6/25/02)
+!  (10) Removed obsolete code from 6/02 (bmy, 8/26/02)
+!  (11) Added NUMDEP_SULF in a common block for sulfate dry deposition. 
+!        Also set MAXDEP=31 and NNPAR=31 for coupled fullchem/sulfate
+!        simulations. (rjp, bdf, bmy, 11/15/02)
+!  (12) Removed I0, J0; these are now superseded by "grid_mod.f"
+!        (bmy, 2/11/03)
+!  (13) Added parameters for GEOS-4 (bmy, 6/18/03)
+!  (14) Now defines both 55 level and 30 level GEOS-4 grids.  Also
+!        define LLTROP=19 for GEOS-4 grids.  Also remove obsolete
+!        GEOS-2 grid declarations. (bmy, 10/31/03)
+!  (15) LLTROP should be 17 for GEOS-4...based on the ND55 diagnostic
+!        when computed for 2003 met fields (bmy, 2/18/04)
+!  (16) Increase NNPAR from 31 to 39 for carbon & dust tracers.  Also
+!        declare NDSTBIN as # of dust bins. (rvm, tdf, bmy, 4/1/04)
+!  (17) Increase NNPAR to 41 for seasalt tracers (rjp, bec, bmy, 4/20/04)
+!  (18) Increase NNPAR to 50 for SOA tracers (rjp, bmy, 7/15/04)
+!  (19) Now use NESTED_CH and NESTED_NA cpp switches to define 
+!        parameters for 1x1 nested grids.  Also add parameters for
+!        the 1 x 1.25 global grid. (bmy, 12/1/04)
+!  (20) Now add parameters for GCAP and GEOS-5 grids.  Remove references
+!        to obsolete LGEOSCO and FULLCHEM Cpp switches (bmy, 6/24/05)
+!  (21) Now add I1x1 and J1x1 parameters for data on the 1x1 GEOS
+!        grid. (bmy, 10/24/05)
+!  (22) Increase NNPAR to 52 (bmy, 12/6/05)
+!  (23) Increase NNPAR to 54 (dkh, bmy, 5/22/06)
+!  (24) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (25) Added variable tropopause case (bmy, phs, bdf, 8/21/06)
+!  (26) Set LLTROP to level of first box entirely above 20km for GEOS-3 
+!       and GEOS-4 (phS, 9/14/06)
+!  (27) Bug fix: set LLTROP_FIX = LLPAR for GCAP (bmy, 11/29/06)
+!  (28) Reset vertical coordinates for GEOS-5.  Also renamed GRID30LEV
+!        to GRIDREDUCED (bmy, 4/3/07)
+!  (29) New parameters for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (30) NEMPARA set to 12 to emit O3 and HNO3 (phs, 4/3/08)
+!  (31) Add tracers to NNPAR = 73. (tmf, 1/7/09)
+!  (32) NEMPARA set to 21 to emit new tracers for GLYX chemistry 
+!       (tmf, ccc, 3/2/09)
+!  (33) NEMPARB set to 3 to emit MBO, MONX (tmf, ccc, 3/2/09)
+!  (34) Added EUROPE grid parameters (amv, 10/19/09)
+!  18 Dec 2009 - Aaron van D - Added NESTED_EU grid parameters
+!  18 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  25 Jan 2010 - R. Yantosca - Set NNPAR=320 for TOMAS simulations
+!  25 Jan 2010 - R. Yantosca - Define TOMASBIN and TOMASSPEC for TOMAS sims
+!EOP
+!------------------------------------------------------------------------------

@@ -1,11 +1,11 @@
-! $Id: diag51_mod.f,v 1.4 2009/11/30 19:57:57 ccarouge Exp $
+! $Id: diag51_mod.f,v 1.5 2010/02/02 16:57:54 bmy Exp $
       MODULE DIAG51_MOD
 !
 !******************************************************************************
 !  Module DIAG51_MOD contains variables and routines to generate save 
 !  timeseries data where the local time is between two user-defined limits. 
 !  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 10/13/09)
+!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 12/21/09)
 !
 !  Module Variables:
 !  ============================================================================
@@ -118,6 +118,8 @@
 !  (17) Updates in WRITE_DIAG51 (ccc, tai, bmy, 10/13/09)
 !  (18) Add GOOD_EMIS and GOOD_CT_EMIS to manage emission outputs
 !       (ccc, 11/20/09)
+!  (16) Updates to AOD output.  Also have the option to write to HDF 
+!        (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -307,7 +309,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/24/07)
+!  (bmy, 8/20/02, 12/21/09)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -335,6 +337,8 @@
 !       (ccc, 8/12/09)
 !  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
 !       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
+!  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
+!        bin's individual AOD (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -444,7 +448,7 @@
          DO X = 1, ND51_NI
             I               = GET_I( X )
             GOOD_CT_EMIS(X) = GOOD_CT_EMIS(X) + GOOD(I)
-            ! Save GOOD points only for chemistry time steps
+            ! Save GOOD points only for emission time steps
             GOOD_EMIS(X) = GOOD(I)
          ENDDO
       ENDIF
@@ -515,8 +519,17 @@
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 89 .and. IS_Ox .and. IS_CHEM ) THEN
+            ELSE IF ( (N .ge. 60) .and. (N .le. 66) ) THEN
+
+               R = N - 59
+
+               ! Scaling factor to 400 nm
+               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
+
             ELSE IF ( N == 89 .and. IS_Ox ) THEN
 
                !--------------------------------------
@@ -525,17 +538,11 @@
                !--------------------------------------
 
                ! Accumulate data
-!--- Previous to (ccc, 8/12/09)
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
-!     &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD(I) )
 
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
 
-!--- Previous to (ccc, 8/12/09)
-!           ELSE IF ( N == 90 .and. IS_NOx .and. IS_CHEM ) THEN
             ELSE IF ( N == 90 .and. IS_NOx ) THEN
 
                !--------------------------------------
@@ -544,11 +551,6 @@
                !--------------------------------------
                
                ! Accumulate data
-!--- Previous to (ccc, 8/12/09)
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
-!     &                  TCVV(IDTNOX)      / AD(I,J,L)     * GOOD(I) )
-
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                TCVV(IDTNOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
@@ -596,8 +598,6 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 74 .and. IS_FULLCHEM .and. IS_CHEM ) THEN
             ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
@@ -606,24 +606,15 @@
                !--------------------------------------
 
                ! Accumulate data
-!--- Previous to (ccc, 8/12/09)
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + ( SAVEOH(I,J,L) * GOOD(I) )
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
               
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 75 .and. IS_NOx .and. IS_CHEM ) THEN
             ELSE IF ( N == 75 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO2 [v/v]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------     
-!--- Previous to (ccc, 8/12/09)
-!               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
-!     &                TCVV(IDTNOX)       / AD(I,J,L)      * GOOD(I) )
- 
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &            ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
      &              TCVV(IDTNOX)       / AD(I,J,L)      * GOOD_CHEM(X) )
@@ -680,8 +671,6 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 82 .and. IS_CHEM ) THEN
             ELSE IF ( N == 82 ) THEN
 
                !--------------------------------------
@@ -691,18 +680,13 @@
                DO H = 1, NRH
                   
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(1)+H-1) / QAA(4,IND(1)+H-1) 
+                  SCALE400nm = QAA(3,IND(1)+H-1) / QAA(4,IND(1)+H-1) 
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 83 .and. IS_CHEM ) THEN
             ELSE IF ( N == 83 ) THEN
 
                !--------------------------------------
@@ -715,18 +699,13 @@
                   H          = NRH    + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  SCALE400nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 84 .and. IS_CHEM ) THEN
             ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
@@ -739,18 +718,13 @@
                   H          = 2*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1)
+                  SCALE400nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1)
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) +
-!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 85 .and. IS_CHEM ) THEN
             ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
@@ -763,18 +737,13 @@
                   H          = 3*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  SCALE400nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) ) 
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) ) 
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 86 .and. IS_CHEM ) THEN
             ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
@@ -787,18 +756,13 @@
                   H          = 4*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  SCALE400nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                         ( ODAER(I,J,L,H) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-!--- Previous to (ccc, 8/12/09)
-!            ELSE IF ( N == 87 .and. IS_CHEM ) THEN               
             ELSE IF ( N == 87 ) THEN               
 
                !--------------------------------------
@@ -808,12 +772,9 @@
                DO R = 1, NDUST 
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
-!--- Previous to (ccc, 8/12/09)
-!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &                       ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD(I) )
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                 ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
@@ -1138,8 +1099,6 @@
 
       ! If the next dyn timestep is the hour of day
       ! when we have to save to disk, return TRUE
-!--- Previous to (ccc, 8/12/09)
-!      IF ( MOD( HOUR+DYN, 24d0 ) == ND51_HR_WRITE ) THEN
       IF ( MOD( HOUR, 24d0 ) == ND51_HR_WRITE ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
@@ -1148,8 +1107,6 @@
 
       ! If the next dyn timestep is the 
       ! end of the run, return TRUE
-!--- Previous to (ccc, 8/12/09)
-!      IF ( TAU + DYN == GET_TAUe() ) THEN
       IF ( TAU == GET_TAUe() ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
@@ -1167,7 +1124,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 10/7/08)  
+!  (bmy, 12/1/00, 12/21/09)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1195,31 +1152,40 @@
 !  (10) Change timestamp used for filename.  Now save SLP under tracer #18 in 
 !       "DAO-FLDS". (ccc, tai, bmy, 10/13/09)
 !  (11) Add outputs ("DAO-FLDS" and emissions "BIOGSRCE") (ccc, 11/20/09)
+!  (12) Now have the option of saving out to HDF5 format.  NOTE: we have to
+!        bracket HDF-specific code with an #ifdef statement to avoid problems
+!        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BPCH2_MOD,  ONLY : BPCH2,           OPEN_BPCH2_FOR_WRITE
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE FILE_MOD,   ONLY : IU_ND51
-!--- Previous to (ccc, 8/12/09)
-!      USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD    
+      USE LOGICAL_MOD, ONLY : LND51_HDF
       USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD_DIAG    
       USE TIME_MOD,   ONLY : GET_NHMS,        GET_TAU 
       USE TIME_MOD,   ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "CMN_SIZE"  ! Size Parameters
+#if   defined( USE_HDF5 )
+      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+      USE HDF_MOD,    ONLY : OPEN_HDF, CLOSE_HDF, WRITE_HDF
+      USE HDF5,       ONLY : HID_T
+      INTEGER(HID_T)      :: IU_ND51_HDF
+#endif
+
+#     include "CMN_SIZE"   ! Size Parameters
 
       ! Arguments
-      REAL*8, INTENT(IN) :: TAU_W
+      REAL*8, INTENT(IN)  :: TAU_W
 
-      ! Local variables
-      INTEGER            :: I,   J,  L,  W, N, GMNL, GMTRC
-      INTEGER            :: IOS, X, Y, K, NHMS
-      CHARACTER(LEN=16)  :: STAMP
-      CHARACTER(LEN=40)  :: CATEGORY
-      CHARACTER(LEN=40)  :: UNIT 
-      CHARACTER(LEN=255) :: FILENAME
+      ! Local variables 
+      INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC
+      INTEGER             :: IOS, X, Y, K, NHMS
+      CHARACTER(LEN=16)   :: STAMP
+      CHARACTER(LEN=40)   :: CATEGORY
+      CHARACTER(LEN=40)   :: UNIT 
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! WRITE_DIAG51 begins here!
@@ -1233,8 +1199,6 @@
       NHMS = GET_NHMS()
       IF ( NHMS == 0 ) NHMS = 240000
 
-!--- Previous to (ccc, 8/12/09)
-!      CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
       CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), NHMS )
       
       ! Echo info
@@ -1242,7 +1206,15 @@
  100  FORMAT( '     - DIAG51: Opening file ', a ) 
 
       ! Open output file
-      CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
+      IF ( LND51_HDF ) THEN
+#if   defined( USE_HDF5 )
+         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+         CALL OPEN_HDF( IU_ND51_HDF, FILENAME,  ND51_IMAX, ND51_IMIN,   
+     &                  ND51_JMAX,   ND51_JMIN, ND51_NI,   ND51_NJ )
+#endif
+      ELSE
+         CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
+      ENDIF
 
       ! Set ENDING TAU for this bpch write 
       TAU1 = TAU_W
@@ -1280,7 +1252,7 @@
                   Q(X,Y,K,W) = 0d0
                ENDIF
 
-            CASE( 82:87 )
+            CASE( 60:66, 82:87 )
 
                !--------------------------------------------------------
                ! Avoid division by zero for tracers which are archived 
@@ -1341,6 +1313,16 @@
             UNIT     = ''              ! Let GAMAP pick unit
             GMNL     = ND51_NL
             GMTRC    = N
+
+         ELSE IF ((N .ge. 60) .and. (N .le. 66))  THEN
+
+            !---------------------
+            ! bin 1 dust OD
+            !---------------------
+            CATEGORY = 'OD-MAP-$'
+            UNIT     = 'unitless'
+            GMNL     = ND51_NL
+            GMTRC    = N - 39
 
          ELSE IF ( N == 89 ) THEN
 
@@ -1767,13 +1749,26 @@
          !------------------------
          ! Save to bpch file
          !------------------------
-         CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
-     &               LATRES,       HALFPOLAR,    CENTER180, 
-     &               CATEGORY,     GMTRC,        UNIT,      
-     &               TAU0,         TAU1,         RESERVED,  
-     &               ND51_NI,      ND51_NJ,      GMNL,     
-     &               ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
-     &               REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W) ) )
+         IF ( LND51_HDF ) THEN
+#if   defined( USE_HDF5 )
+            ! Only include this if we are linking to HDF5 library 
+            ! (bmy, 12/21/09)
+            CALL WRITE_HDF( IU_ND51_HDF, N,
+     &                  CATEGORY,     GMTRC,        UNIT,
+     &                  TAU0,         TAU1,         RESERVED,
+     &                  ND51_NI,      ND51_NJ,      GMNL,
+     &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+#endif
+         ELSE
+            CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
+     &                  LATRES,       HALFPOLAR,    CENTER180, 
+     &                  CATEGORY,     GMTRC,        UNIT,      
+     &                  TAU0,         TAU1,         RESERVED,  
+     &                  ND51_NI,      ND51_NJ,      GMNL,     
+     &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+         ENDIF
       ENDDO
 
       ! Echo info
@@ -1781,7 +1776,14 @@
  120  FORMAT( '     - DIAG51: Closing file ', a )
 
       ! Close file
-      CLOSE( IU_ND51 )
+      IF ( LND51_HDF ) THEN
+#if   defined( USE_HDF5 )
+         ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+         CALL CLOSE_HDF( IU_ND51_HDF )
+#endif
+      ELSE
+         CLOSE( IU_ND51 )
+      ENDIF
 
       !=================================================================
       ! Re-initialize quantities for next diagnostic cycle

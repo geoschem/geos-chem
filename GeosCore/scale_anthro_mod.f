@@ -1,4 +1,4 @@
-! $Id: scale_anthro_mod.f,v 1.1 2009/09/16 14:06:11 bmy Exp $
+! $Id: scale_anthro_mod.f,v 1.2 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -24,7 +24,7 @@
 !
       PUBLIC  :: GET_ANNUAL_SCALAR
       PUBLIC  :: GET_ANNUAL_SCALAR_1x1 
-      PUBLIC  :: GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+      PUBLIC  :: GET_ANNUAL_SCALAR_05x0666_NESTED
 !
 ! !REVISION HISTORY:
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -35,11 +35,15 @@
 !  (2 ) Renamed consistently variables: name depends on relation of variable 
 !        to BASE or TARGET year. New data directory to account for updated
 !        scale factors for 1985-1989 (phs, 5/7/09)
+!  (3 ) Adjusted GET_ANNUAL_SCALAR_05x0666_CH for new scalar format and 
+!        renamed to GET_ANNUAL_SCALAR_05x0666 (amv, 10/29/2009)
+!  18 Dec 2009 - Aaron van D - Updated scale factors thru 2006  
+!  18 Dec 2009 - Aaron van D - Updated routine GET_ANNUAL_SCALAR_05x0666_NESTED
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -138,6 +142,10 @@
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
 !       1x1 grid (phs, 3/10/08)
+!  18 Dec 2009 - Aaron van D - Updated scale factors through 2006, 
+!                              changed to new, directory, reset year limits
+!  18 Dec 2009 - Aaron van D - Reformated scale factors to a single file for 
+!                              all years, made necessary input changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -146,7 +154,7 @@
 !
       REAL*4                        :: T_1x1(I1x1,J1x1)
       REAL*4                        :: B_1x1(I1x1,J1x1)
-      REAL*8                        :: TAU2000
+      REAL*8                        :: TAU
       CHARACTER(LEN=255)            :: FILENAME,      SCALE_DIR
       CHARACTER(LEN=4)              :: BASE_YYYY_STR, TARG_YYYY_STR
       INTEGER                       :: BASE_YEAR,     TARG_YEAR
@@ -156,11 +164,11 @@
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200905/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200911/'
 
       ! limit scaling between available years
-      BASE_YEAR = MAX( MIN( B_YEAR, 2005 ), 1985 )
-      TARG_YEAR = MAX( MIN( T_YEAR, 2005 ), 1985 )
+      BASE_YEAR = MAX( MIN( B_YEAR, 2006 ), 1985 )
+      TARG_YEAR = MAX( MIN( T_YEAR, 2006 ), 1985 )
 
       WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
       WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
@@ -175,25 +183,25 @@
          IF ( TRACER == 71 ) THEN
 
             ! NOx
-            FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' // 
-     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'NOx-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
-            FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
-            FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' //
-     &                 BASE_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'SOx-AnnualScalar.geos.1x1'
 
          ENDIF
 
          ! Get Tau    
-         TAU2000 = GET_TAU0(1,1,2000)
+         TAU = GET_TAU0(1,1,BASE_YEAR)
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -201,7 +209,7 @@
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I1x1,       J1x1,
+     &                    TAU,  I1x1,       J1x1,
      &                    1,        B_1x1,      QUIET=.TRUE. )
 
       ENDIF
@@ -216,32 +224,32 @@
          IF ( TRACER == 71 ) THEN
 
             ! NOx
-            FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' //
-     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'NOx-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
-            FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'CO-AnnualScalar.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
             ! SOx
-            FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' // 
-     &                 TARG_YYYY_STR // '-' // '2000.geos.1x1'
+            FILENAME = TRIM( SCALE_DIR ) //
+     &          'SOx-AnnualScalar.geos.1x1'
 
          ENDIF
 
          ! Calc Tau
-         TAU2000 = GET_TAU0(1,1,2000)
+         TAU = GET_TAU0(1,1,TARG_YEAR)
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read data
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I1x1,       J1x1,
+     &                    TAU,  I1x1,       J1x1,
      &                    1,        T_1x1,      QUIET=.TRUE. )
 
       ENDIF
@@ -257,9 +265,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+! !IROUTINE: get_annual_scalar_05x0666_nested
 !
-! !DESCRIPTION:  Subroutine GET\_ANNUAL\_SCALAR\_05x0666\_NESTED\_CH 
+! !DESCRIPTION:  Subroutine GET\_ANNUAL\_SCALAR\_05x0666\_NESTED
 !  returns annual scale factors to convert B\_YEAR (base year) to 
 !  T\_YEAR (target year), on the 0.5x0.666 GEOS-Chem grid for nested China 
 !  domain. (avd, bmy, phs, 3/10/08)
@@ -267,13 +275,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+      SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED
      &                     ( TRACER, B_YEAR, T_YEAR, AS )
 ! !USES:
 !
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
-      USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
-      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_05x0666
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 #     include "CMN_SIZE"             ! Size parameters
 !
@@ -288,7 +294,13 @@
       REAL*4,         INTENT(INOUT) :: AS(IIPAR,JJPAR)
 !
 ! !REVISION HISTORY: 
-!  12 Mar 2009 - T-M. Fu - Initial Version
+!  12 Mar 2009 - T-M. Fu     - Initial Version
+!  03 Nov 2009 - Aaron van D - rewritten to employ GET_ANNUAL_SCALAR_1x1
+!                              and regrid.
+!  18 Dec 2009 - Aaron van D - Renamed to GET_ANNUAL_SCALAR_05x0666_NESTED
+!  18 Dec 2009 - Aaron van D - Rewrote GET_ANNUAL_SCALAR_05x0666_NESTED to 
+!                              retrieve and regrid scale factors by calling 
+!                              GET_ANNUAL_SCALAR_1x1 and regridding on fly
 !
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
@@ -299,126 +311,20 @@
 !
 ! ! LOCAL VARIABLES:
 !
-      REAL*4                        :: T_05x0666(I05x0666,J05x0666)
-      REAL*4                        :: B_05x0666(I05x0666,J05x0666)
-      REAL*8                        :: AS_05x0666(I05x0666,J05x0666)
-      REAL*8                        :: AS_05x0666x1(I05x0666,J05x0666,1)
+      REAL*8                        :: AS_1x1(I1x1,J1x1,1)
       REAL*8                        :: AS_R8(IIPAR, JJPAR)
-      REAL*8                        :: TAU2000
-      CHARACTER(LEN=255)            :: FILENAME,      SCALE_DIR
-      CHARACTER(LEN=4)              :: BASE_YYYY_STR, TARG_YYYY_STR
-      INTEGER                       :: BASE_YEAR,     TARG_YEAR
-      INTEGER                       :: I, J
-
 
       !=================================================================
-      ! GET_ANNUAL_SCALAR_05x0666_NESTED_CH begins here!
+      ! GET_ANNUAL_SCALAR_05x0666_NESTED begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR ) // 'anth_scale_factors_200811/'
+      CALL GET_ANNUAL_SCALAR_1x1( TRACER, B_YEAR, T_YEAR, AS_1x1 )
 
-      ! limit scaling between available years
-      BASE_YEAR = MAX( MIN( B_YEAR, 2005 ), 1985 )
-      TARG_YEAR = MAX( MIN( T_YEAR, 2005 ), 1985 )
-
-      WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
-      WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
-
-      IF ( BASE_YEAR == 2000 ) THEN
-
-         B_05x0666(:,:) = 1.0
-
-      ELSE
-
-         ! Filename
-         IF ( TRACER == 71 ) THEN
-
-            ! NOx
-            FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' // 
-     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ELSE IF ( TRACER == 72 ) THEN
-
-            ! CO
-            FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ELSE IF ( TRACER == 73 ) THEN
-
-            ! SOx
-            FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' //
-     &                 BASE_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ENDIF
-
-         ! Get Tau    
-         TAU2000 = GET_TAU0(1,1,2000)
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - GET_ANNUAL_SCALAR_05x0666_NESTED_CH: Reading ',
-     &                   a )
-
-         ! Read data
-         CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I05x0666,   J05x0666,
-     &                    1,        B_05x0666,  QUIET=.TRUE. )
-
-      ENDIF
-
-      IF ( TARG_YEAR == 2000 ) THEN
-
-         T_05x0666(:,:) = 1.0
-
-      ELSE
-
-         ! Filename
-         IF ( TRACER == 71 ) THEN
-
-            ! NOx
-            FILENAME = TRIM( SCALE_DIR ) // 'NOxScalar-' //
-     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ELSE IF ( TRACER == 72 ) THEN
-
-            ! CO
-            FILENAME = TRIM( SCALE_DIR ) // 'COScalar-' // 
-     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ELSE IF ( TRACER == 73 ) THEN
-
-            ! SOx
-            FILENAME = TRIM( SCALE_DIR ) // 'SOxScalar-' // 
-     &                 TARG_YYYY_STR // '-' // '2000.geos.05x0666'
-
-         ENDIF
-
-         ! Calc Tau
-         TAU2000 = GET_TAU0(1,1,2000)
-
-         ! Echo filename
-         WRITE( 6, 100 ) TRIM( FILENAME )
-
-         ! Read data
-         CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
-     &                    TAU2000,  I05x0666,   J05x0666,
-     &                    1,        T_05x0666,  QUIET=.TRUE. )
-
-      ENDIF
-
-      ! Get scaling and cast as real*8
-      AS_05x0666(:,:) = T_05x0666(:,:) / B_05x0666(:,:)
-
-      ! Recast as 3D array
-      AS_05x0666x1(:,:,1) = AS_05x0666(:,:)
-
-      ! Regrid emission factors to current model resolution
-      CALL DO_REGRID_05x0666( 1, 'unitless', AS_05x0666x1, AS_R8 )
-
+      CALL DO_REGRID_1x1( 'unitless', AS_1x1, AS_R8 )
       AS(:,:) = AS_R8(:,:)
 
       ! Return to calling program
-      END SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED_CH
+      END SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED
 !EOC
 !------------------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.1 2009/09/16 14:06:33 bmy Exp $
+! $Id: emep_mod.f,v 1.2 2010/02/02 16:57:53 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -41,6 +41,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: EMISS_EMEP
+      PUBLIC  :: EMISS_EMEP_05x0666
       PUBLIC  :: CLEANUP_EMEP
       PUBLIC  :: GET_EUROPE_MASK
       PUBLIC  :: GET_EMEP_ANTHRO
@@ -48,7 +49,10 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !     
       PRIVATE :: EMEP_SCALE_FUTURE
+      PRIVATE :: READ_EMEP_UPDATED
+      PRIVATE :: READ_EMEP_UPDATED_05x0666
       PRIVATE :: READ_EUROPE_MASK 
+      PRIVATE :: READ_EUROPE_MASK_05x0666
       PRIVATE :: INIT_EMEP        
 !
 ! !REVISION HISTORY:
@@ -58,6 +62,14 @@
 !  (4 ) Now include emep SOx and emep emissions to 2005 (amv, 06/08)
 !  (5 ) Modify to access SHIP emissions from outside (phs, 06/08)
 !  (6 ) Account for monthly variations (amv, 12/9/08)
+!  18 Dec 2009 - Aaron van D - Created routine EMISS_EMEP_05x0666
+!  18 Dec 2009 - Aaron van D - Created routine READ_EMEP_UPDATED_05x0666
+!  18 Dec 2009 - Aaron van D - Created routine READ_EUROPE_MASK_05x0666
+!  11 Jan 2010 - Aaron van D - Max scale year is now 2007, for consistency
+!  11 Jan 2010 - Aaron van D - Extend 1x1 emission files to 2007.  Routine
+!                              READ_EMEP_UPDATED now mimics routine
+!                              READ_EMEP_UPDATED_05x0666.
+!  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -452,7 +464,7 @@
       IF ( SCALEYEAR > 1989 ) THEN
 
          ! new EMEP data is only defined from 1990-2005
-         EMEP_YEAR = MIN( SCALEYEAR, 2005 )
+         EMEP_YEAR = MIN( SCALEYEAR, 2007 )
 
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx, 0 )
          CALL READ_EMEP_UPDATED(  4, EMEP_YEAR, EMEP_CO, 0 )
@@ -493,6 +505,186 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_EMEP
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SUBROUTINE EMISS_EMEP_05x0666
+!
+! !DESCRIPTION: Subroutine EMISS\_EMEP reads the EMEP emission fields at
+!  05x0666 resolution and regrids them to the current model resolution.
+!  (amv, 10/23/06)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISS_EMEP_05x0666
+!
+! !USES:
+!
+      USE BPCH2_MOD,        ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR
+      USE LOGICAL_MOD,      ONLY : LFUTURE
+      USE REGRID_1x1_MOD,   ONLY : DO_REGRID_05x0666
+      USE TIME_MOD,         ONLY : EXPAND_DATE,  GET_YEAR
+      USE TIME_MOD,         ONLY : GET_MONTH
+      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_O3"         ! SCALEYEAR
+!
+! !REVISION HISTORY:
+!  (1 ) Copied/Modified from EMISS_EMEP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE           :: FIRST = .TRUE.
+      INTEGER                 :: EMEP_NYMD, EMEP_YEAR
+      REAL*8                  :: EMEP_TAU,  TAU0
+      CHARACTER(LEN=255)      :: FILENAME
+
+      ! For bpch file format
+      INTEGER                 :: I,  J,  L,  N,  IOS
+      INTEGER                 :: NTRACER,   NSKIP
+      INTEGER                 :: HALFPOLAR, CENTER180
+      INTEGER                 :: NI,        NJ,        NL
+      INTEGER                 :: IFIRST,    JFIRST,    LFIRST
+      INTEGER                 :: SCALEYEAR
+      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                  :: LONRES,    LATRES
+      REAL*4                  :: Sc(IIPAR,JJPAR)
+      REAL*8                  :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)       :: MODELNAME
+      CHARACTER(LEN=40)       :: CATEGORY
+      CHARACTER(LEN=40)       :: UNIT
+      CHARACTER(LEN=40)       :: RESERVED
+
+      !=================================================================
+      ! EMISS_EMEP begins here!
+      !=================================================================
+
+      ! First-time initialization
+      IF ( FIRST ) THEN
+         CALL INIT_EMEP
+         FIRST = .FALSE.
+      ENDIF
+
+      ! 1x1 file name for EMEP 2000
+      FILENAME  = TRIM( DATA_DIR ) //
+     &            'EMEP_200510/EMEP.geos.05x0666.YYYY'
+
+      IF ( FSCALYR < 0 ) THEN
+         SCALEYEAR = GET_YEAR()
+      ELSE
+         SCALEYEAR = FSCALYR
+      ENDIF
+
+      ! EMEP 2000 data is only defined from 1985-2000
+      EMEP_YEAR = MAX( MIN( SCALEYEAR, 2000 ), 1985 )
+
+      ! YYYYMMDD value for 1st day of EMEP_YEAR
+      EMEP_NYMD = ( EMEP_YEAR * 10000 ) + 0101
+
+      ! TAU0 value corresponding to EMEP_NYMD
+      EMEP_TAU  = GET_TAU0( 1, 1, EMEP_YEAR )
+
+      ! Expand filename
+      CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - EMISS_EMEP_05x0666: Reading ', a )
+
+      !=================================================================
+      ! Read data at 05x0666 resolution
+      !=================================================================
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 4, EMEP_TAU, 
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_CO(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 1, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_NOx(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',18, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_PRPE(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 5, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_ALK4(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',21, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_C2H6(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',11, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_ALD2(:,:) = ARRAY(:,:,1)
+
+      CALL READ_BPCH2( FILENAME, 'ANTHSRCE',10, EMEP_TAU,
+     &          IIPAR, JJPAR, 1, ARRAY, QUIET=.TRUE.)
+      EMEP_MEK(:,:) = ARRAY(:,:,1)
+
+      !=================================================================
+      ! Get and apply annual emissions factors (amv, phs, 3/17/08)
+      !=================================================================
+
+      !=================================================================
+      ! If we are at or above 1990, can apply updated EMEP emissions for
+      ! NOx, CO, NH3 and include SOx (amv, 06/04/08)
+      !=================================================================
+
+      IF ( SCALEYEAR > 1989 ) THEN
+
+         ! new EMEP data is only defined from 1990-2007
+         EMEP_YEAR = MIN( SCALEYEAR, 2007 )
+
+         CALL READ_EMEP_UPDATED_05x0666(  1, EMEP_YEAR, EMEP_NOx, 0 )
+         CALL READ_EMEP_UPDATED_05x0666(  4, EMEP_YEAR, EMEP_CO, 0 )
+         CALL READ_EMEP_UPDATED_05x0666( 26, EMEP_YEAR, EMEP_SO2, 0 )
+         CALL READ_EMEP_UPDATED_05x0666( 30, EMEP_YEAR, EMEP_NH3, 1 )
+
+         CALL READ_EMEP_UPDATED_05x0666( 1,EMEP_YEAR, EMEP_NOx_SHIP, 2)
+         CALL READ_EMEP_UPDATED_05x0666( 4,EMEP_YEAR, EMEP_CO_SHIP, 2)
+         CALL READ_EMEP_UPDATED_05x0666( 26,EMEP_YEAR, EMEP_SO2_SHIP, 2)
+
+      ! Need to use for SOx/NH3 anyways, but SOx scale back further
+      ELSE
+
+         CALL READ_EMEP_UPDATED_05x0666( 26, 1990, EMEP_SO2, 0 )
+         CALL READ_EMEP_UPDATED_05x0666( 26, 1990, EMEP_SO2_SHIP, 2 )
+         CALL READ_EMEP_UPDATED_05x0666( 30, 1990, EMEP_NH3, 1 )
+
+         CALL GET_ANNUAL_SCALAR_05x0666_NESTED(73,1990,SCALEYEAR,Sc)
+         EMEP_SO2(:,:) = EMEP_SO2(:,:) * Sc(:,:)
+!         EMEP_SO2_SHIP = EMEP_SO2_SHIP * Sc  ! do not scale SHIP
+
+      ENDIF
+
+
+      !=================================================================
+      ! Compute IPCC future emissions (if necessary)
+      !=================================================================
+      IF ( LFUTURE ) THEN
+         CALL EMEP_SCALE_FUTURE
+      ENDIF
+
+      !=================================================================
+      ! Print emission totals
+      !=================================================================
+
+      ! Print totals for EMEP_YEAR
+      CALL TOTAL_ANTHRO_TG( EMEP_YEAR, SCALEYEAR, GET_MONTH() )
+
+      ! Return to calling program
+      END SUBROUTINE EMISS_EMEP_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -802,6 +994,63 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: READ_EUROPE_MASK_05x0666
+!
+! !DESCRIPTION: Subroutine READ\_EUROPE\_MASK reads and regrids the
+!  Europe mask for the EMEP anthropogenic emissions.  (bmy, 10/18/06)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_EUROPE_MASK_05x0666
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+
+#     include "CMN_SIZE"       ! Size parameters
+!
+! !REVISION HISTORY:
+!  (1 ) Now read the Europe mask from a disk file instead of defining it as
+!        a rectangular box (bmy, 10/18/06)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
+      CHARACTER(LEN=255)      :: FILENAME
+
+      !=================================================================
+      ! READ_EUROPE_MASK begins here!
+      !=================================================================
+
+      ! File name
+      FILENAME  = TRIM( DATA_DIR ) //
+     &            'EMEP_200510/EMEP_mask.geos.05x0666'
+
+      ! Echo info
+      WRITE( 6, 100 ) TRIM( FILENAME )
+ 100  FORMAT( '     - READ_EUROPE_MASK: Reading ', a )
+
+      ! Read data [unitless]
+      CALL READ_BPCH2( FILENAME, 'LANDMAP', 2,
+     &                 0d0,       IIPAR,     JJPAR,
+     &                 1,         ARRAY,    QUIET=.TRUE. )
+
+      EUROPE_MASK(:,:) = ARRAY(:,:,1)
+
+      ! Return to calling program
+      END SUBROUTINE READ_EUROPE_MASK_05x0666
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: READ_EMEP_UPDATED
 !
 ! !DESCRIPTION: Subroutine READ\_EMEP\_UPDATED reads updated EMEP emissions 
@@ -821,6 +1070,8 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1 
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE LOGICAL_MOD,    ONLY : LEMEPSHIP
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN_O3"         ! SCALEYEAR
@@ -837,6 +1088,8 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
+!  29 Oct 2009 - Added multi-species seasonality (amv)
+!   4 Jan 2010 - Extended to 2007, changed input format (amv)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -847,10 +1100,8 @@
       REAL*4                        :: ARRAY_1x1_SHIP(I1x1,J1x1,1)
       REAL*4                        :: ARRAY_1x1_LAND(I1x1,J1x1,1)
       CHARACTER(LEN=255)            :: FILENAME, DIR
-      REAL*8                        :: EMEP_TAU, TAU2005
-      INTEGER                       :: EMEP_NYMD, MN
-      CHARACTER(LEN=2)              :: SMN
-      CHARACTER(LEN=1)              :: SSMN
+      REAL*8                        :: EMEP_TAU, TAU, A, B
+      INTEGER                       :: EMEP_NYMD, MN, RATIOID, I, J
 
       ARRAY_1x1_SHIP(:,:,:) = 0.d0
       ARRAY_1x1_LAND(:,:,:) = 0.d0
@@ -862,7 +1113,7 @@
       EMEP_TAU  = GET_TAU0( 1, 1, EMEP_YEAR )
 
       ! Expand filename
-      DIR = TRIM( DATA_DIR_1x1 ) // 'EMEP_200806/'
+      DIR = TRIM( DATA_DIR_1x1 ) // 'EMEP_200911/'
 
       ! wSHIP = 0 means no ship emissions included
       ! wSHIP = 1 means include ships emissions
@@ -870,59 +1121,28 @@
 
       IF ( wSHIP .lt. 2 ) THEN
 
-         IF ( TRACER .eq. 1 ) THEN
-            ! NOx
-            FILENAME = TRIM( DIR ) // 'NOx/'
-     &                // 'EMEP-NOx-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 4 ) THEN
-            ! CO
-            FILENAME = TRIM( DIR ) // 'CO/'
-     &                // 'EMEP-CO-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 26 ) THEN
-            ! SOx
-            FILENAME = TRIM( DIR ) // 'SOx/'
-     &                // 'EMEP-SOx-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 30 ) THEN
-            ! NH3
-            FILENAME = TRIM( DIR ) // 'NH3/'
-     &                // 'EMEP-NH3-YYYY.geos.1x1'
-         ENDIF
-
+         FILENAME = TRIM(DIR) //  
+     &              'EMEP-YYYY.geos.1x1' 
+ 
          CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
-
-         WRITE( 6, 100 ) TRIM( FILENAME )
- 100     FORMAT( '     - READ_EMEP_UPDATED: Reading ', a )
+ 
+         WRITE( 6, 100 ) TRIM( FILENAME ) 
+ 100     FORMAT( '     - READ_EMEP_UPDATED: Reading ', a ) 
  
          CALL READ_BPCH2( FILENAME, 'ANTHSRCE',      TRACER,
      &                    EMEP_TAU,  I1x1,           J1x1,
      &                    1,         ARRAY_1x1_LAND, QUIET=.TRUE. )
-
+ 
       ENDIF
 
       IF ( ( wSHIP .gt. 0 ) .AND. LEMEPSHIP ) THEN
 
-         IF ( TRACER .eq. 1 ) THEN
-            ! NOx
-            FILENAME = TRIM( DIR ) // 'NOx/'
-     &                // 'EMEP-NOx-SHIP-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 4 ) THEN
-            ! CO
-            FILENAME = TRIM( DIR ) // 'CO/'
-     &                // 'EMEP-CO-SHIP-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 26 ) THEN
-            ! SOx
-            FILENAME = TRIM( DIR ) // 'SOx/'
-     &                // 'EMEP-SOx-SHIP-YYYY.geos.1x1'
-         ELSE IF ( TRACER .eq. 30 ) THEN
-            ! NH3
-            FILENAME = TRIM( DIR ) // 'NH3/'
-     &                // 'EMEP-NH3-SHIP-YYYY.geos.1x1'
-
-         ENDIF
+         FILENAME = TRIM(DIR) //
+     &              'EMEP-SHIP-YYYY.geos.1x1'
 
          CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
 
-         WRITE( 6, 101 ) TRIM( FILENAME ) 
+         WRITE( 6, 101 ) TRIM( FILENAME )
  101     FORMAT( '     - READ_EMEP_UPDATED: Reading ', a )
 
          CALL READ_BPCH2( FILENAME, 'ANTHSRCE',      TRACER,
@@ -935,30 +1155,35 @@
       ! coordinated by the Institute of Energy Economics and the 
       ! Rational Use of Energy (IER) at the University of 
       ! Stuttgart) (amv, 11/24/2008)
-      IF (( TRACER .eq. 1 ) .and. ( wSHIP .lt. 2 )) THEN
+      IF ( wSHIP .lt. 2 ) THEN
 
          ! Apply Monthly Factors over land
-         TAU2005 = GET_TAU0( 1, 1, 2005)
-         MN = GET_MONTH()
+         TAU = GET_TAU0( GET_MONTH(), 1, 2005)
 
-         IF (MN .lt. 10) THEN
-            WRITE( SSMN, '(i1)' ) MN
+         IF ( TRACER .eq. IDTNOx ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/' 
+     &        // 'NOx-EMEP-SeasonalScalar.geos.1x1'
+            RATIOID = 71
+         ELSEIF ( TRACER .eq. IDTCO ) THEN
             FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &               // 'EMEP-SeasonalVariation-'
-     &               // SSMN // '.1x1'
-         ELSE
-            WRITE( SMN, '(i2)' ) MN
+     &        // 'CO-EMEP-SeasonalScalar.geos.1x1'
+            RATIOID = 72
+         ELSEIF ( TRACER .eq. IDTSO2 ) THEN
             FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
-     &               // 'EMEP-SeasonalVariation-'
-     &               // SMN // '.1x1'
+     &        // 'SOx-EMEP-SeasonalScalar.geos.1x1'
+            RATIOID = 73
+         ELSEIF ( TRACER .eq. IDTNH3 ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
+     &        // 'NH3-EMEP-SeasonalScalar.geos.1x1'
+            RATIOID = 74
          ENDIF
 
          ! Echo info
          WRITE( 6, 101 ) TRIM( FILENAME )
 
          ! Read data
-         CALL READ_BPCH2( FILENAME, 'RATIO-2D', 71,
-     &                    TAU2005,   I1x1,      J1x1,
+         CALL READ_BPCH2( FILENAME, 'RATIO-2D', RATIOID,
+     &                    TAU,   I1x1,      J1x1,
      &                    1,         ARRAY_1x1,     QUIET=.TRUE. )
 
          ARRAY_1x1_LAND(:,:,1) = ARRAY_1x1_LAND(:,:,1) 
@@ -971,13 +1196,226 @@
      &                                       ARRAY_1x1_SHIP(:,:,1)
       IF ( wSHIP .eq. 2 ) ARRAY_1x1(:,:,1) = ARRAY_1x1_SHIP(:,:,1)
 
-      CALL DO_REGRID_1x1('molec/cm2/s', ARRAY_1x1, ARRAY)
+      CALL DO_REGRID_1x1('kg/yr', ARRAY_1x1, ARRAY)
 
       ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
       ! throughout GEOS-Chem, and as per Chin et al, 2000
       IF ( TRACER .eq. 26 ) ARRAY(:,:) = ARRAY(:,:) * 0.95d0
 
+      ! convert to molec/cm2 for consistency with previous
+      ! emissions
+      B = 0d0
+      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Surface area [cm2] * sec per year
+         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ARRAY(I,J) = ARRAY(I,J) / A * B
+
+         ENDDO
+      ENDDO
+
       END SUBROUTINE READ_EMEP_UPDATED
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: READ_EMEP_UPDATED_05x0666
+!
+! !DESCRIPTION: Subroutine READ\_EMEP\_UPDATED reads updated EMEP emissions
+!  from the year 1990 including SOx emissions.  These are regridded to the
+!  simulation resolution. Ship emissions can also be included.
+!  (amv, phs, 1/28/09)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_EMEP_UPDATED_05x0666( TRACER, EMEP_YEAR, ARRAY, 
+     &                   wSHIP )
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : READ_BPCH2, GET_TAU0
+      USE TIME_MOD,       ONLY : EXPAND_DATE, GET_MONTH
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
+      USE LOGICAL_MOD,    ONLY : LEMEPSHIP
+      USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_O3"         ! SCALEYEAR
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN)  :: TRACER              ! Tracer number
+      INTEGER, INTENT(IN)  :: EMEP_YEAR           ! Year of emissions to read
+      INTEGER, INTENT(IN)  :: wSHIP               ! Use ground, ship, or both?
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: ARRAY(IIPAR,JJPAR)  ! Output array
+!
+! !REVISION HISTORY:
+!  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
+!  29 Oct 2009 - Added multi-species seasonality (amv)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8               :: ARRAY_05x0666(IIPAR,JJPAR,1)
+      REAL*4               :: ARRAY_05x0666_R4(IIPAR,JJPAR,1)
+      REAL*4               :: ARRAY_05x0666_SHIP(IIPAR,JJPAR,1)
+      REAL*4               :: ARRAY_05x0666_LAND(IIPAR,JJPAR,1)
+      CHARACTER(LEN=255)   :: FILENAME, DIR
+      REAL*8               :: EMEP_TAU, TAU, A, B
+      INTEGER              :: EMEP_NYMD, MN, RATIOID, I, J
+      CHARACTER(LEN=2)     :: SMN
+      CHARACTER(LEN=1)     :: SSMN
+
+      ARRAY_05x0666_SHIP(:,:,:) = 0.d0
+      ARRAY_05x0666_LAND(:,:,:) = 0.d0
+
+      ! YYYYMMDD value for 1st day of EMEP_YEAR
+      EMEP_NYMD = ( EMEP_YEAR * 10000 ) + 0101
+
+      ! TAU0 value corresponding to EMEP_NYMD
+      EMEP_TAU  = GET_TAU0( 1, 1, EMEP_YEAR )
+
+      ! Expand filename
+      DIR = TRIM( DATA_DIR ) // 'EMEP_200911/'
+
+      ! wSHIP = 0 means no ship emissions included
+      ! wSHIP = 1 means include ships emissions
+      ! wSHIP = 2 means only ship emissions
+
+      IF ( wSHIP .lt. 2 ) THEN
+
+         FILENAME = TRIM(DIR) // 
+     &              'EMEP-YYYY.1p2x2p3.eu.bpch'
+
+         CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
+
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_EMEP_UPDATED_05x0666
+     &               : Reading ', a )
+
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE',      TRACER,
+     &                    EMEP_TAU,  IIPAR,       JJPAR,
+     &                    1,      ARRAY_05x0666_LAND, QUIET=.TRUE. )
+
+      ENDIF
+
+      IF ( ( wSHIP .gt. 0 ) .AND. LEMEPSHIP ) THEN
+
+         FILENAME = TRIM(DIR) //
+     &              'EMEP-SHIP-YYYY.1p2x2p3.eu.bpch'
+
+         CALL EXPAND_DATE( FILENAME, EMEP_NYMD, 000000 )
+
+         WRITE( 6, 101 ) TRIM( FILENAME )
+ 101     FORMAT( '     - READ_EMEP_UPDATED_05x0666
+     &         : Reading ', a )
+
+         CALL READ_BPCH2( FILENAME, 'ANTHSRCE',      TRACER,
+     &                    EMEP_TAU,  IIPAR,       JJPAR,
+     &                    1,      ARRAY_05x0666_SHIP, QUIET=.TRUE. )
+
+      ENDIF
+
+      ! Apply monthly variation (courtesy of the GENEMIS project
+      ! coordinated by the Institute of Energy Economics and the
+      ! Rational Use of Energy (IER) at the University of
+      ! Stuttgart) (amv, 11/24/2008)
+
+      ! Expand filename
+      DIR = TRIM( DATA_DIR ) // 'EMEP_200806/'
+
+      IF ( wSHIP .lt. 2 ) THEN
+
+         ! Apply Monthly Factors over land
+         TAU = GET_TAU0( GET_MONTH(), 1, 2005)
+
+         IF ( TRACER .eq. 1 ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
+     &        // 'NOx-EMEP-SeasonalScalar.geos.05x0666'
+            RATIOID = 71
+         ELSEIF ( TRACER .eq. 4 ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
+     &        // 'CO-EMEP-SeasonalScalar.geos.05x0666'
+            RATIOID = 72
+         ELSEIF ( TRACER .eq. 26 ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
+     &        // 'SOx-EMEP-SeasonalScalar.geos.05x0666'
+            RATIOID = 73
+         ELSEIF ( TRACER .eq. 30 ) THEN
+            FILENAME = TRIM( DIR ) // 'SeasonalVariation/'
+     &        // 'NH3-EMEP-SeasonalScalar.geos.05x0666'
+            RATIOID = 74
+         ENDIF
+
+         ! Echo info
+         WRITE( 6, 101 ) TRIM( FILENAME )
+
+         ! Read data
+         CALL READ_BPCH2( FILENAME, 'RATIO-2D', RATIOID,
+     &                    TAU,   IIPAR,      JJPAR,
+     &                    1,    ARRAY_05x0666_R4,     QUIET=.TRUE. )
+
+         ARRAY_05x0666_LAND(:,:,1) = ARRAY_05x0666_LAND(:,:,1)
+     &                           * ARRAY_05x0666_R4(:,:,1)
+
+      ENDIF
+
+      IF ( wSHIP .eq. 0 ) ARRAY_05x0666(:,:,1) = 
+     &            ARRAY_05x0666_LAND(:,:,1)
+      IF ( wSHIP .eq. 1 ) ARRAY_05x0666(:,:,1) = 
+     &            ARRAY_05x0666_LAND(:,:,1) + ARRAY_05x0666_SHIP(:,:,1)
+      IF ( wSHIP .eq. 2 ) ARRAY_05x0666(:,:,1) = 
+     &            ARRAY_05x0666_SHIP(:,:,1)
+
+      ARRAY(:,:) = ARRAY_05x0666(:,:,1)
+
+      ! Convert SOx to SO2 assuming a SOx is 95% SO2 over Europe, as used
+      ! throughout GEOS-Chem, and as per Chin et al, 2000
+      IF ( TRACER .eq. 26 ) ARRAY(:,:) = ARRAY(:,:) * 0.95d0
+
+      ! convert to molec/cm2 for consistency with previous
+      ! emissions
+      B = 0d0
+      IF ( IDTNOx .eq. TRACER ) B = 1.d3 / 46d0 * 6.0225d23
+      IF ( IDTCO  .eq. TRACER ) B = 1.d3 / 28d0 * 6.0225d23
+      IF ( IDTSO2 .eq. TRACER ) B = 1.d3 / 64d0 * 6.0225d23
+      IF ( IDTNH3 .eq. TRACER ) B = 1.d3 / 17d0 * 6.0225d23
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+
+         ! Surface area [cm2] * sec per year
+         A = GET_AREA_CM2( J ) * 365d0 * 86400d0
+
+         ! Loop over longitudes
+         DO I = 1, IIPAR
+
+            ARRAY(I,J) = ARRAY(I,J) / A * B
+
+         ENDDO
+      ENDDO
+
+      END SUBROUTINE READ_EMEP_UPDATED_05x0666
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -988,7 +1426,7 @@
 !
 ! !DESCRIPTION: Subroutine INIT\_EMEP allocates and zeroes EMEP module 
 !  arrays, and also creates the mask which defines the European region.
-!  (bdf, bmy, 11/1/05, 10/18/06) 
+!  (bdf, bmy, 11/1/05, 1/26/10) 
 !\\
 !\\
 ! !INTERFACE:
@@ -1007,6 +1445,8 @@
 ! !REVISION HISTORY: 
 !  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
 !        instead of just defining it as a rectangular box. (bmy, 10/18/06)
+!  26 Jan 2010 - R. Yantosca - Fixed cut-n-paste error.  Now make sure to zero 
+!                              EMEP_CO_SHIP and EMEP_NOx_SHIP.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1042,12 +1482,12 @@
       EMEP_SO2_SHIP = 0d0
 
       ALLOCATE( EMEP_CO_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2_SHIP' )
-      EMEP_SO2_SHIP = 0d0
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_CO_SHIP' )
+      EMEP_CO_SHIP = 0d0
 
       ALLOCATE( EMEP_NOx_SHIP( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_SO2_SHIP' )
-      EMEP_SO2_SHIP = 0d0
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_NOx_SHIP' )
+      EMEP_NOx_SHIP = 0d0
 
       ALLOCATE( EMEP_NH3( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMEP_NH3' )
@@ -1078,7 +1518,11 @@
       EUROPE_MASK = 0d0
 
       ! Read and regrid the European mask
-      CALL READ_EUROPE_MASK
+#if   defined(GRID05x0666)
+         CALL READ_EUROPE_MASK_05x0666
+#else
+         CALL READ_EUROPE_MASK
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_EMEP
@@ -1122,9 +1566,5 @@
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_EMEP
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE EMEP_MOD
 !EOC
+      END MODULE EMEP_MOD

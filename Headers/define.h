@@ -1,4 +1,4 @@
-! $Id: define.h,v 1.5 2009/12/10 21:34:04 bmy Exp $
+! $Id: define.h,v 1.6 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -86,6 +86,7 @@
 !  08 Jul 2009 - R. Yantosca - Deleted support for old COMPAQ and SGI_MIPS 
 !                              compilers.  Added switch for IBM XLF compiler. 
 !  15 Oct 2009 - R. Yantosca - Remove IN_CLOUD_OD.  Added ProTex headers.
+!  18 Dec 2009 - Aaron van D - Added NESTED_EU C-preprocessor switch
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -105,15 +106,12 @@
 #undef GRID05x0666
 #undef NESTED_NA
 #undef NESTED_CH
+#undef NESTED_EU
 #undef IBM_AIX
 #undef IBM_XLF
 #undef LINUX_PGI
 #undef LINUX_IFORT
 #undef SPARC
-!----------------------------
-! Prior to 10/15/09:
-!#undef IN_CLOUD_OD
-!----------------------------
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -130,6 +128,7 @@
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
 !#define NESTED_NA   'NESTED_NA'
+!#define NESTED_EU   'NESTED_EU'
 !#define GRID05x0666 'GRID05x0666'
 !#define GRID1x1     'GRID1x1'
 !#define GRID1x125   'GRID1x125'
@@ -143,31 +142,6 @@
 !#define LINUX_PGI   'LINUX_PGI'
 #define LINUX_IFORT 'LINUX_IFORT'
 !#define SPARC       'SPARC'
-
-!------------------------------------------------------------------------------
-! Prior to 10/15/09
-! Remove IN_CLOUD_OD, force all users to get the reprocessed GEOS-5 met
-! fields (bmy, 10/15/09)
-!
-!!----- FOR GEOS-5 MET FIELDS ONLY -----
-!! NOTE: If you are using GEOS-5 met fields that were reprocessed to 
-!! correctly regrid the in-cloud optical depth and cloud fraction fields, 
-!! then be sure to uncomment the following line of code.  This will cause 
-!! FAST-J to interpret the optical depth correctly.  Leaving this option
-!! commented will cause a "quick fix" (i.e. multiplying the optical depth
-!! by the cloud fracton) to be applied, which should be a good enough fix
-!! in the meantime. (bmy, hyl, 10/24/08)
-!#define IN_CLOUD_OD  'IN_CLOUD_OD'
-!
-!!==============================================================================
-!! Force a compile error if IN_CLOUD_OD is used with GEOS_3 or GEOS_4  
-!!==============================================================================
-!#if defined(GEOS_3) || defined(GEOS_4) || defined (GCAP)
-!#if defined(IN_CLOUD_OD)
-!#error "ERROR: IN_CLOUD_OD option set with GEOS_3, GEOS_4, or GCAP"
-!#endif
-!#endif
-!------------------------------------------------------------------------------
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
