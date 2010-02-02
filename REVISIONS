@@ -1,352 +1,379 @@
-REVISIONS (v8-02-04)
-20 Jan 2010
-Bob Yantosca, Claire Carouge, and Philippe Le Sager
+REVISIONS (v8-02-05)
+02 Feb 2010
+Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
 
-New in v8-02-04:
+New in v8-02-05:
 ===============================================================================
-
-In the GeosCore subdirectory:
------------------------------
-
-linoz_mod.f		-- Module containing routines for the Linoz
-	 		   stratospheric chemistry algorithm
-
-megan_mod.f             -- Module completely rewritten.
-
-nei2005_anthro_mod.f    -- read, allocate, total, and deallocate NEI
-		       	   2005 emissions data 
-
-sulfate_pbl_mix	        -- does the PBL mixing of a column of sulfate
-(sulfate_mod.f)		   emissions  
-
-
-In the GeosUtil subdirectory:
------------------------------
-
-bpch_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-charpak_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-directory_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-error_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-file_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-grid_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-ifort_errmsg.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-julday_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-pressure_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-regrid_1x1_mod.f	-- Moved here from GeosCore
-
-time_mod.f		-- Moved here from GeosCore
-
-transfer_mod.f		-- Moved here from GeosCore
-
-unix_cmds_mod.f		-- Moved here from GeosCore
-			-- Added ProTeX documentation headers
-
-
-In the GeosCore subdirectory:
------------------------------
-
-readisolai_avhrr        -- READISOLAI subroutine renamed to distinguish
-("lai_mod.f")              from READISOLAI_MODIS
-
-readisolai_modis        -- Read MODIS LAI
-("lai_mod.f")              
-
-meganut_mod.f           -- New module for subroutine xltmmp, xlpardr 
-			    and xlpardf
-
-
-Removed in v8-02-04:
-===============================================================================
-
-Kr85_mod.f 		-- Moved to the "obsolete" folder for later reference
-
-xltmmp.f                -- Subroutine added to module "meganut_mod.f".
-			-- File moved to "obsolete" folder for later reference
-
-readisolai              -- Renamed to READISOLAI_AVHRR to distinguish
-("lai_mod.f")              from READISOLAI_MODIS
-
-
-
-Modified in v8-02-04:
-===============================================================================
-
-Makefile_header.mk	-- Minor fix, add -m64 if SUN32 is not defined
-
-
-Input files for GEOS-Chem:
---------------------------
-
-ratj.d     		-- Updated the branching ratio of HNO4.  
-			   Changed the lines:
-			      Line 13 HNO4 from 33.3 to 5.0
-			      Line 14 HNO4 from 66.7 to 95.0
-			   This is based on Jimenez et al, "Quantum yields 
-			   of OH, HO2 and NO3 in the UV photolysis of HO2NO2" 
-			   (jmao, bmy, 10/27/09)
-
-input.geos		-- has an additional lines for EPA2005, LINOZ, PCEEA,
-			   MODIS-LAI
-
-jv_spec.dat             -- Correct line 25: "HCHO=H+293 ..."
 
 
 In the Headers subdirectory:
 ----------------------------
 
-define.h		-- Removed references to IN_CLOUD_OD
-			-- Added ProTeX headers
+nothing
 
-CMN_DIAG                -- Increase PD46 to 13
 
-CMN_O3                  -- Add EMISS_BVOC in new common bloc EMISS100
+In the GeosUtil subdirectory:
+-----------------------------
 
-CMN_SIZE        	-- set NOXLEVELS and NOXEXTENT to 5
+hdf_mod.f			-- Contains routines to write data to
+				   HDF5 files.
 
+is_safe_exp			-- Lets you test if an EXP(x) would result
+("error_mod.f")			   in a floating-point exception
+
+safe_exp			-- Allows you to return an alternate value
+("error_mod.f")                    if an exponential would result in a
+			 	   floating-point exception
+
+safe_log			-- Allows you to return an alternate value
+("error_mod.f") 		   if a natural logarithm would result in a
+				   floating-point exception
+
+safe_log10			-- Allows you to return an alternate value
+("error_mod.f") 		   if a base-10 logarithm would result in a
+				   floating-point exception
+
+
+In the GeosCore subdirectory:
+=======
+
+diag51b_mod.f		    	-- Allows to save 2 satellite overpasses
+
+emiss_emep_05x0666		-- Corresponding routine to EMISS_EMEP
+("emep_mod.f")		           for 0.5 x 0.666 nested grids 
+
+emiss_nei2005_anthro_05x0666	-- Corresponding routine to EMISS_NEI_ANTHRO
+("nei2005_anthro_mod.f")           for 0.5 x 0.666 nested grids
+
+get_nei99_season_05x0666	-- Corresponding routine to GET_NEI_SEASON
+("nei2005_anthro_mod.f")           for 0.5 x 0.666 nested grids
+
+get_vistas_season_05x0666	-- Corresponding routine to GET_VISTAS_SEASON
+("nei2005_anthro_mod.f")           for 0.5 x 0.666 nested grids
+
+get_nei99_wkscale_05x0666	-- Corresponding routine to GET_NEI_WKSCALE
+("nei2005_anthro_mod.f")           for 0.5 x 0.666 nested grids
+
+isoropiaII_mod.f		-- Contains the routines that provide the 
+				   interface between ISORROPIA II and 
+			           GEOS-Chem.  (The actual unmodified 
+                                   ISORROPIA II code from Thanos Nenes which 
+				   performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg) 
+			           aerosol thermodynamic equilibrium is in 
+			           ISOROPIA/isoropiaIIcode.f.)
+
+read_canada_mask_05x0666        -- Corresponding routine to READ_CANADA_MASK
+("cac_anthro_mod.f")	           for 0.5 x 0.666 nested grids 
+
+read_europe_mask_05x0666        -- Corresponding routine to READ_EUROPE_MASK
+("emep_anthro_mod.f")	           for 0.5 x 0.666 nested grids 
+
+read_emep_updated_05x0666       -- Corresponding routine to READ_EMEP_UPDATED
+("cac_anthro_mod.f")	           for 0.5 x 0.666 nested grids 
+
+read_epa_05x0666		-- Corresponding routine to READ_EPA
+("epa_nei_mod.f")	           for 0.5 x 0.666 nested grids
+
+read_usa_mask_05x0666		-- Corresponding routine to READ_USA_MASK
+("epa_nei_mod.f")	           for 0.5 x 0.666 nested grids
+
+
+In the GeosTomas subdirectory:
+------------------------------
+
+Makefile			-- GEOS-Chem routines that have been 
+aero_drydep.f		   	   modified to reference the TOMAS aerosol
+carbon_mod.f			   microphysics package.  These are kept
+chemdr.f			   in a separate GeosTomas directory so that
+chemistry_mod.f			   they do not interfere with the routines
+cleanup.f			   in the GeosCore directory.
+diag3.f
+diag_mod.f			   The GeosTomas directory only needs to
+diag_pl_mod.f			   contain the files that have been modified
+drydep_mod.f			   for TOMAS.  The Makefile will look for
+dust_mod.f			   all other files from the GeosCore directory
+emissions_mod.f			   using the VPATH option in GNU Make.
+gamap_mod.f
+initialize.f			   NOTE to GEOS-Chem developers: When you 
+input_mod.f			   make changes to any of these routines 
+isoropia_mod.f			   in the GeosCore directory, you must also
+logical_mod.f 			   make the same modifications to the
+ndxx_setup.f			   corresponding routines in the GeosTomas
+planeflight_mod.f		   directory.
+seasalt_mod.f
+sulfate_mod.f			   Maybe in the near future we can work 
+tomas_mod.f			   towards integrating TOMAS into the GeosCore
+tomas_tpcore_mod.f90		   directory more cleanly.  However, due to 
+tpcore_mod.f			   the large number of modifications that were
+tpcore_window_mod.f		   necessary for TOMAS, it was quicker to 
+tracerid_mod.f			   implement the TOMAS code in a separate
+wetscav_mod.f			   subdirectory.  
+xtra_read_mod.f				-- Bob Y. (1/25/10)
+
+
+In the ISOROPIA subdirectory:
+-----------------------------
+
+isoropiaIIcode.f		-- Contains the unmodified ISORROPIA II code
+				   from Thanos Nenes.  The interface between
+				   this code and GEOS-Chem is provided in
+				   GeosCore/isoropiaII_mod.f
+
+isrpia.inc			-- Contains common-blocks and parameters
+				   for the ISORROPIA II code
+
+
+Removed in v8-02-05:
+===============================================================================
+
+isoropia_mod.f			-- Removed the obsolete ISORROPIA I code, which
+				   is now replaced by ISORROPIA II.  Moved
+				   to the obsolete/ subdirectory.
+
+
+Modified in v8-02-05:
+===============================================================================
+
+
+Input files for GEOS-Chem:
+--------------------------
+
+input.geos			-- Added MICROPHYS MENU to select options
+				   for TOMAS aerosol microphysics package
+				-- Added switches for HDF5 output for
+				   certain timeseries diagnostics (ND50,
+				   ND51, ND51b)
+
+
+GEOS-Chem Makefiles:
+--------------------------
+
+Makefile			-- Added Makefile targets for TOMAS aerosol
+			           microphysics package
+
+Makefile_header.mk		-- Rewritten to allow HDF5 diagnostic output 
+				   option
+				-- Now add -DTOMAS to FFLAGS if the variable
+			           TOMAS=yes is passed
+
+GeosCore/Makefile		-- Now get LINK from Makefile_header.mk
+				-- Whem making "realclean", also call "clean" 
+			           in the $(GEOSTOM)/Makefile.  Also make sure 
+				   to remove executables in the $(BIN) dir
+
+help/Makefile			-- Added info about TOMAS option
+
+
+In the Headers subdirectory:
+----------------------------
+
+CMN_DIAG			-- Redimension PD59, PD60, PD61 for TOMAS
+				-- Added LD59, LD60, LD61 to common block  
+				-- Reset MAX_TRACER to NNPAR+1 for TOMAS
+				   (within an #if defined( TOMAS ) block)
+
+CMN_SIZE			-- Added ProTeX Headers
+				-- Added parameters for NESTED_EU grid
+				-- Set NNPAR=320 for TOMAS simulations
+				-- Define TOMASBIN and TOMASSPEC for TOMAS sims
+
+commsoil.h			-- Added # of land boxes for NESTED_EU grid
+
+define.h			-- Added NESTED_EU switch
+
+
+In the GeosUtil subdirectory:
+-----------------------------
+
+directory_mod.f			-- Created separate directory definitions 
+				   TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH for 
+				   multiple boundary condition outputs
+
+read_bpch2			-- Add NESTED_EU flag
+("bpch2_mod.f")
 
 
 In the GeosCore subdirectory:
 -----------------------------
 
-accumulate_diag51       -- Add outputs for EMISS_BVOC (10 tracers), TS, 
-("diag51_mod.f")            PARDR, PARDF and ISOLAI
+accumulate_diag50q		-- Output AOD at 3rd jv_spec.dat row wavelength
+("diag50_mod.f")		-- include all seven dust bin's individual AOD
 
-anthroems.f	        -- account for NOXLEVELS not equal to 2
+accumulate_diag51		-- Output AOD at 3rd jv_spec.dat row wavelength
+("diag51_mod.f")		-- include all seven dust bin's individual AOD
 
-arsl1k.f		-- Prevent div-by-zero errors by returning the
-			   default value if any of the arguments are zero 
-			-- Added ProTeX Header
+anthroems.f			-- GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed 
+				   to GET_ANNUAL_SCALAR_05x0666_NESTED
 
-biogenic_oc             -- update MEGAN calculation to v2.1
+avgpole				-- Also need to RETURN for 0.5 x 0.666 nested 
+("dao_mod.f")           	   grid simulations
+
+chemistry_mod.f			-- Added ProTeX documentation headers
+
+chem_so2			-- Now prevent floating-point exceptions when 
+("sulfate_mod.f") 	           taking the exponential terms.
+
+cleanup.f			-- Now references CLEANUP_HDF from "hdf_mod.f"
+
+close_files			-- Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH
+("file_mod.f")
+
+do_emissions			-- Added emissions for nested grids 
+("emissions_mod.f")		   @ 0.5 x 0.666 
+
+do_the_regridding_05x0666_2d    -- Updated nested grid limits for EU & NA grids
+("regrid_1x1_mod.f")
+
+do_the_regridding_05x0666_3d    -- Updated nested grid limits for EU & NA grids
+("regrid_1x1_mod.f")
+
+dust_mbl		 	-- Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, 
+("dust_dead_mod.f")      	   GEOS_5 2x2.5, NESTED_NA and NESTED_EU
+				-- Redefined FLX_MSS_FDG_FCT for NESTED_CH, 
+				   based upon above changes
+
+emep_mod.f			-- Maximum scale factor year is now 2007
+				-- Extend 1x1 emission files to 2007.
+				-- Routine READ_EMEP_UPDATED now mimics routine
+                        	   READ_EMEP_UPDATED_05x0666.
+
+emiss_cac_anthro		-- Use 2005 scale factors for years beyond 2005
+("cac_anthro_mod.f")
+
+emiss_epa_nei			-- Now can read 0.5 x 0.667 nested grid 
+("epa_nei_mod.f")		   emissions 
+
+emiss_streets_anthro		-- Now backscale from 2006 (to maximum of 2000)
+("streets_anthro_mod.f") 	   rather than forward scale 2000 (to maximum 
+			           of 2005)
+				-- Addresses irregularity in 2005 to 2006 
+				   emission output, but new irregularity likely
+				   now occurs at 2000 to 2001 (although this is
+				   likely less relevant to current studies)
+
+emiss_streets_anthro_05x0666    -- Initiated 1/2x2/3 annual scaling
+("streets_anthro_mod.f")
+
+emithigh			-- Bug fix: EMIS_SAVE should be 
+("carbon_mod.f")		   EMIS_SAVE(I,J,...) instead of 
+				   EMIS_SAVE(:,:,...) since we are in a 
+                           	   parallel loop
+
+file_mod.f			-- Added file units IU_BC_NA,IU_BC_EU,IU_BC_CH 
+
+gamap_mod.f			-- Include second satellite overpass diagnostic
+				-- Adjust AOD name to 550 nm from 400 nm
+				-- Add additional dust AOD bins
+				-- Output values to hdf_mod
+
+gckpp_driver			-- Now call GCKPP_DRIVER from physproc.f to 
+("chemistry_mod.f")                save memory. 
+                        	-- Now use the # of active species from GC to 
+                           	   update CSPEC and not the of variable species
+				   from KPP.
+
+get_otd_lis_scale		-- Modification for GEOS-4 1 x 1.25 grid
+("lightning_nox_mod.f")
+
+geos4_geos5_global_adv  	-- Moved 'CALL SAVE_GLOBAL_TPCORE_BC' to main.f
+("transport_mod.f")
+
+get_annual_scalar_1x1   	-- Updated scale factors through 2006, changed
+("scale_anthro_mod.f")	           to new directory, reset year limits
+				-- Reformated scale factors to a single file 
+				   for all years, made necessary input changes
+
+init_carbon			-- Now set parameters for NESTED_EU grid
 ("carbon_mod.f")
 
-calcrate.f		-- FastJX has taken near-IR photolysis into account 
-                           with cross section at 574nm, so we don't need to 
-	                   manually add 1e-5 to the JHNO4 rate anymore.
+input_mod.f			-- Created READ_ND51b_MENU routine to read the
+                        	   ND51b menu (based on READ_ND51 routine)
 
+lnd_frc_mbl_get			-- Modification for GEOS-4 1 x 1.25 grids
+("dust_dead_mod.f")
 
-chem_dms		-- Update reaction rate to match JPL06 and full chem
-("sulfate_mod.f")
+logical_mod.f			-- Added 2x2.5 boundary conidition logical
+				-- Added NESTED_NA, NESTED_EU, NESTED_CH, and 
+			           NESTED_CU logicals
+				-- Added hdf5 logicals
 
-chem_so2		-- Update reaction rate to match JPL06 and full chem
-("sulfate_mod.f")
+main.f				-- Added diag51b (satellite overpass copy)
+				-- Moved TPCORE boundary coniditon output 
+				   to main.f
+				-- Now reference LWINDO from "logical_mod.f"
 
-chem_tagged_ox		-- Now only compute loss rate in troposphere 
-("tagged_ox_mod.f")
+megan_mod.f			-- Added ProTeX documentation headers
 
-cleanup.f		-- Now references CLEANUP_LINOZ
+meganut_mod.f			-- Updated comments
 
-cleanup_diag51          -- Deallocate GOOD_EMIS and GOOD_CT_EMIS
-("diag51_mod.f")
+ocean_mercury_flux		-- Modifications for GEOS-4 1 x 1.25 grid
+("ocean_mercury_mod.f")
 
-cleanup_sulfate		-- Deleted obsolete arrays from older SO2 volcanic
-("sulfate_mod.f")          emissions inventory
+ocean_source_acet		-- Additional scale factors for NESTED_NA and 
+("acetone_mod.f")                  NESTED_EU calculated and includ
+				-- Added scale factor for GEOS-4 1 x 1.25 grid
 
-compute_biomass_emissions -- Irrespective of inventory type, we need to 
-("biomass_mod.f")            scale biomass CO to account for CO production
-                             from VOC's that are not explicitly carried in the 
-                             chemistry mechanisms. This used to be done in 
-                             gc_biomass_mod.f but then is not used for GFED2, 
-                             FLAMBE, etc.
+read_emep_updated		-- Add multi-species seasonality
+("emep_mod.f")
 
-diag20			-- Bug fix: Now just zero arrays w/o loop indices
-("diag_pl_mod.f")
+physproc.f			-- Remove obsolete print statements & formats
+			        -- Now call GCKPP_DRIVER with NSPEC(1), which 
+				   is the # of active species for urban 
+				   chemistry.
 
-diag3.f                 -- accounts for 3D AD13_NH3_an
-
-diag49                  -- Add outputs for EMISS_BVOC (10 tracers), TS, 
-("diag49_mod.f")            PARDR, PARDF and ISOLAI
-
-diag51_mod.f            -- Add module variables GOOD_EMIS and GOOD_CT_EMIS
-                            to manage emission outputs
-
-diag_mod.f		-- AD13_NH3_an is declared as 3D
-     
-do_emissions    	-- account for NEI 2005
-(emissions_mod.f)
-
-dst_mbl			-- new scale factor for dust mobilization for 
-("dust_dead_mod.f")        GEOS5 at 2x2.5
-
-emisssulfate		-- Now read new volcanic SO2 emissions daily
-("sulfate_mod.f")
-
-emfossil.f		-- account for NEI 2005
-
-emissdr.f               -- Update for MEGAN v2.1
-
-fast_j.f 		-- Removed references to IN_CLOUD_OD		
-
-findmon.f               -- Add year management (needed for MODIS-LAI)
-
-get_alk			-- Updated hygroscopic growth factors according to
-("seasalt_mod.f")          recommendations from Becky Alexander
-
-init_diag51             -- Allocate GOOD_EMIS and GOOD_CT_EMIS
-("diag51_mod.f")
-
-init_drydep		-- Minor bug fix: ALPH, LIMO should have 
-("drydep_mod.f")           molwt = 136.23, not 136 even
-
-init_input		-- Now initialize LLINOZ
-("input_mod.f")         -- Now initialize LMODILAI and LPCEEA
-			-- Now initialize LNEI05
-
-init_sulfate		-- Now redimension EEV & NEV arrays for new SO2 
-("sulfate_mod.f")          volcanic emissions inventory
-			-- Deleted obsolete arrays from older SO2 volcanic
-                           emissions inventory
-
-init_tracerinfo		-- Previous bug for molecular weight of ALD2 had 
-("gamap_mod.f")		   been applied to PRPE.  Now corrected, ALD2 has
-	 		   2 carbons and PRPE has 3 carbons.
-			-- NTRAC for ND46 increased from 6 to 13.
-                           Add definition of new tracers
-			-- NTRAC for time series increased from 26 to 32
-			   Add definition of new tracers
-
-logical_mod.f		-- added LNEI05
-		        -- added LLINOZ
-			-- added LMODISLAI
-			-- added LPECCA
-     
-main.f			-- Now calls LINOZ_READ at startup
-			-- Add the year in call to RDLAI and RDISOLAI
-
-Makefile		-- added nei2005_anthro_mod.o
-
-ndxx_setup.f		-- Now AD13_SO2_an and AD13_SO4_an have NOXLEVELS
-			   levels to accomodate NEI 2005
-			-- accounts for 3D AD13_NH3_an
-                        -- MASSFLEW, MASSFLNS and MASSFLUP are scalar if 
-                           the diagnostics are not used.
-
-open_a6_fields		-- Removed references to IN_CLOUD_OD
-("a6_read_mod.f")
-
-readlai.f               -- Read files for MODIS-LAI. Add year as argument.
-
-rdisolai                -- Add YEAR for MODIS
-("lai_mod.f")           -- Add call to MODIS-LAI for global simulations only
-
-rdlai.f                 -- Add the year for MODIS
-
-read_a3			-- Removed references to IN_CLOUD_OD
-("a3_read_mod.f")
-
-read_a6			-- Removed references to IN_CLOUD_OD
-("a6_read_mod.f")
-
-read_i6			-- Removed references to IN_CLOUD_OD
-("i6_read_mod.f")
-
-read_anthro_sox		-- account for multilevels emissions
-("sulfate_mod.f")
-     
-read_emissions_menu	-- Bug fix: for now, if LEMEPSHIP is turned on but 
-("input_mod.f")            LEMEP is turned off, just turn off LEMEPSHIP and 
-                           print a warning msg
-			-- Now reads for LNEI05
-			-- Now reads for LMODISLAI
-                           Add check on LAI switches.
-			-- Now reads for LPECCA (PCEEA model)
-
-read_erup_volc		-- Complete re-write as volcanic emissions are now 
-("sulfate_mod.f")          monthly and stored as BPCH files
-
-read_nd49_menu          -- Increase # of tracers from 100 to 120
+read_emissions_menu		-- Now force settings for EU, NA, CC 
+				   nested grids
 ("input_mod.f")
 
-read_nonerup_volc	-- Complete re-write as volcanic emissions are now 
-("sulfate_mod.f")          monthly and stored as BPCH files
+read_nested_grid_menu		-- Now give user the option of saving out 
+("input_mod.f")		   	   nested grid boundary conditions at 2 x 2.5 
+				   resolution for the EU, CH, or NA grids 
 
-read_simulation_menu	-- Now read LLINOZ switch from input.geos file
+read_input_file			-- Now call READ_ND51b_MENU
 ("input_mod.f")
 
-setemis.f		-- anthro NOx emissions above PBL are left
-                           in their initial level 
+read_nd50_menu			-- Now include option to save ND50 diagnostic
+("input_mod.f")		   	   to HDF5 file format
 
-srcso2			-- account for NEI 2005 
-("sulfate_mod.f")	-- Rewrite Aerocom SO2 emissions section to avoid 
-                           errors on SunStudio compiler.  Also avoid div by 0.
+read_nd51_menu			-- Now include option to save ND51 diagnostic
+("input_mod.f")		           to HDF5 file format
 
-srcso4			-- account for NEI 2005
-("sulfate_mod.f")
+read_todx             	        -- Modifications for reading data on GEOS-4 
+("geia_mod.f")		   	   1 x 1.25 grids
 
-srcnh3			-- account for NEI 2005; multilevel emiss. now
-("sulfate_mod.f")
+regrid_05x0666_nested	        -- Updated nested grid parameters for 
+("regrid_1x1_mod.f")		   EU & NA grids 
 
-srcsalt			-- The source function is for wet aerosol radius 
-("seasalt_mod.f")          (RH=80%, with a radius twice the size of dry 
-                           aerosols) so BETHA should be set to 2 instead of 1
-			-- Also now use LOG10 instead of LOG in the expressions
-			   for the seasalt base source, since we need the 
-			   logarithm to the base 10.
+scale_anthro_mod.f		-- Renamed GET_ANNUAL_SCALAR_05x0666_NESTED_CH 
+				   to GET_ANNUAL_SCALAR_05x0666_NESTED
+				-- Rewrote GET_ANNUAL_SCALAR_05x0666_NESTED to 
+		           	   retrieve and regrid scale factors by calling
+				   GET_ANNUAL_SCALAR_1x1 and regridding on fly
 
-sulfate_mod.f		-- Removed obsolete arrays from old volcanic emissions
-			-- Commented out LEEV and LENV flags
+soa_chemistry			-- Updated formulation of SOG condensation onto
+("carbon_mod.f")		   OC aerosol, according to recommendations of 
+				   Aerosol Working Group
 
-tagged_ox_mod.f		-- Various updates for Linoz
+tomsai				-- Modification for 1 x 1.25 grid
+("gc_biomass_mod.f")
 
-tpcore_fvdas            -- MASSFLEW, MASSFLNS and MASSFLUP declarations are 
-("tpcore_fvdas_mod.f90")   changed.
+tpcore_bc_mod.f			-- Added 2x2.5 boundary condition output
+			   	   (created GET_2x25_BC)
+				-- Added multi-boundary condition output 
+			   	   (NA, EU, CH and Custom region)
+				-- Internally defined boundary condition 
+				   regions for NA, EU and CH
 
-upbdflx_mod.f		-- Various updates for Linoz
+validate_directories		-- Now check TPBC_DIR_NA, TPBC_DIR_CH, 
+("input_mod.f")			   TPBC_DIR_EU
 
-write_diag51            -- Add outputs for EMISS_BVOC (10 tracers), TS, 
-("diag51_mod.f")            PARDR, PARDF and ISOLAI
+write_diag50			-- Now have the option of saving out to 
+("diag51_mod.f")		   HDF5 format 
 
+write_diag51			-- Now have the option of saving out to 
+("diag51_mod.f")		   HDF5 format 
 
-Removed obsolete, commented out code from the following routines:
-===============================================================================
-calcrate.f
-carbon_mod.f
-diag3.f
-diag42_mod.f
-diag48_mod.f
-diag49_mod.f
-diag51_mod.f
-emfossil.f
-emissdr.f
-error_mod.f
-gamap_mod.f
-gc_biomass_mod.f
-geia_mod.f
-global_ch4_mod.f
-h2_hd_mod.f
-input_mod.f
-lightning_nox_mod.f
-main.f
-ocean_mercury_mod.f
-planeflight_mod.f
-regrid_1x1_mod.f
-setemis.f
-streets_anthro_mod.f
-toms_mod.f
-tpcore_geos5_window_mod.f90
-tropopause_mod.f
-tracerid_mod.f
-upbdflx_mod.f
-wetscav_mod.f
-
-
+write_diag51b			-- Updated output for MEGAN species
+("diag51b_mod.f")
