@@ -37,7 +37,7 @@ safe_log10			-- Allows you to return an alternate value
 
 
 In the GeosCore subdirectory:
-=======
+-----------------------------
 
 diag51b_mod.f		    	-- Allows to save 2 satellite overpasses
 
