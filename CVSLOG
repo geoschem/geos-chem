@@ -1,8 +1,24 @@
-! $Id
-! $Log
-!
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
+!
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
+! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -16,8 +32,16 @@
 ! Added some comments in meganut_mod.f
 ! (bmy, 12/2/09)
 !
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -40,8 +64,16 @@
 !Bug fix in emfossil.f for nested-grid tagged CO simulation
 !(bmy, 11/23/09)
 
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -63,8 +95,16 @@
 ! Also various updates in seasalt aerosols from Becky & Lyatt
 ! (bmy, 11/23/09)
 
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -93,8 +133,16 @@
 ! (4) Moved Kr85_mod.f to obsolete directory
 !
 
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -115,8 +163,16 @@
 ! Fix in vdiff_mod.f90 to try to avoid parallelization problems (ccc,
 ! bmy, 11/19/09)
 !
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -141,8 +197,16 @@
 ! Added Jingqiu's minor update in calcrate.f for Near-IR photolysis of
 ! HNO4 (jmao, bmy, 10/27/09)
 !
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -171,6 +235,14 @@
 ! Minor fixes for tagged Ox (dbj, bmy, 10/26/09)
 !
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0
@@ -203,8 +275,16 @@
 ! Committed changes for LINOZ
 ! Updated comments (bmy, 10/19/09)
 !
-! $Id: CVSLOG,v 1.11 2009/12/03 21:34:40 bmy Exp $
+! $Id: CVSLOG,v 1.12 2010/02/23 20:55:45 bmy Exp $
 ! $Log: CVSLOG,v $
+! Revision 1.12  2010/02/23 20:55:45  bmy
+! input_mod.f:  Commit trap for AVHRR LAI from v8-02-04
+! emep_mod.f:   Updated comments
+! icoads_mod.f: Updated comments
+! linoz_mod.f:  Updated comments
+!
+! (bmy, 2/23/10)
+!
 ! Revision 1.11  2009/12/03 21:34:40  bmy
 ! Various fixes, mostly for SunStudio compiler, including:
 ! (1) Bug fix in arsl1k.f to avoid div-by-zero when STKCF=0

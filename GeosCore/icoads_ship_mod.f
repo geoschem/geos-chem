@@ -1,22 +1,23 @@
-! $Id: icoads_ship_mod.f,v 1.1 2009/09/16 14:06:24 bmy Exp $
+! $Id: icoads_ship_mod.f,v 1.2 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !     Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: ICOADS_SHIP_MOD
+! !MODULE: icoads_ship_mod
 !     
 ! !DESCRIPTION: Module ICOADS\_SHIP\_MOD contains variables and routines to 
-!     read the International Comprehensive Ocean-Atmosphere Data Set (ICOADS)
-!     ship emissions. Base year is 2002.
-!     
-!     Source: ICODS Emissions data for NOx, SOx, and CO were downloaded from 
-!      http://coast.cms.udel.edu/GlobalShipEmissions/Inventories/
-!
-!     Reference: Wang, C., J. J. Corbett, and J. Firestone, Improving
-!      Spatial representation of Global Ship Emissions Inventories,
-!      Environ. Sci. Technol., 42 (1), 193-199, 2008.
-
+!  read the International Comprehensive Ocean-Atmosphere Data Set (ICOADS)
+!  ship emissions. Base year is 2002.
+!\\
+!\\     
+!  Source: ICOADS Emissions data for NOx, SOx, and CO were downloaded from 
+!  http://coast.cms.udel.edu/GlobalShipEmissions/Inventories/
+!\\
+!\\
+!  Reference: Wang, C., J. J. Corbett, and J. Firestone, \emph{Improving
+!  Spatial representation of Global Ship Emissions Inventories},
+!  \underline{Environ. Sci. Technol.}, \textbf{42}, (1), 193-199, 2008.
 !\\   
 !\\   
 ! !INTERFACE: 

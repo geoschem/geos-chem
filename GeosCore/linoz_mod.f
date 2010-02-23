@@ -1,4 +1,4 @@
-! $Id: linoz_mod.f,v 1.2 2009/11/18 21:44:14 bmy Exp $
+! $Id: linoz_mod.f,v 1.3 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -159,29 +159,29 @@
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
-!  18 Nov 2009 - D. Jones - For now, set tagged stratospheric tracer to total 
-!                           O3 in the overworld to avoid issues with spin ups
+!  18 Nov 2009 - D. Jones            - For now, set tagged stratospheric 
+!                                      tracer to total O3 in the overworld 
+!                                      to avoid issues with spin ups
+!  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      real*8 climo3,climpml,dco3,dero3,dertmp,derco3,dmass,pmltot,dtmp
-      real*8 sso3,vol
-      real*8 do3,dnoy,pi,pmlc,pml0(iipar,jjpar,llpar),pmltmr,xlat
-      real*8 pml0zm(jjpar,llpar),dmon(12),vmix,xmlat
-      real*8 dcolo3(iipar,jjpar,llpar),colo3(iipar,jjpar,llpar),scalmom
+      ! Scalars
+      INTEGER :: IM,      JM,         LM
+      INTEGER :: I,       J,          L,    N
+      INTEGER :: K,       M,          LBOT, L_OVERWRLD
+      INTEGER :: NTRACER, NUM_TRACER, LPOS, ITRC
+      REAL*8  :: CLIMO3,  CLIMPML,    DCO3, DERO3, DERTMP
+      REAL*8  :: DERCO3,  DMASS,      DTMP, SSO3
 
-      REAL*8            :: O3BOX,TBOX
-      REAL*8            :: OUT_DATA(IIPAR,JJPAR,LLPAR)
-      INTEGER           :: I,J,L,N,K,M, LBOT, L_OVERWRLD
-      INTEGER           :: NTRACER, NUM_TRACER, LPOS, ITRC
+      ! Arrays
+      REAL*8  :: DCOLO3(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: COLO3(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: OUT_DATA(IIPAR,JJPAR,LLPAR)
       
-      ! Now declare IM, JM as local variables
-      ! since they have removed them from the common block (dbj 6/24/03)
-      INTEGER           :: IM, JM, LM
-
       ! Assign values for local IM and JM   (dbj 6/24/03) 
       IM     = IIPAR
       JM     = JJPAR

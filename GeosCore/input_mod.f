@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.7 2010/02/02 16:57:52 bmy Exp $
+! $Id: input_mod.f,v 1.8 2010/02/23 20:55:44 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1709,6 +1709,14 @@
          L8DAYBB  = .FALSE.
       ELSE IF ( L8DAYBB ) THEN
          LGFED2BB = .FALSE.
+      ENDIF
+
+      ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
+      IF ( LMEGAN .OR. LMEGANMONO ) THEN
+         LMODISLAI = .TRUE.
+         LAVHRRLAI = .FALSE.
+         WRITE(6,'(/,a,/)') 'Force to use MODIS LAI for MEGAN.' //
+     &        ' AVHRR LAI will not be used'
       ENDIF
 
       !=================================================================

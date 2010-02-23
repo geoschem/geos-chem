@@ -1,10 +1,10 @@
-! $Id: emep_mod.f,v 1.2 2010/02/02 16:57:53 bmy Exp $
+! $Id: emep_mod.f,v 1.3 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: EMEP_MOD
+! !MODULE: emep_mod
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  Module EMEP\_MOD contains variables and routines to read the 
