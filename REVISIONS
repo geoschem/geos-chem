@@ -1,5 +1,5 @@
 REVISIONS (v8-02-05)
-02 Feb 2010
+25 Feb 2010
 Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -128,6 +128,18 @@ isrpia.inc			-- Contains common-blocks and parameters
 Removed in v8-02-05:
 ===============================================================================
 
+In the Headers subdirectory:
+----------------------------
+
+
+isoropia.h			-- Removed the obsolete ISORROPIA I code, which
+                    	           is now replaced by ISORROPIA II.  Moved to
+				   the obsolete/ subdirectory.
+
+
+In the GeosCore subdirectory:
+-----------------------------
+
 isoropia_mod.f			-- Removed the obsolete ISORROPIA I code, which
 				   is now replaced by ISORROPIA II.  Moved
 				   to the obsolete/ subdirectory.
@@ -168,6 +180,8 @@ help/Makefile			-- Added info about TOMAS option
 
 In the Headers subdirectory:
 ----------------------------
+
+CMN				-- Remove obsolete embedded chemistry stuff
 
 CMN_DIAG			-- Redimension PD59, PD60, PD61 for TOMAS
 				-- Added LD59, LD60, LD61 to common block  
@@ -210,6 +224,9 @@ anthroems.f			-- GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed
 avgpole				-- Also need to RETURN for 0.5 x 0.666 nested 
 ("dao_mod.f")           	   grid simulations
 
+chemdr.f			-- Remove obsolete embedded chemistry stuff
+				-- Modify arg list to RURALBOX accordingly
+
 chemistry_mod.f			-- Added ProTeX documentation headers
 
 chem_so2			-- Now prevent floating-point exceptions when 
@@ -241,6 +258,9 @@ emep_mod.f			-- Maximum scale factor year is now 2007
 
 emiss_cac_anthro		-- Use 2005 scale factors for years beyond 2005
 ("cac_anthro_mod.f")
+
+emissdr.f			-- Remove reference to obsolete embedded 
+				   chemistry stuff in "CMN" 
 
 emiss_epa_nei			-- Now can read 0.5 x 0.667 nested grid 
 ("epa_nei_mod.f")		   emissions 
@@ -323,9 +343,11 @@ physproc.f			-- Remove obsolete print statements & formats
 				   is the # of active species for urban 
 				   chemistry.
 
+read_chemistry_menu		-- Remove reference to obsolete embedded 
+("input_mod.f")			   chemistry stuff in "CMN"
+
 read_emissions_menu		-- Now force settings for EU, NA, CC 
-				   nested grids
-("input_mod.f")
+("input_mod.f")			   nested grids
 
 read_nested_grid_menu		-- Now give user the option of saving out 
 ("input_mod.f")		   	   nested grid boundary conditions at 2 x 2.5 
@@ -345,6 +367,8 @@ read_todx             	        -- Modifications for reading data on GEOS-4
 
 regrid_05x0666_nested	        -- Updated nested grid parameters for 
 ("regrid_1x1_mod.f")		   EU & NA grids 
+
+ruralbox.f			-- Remove obsolete embedded chemistry stuff
 
 scale_anthro_mod.f		-- Renamed GET_ANNUAL_SCALAR_05x0666_NESTED_CH 
 				   to GET_ANNUAL_SCALAR_05x0666_NESTED

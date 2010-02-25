@@ -1,11 +1,16 @@
-! $Id: ruralbox.f,v 1.1 2009/09/16 14:06:11 bmy Exp $
-      SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-     &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+! $Id: ruralbox.f,v 1.2 2010/02/25 21:07:03 bmy Exp $
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!      SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
+!     &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+!------------------------------------------------------------------------------
+      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 !
 !******************************************************************************
 !  Subroutine RURALBOX computes which boxes are tropospheric and which
 !  are stratospheric.  SMVGEAR arrays are initialized with quantities from 
-!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 4/10/06)
+!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -48,6 +53,7 @@
 !        "tropopause_mod.f" to diagnose trop & strat boxes.  Also remove
 !        LPAUSE from the arg list (bmy, 8/22/05)
 !  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
+!  (15) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -62,8 +68,12 @@
 #     include "CMN_SIZE"       ! Size parameters
 #     include "comode.h"       ! NPVERT
 
-      LOGICAL, INTENT(IN)     :: LEMBED 
-      INTEGER, INTENT(IN)     :: IEBD1, IEBD2, JEBD1, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!      LOGICAL, INTENT(IN)     :: LEMBED 
+!      INTEGER, INTENT(IN)     :: IEBD1, IEBD2, JEBD1, JEBD2
+!------------------------------------------------------------------------------
       REAL*8,  INTENT(IN)     :: AD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: AVGW(IIPAR,JJPAR,LLPAR)
@@ -101,15 +111,18 @@
             ! JLOP is the 1-D grid box loop index
             JLOP(I,J,L) = 0
 
-            ! Filter to do chemistry in a window when 
-            ! rest of model is running global run.
-            ! LEMBED - Logical for embedded window defined by
-            !          IEBD1, IEBD2, JEBD1, JEBD2
-            IF ( LEMBED ) THEN
-               IF ( I < IEBD1 .OR. I > IEBD2  .OR. 
-     &              J < JEBD1 .OR. J > JEBD2 ) GOTO 40
-            ENDIF
-
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!            ! Filter to do chemistry in a window when 
+!            ! rest of model is running global run.
+!            ! LEMBED - Logical for embedded window defined by
+!            !          IEBD1, IEBD2, JEBD1, JEBD2
+!            IF ( LEMBED ) THEN
+!               IF ( I < IEBD1 .OR. I > IEBD2  .OR. 
+!     &              J < JEBD1 .OR. J > JEBD2 ) GOTO 40
+!            ENDIF
+!------------------------------------------------------------------------------
             
             IF ( IGLOBCHEM <= 0 ) THEN
 

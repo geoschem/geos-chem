@@ -1,9 +1,9 @@
-! $Id: chemdr.f,v 1.5 2010/02/02 16:57:54 bmy Exp $
+! $Id: chemdr.f,v 1.6 2010/02/25 21:07:03 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
 !  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 6/3/08)
+!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 2/25/10)
 !
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
@@ -151,6 +151,8 @@
 !  (33) Added optional call to gckpp_driver (phs,ks,dhk, 09/15/09)
 !  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
+!  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
+!        RURALBOX accordingly. (bmy, 2/25/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -188,7 +190,11 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! IEBD1, IEBD2, etc.
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!#     include "CMN"             ! IEBD1, IEBD2, etc.
+!------------------------------------------------------------------------------
 #     include "CMN_O3"          ! EMISRRN, EMISRR
 #     include "CMN_NOX"         ! SLBASE
 #     include "comode.h"        ! SMVGEAR variables
@@ -248,8 +254,13 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
-      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+!-----------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
+!     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+!-----------------------------------------------------------------------------
+      CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 

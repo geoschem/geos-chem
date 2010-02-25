@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.8 2010/02/23 20:55:44 bmy Exp $
+! $Id: input_mod.f,v 1.9 2010/02/25 21:07:03 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 10/16/09)
+!  (bmy, 7/20/04, 2/25/10)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -138,6 +138,7 @@
 !  (29) Add CH4_MENU in input.geos (kjw, 8/18/09)
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
+!  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1951,7 +1952,10 @@
 !  Subroutine READ_CHEMISTRY_MENU reads the CHEMISTRY MENU section of 
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
-!  NOTES: (1) added optional test on KPPTRACER (phs, 6/17/09)
+!  NOTES: 
+!  (1) added optional test on KPPTRACER (phs, 6/17/09)
+!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
+!      (bmy, 2/25/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1962,7 +1966,11 @@
       USE TRACER_MOD,  ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! IEBD1 etc
+!-----------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!#     include "CMN"       ! IEBD1 etc
+!-----------------------------------------------------------------------------
 
       ! Local variables
       INTEGER            :: N
@@ -1986,24 +1994,28 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:2' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
-      ! Use embedded chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
-      READ( SUBSTRS(1:N), * ) LEMBED
-
-      ! Embedded chemistry limits?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
-      READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!      ! Use embedded chemistry?
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
+!      READ( SUBSTRS(1:N), * ) LEMBED
+!
+!      ! Embedded chemistry limits?
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
+!      READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
+!------------------------------------------------------------------------------
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
 
       !=================================================================
       ! Print to screen
@@ -2012,9 +2024,13 @@
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
-      WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
-      WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
-      WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!      WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
+!      WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
+!      WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
+!------------------------------------------------------------------------------
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
 

@@ -1,10 +1,10 @@
-! $Id: emissdr.f,v 1.4 2009/12/01 15:50:44 ccarouge Exp $
+! $Id: emissdr.f,v 1.5 2010/02/25 21:07:03 bmy Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
 !  Subroutine EMISSDR computes emissions for the full chemistry simulation
 !  Emissions are stored in various arrays, which are then passed to the
-!  SMVGEAR solver via routine "setemis.f". (bmy, 10/8/98, 10/3/07)
+!  SMVGEAR solver via routine "setemis.f". (bmy, 10/8/98, 2/25/10)
 !
 !  NOTES:
 !  (1 ) Now accounts for seasonal NOx emissions, and multi-level NOx 
@@ -73,6 +73,8 @@
 !  (29) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
 !  (30) Change arguments order in some MEGAN functions for coherence
 !       (ccc, 11/30/09)
+!  (31) Remove reference to obsolete embedded chemistry stuff in "CMN" 
+!       (bmy, 2/25/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -105,7 +107,11 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!#     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
+!------------------------------------------------------------------------------
 #     include "CMN_DIAG"     ! Diagnostic arrays and switches
 #     include "CMN_O3"       ! Emissions arrays
 #     include "CMN_NOX"      ! GEMISNOX2
