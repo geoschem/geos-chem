@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.9 2010/02/25 21:07:03 bmy Exp $
+! $Id: input_mod.f,v 1.10 2010/02/26 18:19:59 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -1300,7 +1300,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 12/18/09)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 2/24/10)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1338,6 +1338,7 @@
 !  (24) Included optional flag for using MODIS LAI data (mpb,2009).
 !  (25) Included optional flag for using PCEEA model (mpb, 2009)
 !  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
 !******************************************************************************
 !
       ! References to F90 modules

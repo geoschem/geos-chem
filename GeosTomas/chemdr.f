@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.1 2010/02/02 16:57:50 bmy Exp $
+! $Id: chemdr.f,v 1.2 2010/02/26 18:19:59 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -152,6 +152,8 @@
 !  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !  (36) Now bracket out dust emissions if TOMAS is invoked (bmy, 1/25/10)
+!  (37) Now remove obsolete embedded chemistry stuff.  Modify arg list to
+!        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -165,7 +167,7 @@
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST,     LEMBED
+      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
@@ -179,17 +181,15 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LTOMAS
-!--- Previous to (ccc, 12/9/09)
-!      USE LOGICAL_MOD,          ONLY : LKPP
-!      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
-!      ! KPP interface (phs,ks,dhk, 09/15/09))
-!      USE GCKPP_GLOBAL,         ONLY : NTT
-!      USE CHEMISTRY_MOD,        ONLY : GCKPP_DRIVER
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-#     include "CMN"             ! IEBD1, IEBD2, etc.
+!------------------------------------------------------------------------------
+! Prior to 2/26/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
+!#     include "CMN"             ! IEBD1, IEBD2, etc.
+!------------------------------------------------------------------------------
 #     include "CMN_O3"          ! EMISRRN, EMISRR
 #     include "CMN_NOX"         ! SLBASE
 #     include "comode.h"        ! SMVGEAR variables
@@ -200,7 +200,6 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
-!      REAL*8                   :: ATOL(6)
 
       
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
@@ -249,8 +248,14 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
-      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+!-----------------------------------------------------------------------------
+! Prior to 2/26/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
+!      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
+!     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
+!-----------------------------------------------------------------------------
+      CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
@@ -472,16 +477,6 @@
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
       CALL PHYSPROC( SUNCOS, SUNCOSB )
-
-!--- Previous to (ccc, 12/9/09)
-!      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
-!      IF ( LKPP ) THEN
-!         NTT = NTTLOOP
-!!--- CSPEC_FOR_KPP not used anymore (ccc, 12/3/09)
-!!         CSPEC_FOR_KPP = CSPEC
-!!         CALL gckpp_Driver()
-!      ENDIF
-!      !********************************************
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

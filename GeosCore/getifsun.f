@@ -1,4 +1,4 @@
-! $Id: getifsun.f,v 1.1 2009/09/16 14:06:26 bmy Exp $
+! $Id: getifsun.f,v 1.2 2010/02/26 18:19:59 bmy Exp $
       INTEGER FUNCTION GETIFSUN(SUNCOS)
 
       ! References to F90 modules (bmy, 10/19/00)
@@ -14,7 +14,6 @@ C
 *** see if photolysis should be considered.
 c  Get the right index for SUNCOS, which is calculated
 c  outside of chemistry module.
-C  (This works for LEMBED= .TRUE. or .FALSE.)
 
       K       = 0
       DO 240 J = 1, NLAT

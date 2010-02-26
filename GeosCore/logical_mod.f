@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.6 2010/02/02 16:57:52 bmy Exp $
+! $Id: logical_mod.f,v 1.7 2010/02/26 18:19:59 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -56,6 +56,7 @@
 !  18 Dec 2009 - Aaron van D - Added HDF5 logical switches
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
+!  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,7 +78,12 @@
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
-      LOGICAL :: LEMBED          ! DEPRECATED, will be removed
+!------------------------------------------------------------------------------
+! Prior to 2/26/10:
+! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
+!      LOGICAL :: LEMBED          ! DEPRECATED, will be removed
+!------------------------------------------------------------------------------
+
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
 
       !%%%% Cloud convection %%%%

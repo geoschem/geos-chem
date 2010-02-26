@@ -1,55 +1,44 @@
-! $Id: transport_mod.f,v 1.3 2010/02/02 16:57:51 bmy Exp $
+! $Id: transport_mod.f,v 1.4 2010/02/26 18:19:59 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: transport_mod
+!
+! !DESCRIPTION: Module TRANSPORT\_MOD is used to call the proper version of 
+!  the TPCORE advection scheme for GEOS-3, GEOS-4, GEOS-5, or GCAP 
+!  nested-grid or global simulations.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE TRANSPORT_MOD
-!
-!******************************************************************************
-!  Module TRANSPORT_MOD is used to call the proper version of TPCORE for
-!  GEOS-3, GEOS-4, GEOS-5, or GCAP nested-grid or global simulations.
-!  (yxw, bmy, 3/10/03, 2/17/09)
 ! 
-!  Module Variables:
-!  ============================================================================
-!  (1 ) Ap     (REAL*8 )       : Vertical coordinate array for TPCORE
-!  (2 ) A_M2   (REAL*8 )       : Grid box surface areas [m2]
-!  (3 ) Bp     (REAL*8 )       : Vertical coordinate array for TPCORE
-!  (4 ) IORD   (REAL*8 )       : TPCORE E/W option flag
-!  (5 ) JORD   (REAL*8 )       : TPCORE N/S option flag
-!  (6 ) KORD   (REAL*8 )       : TPCORE vertical option flag
-!  (7 ) JLAST  (INTEGER)       : For fvDAS TPCORE
-!  (8 ) MG     (INTEGER)       : For fvDAS TPCORE
-!  (9 ) NG     (INTEGER)       : For fvDAS TPCORE
-!  (10) N_ADJ  (INTEGER)       : For fvDAS TPCORE
+! !USES:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_TRANSPORT                : Driver: calls global or window TPCORE
-!  (2 ) GEOS4_GEOS5_GLOBAL_ADV      : TPCORE driver for GEOS-4/GEOS-5 met
-!  (3 ) GEOS3_GLOBAL_ADV            : TPCORE driver routine for GEOS-3 met
-!  (4 ) GCAP_GLOBAL_ADV             : TPCORE driver routine for GCAP met
-!  (5 ) DO_WINDOW_TRANSPORT         : Calls nested-grid version of TPCORE
-!  (6 ) GET_AIR_MASS                : Computes air mass from TPCORE in/out P's
-!  (7 ) SET_TRANSPORT               : Gets IORD, JORD, KORD from "input_mod.f"
-!  (8 ) INIT_TRANSPORT              : Initializes module arrays
-!  (9 ) INIT_GEOS5_WINDOW_TRANSPORT : Initializes module arrays
-!  (10) CLEANUP_TRANSPORT           : Deallocates module arrays
+      IMPLICIT NONE
+      PRIVATE
 !
-!  GEOS-Chem modules referenced by transport_mod.f
-!  ============================================================================
-!  (1 ) dao_mod.f              : Module w/ arrays for DAO met fields
-!  (2 ) diag_mod.f             : Module w/ GEOS-CHEM diagnostic arrays
-!  (3 ) error_mod.f            : Module w/ I/O error/NaN check routines
-!  (4 ) grid_mod.f             : Module w/ horizontal grid information
-!  (5 ) logical_mod.f          : Module w/ GEOS-CHEM logical switches
-!  (6 ) pjc_pfix_mod.f         : Module w/ Phil Cameron-Smith P-fixer
-!  (7 ) pressure_mod.f         : Module w/ routines to compute P(I,J,L)
-!  (8 ) time_mod.f             : Module w/ routines to compute date/time
-!  (9 ) tpcore_mod.f           : Module w/ TPCORE for GEOS1,GEOSS,GEOS3
-!  (10) tpcore_bc_mod.f        : Module w/ TPCORE boundary cond. routines
-!  (11) tpcore_window_mod.f    : Module w/ TPCORE for nested-grid windows
-!  (12) tpcore_fvdas_mod.f90   : Module w/ TPCORE for GEOS-4/fvDAS
-!  (12) tpcore_geos5_window_mod.f90: Module for GEOS-5 nested grid
-!  (13) tracer_mod.f           : Module w/ GEOS-CHEM tracer array STT etc
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PUBLIC  :: CLEANUP_TRANSPORT
+      PUBLIC  :: DO_TRANSPORT
+      PUBLIC  :: INIT_TRANSPORT
+      PUBLIC  :: INIT_GEOS5_WINDOW_TRANSPORT
+      PUBLIC  :: SET_TRANSPORT
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
+      PRIVATE :: GEOS3_GLOBAL_ADV            
+      PRIVATE :: GCAP_GLOBAL_ADV             
+      PRIVATE :: DO_GEOS5_WINDOW_TRANSPORT      
+      PRIVATE :: DO_WINDOW_TRANSPORT   
+      PRIVATE :: GET_AIR_MASS                
+!
+! !REVISION HISTORY:
+!  10 Mar 2003 - Y. Wang, R. Yantosca - Initial version
 !  (1 ) Now can select transport scheme for GEOS-3 winds.  Added code for PJC 
 !        pressure fixer. (bdf, bmy, 5/8/03)
 !  (2 ) Now delete DSIG array, it's obsolete.  Also added new PRIVATE function 
@@ -72,64 +61,74 @@
 !  (14) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (15) Bug fix in mass balance in GCAP_GLOBAL_ADV and GEOS4_GEOS5_GLOBAL_ADV.
 !        (ccc, 2/17/09)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTex Headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "transport_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CLEANUP_TRANSPORT
-      PUBLIC :: DO_TRANSPORT
-      PUBLIC :: INIT_TRANSPORT
-      PUBLIC :: INIT_GEOS5_WINDOW_TRANSPORT
-      PUBLIC :: SET_TRANSPORT
-
-      !=================================================================
-      ! MODULE VARIABLES
+      ! MODULE VARIABLES:
+      !
+      ! (1 ) Ap     (REAL*8 ) : Vertical coordinate array for TPCORE
+      ! (2 ) A_M2   (REAL*8 ) : Grid box surface areas [m2]
+      ! (3 ) Bp     (REAL*8 ) : Vertical coordinate array for TPCORE
+      ! (4 ) IORD   (REAL*8 ) : TPCORE E/W option flag
+      ! (5 ) JORD   (REAL*8 ) : TPCORE N/S option flag
+      ! (6 ) KORD   (REAL*8 ) : TPCORE vertical option flag
+      ! (7 ) JLAST  (INTEGER) : For fvDAS TPCORE
+      ! (8 ) MG     (INTEGER) : For fvDAS TPCORE
+      ! (9 ) NG     (INTEGER) : For fvDAS TPCORE
+      ! (10) N_ADJ  (INTEGER) : For fvDAS TPCORE
       !=================================================================
       INTEGER             :: IORD,  JORD, KORD, JFIRST 
       INTEGER             :: JLAST, NG,   MG,   N_ADJ
       REAL*8, ALLOCATABLE :: Ap(:)
       REAL*8, ALLOCATABLE :: A_M2(:)
       REAL*8, ALLOCATABLE :: Bp(:)
-      REAL*8, ALLOCATABLE :: STT_BC2(:,:,:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
+      ! This seems to be obsolete ???
+      !REAL*8, ALLOCATABLE :: STT_BC2(:,:,:)
+
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_transport
+!
+! !DESCRIPTION: Subroutine DO\_TRANSPORT is the driver routine for the proper 
+!  TPCORE program for GEOS-3, GEOS-4/GEOS-5, or window simulations.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_TRANSPORT
 !
-!******************************************************************************
-!  Subroutine DO_TRANSPORT is the driver routine for the proper TPCORE program
-!  for GEOS-3, GEOS-4/GEOS-5, or window simulations. (bmy, 3/10/03, 10/30/07)
+! !USES:
+!
+      USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
+      USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
+
+#     include "CMN_SIZE"      ! Size parameters
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Removed IORD, JORD, KORD from the arg list.  Also now removed
 !        reference to CMN, it's not needed. (bmy, 7/20/04)
 !  (2 ) Now call separate routines for different met fields. (bmy, 10/30/07)
 !  (3 ) Now references subroutine INIT_TPCORE_BC from tpcore_bc_mod.f and
 !        DO_GEOS5_FVDAS_WINDOW_TRANSPORT from 
 !        "tpcore_geos5_fvdas_window_mod.f90". (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : ITS_A_NESTED_GRID
-      USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
-
-#     include "CMN_SIZE" ! Size parameters
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
       !=================================================================
@@ -176,28 +175,28 @@
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
-
+!EOC
 !------------------------------------------------------------------------------
-      
-      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
-!     
-!******************************************************************************
-!  Subroutine GEOS4_GEOS_5_GLOBAL_ADV is the driver routine for TPCORE with 
-!  the GMAO GEOS-4 or GEOS-5 met fields. (bmy, 10/30/07, 2/17/09)
-!     
-!  NOTES:
-!  (1 ) Split off the GEOS-4 & GEOS-5 relevant parts from the previous 
-!        routine DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
-!  (2 ) Activate the call to SAVE_GLOBAL_TPCORE_BC (yxw, dan, bmy, 11/6/08)
-!  (3 ) Bug fix in mass balance: only account for cells of STT with non-zero
-!        concentrations when doing the computation (ccc, bmy, 2/17/09)
-!******************************************************************************
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-      ! References to F90 modules
+! !IROUTINE: geos4_geos5_global_adv
+!
+! !DESCRIPTION: Subroutine GEOS4\_GEOS5\_GLOBAL\_ADV is the driver routine 
+!  for TPCORE with the GMAO GEOS-4 or GEOS-5 met fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
+!
+! !USES:
+!
       USE DAO_MOD,          ONLY : PSC2, UWND, VWND
       USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG, SAFE_DIV
-      USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
+      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
       USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,         ONLY : GET_TS_DYN
@@ -208,36 +207,43 @@
 #     include "CMN_SIZE"         ! Size parameters        
 #     include "CMN_GCTM"         ! Physical constants
 #     include "CMN_DIAG"         ! NDxx flags
-      
-      ! Local variables
-      INTEGER                   :: I, J, L, L2, N, N_DYN
-      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8                    :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: P_TP1(IIPAR,JJPAR)
-      REAL*8                    :: P_TP2(IIPAR,JJPAR)
-      REAL*8                    :: P_TEMP(IIPAR,JJPAR)
-      REAL*8                    :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
+! 
+! !REVISION HISTORY: 
+!  30 Oct 2007 - R. Yantosca - Initial version
+!  (1 ) Split off the GEOS-4 & GEOS-5 relevant parts from the previous 
+!        routine DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!  (2 ) Activate the call to SAVE_GLOBAL_TPCORE_BC (yxw, dan, bmy, 11/6/08)
+!  (3 ) Bug fix in mass balance: only account for cells of STT with non-zero
+!        concentrations when doing the computation (ccc, bmy, 2/17/09)
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, L2, N, N_DYN
+      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: P_TP1(IIPAR,JJPAR)
+      REAL*8  :: P_TP2(IIPAR,JJPAR)
+      REAL*8  :: P_TEMP(IIPAR,JJPAR)
+      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Variable to ensure mass conservation (ccc, 2/17/09)
-      REAL*8                    :: SUMADA
+      REAL*8  :: SUMADA
 
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
 
-      !------------------------------------------------------------------
-      ! Prior ot 12/18/09:
-      ! Save boundary conditions (global grid) for future nested run
-      ! moved to main.f
-      !IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
-      !------------------------------------------------------------------
-       
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
       D_DYN = DBLE( N_DYN )
@@ -398,27 +404,29 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
 
-      ! Return to calling program
       END SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: geos3_global_adv
+!
+! !DESCRIPTION: Subroutine GEOS3\_GLOBAL\_ADV is the driver routine for 
+!  TPCORE with the GMAO GEOS-3 met fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GEOS3_GLOBAL_ADV
 !
-!******************************************************************************
-!  Subroutine GEOS3_GLOBAL_ADV is the driver routine for TPCORE with the 
-!  GMAO GEOS-3 met fields. (bmy, 10/30/07)
-!     
-!  NOTES:
-!  (1 ) Split off the GEOS-3 relevant parts from the previous routine
-!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE DAO_MOD,          ONLY : PSC2, UWND, VWND
       USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
-      USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
+      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,         ONLY : GET_TS_DYN
       USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
@@ -428,19 +436,32 @@
 #     include "CMN_SIZE"         ! Size parameters
 #     include "CMN_GCTM"         ! Physical constants
 #     include "CMN_DIAG"         ! NDxx flags
-
-      ! Local variables
-      INTEGER                   :: I, J, L, N_DYN
-      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8                    :: P_TP1(IIPAR,JJPAR)
-      REAL*8                    :: P_TP2(IIPAR,JJPAR)
-      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: WW(IIPAR,JJPAR,LLPAR) 
-
+! 
+! !REVISION HISTORY: 
+!  30 Oct 2007 - R. Yantosca - Initial version
+!  (1 ) Split off the GEOS-3 relevant parts from the previous routine
+!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L, N_DYN
+      REAL*8             :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8             :: P_TP1(IIPAR,JJPAR)
+      REAL*8             :: P_TP2(IIPAR,JJPAR)
+      REAL*8             :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8             :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8             :: WW(IIPAR,JJPAR,LLPAR) 
+!
+! !DEFINED PARAMETERS:
+!
       ! Parameters
-      INTEGER, PARAMETER        :: IGD=0, J1=3
-      REAL*8,  PARAMETER        :: Umax=200d0
+      INTEGER, PARAMETER :: IGD=0, J1=3
+      REAL*8,  PARAMETER :: Umax=200d0
 
       !=================================================================
       ! GEOS3_GLOBAL_ADV begins here!
@@ -525,29 +546,29 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GEOS3_GLOB_ADV: a TPCORE' ) 
 
-      ! Return to calling program
       END SUBROUTINE GEOS3_GLOBAL_ADV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gcap_global_adv
+!
+! !DESCRIPTION: Subroutine GCAP\_GLOBAL\_ADV is the driver routine for TPCORE 
+!  with the GCAP/GISS met fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GCAP_GLOBAL_ADV
 !
-!******************************************************************************
-!  Subroutine GCAP_GLOBAL_ADV is the driver routine for TPCORE with the 
-!  GCAP / GISS met fields. (bmy, 10/30/07, 2/17/09)
-!     
-!  NOTES:
-!  (1 ) Split off the GCAP relevant parts from the previous routine
-!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
-!  (2 ) Bug fix in mass balance: only account for cells of STT with non-zero
-!        concentrations when doing the computation (ccc, bmy, 2/17/09)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE DAO_MOD,          ONLY : PSC2, UWND, VWND
       USE DIAG_MOD,         ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,        ONLY : IT_IS_NAN, DEBUG_MSG
-      USE LOGICAL_MOD,      ONLY : LEMBED, LFILL, LMFCT, LPRT, LWINDO
+      USE LOGICAL_MOD,      ONLY : LFILL, LMFCT, LPRT, LWINDO
       USE PJC_PFIX_MOD,     ONLY : DO_PJC_PFIX
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, SET_FLOATING_PRESSURE
       USE TIME_MOD,         ONLY : GET_TS_DYN
@@ -557,24 +578,37 @@
 #     include "CMN_SIZE"         ! Size parameters
 #     include "CMN_GCTM"         ! Physical constants
 #     include "CMN_DIAG"         ! NDxx flags
-
-      ! Local variables
-      INTEGER                   :: I, J, L, L2, N, N_DYN
-      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8                    :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: P_TP1(IIPAR,JJPAR)
-      REAL*8                    :: P_TP2(IIPAR,JJPAR)
-      REAL*8                    :: P_TEMP(IIPAR,JJPAR)
-      REAL*8                    :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR) 
-      REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR) 
+! 
+! !REVISION HISTORY: 
+!  30 Oct 2007 - R. Yantosca - Initial version
+!  (1 ) Split off the GCAP relevant parts from the previous routine
+!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
+!  (2 ) Bug fix in mass balance: only account for cells of STT with non-zero
+!        concentrations when doing the computation (ccc, bmy, 2/17/09)
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, L2, N, N_DYN
+      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: P_TP1(IIPAR,JJPAR)
+      REAL*8  :: P_TP2(IIPAR,JJPAR)
+      REAL*8  :: P_TEMP(IIPAR,JJPAR)
+      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
+      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR) 
 
       ! Variable to ensure mass conservation (ccc, 20/11/08)
-      REAL*8                    :: SUMADA
+      REAL*8  :: SUMADA
 
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
@@ -745,27 +779,31 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
       
-      ! Return to calling program
       END SUBROUTINE GCAP_GLOBAL_ADV
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine GEOS4_GEOS_5_GLOBAL_ADV is the driver routine for TPCORE with
-!  the GMAO GEOS-4 or GEOS-5 met fields. (bmy, 10/30/07)
+! !IROUTINE: do_geos5_window_transport
 !
-!  NOTES:
-!  (1 ) 
-!******************************************************************************
+! !DESCRIPTION: Subroutine DO\_GEOS5\_WINDOW\_TRANSPORT is the driver program 
+!  for the proper TPCORE program for the GEOS-5 nested-grid simulations. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT 
+!
+! !USES:
 !
       ! References to F90 modules
       USE DAO_MOD,                   ONLY : PSC2,     UWND,     VWND
       USE DIAG_MOD,                  ONLY : MASSFLEW, MASSFLNS, MASSFLUP
       USE ERROR_MOD,                 ONLY : IT_IS_NAN,     DEBUG_MSG
       USE GRID_MOD,                  ONLY : GET_XOFFSET,   GET_YOFFSET 
-      USE LOGICAL_MOD,               ONLY : LEMBED, LFILL, LMFCT
+      USE LOGICAL_MOD,               ONLY : LFILL,  LMFCT
       USE LOGICAL_MOD,               ONLY : LPRT,   LWINDO
       USE PJC_PFIX_GEOS5_WINDOW_MOD, ONLY : DO_PJC_PFIX_GEOS5_WINDOW
       USE PRESSURE_MOD,              ONLY : GET_PEDGE
@@ -778,25 +816,35 @@
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
       USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_GCTM"         ! Physical constants
-#     include "CMN_DIAG"         ! NDxx flags
+#     include "CMN_SIZE"                  ! Size parameters
+#     include "CMN_GCTM"                  ! Physical constants
+#     include "CMN_DIAG"                  ! NDxx flags
+! 
+! !REVISION HISTORY: 
+!  10 Mar 2003 - R. Yantosca - Initial version
 
-      ! Local variables
-      INTEGER                   :: I0,J0
-      INTEGER                   :: I, J, L, L2, N, N_DYN
-      REAL*8                    :: A_DIFF, D_DYN, TR_DIFF
-      REAL*8                    :: AD_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: AD_B(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: P_TP1(IIPAR,JJPAR)
-      REAL*8                    :: P_TP2(IIPAR,JJPAR)
-      REAL*8                    :: P_TEMP(IIPAR,JJPAR)
-      REAL*8                    :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                    :: UTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: VTMP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: XMASS(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: YMASS(IIPAR,JJPAR,LLPAR)
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I0,J0
+      INTEGER :: I, J, L, L2, N, N_DYN
+      REAL*8  :: A_DIFF, D_DYN, TR_DIFF
+      REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: P_TP1(IIPAR,JJPAR)
+      REAL*8  :: P_TP2(IIPAR,JJPAR)
+      REAL*8  :: P_TEMP(IIPAR,JJPAR)
+      REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR)
+      REAL*8  :: YMASS(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
@@ -918,26 +966,25 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### G5_NESTED_ADV: a TPCORE' )
 
-      ! Return to calling program
       END SUBROUTINE DO_GEOS5_WINDOW_TRANSPORT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_window_transport 
+!
+! !DESCRIPTION: Subroutine DO\_WINDOW\_TRANSPORT is the driver program for 
+!  the proper TPCORE program for nested-grid window simulations. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_WINDOW_TRANSPORT
 !
-!******************************************************************************
-!  Subroutine DO_WINDOW_TRANSPORT is the driver program for the proper TPCORE
-!  program for nested-grid window simulations. (yxw, bmy, 8/7/03, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
-!  (2 ) Removed IORD, JORD, KORD from the arg list, since these are now
-!        module variables.  Now reference LFILL, LMFCT, LPRT from 
-!        "logical_mod.f".  Now reference STT, N_TRACERS from "tracer_mod.f".
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,           ONLY : PSC2, UWND, VWND
       USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE GRID_MOD,          ONLY : GET_XOFFSET, GET_YOFFSET
@@ -950,18 +997,33 @@
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
       USE TRACER_MOD,        ONLY : STT, N_TRACERS
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Re
-
-      ! Local variables
+#     include "CMN_SIZE"          ! Size parameters
+#     include "CMN_GCTM"          ! Re
+! 
+! !REVISION HISTORY: 
+!  07 Aug 2003 - Y. Wang & R. Yantosca - Initial version
+!  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
+!  (2 ) Removed IORD, JORD, KORD from the arg list, since these are now
+!        module variables.  Now reference LFILL, LMFCT, LPRT from 
+!        "logical_mod.f".  Now reference STT, N_TRACERS from "tracer_mod.f".
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, I0, J, J0, N_DYN
       REAL*8              :: P_TP1(IIPAR,JJPAR)
       REAL*8              :: P_TP2(IIPAR,JJPAR)
       REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8              :: WW(IIPAR,JJPAR,LLPAR) 
-
-      ! Parameters
+!
+! !DEFINED PARAMETERS:
+!
       INTEGER, PARAMETER  :: IGD=0, J1=3
       REAL*8,  PARAMETER  :: Umax=150d0
 
@@ -1013,35 +1075,46 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TPCORE_WINDOW' )
 
-      ! Return to calling program
       END SUBROUTINE DO_WINDOW_TRANSPORT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_air_mass
+!
+! !DESCRIPTION: Function GET\_AIR\_MASS returns the air mass based on the 
+!  pressures returned before and after the call to the GEOS-4/fvDAS TPCORE 
+!  code. (bmy, 6/24/03)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_AIR_MASS( I, J, L, P_SURF ) RESULT( AIR_MASS )
 !
-!******************************************************************************
-!  Function GET_AIR_MASS returns the air mass based on the pressures returned
-!  before and after the call to the GEOS-4/fvDAS TPCORE code. (bmy, 6/24/03)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L (INTEGER) : Grid box longitude, latitude, altitude indices 
-!  (4  ) PSURF   (REAL*8 ) : Surface pressure at grid box (I,J,L=1)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!     
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! g0_100
+#     include "CMN_SIZE"               ! Size parameters
+#     include "CMN_GCTM"               ! g0_100
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER, INTENT(IN) :: I, J, L   ! GEOS-Chem lon, lat, level indices
+      REAL*8,  INTENT(IN) :: P_SURF    ! Surface pressure [hPa] at (I,J,L=1)
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-      REAL*8,  INTENT(IN) :: P_SURF
-
-      ! Local variables
-      INTEGER             :: L2
-      REAL*8              :: P_BOT, P_TOP, AIR_MASS
+! 
+! !REVISION HISTORY: 
+!  24 Jun 2003 - R. Yantosca - Initial version
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: L2
+      REAL*8  :: P_BOT, P_TOP, AIR_MASS
       
       !=================================================================
       ! GET_AIR_MASS begins here!
@@ -1056,50 +1129,71 @@
       P_TOP    = Ap(L2-1) + ( Bp(L2-1) * P_SURF )
       AIR_MASS = ( P_BOT - P_TOP ) * G0_100 * A_M2(J)
 
-      ! Return to calling program
       END FUNCTION GET_AIR_MASS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_transport
+!
+! !DESCRIPTION: Subroutine SET\_TRANSPORT passes IORD, JORD, KORD values 
+!  from "input_mod.f".
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_TRANSPORT( I_ORD, J_ORD, K_ORD )
 !
-!******************************************************************************
-!  Subroutine SET_TRANSPORT passes IORD, JORD, KORD values from "input_mod.f"
-!  to "transport_mod.f". (bmy, 7/20/04)
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I_ORD (INTEGER) : TPCORE E/W     transport option flag
-!  (2 ) J_ORD (INTEGER) : TPCORE N/S     transport option flag
-!  (3 ) K_ORD (INTEGER) : TPCORE up/down transport option flag
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      INTEGER, INTENT(IN) :: I_ORD, J_ORD, K_ORD
-
-      !=================================================================
-      ! SET_TRANSPORT begins here!
-      !=================================================================
-
-      ! Assign module variables
+      INTEGER, INTENT(IN) :: I_ORD  ! IORD option for E/W advection
+      INTEGER, INTENT(IN) :: J_ORD  ! JORD option for N/S advection
+      INTEGER, INTENT(IN) :: K_ORD  ! KORD option for vertical diffusion
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IORD = I_ORD
       JORD = J_ORD
       KORD = K_ORD 
 
-      ! Return to calling program
       END SUBROUTINE SET_TRANSPORT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_transport
+!
+! !DESCRIPTION: Subroutine INIT\_TRANSPORT initializes all module variables 
+!  and arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TRANSPORT
 !
-!******************************************************************************
-!  Subroutine INIT_TRANSPORT initializes all module variables and arrays. 
-!  (bmy, 3/10/03, 10/30/07)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE GRID_MOD,         ONLY : GET_AREA_M2, GET_YMID_R
+      USE LOGICAL_MOD,      ONLY : LTPFV,       LTRAN
+      USE PRESSURE_MOD,     ONLY : GET_AP,      GET_BP
+      USE TIME_MOD,         ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
+      USE TRACER_MOD,       ONLY : N_TRACERS
+
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_GCTM"         ! Re
+! 
+! !REVISION HISTORY: 
+!  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
 !        "tpcore_fvdas_mod.f90", and GET_YMID_R from "grid_mod.f".  Now also
 !        include "CMN_SETUP".  (bdf, bmy, 4/28/03)
@@ -1110,21 +1204,14 @@
 !  (5 ) Removed reference to USE_GEOS_4_TRANSPORT, STT_I1, STT_I2, STT_J1,
 !        STT_J2, variables (bmy, 10/30/07)
 !  (6 ) Deleted reference to CMN, it's not needed anymore (bmy, 11/6/08)
-!******************************************************************************
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,        ONLY : ALLOC_ERR
-      USE GRID_MOD,         ONLY : GET_AREA_M2, GET_YMID_R
-      USE LOGICAL_MOD,      ONLY : LEMBED,      LTPFV,     LTRAN
-      USE PRESSURE_MOD,     ONLY : GET_AP,      GET_BP
-      USE TIME_MOD,         ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
-      USE TRACER_MOD,       ONLY : N_TRACERS
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Re
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R(JJPAR)
 
@@ -1197,26 +1284,33 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRANSPORT
 
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_geos5_window_transport
 
+!
+! !DESCRIPTION: Subroutine INIT\_GEOS5\_WINDOW\_TRANSPORT initializes all 
+!  module variables and arrays for the GEOS-5 nested grid simulation.  
+!  This routine is only called if we are using the GEOS-5 nested grid 
+!  simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
 !
-!******************************************************************************
-!  Subroutine INIT_GEOS5_WINDOW_TRANSPORT initializes all module variables and 
-!  arrays for the GEOS-5 nested grid simulation.  This routine is only called
-!  if we are using the GEOS-5 nested grid simulation. (dan, bmy, 11/6/08)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,               ONLY : ALLOC_ERR
       USE GRID_MOD,                ONLY : GET_AREA_M2
       USE GRID_MOD,                ONLY : GET_YMID_R_W
-      USE LOGICAL_MOD,             ONLY : LEMBED, LTPFV, LTRAN
+      USE LOGICAL_MOD,             ONLY : LTPFV,  LTRAN
       USE PRESSURE_MOD,            ONLY : GET_AP, GET_BP
       USE TIME_MOD,                ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
@@ -1226,10 +1320,19 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
       USE TRACER_MOD,              ONLY : N_TRACERS
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Re
-
-      ! Local variables
+#     include "CMN_SIZE"                ! Size parameters
+#     include "CMN_GCTM"                ! Re
+! 
+! !REVISION HISTORY: 
+!  06 Jun 2008 - D. Chen & R. Yantosca - Initial version
+!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: AS, J, K, L, N_DYN
       REAL*8              :: YMID_R_W(0:JJPAR+1)
 
@@ -1292,32 +1395,35 @@
      &                        JLAST, NG,       MG,    DBLE( N_DYN ), 
      &                        Re,    YMID_R_W )
 
-      ! Return to calling program
       END SUBROUTINE INIT_GEOS5_WINDOW_TRANSPORT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_transport
+!
+! !DESCRIPTION: Subroutine CLEANUP\_TRANSPORT deallocates all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_TRANSPORT
-!
-!******************************************************************************
-!  Subroutine CLEANUP_TRANSPORT deallocates all module arrays. 
-!  (bmy, 3/10/03, 10/30/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (2 ) Remove obsolete embedded chemistry arrays (bmy, 10/30/07)
-!******************************************************************************
+!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      !=================================================================
-      ! CLEANUP_TRANSPORT begins here!
-      !=================================================================
       IF ( ALLOCATED( Ap     ) ) DEALLOCATE( Ap     )
       IF ( ALLOCATED( A_M2   ) ) DEALLOCATE( A_M2   )
       IF ( ALLOCATED( Bp     ) ) DEALLOCATE( Bp     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_TRANSPORT
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE TRANSPORT_MOD

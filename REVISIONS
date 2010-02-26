@@ -98,19 +98,19 @@ emissions_mod.f			   using the VPATH option in GNU Make.
 gamap_mod.f
 initialize.f			   NOTE to GEOS-Chem developers: When you 
 input_mod.f			   make changes to any of these routines 
-isoropia_mod.f			   in the GeosCore directory, you must also
-logical_mod.f 			   make the same modifications to the
-ndxx_setup.f			   corresponding routines in the GeosTomas
-planeflight_mod.f		   directory.
-seasalt_mod.f
-sulfate_mod.f			   Maybe in the near future we can work 
-tomas_mod.f			   towards integrating TOMAS into the GeosCore
-tomas_tpcore_mod.f90		   directory more cleanly.  However, due to 
-tpcore_mod.f			   the large number of modifications that were
-tpcore_window_mod.f		   necessary for TOMAS, it was quicker to 
-tracerid_mod.f			   implement the TOMAS code in a separate
-wetscav_mod.f			   subdirectory.  
-xtra_read_mod.f				-- Bob Y. (1/25/10)
+logical_mod.f                      in the GeosCore directory, you must also
+ndxx_setup.f			   make the same modifications to the
+planeflight_mod.f		   corresponding routines in the GeosTomas
+seasalt_mod.f			   directory.
+sulfate_mod.f
+tomas_mod.f			   Maybe in the near future we can work 
+tomas_tpcore_mod.f90		   towards integrating TOMAS into the GeosCore
+tpcore_mod.f			   directory more cleanly.  However, due to 
+tpcore_window_mod.f		   the large number of modifications that were
+tracerid_mod.f			   necessary for TOMAS, it was quicker to 
+wetscav_mod.f			   implement the TOMAS code in a separate
+xtra_read_mod.f			   subdirectory.  
+					-- Bob Y. (1/25/10)
 
 
 In the ISOROPIA subdirectory:
@@ -226,6 +226,7 @@ avgpole				-- Also need to RETURN for 0.5 x 0.666 nested
 
 chemdr.f			-- Remove obsolete embedded chemistry stuff
 				-- Modify arg list to RURALBOX accordingly
+				-- Remove obsolete LEMBED switch
 
 chemistry_mod.f			-- Added ProTeX documentation headers
 
@@ -234,17 +235,29 @@ chem_so2			-- Now prevent floating-point exceptions when
 
 cleanup.f			-- Now references CLEANUP_HDF from "hdf_mod.f"
 
+cleanup_transport		-- Added ProTeX header
+("transport_mod.f")
+
 close_files			-- Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH
 ("file_mod.f")
 
 do_emissions			-- Added emissions for nested grids 
 ("emissions_mod.f")		   @ 0.5 x 0.666 
 
+do_transport			-- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers
+
 do_the_regridding_05x0666_2d    -- Updated nested grid limits for EU & NA grids
 ("regrid_1x1_mod.f")
 
 do_the_regridding_05x0666_3d    -- Updated nested grid limits for EU & NA grids
 ("regrid_1x1_mod.f")
+
+do_window_transport		-- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers
+
+do_geos5_window_transport	-- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers
 
 dust_mbl		 	-- Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, 
 ("dust_dead_mod.f")      	   GEOS_5 2x2.5, NESTED_NA and NESTED_EU
@@ -294,11 +307,21 @@ gckpp_driver			-- Now call GCKPP_DRIVER from physproc.f to
                            	   update CSPEC and not the of variable species
 				   from KPP.
 
+
+get_air_mass.f			-- Added ProTeX header
+
 get_otd_lis_scale		-- Modification for GEOS-4 1 x 1.25 grid
 ("lightning_nox_mod.f")
 
+gcap_global_adv  	        -- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers			
+
+geos3_global_adv  	        -- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers			
+
 geos4_geos5_global_adv  	-- Moved 'CALL SAVE_GLOBAL_TPCORE_BC' to main.f
-("transport_mod.f")
+("transport_mod.f")             -- Removed references to obsolete LEMBED switch
+				-- Added ProTeX headers
 
 get_annual_scalar_1x1   	-- Updated scale factors through 2006, changed
 ("scale_anthro_mod.f")	           to new directory, reset year limits
@@ -307,6 +330,13 @@ get_annual_scalar_1x1   	-- Updated scale factors through 2006, changed
 
 init_carbon			-- Now set parameters for NESTED_EU grid
 ("carbon_mod.f")
+
+init__transport			-- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers
+
+
+init_geos5_window_transport	-- Removed references to obsolete LEMBED switch
+("transport_mod.f")             -- Added ProTeX headers
 
 input_mod.f			-- Created READ_ND51b_MENU routine to read the
                         	   ND51b menu (based on READ_ND51 routine)
@@ -318,6 +348,7 @@ logical_mod.f			-- Added 2x2.5 boundary conidition logical
 				-- Added NESTED_NA, NESTED_EU, NESTED_CH, and 
 			           NESTED_CU logicals
 				-- Added hdf5 logicals
+				-- Removed obsolete LEMBED switch
 
 main.f				-- Added diag51b (satellite overpass copy)
 				-- Moved TPCORE boundary coniditon output 
@@ -348,6 +379,7 @@ read_chemistry_menu		-- Remove reference to obsolete embedded
 
 read_emissions_menu		-- Now force settings for EU, NA, CC 
 ("input_mod.f")			   nested grids
+				-- Now force MEGAN to use MODIS LAI
 
 read_nested_grid_menu		-- Now give user the option of saving out 
 ("input_mod.f")		   	   nested grid boundary conditions at 2 x 2.5 
@@ -380,6 +412,9 @@ soa_chemistry			-- Updated formulation of SOG condensation onto
 ("carbon_mod.f")		   OC aerosol, according to recommendations of 
 				   Aerosol Working Group
 
+set_transport			-- Added ProTeX header
+("transport_mod.f")
+
 tomsai				-- Modification for 1 x 1.25 grid
 ("gc_biomass_mod.f")
 
@@ -401,3 +436,18 @@ write_diag51			-- Now have the option of saving out to
 
 write_diag51b			-- Updated output for MEGAN species
 ("diag51b_mod.f")
+
+
+In the GeosTomas subdirectory:
+------------------------------
+
+chemdr.f			-- Remove obsolete embedded chemistry stuff
+				-- Modify arg list to RURALBOX accordingly
+				-- Remove obsolete LEMBED switch
+
+read_chemistry_menu		-- Remove reference to obsolete embedded 
+("input_mod.f")			   chemistry stuff in "CMN"
+
+read_emissions_menu		-- Now force settings for EU, NA, CC 
+("input_mod.f")			   nested grids
+				-- Now force MEGAN to use MODIS LAI

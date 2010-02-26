@@ -1,10 +1,10 @@
-! $Id: input_mod.f,v 1.1 2010/02/02 16:57:49 bmy Exp $
+! $Id: input_mod.f,v 1.2 2010/02/26 18:19:59 bmy Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
 !  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
 !  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 10/16/09)
+!  (bmy, 7/20/04, 2/25/10)
 ! 
 !  Module Variables:
 !  ============================================================================
@@ -138,6 +138,7 @@
 !  (29) Add CH4_MENU in input.geos (kjw, 8/18/09)
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
+!  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1524,7 +1525,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 !******************************************************************************
 !  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 12/18/09)
+!  the GEOS-Chem input file. (bmy, 7/20/04, 2/24/10)
 !
 !  NOTES:
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
@@ -1562,6 +1563,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  (24) Included optional flag for using MODIS LAI data (mpb,2009).
 !  (25) Included optional flag for using PCEEA model (mpb, 2009)
 !  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1936,6 +1938,14 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          LGFED2BB = .FALSE.
       ENDIF
 
+      ! Force to use MODIS LAI if we use MEGAN. (ccc, 2/23/10)
+      IF ( LMEGAN .OR. LMEGANMONO ) THEN
+         LMODISLAI = .TRUE.
+         LAVHRRLAI = .FALSE.
+         WRITE(6,'(/,a,/)') 'Force to use MODIS LAI for MEGAN.' //
+     &        ' AVHRR LAI will not be used'
+      ENDIF
+
       !=================================================================
       ! Error check LAI switches (i.e. AVHRR or MODIS) (mpb,2009)
       !=================================================================
@@ -2168,7 +2178,10 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  Subroutine READ_CHEMISTRY_MENU reads the CHEMISTRY MENU section of 
 !  the GEOS-CHEM input file. (bmy, 7/20/04)
 !
-!  NOTES: (1) added optional test on KPPTRACER (phs, 6/17/09)
+!  NOTES: 
+!  (1) added optional test on KPPTRACER (phs, 6/17/09)
+!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
+!      (bmy, 2/25/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2179,7 +2192,11 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TRACER_MOD,  ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! IEBD1 etc
+!-----------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!#     include "CMN"       ! IEBD1 etc
+!-----------------------------------------------------------------------------
 
       ! Local variables
       INTEGER            :: N
@@ -2203,24 +2220,28 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:2' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
-      ! Use embedded chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
-      READ( SUBSTRS(1:N), * ) LEMBED
-
-      ! Embedded chemistry limits?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
-      READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!      ! Use embedded chemistry?
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
+!      READ( SUBSTRS(1:N), * ) LEMBED
+!
+!      ! Embedded chemistry limits?
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
+!      READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
+!------------------------------------------------------------------------------
 
       ! Read and save CSPEC ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
 
       ! Use KPP solver ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:6' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:4' )
       READ( SUBSTRS(1:N), * ) LKPP
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:5' )
 
       !=================================================================
       ! Print to screen
@@ -2229,9 +2250,13 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
-      WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
-      WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
-      WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
+!------------------------------------------------------------------------------
+! Prior to 2/25/10:
+! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
+!      WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
+!      WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
+!      WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
+!------------------------------------------------------------------------------
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
 

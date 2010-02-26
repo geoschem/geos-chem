@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.4 2010/02/02 16:57:54 bmy Exp $
+! $Id: calcrate.f,v 1.5 2010/02/26 18:19:59 bmy Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -210,7 +210,6 @@ C   Check if sun is up anywhere in this block of grid-boxes.
 C   IFSUN gets used in CALCRATE
 C   Get the right index for SUNCOS, which is calculated
 C   outside of chemistry module.
-C   (This works for LEMBED= .TRUE. or .FALSE.)
 C
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)

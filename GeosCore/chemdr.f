@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.6 2010/02/25 21:07:03 bmy Exp $
+! $Id: chemdr.f,v 1.7 2010/02/26 18:19:59 bmy Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -152,7 +152,7 @@
 !  (34) CSPEC_FOR_KPP not used anymore (use CSPEC instead) (ccc, 12/3/09)
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
-!        RURALBOX accordingly. (bmy, 2/25/10)
+!        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -166,7 +166,7 @@
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
       USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST,     LEMBED
+      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
       USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
       USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
       USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
@@ -180,12 +180,6 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
-!--- Previous to (ccc, 12/9/09)
-!      USE LOGICAL_MOD,          ONLY : LKPP
-!      USE GCKPP_COMODE_MOD,     ONLY : CSPEC_FOR_KPP
-!      ! KPP interface (phs,ks,dhk, 09/15/09))
-!      USE GCKPP_GLOBAL,         ONLY : NTT
-!      USE CHEMISTRY_MOD,        ONLY : GCKPP_DRIVER
 
       IMPLICIT NONE
 
@@ -205,7 +199,6 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
-!      REAL*8                   :: ATOL(6)
 
       
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
