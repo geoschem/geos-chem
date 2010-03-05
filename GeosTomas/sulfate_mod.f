@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.1 2010/02/02 16:57:48 bmy Exp $
+! $Id: sulfate_mod.f,v 1.2 2010/03/05 16:09:29 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 1/25/10)
+!  (rjp, bdf, bmy, 6/22/00, 3/5/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -218,6 +218,7 @@
 !  (50) Add new subroutine SRCSF30 for emission to 30bin sulfate (win, 1/25/10)
 !  (51) Add new array PSO4_SO2AQ for SO4 produced via aqueous chemistry of SO2 
 !        excluding that from heterogeous reaction on sea-salt. (win, 1/25/10)
+!  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -7623,7 +7624,7 @@ c      print *,BINMASS(24,11,2,:)
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 10/31/08)
+!  (rjp, bdf, bmy, 9/20/02, 3/5/10)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -7645,7 +7646,8 @@ c      print *,BINMASS(24,11,2,:)
 !  (8 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
-!  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)      
+!  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)    
+!  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)  
 !******************************************************************************
 !
       ! References to F90 modules
@@ -7704,7 +7706,12 @@ c      print *,BINMASS(24,11,2,:)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!------------------------------------------------------------
+! Prior to 3/5/10:
+! STREETS needs to be held PRIVATE (dkh, bmy, 3/5/10)
+!!$OMP+PRIVATE( I, J )
+!------------------------------------------------------------
+!$OMP+PRIVATE( I, J, STREETS )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

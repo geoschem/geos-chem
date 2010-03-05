@@ -456,6 +456,10 @@ Makefile			-- Added "dao_mod.o" to the dependencies
                                    list for "diag_pl_mod.o".  This omission
 				   had been preventing parallel make.
 
+read_anthro_nh3			-- Standardized this patch from v8-02-04:
+("sulfate_mod.f")                  The STREETS variable needs to be held
+                                   PRIVATE in the parallel loop.
+
 read_chemistry_menu		-- Remove reference to obsolete embedded 
 ("input_mod.f")			   chemistry stuff in "CMN"
 

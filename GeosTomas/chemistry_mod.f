@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.2 2010/03/05 15:56:57 bmy Exp $
+! $Id: chemistry_mod.f,v 1.3 2010/03/05 16:09:29 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -270,25 +270,18 @@
              CALL RDAER
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
-             !-------------------------------------------------------------
-             ! Prior to 4/2/08:
-             ! Bug fix: ISORROPIA can return very unphysical values when
-             ! RH is very low.  We will replace the current version of
-             ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
-             ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
-             !IF ( LSSALT ) THEN
-             !
-             !   ! ISOROPIA takes Na+, Cl- into account
-             !   CALL DO_ISOROPIAII
-             !
-             !ELSE
+             IF ( LSSALT ) THEN
+             
+                ! ISOROPIA takes Na+, Cl- into account
+                CALL DO_ISOROPIAII
+             
+             ELSE
  
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
                 IF ( .not. LCRYST ) CALL DO_RPMARES
  
-             !ENDIF
-             !-------------------------------------------------------------
+             ENDIF
  
              !*** SEASALT AEROSOLS ***
              IF ( LSSALT ) CALL CHEMSEASALT
