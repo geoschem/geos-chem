@@ -1,4 +1,4 @@
-! $Id: chemistry_mod.f,v 1.1 2010/02/02 16:57:50 bmy Exp $
+! $Id: chemistry_mod.f,v 1.2 2010/03/05 15:56:57 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -83,11 +83,6 @@
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
-      !--------------------------------------------------------------
-      ! Prior to 1/28/10:
-      ! Modified for ISORROPIA II (ccarouge, bmy, 1/28/10)
-      !USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
-      !--------------------------------------------------------------
       USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
@@ -205,25 +200,17 @@
                 CALL CHEMSULFATE
  
                 ! Do aerosol thermodynamic equilibrium
-                !------------------------------------------------------------
-                ! Prior to 4/2/08:
-                ! Bug fix: ISORROPIA can return very unphysical values when
-                ! RH is very low.  We will replace the current version of
-                ! ISORROPIA with ISORROPIA II.  In the meantime, we shall
-                ! use RPMARES to do the ATE computations. (bmy, 4/2/08)
-                !IF ( LSSALT ) THEN
-                !
-                !   ! ISOROPIA takes Na+, Cl- into account
-                !   CALL DO_ISOROPIAII
-                !
-                !ELSE
+                IF ( LSSALT ) THEN
+                
+                   ! ISOROPIA takes Na+, Cl- into account
+                   CALL DO_ISOROPIAII
+                
+                ELSE
  
                    ! RPMARES does not take Na+, Cl- into account
                    CALL DO_RPMARES
  
-                !ENDIF
-                !------------------------------------------------------------
-                
+                ENDIF
              ENDIF
  
              ! Do carbonaceous aerosol chemistry

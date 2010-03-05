@@ -1,5 +1,5 @@
 REVISIONS (v8-02-05)
-25 Feb 2010
+05 Mar 2010
 Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -374,6 +374,10 @@ physproc.f			-- Remove obsolete print statements & formats
 				   is the # of active species for urban 
 				   chemistry.
 
+read_anthro_nh3			-- Standardized this patch from v8-02-04:
+("sulfate_mod.f")                  The STREETS variable needs to be held
+                                   PRIVATE in the parallel loop.
+
 read_chemistry_menu		-- Remove reference to obsolete embedded 
 ("input_mod.f")			   chemistry stuff in "CMN"
 
@@ -444,6 +448,13 @@ In the GeosTomas subdirectory:
 chemdr.f			-- Remove obsolete embedded chemistry stuff
 				-- Modify arg list to RURALBOX accordingly
 				-- Remove obsolete LEMBED switch
+
+chemistry_mod.f			-- Now activate subroutine call to
+				   ISORROPIA II ATE package
+
+Makefile			-- Added "dao_mod.o" to the dependencies 
+                                   list for "diag_pl_mod.o".  This omission
+				   had been preventing parallel make.
 
 read_chemistry_menu		-- Remove reference to obsolete embedded 
 ("input_mod.f")			   chemistry stuff in "CMN"

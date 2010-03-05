@@ -1,11 +1,11 @@
-! $Id: sulfate_mod.f,v 1.9 2010/02/02 16:57:51 bmy Exp $
+! $Id: sulfate_mod.f,v 1.10 2010/03/05 15:56:57 bmy Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 12/3/09)
+!  (rjp, bdf, bmy, 6/22/00, 3/5/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -215,6 +215,7 @@
 !  (48) Now accounts for NEI 2005 emissions, and multilevels SOxan emissions
 !        (amv, phs, 10/15/2009) 
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
+!  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -6983,7 +6984,7 @@
 !******************************************************************************
 !  Subroutine READ_ANTHRO_NH3 reads the monthly mean anthropogenic 
 !  NH3 emissions from disk and converts to [kg NH3/box/s]. 
-!  (rjp, bdf, bmy, 9/20/02, 10/31/08)
+!  (rjp, bdf, bmy, 9/20/02, 3/5/10)
 !
 !  Arguments as input:
 !  ===========================================================================
@@ -7005,7 +7006,8 @@
 !  (8 ) Bug fix: Using tracer #30 in the call to GET_STREETS_ANTHRO can cause
 !        problems when adding or removing species.  Replace w/ IDTNH3.
 !        (dkh, 10/31/08)
-!  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)      
+!  (9 ) Now check if NH3 Streets is available (phs, 12/10/08)  
+!  (10) Bug fix -- STREETS needs to be PRIVATE (dkh, bmy, 3/5/10)    
 !******************************************************************************
 !
       ! References to F90 modules
@@ -7064,7 +7066,12 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
+!------------------------------------------------------------
+! Prior to 3/5/10:
+! STREETS needs to be held PRIVATE (dkh, bmy, 3/5/10)
+!!$OMP+PRIVATE( I, J )
+!------------------------------------------------------------
+!$OMP+PRIVATE( I, J, STREETS )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 

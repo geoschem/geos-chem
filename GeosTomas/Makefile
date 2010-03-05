@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2010/02/02 16:57:51 bmy Exp $
+# $Id: Makefile,v 1.2 2010/03/05 15:56:57 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -463,7 +463,7 @@ diag_oh_mod.o               : diag_oh_mod.f                                  \
 
 diag_pl_mod.o               : diag_pl_mod.f                                  \
                               comode_mod.o            tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            dao_mod.o
 
 drydep_mod.o                : drydep_mod.f            comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
