@@ -1,4 +1,4 @@
-! $Id: megan_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
+! $Id: megan_mod.f,v 1.4 2010/03/09 21:44:17 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -133,6 +133,7 @@
 !  (7 ) Added routine GET_AEF_05x0666 to read hi-res AEF data for the GEOS-5
 !        0.5 x 0.666 nested grid simulations (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -678,6 +679,8 @@
 ! !REVISION HISTORY: 
 !  (1 ) Original code by Michael Barkley (mpb,2009).
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  09 Mar 2010 - H.O.T. Pye  - Change order of arguments in call to 
+!                              routine GET_EMMONOG_MEGAN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -700,8 +703,15 @@
 
       DO K = 1 , N
 
-         MONO = GET_EMMONOG_MEGAN( I,     J,      TS,     SUNCOS, 
-     &                             Q_DIR, Q_DIFF, XNUMOL, SPECIES(K) ) 
+!----------------------------------------------------------------------------
+! Prior to 3/9/10:
+! Now correct order of MEGAN arguments
+!--- Previous to (hotp, ccc, 3/9/10)
+!         MONO = GET_EMMONOG_MEGAN( I , J , TS , SUNCOS , Q_DIR ,
+!     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
+!----------------------------------------------------------------------------
+         MONO = GET_EMMONOG_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
+     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
 
          EMMONOT = EMMONOT + MONO
       ENDDO
