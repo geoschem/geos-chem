@@ -1,4 +1,4 @@
-! $Id: reader.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
+! $Id: reader.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
       SUBROUTINE READER( FIRSTCHEM )
 !
 !******************************************************************************
@@ -105,8 +105,12 @@ C LYOUT     = SPECIFIC SOUTH-NORTH CELL FOR PRINTING
 C LXOUT     = SPECIFIC WEST-EAST CELL FOR PRINTING
 C LZOUT     = SPECIFIC VERTICAL LAYER FOR PRINTING
 C
+! Now include NREAD (the number of entries in globchem.dat)
+! which had been increased to allow for more species by FP
+! (hotp 8/1/09)
       NAMELIST /CTLDIM/ KULOOP,   
-     1                  LYOUT, LXOUT,  LZOUT
+     1                  LYOUT, LXOUT,  LZOUT, 
+     1                  NREAD
 C
 C *********************************************************************
 C            SWITCHES FOR TIME, TIME-STEPS, AND OUTPUT
@@ -542,9 +546,12 @@ C
 C
 C *********************************************************************
 C
+      !FP_ISOP
+      ! update NMPROD FP (hotp 8/1/09)
       NMREAC         = 3
       NALLREAC       = 4 
-      NMPROD         = 14
+      !NMPROD         = 14
+      NMPROD         = NREAD-NALLREAC
       NPRODLO        = NALLREAC + 1 
       NPRODHI        = NALLREAC + NMPROD
       IFDID          = 0

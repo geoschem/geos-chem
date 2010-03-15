@@ -1,4 +1,4 @@
-! $Id: diag_mod.f,v 1.1 2010/02/02 16:57:50 bmy Exp $
+! $Id: diag_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       MODULE DIAG_MOD 
 !
 !******************************************************************************
@@ -68,6 +68,8 @@
 !  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
 !        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
 !  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
+!  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
+!       temperature. (fp, 2/3/10)
 !******************************************************************************
 !     
       !=================================================================
@@ -225,6 +227,19 @@
       INTEGER, ALLOCATABLE :: CTHO2(:,:,:)
       INTEGER, ALLOCATABLE :: LTNO3(:,:)
       INTEGER, ALLOCATABLE :: CTNO3(:,:,:)
+      ! update for arom (dkh, 06/21/07)  
+      INTEGER, ALLOCATABLE :: CTLBRO2H(:,:,:)
+      INTEGER, ALLOCATABLE :: CTLBRO2N(:,:,:)
+      INTEGER, ALLOCATABLE :: CTLTRO2H(:,:,:)
+      INTEGER, ALLOCATABLE :: CTLTRO2N(:,:,:)
+      INTEGER, ALLOCATABLE :: CTLXRO2H(:,:,:)
+      INTEGER, ALLOCATABLE :: CTLXRO2N(:,:,:)
+      INTEGER, ALLOCATABLE :: LTLBRO2H(:,:)
+      INTEGER, ALLOCATABLE :: LTLBRO2N(:,:)
+      INTEGER, ALLOCATABLE :: LTLTRO2H(:,:)
+      INTEGER, ALLOCATABLE :: LTLTRO2N(:,:)
+      INTEGER, ALLOCATABLE :: LTLXRO2H(:,:)
+      INTEGER, ALLOCATABLE :: LTLXRO2N(:,:)
 
       ! For ND44 -- Dry deposition fluxes & velocities
       REAL*4,  ALLOCATABLE :: AD44(:,:,:,:)
@@ -256,6 +271,9 @@
 
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
+
+      ! For ND57 -- theta, potential temp (FP 6/2009)
+      REAL*4,  ALLOCATABLE :: AD57(:,:,:)
 
       ! -- for methane simulation diagnostics
       REAL*4,  ALLOCATABLE :: AD19(:,:,:)
@@ -395,6 +413,8 @@
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
+      ! For ND57 -- theta (FP 6/2009)
+      IF ( ALLOCATED( AD57        ) ) DEALLOCATE( AD57        )
       IF ( ALLOCATED( AD19        ) ) DEALLOCATE( AD19        )
       IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        )
       IF ( ALLOCATED( AD60        ) ) DEALLOCATE( AD60        )
@@ -428,6 +448,19 @@
       IF ( ALLOCATED( CTOH        ) ) DEALLOCATE( CTOH        )
       IF ( ALLOCATED( CTNO2       ) ) DEALLOCATE( CTNO2       )
       IF ( ALLOCATED( CTNO3       ) ) DEALLOCATE( CTNO3       )
+      ! update for arom (dkh, 06/21/07)  
+      IF ( ALLOCATED( CTLBRO2H    ) ) DEALLOCATE( CTLBRO2H    )
+      IF ( ALLOCATED( CTLBRO2N    ) ) DEALLOCATE( CTLBRO2N    )
+      IF ( ALLOCATED( CTLTRO2H    ) ) DEALLOCATE( CTLTRO2H    )
+      IF ( ALLOCATED( CTLTRO2N    ) ) DEALLOCATE( CTLTRO2N    )
+      IF ( ALLOCATED( CTLXRO2H    ) ) DEALLOCATE( CTLXRO2H    )
+      IF ( ALLOCATED( CTLXRO2N    ) ) DEALLOCATE( CTLXRO2N    )
+      IF ( ALLOCATED( LTLBRO2H    ) ) DEALLOCATE( LTLBRO2H    )
+      IF ( ALLOCATED( LTLBRO2N    ) ) DEALLOCATE( LTLBRO2N    )
+      IF ( ALLOCATED( LTLTRO2H    ) ) DEALLOCATE( LTLTRO2H    )
+      IF ( ALLOCATED( LTLTRO2N    ) ) DEALLOCATE( LTLTRO2N    )
+      IF ( ALLOCATED( LTLXRO2H    ) ) DEALLOCATE( LTLXRO2H    )
+      IF ( ALLOCATED( LTLXRO2N    ) ) DEALLOCATE( LTLXRO2N    )
       IF ( ALLOCATED( CTHO2       ) ) DEALLOCATE( CTHO2       )
       IF ( ALLOCATED( CTOTH       ) ) DEALLOCATE( CTOTH       )
       IF ( ALLOCATED( DIAGCHLORO  ) ) DEALLOCATE( DIAGCHLORO  )

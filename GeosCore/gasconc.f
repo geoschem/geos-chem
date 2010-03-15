@@ -1,4 +1,4 @@
-! $Id: gasconc.f,v 1.1 2009/09/16 14:06:27 bmy Exp $
+! $Id: gasconc.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
       SUBROUTINE GASCONC( FIRSTCHEM, NTRACER, STT, XNUMOL, FRCLND,
      &                    READ_CSPEC )
 !
@@ -29,18 +29,22 @@
 !  (9 ) Add READ_SPEC in argument list (hotp, 2/26/09)
 !  (10) Now CSPEC_FULL is copied to CSPEC depending on 
 !       the READ_CSPEC value. (hotp, 2/26/09)
+!  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
+!       (dkh, 03/12/10)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, CSPEC,  IXSAVE
       USE COMODE_MOD,     ONLY : IYSAVE, IZSAVE,  PRESS3, T3
-      USE COMODE_MOD,     ONLY : CSPEC_FULL
+      USE COMODE_MOD,     ONLY : CSPEC_FULL, JLOP
       USE DRYDEP_MOD,     ONLY : NUMDEP
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, COPY_FULL_TROP
       USE TROPOPAUSE_MOD, ONLY : SAVE_FULL_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
       USE DAO_MOD,        ONLY : T
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
+      USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
       
       IMPLICIT NONE
 
@@ -250,7 +254,8 @@ C
 !  maybe??
       CALL PARTITION( NTRACER, STT, XNUMOL ) 
 !      endif
-C
+
+C 
 C *********************************************************************
 C *              zero out dry deposition counter species              *
 C *********************************************************************
@@ -318,6 +323,55 @@ C
             CSPEC(JLOOP,ILISOPOH) = 0d0
          ENDDO
       ENDIF 
+C
+C *********************************************************************
+C *           zero out aromatic oxidation counter species
+C *            (dkh, 10/06/06)  
+C *********************************************************************
+C LBRO2H  Counter for oxidation of BRO2 by HO2
+C LBRO2N  Counter for oxidation of BRO2 by NO
+C LTRO2H  Counter for oxidation of TRO2 by HO2
+C LTRO2N  Counter for oxidation of TRO2 by NO
+C LXRO2H  Counter for oxidation of XRO2 by HO2
+C LXRO2N  Counter for oxidation of XRO2 by NO
+C ILBRO2H Location of LBRO2H in CSPEC
+C ILBRO2N Location of LBRO2N in CSPEC
+C ILTRO2H Location of LTRO2H in CSPEC
+C ILTRO2N Location of LTRO2N in CSPEC
+C ILXRO2H Location of LXRO2H in CSPEC
+C ILXRO2N Location of LXRO2N in CSPEC
+C
+
+      ! Check if we have 2dy organic aerosols
+      IF ( LSOA ) THEN
+
+         ! Check to make sure that LxRO2y has been listed in globchem.dat
+         IF ( ILBRO2H > 0 .and.
+     &        ILBRO2N > 0 .and.
+     &        ILTRO2H > 0 .and.
+     &        ILTRO2N > 0 .and.
+     &        ILXRO2H > 0 .and.
+     &        ILXRO2N > 0  ) THEN
+
+            ! Reset value of LISOPOH to zero 
+            DO JLOOP      = 1, NTLOOP
+               CSPEC(JLOOP,ILBRO2H) = 0d0
+               CSPEC(JLOOP,ILBRO2N) = 0d0
+               CSPEC(JLOOP,ILTRO2H) = 0d0
+               CSPEC(JLOOP,ILTRO2N) = 0d0
+               CSPEC(JLOOP,ILXRO2H) = 0d0
+               CSPEC(JLOOP,ILXRO2N) = 0d0
+            ENDDO
+
+         ! Exit with an error message if it is not. 
+         ELSE
+
+            CALL ERROR_STOP( ' LRO2 not defined! ',
+     &                       ' Stop in gasconc.f' )
+
+         ENDIF
+
+      ENDIF
 C
 C *********************************************************************
 C *             SUM UP INITIAL GAS MASSES OVER ENTIRE GRID            *

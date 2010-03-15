@@ -1,4 +1,4 @@
-C $Id: rd_js.f,v 1.1 2009/09/16 14:06:14 bmy Exp $
+C $Id: rd_js.f,v 1.2 2010/03/15 19:33:22 ccarouge Exp $
       subroutine rd_js(nj1,namfil)
 C-----------------------------------------------------------------------
 c  Reread the ratj.d file to map photolysis rate to reaction
@@ -38,7 +38,9 @@ c                     Read in quantum yield jfacta and fastj label jlabel
 C~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 C  Additional code to read reaction names and branch numbers
 C  (ppm, 6/98, bmy, 9/99)     
-         read (cline(7:10),"(a4)") rnames(ipr)
+!         read (cline(7:10),"(a4)") rnames(ipr)
+! FP increase length of name (6/2009)
+         read (cline(7:13),"(a7)") rnames(ipr)
          rnames(ipr) = trim(rnames(ipr))
          branch(ipr) = 1
          do i=1,ipr-1

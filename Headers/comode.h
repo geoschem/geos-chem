@@ -1,4 +1,4 @@
-! $Id: comode.h,v 1.1 2009/09/16 14:05:54 bmy Exp $
+! $Id: comode.h,v 1.2 2010/03/15 19:33:18 ccarouge Exp $
 !
 !******************************************************************************
 !  Header file COMODE contains common blocks and variables for SMVGEAR II.
@@ -57,6 +57,7 @@
 !  (15) Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
+!  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -150,11 +151,15 @@ C
       INTEGER IMASBAL,IALTS,MXCOF
 
       ! Updated for SMVGEAR II (bdf, bmy, 4/1/03)
-      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
-      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
+!FP_ISOP 06/15/09 !IGAS, NMRATE and MAXGL increased
+!      PARAMETER ( IGAS    = 200,               IAERTY  = 1           )
+!      PARAMETER ( NMRATE  = 510,               IPHOT   = 85          )
+      PARAMETER ( IGAS    = 300,               IAERTY  = 1           )
+      PARAMETER ( NMRATE  = 700,               IPHOT   = 85          )
       PARAMETER ( NMTRATE = NMRATE + IPHOT,    NMQRATE = 1           ) 
       PARAMETER ( NMRPROD = 25,                NMDEAD  = 100         )
-      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
+!      PARAMETER ( MAXGL   = 750,               MAXGL2  = 90          )
+      PARAMETER ( MAXGL   = 1000,              MAXGL2  = 90          )
       PARAMETER ( MAXGL3  = NNPAR,             MAXGL4  = 10          )
       PARAMETER ( ICS     = 3,                 ICP     = 2*ICS       ) 
       PARAMETER ( MORDER  = 7                                        ) 
@@ -266,12 +271,19 @@ C
 
       INTEGER ::         NLAT,      NLONG,     NLAYER,    NVERT
       INTEGER ::         NLOOP,     NTLOOP,    KULOOP,    NTSPECGAS
+      ! FP added NREAD to indicate number of entries to read
+      ! from globchem.dat
+      ! NREAD may be 20 or 24 depending on globchem.dat
+      ! NREAD is set in mglob.dat as part of CTLDIM (hotp 8/4/09)
+      ! NREAD is used in readchem (hotp 7/31/09)
+      INTEGER :: NREAD
+
       INTEGER ::         NMASBAL,   KSLOOP,    NTLOOPUSE, NPVERT
       INTEGER ::         NTTLOOP,   NIJLOOP
       COMMON /CTLLOOP/   NLAT,      NLONG,     NLAYER,    NVERT,     
      &                   NLOOP,     NTLOOP,    KULOOP,    NTSPECGAS, 
      &                   NMASBAL,   KSLOOP,    NTLOOPUSE, NPVERT,    
-     &                   NTTLOOP,   NIJLOOP
+     &                   NTTLOOP,   NIJLOOP,   NREAD
 
       ! /CTLLOOP2/ needs to be declared THREADPRIVATE (bmy, 7/16/03)
       INTEGER ::         KTLOOP,    JLOOPLO,   IFSUN
@@ -377,6 +389,8 @@ C
       ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
       ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
       ! (tmf, 3/6/09)
+      !Added NKGLYC and NKHAC NKMCO3
+      ! (hotp 7/31/09)
       INTEGER ::         NNADD1,      NNADDA,      NNADDB
       INTEGER ::         NNADDC,      NNADDD,      NNADDK
       INTEGER ::         NNADDV,      NNADDZ,      NKO3PHOT
@@ -384,13 +398,16 @@ C
       INTEGER ::         NKHNO4,      NKN2O5,      NKHO2
       INTEGER ::         NNADDF,      NNADDH
       INTEGER ::         NKHOROI,     NKHOROJ
+      INTEGER ::         NKGLYC,      NKHAC
+      INTEGER ::         NKMCO3
       COMMON /CHEM4/     NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
      &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
      &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
      &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
      &                   NNADDF(ICS), NNADDH(ICS), 
      &                   NKHOROI(ICS),NKHOROJ(ICS),
-     &                   NKHNO4(ICS), NKN2O5, NKHO2
+     &                   NKHNO4(ICS), NKN2O5,      NKHO2,
+     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3)
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
       COMMON /SPECIES/   IH2O,        IOXYGEN,   MB1,      MB2
@@ -406,6 +423,13 @@ C
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
       INTEGER ::         ILISOPOH
       COMMON /SPECIE4/   ILISOPOH
+
+      ! Added for tracking oxidation of aromatic RO2s (dkh, 10/06/06)  
+      ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
+      INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
+      INTEGER ::         ILXRO2H,    ILXRO2N
+      COMMON /SPECIE5/   ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N,
+     &                   ILXRO2H,    ILXRO2N
 
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
       COMMON /FILES/     IOUT,        KGLC,      KCPD,     IO93
@@ -676,7 +700,8 @@ C
      &                   IRM2(NMRPROD,NMTRATE,ICS) 
 
       REAL*8 ::          ASET,       PINP,     CVAR,     O3DOBS
-      COMMON /DMISC/     ASET(10,8), PINP(20), CVAR(15), O3DOBS(12)  
+!      COMMON /DMISC/     ASET(10,8), PINP(20), CVAR(15), O3DOBS(12)  
+      COMMON /DMISC/     ASET(10,8), PINP(IMISC), CVAR(15), O3DOBS(12)  
 
       REAL*8 ::          ENQQ2,         ENQQ3,          CONPST
       REAL*8 ::          ENQQ1,         CONP15

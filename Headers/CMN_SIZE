@@ -1,4 +1,4 @@
-! $Id: CMN_SIZE,v 1.2 2010/02/02 16:57:46 bmy Exp $
+! $Id: CMN_SIZE,v 1.3 2010/03/15 19:33:19 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -387,19 +387,25 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
+      ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 #else
-      INTEGER, PARAMETER :: NNPAR   = 73    ! For non-TOMAS simulations
+      ! increase NNPAR to 100 (FP 8/2009)
+      !INTEGER, PARAMETER :: NNPAR   = 73    ! For non-TOMAS simulations
+      INTEGER, PARAMETER :: NNPAR   = 100
 #endif
 
+      ! Nempara increased to 26. (fp, 2/8/10)
       ! new emissions HNO3 and O3 (phs)
       !  Add non-biogenic emission species:
       !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
-      INTEGER, PARAMETER :: NEMPARA = 21 
+      !INTEGER, PARAMETER :: NEMPARA = 21 
+      INTEGER, PARAMETER :: NEMPARA = 26 
 
       ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-      INTEGER, PARAMETER :: NEMPARB = 3
+!      INTEGER, PARAMETER :: NEMPARB = 3
+      INTEGER, PARAMETER :: NEMPARB = 17
 
       !=================================================================
       ! OTHER PARAMETERS 
@@ -430,6 +436,16 @@
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER, PARAMETER :: MAXFAM = 40
 
+      ! MAXMEM is maximum number of families of prod and loss
+      ! moved from input_mod and diag_pl_mod to here (hotp 7/31/09)
+      ! MAXMEM also increased from 10 to 20 by FP
+      INTEGER, PARAMETER :: MAXMEM = 20
+
+      ! MAXPL increased from 100 to 500 and moved from diag_pl_mod
+      ! to here by FP (hotp 7/31/09)
+      INTEGER, PARAMETER :: MAXPL = 500
+
+
       ! NDUST -- Number of FAST-J aerosol size bins (rvm, bmy, 11/15/01)
       INTEGER, PARAMETER :: NDUST = 7
 
@@ -438,6 +454,11 @@
 
       ! NRH -- number of relative humidity bins (rvm, bmy, 2/27/02)
       INTEGER, PARAMETER :: NRH = 5
+
+      !NBIOMAX -- biomass burning
+      ! increase NBIOMAX to 20 (hotp 7/31/09)
+      ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
+      INTEGER, PARAMETER :: NBIOMAX = 24
 
 #if   defined( TOMAS )
 
@@ -513,5 +534,7 @@
 !  18 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  25 Jan 2010 - R. Yantosca - Set NNPAR=320 for TOMAS simulations
 !  25 Jan 2010 - R. Yantosca - Define TOMASBIN and TOMASSPEC for TOMAS sims
+!  08 Feb 2010 - F. Paulot   - Increase NNPAR, NEMPARA and NEMPARB
+!  08 Feb 2010 - F. Paulot   - Move MAXMEM and MAXPL from diag_pl_mod.
 !EOP
 !------------------------------------------------------------------------------

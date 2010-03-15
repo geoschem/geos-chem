@@ -1,4 +1,4 @@
-! $Id: dust_mod.f,v 1.1 2010/02/02 16:57:49 bmy Exp $
+! $Id: dust_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       MODULE DUST_MOD
 !
 !******************************************************************************
@@ -1090,6 +1090,7 @@ c$$$      ENDIF
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE ERROR_MOD,     ONLY : ERROR_STOP
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND19, LD13 (for now)

@@ -1,4 +1,4 @@
-# $Id: Makefile_header.mk,v 1.12 2010/02/02 16:57:55 bmy Exp $
+# $Id: Makefile_header.mk,v 1.13 2010/03/15 19:33:25 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -139,7 +139,7 @@ endif
 ifdef DEBUG
 FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
-FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian
+FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
 
 # Turn on OpenMP parallelization

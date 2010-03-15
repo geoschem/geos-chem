@@ -1,4 +1,4 @@
-! $Id: diag_pl_mod.f,v 1.4 2010/02/02 16:57:53 bmy Exp $
+! $Id: diag_pl_mod.f,v 1.5 2010/03/15 19:33:24 ccarouge Exp $
       MODULE DIAG_PL_MOD
 !
 !******************************************************************************
@@ -103,8 +103,10 @@
       ! Scalars
       LOGICAL                        :: DO_SAVE_PL
       LOGICAL                        :: DO_SAVE_O3
-      INTEGER, PARAMETER             :: MAXMEM  = 10
-      INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
+      ! MAXMEM increased and moved to CMN_SIZE by FP (hotp 7/31/09)
+      !INTEGER, PARAMETER             :: MAXMEM  = 10
+      ! MMAXFAM removed by FP (hotp 7/31/09)
+      !INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
       INTEGER                        :: TAGO3_PL_YEAR   ! dbj
@@ -221,12 +223,16 @@
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      !FP_ISOP (FP 6/2009)
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
 
 #     include "CMN_SIZE"
 #     include "comode.h"
       
       ! Parameters
-      INTEGER, PARAMETER :: MAXPL=100, MAXMEM=10
+      ! NOW IN CMN SIZE (FP_ISOP) (FP 6/2009)
+      !INTEGER, PARAMETER :: MAXPL=100, MAXMEM=10
 
       ! Local variables
       INTEGER            :: F, ICOUNT, I, J, INDEX, IOS
@@ -534,11 +540,16 @@
 
             ENDIF        
             
-!###            !### Debug
-!###            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
-!###     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,16 )
-!###            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
-!###     &           NK, ( FKOEF(J,NK,NCS), J=1,16 )
+           !### Debug (FP 6/2009)
+      IF ( LPRT ) THEN
+         CALL DEBUG_MSG( '### SETPL' )
+            WRITE(6,*) NAMEGAS(IFAM(N))
+            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
+     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
+            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
+     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
+      ENDIF
+
          ENDDO             
       ENDDO
 

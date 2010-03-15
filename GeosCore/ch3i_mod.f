@@ -1,4 +1,4 @@
-! $Id: ch3i_mod.f,v 1.1 2009/09/16 14:06:38 bmy Exp $
+! $Id: ch3i_mod.f,v 1.2 2010/03/15 19:33:24 ccarouge Exp $
       MODULE CH3I_MOD
 !
 !******************************************************************************
@@ -327,11 +327,14 @@
 !  (32) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !  (33) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  (34) IDBCO is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL,   BIOFUEL_BURN
-      USE BIOMASS_MOD,  ONLY : BIOMASS,   IDBCO
+      ! IDBCO now in tracerid_mod (fp, hotp 7/31/09)
+      USE BIOMASS_MOD,  ONLY : BIOMASS !,   IDBCO
+      USE TRACERID_MOD, ONLY : IDBCO
       USE DAO_MOD,      ONLY : AIRVOL,    BXHEIGHT, TS
       USE DIAG_MOD,     ONLY : AD29,      AD36
       USE GRID_MOD,     ONLY : GET_AREA_M2

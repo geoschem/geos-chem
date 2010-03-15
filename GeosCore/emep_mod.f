@@ -1,4 +1,4 @@
-! $Id: emep_mod.f,v 1.3 2010/02/23 20:55:44 bmy Exp $
+! $Id: emep_mod.f,v 1.4 2010/03/15 19:33:24 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -474,7 +474,7 @@
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx_SHIP, 2 )
          CALL READ_EMEP_UPDATED(  4, EMEP_YEAR, EMEP_CO_SHIP, 2 )
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2_SHIP, 2 )
- 
+
       ! Need to use for SOx/NH3 anyways, but SOx scale back further
       ELSE
 

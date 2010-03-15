@@ -1,4 +1,4 @@
-! $Id: file_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
+! $Id: file_mod.f,v 1.3 2010/03/15 19:33:19 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -51,6 +51,9 @@
       INTEGER, PUBLIC, PARAMETER :: IU_XT      = 76  ! "YYYYMMDD.xtra.*"
       INTEGER, PUBLIC, PARAMETER :: IU_SMV2LOG = 93  ! "smv2.log"
       INTEGER, PUBLIC, PARAMETER :: IU_DEBUG   = 98  ! Reserved for debugging
+      ! For soaprod
+      ! (dkh, 03/26/07)  
+      INTEGER, PUBLIC, PARAMETER :: IU_OAP     = 99
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -88,7 +91,8 @@
 !  (14) Remove support for LINUX_IFC & LINUX_EFC compilers (bmy, 8/4/06)
 !  (15) Remove support for SGI & COMPAQ compilers (bmy, 7/8/09)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
-!  18 Dec 2009 - Aaron van D - Added file units IU_BC_NA, IU_BC_EU, IU_BC_CH  
+!  18 Dec 2009 - Aaron van D - Added file units IU_BC_NA, IU_BC_EU, IU_BC_CH
+!  15 Mar 2010 - D. Henze    - Add IU_OAP for SOA restart file.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC

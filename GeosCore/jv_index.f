@@ -1,10 +1,10 @@
-! $Id: jv_index.f,v 1.1 2009/09/16 14:06:23 bmy Exp $
+! $Id: jv_index.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
       SUBROUTINE JV_INDEX
 !
 !******************************************************************************
 !  Subroutine JV_INDEX computes the mapping between the CTM indices
 !  (from "chem.dat") for J-values to the FAST-J indices (from "ratj.d")
-!  for J-values.  (bmy, 10/5/98, 10/16/06)
+!  for J-values.  (bmy, 10/5/98, 03/15/10)
 !
 !  NOTES:
 !  (1 ) Assumes the ordering of a species with several branches in 
@@ -13,6 +13,7 @@
 !  (3 ) NAMESPEC is now NAMEGAS for SMVGEAR II.   We don't need to reference 
 !        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
 !  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
+!  (5 ) Increase species name length (fp, 6/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -22,7 +23,9 @@
 
       ! Local variables
       INTEGER            :: I, IFNC, IBRCH, N, NK
-      CHARACTER (LEN=4)  :: SPECNAME
+      ! increase length of name from 4 to 7 (FP 6/2009)
+      !CHARACTER (LEN=4)  :: SPECNAME
+      CHARACTER (LEN=7)  :: SPECNAME
 
       !=================================================================
       ! JV_INDEX begins here!
@@ -63,10 +66,13 @@
             IF ( SPECNAME == RNAMES(N) .and. IBRCH == BRANCH(N) ) THEN
                RINDEX(I) = N
 
+               ! change formatting for longer name (FP 6/2009)
                WRITE ( 6, 100 ) I,         SPECNAME,  IBRCH, 
      &                          RINDEX(I), RNAMES(N), BRANCH(N)
- 100           FORMAT('Harvard #: ', i3, 1x, a4, ' Branch: ', i2, 
-     &                ' --->  Fast-J #: ', i3, 1x, a4, ' Branch: ',i2 )
+! 100           FORMAT('Harvard #: ', i3, 1x, a4, ' Branch: ', i2, 
+!     &                ' --->  Fast-J #: ', i3, 1x, a4, ' Branch: ',i2 )
+ 100           FORMAT('Harvard #: ', i3, 1x, a7, ' Branch: ', i2, 
+     &                ' --->  Fast-J #: ', i3, 1x, a7, ' Branch: ',i2 )
                EXIT
             ENDIF
          ENDDO

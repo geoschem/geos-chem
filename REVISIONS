@@ -1,5 +1,5 @@
 REVISIONS (v8-02-05)
-05 Mar 2010
+15 Mar 2010
 Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -79,6 +79,11 @@ read_epa_05x0666		-- Corresponding routine to READ_EPA
 read_usa_mask_05x0666		-- Corresponding routine to READ_USA_MASK
 ("epa_nei_mod.f")	           for 0.5 x 0.666 nested grids
 
+set_biotrce                     --  Set IDBs for biomass burning
+(in "biomass_mod.f") 	        
+			        
+rearrange_biom                  -- Reorder GFED2 emissions in the order of IDBs
+(in "gfed2_biomass_mod.f")         from tracerid_mod.f
 
 In the GeosTomas subdirectory:
 ------------------------------
@@ -148,7 +153,6 @@ isoropia_mod.f			-- Removed the obsolete ISORROPIA I code, which
 Modified in v8-02-05:
 ===============================================================================
 
-
 Input files for GEOS-Chem:
 --------------------------
 
@@ -157,6 +161,8 @@ input.geos			-- Added MICROPHYS MENU to select options
 				-- Added switches for HDF5 output for
 				   certain timeseries diagnostics (ND50,
 				   ND51, ND51b)
+
+mglob.dat                       -- Add NREAD, the max # of species per reaction
 
 
 GEOS-Chem Makefiles:
@@ -174,6 +180,8 @@ GeosCore/Makefile		-- Now get LINK from Makefile_header.mk
 				-- Whem making "realclean", also call "clean" 
 			           in the $(GEOSTOM)/Makefile.  Also make sure 
 				   to remove executables in the $(BIN) dir
+                                -- Change dependencies
+			        
 
 help/Makefile			-- Added info about TOMAS option
 
@@ -187,15 +195,27 @@ CMN_DIAG			-- Redimension PD59, PD60, PD61 for TOMAS
 				-- Added LD59, LD60, LD61 to common block  
 				-- Reset MAX_TRACER to NNPAR+1 for TOMAS
 				   (within an #if defined( TOMAS ) block)
+                                -- Add LD57 and PD57
 
 CMN_SIZE			-- Added ProTeX Headers
 				-- Added parameters for NESTED_EU grid
 				-- Set NNPAR=320 for TOMAS simulations
 				-- Define TOMASBIN and TOMASSPEC for TOMAS sims
-
+                                -- NNPAR increased to 100
+                                -- NEMPARA increased to 26
+	                        -- NEMPARB increased to 17
+                                -- Move in NBIOMAX from biomass_mod.f
+			        
 commsoil.h			-- Added # of land boxes for NESTED_EU grid
 
 define.h			-- Added NESTED_EU switch
+
+cmn_fj.h                        -- JPMAX increased from 79 to 89
+                                -- Increase species name length
+			        
+comode.h                        -- PINP(20) increased to PINP(IMISC)
+                                -- Increase IGAS, NMRATE, MAXGL
+                                -- Add NREAD (given in mglob.dat)
 
 
 In the GeosUtil subdirectory:
@@ -301,12 +321,8 @@ gamap_mod.f			-- Include second satellite overpass diagnostic
 				-- Add additional dust AOD bins
 				-- Output values to hdf_mod
 
-gckpp_driver			-- Now call GCKPP_DRIVER from physproc.f to 
-("chemistry_mod.f")                save memory. 
-                        	-- Now use the # of active species from GC to 
-                           	   update CSPEC and not the of variable species
-				   from KPP.
-
+gasconc.f                       -- Add check and initialisation on 
+                                   LxRO2y species for SOA
 
 get_air_mass.f			-- Added ProTeX header
 
@@ -442,6 +458,164 @@ write_diag51b			-- Updated output for MEGAN species
 ("diag51b_mod.f")
 
 
+biomass_carb_geos               -- IDBBC and IDBOC are now defined in 
+(in "carbon_mod.f")	           tracerid_mod.f
+			        
+biomass_mod.f                   -- Move NBIOMAX to CMN_SIZE
+                                -- NBIOMAX_GAS obsolete
+                                -- New NBIOTRCE variable 
+                                -- Move IDBs to tracerid_mod.f
+                                -- New logical array BIOBGAS
+			        
+calcrate.f                      -- Add rates calculations for several reactions
+			        
+carbon_mod.f                    -- Add SOA formation by aromatics
+                                -- Move ALPHAS and KOMS initialization to
+                                   SOA_PARA_INIT 
+                                -- Move management of SOA restart file to 
+                                   soaprod_mod.f 
+                                   (WRITE_GPROD_APROD and READ_GPROD_APROD)
+			        
+compute_biomass_emissions       -- Add IDBs from tracerid_mod.f  
+(in "biomass_mod.f")       
+
+diag_2pm.f                      -- Add counters for LxRO2y (SOA)
+
+diag_mod.f                      -- Add counters for LxRO2y and ND57
+
+diag1.f                         -- Add potential temperature diagnostic
+
+diag3.f                         -- NBIOMAX is now in CMN_SIZE
+                                -- Modify ND44 for non-transported tracer dry 
+                                   deposition
+                                -- Add output for ND57
+			        
+diag42_mod.f                    -- Add diagnostics for SOA5 and SOG5
+                                   Increase PD42 to 24
+
+do_emissions                    -- NBIOMAX is now in CMN_SIZE
+(in "emissions_mod.f")	        
+			        
+emiss_h2_hd                     -- IDBCO is now defined in tracerid_mod.f
+(in "h2_hd_mod.f")	        
+			        
+emiss_hcn_ch3cn                 -- IDBCO is now defined in tracerid_mod.f
+(in "hcn_ch3cn_mod.f")	        
+			        
+emiss_tagged_co                 -- IDBCO is now defined in tracerid_mod.f
+(in "tagged_co_mod.f")	        
+			        
+emissc2h6                       -- IDBC2H6 is now defined in tracerid_mod.f
+(in "c2h6_mod.f")	        
+			        
+emissch3i                       -- IDBCO is now defined in tracerid_mod.f
+(in "ch3i_mod.f")	        
+			        
+emissco2                        -- IDBCO2 is now defined in tracerid_mod.f
+(in "co2_mod.f")	        
+			        
+gc_biomass_mod.f                -- NBIOMAX is now in CMN_SIZE
+			        
+gc_compute_biomass              -- Add SC_FAC_NAP as input parameter
+(in "gc_biomass_mod.f")         -- Add IDBCO from tracerid_mod.f
+			        
+get_biomass_so2                 -- IDBSO2 is now in tracerid_mod.f
+(in "sulfate_mod.f")	        
+			        
+get_biomass_nh3                 -- IDBNH3 is now in tracerid_mod.f
+(in "sulfate_mod.f")	        
+			        
+gfed2_biomass_mod.f             -- Define BIO_SAVE to store IDBs for GFED2 
+			           species #
+
+gfed2_compute_biomass           -- Resize BIOM_OUT to NBIOMAX species
+(in "gfed2_biomass_mod.f")      -- Reordering of the species by REARRANGE_BIOM
+                                
+gfed2_scale_future              -- Use BIO_SAVE for the correspondance between
+(in "gfed2_biomass_mod.f")         species order
+ 			        
+init_biomass                    -- Remove hard-wired BIOTRCE 
+(in "biomass_mod.f")               (now set in SET_BIOTRCE)
+			        
+init_gfed2_biomass              -- Add IDBs from TRACERID_MOD. 
+(in "gfed2_biomass_mod.f")      -- Initialize BIO_SAVE
+			        
+init_tracerid                   -- Comment out IDBENZ, IDTOLU, IDXYLE, IDMONX,
+(in "tracerid_mod.f")              IDGLYX, IDMGLY
+                                -- Add initialization of IDs for Henze's 
+                                   aromatics
+                                -- Add initialization of IDTPOG, IDTOPOA, 
+                                   IDTOPOG, IDTSOG5, IDTSOA5, IDTNAP, IDTSOA6, 
+                                   IDTSOG6, IDTHCOOH, IDTACTA, IDTISOPN, IDTAP,
+                                   IDTPROPNN, IDTMOBA, IDTMMN, IDTRIP, 
+                                   IDTIEPOX, IDTMAP, IDTPYPAN, IDTPMNN
+                                -- Add initialization of all IDBxxxs
+			        
+initialize.f                    -- Add ND57 and counters for SOA.
+
+jv_index.f                      -- Increase species name length
+
+logical_mod.f                   -- Add LFERTILIZERNOX.
+
+main.f                          -- Add SOA restart reading. Possible creation 
+                                   of first restart
+
+ndxx_setup.f                    -- NBIOMAX is now in CMN_SIZE
+			        
+planeflight_mod.f               -- Add AN and NOy species
+
+read_biofuel_so2                -- IDBSO2 is not used anymore
+(in "sulfate_mod.f")	        
+			        
+read_biofuel_nh3                -- IDBNH3 is not used anymore
+(in "sulfate_mod.f")
+
+read_biomass                    -- Use IDBs from tracerid_mod.f
+(in "gc_biomass_mod.f")         -- Replace hard-wired biomass numbers by IDBs.
+                                -- Do second loop over biomass species for 
+                                   species with emissions dependant on CO 
+			           emissions.
+
+read_diagnostic_menu            -- NBIOMAX is now in CMN_SIZE
+(in "input_mod.f")	        
+			        
+read_prod_loss_menu             -- Add error catch if KPP is turned on.
+(in "input_mod.f")	        
+			        
+setemdep.f                      -- Increase DEPNAME length for output
+
+setemis.f                       -- Modify selection of biomass burning 
+			           emissions
+
+settrace                        -- Comment out IDBENZ, IDTOLU, IDXYLE, IDMONX,
+(in "tracerid_mod.f")              IDGLYX, IDMGLY
+                                -- Add IDs for Henze's aromatics
+                                -- Add debug print.
+			        
+soilnoxems.f                    -- Properly separate soil NOx and fertilizer
+
+total_biomass_tg                -- Increase length of for species name in
+(in "gc_biomass_mod.f")	           print.
+			        
+tracerid                        -- Add error check on NNNTRID and NNPAR
+(in "tracerid_mod.f")           -- Add online definition of IDBs.
+                                -- Add definition of some IDTs
+                                -- Change hard-wired definition of IDEs to 
+                                   dynamic definition
+                                -- Add IDEMS definitions for new species
+                                -- Add writing check on IDs.
+			        
+tracerid_mod.f                  -- NNNTRID increased to 100.
+                                -- MMMEMBER increased to 15
+                                -- Comment out IDs for GLYX, GLY, BENZ, TOLU, 
+                                   XYLE, MONX
+                                -- Add IDs for aromatics (D. Henze)
+                                -- Add IDs for Isoprene chem (F. Paulot)
+                                -- Add IDTs for aromatics (Henze, Pye)
+                                -- Add IDEs for Isoprene
+                                -- Moved IDBs from biomass_mod.f
+
+
 In the GeosTomas subdirectory:
 ------------------------------
 
@@ -451,6 +625,9 @@ chemdr.f			-- Remove obsolete embedded chemistry stuff
 
 chemistry_mod.f			-- Now activate subroutine call to
 				   ISORROPIA II ATE package
+
+diag3.f                         -- Allow to choose a subset of dry deposition
+                                   tracers
 
 Makefile			-- Added "dao_mod.o" to the dependencies 
                                    list for "diag_pl_mod.o".  This omission
@@ -466,3 +643,8 @@ read_chemistry_menu		-- Remove reference to obsolete embedded
 read_emissions_menu		-- Now force settings for EU, NA, CC 
 ("input_mod.f")			   nested grids
 				-- Now force MEGAN to use MODIS LAI
+
+read_prod_loss_menu             -- Add error catch if KPP is turned on.
+(in "input_mod.f")	        
+			        
+

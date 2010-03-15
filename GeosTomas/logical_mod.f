@@ -1,4 +1,4 @@
-! $Id: logical_mod.f,v 1.1 2010/02/02 16:57:48 bmy Exp $
+! $Id: logical_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -57,6 +57,7 @@
 !  18 Dec 2009 - Aaron van D - Added logicals for NA, EU, CH, CU nested grids
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
+!  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,6 +134,8 @@
       LOGICAL :: LNEI05          ! Use EPA 2005 regional emissions?
       LOGICAL :: LSHIPSO2        ! Use SO2 from ship emissions?
       LOGICAL :: LSOILNOX        ! Use soil NOx emissions
+      !FP_ISOP (6/2009) LFERTILIZERNOX
+      LOGICAL :: LFERTILIZERNOX  ! Use fertilizer NOx emissions
       LOGICAL :: LTOMSAI         ! Scale biomass burning to TOMS AI index?
       LOGICAL :: LWOODCO         ! <-- deprecated: replace w/ LBIOFUEL soon
       LOGICAL :: LAVHRRLAI       ! Use AVHRR leaf-area-indices?

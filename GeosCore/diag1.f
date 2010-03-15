@@ -1,4 +1,4 @@
-! $Id: diag1.f,v 1.2 2010/02/02 16:57:54 bmy Exp $
+! $Id: diag1.f,v 1.3 2010/03/15 19:33:24 ccarouge Exp $
       SUBROUTINE DIAG1 
 !
 !******************************************************************************
@@ -55,6 +55,7 @@
 !        3-D pressure edges in ND31 instead of PS-PTOP.  Revert to the !
 !        pre-near-land ND30 diagnostic algorithm. (bmy, 1/28/04)
 !  (30) Use LTO3 for O3 in ND45. (ccc, 7/20/09)
+!  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !******************************************************************************
 !  List of GEOS-CHEM Diagnostics (bmy, 10/25/05)
 !
@@ -271,6 +272,8 @@
 !       (I,J)      Tropopause height                           km
 !       (I,J)      Tropopause pressure                         hPa
 !
+!  ND57 (I,J,L)   Potential temperature
+!
 !  ND60   ----    Free Diagnostic
 !  
 !  ND61   ----    Free Diagnostic 
@@ -329,6 +332,10 @@
       USE DAO_MOD,        ONLY : PBL, IS_ICE, IS_WATER, IS_LAND, IS_NEAR
       USE DIAG_MOD,       ONLY : AD30, AD31, AD33, AD35, AD45, AD54 
       USE DIAG_MOD,       ONLY : AD47, AD67, AD68, AD69, LTOTH, LTO3
+      ! FP added potential temperature diagnostic (hotp 7/31/09)
+      USE DIAG_MOD,       ONLY : AD57
+      USE DAO_MOD,        ONLY : T
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TIME_MOD,       ONLY : ITS_TIME_FOR_CHEM
@@ -350,6 +357,10 @@
       INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
       REAL*8             :: FDTT, XLOCTM, AREA_M2
       REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
+
+      !FOR ND57
+      ! For FP potential temperature (hotp 7/31/09)
+      REAL*8             :: P0
 
       !=================================================================
       ! DIAG1 begins here!
@@ -547,6 +558,31 @@
             ENDDO
             ENDDO
             
+      ENDIF
+
+      !================================================================= 
+      ! ND57: Potential temperature
+      !================================================================= 
+      IF ( ND57 > 0 ) THEN
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LD57
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+         P0=GET_PEDGE(I,J,1)
+
+         AD57(I,J,L)= AD57(I,J,L)
+     &       + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+
       ENDIF
           
           

@@ -1,4 +1,4 @@
-! $Id: main.f,v 1.7 2010/02/02 16:57:52 bmy Exp $
+! $Id: main.f,v 1.8 2010/03/15 19:33:23 ccarouge Exp $
       PROGRAM GEOS_CHEM
 ! 
 !******************************************************************************
@@ -48,7 +48,8 @@
       USE A6_READ_MOD,       ONLY : OPEN_A6_FIELDS
       USE A6_READ_MOD,       ONLY : UNZIP_A6_FIELDS
       USE BENCHMARK_MOD,     ONLY : STDRUN
-      USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
+      ! (hotp 5/24/09) Modified for SOA from aroms
+      !USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
@@ -107,6 +108,12 @@
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
       USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
       USE PRESSURE_MOD,      ONLY : SET_FLOATING_PRESSURE, get_pedge
+      ! add support for saving APROD, GPROD (dkh, 11/09/06)  
+      USE SOAPROD_MOD,       ONLY : SET_SOAPROD, MAKE_SOAPROD_FILE
+      USE SOAPROD_MOD,       ONLY : READ_SOAPROD_FILE
+      ! hotp 5/25/09
+      USE SOAPROD_MOD,       ONLY : FIRST_APRODGPROD
+
       USE TIME_MOD,          ONLY : GET_NYMDb,        GET_NHMSb
       USE TIME_MOD,          ONLY : GET_NYMD,         GET_NHMS
       USE TIME_MOD,          ONLY : GET_A3_TIME,      GET_FIRST_A3_TIME
@@ -404,6 +411,22 @@
       CALL READ_RESTART_FILE( NYMDb, NHMSb )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_RESTART_FILE' )
 
+      ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
+      IF ( LSOA ) THEN
+
+         !! use this to make initial soaprod files  
+         !CALL SET_SOAPROD
+         !CALL FIRST_APRODGPROD()
+         !CALL MAKE_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
+         !goto 9999
+         !!
+
+         CALL SET_SOAPROD
+         CALL READ_SOAPROD_FILE( GET_NYMDb(), GET_NHMSb() )
+
+      ENDIF
+
+
       ! Read ocean Hg initial conditions (if necessary)
       IF ( ITS_A_MERCURY_SIM() .and. LDYNOCEAN ) THEN
          CALL READ_OCEAN_Hg_RESTART( NYMDb, NHMSb )
@@ -488,9 +511,19 @@
                   CALL MAKE_OCEAN_Hg_RESTART( NYMD, NHMS, TAU )
                ENDIF
 
-               ! Save SOA quantities GPROD & APROD
-               IF ( LSOA .and. LCHEM ) THEN 
-                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
+               ! (dkh, 11/09/06)  
+!               ! Save SOA quantities GPROD & APROD
+!               IF ( LSOA .and. LCHEM ) THEN 
+!                  CALL WRITE_GPROD_APROD( NYMD, NHMS, TAU )
+!               ENDIF
+
+               IF ( LSOA .and. LCHEM ) THEN
+                  CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )
+
+                  !### Debug
+                  IF ( LPRT ) THEN
+                     CALL DEBUG_MSG( '### MAIN: a MAKE_SOAPROD_FILE' )
+                  ENDIF
                ENDIF
 
                ! Save species concentrations (CSPEC_FULL). (dkh, 02/12/09)

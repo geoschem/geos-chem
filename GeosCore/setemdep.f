@@ -1,10 +1,10 @@
-! $Id: setemdep.f,v 1.1 2009/09/16 14:06:10 bmy Exp $
+! $Id: setemdep.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
       SUBROUTINE SETEMDEP( NTRACER )
 !
 !******************************************************************************
 !  Subroutine SETEMDEP stores SMVGEAR reaction numbers (listed in "chem.dat")
 !  corresponding to GEOS-CHEM tracers which emit and dry deposit into the
-!  NTEMIS and NTDEP index arrays.  (lwh, jyl, gmg, djj, 1994; bmy, 7/20/04)
+!  NTEMIS and NTDEP index arrays.  (lwh, jyl, gmg, djj, 1994; bmy, 3/15/10)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -17,6 +17,7 @@
 !  (3 ) Updated for SMVGEAR II (gcc, bdf, bmy, 4/21/03)
 !  (4 ) Now flag to "smv2.log" the emitted & dry-deposited tracers instead 
 !        of flagging the tracers which aren't. (bmy, 7/20/04)
+!  (5 ) Increase DEPNAME length format for output (fp, 3/15/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -125,7 +126,10 @@
          ! Flag drydep tracers
          IF ( NTDEP(I) > 0 ) THEN 
             WRITE( IO93, 120 ) I, DEPNAME(I)
- 120        FORMAT( 'Drydep species # ', i3, ' (', a4, 
+            ! increase length of DEPNAME printed so that
+            ! ISOP species are distinguishable FP (hotp 8/1/09)
+! 120        FORMAT( 'Drydep species # ', i3, ' (', a4, 
+ 120        FORMAT( 'Drydep species # ', i3, ' (', a5, 
      &              ') has a drydep rxn defined in "globchem.dat"' )
          ENDIF
 

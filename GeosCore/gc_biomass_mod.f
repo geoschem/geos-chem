@@ -1,4 +1,4 @@
-! $Id: gc_biomass_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
+! $Id: gc_biomass_mod.f,v 1.4 2010/03/15 19:33:23 ccarouge Exp $
       MODULE GC_BIOMASS_MOD
 !
 !******************************************************************************
@@ -178,7 +178,6 @@
       PUBLIC :: GC_READ_BIOMASS_CO2
       PUBLIC :: GC_READ_BIOMASS_NH3
       PUBLIC :: GC_READ_BIOMASS_SO2
-
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -186,7 +185,8 @@
       ! Parameters
       ! NOTE: This is an internal declaration for the 
       ! gas-phase species only (bmy, 9/28/06)
-      INTEGER, PARAMETER   :: NBIOMAX = 19
+      ! use NBIOMAX from CMN_SIZE now (hotp 8/3/09)
+      !INTEGER, PARAMETER   :: NBIOMAX = 19
 
       ! TOMS AI interannual variability in biomass burning emissions
       INTEGER, PARAMETER   :: NAIREGIONS = 8
@@ -346,7 +346,7 @@
       !      [molec C3H8/cm2/month]  -->  [molec C/cm2/month]
       !      [molec C2H6/cm2/month]  -->  [molec C/cm2/month]
       ! 
-      ! There are NBIOMAX=19 biomass burning species in this module.
+      ! There are 19 biomass burning species in this module.
       !
       ! Biomass burning emissions are first read from disk into the
       ! BIOMASS array.  After unit conversion to [molec/cm3/s] ( or
@@ -532,6 +532,7 @@
 
          ENDIF
 
+
          ! Convert to [molec/cm2/s] or [atoms C/cm2/s]
          BIOMASS = BIOMASS / TIME
  
@@ -587,12 +588,24 @@
 !  (14) Now refrerences LFUTURE from "logical_mod.f".  Also now calls private
 !        routine SCALE_FUTURE to compute the future biomass emissions.
 !        (swu, bmy, 5/30/06)
+!  (15) Use IDBs from TRACERID_MOD. Replace hard-wired biomass # by
+!       IDBs. (hotp 8/3/09)
+!  (16) Treat all species with emissions dependant on CO emissions after
+!       the main loop on biomass species. To make sure CO emissions are already
+!       read. (ccc, 01/29/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,            ONLY : READ_BPCH2
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      ! Add IDBs of all species handled here (hotp 8/3/09)
+      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+      USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
+      USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
+      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ, IDBTOLU
+      USE TRACERID_MOD, ONLY : IDBXYLE, IDBC2H4, IDBC2H2, IDBGLYC
+      USE TRACERID_MOD, ONLY : IDBHAC
      
 #     include "CMN_SIZE"             ! Size parameters
 
@@ -621,11 +634,14 @@
       ! Initialize the BIOMASS array
       BIOMASS = 0d0
 
-      ! Loop over only the emitted biomass tracers
-      DO N = 1, NBIOMAX
+! We don't need the loop any more. We calculate emissions if IDBxxx > 0
+! (ccc, 01/29/10)
+!      ! Loop over only the emitted biomass tracers
+!      DO N = 1, NBIOMAX
           
          ! Do scaling if necessary and print totals in Tg
-         IF ( N == 1 ) THEN
+         !IF ( N == 1 ) THEN
+         IF  ( IDBNOX > 0 ) THEN
 
             !----------
             ! NOx
@@ -637,17 +653,20 @@
      &                       1,         ARRAY,     QUIET=.TRUE. )  
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBNOX) )
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'NOxbb', BIOMASS(:,:,IDBNOX) )
             ENDIF
 
             ! NOX -- print totals in [Tg/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 14d-3, 'NOx' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNOX), 14d-3, 'NOx' )
+         ENDIF
 
-         ELSE IF ( N == 2 ) THEN
+         !FP_ISOP (6/2009) removed hardwired IDBs
+         IF  ( IDBCO > 0 ) THEN
+         !ELSE IF ( N == 2 ) THEN
  
             !----------
             ! CO
@@ -659,7 +678,7 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBCO) )
 
             ! Store CO emissions before scaling 
             ! for new gaseous emissions (tmf, 1/7/09)
@@ -667,13 +686,16 @@
 
             ! Compute future NOx emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'CObb', BIOMASS(:,:,IDBCO) )
             ENDIF
 
             ! Print totals in [Tg/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 28d-3, 'CO' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBCO), 28d-3, 'CO' )
+         ENDIF
 
-         ELSE IF ( N == 3 ) THEN
+         !FP_ISOP
+         IF  ( IDBALK4 > 0 ) THEN
+         !ELSE IF ( N == 3 ) THEN
 
             !----------
             ! ALK4
@@ -685,17 +707,20 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBALK4) )
 
             ! Compute future ALK4 emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBALK4) )
             ENDIF
 
             ! ALK4 -- print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ALK4' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBALK4), 12d-3, 'ALK4' )
+         ENDIF
 
-         ELSE IF ( N == 4 ) THEN
+         !FP_ISOP
+         IF  ( IDBACET > 0 ) THEN
+         !ELSE IF ( N == 4 ) THEN
 
             !----------
             ! ACET
@@ -707,23 +732,26 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBACET) )
 
             ! ACET -- Convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,N) * 3d0  
+            BIOMASS(:,:,N) = BIOMASS(:,:,IDBACET) * 3d0  
 
             ! Scale to yearly value for biogenic acetone (bdf, bmy, 7/23/01)
-            CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,N) )
+            CALL SCALE_BIOMASS_ACET( BIOMASS(:,:,IDBACET) )
 
             ! Compute future ACET emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBACET) )
             ENDIF
 
             ! Print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ACET' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBACET), 12d-3, 'ACET' )
+         ENDIF
 
-         ELSE IF ( N == 5 ) THEN
+         !FP_ISOP
+         IF  ( IDBMEK > 0 ) THEN
+         !ELSE IF ( N == 5 ) THEN
 
             !----------
             ! MEK
@@ -735,17 +763,20 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBMEK) )
 
             ! Compute future MEK emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBMEK) )
             ENDIF
 
             ! MEK -- print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'MEK' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBMEK), 12d-3, 'MEK' )
+         ENDIF
 
-         ELSE IF ( N == 6 ) THEN
+         !FP_ISOP
+         IF  ( IDBALD2 > 0 ) THEN
+         !ELSE IF ( N == 6 ) THEN
 
             !----------
             ! ALD2
@@ -757,17 +788,20 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBALD2) )
 
             ! Compute future ALD2 emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBALD2) )
             ENDIF
 
             ! ALD2 -- print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'ALD2' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBALD2), 12d-3, 'ALD2' )
+         ENDIF
 
-         ELSE IF ( N == 7 ) THEN
+         !FP_ISOP
+         IF  ( IDBPRPE > 0 ) THEN
+         !ELSE IF ( N == 7 ) THEN
 
             !----------
             ! PRPE
@@ -779,18 +813,21 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBPRPE) )
 
             ! Compute future PRPE emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBPRPE) )
             ENDIF
 
             ! PRPE -- convert from [molec/cm2/month] to [molec C/cm2/month]
             ! Print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'PRPE' )
-            
-         ELSE IF ( N == 8 ) THEN
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBPRPE), 12d-3, 'PRPE' )
+         ENDIF
+
+         !FP_ISOP
+         IF  ( N == IDBC3H8 ) THEN
+         !ELSE IF ( N == 8 ) THEN
                
             !----------
             ! C3H8
@@ -802,20 +839,23 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC3H8) )
 
             ! C3H8 -- convert from [molec/cm2/month] to [molec C/cm2/month] 
-            BIOMASS(:,:,N) = BIOMASS(:,:,N) * 3d0 
+            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC3H8) * 3d0 
 
             ! Compute future C3H8 emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBC3H8) )
             ENDIF
 
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C3H8' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBC3H8), 12d-3, 'C3H8' )
+         ENDIF
 
-         ELSE IF ( N == 9 ) THEN
+         !FP_ISOP
+         IF  ( IDBCH2O > 0 ) THEN
+         !ELSE IF ( N == 9 ) THEN
 
             !----------
             ! CH2O
@@ -827,17 +867,20 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBCH2O) )
 
             ! Compute future CH2O emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBCH2O) )
             ENDIF
 
             ! CH2O -- print totals in [Tg C/month]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 30d-3, 'CH2O' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBCH2O), 30d-3, 'CH2O' )
+         ENDIF
 
-         ELSE IF ( N == 10 ) THEN
+         !FP_ISOP
+         IF  ( IDBC2H6 > 0 ) THEN
+         !ELSE IF ( N == 10 ) THEN
 
             !----------
             ! C2H6
@@ -849,23 +892,30 @@
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
-            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,N) )
+            CALL TRANSFER_2D( ARRAY(:,:,1), BIOMASS(:,:,IDBC2H6) )
 
             ! C2H6 --convert from [molec/cm2/month] to [molec C/cm2/month]
-            BIOMASS(:,:,N) = BIOMASS(:,:,N) * 2d0 
+            BIOMASS(:,:,N) = BIOMASS(:,:,IDBC2H6) * 2d0 
 
             ! Compute future C2H6 emissions (if necessary)
             IF ( LFUTURE ) THEN
-               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,N) )
+               CALL SCALE_FUTURE( 'VOCbb', BIOMASS(:,:,IDBC2H6) )
             ENDIF
 
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H6' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBC2H6), 12d-3, 'C2H6' )
+
+         ENDIF
+!      ENDDO
 
 !-------------------------------------------------------------------------
 !  Add 9 gaseous BB emissions (tmf, 1/7/09)
+!  These emissions depend on CO emissions. We have to make sure CO
+!  emissions are compiled, so they are done at the end.
+!  (ccc, 01/27/10)
 !-------------------------------------------------------------------------
-         ELSE IF ( N == 15 ) THEN
+         ! Do scaling if necessary and print totals in Tg
+         IF  ( IDBGLYX > 0 ) THEN
 
             !----------
             ! GLYX
@@ -876,13 +926,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00662d0     ! [molecule GLYX/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBGLYX) = TRCEMIS(:,:)
 
             ! GLYX -- [molecule GLYX/cm2/month]
             ! Print totals in [Tg GLYX]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 58d-3, 'GLYX' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBGLYX), 58d-3, 'GLYX' )
+         ENDIF
 
-         ELSE IF ( N == 16 ) THEN
+         IF  ( IDBMGLY > 0 ) THEN
 
             !----------
             ! MGLY
@@ -893,13 +944,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00347d0     ! [molecule MGLY/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBMGLY) = TRCEMIS(:,:)
 
             ! MGLY -- [molecule MGLY/cm2/month]
             ! Print totals in [Tg MGLY]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 72d-3, 'MGLY' )
-
-         ELSE IF ( N == 17 ) THEN
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBMGLY), 72d-3, 'MGLY' )
+         ENDIF
+         
+         IF  ( IDBBENZ > 0 ) THEN
 
             !----------
             ! BENZ
@@ -909,14 +961,15 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00233d0 * 6.0d0   ! [molec C/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBBENZ) = TRCEMIS(:,:)
 
             ! BENZ -- [molec C/cm2/month]
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'BENZ' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ), 12d-3, 'BENZ' )
 
+         ENDIF
 
-         ELSE IF ( N == 18 ) THEN
+         IF  ( IDBTOLU > 0 ) THEN
 
             !----------
             ! TOLU
@@ -926,13 +979,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00124d0 * 7.0d0   ! [molec C/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBTOLU) = TRCEMIS(:,:)
 
             ! TOLU -- [molec C/cm2/month]
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'TOLU' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU), 12d-3, 'TOLU' )
+         ENDIF
 
-         ELSE IF ( N == 19 ) THEN
+         IF  ( IDBXYLE > 0) THEN
 
             !----------
             ! XYLE
@@ -942,13 +996,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00048d0 * 8.0d0   ! [molec C/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBXYLE) = TRCEMIS(:,:)
 
             ! XYLE -- [molec C/cm2/month]
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'XYLE' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE), 12d-3, 'XYLE' )
+         ENDIF
 
-         ELSE IF ( N == 20 ) THEN
+         IF  ( IDBC2H4 > 0 ) THEN
 
             !----------
             ! C2H4
@@ -958,13 +1013,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.01381d0 * 2.0d0   ! [molec C/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBC2H4) = TRCEMIS(:,:)
 
             ! C2H4 -- [molec C/cm2/month]
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H4' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBC2H4), 12d-3, 'C2H4' )
+         ENDIF
 
-         ELSE IF ( N == 21 ) THEN
+         IF  ( IDBC2H2 > 0) THEN
 
             !----------
             ! C2H2
@@ -974,13 +1030,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.004d0 * 2.0d0   ! [molec C/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBC2H2) = TRCEMIS(:,:)
 
             ! C2H2 -- [molec C/cm2/month]
             ! Print totals in [Tg C]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 12d-3, 'C2H2' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBC2H2), 12d-3, 'C2H2' )
+         ENDIF
 
-         ELSE IF ( N == 22 ) THEN
+         IF  ( IDBGLYC > 0 ) THEN
 
             !----------
             ! GLYC
@@ -990,13 +1047,14 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00477d0     ! [molecule GLYC/cm2/month]
             
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBGLYC) = TRCEMIS(:,:)
 
             ! GLYC -- [molecule GLYC/cm2/month]
             ! Print totals in [Tg GLYC]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 60d-3, 'GLYC' )
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBGLYC), 60d-3, 'GLYC' )
+         ENDIF
 
-         ELSE IF ( N == 23 ) THEN
+         IF  ( IDBHAC > 0 ) THEN
 
             !----------
             ! HAC
@@ -1006,14 +1064,13 @@
             TRCEMIS(:,:) = 
      &         COEMIS(:,:) * 0.00331d0     ! [molecule HAC/cm2/month]
 
-            BIOMASS(:,:,N) = TRCEMIS(:,:)
+            BIOMASS(:,:,IDBHAC) = TRCEMIS(:,:)
 
             ! HAC -- [molecule HAC/cm2/month]
             ! Print totals in [Tg HAC]
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,N), 74d-3, 'HAC' )
-
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBHAC), 74d-3, 'HAC' )
          ENDIF
-      ENDDO
+
      
       ! Return to calling program
       END SUBROUTINE READ_BIOMASS
@@ -1213,8 +1270,9 @@
       END SELECT
 
       ! Write totals
+      ! increased length of NAME printed (hotp 7/31/09)
       WRITE( 6, 100 ) NAME, TOTAL, UNIT
- 100  FORMAT( 'Sum Biomass ', a4, 1x, ': ', f9.3, 1x, a9  )
+ 100  FORMAT( 'Sum Biomass ', a5, 1x, ': ', f9.3, 1x, a9  )
 
       ! Return to calling program
       END SUBROUTINE TOTAL_BIOMASS_TG

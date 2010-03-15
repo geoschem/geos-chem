@@ -1,4 +1,4 @@
-! $Id: cmn_fj.h,v 1.1 2009/09/16 14:05:55 bmy Exp $
+! $Id: cmn_fj.h,v 1.2 2010/03/15 19:33:18 ccarouge Exp $
 !
 !******************************************************************************
 !  CMN_FJ.H -- Header file containing parameters and common
@@ -22,6 +22,8 @@
 !  (9 ) Removed ETAA and ETAB arrays.  We now compute PJ directly from the 
 !        GET_PEDGE routine. (bmy, 10/30/07)
 !  (10) Increase photolysis rxns JPMAX = 79 (tmf, 1/7/09)
+!  (11) Increase photolysis rxns JPMAX = 89 for Isoprene (fp, 2/2/10)
+!  (12) Increase species name length. (fp, 2/2/10)
 !
 !          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
 !******************************************************************************
@@ -34,7 +36,9 @@
       INTEGER, PARAMETER :: LPAR = LLPAR
 
       ! max # of photolysis rxns = 4 + IPHOT (see comode.h)
-      INTEGER, PARAMETER :: JPMAX = 79
+      ! FP increased JPMAX since IPHOT was increased (hotp 7/31/09)
+      !INTEGER, PARAMETER :: JPMAX = 79
+      INTEGER, PARAMETER :: JPMAX = 89
 
       ! Variables for number of layers and number of photolysis rxns
       INTEGER            :: JPNL, JPPJ       
@@ -45,7 +49,11 @@
       COMMON /FJ_BRANCH/    BRANCH(JPMAX)
 
       ! Names of photolysis species
-      CHARACTER (LEN=4)  :: RNAMES
+      ! FP increased length of RNAMES for species indistinguishable
+      ! with only 4 characters (hotp 7/31/09)
+      ! used in jv_index and rd_js.f
+      !CHARACTER (LEN=4)  :: RNAMES
+      CHARACTER (LEN=7)  :: RNAMES
       COMMON /FJ_NAME/      RNAMES(JPMAX)
 
       ! Mapping array from Harvard species names to UCI species names

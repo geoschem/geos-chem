@@ -1,4 +1,4 @@
-! $Id: hcn_ch3cn_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+! $Id: hcn_ch3cn_mod.f,v 1.2 2010/03/15 19:33:23 ccarouge Exp $
       MODULE HCN_CH3CN_MOD
 !
 !******************************************************************************
@@ -282,10 +282,13 @@
 !  (2 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !  (3 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  (4 ) IDBCO is now defined in TRACERID_MOD. (fp, 6/2009)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BIOMASS,         IDBCO
+      ! IDBCO moved to tracerid_mod (6/2009)
+      USE BIOMASS_MOD,   ONLY : BIOMASS!,         IDBCO
+      USE TRACERID_MOD,  ONLY : IDBCO
       USE GEIA_MOD,      ONLY : GET_DAY_INDEX,   GET_IHOUR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE DIAG_MOD,      ONLY : AD09_em

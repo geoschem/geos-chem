@@ -1,4 +1,4 @@
-! $Id: emissions_mod.f,v 1.5 2010/02/02 16:57:53 bmy Exp $
+! $Id: emissions_mod.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -22,6 +22,11 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: DO_EMISSIONS
+!
+! !PUBLIC MEMBER DATA:
+!
+      !FP_ISOP (6/2009)
+      PUBLIC :: ISOP_SCALING,NOx_SCALING
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
@@ -47,8 +52,12 @@
 !  (20) Bug fixe : add specific calls for Streets for the grid 0.5x0.666.
 !        (dan, ccc, 3/11/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
+!  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
 !EOP
 !------------------------------------------------------------------------------
+
+      !FP_ISOP. For scaling Isoprene and NOx emissions.
+      REAL*8              :: ISOP_SCALING,NOx_SCALING
 
       CONTAINS
 
@@ -69,7 +78,8 @@
 !
 ! !USES:
 !
-      USE BIOMASS_MOD,            ONLY : NBIOMAX
+! NBIOMAX has been moved to CMN_SIZE by FP (hotp 7/31/09)
+!      USE BIOMASS_MOD,            ONLY : NBIOMAX
       USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
       USE BRAVO_MOD,              ONLY : EMISS_BRAVO
@@ -140,9 +150,10 @@
 !        (phs, 5/12/08)
 !  (20) Now references EMISS_VISTAS_ANTHR from "vistas_anthro_mod.f". Call
 !        EMEP, and Streets every month (amv, 12/2/08)
-!  (21) Now references EMISS_EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
+!  (21) Now references EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
+!  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +161,8 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                     :: MONTH, YEAR
-      REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+      ! BIOMASS not used (hotp 8/3/09)
+      !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
 
       !=================================================================
       ! DO_EMISSIONS begins here!

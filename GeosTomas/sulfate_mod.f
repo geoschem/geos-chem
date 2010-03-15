@@ -1,4 +1,4 @@
-! $Id: sulfate_mod.f,v 1.2 2010/03/05 16:09:29 bmy Exp $
+! $Id: sulfate_mod.f,v 1.3 2010/03/15 19:33:19 ccarouge Exp $
       MODULE SULFATE_MOD
 !
 !******************************************************************************
@@ -7122,10 +7122,13 @@ c      print *,BINMASS(24,11,2,:)
 !        (bmy, 10/3/06)
 !  (11) Renamed READ_BIOFUEL_SO2, and move all biomass code to GET_BIOMASS_SO2
 !        to account for several GFED2 products (yc, phs, 12/23/08)   
+!  (12) IDBSO2 is not used anymore (ccc, 01/29/10)  
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
+      USE BIOMASS_MOD,          ONLY : BIOMASS
+      ! IDBSO2 is not used anymore (ccc, 01/29/10)
+      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
@@ -7228,10 +7231,14 @@ c      print *,BINMASS(24,11,2,:)
 !  NOTES:
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_SO2
 !        (yc, phs, 12/23/08)
+!  (2 ) IDBSO2 is now in tracerid_mod.f (fp, 6/2009)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
+      !IDBSO2 now in tracerid_mod (fp, 6/2009)
+      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBSO2
+      USE BIOMASS_MOD,          ONLY : BIOMASS
+      USE TRACERID_MOD,         ONLY : IDBSO2
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
@@ -7869,10 +7876,12 @@ c      print *,BINMASS(24,11,2,:)
 !  (11) Prevent seg fault error when LBIOMASS=F (bmy, 11/3/06)
 !  (12) Renamed READ_BIOFUEL_NH3, and move all biomass code to GET_BIOMASS_NH3
 !        to account for several GFED2 products (yc, phs, 12/23/08)   
+!  (13) IDBNH3 is not used anymore (ccc, 01/29/10)   
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
+      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
+      USE BIOMASS_MOD,          ONLY : BIOMASS
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,            ONLY : GET_TAU0,        READ_BPCH2
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
@@ -7972,13 +7981,16 @@ c      print *,BINMASS(24,11,2,:)
 !  NOTES:
 !  (1 ) Extracted from old module subroutine READ_BIOMASS_NH3
 !        (yc, phs, 12/23/08)
+!  (2 ) IDBNH3 is in tracerid_mod.f now (fp, 6/2009)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
+      ! IDBNH3 now in tracerid_mod (fp, 6/2009)
+      !USE BIOMASS_MOD,          ONLY : BIOMASS,         IDBNH3
+      USE BIOMASS_MOD,          ONLY : BIOMASS
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE TRACER_MOD,           ONLY : XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNH3
+      USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
 
 #     include "CMN_SIZE"             ! Size parameters
 

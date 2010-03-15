@@ -1,4 +1,4 @@
-! $Id: tracer_mod.f,v 1.1 2009/09/16 14:05:59 bmy Exp $
+! $Id: tracer_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       MODULE TRACER_MOD
 !
 !******************************************************************************
@@ -67,7 +67,8 @@
       ! Scalars
       INTEGER                        :: SIM_TYPE
       INTEGER                        :: N_TRACERS
-      INTEGER,           PARAMETER   :: N_MEMBERS = 10
+      ! N_MEMBERS increased from 10 to 15 (FP 8/2009)
+      INTEGER,           PARAMETER   :: N_MEMBERS = 15
       REAL*8,            PARAMETER   :: XNUMOLAIR =  6.022d+23 / 
      &                                               28.9644d-3
 

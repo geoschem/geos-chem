@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.1 2010/02/02 16:57:49 bmy Exp $
+! $Id: drydep_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -160,6 +160,9 @@
 !        (lin, ccc, 5/29/09)
 !  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
 !  (28) Change MAXDEP from 50 to 81 (win, 7/14/09)
+!  (29) Add aromatics SOA (dkh)
+!  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
+!       and ISOPND. (fp)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -202,6 +205,8 @@
  
       ! Scalars
       INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN
+      !FP_ISOP (6/2009)
+      INTEGER              :: DRYDH2O2
       INTEGER              :: NUMDEP,   NWATER
 
       ! Arrays
@@ -3083,6 +3088,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
       USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
       USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
+      ! (hotp 5/25/09)
+      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
@@ -3092,6 +3099,13 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTGLYC
       USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
       USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
+      !add some species (fp, 6/2009)
+      USE TRACERID_MOD, ONLY : IDTPROPNN
+      USE TRACERID_MOD, ONLY : IDTISOPN    
+      USE TRACERID_MOD, ONLY : IDTMMN
+      USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
+      USE TRACERID_MOD, ONLY : IDTMAP
+
       USE TRACERID_MOD, ONLY : IDTNK1 ,   IDTNK2 ,       IDTNK3     !(win, 7/14/09)   
       USE TRACERID_MOD, ONLY : IDTNK4 ,   IDTNK5 ,       IDTNK6        
       USE TRACERID_MOD, ONLY : IDTNK7 ,   IDTNK8 ,       IDTNK9        
@@ -3213,6 +3227,8 @@ C** Load array DVEL
          ! H2O2
          ELSE IF ( N == IDTH2O2 ) THEN
             NUMDEP          = NUMDEP + 1
+            ! FP (6/2009)
+            DRYDH2O2        = NUMDEP
             NDVZIND(NUMDEP) = NUMDEP
             NTRAIND(NUMDEP) = IDTH2O2
             DEPNAME(NUMDEP) = 'H2O2'
@@ -3243,6 +3259,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
          
+         ! PYPAN (uses same dep vel as PAN)
+         !FP_ISOP
+         ELSE IF ( N == IDTPYPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTPYPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'PYPAN'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! ISN2 (uses same dep vel as HNO3)
          ELSE IF ( N == IDTISN2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3387,6 +3415,92 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.   
+
+         !FP_ISOP
+         ! !ISOPN=ISOPNDISOPNB
+         ELSE IF ( N == IDTISOPN ) THEN
+         !ISOPNNR
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOPN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOPND'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 147d-3
+            AIROSOL(NUMDEP) = .FALSE.
+        
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOPN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOPNB'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 147d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MMN=MACRN+MVKN
+         ELSE IF ( N == IDTMMN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMMN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MACRN'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  !TO CHECK
+            XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.
+       
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMMN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MVKN'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.   
+
+         !ANIT
+         ELSE IF ( N == IDTPROPNN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTPROPNN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
+            HSTAR(NUMDEP)   = 1d3       
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 119d-3
+            AIROSOL(NUMDEP) = .FALSE.   
+
+         !RIP
+         ELSE IF ( N == IDTRIP ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTRIP
+            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            DEPNAME(NUMDEP) = 'RIP'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !IEPOX
+         ELSE IF ( N == IDTIEPOX ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTIEPOX
+            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            DEPNAME(NUMDEP) = 'IEPOX'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MAP
+         ELSE IF ( N == IDTMAP ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTMAP
+            DEPNAME(NUMDEP) = 'MAP'
+            HSTAR(NUMDEP)   = 8.4d+2 !FROM R. Sander
+            F0(NUMDEP)      = 1.0d0  !Assume reactive
+            XMW(NUMDEP)     = 76d-3
+            AIROSOL(NUMDEP) = .FALSE.
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers
@@ -3670,6 +3784,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 130d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+        ! SOG5  (dkh, 03/27/07)  
+         ELSE IF ( N == IDTSOG5 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG5'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            ! MWT is 150 not 130 hotp
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! SOA1
          ELSE IF ( N == IDTSOA1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3714,6 +3840,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 130d-3
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! SOA5 (dkh, 03/27/07)  
+         ELSE IF ( N == IDTSOA5 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA5'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            ! hotp 5/24/09 MWT fix
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+ 
          ! SOAG
          ELSE IF ( N == IDTSOAG ) THEN
             NUMDEP          = NUMDEP + 1

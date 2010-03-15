@@ -1,4 +1,4 @@
-! $Id: gfed2_biomass_mod.f,v 1.2 2010/02/02 16:57:53 bmy Exp $
+! $Id: gfed2_biomass_mod.f,v 1.3 2010/03/15 19:33:23 ccarouge Exp $
       MODULE GFED2_BIOMASS_MOD
 !
 !******************************************************************************
@@ -124,14 +124,19 @@
       !==================================================================
 
       ! Scalars
-      INTEGER                       :: IDBNOx,  IDBCO,   IDBALK4
-      INTEGER                       :: IDBACET, IDBMEK,  IDBALD2
-      INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
-      INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
-      INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
-      INTEGER                       :: IDBBENZ, IDBTOLU, IDBXYLE
-      INTEGER                       :: IDBC2H2, IDBC2H4, IDBGLYX
-      INTEGER                       :: IDBMGLY, IDBGLYC, IDBHAC
+!      INTEGER                       :: IDBNOx,  IDBCO,   IDBALK4
+!      INTEGER                       :: IDBACET, IDBMEK,  IDBALD2
+!      INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
+!      INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
+!      INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
+!      INTEGER                       :: IDBBENZ, IDBTOLU, IDBXYLE
+!      INTEGER                       :: IDBC2H2, IDBC2H4, IDBGLYX
+!      INTEGER                       :: IDBMGLY, IDBGLYC, IDBHAC
+
+      ! BIO_SAVE stores IDB for GFED2 species number (hotp 7/31/09)
+      ! BIO_SAVE(GFED#xxx) = IDBxxx
+      INTEGER, ALLOCATABLE  :: BIO_SAVE(:)
+
       INTEGER                       :: DOY8DAY, T3HR
       LOGICAL                       :: UPDATED
       REAL*8                        :: SECONDS
@@ -315,6 +320,7 @@
 !        monthly, 8-day, 3hr, synoptic (phs, yc, psk, 12/18/08)
 !  (6 ) Adjust call to GFED2_AVAILABLE to reflect that monthly data for
 !        2008 is now available on disk (bmy, 7/8/09)
+!  (7 ) Reordering of species done by REARRANGE_BIOM (fp, 6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -331,9 +337,10 @@
 #     include "CMN_SIZE"       ! Size parameters
 
       ! Arguments 
-      INTEGER,             INTENT(IN)    :: THIS_YYYY
-      INTEGER,             INTENT(IN)    :: THIS_MM
-      REAL*8,              INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
+      INTEGER,            INTENT(IN)    :: THIS_YYYY
+      INTEGER,            INTENT(IN)    :: THIS_MM
+!      REAL*8,              INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
+      REAL*8,             INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
       LOGICAL, SAVE           :: FIRST = .TRUE.
@@ -349,7 +356,6 @@
       CHARACTER(LEN=16 )      :: TIME_STR
       INTEGER                 :: DD, HH, DOY
 
-      
       !=================================================================
       ! GFED2_COMPUTE_BIOMASS begins here!
       !=================================================================
@@ -617,9 +623,15 @@
       ! [molec/cm2/3hr] to [molec/cm2/s]
       GFED2_BIOMASS = GFED2_BIOMASS / SECONDS
 
-      ! set output
-      BIOM_OUT = GFED2_BIOMASS
-      
+
+!-- New reordering necessary (fp, 6/09)
+!      ! set output
+!      BIOM_OUT = GFED2_BIOMASS
+      !GFED2_BIOMASS is indexed as GFED
+      !BIOM_OUT      is indexed as IDBs
+      CALL REARRANGE_BIOM(GFED2_BIOMASS,BIOM_OUT)
+
+
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
@@ -642,6 +654,8 @@
 !
 !  NOTES:
 !  (1 ) Now scale to IPCC future scenario for BC, OC, SO2, NH3 (bmy, 9/25/03)
+!  (2 ) IDBs are now defined in TRACERID_MOD. Use BIO_SAVE for correspondance
+!       of species order. (fp, ccc, 01/29/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -653,6 +667,10 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
+
+      !Need IDBs from TRACERID_MOD now.
+      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
+      USE TRACERID_MOD, ONLY : IDBNH3,  IDBBC,   IDBOC 
 
 #     include "CMN_SIZE"               ! Size parameters
 
@@ -680,32 +698,40 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-         IF ( N == IDBNOx ) THEN
+! Now use BIO_SAVE to have the correspondance GFED order -> tracers order.
+! (ccc, 01/27/10)
+!         IF ( N == IDBNOx ) THEN
+         IF ( BIO_SAVE(N) == IDBNOx ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
 
-         ELSE IF ( N == IDBCO ) THEN
+!         ELSE IF ( N == IDBCO ) THEN
+         ELSE IF ( BIO_SAVE(N) == IDBCO ) THEN
 
             ! Future biomass CO [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_CObb( I, J )
 
-         ELSE IF ( N == IDBSO2 ) THEN
+!         ELSE IF ( N == IDBSO2 ) THEN
+         ELSE IF ( BIO_SAVE(N) == IDBSO2 ) THEN
 
             ! Future biomass SO2 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_SO2bb( I, J )
 
-         ELSE IF ( N == IDBNH3 ) THEN
+!         ELSE IF ( N == IDBNH3 ) THEN
+         ELSE IF ( BIO_SAVE(N) == IDBNH3 ) THEN
 
             ! Future biomass NH3 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NH3bb( I, J )
 
-         ELSE IF ( N == IDBBC ) THEN
+!         ELSE IF ( N == IDBBC ) THEN
+         ELSE IF ( BIO_SAVE(N) == IDBBC ) THEN
 
             ! Future biomass BC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_BCbb( I, J )
 
-         ELSE IF ( N == IDBOC ) THEN
+!         ELSE IF ( N == IDBOC ) THEN
+         ELSE IF ( BIO_SAVE(N) == IDBOC ) THEN
 
             ! Future biomass OC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_OCbb( I, J )
@@ -807,6 +833,7 @@
 !  (2 ) Bug fix: IDBSO2, IDBNH3, IDBOC, and IDBCO2 are correctly 
 !        set (phs, 3/18/08)
 !  (3 ) Add 9 gaseous biomass burning emissions (tmf, 1/7/09)
+!  (4 ) Add IDBs from TRACERID_MOD. Initialize BIO_SAVE (fp, 01/29/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -816,6 +843,15 @@
       USE FILE_MOD,      ONLY : IOERROR, IU_FILE
       USE LOGICAL_MOD,   ONLY : LDICARB
 
+      !(fp)
+      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD, ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD, ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD, ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
 #     include "CMN_SIZE"      ! Size parameters
 
@@ -856,6 +892,14 @@
       ! Allocate array for vegetation map
       ALLOCATE( VEG_GEN_1x1( I1x1, J1x1-1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VEG_GEN_1x1' )
+
+      !IDBs are now the same as the ones in TRACERID AND BIOMASS_MOD
+      !BIOSAVE INDEX IS THE LOCATION OF THE EMISSION IN THE GFED FILE
+      !(fp)
+      ALLOCATE( BIO_SAVE( N_SPEC ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIO_SAVE' )
+      BIO_SAVE = 0
+
 
       ! Set default values for module variables
       T3HR    = -1
@@ -920,138 +964,179 @@
       !=================================================================
       
       ! Initialize 
-      IDBNOx  = 0  
-      IDBCO   = 0
-      IDBALK4 = 0
-      IDBACET = 0 
-      IDBMEK  = 0 
-      IDBALD2 = 0
-      IDBPRPE = 0
-      IDBC3H8 = 0
-      IDBCH2O = 0
-      IDBC2H6 = 0
-      IDBBC   = 0
-      IDBOC   = 0
-      IDBSO2  = 0
-      IDBNH3  = 0
-      IDBCO2  = 0
-      IDBGLYX = 0
-      IDBMGLY = 0
-      IDBBENZ = 0
-      IDBTOLU = 0   
-      IDBXYLE = 0
-      IDBC2H4 = 0
-      IDBC2H2 = 0 
-      IDBGLYC = 0
-      IDBHAC  = 0
+      ! These are now in tracerid_mod (fp, hotp 7/31/09)
+      !IDBNOx  = 0  
+      !IDBCO   = 0
+      !IDBALK4 = 0
+      !IDBACET = 0 
+      !IDBMEK  = 0 
+      !IDBALD2 = 0
+      !IDBPRPE = 0
+      !IDBC3H8 = 0
+      !IDBCH2O = 0
+      !IDBC2H6 = 0
+      !IDBBC   = 0
+      !IDBOC   = 0
+      !IDBSO2  = 0
+      !IDBNH3  = 0
+      !IDBCO2  = 0
+      !IDBGLYX = 0
+      !IDBMGLY = 0
+      !IDBBENZ = 0
+      !IDBTOLU = 0   
+      !IDBXYLE = 0
+      !IDBC2H4 = 0
+      !IDBC2H2 = 0 
+      !IDBGLYC = 0
+      !IDBHAC  = 0
  
-      ! Save species # in IDBxxxx flags for future reference
+      ! Save correspondance between GFED2 species order (N) and 
+      ! species order of the simulation (IDBxxxs).(ccc, 2/4/10)
       ! and also initialize arrays for mol wts and units
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED2_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-               IDBNOx              = N
+!               IDBNOx              = N
+               BIO_SAVE(N)         = IDBNOX
                GFED2_SPEC_MOLWT(N) = 14d-3
                GFED2_SPEC_UNIT(N)  = '[Tg N]'
             CASE( 'CO'   )
-               IDBCO               = N
+               BIO_SAVE(N)         = IDBCO
                GFED2_SPEC_MOLWT(N) = 28d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'ALK4' )
-               IDBALK4             = N
+               BIO_SAVE(N)         = IDBALK4
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'ACET' )
-               IDBACET = N
+               BIO_SAVE(N)         = IDBACET
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'MEK'  )
-               IDBMEK  = N
+               BIO_SAVE(N)         = IDBMEK
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'ALD2' )
-               IDBALD2 = N
+               BIO_SAVE(N)         = IDBALD2
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'PRPE' )
-               IDBPRPE = N
+               BIO_SAVE(N)         = IDBPRPE
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'C3H8' )
-               IDBC3H8 = N
+               BIO_SAVE(N)         = IDBC3H8
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'CH2O' )
-               IDBCH2O = N
+               BIO_SAVE(N)         = IDBCH2O
                GFED2_SPEC_MOLWT(N) = 30d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'C2H6' )
-               IDBC2H6 = N
+               BIO_SAVE(N)         = IDBC2H6
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'SO2'  )
-               IDBSO2 = N
+               BIO_SAVE(N)         = IDBSO2
                GFED2_SPEC_MOLWT(N) = 64d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'NH3'  )
-               IDBNH3 = N
+               BIO_SAVE(N)         = IDBNH3
                GFED2_SPEC_MOLWT(N) = 17d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
-            CASE( 'BC'   ) 
-               IDBBC = N
+            CASE( 'BC'   )
+               !IDBBC = N
+               BIO_SAVE(N)         = IDBBC
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'OC'   )
-               IDBOC = N
+               BIO_SAVE(N)         = IDBOC
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'GLYX' )
-               IDBGLYX = N
+               BIO_SAVE(N)         = IDBGLYX
                GFED2_SPEC_MOLWT(N) = 58d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'MGLY' )
-               IDBMGLY = N
+               BIO_SAVE(N)         = IDBMGLY
                GFED2_SPEC_MOLWT(N) = 72d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'BENZ' )
-               IDBBENZ = N
+               BIO_SAVE(N)         = IDBBENZ
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'TOLU' )
-               IDBTOLU = N
+               BIO_SAVE(N)         = IDBTOLU
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'XYLE' )
-               IDBXYLE = N
+               BIO_SAVE(N)         = IDBXYLE
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'C2H4' )
-               IDBC2H4 = N
+               BIO_SAVE(N)         = IDBC2H4
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'C2H2' )
-               IDBC2H2 = N
+               BIO_SAVE(N)         = IDBC2H2
                GFED2_SPEC_MOLWT(N) = 12d-3
                GFED2_SPEC_UNIT(N)  = '[Tg C]'
             CASE( 'GLYC' )
-               IDBGLYC = N
+               BIO_SAVE(N)         = IDBGLYC
                GFED2_SPEC_MOLWT(N) = 60d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'HAC' )
-               IDBHAC  = N
+               BIO_SAVE(N)         = IDBHAC
                GFED2_SPEC_MOLWT(N) = 74d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE( 'CO2'  )
-               IDBCO2 = N
+               BIO_SAVE(N)         = IDBCO2
                GFED2_SPEC_MOLWT(N) = 44d-3
                GFED2_SPEC_UNIT(N)  = '[Tg  ]'
             CASE DEFAULT
                ! Nothing
+               BIO_SAVE(N)         = 0
+
+              WRITE(*,*) 'NAME',TRIM( GFED2_SPEC_NAME(N) )
          END SELECT
       ENDDO
 
       ! Return to calling program
       END SUBROUTINE INIT_GFED2_BIOMASS
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE REARRANGE_BIOM(BIOM_OUT,BIOM_OUTM)
+!
+!******************************************************************************
+! Subroutine REARRANGE_BIOM takes GFED2 emissions (which have their own,
+! unique ID#s and associates them with the IDBxxxs of tracerid_mod
+! Created: FP (6/2009)
+!******************************************************************************
+
+#     include "CMN_SIZE"       ! Size parameters
+
+      REAL*8,  INTENT(IN)     :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
+      REAL*8,  INTENT(OUT)    :: BIOM_OUTM(IIPAR,JJPAR,NBIOMAX) !+1 from CO2
+     
+      INTEGER :: N
+
+      DO N=1,N_SPEC
+
+         IF (BIO_SAVE(N) .GT. 0) THEN
+
+            BIOM_OUTM(:,:,BIO_SAVE(N))=BIOM_OUT(:,:,N)
+       
+         ENDIF
+
+
+      ENDDO
+
+      END SUBROUTINE REARRANGE_BIOM
+
+!------------------------------------------------------------------------------
+
+
 
 !------------------------------------------------------------------------------
 

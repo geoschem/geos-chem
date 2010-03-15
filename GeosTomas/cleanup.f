@@ -1,4 +1,4 @@
-! $Id: cleanup.f,v 1.1 2010/02/02 16:57:50 bmy Exp $
+! $Id: cleanup.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       SUBROUTINE CLEANUP
 !
 !******************************************************************************
@@ -127,6 +127,7 @@
       USE H2_HD_MOD,               ONLY : CLEANUP_H2_HD
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -206,6 +207,7 @@
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_HDF
+      CALL CLEANUP_ISOROPIAII
       CALL CLEANUP_LAI
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ

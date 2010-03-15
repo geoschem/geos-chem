@@ -1,4 +1,4 @@
-! $Id: gamap_mod.f,v 1.7 2010/02/02 16:57:53 bmy Exp $
+! $Id: gamap_mod.f,v 1.8 2010/03/15 19:33:24 ccarouge Exp $
       MODULE GAMAP_MOD
 !
 !******************************************************************************
@@ -698,6 +698,7 @@
 !  (4 ) Change diagnostic category for ND31 diagnostic from "PS-PTOP" 
 !        to "PEDGE-$" (bmy, 11/16/07)
 !  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
+!  (6 ) Add potential temperature category. (fp, 2/26/10)
 !******************************************************************************
 !
       ! Local variables 
@@ -1258,6 +1259,12 @@
       DESCRIPT(N) = 'gamma HO2'
       OFFSET(N)   = SPACING * 49
 
+!(FP 06/19/2009)
+      N           = N + 1
+      CATEGORY(N) = 'THETA-$'
+      DESCRIPT(N) = 'Potential temperature'
+      OFFSET(N)   = SPACING * 57
+
       N           = N + 1
       CATEGORY(N) = 'CH4-EMIS'
       DESCRIPT(N) = 'CH4 Emissions'
@@ -1331,8 +1338,26 @@
       USE TRACER_MOD,   ONLY : TRACER_MW_KG,     TRACER_NAME
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI, IDTALPH, IDTLIMO
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
-      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG
+      !(hotp, 7/31/08)
+      USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG, IDTSOA5
+      USE TRACERID_MOD, ONLY : IDTGLYX, IDTMGLY, IDTC2H4, IDTC2H2
+      USE TRACERID_MOD, ONLY : IDTGLYC, IDTHAC
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
+      !(FP, 6/2009) To remove hard-wired for biomass burning
+      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET
+      USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
+      USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
+      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
+      USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
+      USE TRACERID_MOD, ONLY : IDBXYLE, IDBBENZ, IDBTOLU
+      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
+      USE TRACERID_MOD, ONLY : IDBGLYC, IDBHAC
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET
+      USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
+      USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
+      USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -1650,7 +1675,9 @@
 
          ! Number of tracers
          IF ( LSOA ) THEN
-            NTRAC(07) = 15
+            !Add SOA5. (ccc, 2/4/10)
+            !NTRAC(07) = 15
+            NTRAC(07) = 16
          ELSE
             NTRAC(07) = 2
          ENDIF
@@ -1720,24 +1747,28 @@
                   MWT  (T,07) = 130e-3
                   INDEX(T,07) = IDTSOA4 + ( SPACING * 33 )
                CASE( 12 )
+                  NAME (T,07) = 'SOA5'
+                  FNAME(T,07) = 'Aerosol prod of AROM ox'
+                  INDEX(T,07) = IDTSOA5 + ( SPACING * 33 )
+               CASE( 13 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in aq. aerosol'
                   MWT  (T,07) = 58e-3
                   INDEX(T,07) = IDTSOAG + ( SPACING * 33 )
 
-               CASE( 13 )
+               CASE( 14 )
                   NAME (T,07) = 'SOAM'
                   FNAME(T,07) = 'SOAM production in aq. aerosol'
                   MWT  (T,07) = 72e-3
                   INDEX(T,07) = IDTSOAM + ( SPACING * 33 )
 
-               CASE( 14 )
+               CASE( 15 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in clouds'
                   MWT  (T,07) = 58e-3
                   INDEX(T,07) = 91 + ( SPACING * 33 )
 
-               CASE( 15 )
+               CASE( 16 )
                   NAME (T,07) = 'SOAM'
                   FNAME(T,07) = 'SOAM production in clouds'
                   MWT  (T,07) = 72e-3
@@ -2308,149 +2339,170 @@
             ! Loop over tracers
             DO T = 1, NTRAC(28)
 
+               ! removed hardwires (fp, 6/2009)
                ! Case statement
-               SELECT CASE( T )
-                  CASE( 1  )
-                     NAME (T,28) = 'NOx'
-                     INDEX(T,28) = 1 + ( SPACING * 45 )
-                     MWT  (T,28) = 14e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 2  )
-                     NAME (T,28) = 'CO'
-                     INDEX(T,28) = 4 + ( SPACING * 45 )
-                     MWT  (T,28) = 28e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 3  )
-                     NAME (T,28) = 'ALK4'
-                     INDEX(T,28) = 5 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 4
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 4  )
-                     NAME (T,28) = 'ACET'
-                     INDEX(T,28) = 9 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 5  )
-                     NAME (T,28) = 'MEK'
-                     INDEX(T,28) = 10 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 4
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 6  )
-                     NAME (T,28) = 'ALD2'
-                     INDEX(T,28) = 11 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 7  )
-                     NAME (T,28) = 'PRPE'
-                     INDEX(T,28) = 18 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 8  )
-                     NAME (T,28) = 'C3H8'
-                     INDEX(T,28) = 19 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 3
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 9  )
-                     NAME (T,28) = 'CH2O'
-                     INDEX(T,28) = 20 + ( SPACING * 45 )
-                     MWT  (T,28) = 30e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 10 )
-                     NAME (T,28) = 'C2H6'
-                     INDEX(T,28) = 21 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 2
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 11 )
-                     NAME (T,28) = 'SO2'
-                     INDEX(T,28) = 26 + ( SPACING * 45 )
-                     MWT  (T,28) = 32e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'atoms S/cm2/s'
-                  CASE( 12 )
-                     NAME (T,28) = 'NH3'
-                     INDEX(T,28) = 30 + ( SPACING * 45 )
-                     MWT  (T,28) = 17e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 13 )
-                     NAME (T,28) = 'BC'
-                     INDEX(T,28) = 34 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 14 )
-                     NAME (T,28) = 'OC'
-                     INDEX(T,28) = 35 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 15 )
-                     NAME (T,28) = 'GLYX'
-                     INDEX(T,28) = 55 + ( SPACING * 45 )
-                     MWT  (T,28) = 58e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 16 )
-                     NAME (T,28) = 'MGLY'
-                     INDEX(T,28) = 56 + ( SPACING * 45 )
-                     MWT  (T,28) = 72e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 17 )
-                     NAME (T,28) = 'BENZ'
-                     INDEX(T,28) = 57 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 6
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 18 )
-                     NAME (T,28) = 'TOLU'
-                     INDEX(T,28) = 58 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 7
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 19 )
-                     NAME (T,28) = 'XYLE'
-                     INDEX(T,28) = 59 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 8
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 20 )
-                     NAME (T,28) = 'C2H4'
-                     INDEX(T,28) = 63 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 2
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 21 )
-                     NAME (T,28) = 'C2H2'
-                     INDEX(T,28) = 64 + ( SPACING * 45 )
-                     MWT  (T,28) = 12e-3
-                     MOLC (T,28) = 2
-                     UNIT (T,28) = 'atoms C/cm2/s'
-                  CASE( 22 )
-                     NAME (T,28) = 'GLYC'
-                     INDEX(T,28) = 66 + ( SPACING * 45 )
-                     MWT  (T,28) = 60e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE( 23 )
-                     NAME (T,28) = 'HAC'
-                     INDEX(T,28) = 67 + ( SPACING * 45 )
-                     MWT  (T,28) = 74e-3
-                     MOLC (T,28) = 1
-                     UNIT (T,28) = 'molec/cm2/s'
-                  CASE DEFAULT
-                     ! Nothing
-               END SELECT
+               IF ( T == IDBNOX ) THEN
+                  NAME (T,28) = 'NOx'
+                  INDEX(T,28) = IDTNOX + ( SPACING * 45 )
+                  MWT  (T,28) = 14e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+                  
+               ELSEIF( T == IDBCO ) THEN
+                  NAME (T,28) = 'CO'
+                  INDEX(T,28) = IDTCO + ( SPACING * 45 )
+                  MWT  (T,28) = 28e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBALK4 ) THEN
+                  NAME (T,28) = 'ALK4'
+                  INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 4
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBACET ) THEN
+                  NAME (T,28) = 'ACET'
+                  INDEX(T,28) = IDTACET + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 3
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBMEK ) THEN
+                  NAME (T,28) = 'MEK'
+                  INDEX(T,28) = IDTMEK + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 4
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBALD2 ) THEN
+                  NAME (T,28) = 'ALD2'
+                  INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 3
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBPRPE ) THEN
+                  NAME (T,28) = 'PRPE'
+                  INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 3
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBC3H8 ) THEN
+                  NAME (T,28) = 'C3H8'
+                  INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 3
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBCH2O ) THEN
+                  NAME (T,28) = 'CH2O'
+                  INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
+                  MWT  (T,28) = 30e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBC2H6 ) THEN
+                  NAME (T,28) = 'C2H6'
+                  INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 2
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBSO2 ) THEN
+                  NAME (T,28) = 'SO2'
+                  INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
+                  MWT  (T,28) = 32e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'atoms S/cm2/s'
+
+               ELSEIF( T == IDBNH3 ) THEN
+                  NAME (T,28) = 'NH3'
+                  INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
+                  MWT  (T,28) = 17e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBBC ) THEN
+                  NAME (T,28) = 'BC'
+                  INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBOC ) THEN
+                  NAME (T,28) = 'OC'
+                  INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBGLYX ) THEN
+                  NAME (T,28) = 'GLYX'
+                  INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
+                  MWT  (T,28) = 58e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBMGLY ) THEN
+                  NAME (T,28) = 'MGLY'
+                  INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
+                  MWT  (T,28) = 72e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBBENZ ) THEN
+                  NAME (T,28) = 'BENZ'
+                  INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 6
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBTOLU ) THEN
+                  NAME (T,28) = 'TOLU'
+                  INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 7
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBXYLE ) THEN
+                  NAME (T,28) = 'XYLE'
+                  INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 8
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBC2H4 ) THEN
+                  NAME (T,28) = 'C2H4'
+                  INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 2
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBC2H2 ) THEN
+                  NAME (T,28) = 'C2H2'
+                  INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
+                  MWT  (T,28) = 12e-3
+                  MOLC (T,28) = 2
+                  UNIT (T,28) = 'atoms C/cm2/s'
+
+               ELSEIF( T == IDBGLYC ) THEN
+                  NAME (T,28) = 'GLYC'
+                  INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
+                  MWT  (T,28) = 60e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ELSEIF( T == IDBHAC ) THEN
+                  NAME (T,28) = 'HAC'
+                  INDEX(T,28) = IDTHAC + ( SPACING * 45 )
+                  MWT  (T,28) = 74e-3
+                  MOLC (T,28) = 1
+                  UNIT (T,28) = 'molec/cm2/s'
+
+               ENDIF
 
                ! Define other quantities
                FNAME(T,28) = TRIM( NAME(T,28) ) // ' biomass'
@@ -2602,7 +2654,9 @@
       IF ( ND42 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(42) = 8
+         ! Add new diagnostics with SOA5. (ccc, 3/10/10)
+         !NTRAC(42) = 8
+         NTRAC(42) = 24
 
          ! Loop over tracers
          DO T = 1, NTRAC(42)
@@ -2629,26 +2683,109 @@
                   FNAME(T,42) = 'Aerosol prod of ISOP ox'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 130e-3
+               ! Add SOA5 (ccc, 2/4/10)
                CASE( 5 )
+                  NAME (T,42) = 'SOA5'
+                  FNAME(T,42) = 'Aerosol prod of AROM ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150d-3
+               CASE( 6 )
                   NAME (T,42) = 'SOA1-3'
                   FNAME(T,42) = 'SOA1 + SOA2 + SOA3'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 177d-3
-               CASE( 6 )
+               CASE( 7 )
                   NAME (T,42) = 'SOA1-4'
                   FNAME(T,42) = 'SOA1 + SOA2 + SOA3 + SOA4'
                   UNIT (T,42) = 'ug/m3'
                   MWT  (T,42) = 165e-3
-               CASE( 7 )
+               CASE( 8 )
+                  NAME (T,42) = 'SOA1-5'
+                  FNAME(T,42) = 'SOA1 + SOA2 + SOA3 + SOA4 + SOA5'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 162e-3
+               CASE( 9 )
                   NAME (T,42) = 'sumOC'
                   FNAME(T,42) = 'Sum of organic carbon'
                   UNIT (T,42) = 'ug C/m3'
                   MWT  (T,42) = 12e-3
-               CASE( 8 )
+               CASE( 10 )
                   NAME (T,42) = 'sumOCstp'
                   FNAME(T,42) = 'Sum of organic carbon @ STP'
                   UNIT (T,42) = 'ug C/sm3'
                   MWT  (T,42) = 12e-3
+               CASE( 11 )
+                  NAME (T,42) = 'sumOA'
+                  FNAME(T,42) = 'Sum of organic aerosol'
+                  UNIT (T,42) = 'ug/sm3'
+                  MWT  (T,42) = 1e-6
+               CASE( 12 )
+                  NAME (T,42) = 'OC'
+                  FNAME(T,42) = 'OCPI + OCPO'
+                  UNIT (T,42) = 'ug C/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 13 )
+                  NAME (T,42) = 'BC'
+                  FNAME(T,42) = 'BCPI + BCPO'
+                  UNIT (T,42) = 'ug C/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 14 )
+                  NAME (T,42) = 'SO4'
+                  FNAME(T,42) = 'sulfate'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 96e-3
+               CASE( 15 )
+                  NAME (T,42) = 'NH4'
+                  FNAME(T,42) = 'ammonium'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 18e-3
+               CASE( 16 )
+                  NAME (T,42) = 'NIT'
+                  FNAME(T,42) = 'nitrate'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 62e-3
+               CASE( 17 )
+                  NAME (T,42) = 'SAL'
+                  FNAME(T,42) = 'SALA + SALC'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 36e-3
+               CASE( 18 )
+                  NAME (T,42) = 'TotalPM'
+                  FNAME(T,42) = 'OC + BC + SOA + NH4 + NIT + SO4'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 19 )
+                  NAME (T,42) = 'SOAG'
+                  FNAME(T,42) = 'SOAG'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 20 )
+                  NAME (T,42) = 'SOAM'
+                  FNAME(T,42) = 'SOAM'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 21 )
+                  NAME (T,42) = 'SOAS'
+                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 22 )
+                  NAME (T,42) = 'SOAS-C'
+                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG (in carbon)'
+                  UNIT (T,42) = 'ug C/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 23 )
+                  NAME (T,42) = 'SOASstp'
+                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG at STP'
+                  UNIT (T,42) = 'ug/sm3'
+                  MWT  (T,42) = 1e-6
+               CASE( 24 )
+                  NAME (T,42) = 'SOAS-Cstp'
+                  FNAME(T,42) = 'SOA1-4 + SOAM + SOAG at STP'
+                  UNIT (T,42) = 'ug C/m3'
+                  MWT  (T,42) = 1e-6
+                  
+                  
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2666,7 +2803,9 @@
       IF ( ND43 > 0 ) THEN 
 
          ! Number of tracers
-         NTRAC(43) = 5
+         ! update for arom (dkh, 06/22/07)  
+         !NTRAC(43) = 5
+         NTRAC(43) = 11
 
          ! Loop over tracers
          DO T = 1, NTRAC(43)
@@ -2693,6 +2832,31 @@
                   NAME(T,43) = 'NO3'
                   UNIT(T,43) = 'v/v'
                   MWT (T,43) = 62e-3
+               ! update for arom (dkh, 06/22/07)  
+               CASE( 6 )
+                  NAME(T,43) = 'LBRO2H'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 127e-3
+               CASE( 7 )
+                  NAME(T,43) = 'LBRO2N'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 127e-3
+               CASE( 8 )
+                  NAME(T,43) = 'LTRO2H'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 141e-3
+               CASE( 9 )
+                  NAME(T,43) = 'LTRO2N'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 141e-3
+               CASE( 10)
+                  NAME(T,43) = 'LXRO2H'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 155e-3
+               CASE( 11)
+                  NAME(T,43) = 'LXRO2N'
+                  UNIT(T,43) = 'molec/cm3'
+                  MWT (T,43) = 155e-3
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2765,7 +2929,13 @@
                MWT  (N,44)  = TRACER_MW_KG(T) 
                MOLC (N,44)  = INT( TRACER_COEFF(T,1) )
                SCALE(N,44)  = 1.0e0
+               !To allow several compounds in a same tracer to deposit
+               !(fp, 06/09)
                INDEX(N,44)  = T + ( SPACING * 36 )
+               IF ( DEPNAME(N) == 'ISOPNB' ) 
+     &              INDEX(N,44)  = NNPAR + 1 + ( SPACING * 36 )
+               IF ( DEPNAME(N) == 'MVKN' )
+     &              INDEX(N,44)  = NNPAR + 2 + ( SPACING * 36 )
                NTRAC(44)    = NTRAC(44) + 1
 
                ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
@@ -2779,7 +2949,13 @@
                MWT  (NN,44) = TRACER_MW_KG(T) 
                MOLC (NN,44) = INT( TRACER_COEFF(T,1) )
                SCALE(NN,44) = 1.0e0
+               !To allow several compounds in a same tracer to deposit
+               !(fp, 06/09)
                INDEX(NN,44) = T + ( SPACING * 37 )
+               IF ( DEPNAME(N) == 'ISOPNB' ) 
+     &              INDEX(NN,44)  = NNPAR + 1 + ( SPACING * 37 )
+               IF ( DEPNAME(N) == 'MVKN' )
+     &              INDEX(NN,44)  = NNPAR + 2 + ( SPACING * 37 )
                NTRAC(44)    = NTRAC(44) + 1
             ENDDO
          ENDIF
@@ -3123,6 +3299,21 @@
             MWT  (T,56) = 0e0
             SCALE(T,56) = 1e0
          ENDDO
+      ENDIF
+
+      !-------------------------------------      
+      ! THETA (ND57) (FP 6/2009)
+      !-------------------------------------      
+      IF ( ND57 > 0 ) THEN
+         T           = 1
+         NTRAC(57)   = T
+         NAME (T,57) = 'THETA'
+         FNAME(T,57) = 'Potential Temperature'
+         UNIT (T,57) = 'K'
+         INDEX(T,57) = T + ( SPACING * 57 )
+         MOLC (T,57) = 1
+         MWT  (T,57) = 0e0
+         SCALE(T,57) = 1e0
       ENDIF
 
       !-------------------------------------

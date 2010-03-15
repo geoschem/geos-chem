@@ -1,4 +1,4 @@
-! $Id: drydep_mod.f,v 1.4 2010/02/02 16:57:53 bmy Exp $
+! $Id: drydep_mod.f,v 1.5 2010/03/15 19:33:24 ccarouge Exp $
       MODULE DRYDEP_MOD
 !
 !******************************************************************************
@@ -159,6 +159,10 @@
 !  (26) Modify dry depostion to follow the non-local PBL scheme.
 !        (lin, ccc, 5/29/09)
 !  (27) Minor bug fix in mol wts for ALPH, LIMO (bmy, 10/19/09)
+!  (28) modified to use Zhang 2001 for all non-size resolved aerosols (hotp)
+!  (29) Add aromatics SOA (dkh)
+!  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
+!       and ISOPND. (fp)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -201,6 +205,8 @@
  
       ! Scalars
       INTEGER              :: DRYDHNO3, DRYDNO2, DRYDPAN
+      !FP_ISOP (6/2009)
+      INTEGER              :: DRYDH2O2
       INTEGER              :: NUMDEP,   NWATER
 
       ! Arrays
@@ -1636,24 +1642,29 @@ C** equations (15)-(17) of Walcek et al. [1986]
                   ! do this for non-size-resolved tracers where 
                   ! AIROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
-                  VDS = 0.002D0*USTAR(IJLOOP)
-                  IF (OBK(IJLOOP) .LT. 0.0D0) THEN
-                     VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
-                  ENDIF
+                  ! use Zhang et al for all aerosols (hotp 10/26/07)
+                  !VDS = 0.002D0*USTAR(IJLOOP)
+                  !IF (OBK(IJLOOP) .LT. 0.0D0) THEN
+                  !   VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
+                  !ENDIF
 C***                               
-                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
-     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
- 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
-     c                   1X,'LDT=',I3/) 
-                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
-                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
-     x                                 (-CZH)**0.6667D0
+!                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
+!     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
+! 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
+!     c                   1X,'LDT=',I3/) 
+!                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
+!                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
+!     x                                 (-CZH)**0.6667D0
+                  RSURFC(K, LDT) =
+     &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, 
+     &                              USTAR(IJLOOP))
+                  
 C*                                 
 C*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
 C*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
 C*    Invert to get corresponding R
 
-                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+!                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
                ENDIF
  160        CONTINUE
 C*
@@ -2718,9 +2729,291 @@ C** Load array DVEL
       END FUNCTION DUST_SFCRSI
 
 !------------------------------------------------------------------------------
+! added MERGE1 (hotp 5/25/09)
+
+      FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+
+! This routine is used for all aerosols except dust, sulfate, and seasalt (hotp 7/31/09)
+! modified hotp 7/12/07 for non size resolved aerosols
+! this is just DUST_SFCRSII rename and the diameter and density fixed
+!
+!******************************************************************************
+!  Function ADUST_SFCRSII computes the aerodynamic resistance of non-size
+!  resolved aerosol according to Zhang et al 2001.  We do not consider the hygroscopic
+!  growth of the aerosol particles. (rjp, tdf, bec, bmy, 4/1/04, 4/15/05)
+!
+!  Arguments as Input: 
+!  ============================================================================
+!  (1 ) K     (INTEGER) : Dry deposition tracer index (range: 1-NUMDEP)
+!  (2 ) II    (INTEGER) : GEOS-CHEM surface type index
+!  (3 ) PRESS (REAL*8 ) : Pressure [kPa] (where 1 Kpa = 0.1 mb)
+!  (4 ) TEMP  (REAL*8 ) : Temperature [K]
+!  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
+!
+!  Function Value
+!  ============================================================================
+!  (6 ) Rs    (REAL*8 ) : Surface resistance for dust particles [s/m]
+!
+!  NOTES
+!  (1 ) Updated comments.  Also now force double precision w/ "D" exponents.
+!        (bmy, 4/1/04)
+!  (2 ) Renamed to DUST_SFCRSII, since this will only be used to compute
+!        aerodynamic resistance of dust aerosols.  (bec, bmy, 4/15/05)
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
+      INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
+      REAL*8,  INTENT(IN) :: PRESS ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa
+      REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
+      REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
+
+      ! Function value
+      REAL*8              :: RS    ! Surface resistance for particles [s/m]
+
+      ! Local variables
+      INTEGER             :: N
+      REAL*8, PARAMETER   :: C1 = 0.7674d0,  C2 = 3.079d0, 
+     &                       C3 = 2.573d-11, C4 = -1.424d0
+
+      REAL*8, PARAMETER   :: G0 = 9.8D0
+      REAL*8, PARAMETER   :: BETA  = 2.d0
+      REAL*8, PARAMETER   :: BOLTZ = 1.381d-23  ! Boltzmann constant (J/K)
+      REAL*8, PARAMETER   :: E0 = 3.d0
+      REAL*8  :: AIRVS       ! kinematic viscosity of Air (m^2/s)
+      REAL*8  :: DP          ! Diameter of aerosol [um]
+      REAL*8  :: PDP         ! Press * Dp      
+      REAL*8  :: CONST       ! Constant for settling velocity calculations
+      REAL*8  :: SLIP        ! Slip correction factor
+      REAL*8  :: VISC        ! Viscosity of air (Pa s)
+      REAL*8  :: DIFF        ! Brownian Diffusion constant for particles (m2/s)
+      REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
+
+      REAL*8  :: DIAM, DEN
+      REAL*8  :: EB, EIM, EIN, R1, AA, VTS
+
+!=======================================================================
+!   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
+!-----------------------------------------------------------------------
+!   1 - Evergreen needleleaf trees             Snow/Ice          (12)
+!   2 - Evergreen broadleaf trees              Deciduous forest  ( 4)
+!   3 - Deciduous needleleaf trees             Coniferous forest ( 1)  
+!   4 - Deciduous broadleaf trees              Agricultural land ( 7)    
+!   5 - Mixed broadleaf and needleleaf trees   Shrub/grassland   (10)
+!   6 - Grass                                  Amazon forest     ( 2)
+!   7 - Crops and mixed farming                Tundra            ( 9)
+!   8 - Desert                                 Desert            ( 8)
+!   9 - Tundra                                 Wetland           (11)
+!  10 - Shrubs and interrupted woodlands       Urban             (15)
+!  11 - Wet land with plants                   Water             (14)
+!  12 - Ice cap and glacier                    
+!  13 - Inland water                           
+!  14 - Ocean                                  
+!  15 - Urban                                  
+!=======================================================================      
+!     GEOS-CHEM LUC                1, 2, 3, 4, 5, 6, 7  8, 9,10,11
+      INTEGER :: LUCINDEX(11) = (/12, 4, 1, 7,10, 2, 9, 8,11,15,14/)
+      INTEGER :: LUC
+
+!=======================================================================
+!   LUC       1,    2,    3,    4,    5,    6,    7,    8,    
+!   alpha   1.0,  0.6,  1.1,  0.8,  0.8,  1.2,  1.2, 50.0, 
+!   gamma  0.56, 0.58, 0.56, 0.56, 0.56, 0.54, 0.54, 0.54
+
+!   LUC       9,   10,   11,   12,   13,   14,   15
+!   alpha  50.0,  1,3,  2.0, 50.0,100.0,100.0,  1.5
+!   gamma  0.54, 0.54, 0.54, 0.54, 0.50, 0.50, 0.56
+!=======================================================================
+
+      ! Now force to double precision (bmy, 4/1/04)
+      REAL*8  :: 
+     & ALPHA(15) = (/ 1.0d0,  0.6d0,   1.1d0,   0.8d0, 0.8d0,  
+     &                1.2d0,  1.2d0,  50.0d0,  50.0d0, 1.3d0, 
+     &                2.0d0, 50.0d0, 100.0d0, 100.0d0, 1.5d0  /)
+
+      ! Now force to double precision (bmy, 4/1/04)
+      REAL*8  ::
+     & GAMMA(15) = (/ 0.56d0, 0.58d0, 0.56d0, 0.56d0, 0.56d0, 
+     &                0.54d0, 0.54d0, 0.54d0, 0.54d0, 0.54d0, 
+     &                0.54d0, 0.54d0, 0.50d0, 0.50d0, 0.56d0 /)
+
+!...A unit is (mm) so multiply by 1.D-3 to (m)
+!   LUC       1,    2,    3,    4,    5,    6,    7,    8,     
+!   SC1     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+!   SC2     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+! A SC3     2.0,  5.0,  5.0, 10.0,  5.0,  5.0,  5.0,-999.,
+!   SC4     2.0,  5.0,  5.0, 10.0,  5.0,  5.0,  5.0,-999.,
+!   SC5     2.0,  5.0,  2.0,  5.0,  5.0,  2.0,  2.0,-999.,
+
+!   LUC       9,   10,   11,   12,   13,   14,   15
+!   SC1   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC2   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+! A SC3   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC4   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+!   SC5   -999., 10.0, 10.0,-999.,-999.,-999., 10.0
+
+      REAL*8  :: A(15,5)
+
+      REAL*8  :: Aavg(15)
+
+      ! Now force to double precision (bmy, 4/1/04)
+      DATA   A /  2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   5.0d0,  10.0d0,  5.0d0,
+     &            5.0d0,   5.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   5.0d0,  10.0d0,  5.0d0,  
+     &            5.0d0,   5.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0,
+     &
+     &            2.0d0,   5.0d0,   2.0d0,   5.0d0,  5.0d0,  
+     &            2.0d0,   2.0d0, -999.d0, -999.d0, 10.0d0, 
+     &           10.0d0, -999.d0, -999.d0, -999.d0, 10.0d0  /
+
+      ! Annual average of A
+      Aavg(:) = (A(:,1)+A(:,2)+A(:,3)+A(:,4)+A(:,5))/5.
+      LUC     = LUCINDEX(II)
+      AA      = Aavg(LUC) * 1.D-3
+
+      !=================================================================
+      !...Ref. Zhang et al., AE 35(2001) 549-560
+      !. 
+      !...Model theroy
+      !    Vd = Vs + 1./(Ra+Rs)
+      !      where Vs is the gravitational settling velocity, 
+      !      Ra is the aerodynamic resistance above the canopy
+      !      Rs  is the surface resistance
+      !    Here we calculate Rs only..
+      !    Rs = 1 / (Eo*Ustar*(Eb+Eim+Ein)*R1)
+      !      where Eo is an empirical constant ( = 3.)
+      !      Ustar is the friction velocity
+      !      Collection efficiency from 
+      !        Eb,  [Brownian diffusion]
+      !        Eim, [Impaction]
+      !        Ein, [Interception]
+      !      R1 is the correction factor representing the fraction 
+      !         of particles that stick to the surface.
+      !=======================================================================
+      !      Eb is a funciont of Schmidt number, Eb = Sc^(-gamma)
+      !         Sc = v/D, v (the kinematic viscosity of air) 
+      !                   D (particle brownian diffusivity)
+      !         r usually lies between 1/2 and 2/3
+      !      Eim is a function of Stokes number, St
+      !          St = Vs * Ustar / (g0 * A)   for vegetated surfaces
+      !          St = Vs * Ustar * Ustar / v  for smooth surface
+      !          A is the characteristic radius of collectors.
+      !        
+      !       1) Slinn (1982)
+      !           Eim = 10^(-3/St)          for smooth surface      
+      !           Eim = St^2 / ( 1 + St^2 ) for vegetative canopies
+      !       2) Peters and Eiden (1992)
+      !           Eim = ( St / ( alpha + St ) )^(beta)
+      !                alpha(=0.8) and beta(=2) are constants
+      !       3) Giorgi (1986)
+      !           Eim = St^2 / ( 400 + St^2 )     for smooth surface
+      !           Eim = ( St / (0.6 + St) )^(3.2) for vegetative surface
+      !       4) Davidson et al.(1982)
+      !           Eim = St^3 / (St^3+0.753*St^2+2.796St-0.202) for grassland
+      !       5) Zhang et al.(2001) used 2) method with alpha varying with
+      !          vegetation type and beta equal to 2
+      !
+      !      Ein = 0.5 * ( Dp / A )^2
+      !
+      !      R1 (Particle rebound)  = exp(-St^0.5)
+      !=================================================================
+      
+      ! Particle diameter [m] hotp 10/26/07
+      DIAM  = 0.5d-6  
+
+      ! Particle density [kg/m3] hotp 10/26/07
+      DEN   = 1500          
+
+      ! Dp [um] = particle diameter
+      DP    = DIAM * 1.d6 
+ 
+      ! Constant for settling velocity calculation       
+      CONST = DEN * DIAM**2 * G0 / 18.d0
+       
+      !=================================================================
+      !   # air molecule number density
+      !   num = P * 1d3 * 6.023d23 / (8.314 * Temp) 
+      !   # gas mean free path
+      !   lamda = 1.d6/( 1.41421 * num * 3.141592 * (3.7d-10)**2 ) 
+      !   # Slip correction
+      !   Slip = 1. + 2. * lamda * (1.257 + 0.4 * exp( -1.1 * Dp     
+      ! &     / (2. * lamda))) / Dp
+      !=================================================================
+      ! Note, Slip correction factor calculations following Seinfeld, 
+      ! pp464 which is thought to be more accurate but more computation 
+      ! required.
+      !=================================================================
+
+      ! Slip correction factor as function of (P*dp)
+      PDP  = PRESS * DP
+      SLIP = 1d0 + ( 15.60d0 + 7.0d0 * EXP( -0.059d0 * PDP) ) / PDP
+
+      !=================================================================
+      ! Note, Eq) 3.22 pp 50 in Hinds (Aerosol Technology)
+      ! which produce slip correction factore with small error
+      ! compared to the above with less computation.
+      !=================================================================
+
+      ! Viscosity [Pa s] of air as a function of temp (K)
+      VISC = 1.458d-6 * (TEMP)**(1.5d0) / (TEMP + 110.4d0)
+
+      ! Kinematic viscosity (Dynamic viscosity/Density)
+      AIRVS= VISC / 1.2928d0  
+
+      ! Settling velocity [m/s]
+      VTS  = CONST * SLIP / VISC
+
+      ! Brownian diffusion constant for particle (m2/s)
+      DIFF = BOLTZ * TEMP * SLIP 
+     &      / (3.d0 * 3.141592d0 * VISC * DIAM)  
+
+      ! Schmidt number 
+      SC   = AIRVS / DIFF                            
+      EB   = 1.D0/SC**(gamma(LUC))
+
+       ! Stokes number  
+      IF ( AA < 0d0 ) then
+         ST   = VTS * USTAR * USTAR / ( AIRVS * G0 ) ! for smooth surface 
+         EIN  = 0D0
+      ELSE
+         ST   = VTS   * USTAR / ( G0 * AA )          ! for vegetated surfaces
+         EIN  = 0.5d0 * ( DIAM / AA )**2
+      ENDIF
+
+      EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+
+      EIM  = MIN( EIM, 0.6D0 )
+
+      IF (LUC == 11 .OR. LUC == 13 .OR. LUC == 14) THEN
+         R1 = 1.D0
+      ELSE
+         R1 = EXP( -1D0 * SQRT( ST ) )
+      ENDIF
+
+      ! surface resistance for particle
+      RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+
+      ! Return to calling program
+      END FUNCTION ADUST_SFCRSII
+
+!------------------------------------------------------------------------------
 
       FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
 !
+! NOW ONLY CALLED FOR DUST
+!
+
 !******************************************************************************
 !  Function DUST_SFCRSII computes the aerodynamic resistance of dust aerosol
 !  tracers according to Zhang et al 2001.  We do not consider the hygroscopic
@@ -3046,6 +3339,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
       USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
       USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4,       IDTDST1
+      ! (hotp 5/25/09)
+      USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
@@ -3055,6 +3350,12 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTGLYC
       USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
       USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
+      !add some species (fp, 6/2009)
+      USE TRACERID_MOD, ONLY : IDTPROPNN
+      USE TRACERID_MOD, ONLY : IDTISOPN    
+      USE TRACERID_MOD, ONLY : IDTMMN
+      USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
+      USE TRACERID_MOD, ONLY : IDTMAP
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3073,6 +3374,9 @@ C** Load array DVEL
       DRYDNO2    = 0
       DRYDPAN    = 0
       DRYDHNO3   = 0 
+      !(fp, 06/09)
+      DRYDH2O2   = 0 
+ 
       NUMDEP     = 0
       NTRAIND(:) = 0
       NDVZIND(:) = 0
@@ -3165,6 +3469,8 @@ C** Load array DVEL
          ! H2O2
          ELSE IF ( N == IDTH2O2 ) THEN
             NUMDEP          = NUMDEP + 1
+            ! FP (6/2009)
+            DRYDH2O2        = NUMDEP
             NDVZIND(NUMDEP) = NUMDEP
             NTRAIND(NUMDEP) = IDTH2O2
             DEPNAME(NUMDEP) = 'H2O2'
@@ -3195,6 +3501,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
          
+         ! PYPAN (uses same dep vel as PAN)
+         !FP_ISOP
+         ELSE IF ( N == IDTPYPAN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTPYPAN
+            NDVZIND(NUMDEP) = DRYDPAN
+            DEPNAME(NUMDEP) = 'PYPAN'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! ISN2 (uses same dep vel as HNO3)
          ELSE IF ( N == IDTISN2 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3339,6 +3657,92 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.   
+
+         !FP_ISOP
+         ! !ISOPN=ISOPNDISOPNB
+         ELSE IF ( N == IDTISOPN ) THEN
+         !ISOPNNR
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOPN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOPND'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 147d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOPN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOPNB'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 147d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MMN=MACRN+MVKN
+         ELSE IF ( N == IDTMMN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMMN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MACRN'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  !TO CHECK
+            XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.
+       
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMMN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'MVKN'
+            HSTAR(NUMDEP)   = 17d3 !ITO 2007
+            F0(NUMDEP)      = 0d0  
+            XMW(NUMDEP)     = 149d-3
+            AIROSOL(NUMDEP) = .FALSE.   
+
+         !ANIT
+         ELSE IF ( N == IDTPROPNN ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTPROPNN
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'PROPNN'  !NITROOXYACETONE IN SANDER TABLE
+            HSTAR(NUMDEP)   = 1d3       
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 119d-3
+            AIROSOL(NUMDEP) = .FALSE.   
+
+         !RIP
+         ELSE IF ( N == IDTRIP ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTRIP
+            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            DEPNAME(NUMDEP) = 'RIP'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !IEPOX
+         ELSE IF ( N == IDTIEPOX ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTIEPOX
+            NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
+            DEPNAME(NUMDEP) = 'IEPOX'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 0d0
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MAP
+         ELSE IF ( N == IDTMAP ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTMAP
+            DEPNAME(NUMDEP) = 'MAP'
+            HSTAR(NUMDEP)   = 8.4d+2 !FROM R. Sander
+            F0(NUMDEP)      = 1.0d0  !Assume reactive
+            XMW(NUMDEP)     = 76d-3
+            AIROSOL(NUMDEP) = .FALSE.
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers
@@ -3622,6 +4026,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 130d-3
             AIROSOL(NUMDEP) = .FALSE.
 
+        ! SOG5  (dkh, 03/27/07)  
+         ELSE IF ( N == IDTSOG5 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOG5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOG5'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            ! MWT is 150 not 130 hotp
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
          ! SOA1
          ELSE IF ( N == IDTSOA1 ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3666,6 +4082,18 @@ C** Load array DVEL
             XMW(NUMDEP)     = 130d-3
             AIROSOL(NUMDEP) = .TRUE.
 
+         ! SOA5 (dkh, 03/27/07)  
+         ELSE IF ( N == IDTSOA5 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTSOA5
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'SOA5'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            ! hotp 5/24/09 MWT fix
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+ 
          ! SOAG
          ELSE IF ( N == IDTSOAG ) THEN
             NUMDEP          = NUMDEP + 1
@@ -3829,6 +4257,8 @@ C** Load array DVEL
          ENDIF
       ENDDO
       
+
+
       !=================================================================
       ! Allocate arrays
       !=================================================================

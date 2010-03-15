@@ -1,4 +1,4 @@
-! $Id: CMN_DIAG,v 1.3 2010/02/02 16:57:46 bmy Exp $
+! $Id: CMN_DIAG,v 1.4 2010/03/15 19:33:19 ccarouge Exp $
 ! 
 ! NOTES:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
@@ -32,6 +32,7 @@
 ! (19) Redimension PD59, PD60, PD61 for TOMAS microphysics.  Added LD59, LD60,
 !       LD61 to common block.  Reset MAX_TRACER to NNPAR+1 for TOMAS.
 !       (win, bmy, 1/22/10)
+! (20) Add LD57 and PD57 (potential temperature) (hotp, 3/15/10)
 !----------------------------------------------------------------------------
 ! Parameters for the diagnostic arrays (for ease of use)
 !
@@ -123,7 +124,8 @@
       INTEGER, PARAMETER :: PD53=0            
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
-      INTEGER, PARAMETER :: PD57=0           
+      ! Potential temperature diagnostic (hotp 7/31/09)
+      INTEGER, PARAMETER :: PD57=1           
       INTEGER, PARAMETER :: PD58=12
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
@@ -160,17 +162,18 @@
 ! Added LD31 (bmy, 5/8/07)
 ! Added LD52 (jaegle, 02/26/09)
 ! Added LD59, LD60, LD61 (bmy, 1/22/10)
+! Added LD57 (hotp 7/31/09)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52, LD19, LD58, LD59, LD60, LD61
+     &   LD52, LD19, LD57, LD58, LD59, LD60, LD61
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52, LD19, LD58, LD59, LD60, LD61
+     &   LD52, LD19, LD57, LD58, LD59, LD60, LD61
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

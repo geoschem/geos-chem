@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2010/02/02 16:57:45 bmy Exp $
+# $Id: Makefile,v 1.9 2010/03/15 19:33:18 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -31,6 +31,8 @@
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  21 Dec 2009 - R. Yantosca - Added info about HDF5 option
 #  25 Jan 2010 - R. Yantosca - Added info about TOMAS option
+#  10 Mar 2010 - C. Carouge  - Remove info about TOMAS option. Keep info
+#                              about tomas target.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -78,5 +80,4 @@ help:
 	@echo 'NTRAC=[43|54]  Specifies # of tracers for KPP chemical solver. Should use CHEM flag instead.'
 	@echo 'KPPSOLVER=___  Specifies the integrator used w/ KPP:'
 	@echo '               Options: lsodes radau5 rosenbrock runge_kutta (default is rosenbrock)'
-	@echo 'TOMAS=yes      Compiles GEOS-Chem with the TOMAS microphysics package'
 	@echo '               (NOTE: This is set by default if you use "make tomas")'

@@ -1,4 +1,4 @@
-! $Id: readchem.f,v 1.1 2009/09/16 14:06:13 bmy Exp $
+! $Id: readchem.f,v 1.2 2010/03/15 19:33:21 ccarouge Exp $
       SUBROUTINE READCHEM 
 !
 !******************************************************************************
@@ -39,6 +39,10 @@
       USE DRYDEP_MOD,  ONLY : MAXDEP
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
       USE DIAG_PL_MOD, ONLY : SETJFAM, SETPL
+
+      !FP_ISOP (6/2009)
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
 
       IMPLICIT NONE
 
@@ -429,6 +433,13 @@ C
       IH2O     = 0
       ICH4     = 0
       ILISOPOH =0
+      ! add these as well (dkh, 10/06/06)  
+      ILBRO2H = 0
+      ILBRO2N = 0
+      ILTRO2H = 0
+      ILTRO2N = 0
+      ILXRO2H = 0
+      ILXRO2N = 0
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
@@ -441,6 +452,19 @@ C
                ICH4     = I
             CASE( 'LISOPOH' )
                ILISOPOH = I
+            ! Add definitions (dkh, 10/06/06)  
+            CASE( 'LBRO2H' )
+               ILBRO2H = I
+            CASE( 'LBRO2N' )
+               ILBRO2N = I
+            CASE( 'LTRO2H' )
+               ILTRO2H = I
+            CASE( 'LTRO2N' )
+               ILTRO2N = I
+            CASE( 'LXRO2H' )
+               ILXRO2H = I
+            CASE( 'LXRO2N' )
+               ILXRO2N = I
             CASE DEFAULT
                ! Nothing
          END SELECT
@@ -526,6 +550,15 @@ C
  310  READ(KGLC,330) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
      1               FCVT(1),FCT1T(1),FCT2T(1),COMMENT
 
+!FP_ISOP - for debug (6/2009)
+
+      IF (LPRT) THEN
+
+      WRITE(*,*) DINP,IORD,ARRT(1),BRRT(1),KCRRT(1),NCOF,SPECL(1),
+     &               FCVT(1),FCT1T(1),FCT2T(1),COMMENT
+
+      ENDIF
+
       IF (NCOF+1.GT.MXCOF) THEN
        WRITE(6,155) NCOF+1, MXCOF, IORD
        CALL GEOS_CHEM_STOP
@@ -537,7 +570,10 @@ C
  350  CONTINUE
 C
       ! Now read 20 entries instead of 16 (bdf, bmy, 4/1/03)
-      READ(KGLC,332) (RINP(I),PINP(I),XINP(I),I=1,20)
+      !FP_ISOP 24: now read 20 or 24 depending on input file (6/2009)
+      ! NREAD is in comode.h (8/1/09)
+      !READ(KGLC,332) (RINP(I),PINP(I),XINP(I),I=1,20)
+      READ(KGLC,332) (RINP(I),PINP(I),XINP(I),I=1,NREAD)
 C
  155  FORMAT('READCHEM: NCOF + 1 > MXCOF IN GLOBCHEM.DAT',3I4)
  330  FORMAT(A1,1X,I4,1X,ES8.2,1X,ES8.1,1X,I6,1X,I1,1X,A2,F6.2,1X,
@@ -771,6 +807,18 @@ C  NKDRY    = reaction numbers of dry deposition reactions
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis
 
+!FLAG HACET AND GLYC reaction to modify yield according to temperature
+! (fp, 8/09)
+            IF (SPECL(1).EQ.'N') NKGLYC(NCS,1)=NK !Flag GLYC 
+            IF (SPECL(1).EQ.'O') NKGLYC(NCS,2)=NK !Flag GLYC 
+            IF (SPECL(1).EQ.'F') NKHAC(NCS,1)  =NK !Flag HAC photolysis
+            IF (SPECL(1).EQ.'L') NKHAC(NCS,2)  =NK !Flag HAC photolysis
+
+!FP_ISOP FLAG FOR MCO3
+            IF (SPECL(1).EQ.'DA') NKMCO3(NCS,1)=NK 
+            IF (SPECL(1).EQ.'DB') NKMCO3(NCS,2)=NK 
+            IF (SPECL(1).EQ.'DC') NKMCO3(NCS,3)=NK 
+
          ENDIF
       ENDDO
 
@@ -864,7 +912,11 @@ C
 
                ENDIF
 C
-               IF (SPECL(1).EQ.'D')  THEN
+
+               ! DA, DB, and DC are now in use by FP
+               ! This part applies only to 'D' (hotp 8/1/09)
+               IF (SPECL(1).EQ.'D' .AND. SPECL(2).NE.'A' .AND.
+     &             SPECL(2).NE.'B' .AND. SPECL(2).NE.'C')  THEN
                   NNADDD(NCS)               = NNADDD(NCS) + 1
                   NKSPECD( NNADDD(NCS),NCS) = NK
                ENDIF
@@ -1153,6 +1205,15 @@ C
                ! MAPPL is the reordered species index after JSPARSE
                DO N = 1, NFAMILIES
                   IF ( J == MAPPL(IFAM(N),NCS) ) THEN
+                     ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                     EXIT
+                  ! dkh 
+                  ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
+     &                     J == MAPPL(ILBRO2N,NCS) .or.
+     &                     J == MAPPL(ILTRO2H,NCS) .or.
+     &                     J == MAPPL(ILTRO2N,NCS) .or.
+     &                     J == MAPPL(ILXRO2H,NCS) .or.
+     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
                   ENDIF

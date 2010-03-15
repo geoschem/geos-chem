@@ -1,4 +1,4 @@
-! $Id: chemdr.f,v 1.7 2010/02/26 18:19:59 bmy Exp $
+! $Id: chemdr.f,v 1.8 2010/03/15 19:33:24 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -392,7 +392,7 @@
       
          ELSE 
 
-            ! Use default background values 
+            ! Use restart values 
             WRITE(6,*) 
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 

@@ -1,4 +1,4 @@
-! $Id: setemis.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
+! $Id: setemis.f,v 1.5 2010/03/15 19:33:21 ccarouge Exp $
       SUBROUTINE SETEMIS( EMISRR, EMISRRN )
 !
 !******************************************************************************
@@ -97,12 +97,17 @@
 !  (31) Bug fix: cycle if IDEMIS(NN) <= 0 to avoid array-out-of-bounds
 !        errors (bmy, 8/6/09)
 !  (32) Check for emissions above PBL -anthro NOx only for now- (phs, 10/27/09)
+!  (33) Modify selection of biomass burning emissions (hotp, 8/3/09)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
       USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
-      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE, NBIOMAX_GAS
+      ! NBIOMAX_GAS no longer used (hotp 8/3/09)
+      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE!, NBIOMAX_GAS
+      ! Use this array to determine if emissions are handled here (hotp 8/3/09)
+      USE BIOMASS_MOD,       ONLY : BIOBGAS
+
       USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
       USE COMODE_MOD,        ONLY : IYSAVE
       USE DIAG_MOD,          ONLY : AD12
@@ -114,6 +119,12 @@
       USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
       USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
       USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD, ONLY : LPRT
+
+
+!NOx emissions scaling FP 15/12/09
+
+      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
 
       IMPLICIT NONE
 
@@ -148,6 +159,8 @@
       IS_LI_NOx = ALLOCATED( EMIS_LI_NOx )
       IS_AC_NOX = ALLOCATED( EMIS_AC_NOX )
 
+      IF (LPRT) WRITE(*,*) 'SCALE NOx emissions by', NOx_SCALING
+
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( N,     NN,  NBB,     NBF,    I,        J,     L, JLOOP )
@@ -166,11 +179,18 @@
          ! BIOTRCE with the same CTM tracer number NN as in IDEMS
          NBB = 0
          IF ( ALLOCATED( BIOMASS ) ) THEN 
-            DO I = 1, NBIOMAX_GAS
-               IF ( BIOTRCE(I) == NN ) THEN 
-                 NBB = I
-                  EXIT
-               ENDIF
+            ! Now loop over NBIOMAX and select gas phase species (hotp 8/3/09)
+            !DO I = 1, NBIOMAX_GAS
+            DO I = 1, NBIOMAX
+               ! Only select gas phase chemistry species (ignore
+               ! aerosols) (hotp 8/3/09)
+               IF ( BIOBGAS(I) ) THEN
+
+                  IF ( BIOTRCE(I) == NN ) THEN 
+                     NBB = I
+                     EXIT
+                  ENDIF
+               ENDIF ! end BIOBGAS (hotp 8/3/09)
             ENDDO
          ENDIF
 
@@ -243,23 +263,23 @@
                DO L = 1, TOP
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0
-
+                  
                   IF ( JLOOP /= 0 ) THEN
-
+                     
                      ! Thickness of level L [mb]
                      DELTPRES = GET_PEDGE(I,J,L) - GET_PEDGE(I,J,L+1)
-
+                     
                      ! Add option for non-local PBL (Lin, 03/31/09)
                      IF (LNLPBL) DELTPRES = TOTPRES
-
+                     
                      ! Of the total anthro NOx, the fraction DELTPRES/TOTPRES
                      ! goes into level L, since that is the fraction of the
                      ! boundary layer occupied by level L.  Also divide NOx 
                      ! by COEF1 to convert from [molec NOx/box/s] to 
                      ! [molec NO/box/s], which is really what gets emitted.
                      EMIS_BL        = ( NOXTOT   / COEF1   ) *
-     &                                ( DELTPRES / TOTPRES )
-
+     &                    ( DELTPRES / TOTPRES )
+                     
                      ! Convert anthro NOx emissions from [molec NO/box/s]
                      ! to [molec NO/cm3/s] and store in the REMIS array
                      REMIS(JLOOP,N) = EMIS_BL / VOLUME(JLOOP)
@@ -364,6 +384,11 @@
 
                   ENDIF
                ENDDO
+
+               !FP 15/12/2009
+               ! Add possible scaling of NOx emissions
+
+               REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
 
             ELSE
 

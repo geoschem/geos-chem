@@ -1,4 +1,4 @@
-! $Id: c2h6_mod.f,v 1.1 2009/09/16 14:06:38 bmy Exp $
+! $Id: c2h6_mod.f,v 1.2 2010/03/15 19:33:25 ccarouge Exp $
       MODULE C2H6_MOD
 !
 !******************************************************************************
@@ -113,10 +113,13 @@
 !  (7 ) Now modified for new "biomass_mod.f" (bmy, 4/5/06)
 !  (8 ) BIOMASS(:,:,IDBCO) from "biomass_mod.f" is now in units of 
 !        [atoms C/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
+!  (9 ) Now IDBC2H6 is defined in TRACERID_MOD. (fp, hotp , 7/31/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BIOMASS, IDBC2H6
+      ! IDBC2H6 is now in TRACERID_MOD (fp, hotp 7/31/09)
+      USE BIOMASS_MOD,   ONLY : BIOMASS!, IDBC2H6
+      USE TRACERID_MOD,  ONLY : IDBC2H6      
       USE BIOFUEL_MOD,   ONLY : BIOFUEL, BIOFUEL_BURN
       USE DIAG_MOD,      ONLY : AD36
       USE DIRECTORY_MOD, ONLY : DATA_DIR

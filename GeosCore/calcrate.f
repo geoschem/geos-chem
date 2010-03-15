@@ -1,4 +1,4 @@
-! $Id: calcrate.f,v 1.5 2010/02/26 18:19:59 bmy Exp $
+! $Id: calcrate.f,v 1.6 2010/03/15 19:33:25 ccarouge Exp $
       SUBROUTINE CALCRATE( SUNCOS )
 !
 !******************************************************************************
@@ -62,6 +62,7 @@
 !  (17) FastJX has taken near-IR photolysis into account with cross section at 
 !       574nm, so we don't need to add the 1e-5 to the JHNO4 rate anymore.
 !       (jmao, bmy, 10/27/09)
+!  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -102,7 +103,9 @@
       INTEGER :: PHOTVAL,KSUN
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
-      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+      ! CONSTC declared as a parameter by FP (hotp 7/31/09)
+      REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
       REAL*8  :: HOURANGE,SINFUNCB,SINFUNCE,XAREA,XRADIUS,XSQM,RRATE2
       REAL*8  :: XSTKCF,GMU,SUNCOS(MAXIJ),DUMMY(KBLOOP),XDENA,XSTK
@@ -110,6 +113,11 @@
       ! New variables for new reations (jmao, 4/20/09)
       REAL*8  :: KHI1,KLO1,XYRAT1,BLOG1,FEXP1,KHI2,KLO2,XYRAT2,BLOG2
       REAL*8  :: FEXP2,KCO1,KCO2,KCO
+      !FP_ISOP
+      ! FP variables for isoprene chemistry (hotp 7/31/09)
+      REAL*8   :: HAC_FRAC      
+      REAL*8   :: GLYC_FRAC   
+
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
 
@@ -134,10 +142,25 @@
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
+C FP_ISOP
+      ! Variables from Fabien (hotp 7/31/09)
+      REAL*8, PARAMETER :: ONE_SIXTY = 1d0 / 60d0
+      REAL*8, PARAMETER :: ONE_SEVENTYTHREE = 1d0 / 73d0
+      REAL*8, PARAMETER :: CONSTC= 9.871D-07
+      REAL*8 :: YA,YB,YC
+      REAL*8 :: PTEMP
+  
 
       ! FAST-J: Zero out the dummy array (bmy, 9/30/99)
       DUMMY = 0d0
 
+      ! Zero rate arrays for this column, so that we don't have any
+      ! "leftovers" from the last iteration.  This facilitates 
+      ! comparing rates directly with the column code. (bmy, 5/22/09)
+      RRATE = 0d0
+      TRATE = 0d0
+      URATE = 0d0
+      GLOSS = 0d0
 C
 C *********************************************************************
 C ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -646,11 +669,13 @@ C ---    OH + CO: K = K0(1+0.6 Patm)  ------------
 C    CONSTC includes a factor to convert PRESS3 from (dyn cm-2) to (atm)
          IF (NKSPECY(NCS).GT.0) THEN
             NK           = NKSPECY(NCS)
-            CONSTC       = 0.6D0 * 9.871D-07
+            ! FP defined CONSTC = 9.871d-7 as a parameter (hotp 7/31/09)
+C            CONSTC       = 0.6D0 * 9.871D-07
             DO KLOOP     = 1, KTLOOP
                JLOOP           = LREORDER(JLOOPLO + KLOOP)
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
-     1              (1.D0 + CONSTC*PRESS3(JLOOP))
+C     1              (1.D0 + CONSTC*PRESS3(JLOOP))
+     1              (1.D0 + 0.6d0*CONSTC*PRESS3(JLOOP))
 c new OH+CO rate from JPL2006.
 C Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
                KLO1=5.9D-33*(300*T3I(KLOOP))**(1.4D0) 
@@ -699,6 +724,77 @@ C  dependence of HO2/NO3 + HO2 on water vapor
      +          (1.D0+1.4D-21*CBLK(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
             ENDDO
          ENDIF
+C FP_ISOP 
+C Change yield for HAC  
+
+         ! Questions for Fabien: (hotp 7/31/09)
+         ! What are HAC, MCO3, and GLYC? Can you provide some comments for
+         ! this new code?
+
+         IF (NKHAC(NCS,1) .GT. 0 .AND. NKHAC(NCS,2) .GT. 0) THEN
+            DO KLOOP   = 1, KTLOOP
+               HAC_FRAC=1d0-23.7d0*EXP(-ONE_SIXTY*T3K(KLOOP)) !FRAC MGLY 
+
+               IF (HAC_FRAC<0d0) HAC_FRAC=0d0
+
+              RRATE(KLOOP,NKHAC(NCS,1))=RRATE(KLOOP,NKHAC(NCS,1))
+     &                                  *HAC_FRAC
+              RRATE(KLOOP,NKHAC(NCS,2))=RRATE(KLOOP,NKHAC(NCS,2))
+     &                                  *(1d0-HAC_FRAC)
+
+            ENDDO
+         ENDIF
+
+         IF (NKMCO3(NCS,1) .GT. 0 .AND. NKMCO3(NCS,2) .GT. 0 .AND. 
+     &       NKMCO3(NCS,3) .GT. 0) THEN
+
+            DO KLOOP   = 1, KTLOOP
+              
+              JLOOP           = LREORDER(JLOOPLO + KLOOP)
+              PTEMP=CONSTC*PRESS3(JLOOP)
+
+              YA=-4.262d-1*PTEMP**2.925d0+7.42d-1
+              YB=1.834d-1*PTEMP**1.396d0+5.069d-3
+              YC=1d0-YA-YB
+
+              ! YA,YB, and YC capitalized (hotp 7/31/09)
+              IF (YA<0d0) YA=0d0
+              IF (YB<0d0) YB=0d0
+              IF (YC<0d0) YC=0d0
+              IF (YA>1d0) YA=1d0
+              IF (YB<0d0) YB=1d0
+              IF (YC<0d0) YC=1d0
+
+              !WRITE(*,*) 'P=',PTEMP
+              !WRITE(*,*) 'Ya=',Ya
+              !WRITE(*,*) 'Yb=',Yb
+              !WRITE(*,*) 'Yc=',Yc
+
+              RRATE(KLOOP,NKMCO3(NCS,1))=RRATE(KLOOP,NKMCO3(NCS,1))
+     &                                  *YA
+              RRATE(KLOOP,NKMCO3(NCS,2))=RRATE(KLOOP,NKMCO3(NCS,2))
+     &                                  *YB
+              RRATE(KLOOP,NKMCO3(NCS,3))=RRATE(KLOOP,NKMCO3(NCS,2))
+     &                                  *YC
+
+
+            ENDDO
+         ENDIF
+
+         IF (NKGLYC(NCS,1) .GT. 0 .AND. NKGLYC(NCS,2) .GT. 0) THEN
+            DO KLOOP   = 1, KTLOOP
+               GLYC_FRAC=1d0-11.0729d0*EXP(-ONE_SEVENTYTHREE*T3K(KLOOP)) !FRAC HCOOH
+
+              IF (GLYC_FRAC<0d0) GLYC_FRAC=0d0
+
+              RRATE(KLOOP,NKGLYC(NCS,1))=RRATE(KLOOP,NKGLYC(NCS,1))
+     &                                  *GLYC_FRAC
+              RRATE(KLOOP,NKGLYC(NCS,2))=RRATE(KLOOP,NKGLYC(NCS,2))
+     &                                  *(1d0-GLYC_FRAC)
+
+            ENDDO
+         ENDIF
+
 
       !=================================================================
       ! Perform loss on wet aerosol 

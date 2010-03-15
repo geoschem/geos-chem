@@ -1,4 +1,4 @@
-! $Id: biomass_mod.f,v 1.2 2009/11/06 20:54:20 bmy Exp $
+! $Id: biomass_mod.f,v 1.3 2010/03/15 19:33:25 ccarouge Exp $
       MODULE BIOMASS_MOD
 !
 !******************************************************************************
@@ -81,6 +81,7 @@
 !  (5 ) Add CO scaling for VOC production. Routine SCALE_BIOMASS_CO 
 !        transfered from gc_biomass_mod.f (jaf, mak, 2/6/09)
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
+!  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -94,42 +95,70 @@
       PRIVATE
 
       ! ... except these variables
-      PUBLIC :: NBIOMAX
-      PUBLIC :: NBIOMAX_GAS
+      ! FP: NBIOMAX now specified in CMN_SIZE and is the max
+      ! number of BB species allowed, used for array allocation (hotp 7/30/09)
+      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE
+      !PUBLIC :: NBIOMAX
+      !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
+      !FP_ISOP
+      ! NBIOTRCE is the number of BB species in a simulation
+      ! and is determined online FP (hotp 7/30/09)
+      PUBLIC :: NBIOTRCE
       PUBLIC :: BIOMASS
       PUBLIC :: BIOTRCE
-      PUBLIC :: IDBBC
-      PUBLIC :: IDBCO
-      PUBLIC :: IDBCO2
-      PUBLIC :: IDBC2H6
-      PUBLIC :: IDBNH3
-      PUBLIC :: IDBNOX
-      PUBLIC :: IDBOC
-      PUBLIC :: IDBSO2
+      ! IDBxxx are now determined online and stored in
+      ! BIOTRCE array by FP (hotp 7/30/09)
+      ! IDBxxx are part of tracerid_mod by FP (hotp 7/31/09)
+      !PUBLIC :: IDBBC
+      !PUBLIC :: IDBCO
+      !PUBLIC :: IDBCO2
+      !PUBLIC :: IDBC2H6
+      !PUBLIC :: IDBNH3
+      !PUBLIC :: IDBNOX
+      !PUBLIC :: IDBOC
+      !PUBLIC :: IDBSO2
+
+      ! Logical array to determine if species is treated in setemis 
+      ! (hotp 8/3/09)
+      PUBLIC :: BIOBGAS
 
       ! ... and these routines
       PUBLIC :: CLEANUP_BIOMASS
       PUBLIC :: COMPUTE_BIOMASS_EMISSIONS
+      !FP_ISOP
+      ! FP SET_BIOTRCE is a new routine for setting the IDBxxx in BIOTRCE (hotp 7/30/09)
+      PUBLIC :: SET_BIOTRCE
 
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
 
-      ! Parameters
-      INTEGER, PARAMETER   :: NBIOMAX     = 24
-      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
-      INTEGER, PARAMETER   :: IDBNOX      = 1
-      INTEGER, PARAMETER   :: IDBCO       = 2
-      INTEGER, PARAMETER   :: IDBC2H6     = 10
-      INTEGER, PARAMETER   :: IDBSO2      = 11
-      INTEGER, PARAMETER   :: IDBNH3      = 12
-      INTEGER, PARAMETER   :: IDBBC       = 13
-      INTEGER, PARAMETER   :: IDBOC       = 14
-      INTEGER, PARAMETER   :: IDBCO2      = 24
+      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE (hotp 7/30/09)      ! Parameters
+!      INTEGER, PARAMETER   :: NBIOMAX     = 24
+!      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
+!      INTEGER, PARAMETER   :: IDBNOX      = 1
+!      INTEGER, PARAMETER   :: IDBCO       = 2
+!      INTEGER, PARAMETER   :: IDBC2H6     = 10
+!      INTEGER, PARAMETER   :: IDBSO2      = 11
+!      INTEGER, PARAMETER   :: IDBNH3      = 12
+!      INTEGER, PARAMETER   :: IDBBC       = 13
+!      INTEGER, PARAMETER   :: IDBOC       = 14
+!      INTEGER, PARAMETER   :: IDBCO2      = 24
       
+#     include "CMN_SIZE"               ! Size parameters
+
+      !FP_ISOP
+      ! FP: NBIOTRCE is number of biomass burning tracers (hotp 7/30/09)
+      INTEGER              :: NBIOTRCE
+
       ! Arrays
       INTEGER              :: BIOTRCE(NBIOMAX)
       REAL*8,  ALLOCATABLE :: BIOMASS(:,:,:)
+
+      ! Logical array to determine if an emission should be treated
+      ! in setemis or elsewhere (hotp 8/3/09)
+      ! make sure it saves it's value
+      LOGICAL, SAVE        :: BIOBGAS(NBIOMAX)
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -184,7 +213,12 @@
       USE TRACER_MOD,        ONLY : ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRACERID_MOD,      ONLY : IDTBCPO, IDTNH3, IDTOCPO, IDTSO2
-      USE TRACERID_MOD,      ONLY : IDTCO
+      !FP_ISOP
+      ! FP: IDBxxxs will need to used here (hotp 7/30/09)
+      USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
+      USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
+      USE TRACERID_MOD,      ONLY : IDBCO2
+
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic flags
@@ -265,8 +299,12 @@
 
                ! Get emissions of gas-phase species
                ! in [molec/cm2/s] or [atoms C/cm2/s]
-               CALL GC_COMPUTE_BIOMASS( YEAR, MONTH, 
-     &                                  BIOMASS(:,:,1:NBIOMAX_GAS) )
+!               CALL GC_COMPUTE_BIOMASS( YEAR, MONTH, 
+!     &                                  BIOMASS(:,:,1:NBIOMAX_GAS) )
+               ! Now send entire BIOMASS array since gas and aerosol
+               ! species might be intermixed (hotp 8/3/09)
+               ! Only the standard 10 gas phase species will be updated
+               CALL GC_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
 
                ! Get biomass SO2 [molec/cm2/s]
                IF ( IDTSO2 > 0 ) THEN
@@ -341,6 +379,180 @@
 
       ! Return to calling program
       END SUBROUTINE COMPUTE_BIOMASS_EMISSIONS
+
+!------------------------------------------------------------------------------
+      SUBROUTINE SET_BIOTRCE
+
+!******************************************************************************
+!  Routine created by FP to set IDBxxxs according to the tracers defined
+!  for the run. The routine provides greater flexibility when ordering
+!  tracers in input.geos (FP 6/2009, hotp 7/30/09)
+!
+!  NOTES:
+!******************************************************************************
+
+!FP_ISOP
+!AS BF_TRACE
+
+      ! References to F90 modules
+      ! ERROR_STOP to prevent array alloc issues (hotp 7/31/09)
+      USE ERROR_MOD, ONLY    : ERROR_STOP
+
+      ! need both IDBxxss and IDTxxxs
+      USE TRACERID_MOD, ONLY : IDBNOX,  IDBCO,   IDBALK4, IDBACET 
+      USE TRACERID_MOD, ONLY : IDBMEK,  IDBALD2, IDBPRPE, IDBC3H8
+      USE TRACERID_MOD, ONLY : IDBCH2O, IDBC2H6
+      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3
+      USE TRACERID_MOD, ONLY : IDBBC,   IDBOC
+      USE TRACERID_MOD, ONLY : IDBCO2
+      USE TRACERID_MOD, ONLY : IDBBENZ, IDBTOLU, IDBXYLE
+      ! Add dicarbonyls
+      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
+      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
+
+      USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
+      USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
+      USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
+      USE TRACERID_MOD, ONLY : IDTBCPI, IDTOCPI
+      USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
+      USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
+      USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+
+      !=================================================================
+      ! SET_BIOTRCE begins here!
+      !=================================================================
+
+      ! Initialize
+      NBIOTRCE = 0
+      
+      ! Increment NBIOTRCE for each turned on biomass burning tracer
+      IF ( IDBNOX   /= 0 ) NBIOTRCE = NBIOTRCE + 1
+      IF ( IDBCO    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBALK4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBACET  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBMEK   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBALD2  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBPRPE  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBC3H8  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBCH2O  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBC2H6  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      !
+      IF ( IDBSO2   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBNH3   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBBC    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBOC    /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      !
+
+      IF ( IDBXYLE  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBBENZ  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBTOLU  /= 0 ) NBIOTRCE = NBIOTRCE + 1
+
+      IF ( IDBGLYX  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBMGLY  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBC2H4  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBC2H2  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBGLYC  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+
+      ! Fill BIOTRCE w/ appropriate TRACER ID #'s
+      IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
+      IF ( IDBCO    /= 0 ) BIOTRCE(IDBCO  ) = IDTCO
+      IF ( IDBALK4  /= 0 ) BIOTRCE(IDBALK4) = IDTALK4
+      IF ( IDBACET  /= 0 ) BIOTRCE(IDBACET) = IDTACET
+      IF ( IDBMEK   /= 0 ) BIOTRCE(IDBMEK ) = IDTMEK
+      IF ( IDBALD2  /= 0 ) BIOTRCE(IDBALD2) = IDTALD2
+      IF ( IDBPRPE  /= 0 ) BIOTRCE(IDBPRPE) = IDTPRPE
+      IF ( IDBC3H8  /= 0 ) BIOTRCE(IDBC3H8) = IDTC3H8
+      IF ( IDBCH2O  /= 0 ) BIOTRCE(IDBCH2O) = IDTCH2O  
+      IF ( IDBC2H6  /= 0 ) BIOTRCE(IDBC2H6) = IDTC2H6 
+      !
+      IF ( IDBSO2   /= 0 ) BIOTRCE(IDBSO2)  = IDTSO2 
+      IF ( IDBNH3   /= 0 ) BIOTRCE(IDBNH3)  = IDTNH3 
+      IF ( IDBBC    /= 0 ) BIOTRCE(IDBBC)   = IDTBCPI
+
+      ! IDBOC may be associated with either OCPI or POA 
+      ! depending on if POA is semivolatile (hotp 8/23/09)
+      IF ( IDBOC    /= 0 ) THEN 
+          IF ( IDTOCPI  /= 0 ) BIOTRCE(IDBOC) = IDTOCPI
+      ENDIF
+
+      IF ( IDBXYLE  /= 0 ) BIOTRCE(IDBXYLE) = IDTXYLE 
+      IF ( IDBTOLU  /= 0 ) BIOTRCE(IDBTOLU) = IDTTOLU
+      IF ( IDBBENZ  /= 0 ) BIOTRCE(IDBBENZ) = IDTBENZ
+
+      ! Dicarbonyls 
+      IF ( IDBGLYX  /= 0 ) BIOTRCE(IDBGLYX) = IDTGLYX
+      IF ( IDBMGLY  /= 0 ) BIOTRCE(IDBMGLY) = IDTMGLY
+      IF ( IDBC2H4  /= 0 ) BIOTRCE(IDBC2H4) = IDTC2H4
+      IF ( IDBC2H2  /= 0 ) BIOTRCE(IDBC2H2) = IDTC2H2
+      IF ( IDBGLYC  /= 0 ) BIOTRCE(IDBGLYC) = IDTGLYC
+      IF ( IDBHAC   /= 0 ) BIOTRCE(IDBHAC)  = IDTHAC
+
+
+      ! Set T/F of BIOBGAS() (hotp 8/3/09)
+      ! BIOBGAS(IDBxx) is true if IDBxx should be handled by
+      ! SMVGEAR/setemis
+      ! Initialize to false
+      BIOBGAS = .FALSE.
+      ! Original gas phase emissions handled in setemis
+      IF ( IDBNOX   /= 0 ) BIOBGAS(IDBNOX ) = .TRUE.
+      IF ( IDBCO    /= 0 ) BIOBGAS(IDBCO  ) = .TRUE.
+      IF ( IDBALK4  /= 0 ) BIOBGAS(IDBALK4) = .TRUE.
+      IF ( IDBACET  /= 0 ) BIOBGAS(IDBACET) = .TRUE.
+      IF ( IDBMEK   /= 0 ) BIOBGAS(IDBMEK ) = .TRUE.
+      IF ( IDBALD2  /= 0 ) BIOBGAS(IDBALD2) = .TRUE.
+      IF ( IDBPRPE  /= 0 ) BIOBGAS(IDBPRPE) = .TRUE.
+      IF ( IDBC3H8  /= 0 ) BIOBGAS(IDBC3H8) = .TRUE.
+      IF ( IDBCH2O  /= 0 ) BIOBGAS(IDBCH2O) = .TRUE.  
+      IF ( IDBC2H6  /= 0 ) BIOBGAS(IDBC2H6) = .TRUE. 
+      ! SO2 and NH3 handled by sulfate_mod.f
+      IF ( IDBSO2   /= 0 ) BIOBGAS(IDBSO2)  = .FALSE. 
+      IF ( IDBNH3   /= 0 ) BIOBGAS(IDBNH3)  = .FALSE. 
+      ! BC and OC handled by carbon_mod.f
+      IF ( IDBBC    /= 0 ) BIOBGAS(IDBBC)   = .FALSE.
+      IF ( IDBOC    /= 0 ) BIOBGAS(IDBOC)   = .FALSE.
+      ! Aromatics handled by setemis
+      IF ( IDBXYLE  /= 0 ) BIOBGAS(IDBXYLE) = .TRUE. 
+      IF ( IDBTOLU  /= 0 ) BIOBGAS(IDBTOLU) = .TRUE.
+      IF ( IDBBENZ  /= 0 ) BIOBGAS(IDBBENZ) = .TRUE.
+
+      ! Dicarbonyls handled by setemis
+      IF ( IDBGLYX  /= 0 ) BIOBGAS(IDBGLYX) = .TRUE.
+      IF ( IDBMGLY  /= 0 ) BIOBGAS(IDBMGLY) = .TRUE.
+      IF ( IDBC2H4  /= 0 ) BIOBGAS(IDBC2H4) = .TRUE.
+      IF ( IDBC2H2  /= 0 ) BIOBGAS(IDBC2H2) = .TRUE.
+      IF ( IDBGLYC  /= 0 ) BIOBGAS(IDBGLYC) = .TRUE.
+      IF ( IDBHAC   /= 0 ) BIOBGAS(IDBHAC ) = .TRUE.
+
+
+
+      !FP_ISOP
+      !FOR CO2
+      ! IDBCO2 is placed at the end after all full chem tracers
+      IDBCO2            = NBIOTRCE + 1
+      BIOTRCE( IDBCO2 ) = 1
+      BIOBGAS( IDBCO2 ) = .FALSE.
+
+      ! Error check 
+      ! NBIOTRCE should be less than or equal to NBIOMAX (hotp 7/31/09)
+      !IF ( NBIOTRCE > NBIOMAX ) THEN
+      ! Need to account for the fact that CO2 is placed last in full
+      ! chem sim (hotp 8/3/09)
+      ! if NBIOTRCE and NBIOMAX are equal, BIOTRCE( IDBCO2 ) will have
+      ! indexed out of array dimensions
+      IF ( NBIOTRCE .GE. NBIOMAX ) THEN
+          CALL ERROR_STOP ( 'NBIOTRCE too large!', '(biomass_mod)' )
+          ! If you get this error, an appropriate fix is to increase
+          ! NBIOMAX in CMN_SIZE (hotp 7/31/09)
+      ENDIF
+
+      ! Echo biomass burning tracer information
+      WRITE( 6, 100 ) BIOTRCE( 1:NBIOTRCE )
+ 100  FORMAT( 'TRACERID: Biomass burning tracers        :', 20i3 )
+      
+      ! Return to calling program
+      END SUBROUTINE SET_BIOTRCE
 
 !------------------------------------------------------------------------------
 
@@ -421,10 +633,11 @@
       IF ( LBIOMASS ) THEN
 
          ! Tracer numbers for each biomass species (CO2 is last)
-         BIOTRCE(:) = (/ 1,  4,  5,  9,  10, 11, 18, 
-     &                   19, 20, 21, 26, 30, 34, 35, 
-     &                   55, 56, 57, 58, 59, 63, 64, 
-     &                   66, 67, 1/)
+         ! BIOTRCE is now computed online in SET_BIOTRCE. (fp, 2/2/10)
+!         BIOTRCE(:) = (/ 1,  4,  5,  9,  10, 11, 18, 
+!     &                   19, 20, 21, 26, 30, 34, 35, 
+!     &                   55, 56, 57, 58, 59, 63, 64, 
+!     &                   66, 67, 1/)
          ! Allocate array to hold monthly biomass emissions
          ALLOCATE( BIOMASS( IIPAR, JJPAR, NBIOMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOMASS' )

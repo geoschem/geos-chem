@@ -1,4 +1,4 @@
-! $Id: ndxx_setup.f,v 1.1 2010/02/02 16:57:48 bmy Exp $
+! $Id: ndxx_setup.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
       SUBROUTINE NDXX_SETUP
 !
 !******************************************************************************
@@ -143,10 +143,12 @@
 !  (74) Add new diagnostic ND59, ND60, ND61 (win, 7/9/09) 
 !  (75) Increase size for AD44 for TOMAS aerosol mass (win, 7/14/09)
 !  (76) Initialize values for LD59, LD60, and LD61 (win, 8/10/09)
+!  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,     ONLY : NBIOMAX
+      !NBIOMAX moved to CMN_SIZE (fp, 6/2009)
+      !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
@@ -165,6 +167,9 @@
       USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,        ONLY : AD30,        AD31
+      !FP_ISOP potential temperature diag (6/2009)
+      USE DIAG_MOD,        ONLY : AD57
+      !
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
@@ -174,6 +179,13 @@
       USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
+      USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
+      USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
+      USE DIAG_MOD,        ONLY : LTLBRO2H,    LTLBRO2N
+      USE DIAG_MOD,        ONLY : LTLTRO2H,    LTLTRO2N
+      USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
       USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,        ONLY : AD52,        AD54
@@ -864,6 +876,67 @@
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTNO3( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
+
+         ! update for aroms (dkh, 06/21/07)  
+         ! additional comments added for clarification (hotp 7/21/09)
+         ! LTLxRO2x indicates where LT is b/w HR1 and HR2
+         ! LTLxRO2x has a value of zero if the box is not
+         ! between the two specified times and 1 when it is
+         ! CTLxRO2x indicates the NUMBER OF TIMES when the box
+         ! is between HR1 and HR2
+         ! LTLxRO2x and CTLxRO2X is set/accumulated every chemistry timestep
+         ! in DIAG_2PM
+         ! CTLxRO2x is reset to zero everytime ctm.bpch is written
+         ! information is part of ND43 (CHEM-L=$)
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLBRO2H( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLBRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLBRO2H( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLBRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLTRO2H( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLTRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLTRO2H( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLTRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLXRO2H( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLXRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLXRO2H( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLXRO2H' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLBRO2N( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLBRO2N' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLBRO2N( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLBRO2N' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLTRO2N( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLTRO2N' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLTRO2N( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLTRO2N' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( LTLXRO2N( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTLXRO2N' )
+
+         ! Locations where LT is between HR1_OH and HR2_OH
+         ALLOCATE( CTLXRO2N( IIPAR, JJPAR, LD43 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTLXRO2N' )
+
       ENDIF
 
       !=================================================================
@@ -1003,8 +1076,22 @@
       ENDIF
 
       !=================================================================
-      ! ND56 - ND57: Free diagnostics
-      !
+      ! ND56: Free diagnostic
+      !=================================================================
+
+      !FP_ISOP (6/2009)
+      !=================================================================
+      ! ND57: theta
+      !=================================================================
+      IF ( ND57 > 0 ) THEN
+         LD57 = MIN( ND57, LLPAR)
+
+         ALLOCATE( AD57( IIPAR, JJPAR, LD57 ), STAT=AS )
+
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
+      ENDIF
+
+      !=================================================================
       ! ND58: CH4 emissions 
       !=================================================================
       IF ( ND58 > 0 ) THEN 
@@ -1123,6 +1210,17 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
          ALLOCATE( AD61_INST( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
+      ENDIF
+
+      !=================================================================
+      ! ND66: DAO 3-D fields (UWND, VWND, SPHU, TMPU, RH) 
+      !       --> uses AD66 array (allocatable)
+      !=================================================================
+      IF ( ND66 > 0 ) THEN
+         LD66 = MIN( ND66, LLPAR )
+
+         ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
       ENDIF
 
       !=================================================================

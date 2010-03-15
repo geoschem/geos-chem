@@ -1,4 +1,4 @@
-! $Id: diag_2pm.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+! $Id: diag_2pm.f,v 1.2 2010/03/15 19:33:24 ccarouge Exp $
       SUBROUTINE DIAG_2PM
 !
 !*****************************************************************************
@@ -41,6 +41,13 @@
       USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
       USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
       USE DIAG_MOD,       ONLY : CTO3_24h, LTO3
+      ! update for arom (dkh, 06/22/07)  
+      USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
+      USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
+      USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
+      USE DIAG_MOD,       ONLY : CTLBRO2H, CTLBRO2N
+      USE DIAG_MOD,       ONLY : CTLTRO2H, CTLTRO2N
+      USE DIAG_MOD,       ONLY : CTLXRO2H, CTLXRO2N
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : ITS_TIME_FOR_DIAG, ITS_TIME_FOR_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
@@ -171,17 +178,30 @@
                LTNO(I,J)  = 1
                LTNO2(I,J) = 1
                
+               ! update for arom (dkh, 06/22/07)  
+               LTLBRO2N(I,J) = 1
+               LTLTRO2N(I,J) = 1
+               LTLXRO2N(I,J) = 1               
+
                ! Counters for # of NO, NO2 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43
                   IF ( ITS_IN_THE_TROP( I, J, L ) ) THEN
                      CTNO(I,J,L)  = CTNO(I,J,L)  + 1
                      CTNO2(I,J,L) = CTNO2(I,J,L) + 1
+                     ! update for arom (dkh, 06/22/07)  
+                     CTLBRO2N(I,J,L) = CTLBRO2N(I,J,L) + 1
+                     CTLTRO2N(I,J,L) = CTLTRO2N(I,J,L) + 1
+                     CTLXRO2N(I,J,L) = CTLXRO2N(I,J,L) + 1
                   ENDIF
                ENDDO
 
             ELSE
                LTNO(I,J)  = 0
                LTNO2(I,J) = 0
+               ! update for arom (dkh, 06/22/07)  
+               LTLBRO2N(I,J) = 0
+               LTLTRO2N(I,J) = 0
+               LTLXRO2N(I,J) = 0 
             ENDIF
 
             ! LTNO denotes where LT is between HR1_OH and HR2_OH
@@ -191,6 +211,10 @@
                LTOH(I,J)  = 1
                LTHO2(I,J) = 1
                LTNO3(I,J) = 1
+               ! update for arom (dkh, 06/22/07)  
+               LTLBRO2H(I,J) = 1
+               LTLTRO2H(I,J) = 1
+               LTLXRO2H(I,J) = 1
 
                ! Counters for # of OH,HO2,NO3 boxes in the trop (phs, 1/24/07)
                DO L = 1, LD43 
@@ -198,6 +222,10 @@
                      CTOH(I,J,L)  = CTOH(I,J,L)  + 1
                      CTHO2(I,J,L) = CTHO2(I,J,L) + 1
                      CTNO3(I,J,L) = CTNO3(I,J,L) + 1
+                     ! update for arom (dkh, 06/22/07)  
+                     CTLBRO2H(I,J,L) = CTLBRO2H(I,J,L) + 1
+                     CTLTRO2H(I,J,L) = CTLTRO2H(I,J,L) + 1
+                     CTLXRO2H(I,J,L) = CTLXRO2H(I,J,L) + 1
                   ENDIF
                ENDDO
 
@@ -205,6 +233,10 @@
                LTOH(I,J)  = 0
                LTHO2(I,J) = 0
                LTNO3(I,J) = 0
+               ! update for arom (dkh, 06/22/07)  
+               LTLBRO2H(I,J) = 0
+               LTLTRO2H(I,J) = 0
+               LTLXRO2H(I,J) = 0 
             ENDIF
          ENDIF
 

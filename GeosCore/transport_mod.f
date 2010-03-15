@@ -1,4 +1,4 @@
-! $Id: transport_mod.f,v 1.4 2010/02/26 18:19:59 bmy Exp $
+! $Id: transport_mod.f,v 1.5 2010/03/15 19:33:20 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -63,6 +63,8 @@
 !        (ccc, 2/17/09)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTex Headers
+!  08 Mar 2010 - C. Carouge  - Modify call to tpcore_fvdas. We do not re-order 
+!                              mass fluxes diagnostics anymore.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -327,7 +329,26 @@
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
 
+
+!      ! Do the advection
+!      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
+!     &                   LLPAR,    JFIRST,    JLAST,    NG,
+!     &                   MG,       N_TRACERS, Ap,       Bp,
+!     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
+!     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
+!     &                   IORD,     JORD,      KORD,     N_ADJ,     
+!     &                   XMASS(:,:,LLPAR:1:-1),    
+!     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
+!     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
+!     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
+!     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+!     &                   TCVV,     ND24,      ND25,     ND26 )
+
       ! Do the advection
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
      &                   MG,       N_TRACERS, Ap,       Bp,
@@ -336,9 +357,9 @@
      &                   IORD,     JORD,      KORD,     N_ADJ,     
      &                   XMASS(:,:,LLPAR:1:-1),    
      &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
-     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
-     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+     &                   MASSFLEW, 
+     &                   MASSFLNS,  
+     &                   MASSFLUP,    A_M2,
      &                   TCVV,     ND24,      ND25,     ND26 )
 
       !=================================================================
@@ -702,6 +723,24 @@
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
 
+!      ! Do the advection
+!      CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
+!     &                   LLPAR,    JFIRST,    JLAST,    NG,
+!     &                   MG,       N_TRACERS, Ap,       Bp,
+!     &                   UTMP,     VTMP,      P_TP1,    P_TP2,
+!     &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
+!     &                   IORD,     JORD,      KORD,     N_ADJ,     
+!     &                   XMASS(:,:,LLPAR:1:-1),    
+!     &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
+!     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
+!     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
+!     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+!     &                   TCVV,     ND24,      ND25,     ND26 )
+
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
@@ -711,10 +750,11 @@
      &                   IORD,     JORD,      KORD,     N_ADJ,     
      &                   XMASS(:,:,LLPAR:1:-1),    
      &                   YMASS(:,:,LLPAR:1:-1),         LFILL,
-     &                   MASSFLEW(:,:,LLPAR:1:-1,:), 
-     &                   MASSFLNS(:,:,LLPAR:1:-1,:),  
-     &                   MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+     &                   MASSFLEW, 
+     &                   MASSFLNS,  
+     &                   MASSFLUP,    A_M2,
      &                   TCVV,     ND24,      ND25,     ND26 )
+
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation
@@ -939,7 +979,25 @@
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
 
+!      ! Do the advection
+!      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
+!     &                          LLPAR,    JFIRST,    JLAST,    NG,
+!     &                          MG,       N_TRACERS, Ap,       Bp,
+!     &                          UTMP,     VTMP,      P_TP1,    P_TP2,
+!     &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
+!     &                          IORD,     JORD,      KORD,     N_ADJ,
+!     &                          XMASS(:,:,LLPAR:1:-1),
+!     &                          YMASS(:,:,LLPAR:1:-1),
+!     &                          MASSFLEW(:,:,LLPAR:1:-1,:),
+!     &                          MASSFLNS(:,:,LLPAR:1:-1,:),
+!     &                          MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+!     &                          TCVV,     ND24,      ND25,     ND26 )
 
+
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
       ! Do the advection
       CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
@@ -949,11 +1007,10 @@
      &                          IORD,     JORD,      KORD,     N_ADJ,
      &                          XMASS(:,:,LLPAR:1:-1),
      &                          YMASS(:,:,LLPAR:1:-1),
-     &                          MASSFLEW(:,:,LLPAR:1:-1,:),
-     &                          MASSFLNS(:,:,LLPAR:1:-1,:),
-     &                          MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+     &                          MASSFLEW,
+     &                          MASSFLNS,
+     &                          MASSFLUP,    A_M2,
      &                          TCVV,     ND24,      ND25,     ND26 )
-
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation

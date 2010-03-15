@@ -1,4 +1,4 @@
-! $Id: h2_hd_mod.f,v 1.3 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: h2_hd_mod.f,v 1.4 2010/03/15 19:33:23 ccarouge Exp $
       MODULE H2_HD_MOD
 !
 !******************************************************************************
@@ -125,11 +125,13 @@
 !  NOTES:
 !    (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
 !    (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!    (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,   ONLY : BIOFUEL,     BIOFUEL_BURN
-      USE BIOMASS_MOD,   ONLY : BIOMASS,     IDBCO
+      ! IDBCO moved to tracerid_mod by FP (hotp 7/31/09)
+      USE BIOMASS_MOD,   ONLY : BIOMASS!,     IDBCO
       USE DAO_MOD,       ONLY : SUNCOS,      BXHEIGHT
       USE DIAG_MOD,      ONLY : AD29,        AD46,          AD10em
       USE GEIA_MOD,      ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
@@ -139,6 +141,7 @@
       USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
       USE MEGANUT_MOD,      ONLY : XLTMMP
+      USE TRACERID_MOD,  ONLY : IDBCO
       USE TIME_MOD,         ONLY : GET_MONTH,   GET_TAU 
       USE TIME_MOD,         ONLY : GET_YEAR,    GET_TS_EMIS  
       USE TRACER_MOD,       ONLY : STT

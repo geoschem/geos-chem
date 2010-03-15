@@ -1,4 +1,4 @@
-! $Id: initialize.f,v 1.1 2010/02/02 16:57:49 bmy Exp $
+! $Id: initialize.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
       SUBROUTINE INITIALIZE( IFLAG )
 !
 !******************************************************************************
@@ -175,6 +175,7 @@
 !  (45) Define new diagnostics, ND19, ND58, ND60 for methane 
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
+!  (47) Add potential temperature diagnostic. (fp, 06/09)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -195,6 +196,8 @@
       USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,    ONLY : AD30,        AD31
+      !add potential temp diagnostic (fp, 6/2009)
+      USE DIAG_MOD,    ONLY : AD57
       USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
@@ -204,6 +207,10 @@
       USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      USE DIAG_MOD,    ONLY : CTLBRO2H,    CTLBRO2N
+      USE DIAG_MOD,    ONLY : CTLTRO2H,    CTLTRO2N
+      USE DIAG_MOD,    ONLY : CTLXRO2H,    CTLXRO2N
       USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,    ONLY : AD52
@@ -287,6 +294,8 @@
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
          IF ( ND19 > 0 ) AD19     = 0e0
+         !potential temp (fp, 6/2009)
+         IF ( ND57 > 0 ) AD57     = 0e0
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND66 > 0 ) AD66     = 0e0
@@ -401,7 +410,7 @@
 
          ! For ND65 -- Chemical production & loss (bmy, 12/5/00)
          IF ( ND65 > 0 ) THEN
-            AD65  = 0e0
+            AD65  = 0d0
             IF ( ALLOCATED( FAM_PL ) ) FAM_PL = 0d0      
         ENDIF
 
@@ -441,6 +450,13 @@
          IF ( ND43 >               0 ) CTNO2      = 0
          IF ( ND43 >               0 ) CTHO2      = 0
          IF ( ND43 >               0 ) CTNO3      = 0
+         ! update for arom (dkh, 06/21/07)  
+         IF ( ND43 >               0 ) CTLBRO2H   = 0
+         IF ( ND43 >               0 ) CTLBRO2N   = 0
+         IF ( ND43 >               0 ) CTLTRO2H   = 0
+         IF ( ND43 >               0 ) CTLTRO2N   = 0
+         IF ( ND43 >               0 ) CTLXRO2H   = 0
+         IF ( ND43 >               0 ) CTLXRO2N   = 0
 
          ! Echo output
          WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'

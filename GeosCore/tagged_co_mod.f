@@ -1,4 +1,4 @@
-! $Id: tagged_co_mod.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: tagged_co_mod.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
       MODULE TAGGED_CO_MOD
 !
 !******************************************************************************
@@ -413,11 +413,13 @@
 !  (24) Now include switch to use MEGAN biogenics instead of default GEIA.
 !        (jaf, 3/10/09)
 !  (25) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!  (26) IDBCO is now defined in tracerid_mod.f (fp, 6/09)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BIOFUEL_MOD,  ONLY : BIOFUEL
-      USE BIOMASS_MOD,  ONLY : BIOMASS,       IDBCO
+      !IDBCO now in tracerid_mod (fp, 6/2009)
+      USE BIOMASS_MOD,  ONLY : BIOMASS!,     IDBCO
       ! Add variables for MEGAN (jaf, 3/10/09)
       USE DAO_MOD,      ONLY : SUNCOS,           PARDF,       PARDR
       USE DIAG_MOD,     ONLY : AD29,          AD46
@@ -434,7 +436,7 @@
       USE TIME_MOD,     ONLY : GET_MONTH,     GET_TAU 
       USE TIME_MOD,     ONLY : GET_YEAR,      GET_TS_EMIS  
       USE TRACER_MOD,   ONLY : STT
-      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO
+      USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
       
       IMPLICIT NONE
 

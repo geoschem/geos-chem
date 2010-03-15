@@ -1,4 +1,4 @@
-! $Id: planeflight_mod.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+! $Id: planeflight_mod.f,v 1.3 2010/03/15 19:33:23 ccarouge Exp $
       MODULE PLANEFLIGHT_MOD
 !
 !******************************************************************************
@@ -86,6 +86,7 @@
 !  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
 !  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
 !  (22) Output the grid cell indexes (kjw, 8/18/09)
+!  (23) Add AN and NOy species. (fp, 3/10/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -113,10 +114,14 @@
       LOGICAL                        :: DO_PF
 
       ! Parameters
-      INTEGER,           PARAMETER   :: MAXVARS   = 95
+      ! Increase VAR number (ccc, 2/5/10)
+      !INTEGER,           PARAMETER   :: MAXVARS   = 95
+      INTEGER,           PARAMETER   :: MAXVARS   = 200
       INTEGER,           PARAMETER   :: MAXPOINTS = 10000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
+      INTEGER,           PARAMETER   :: MAXAN     = 10 ! FP 04/01/2010 (AN) 
+      INTEGER,           PARAMETER   :: MAXNOY    = 12 ! FP 04/01/2010 (NOy)
 
       ! For specifying flight track points
       INTEGER                        :: NPOINTS           
@@ -146,6 +151,14 @@
       ! For specifying RO2 constituents at each flight point
       INTEGER                        :: NPRO2
       INTEGER                        :: PRO2(MAXRO2)
+
+      ! For specifying NOY constituents at each flight point
+      INTEGER                        :: NPNOY
+      INTEGER                        :: PNOY(MAXNOY)
+
+      ! For specifying AN constituents at each flight point
+      INTEGER                        :: NPAN
+      INTEGER                        :: P_AN(MAXAN)
 
       ! Input/output file names
       CHARACTER(LEN=255)             :: INFILENAME,  INF
@@ -260,6 +273,16 @@
       ! Find the species # for all components of RO2 (SMVGEAR only)
       !=================================================================
       CALL RO2_SETUP
+
+      !=================================================================
+      ! Find the species # for all components of NOY (SMVGEAR only)
+      !=================================================================
+      CALL NOY_SETUP
+
+      !=================================================================
+      ! Find the species # for all components of AN (SMVGEAR only)
+      !=================================================================
+      CALL AN_SETUP
     
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -284,7 +307,9 @@
      &     'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
 
       ! FORMAT string
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
+      ! Replace 95 by 200 FP
+! 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,95(a10,x) )
+ 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
 
       ! Return to calling program
       END SUBROUTINE SETUP_PLANEFLIGHT
@@ -525,6 +550,12 @@
                   ! Special flag for RO2 species
                   IF ( TRIM( LINE ) == 'RO2' ) PVAR(N) = 999
 
+                  ! Special flag for AN species FP
+                  IF ( TRIM( LINE ) == 'AN' ) PVAR(N) = 998
+
+                  ! Special flag for NOy species FP
+                  IF ( TRIM( LINE ) == 'NOy' ) PVAR(N) = 997
+
                   ! Error check
                   IF ( PVAR(N) == 0 ) THEN 
                      WRITE( 6, '(a)' ) 'ERROR: invalid species!'
@@ -743,7 +774,10 @@
      &             'MCO3', 'MRO2', 'PO2',  'RIO2', 'VRO2', 
      &             'ACO3', 'EO2', 'ENCO3', 'ENO2', 'GLCO3', 
      &             'IACO3', 'INO2', 'MACO3', 'NICO3', 'NIO2',
-     &             'VOHRO2', 'RIO1', 'C59O2') 
+     &             'VOHRO2', 'RIO1', 'C59O2', 'MAPO2', 
+     &             'BRO2', 'TRO2', 'XRO2', 'NRO2',
+     &             'MOBAOO', 'ISOPNBO2', 'ISOPNDO2', 'IEPOXOO', 
+     &             'PYPO2', 'MACRNO2', 'PMNO2', 'HC5OO', 'RCO3') 
                NPRO2       = NPRO2 + 1
                PRO2(NPRO2) = M
 
@@ -770,6 +804,151 @@
 
       ! Return to calling program
       END SUBROUTINE RO2_SETUP
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE NOY_SETUP
+!
+!******************************************************************************
+!  Subroutine NOY_SETUP saves the SMVGEAR species indices of NOy 
+!  constituents in the PNOY array.  Also computes the count NPNOY. 
+!  (fp, 6/09)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+
+#     include "CMN_SIZE" ! Size parameters
+#     include "comode.h" ! NSPEC, NAMEGAS, NCS
+
+      ! Local variables
+      INTEGER            :: M
+
+      !=================================================================
+      ! NOY_SETUP begins here!
+      !=================================================================
+    
+      ! Initialize 
+      NPNOY = 0
+
+      ! We only need to proceed for SMVGEAR chemistry       
+      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
+      
+      !=================================================================
+      ! Loop over all SMVGEAR species, test for NOY components
+      !=================================================================
+      DO M = 1, NSPEC(NCS)
+
+         SELECT CASE( TRIM( NAMEGAS(M) ) )
+
+           CASE ( 'NO', 'NO2', 'NO3', 'HNO2', 'HNO4', 'HNO3',
+     &            'PAN', 'PYPAN', 'PMN', 'PPN')
+
+               NPNOY       = NPNOY + 1
+               PNOY(NPNOY) = M
+
+           CASE ( 'N2O5')
+
+               NPNOY       = NPNOY + 1
+               PNOY(NPNOY) = M
+
+               NPNOY       = NPNOY + 1
+               PNOY(NPNOY) = M
+
+            CASE DEFAULT
+               ! Nothing
+
+         END SELECT
+
+      ENDDO
+
+      ! Error check
+      IF ( NPNOY > MAXNOY ) THEN 
+         WRITE( 6, '(a)' ) 'NPNOY exceeds maximum allowed value!'
+         WRITE( 6, '(a)' ) 'STOP in NOY_SETUP (planeflight_mod.f)'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      !=================================================================
+      ! Echo number of points found and quit
+      !=================================================================
+      WRITE( 6, 100 ) NPNOY
+ 100  FORMAT( 'Number of NOY components      : ', i6 )
+
+      ! Return to calling program
+      END SUBROUTINE NOY_SETUP
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE AN_SETUP
+!
+!******************************************************************************
+!  Subroutine AN_SETUP saves the SMVGEAR species indices of AN 
+!  constituents in the P_AN array.  Also computes the count NPAN 01/04/10 FP
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+
+#     include "CMN_SIZE" ! Size parameters
+#     include "comode.h" ! NSPEC, NAMEGAS, NCS
+
+      ! Local variables
+      INTEGER            :: M
+
+      !=================================================================
+      ! AN_SETUP begins here!
+      !=================================================================
+    
+      ! Initialize 
+      NPAN = 0
+
+      ! We only need to proceed for SMVGEAR chemistry       
+      IF ( .not. ITS_A_FULLCHEM_SIM() ) RETURN
+      
+      !=================================================================
+      ! Loop over all SMVGEAR species, test for AN components
+      !=================================================================
+      DO M = 1, NSPEC(NCS)
+
+         ! If we have found an AN component, add its species # to
+         ! the AN global array, and increment counter
+  
+         SELECT CASE( TRIM( NAMEGAS(M) ) )
+
+           CASE ( 'ISOPNB', 'ISOPND', 'MVKN', 'MACRN',
+     &            'ISN2', 'MNO3', 'ISNO3', 'R4N2',
+     &            'PROPNN', 'ETHLN' ) 
+
+               NPAN       = NPAN + 1
+               P_AN(NPAN) = M
+
+            CASE DEFAULT
+               ! Nothing
+
+         END SELECT
+
+      ENDDO
+
+      ! Error check
+      IF ( NPAN > MAXAN ) THEN 
+         WRITE( 6, '(a)' ) 'NPAN exceeds maximum allowed value!'
+         WRITE( 6, '(a)' ) 'STOP in AN_SETUP (planeflight_mod.f)'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      !=================================================================
+      ! Echo number of points found and quit
+      !=================================================================
+      WRITE( 6, 100 ) NPAN
+ 100  FORMAT( 'Number of AN components      : ', i6 )
+
+      ! Return to calling program
+      END SUBROUTINE AN_SETUP
 
 !------------------------------------------------------------------------------
 
@@ -891,12 +1070,49 @@
                   !-------------------------
                   ! SMVGEAR species
                   !-------------------------
-                  CASE ( 1:998 )
+                  !997 and 998 are now special flags for NOy and AN
+                  CASE ( 1:996) !( 1:998 )
 
                      ! Only archive where SMVGEAR chem is done
                      ! Save as mixing ratio [v/v]
                      IF ( JLOOP /= 0 ) THEN
                         VARI(V) = CSPEC(JLOOP,PVAR(V)) / AIRDENS(JLOOP)
+                     ENDIF
+
+                  ! FP 04/01/2010
+                  !-------------------------
+                  ! NOy family
+                  !-------------------------   
+                  CASE ( 997 )
+
+                     ! Only archive where SMVGEAR chem is done
+                     ! Sum all AN contributions, save as [v/v]
+                     VARI(V) = 0d0
+
+                     IF ( JLOOP /= 0 ) THEN 
+                        DO N = 1, NPNOY
+                           VARI(V) = VARI(V) + CSPEC(JLOOP,PNOY(N))
+                        ENDDO
+
+                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
+                     ENDIF
+
+                  ! FP 04/01/2010
+                  !-------------------------
+                  ! AN family
+                  !-------------------------   
+                  CASE ( 998 )
+
+                     ! Only archive where SMVGEAR chem is done
+                     ! Sum all AN contributions, save as [v/v]
+                     VARI(V) = 0d0
+                     IF ( JLOOP /= 0 ) THEN 
+
+                        DO N = 1, NPAN
+                           VARI(V) = VARI(V) + CSPEC(JLOOP,P_AN(N))
+                        ENDDO
+
+                        VARI(V) = VARI(V) / AIRDENS(JLOOP)
                      ENDIF
 
                   !-------------------------
@@ -1026,7 +1242,9 @@
                   !--------------------------
                   CASE ( 3001:3005 )
                   
-                        ! Remove MISSING flag
+                     IF ( PCHEM ) THEN
+
+                       ! Remove MISSING flag
                         VARI(V) = 0d0
                   
                         ! Aerosol number
@@ -1054,6 +1272,7 @@
                            VARI(V) = VARI(V) + 
      &                          SUM( S400nm * ODAER(I,J,1:LPLANE,IRHN) )
                         ENDDO
+                     ENDIF
 
                   !--------------------------
                   ! SMVGEAR reaction rates
@@ -1187,12 +1406,14 @@
   
          ! JLOOP indicates if a box is in tropo (/=0) or not. 
          JLOOP = JLOP(I,J,L)
+         PCHEM = .TRUE.
 
       ELSE
 
          ! For non-SMVGEAR runs, JLOOP has no meaning so we give the
          ! stratospheric value
          JLOOP = 0
+         PCHEM = .FALSE.
 
       ENDIF
 
@@ -1241,8 +1462,11 @@
      &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
       
       ! Format string
- 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
-     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
+      ! FP replace 95 by 200
+! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
+!     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
+ 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
+     &       200(es11.3e3,x))
 
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_PLANE,'write_vars_to_file:1')

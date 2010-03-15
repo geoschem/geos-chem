@@ -1,9 +1,9 @@
-! $Id: soilnoxems.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
+! $Id: soilnoxems.f,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
       SUBROUTINE SOILNOXEMS( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine SOILNOXEMS computes the emission of soil and fertilizer NOx
-!  for the GEOS-CHEM model. (yhw, gmg, djj, 8/94; bdf, bmy, 10/4/06)
+!  for the GEOS-CHEM model. (yhw, gmg, djj, 8/94; bdf, bmy, 3/15/10)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -56,6 +56,7 @@
 !  (9 ) Bug fix: future emissions only need to be applied the fertilizer
 !        term in the NOx emissions below. (swu, bmy, 10/4/06)
 !  (10) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!  (11) Properly separate soil NOx and fertilizer (fp, 3/15/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -63,7 +64,9 @@
       USE DIAG_MOD,             ONLY : AD32_fe,     AD32_so
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxft
       USE GRID_MOD,             ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,          ONLY : LFUTURE
+      ! added LSOILNOX and LFERTILIZERNOX by FP (6/2009)
+      !USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LFUTURE, LSOILNOX, LFERTILIZERNOX
       USE MEGANUT_MOD,          ONLY : XLTMMP
 
       IMPLICIT NONE
@@ -83,7 +86,8 @@
       INTEGER                       :: KBL,  JLOP(IIPAR,JJPAR,1), I0, J0
       REAL*8                        :: TMMP, WINDSQR, RPULSE, ZBL,   DUM
       REAL*8                        :: FERTDIAG(IIPAR,JJPAR), FUT_SCL
-
+      ! FP soilnox diag (6/2009)
+      REAL*8                        :: SOILNOXDIAG(IIPAR,JJPAR)
       
       ! External functions
       REAL*8, EXTERNAL              :: BOXVL,      FERTADD,  PULSING
@@ -104,7 +108,9 @@
       IJLOOP = 0
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+         !FP_ISOP fix bug in soil nox emissions diagnostics 09/17
          SOILNOX(I,J)  = 0.D0
+         SOILNOXDIAG(I,J) = 0D0
          FERTDIAG(I,J) = 0.D0     
          IJLOOP        = IJLOOP + 1
          JLOP(I,J,1)   = IJLOOP
@@ -149,10 +155,28 @@
                   FUT_SCL = 1d0
                ENDIF
 
+               IF (LSOILNOX) THEN
                ! SOILNOX contains soil NOx emissions in [molec NOx/cm2/s]
                SOILNOX(I,J) = SOILNOX(I,J) +   
-     &           ( SOILTEMP(I,J,M,NN,TMMP) * SOILBASE(I,J,M,NN,RPULSE) + 
-     &             FERTADD(J,M,NN)         * FUT_SCL ) 
+! Make the soil NOX emissions exclude fertilizer NOx FP (6/2009)
+!     &           ( SOILTEMP(I,J,M,NN,TMMP) * SOILBASE(I,J,M,NN,RPULSE) + 
+!     &             FERTADD(J,M,NN)         * FUT_SCL ) 
+     &           SOILTEMP(I,J,M,NN,TMMP) * SOILBASE(I,J,M,NN,RPULSE) 
+     &           *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
+     &             WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
+
+               ! Archive soil emissions for ND32 diagnostic
+                 SOILNOXDIAG(I,J)=SOILNOXDIAG(I,J)
+     &           +SOILTEMP(I,J,M,NN,TMMP) * SOILBASE(I,J,M,NN,RPULSE)
+     &           *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
+     &             WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
+
+               ENDIF
+
+               !FP_ISOP (6/2009) add FERTNOX separately
+               IF (LFERTILIZERNOX) THEN               
+               SOILNOX(I,J) = SOILNOX(I,J) +   
+     &             FERTADD(J,M,NN) * FUT_SCL
      &          *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      &             WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
 
@@ -161,6 +185,8 @@
      &             FERTADD(J,M,NN) * FUT_SCL
      &             *(1.D0-SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      &              WINDSQR,SUNCOS))*DBLE(IUSE(IREF,JREF,K))/1000.D0
+               ENDIF
+
             ENDDO
          ENDIF
 
@@ -168,8 +194,10 @@
          IF ( SOILNOX(I,J) .EQ. 0.0 ) GOTO 110
 
          ! Archive soil NOx and fertilizer NOx emissions [molec NOx/cm2/s]
+         ! Soil NOx diag is only Soil NOx (fertilizer NOx is separate) (FP 6/2009)
          IF ( ND32 > 0 ) THEN
-            AD32_so(I,J) = AD32_so(I,J) + SOILNOX(I,J)
+         !   AD32_so(I,J) = AD32_so(I,J) + SOILNOX(I,J)
+            AD32_so(I,J) = AD32_so(I,J) + SOILNOXDIAG(I,J)
             AD32_fe(I,J) = AD32_fe(I,J) + FERTDIAG(I,J)
          ENDIF
 

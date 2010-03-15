@@ -1,4 +1,4 @@
-! $Id: tomas_mod.f,v 1.1 2010/02/02 16:57:48 bmy Exp $
+! $Id: tomas_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
       MODULE TOMAS_MOD
 !
 !******************************************************************************
@@ -6113,6 +6113,7 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
             if ( PRT ) PRINT *, 'AVG',AVG,' XNEW ',XNEW
  100        IF ( XNEW <= AVG .and. KK <= IBINS ) THEN
                IF ( KK <= IBINS ) THEN
+!               IF ( KK < IBINS ) THEN
                   KK = KK + 1
                   XNEW = XK(KK+1)/ 1.1
                   if (PRT) PRINT *, '..move up to bin ',KK,' XNEW ',XNEW

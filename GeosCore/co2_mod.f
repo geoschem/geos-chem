@@ -1,4 +1,4 @@
-! $Id: co2_mod.f,v 1.1 2009/09/16 14:06:37 bmy Exp $
+! $Id: co2_mod.f,v 1.2 2010/03/15 19:33:24 ccarouge Exp $
       MODULE CO2_MOD
 !
 !******************************************************************************
@@ -144,10 +144,14 @@
 !  (2 ) We now get CO2 biomass emissions from biomass_mod.f.  This allows us 
 !        to use either GFED2 or default Duncan et al biomass emissions. 
 !        (bmy, 9/27/06)
+!  (3 ) IDBCO2 is now defined in TRACERID_MOD. (fp, hotp 7/31/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,   ONLY : BIOMASS,       IDBCO2
+      ! IDBCO2 moved from biomass_mod to tracerid_mod (fp, hotp 7/31/09)
+!      USE BIOMASS_MOD,   ONLY : BIOMASS,       IDBCO2
+      USE BIOMASS_MOD,   ONLY : BIOMASS
+      USE TRACERID_MOD,  ONLY : IDBCO2
       USE DIAG04_MOD,    ONLY : AD04,          ND04
       USE GRID_MOD,      ONLY : GET_AREA_CM2
       USE TIME_MOD,      ONLY : GET_DAY,       GET_DAY_OF_YEAR

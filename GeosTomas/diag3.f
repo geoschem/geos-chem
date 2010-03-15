@@ -1,4 +1,4 @@
-! $Id: diag3.f,v 1.1 2010/02/02 16:57:50 bmy Exp $
+! $Id: diag3.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
       SUBROUTINE DIAG3                                                      
 ! 
 !******************************************************************************
@@ -107,11 +107,23 @@
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
 !  (89) Added TOMAS diagnostics (win, bmy, 1/25/10)
+!  (90) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
+!  (91) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
+!  (92) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
+!  (93) Add aromatics to ND43. (dkh, 06/21/07)
+!  (94) Add ND57 for potential temperature. (fp, 2/3/10)
+!  (95) Re-order levels in mass fluxes diagnostics before writing them to file.
+!       (ND24, 25, 26). (ccc, 3/8/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
       USE BPCH2_MOD
-      USE BIOMASS_MOD,  ONLY : BIOTRCE,     NBIOMAX
+      ! NBIOMAX now refers to the maximum number of possible
+      ! BB species (hotp 7/31/09)
+      ! NBIOTRCE is the number for a given simulation and
+      ! set of tracers
+      ! NBIOMAX in CMN_SIZE (FP)
+      USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
       USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
       USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
@@ -130,6 +142,8 @@
       USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
       USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,     ONLY : AD30,        AD31
+      ! potential temperature (hotp 7/31/09)
+      USE DIAG_MOD,     ONLY : AD57
       USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
       USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
       USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
@@ -139,6 +153,13 @@
       USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
       USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
       USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      ! to save the amount of RO2 consumed by HO2 (*H) or NO (*N)
+      ! CTLxRO2x : # of times a grid box was in the ND43 time range between
+      ! the last .bpch write and current .bpch write
+      USE DIAG_MOD,     ONLY : CTLBRO2H,      CTLBRO2N
+      USE DIAG_MOD,     ONLY : CTLTRO2H,      CTLTRO2N
+      USE DIAG_MOD,     ONLY : CTLXRO2H,      CTLXRO2N
       USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
       USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
       USE DIAG_MOD,     ONLY : AD52
@@ -160,6 +181,9 @@
       USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
       USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
+      ! To handle tracers with several dry dep. tracers
+      !(ccc, 2/3/10)
+      USE DRYDEP_MOD,   ONLY : DEPNAME
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
@@ -184,6 +208,8 @@
       USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
       USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
       USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
+      ! aromatic SOA
+      USE TRACERID_MOD, ONLY : IDTSOA5
       USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
       USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
       USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
@@ -210,7 +236,7 @@
 
       ! Local variables
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
-      INTEGER            :: N, NN, NMAX, NTEST
+      INTEGER            :: N, NN, NMAX, NTEST, NN1
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
@@ -630,26 +656,36 @@
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
             ! 1:ALPH+LIMO+TERP, 2:ALCO, 3:SESQ, 4:ISOP
+            ! 5:AROM (Add 4 and 5 (dkh, 03/27/07)  ))
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            DO N = 1, 4
+            ! (hotp 5/25/09) add SO5
+            !DO N = 1, 4
+            DO N = 1, 5
+
+               ! hotp 7/31/08 units
+               UNIT = 'kg'
 
                IF ( N == 1 ) NN = IDTSOA1
                IF ( N == 2 ) NN = IDTSOA2
                IF ( N == 3 ) NN = IDTSOA3
                IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
+               IF ( N == 5 ) NN = IDTSOA5
 
-               DO L = 1, LD07
-                  ARRAY(:,:,L) = AD07_HC(:,:,L,N)
-               ENDDO
+               ! Check to make sure the tracer exists (hotp 8/23/09)
+               IF ( NN > 0 ) THEN
+                  DO L = 1, LD07
+                     ARRAY(:,:,L) = AD07_HC(:,:,L,N)
+                  ENDDO
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                     IIPAR,     JJPAR,     LD07,     IFIRST,
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-            
+               ENDIF ! NN
+
             ENDDO
 
             !-----------------------------------------------
@@ -1677,7 +1713,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
+!            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,1:LD24,N) / SCALEDYN
+            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LD24:1:-1,N) / SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1709,7 +1746,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
 
-            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
+!            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,1:LD25,N) / SCALEDYN
+            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LD25:1:-1,N) / SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -1741,7 +1779,8 @@
             IF ( N > N_TRACERS ) CYCLE
             NN = N
             
-            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
+!            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,1:LD26,N) / SCALEDYN
+            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LD26:1:-1,N) / SCALEDYN
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES, 
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
@@ -2594,6 +2633,65 @@
                      ARRAY(:,:,1:LD43) = 0.
                   ENDWHERE
 
+               CASE ( 6 )
+                  WHERE( CTLBRO2H /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLBRO2H )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
+
+               CASE ( 7 )
+                  WHERE( CTLBRO2N /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLBRO2N )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
+
+               CASE ( 8 )
+                  WHERE( CTLTRO2H /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLTRO2H )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
+
+               CASE ( 9 )
+                  WHERE( CTLTRO2N /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLTRO2N )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
+
+               CASE ( 10 )
+                  WHERE( CTLXRO2H /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLXRO2H )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
+
+               CASE ( 11 )
+                  WHERE( CTLXRO2N /= 0 )
+                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                    FLOAT( CTLXRO2N )
+                  ELSEWHERE
+                     ARRAY(:,:,1:LD43) = 0.
+                  ENDWHERE
+
+                  UNIT = 'molec/cm3'
 
                CASE DEFAULT
                   CYCLE
@@ -2681,36 +2779,79 @@
                ! aerosol mass (win, 7/14/09)
                IF ( N <= NUMDEP ) THEN 
                   NN  = NTRAIND(N)
+                  NN1 = NN
                ELSE
-                  NN  = ( N - NUMDEP ) + ( IDTNK1 + IBINS - 1 )
+                  ! To calculate the IDTxxx of the associated  
+                  ! tracer. (ccc, 3/11/10) 
+                  NN  = MOD( N - NUMDEP-1, IBINS ) + IDTNK1
+
+                  ! Tracer number for bpch file
+                  NN1  = ( N - NUMDEP ) + ( IDTNK1 + IBINS - 1 )
                ENDIF
  
             ENDIF
 
-! I comment this part out b/c for TOMAS aerosol dry dep, i need to tweak
-! the list to make aerosol mass species show up in the diag44 while they 
-!  are not really drydep species, thus they are not in the TINDEX(44,:)
-! Might need to solve this later. (win, 7/14/09)
             ! To output only the species asked in input.geos 
             ! (ccc, 5/15/09)
-c$$$            MM  = 1
-c$$$            MMB = 0
-c$$$            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
-c$$$               MMB = TINDEX(44,MM)
-c$$$               MM  = MM + 1
-c$$$            ENDDO
-c$$$            
-c$$$            IF ( MMB /= NN ) CYCLE
+            MM  = 1
+            MMB = 0
+            DO WHILE ( MMB /= NN .AND. MM <= TMAX(44) )
+               MMB = TINDEX(44,MM)
+               MM  = MM + 1
+            ENDDO
+            
+            ! Special case for tracers with several dry dep. tracers
+            ! E.g. ISOPN: ISOPND and ISOPNB.
+            ! We handle both tracers at the same time so we need to 
+            ! skip the second tracer. (ccc, 2/3/10)
+            !IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= NN                .OR.
+     &           DEPNAME( N ) == 'ISOPNB' .OR.
+     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
+
 
             ! Save into ARRAY
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
 
             ! Write to file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+!     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            ! Special case for tracers with several deposition tracers.
+            ! (E.G. ISOPN: ISOPND and ISOPNB). Not aerosols (ccc, 2/3/10)
+            SELECT CASE( DEPNAME( N ) )
+               CASE( 'ISOPND' ) 
+                  !ISOPNB is the next deposition tracer
+                  ! Save into ARRAY
+                  ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
+
+                  ! Write to file
+                  ! It's number is NNPAR+1 (see gamap_mod.f)
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                        IIPAR,     JJPAR,     1,        IFIRST,     
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+               CASE( 'MACRN' )
+                  !MVKN are the next deposition tracer
+                  ! Save into ARRAY
+                  ARRAY(:,:,1) = ( AD44(:,:,N+1,1) / SCALECHEM )
+
+                  ! Write to file
+                  ! It's number is NNPAR+2 (see gamap_mod.f)
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                        IIPAR,     JJPAR,     1,        IFIRST,     
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            END SELECT
+                  
 
          ENDDO
 
@@ -2744,7 +2885,14 @@ c$$$            IF ( MMB /= NN ) CYCLE
                MM  = MM + 1
             ENDDO
             
-            IF ( MMB /= NN ) CYCLE
+            ! Special case for tracers with several dry dep. tracers
+            ! E.g. ISOPN: ISOPND and ISOPNB.
+            ! We handle both tracers at the same time so we need to 
+            ! skip the second tracer. (ccc, 2/3/10)
+            !IF ( MMB /= NN ) CYCLE
+            IF ( MMB /= NN                .OR.
+     &           DEPNAME( N ) == 'ISOPNB' .OR.
+     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
 
             ! Tracer number plus GAMAP offset
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE
@@ -2755,6 +2903,38 @@ c$$$            IF ( MMB /= NN ) CYCLE
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+
+            ! Special case for tracers with several deposition tracers.
+            ! (E.G. ISOPN: ISOPND and ISOPNB) (ccc, 2/3/10)
+            SELECT CASE( DEPNAME( N ) )
+               CASE( 'ISOPND' ) 
+                  !ISOPNB is the next deposition tracer
+                  ! Save into ARRAY
+                  ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
+
+                  ! Write to file
+                  ! It's number is NNPAR+1 (see gamap_mod.f)
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+1,    
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                        IIPAR,     JJPAR,     1,        IFIRST,     
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+               CASE( 'MACRN' )
+                  !MVKN are the next deposition tracer
+                  ! Save into ARRAY
+                  ARRAY(:,:,1) = ( AD44(:,:,N+1,2) / SCALECHEM )
+
+                  ! Write to file
+                  ! It's number is NNPAR+2 (see gamap_mod.f)
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NNPAR+2,    
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                        IIPAR,     JJPAR,     1,        IFIRST,     
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+            END SELECT
 
          ENDDO
       ENDIF

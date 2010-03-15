@@ -1,4 +1,4 @@
-! $Id: input_mod.f,v 1.10 2010/02/26 18:19:59 bmy Exp $
+! $Id: input_mod.f,v 1.11 2010/03/15 19:33:23 ccarouge Exp $
       MODULE INPUT_MOD
 !
 !******************************************************************************
@@ -734,11 +734,15 @@
 !  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
 !  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
+!  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE CHARPAK_MOD,       ONLY : ISDIGIT
       USE BIOFUEL_MOD,       ONLY : SET_BFTRACE
+      !FP_ISOP
+      ! Initialzie IDBxxxs (6/2009)
+      USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
@@ -997,6 +1001,10 @@
       ! Set NBFTRACE in "biofuel_mod.f"
       CALL SET_BFTRACE
 
+      ! Set NBIOTRACE in "biomass_mod.f"
+      !FP_ISOP (6/2009)
+      CALL SET_BIOTRCE
+
       ! Set counter
       CT1 = CT1 + 1
 
@@ -1042,7 +1050,7 @@
       USE TRACERID_MOD, ONLY : IDTSOA1,  IDTSOA2,  IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
-      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
+      USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
 
       ! Local variables
       INTEGER            :: N, T, I
@@ -1221,10 +1229,12 @@
       !---------------------------------
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
+      ! Add SOA5 in the check. (ccc, 2/4/10)
       I = IDTALPH + IDTLIMO + IDTALCO + 
      &    IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
      &    IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
-     &    IDTSOAG + IDTSOAM
+     &    IDTSOAG + IDTSOAM + IDTSOA5
+
 
       IF ( LSOA ) THEN
          IF ( I == 0 ) THEN
@@ -1339,6 +1349,8 @@
 !  (25) Included optional flag for using PCEEA model (mpb, 2009)
 !  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
 !  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
+!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
+!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1349,6 +1361,8 @@
       USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
       USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
       USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
+      !add separate switch for Fert NOx (fp, 6/2009)
+      USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
       USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
       USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
       USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
@@ -1358,6 +1372,10 @@
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
       USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
+      !allow for ISOP and NOx emissions scaling (fp, 6/2009)
+      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
+      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
+
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_O3"      ! FSCALYR
@@ -1451,113 +1469,125 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:18' )
       READ( SUBSTRS(1:N), * ) LMEGANMONO
 
-      ! Include biomass emissions?
+      ! Isoprene Emissions scaling (fp, 06/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:19' )
+      READ( SUBSTRS(1:N), * ) ISOP_SCALING
+
+      ! Include biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
       READ( SUBSTRS(1:N), * ) LBIOMASS
 
       ! Seasonal biomass?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:20' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
       READ( SUBSTRS(1:N), * ) LBBSEA
 
       ! Scaled to TOMSAI?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:21' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
       READ( SUBSTRS(1:N), * ) LTOMSAI
 
       ! Separator line (start of GFED2 biomass emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:22' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
 
       ! Use monthly GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:23' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
       READ( SUBSTRS(1:N), * ) LGFED2BB
 
       ! Use 8-day GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:24' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
       READ( SUBSTRS(1:N), * ) L8DAYBB
 
       ! Use 3-hr GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:25' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
       READ( SUBSTRS(1:N), * ) L3HRBB
 
       ! Use 3-hr synoptic GFED2 biomass emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:26' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
       READ( SUBSTRS(1:N), * ) LSYNOPBB
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:27' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
 
       ! Use aircraft NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:28' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
 
       ! Use lightning NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:29' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
       ! Scale lightning flash rate to OTD-LIS annual averate rate?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
       READ( SUBSTRS(1:N), * ) LOTDSCALE
 
       ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LOTDREG
 
       ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
       ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) LCTH
 
       ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LMFLUX
 
       ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LPRECON
 
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
+      ! separate use fertilizer and soil NOx (fp, 06/09)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
+
+      !(FP, 15/12/09)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      READ( SUBSTRS(1:N), * ) NOx_SCALING
+
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
 
       !=================================================================
       ! Error check logical flags
@@ -1834,6 +1864,8 @@
       WRITE( 6, 100     ) 'Use MEGAN biogenic emissions: ', LMEGAN
       WRITE( 6, 100     ) 'Use PCEEA BVOC model        : ', LPECCA
       WRITE( 6, 100     ) 'Use MEGAN bio emissions MONO: ', LMEGANMONO
+! added ISOP scaling (hotp 8/4/09)
+      WRITE( 6, 120     ) ' Use isop scaling factor    : ', ISOP_SCALING
       WRITE( 6, 100     ) 'Turn on BIOMASS EMISSIONS   : ', LBIOMASS
       WRITE( 6, 100     ) 'Use seasonal BIOMASS emiss? : ', LBBSEA
       WRITE( 6, 100     ) 'Scale BIOMASS to TOMS-AI?   : ', LTOMSAI
@@ -1852,6 +1884,10 @@
       WRITE( 6, 100     ) 'Use PRECON LIGHTNING Param? : ', LPRECON
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
+!FP_ISOP (6/2009)
+      WRITE( 6, 100     ) 'Turn on Fertilizer NOx?     : ', 
+     &                     LFERTILIZERNOX
+      WRITE( 6, 120     ) 'NOx scaling                 : ', NOx_SCALING
       WRITE( 6, 100     ) 'Turn on EDGAR   SHIP emiss.?: ', LEDGARSHIP
       WRITE( 6, 100     ) 'Turn on ICOADS  SHIP emiss.?: ', LICOADSSHIP
       WRITE( 6, 100     ) 'Turn on  EMEP   SHIP emiss.?: ', LEMEPSHIP
@@ -1864,6 +1900,8 @@
       ! FORMAT statements
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
+      ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
+ 120  FORMAT( A, f6.2 )
 
       ! Return to calling program
       END SUBROUTINE READ_EMISSIONS_MENU
@@ -1961,7 +1999,7 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP 
-      USE LOGICAL_MOD, ONLY : LCHEM,    LEMBED
+      USE LOGICAL_MOD, ONLY : LCHEM !,    LEMBED
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
@@ -2512,10 +2550,12 @@
 !        (phs, 11/18/08)
 !  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
 !        (tmf, 2/10/09)
+!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BIOMASS_MOD,  ONLY : NBIOMAX
+      ! NBIOMAX now in CMN_SIZE (fp, 6/2009)
+      !USE BIOMASS_MOD,  ONLY : NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
@@ -2964,7 +3004,7 @@
       CALL SET_TINDEX( 56, ND56, SUBSTRS(2:N), N-1, PD56 )
 
       !--------------------------
-      ! ND57: Free
+      ! ND57: Potential temperature
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:56' )
       READ( SUBSTRS(1), * ) ND57
@@ -3856,6 +3896,7 @@
 !  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and 
 !        TagCO runs if DO_SAVE_PL=T.  Also turn off this diagnostic for
 !        the offline aerosol run. (bmy, 10/29/04)
+!  (2 ) Add error trap is P/L families are asked when using KPP. (ccc, 3/10/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3864,13 +3905,15 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TRACER_MOD,  ONLY : N_TRACERS,       ITS_A_TAGCO_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
+      USE LOGICAL_MOD, ONLY : LKPP
 
 #     include "CMN_SIZE"    ! MAXFAM
 #     include "CMN_DIAG"    ! ND65
 
       ! Local variables
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      INTEGER, PARAMETER   :: MAXMEM=10
+      !FP_ISOP moved to CMN_SIZE (6/2009)
+      !INTEGER, PARAMETER   :: MAXMEM=10
       INTEGER              :: F, M, N, NFAM
       INTEGER              :: FAM_NMEM(MAXFAM)
       REAL*8               :: FAM_COEF(MAXMEM,MAXFAM)
@@ -3967,6 +4010,16 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:6' )
+
+      !=================================================================
+      ! Error check: ND65 not available for KPP
+      !=================================================================
+
+      IF ( DO_SAVE_PL .AND. LKPP ) THEN
+         MSG = 'P/L families are incompatible with KPP. ' //
+     &         'Please change one option'
+         CALL ERROR_STOP( MSG, LOCATION )
+      ENDIF
 
       !=================================================================
       ! Error check families for certain types of simulations
@@ -4987,7 +5040,8 @@
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
       USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
-      USE LOGICAL_MOD,   ONLY : LEMBED,     LCONV,      LDBUG      
+!      USE LOGICAL_MOD,   ONLY : LEMBED,     LCONV,      LDBUG      
+      USE LOGICAL_MOD,   ONLY : LCONV,      LDBUG      
       USE LOGICAL_MOD,   ONLY : LDIAG,      LPRT,       LSTDRUN    
       USE LOGICAL_MOD,   ONLY : LDRYD,      LAIRNOX,    LANTHRO    
       USE LOGICAL_MOD,   ONLY : LBIONOX,    LBIOMASS,   LBIOFUEL   
@@ -5039,7 +5093,7 @@
       LSOA         = .FALSE.
       LSSALT       = .FALSE.
       LCHEM        = .FALSE.
-      LEMBED       = .FALSE.
+!      LEMBED       = .FALSE.
       LCONV        = .FALSE.
       LDBUG        = .FALSE.
       LDIAG        = .FALSE.
@@ -5099,7 +5153,7 @@
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
 
-      ! Add flags for MODIS LAI & the PECCA model (mpb,2009)
+      ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
       LMODISLAI    = .FALSE.
       LPECCA       = .FALSE.
 

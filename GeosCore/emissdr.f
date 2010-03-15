@@ -1,4 +1,4 @@
-! $Id: emissdr.f,v 1.5 2010/02/25 21:07:03 bmy Exp $
+! $Id: emissdr.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
       SUBROUTINE EMISSDR
 !
 !******************************************************************************
@@ -75,6 +75,8 @@
 !       (ccc, 11/30/09)
 !  (31) Remove reference to obsolete embedded chemistry stuff in "CMN" 
 !       (bmy, 2/25/10)
+!  (32) Add a NOx fertilizer switch and a scaling factor for ISOP emissions
+!       (fp, 6/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -87,7 +89,9 @@
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
       USE LIGHTNING_NOX_MOD, ONLY : EMLIGHTNING
-      USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX  
+      USE LOGICAL_MOD,       ONLY : LANTHRO,       LLIGHTNOX, LSOILNOX
+      !FP_ISOP  (6/2009) add separate FERTILIZER NOX
+      USE LOGICAL_MOD,       ONLY : LFERTILIZERNOX
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
@@ -103,6 +107,9 @@
       USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009) 
       USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
       USE MEGANUT_MOD,       ONLY : XLTMMP
+      !FP_ISOP (6/2009)
+      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
+
  
       IMPLICIT NONE
 
@@ -265,7 +272,9 @@
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
 ! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
 !
-            IF ( LSOILNOX .AND. I == 1 .AND. J == 1 ) 
+            ! Add separate fertilizer switch. (fp, 6/09)
+            IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
+     &             .AND. I == 1 .AND. J == 1 ) 
      &         CALL SOILNOXEMS( SUNCOS )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
@@ -316,6 +325,10 @@
                   EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
 
                ENDIF
+ 
+               !FP_ISOP (6/2009)
+               EMIS = ISOP_SCALING * EMIS
+
 
 
                IF ( LMEGANMONO ) THEN
