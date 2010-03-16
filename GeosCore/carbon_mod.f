@@ -4233,6 +4233,7 @@ c
 !        turned on (dkh, bmy, 1/24/08)
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
 !  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
+!  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4242,6 +4243,9 @@ c
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
+      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
+      USE MEGAN_MOD,     ONLY : GET_EMMONOG_MEGAN
+      ! ----
       USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -4477,8 +4481,84 @@ c
             ! because its chemical lifetime is short (reactive)
             BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
 
+
+            ! The new MEGAN implementation has speciated information
+            ! (hotp 3/7/10)
+            ! For GCAP Meteorology year 2000 in Tg/yr:
+            ! ------------------------------
+            ! HC Class  New MEGAN  Old MEGAN
+            ! --------  ---------  ---------
+            ! ALPH        84         92
+            ! LIMO        10         27
+            ! TERP         3.2        3.5
+            ! ALCO        47         38
+            ! SESQ        15         15    (no change for SESQ)
+            !           -----      -----
+            ! TOTAL      159        176
+            ! ------------------------------
+            IF ( LMEGANMONO ) THEN
+
+               ! bug fix: swap TMMP and SC (hotp 3/10/10)
+               ! ALPH in kg compound
+               ! a-pinene
+               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'APINE') * FC1
+               ! b-pinene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
+               ! sabinene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
+               ! d3-carene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
+               ! terpenoid ketones (assumed to behave like sabinene)
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) + 
+     &                          + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
+      
+               ! LIMO in kg compound
+               ! limonene
+               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
+
+               ! TERP in kg compound
+               ! terpinene and terpinolene 
+               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
+               ! 3% of monoterpenes are terpinene + terpinolene
+               ! 35% of monoterpenes are a-pinene.
+               ! Will be revised when other monoterpene emissions are
+               ! implemented in megan_mod.f.
+               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
+
+               ! ALCO in kg compound
+               ! myrcene
+               BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
+               ! ocimene
+               BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
+               ! Other reactive volatile organic carbon emissions
+               ! (terpenoid alcohols)
+               BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
+     &                          + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
+ 
+               ! SESQ (same as above)
+               ! We do not transport SESQ (C15H24) 
+               ! because its chemical lifetime is short (reactive)
+               ! Will be revised when sesq emissions are implemented in
+               ! megan_mod.f.
+               BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+
+            ENDIF ! end speciated MEGAN (hotp)
+
          ENDDO
          ENDDO
+
 !$OMP END PARALLEL DO
 
       ENDIF
