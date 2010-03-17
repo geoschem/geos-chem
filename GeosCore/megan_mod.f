@@ -89,7 +89,8 @@
       REAL*8, ALLOCATABLE :: AEF_MYRCN(:,:)     ! Myrcene
       REAL*8, ALLOCATABLE :: AEF_CAREN(:,:)     ! 3-Carene
       REAL*8, ALLOCATABLE :: AEF_OCIMN(:,:)     ! Ocimene
-      REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
+      ! bug fix: causes issues in parallel (hotp 3/10/10) 
+      !REAL*8, ALLOCATABLE :: AEF_SPARE(:,:)     ! Temp array for monoterp's
 
       ! Path to MEGAN emission factors
       CHARACTER(LEN=20)   :: MEGAN_SUBDIR = 'MEGAN_200909/'
@@ -134,6 +135,8 @@
 !        0.5 x 0.666 nested grid simulations (yxw, dan, bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
+!  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
+!                              in GET_EMMONOT_MEGAN for parallelization.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -510,6 +513,9 @@
       REAL*8            :: D_BTW_M
       REAL*8            :: LDF 
       REAL*8            :: Q_DIR_2, Q_DIFF_2
+      ! bug fix: need local AEF_SPARE (hotp 3/10/10)
+      ! AEF_SPARE is a scaler
+      REAL*8              :: AEF_SPARE
 
       !=================================================================
       ! GET_EMMONOT_MEGAN begins here!
@@ -535,25 +541,25 @@
       ! we need to use (mpb,2009)
       SELECT CASE( MONO_SPECIES) 
       CASE( 'APINE' )
-         AEF_SPARE = AEF_APINE
+         AEF_SPARE = AEF_APINE(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.1
       CASE( 'BPINE' )
-         AEF_SPARE = AEF_BPINE
+         AEF_SPARE = AEF_BPINE(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.1
       CASE( 'LIMON' )
-         AEF_SPARE = AEF_LIMON
+         AEF_SPARE = AEF_LIMON(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.05
       CASE( 'SABIN' )
-         AEF_SPARE = AEF_SABIN
+         AEF_SPARE = AEF_SABIN(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.1
       CASE( 'MYRCN' )
-         AEF_SPARE = AEF_MYRCN
+         AEF_SPARE = AEF_MYRCN(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.05
       CASE( 'CAREN' )
-         AEF_SPARE = AEF_CAREN
+         AEF_SPARE = AEF_CAREN(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.05
       CASE( 'OCIMN' )
-         AEF_SPARE = AEF_OCIMN
+         AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.8
          CASE DEFAULT
            CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
@@ -564,7 +570,9 @@
       ! Only interested in terrestrial biosphere (pip)
       ! If (local LAI != 0 .AND. baseline emission !=0 ) 
       !-----------------------------------------------------
-      IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
+      ! AEF_SPARE no longer I,J (hotp 3/10/10)
+      !IF ( ISOLAI(I,J) * AEF_SPARE(I,J) > 0d0 ) THEN
+      IF ( ISOLAI(I,J) * AEF_SPARE > 0d0 ) THEN
 
             ! Calculate gamma PAR only if sunlight conditions
             IF ( SUNCOS > 0d0 ) THEN
@@ -614,14 +622,17 @@
       ! Monoterpene emission is the product of all these; must be 
       ! careful to distinguish between canopy & PECCA models.
       IF ( LPECCA ) THEN
-
-         EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         ! removed I,J from AEF_SPARE (hotp 3/10/10)
+         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
      &                               * GAMMA_SM       * GAMMA_LAI
      &                       * ( (1.d0 - LDF) + (LDF * GAMMA_P) )
 
       ELSE 
 
-         EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T 
+         ! removed I,J from AEF_SPARE (hotp 3/10/10)
+         !EMMONOT    = AEF_SPARE(I,J) * GAMMA_LEAF_AGE * GAMMA_T
+         EMMONOT    = AEF_SPARE * GAMMA_LEAF_AGE * GAMMA_T 
      &                               * GAMMA_SM       
      &                * (  GAMMA_LAI * (1.d0 - LDF) + (LDF * GAMMA_P) )
 
@@ -1098,7 +1109,6 @@
       ! Ideal gas constant [J/mol/K]
       REAL*8, PARAMETER   :: R   = 8.314d-3
 
-      ! Function return value
 
       ! Normalization Factor 
       REAL*8, PARAMETER   ::  NORM = 0.99558166894501043d0    
@@ -1254,7 +1264,6 @@
       ! Canopy model variables (Eqs 12-16 from Guenther et al, 1995)
       !-----------------------------------------------------------------
 
-      ! Return value
 
       ! C_PPFD: Effect of increasing PPFD up to a saturation point, where 
       ! emissions level off, based on Eq 4abc from Guenther et al. (1999)
@@ -2652,9 +2661,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_OCIMN' )
       AEF_OCIMN = 0d0
 
-      ALLOCATE( AEF_SPARE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_SPARE' )
-      AEF_SPARE = 0d0
+      ! AEF_SPARE no longer "global" to module (hotp 3/10/10)
+      !ALLOCATE( AEF_SPARE( IIPAR, JJPAR ), STAT=AS )
+      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'AEF_SPARE' )
+      !AEF_SPARE = 0d0
 
       ! Allocate arrays for light (mpb,2009)
 
@@ -2861,7 +2871,8 @@
       IF ( ALLOCATED( AEF_MYRCN ) ) DEALLOCATE( AEF_MYRCN )
       IF ( ALLOCATED( AEF_CAREN ) ) DEALLOCATE( AEF_CAREN )
       IF ( ALLOCATED( AEF_OCIMN ) ) DEALLOCATE( AEF_OCIMN )
-      IF ( ALLOCATED( AEF_SPARE ) ) DEALLOCATE( AEF_SPARE )
+      ! bug fix (hotp 3/10/10)
+      !IF ( ALLOCATED( AEF_SPARE ) ) DEALLOCATE( AEF_SPARE )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_MEGAN
