@@ -468,7 +468,11 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
+      print*, 'Before physproc:'
+      print*, MAXVAL(CSPEC)
+
       CALL PHYSPROC( SUNCOS, SUNCOSB )
+
 
 !--- Previous to (ccc, 12/9/09)
 !      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************

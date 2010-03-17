@@ -192,7 +192,7 @@
             ! Call SMVGEAR routines
             CALL CHEMDR
 
-             ! Do seasalt aerosol chemistry
+            ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
@@ -498,8 +498,9 @@
 
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
-         RTOL(i) = 2.d-1
-         ATOL(i) = 1.d-2
+!         RTOL(i) = 2.d-1
+         RTOL(i) = 99.d-2
+         ATOL(i) = 10.d-1
       END DO
 
       ! for LSODE
