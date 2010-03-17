@@ -508,7 +508,10 @@
          CALL WRITE_SEPARATOR( 600 )
 
          ! Loop over tracers
-         DO T = 1, 18
+         ! New tracers for SOA simulation
+!--- Previous (ccc, 3/17/10)
+!         DO T = 1, 18
+         DO T = 1, 28
             
             ! GAMAP tracer number
             N = ( SPACING * 6 ) + T
@@ -523,6 +526,7 @@
             CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
      &                        1,        1e0,      'kg/kg', N )
          ENDDO
+
       ENDIF
 
       !------------------------------
@@ -948,13 +952,25 @@
       DESCRIPT(N) = 'Up/down transport flux'
       OFFSET(N)   = SPACING * 4
 
+!--- Previous to (ccc, 3/17/10)------------------
+! Category names for GPROD and APROD have changed
+!      N           = N + 1
+!      CATEGORY(N) = 'IJ-GPROD'
+!      DESCRIPT(N) = 'SOA GPROD restart'
+!      OFFSET(N)   = SPACING * 6
+!
+!      N           = N + 1
+!      CATEGORY(N) = 'IJ-APROD'
+!      DESCRIPT(N) = 'SOA APROD restart'
+!      OFFSET(N)   = SPACING * 6
+!-------------------------------------------------
       N           = N + 1
-      CATEGORY(N) = 'IJ-GPROD'
+      CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
       OFFSET(N)   = SPACING * 6
 
       N           = N + 1
-      CATEGORY(N) = 'IJ-APROD'
+      CATEGORY(N) = 'SOAAPROD'
       DESCRIPT(N) = 'SOA APROD restart'
       OFFSET(N)   = SPACING * 6
 

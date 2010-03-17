@@ -179,8 +179,9 @@
       ENDDO  
       ENDDO  
 
-      ! dkh debug
-      !print*, 'onto gprod' 
+      ! Restart tracer # because we change category. (ccc, 3/17/10)
+      N = 0
+
 
       ! GPROD
       CATEGORY = 'SOAGPROD'
@@ -777,7 +778,8 @@
 
 
       ! Calculate max number of SOA products
-      MAXPROD = MHC * MPROD * MNOX * 2 
+!      MAXPROD = MHC * MPROD * MNOX * 2 
+      MAXPROD = MHC * MPROD * MNOX
    
       ! dkh debug
       print*, 'MAXPROD = ', MAXPROD  
@@ -850,19 +852,19 @@
       ENDDO
       ENDDO
       ENDDO
-      ! for GPROD
-      DO JHC = 1, MHC
-      DO IPR = 1, NPROD(JHC)
-      DO NOX = 1, NNOX(JHC)
-
-         N = N + 1
-         JN(N) = JHC
-         IN(N) = IPR
-         NN(N) = NOX
-
-      ENDDO
-      ENDDO
-      ENDDO
+!      ! for GPROD
+!      DO JHC = 1, MHC
+!      DO IPR = 1, NPROD(JHC)
+!      DO NOX = 1, NNOX(JHC)
+!
+!         N = N + 1
+!         JN(N) = JHC
+!         IN(N) = IPR
+!         NN(N) = NOX
+!
+!      ENDDO
+!      ENDDO
+!      ENDDO
       
       ! Return to calling program
       END SUBROUTINE SET_SOAPROD
