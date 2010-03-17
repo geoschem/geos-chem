@@ -128,6 +128,7 @@ clean:
 realclean:
 	@$(MAKE) -C standard clean
 	@$(MAKE) -C SOA clean
+	@$(MAKE) -C SOA_2 clean
 
 help:
 	@$(MAKE) -C $(HELP) 

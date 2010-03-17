@@ -4,10 +4,10 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the KPP/54t subdirectory)
+# !MODULE: Makefile (in the KPP/43t subdirectory)
 #
 # !DESCRIPTION: This makefile compiles the KPP solver code for the GEOS-Chem
-#  54 tracer simulation (i.e. containing secondary organic aerosol tracers).  
+#  43 tracer simulation (i.e. without secondary organic aerosol tracers).  
 #  Object files (*.o) are bundled into the libKpp.a library (located in the 
 #  LIB directory).  Module files (*.mod) are copied to the MOD directory. 
 #\\

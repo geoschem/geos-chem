@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Fri May 29 16:36:46 2009
-! Working directory    : /home/phs/KPP/v8-02-01_43t
+! Time                 : Tue Mar 16 12:45:11 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -38,8 +38,7 @@ CONTAINS
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SUBROUTINE Initialize ( )
-
-
+   
   USE gckpp_Global
   USE gckpp_Util,     ONLY : Shuffle_user2kpp
   USE gckpp_Monitor
@@ -52,21 +51,16 @@ SUBROUTINE Initialize ( )
      FIX(i) = 1.d0
   END DO
 
-! INLINED initializations
-
-! -- the following is not needed in the forward model ?
+  ! these two loops are for the adjoint only
   DO I =1, NVAR
      C(I)=VAR(I)
   ENDDO
+
   DO I = 1, NFIX
      C(NVAR+I) = FIX(I)
   END DO
-  
-  
-! End INLINED initializations
-
-      
-END SUBROUTINE Initialize
+        
+END SUBROUTINE Initialize    
 
 ! End of Initialize function
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
