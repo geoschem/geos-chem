@@ -1,0 +1,9 @@
+16 March 2010
+Claire Carouge
+geos-chem-support@geos.as.harvard.edu
+
+
+This directory contains the KPP files created for the alternative
+chemistry scheme for Isoprene, as developed at CalTech by F. Paulot.
+
+The KPP files were created using the globchem.dat present in this directory.
