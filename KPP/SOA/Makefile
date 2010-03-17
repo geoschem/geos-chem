@@ -4,10 +4,11 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the KPP/43t subdirectory)
+# !MODULE: Makefile (in the KPP/SOA subdirectory)
 #
 # !DESCRIPTION: This makefile compiles the KPP solver code for the GEOS-Chem
-#  43 tracer simulation (i.e. without secondary organic aerosol tracers).  
+#  SOA simulation (with aromatic formation of secondary organic aerosol
+#  tracers).  
 #  Object files (*.o) are bundled into the libKpp.a library (located in the 
 #  LIB directory).  Module files (*.mod) are copied to the MOD directory. 
 #\\
@@ -132,11 +133,6 @@ gckpp_Model.o         : gckpp_Precision.o       \
                         gckpp_LinearAlgebra.o
 
 gckpp_Parameters.o    : gckpp_Precision.o
-
-#gckpp_Rates.o         : gckpp_Parameters.o      \
-#                        gckpp_Global.o          \
-#                        gckpp_Monitor.o         \
-#                        gckpp_comode_mod.o
 
 gckpp_Rates.o         : gckpp_Parameters.o      \
                         gckpp_Global.o          \
