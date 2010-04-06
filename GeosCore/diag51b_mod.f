@@ -68,33 +68,46 @@
 !
 !  ND51 tracer numbers:
 !  ============================================================================
-!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  74            : OH concentration                         [molec/cm3]
-!  75            : NO2 concentration                        [v/v      ]
-!  76            : PBL heights                              [m        ]
-!  77            : PBL heights                              [levels   ]
-!  78            : Air density                              [molec/cm3]
-!  79            : 3-D Cloud fractions                      [unitless ]
-!  80            : Column optical depths                    [unitless ]
-!  81            : Cloud top heights                        [hPa      ]
-!  82            : Sulfate aerosol optical depth            [unitless ]
-!  83            : Black carbon aerosol optical depth       [unitless ]
-!  84            : Organic carbon aerosol optical depth     [unitless ]
-!  85            : Accumulation mode seasalt optical depth  [unitless ]
-!  86            : Coarse mode seasalt optical depth        [unitless ]
-!  87            : Total dust optical depth                 [unitless ]
-!  88            : Total seasalt tracer concentration       [unitless ]
-!  89            : Pure O3 (not Ox) concentration           [v/v      ]
-!  90            : NO concentration                         [v/v      ]
-!  91            : NOy concentration                        [v/v      ]
-!  92            : RESERVED FOR FUTURE USE
-!  93            : Grid box heights                         [m        ]
-!  94            : Relative Humidity                        [%        ]
-!  95            : Sea level pressure                       [hPa      ]
-!  96            : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  97            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  98            : P(surface) - PTOP                        [hPa      ]
-!  99            : Temperature                              [K        ]
+!  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
+!  76            : OH concentration                         [molec/cm3  ]
+!  77            : NO2 concentration                        [v/v        ]
+!  78            : PBL heights                              [m          ]
+!  79            : PBL heights                              [levels     ]
+!  80            : Air density                              [molec/cm3  ]
+!  81            : 3-D Cloud fractions                      [unitless   ]
+!  82            : Column optical depths                    [unitless   ]
+!  83            : Cloud top heights                        [hPa        ]
+!  84            : Sulfate aerosol optical depth            [unitless   ]
+!  85            : Black carbon aerosol optical depth       [unitless   ]
+!  86            : Organic carbon aerosol optical depth     [unitless   ]
+!  87            : Accumulation mode seasalt optical depth  [unitless   ]
+!  88            : Coarse mode seasalt optical depth        [unitless   ]
+!  89            : Total dust optical depth                 [unitless   ]
+!  90            : Total seasalt tracer concentration       [unitless   ]
+!  91            : Pure O3 (not Ox) concentration           [v/v        ]
+!  92            : NO concentration                         [v/v        ]
+!  93            : NOy concentration                        [v/v        ]
+!  94            : Grid box heights                         [m          ]
+!  95            : Relative Humidity                        [%          ]
+!  96            : Sea level pressure                       [hPa        ]
+!  97            : Zonal wind (a.k.a. U-wind)               [m/s        ]
+!  98            : Meridional wind (a.k.a. V-wind)          [m/s        ]
+!  99            : P(surface) - PTOP                        [hPa        ]
+!  100           : Temperature                              [K          ]
+!  101           : PAR direct                               [hPa        ]
+!  102           : PAR diffuse                              [hPa        ]
+!  103           : Daily LAI                                [hPa        ]
+!  104           : Temperature at 2m                        [K          ]
+!  105           : Isoprene emissions                       [atomC/cm2/s]
+!  106           : Total Monoterpene emissions              [atomC/cm2/s]
+!  107           : Methyl Butanol emissions                 [atomC/cm2/s]
+!  108           : Alpha-Pinene emissions                   [atomC/cm2/s]
+!  109           : Beta-Pinene emissions                    [atomC/cm2/s]
+!  110           : Limonene emissions                       [atomC/cm2/s]
+!  111           : Sabinene emissions                       [atomC/cm2/s]
+!  112           : Myrcene emissions                        [atomC/cm2/s]
+!  113           : 3-Carene emissions                       [atomC/cm2/s]
+!  114           : Ocimene emissions                        [atomC/cm2/s]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
@@ -519,18 +532,7 @@
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
 
-            ELSE IF ( (N .ge. 60) .and. (N .le. 66) ) THEN
-
-               R = N - 59
-
-               ! Scaling factor to 400 nm
-               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
-
-               ! Accumulate
-               Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &              ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
-
-            ELSE IF ( N == 89 .and. IS_Ox ) THEN
+            ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
                !--------------------------------------
                ! Pure O3 [v/v]
@@ -542,7 +544,7 @@
      &              ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                TCVV(IDTOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
 
-            ELSE IF ( N == 90 .and. IS_NOx ) THEN
+            ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO [v/v]
@@ -554,7 +556,7 @@
      &              ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                TCVV(IDTNOX)      / AD(I,J,L)     * GOOD_CHEM(X) )
 
-            ELSE IF ( N == 91 .and. IS_NOy ) THEN
+            ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy [v/v]
@@ -597,7 +599,7 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH [molec/cm3]
@@ -608,7 +610,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( SAVEOH(I,J,L) * GOOD_CHEM(X) )
               
-            ELSE IF ( N == 75 .and. IS_NOx ) THEN
+            ELSE IF ( N == 77 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO2 [v/v]
@@ -618,7 +620,7 @@
      &            ( STT(I,J,L,IDTNOX)  * FRACNO2(I,J,L) *
      &              TCVV(IDTNOX)       / AD(I,J,L)      * GOOD_CHEM(X) )
  
-            ELSE IF ( N == 76 ) THEN
+            ELSE IF ( N == 78 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [m] 
@@ -628,7 +630,7 @@
      &                         ( GET_PBL_TOP_m( I, J ) * GOOD(I) )  
                ENDIF
 
-            ELSE IF ( N == 77 ) THEN
+            ELSE IF ( N == 79 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [layers] 
@@ -638,7 +640,7 @@
      &                         ( GET_PBL_TOP_L( I, J ) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 78 ) THEN
+            ELSE IF ( N == 80 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -646,21 +648,21 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &              ( AIRDEN(L,I,J) * XNUMOLAIR * 1d-6 * GOOD(I) )
 
-            ELSE IF ( N == 79 ) THEN
+            ELSE IF ( N == 81 ) THEN
 
                !--------------------------------------
                ! 3-D CLOUD FRACTION [unitless]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( CLDF(L,I,J) * GOOD(I) )
 
-            ELSE IF ( N == 80 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 82 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
                Q(X,Y,1,W) = Q(X,Y,1,W) + ( OPTD(L,I,J) * GOOD(I) )
 
-            ELSE IF ( N == 81 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -670,7 +672,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( TMP * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 82 ) THEN
+            ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
@@ -686,7 +688,7 @@
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 83 ) THEN
+            ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
@@ -705,7 +707,7 @@
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 84 ) THEN
+            ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
@@ -724,7 +726,7 @@
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 85 ) THEN
+            ELSE IF ( N == 87 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
@@ -743,7 +745,7 @@
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) ) 
                ENDDO
 
-            ELSE IF ( N == 86 ) THEN
+            ELSE IF ( N == 88 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
@@ -762,7 +764,7 @@
      &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 87 ) THEN               
+            ELSE IF ( N == 89 ) THEN               
 
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
@@ -778,7 +780,7 @@
      &                 ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
                ENDDO
 
-            ELSE IF ( N == 88 .and. IS_SEASALT ) THEN
+            ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
                !-----------------------------------
                ! TOTAL SEASALT TRACER [v/v]
@@ -788,21 +790,21 @@
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)  / AD(I,J,L) * GOOD(I)
 
-            ELSE IF ( N == 93 ) THEN
+            ELSE IF ( N == 94 ) THEN
 
                !-----------------------------------
                ! GRID BOX HEIGHTS [m]
                !-----------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( BXHEIGHT(I,J,L) * GOOD(I) )
 
-            ELSE IF ( N == 94 ) THEN
+            ELSE IF ( N == 95 ) THEN
 
                !-----------------------------------
                ! RELATIVE HUMIDITY [%]
                !-----------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( RH(I,J,L) * GOOD(I) )
 
-            ELSE IF ( N == 95 .and. IS_SLP ) THEN
+            ELSE IF ( N == 96 .and. IS_SLP ) THEN
 
                !-----------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -811,21 +813,21 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( SLP(I,J) * GOOD(I) )
                ENDIF
 
-            ELSE IF ( N == 96 ) THEN
+            ELSE IF ( N == 97 ) THEN
 
                !-----------------------------------
                ! ZONAL (U) WIND [M/S]
                !-----------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( UWND(I,J,L) * GOOD(I) )
 
-            ELSE IF ( N == 97 ) THEN
+            ELSE IF ( N == 98 ) THEN
 
                !-----------------------------------
                ! MERIDIONAL (V) WIND [M/S]
                !-----------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( VWND(I,J,L) * GOOD(I) )
 
-            ELSE IF ( N == 98 ) THEN
+            ELSE IF ( N == 99 ) THEN
 
                !-----------------------------------
                ! SURFACE PRESSURE - PTOP [hPa]
@@ -835,7 +837,7 @@
      &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
                ENDIF
 
-            ELSE IF ( N == 99 ) THEN 
+            ELSE IF ( N == 100 ) THEN 
 
                !-----------------------------------
                ! TEMPERATURE [K]
@@ -845,7 +847,7 @@
 ! =====================================================================
 ! Added with MEGAN v2.1. (ccc, 11/20/09)
 
-            ELSE IF ( N == 100 ) THEN 
+            ELSE IF ( N == 101 ) THEN 
 
                !-----------------------------------
                ! PAR DR [W/m2] (mpb,2009)
@@ -857,7 +859,7 @@
      &                     ( PARDR(I,J) * GOOD(I) ) 
                ENDIF
 
-            ELSE IF ( N == 101 ) THEN 
+            ELSE IF ( N == 102 ) THEN 
 
                !-----------------------------------
                ! PAR DF [W/m2] (mpb,2009)
@@ -869,7 +871,7 @@
      &                     ( PARDF(I,J) * GOOD(I) ) 
                ENDIF
 
-            ELSE IF ( N == 102 ) THEN 
+            ELSE IF ( N == 103 ) THEN 
 
                !-----------------------------------
                ! DAILY LAI  [cm2/cm2] (mpb,2009)
@@ -882,7 +884,7 @@
                ENDIF
 
 
-            ELSE IF ( N == 103 ) THEN
+            ELSE IF ( N == 104 ) THEN
 
                !-----------------------------------
                ! T at 2m [K] (mpb,2009)
@@ -894,7 +896,7 @@
 
                ENDIF
 
-            ELSE IF ( N == 104 ) THEN
+            ELSE IF ( N == 105 ) THEN
 
                !-----------------------------------
                ! ISOPRENE EMISSIONS [atom C/cm2/s]
@@ -908,7 +910,7 @@
 
                ENDIF
 
-            ELSE IF ( N == 105 ) THEN
+            ELSE IF ( N == 106 ) THEN
 
                !------------------------------------
                ! MONOTERPENE EMISSIONS [atomC/cm2/s]
@@ -921,7 +923,7 @@
      &                     ( EMISS_BVOC(I,J,2) * GOOD_EMIS(I) ) 
                ENDIF
 
-            ELSE IF ( N == 106 ) THEN
+            ELSE IF ( N == 107 ) THEN
 
                !-----------------------------------
                ! MBO EMISSIONS [atom C/cm2/s]
@@ -934,7 +936,7 @@
      &                     ( EMISS_BVOC(I,J,3) * GOOD_EMIS(I) ) 
                ENDIF
 
-            ELSE IF ( N == 107 ) THEN
+            ELSE IF ( N == 108 ) THEN
 
                !-----------------------------------
                ! A-PINENE EMISSIONS [atom C/cm2/s]
@@ -947,7 +949,7 @@
      &                     ( EMISS_BVOC(I,J,4) * GOOD_EMIS(I) ) 
                ENDIF
 
-           ELSE IF ( N == 108 ) THEN
+           ELSE IF ( N == 109 ) THEN
 
                !-----------------------------------
                ! B-PINENE EMISSIONS [atom C/cm2/s]
@@ -961,7 +963,7 @@
                ENDIF
 
 
-           ELSE IF ( N == 109 ) THEN
+           ELSE IF ( N == 110 ) THEN
 
                !-----------------------------------
                ! LIMONENE EMISSIONS [atom C/cm2/s]
@@ -975,7 +977,7 @@
                ENDIF
 
 
-           ELSE IF ( N == 110 ) THEN
+           ELSE IF ( N == 111 ) THEN
 
                !-----------------------------------
                ! SABINE EMISSIONS [atom C/cm2/s]
@@ -988,7 +990,7 @@
      &                     ( EMISS_BVOC(I,J,7) * GOOD_EMIS(I) ) 
                ENDIF
 
-           ELSE IF ( N == 111 ) THEN
+           ELSE IF ( N == 112 ) THEN
 
                !-----------------------------------
                ! MYRCENE EMISSIONS [atom C/cm2/s]
@@ -1001,7 +1003,7 @@
      &                     ( EMISS_BVOC(I,J,8) * GOOD_EMIS(I) ) 
                ENDIF
 
-           ELSE IF ( N == 112 ) THEN
+           ELSE IF ( N == 113 ) THEN
 
                !-----------------------------------
                ! 3-CARENE EMISSIONS [atom C/cm2/s]
@@ -1014,7 +1016,7 @@
      &                     ( EMISS_BVOC(I,J,9) * GOOD_EMIS(I) ) 
                ENDIF
 
-           ELSE IF ( N == 113 ) THEN
+           ELSE IF ( N == 114 ) THEN
 
                !-----------------------------------
                ! OCIMENE EMISSIONS [atom C/cm2/s]

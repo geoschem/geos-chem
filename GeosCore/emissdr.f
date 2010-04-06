@@ -602,11 +602,19 @@
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
 !
-!     AD46(:,:,1) = Total biogenic ISOP  emissions [atoms C/cm2/s]
-!     AD46(:,:,2) = Total biogenic ACET  emissions [atoms C/cm2/s]
-!     AD46(:,:,3) = Total biogenic PRPE  emissions [atoms C/cm2/s]
-!     AD46(:,:,4) = Total biogenic MONOT emissions [atoms C/cm2/s]
-!     AD46(:,:,5) = Total biogenic MBO   emissions [atoms C/cm2/s]
+!     AD46(:,:,1)  = Total biogenic ISOP     emissions [atoms C/cm2/s]
+!     AD46(:,:,2)  = Total biogenic ACET     emissions [atoms C/cm2/s]
+!     AD46(:,:,3)  = Total biogenic PRPE     emissions [atoms C/cm2/s]
+!     AD46(:,:,4)  = Total biogenic MONOT    emissions [atoms C/cm2/s]
+!     AD46(:,:,5)  = Total biogenic MBO      emissions [atoms C/cm2/s]
+!     AD46(:,:,6)  = Total biogenic C2H4     emissions [atoms C/cm2/s]
+!     AD46(:,:,7)  = Total biogenic a-pinene emissions [atoms C/cm2/s]
+!     AD46(:,:,8)  = Total biogenic b-pinene emissions [atoms C/cm2/s]
+!     AD46(:,:,9)  = Total biogenic limonene emissions [atoms C/cm2/s]
+!     AD46(:,:,10) = Total biogenic sabinene emissions [atoms C/cm2/s]
+!     AD46(:,:,11) = Total biogenic mycrene  emissions [atoms C/cm2/s]
+!     AD46(:,:,12) = Total biogenic 3-carene emissions [atoms C/cm2/s]
+!     AD46(:,:,13) = Total biogenic ocimene  emissions [atoms C/cm2/s]
 !
 !  NOTES: 
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)

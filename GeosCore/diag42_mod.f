@@ -270,6 +270,7 @@
      &                        STT(I,J,L,IDTSOA2) + 
      &                        STT(I,J,L,IDTSOA3) + 
      &                        STT(I,J,L,IDTSOA4)  +
+     &                        STT(I,J,L,IDTSOA5)  +
      &                      ( STT(I,J,L,IDTSOAG) * 1.d0 ) +
      &                      ( STT(I,J,L,IDTSOAM) * 1.d0 )) * FACTOR 
 
@@ -279,7 +280,8 @@
      &                      ( ( STT(I,J,L,IDTSOA1) + 
      &                          STT(I,J,L,IDTSOA2) + 
      &                          STT(I,J,L,IDTSOA3) + 
-     &                          STT(I,J,L,IDTSOA4) )   / 2.1d0 +
+     &                          STT(I,J,L,IDTSOA4) + 
+     &                          STT(I,J,L,IDTSOA5) )   / 2.1d0 +
      &                         ( STT(I,J,L,IDTSOAG) * 0.41D0 ) +
      &                         ( STT(I,J,L,IDTSOAM) * 0.50D0 ) +
      &                        ( STT(I,J,L,IDTOCPO) + 

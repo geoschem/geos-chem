@@ -561,9 +561,9 @@
       CASE( 'OCIMN' )
          AEF_SPARE = AEF_OCIMN(I,J) ! hotp add I,J (3/10/10)
          LDF       = 0.8
-         CASE DEFAULT
-           CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
-     &                      'GET_EMMONOG_MEGAN (megan_mod.f)' )
+      CASE DEFAULT
+         CALL ERROR_STOP( 'Invalid MONOTERPENE species', 
+     &                    'GET_EMMONOG_MEGAN (megan_mod.f)' )
       END SELECT   
 
       !-----------------------------------------------------

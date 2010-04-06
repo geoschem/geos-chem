@@ -179,9 +179,9 @@
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-!      INTEGER, PARAMETER :: NNNTRID  = 73
+      INTEGER, PARAMETER :: NNNTRID  = 75
 !      INTEGER, PARAMETER :: MMMEMBER = 10
-      INTEGER, PARAMETER :: NNNTRID  = 100
+!      INTEGER, PARAMETER :: NNNTRID  = 100
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 
       INTEGER            :: IDTRMB(NNNTRID,MMMEMBER)

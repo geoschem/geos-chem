@@ -1612,9 +1612,10 @@
       
       ! Turn off full-chem only switches 
       IF ( .not. ITS_A_FULLCHEM_SIM() ) THEN
-         LLIGHTNOX = .FALSE.
-         LAIRNOX   = .FALSE.
-         LSOILNOX  = .FALSE.
+         LLIGHTNOX      = .FALSE.
+         LAIRNOX        = .FALSE.
+         LSOILNOX       = .FALSE.
+         LFERTILIZERNOX = .FALSE.  ! Add check for NOx fertilizer.
       ENDIF
       
       ! Set other EDGAR switches (for now set all together)

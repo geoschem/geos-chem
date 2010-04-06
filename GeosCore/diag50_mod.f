@@ -64,32 +64,31 @@
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
-!  74            : OH concentration                         [molec/cm3]
-!  75            : NO2 concentration                        [v/v      ]
-!  76            : PBL heights                              [m        ]
-!  77            : PBL heights                              [levels   ]
-!  78            : Air density                              [molec/cm3]
-!  79            : 3-D Cloud fractions                      [unitless ]
-!  80            : Column optical depths                    [unitless ]
-!  81            : Cloud top heights                        [hPa      ]
-!  82            : Sulfate aerosol optical depth            [unitless ]
-!  83            : Black carbon aerosol optical depth       [unitless ]
-!  84            : Organic carbon aerosol optical depth     [unitless ]
-!  85            : Accumulation mode seasalt optical depth  [unitless ]
-!  86            : Coarse mode seasalt optical depth        [unitless ]
-!  87            : Total dust optical depth                 [unitless ]
-!  88            : Total seasalt tracer concentration       [unitless ]
-!  89            : Pure O3 (not Ox) concentration           [v/v      ]
-!  90            : NO concentration                         [v/v      ]
-!  91            : NOy concentration                        [v/v      ]
-!  92            : RESERVED FOR FUTURE USE
-!  93            : Grid box height                          [m        ]
-!  94            : Relative humidity                        [%        ]
-!  95            : Sea level pressure                       [hPa      ]
-!  96            : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  97            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  98            : P(surface) - PTOP                        [hPa      ]
-!  99            : Temperature                              [K        ]
+!  76            : OH concentration                         [molec/cm3]
+!  77            : NO2 concentration                        [v/v      ]
+!  78            : PBL heights                              [m        ]
+!  79            : PBL heights                              [levels   ]
+!  80            : Air density                              [molec/cm3]
+!  81            : 3-D Cloud fractions                      [unitless ]
+!  82            : Column optical depths                    [unitless ]
+!  83            : Cloud top heights                        [hPa      ]
+!  84            : Sulfate aerosol optical depth            [unitless ]
+!  85            : Black carbon aerosol optical depth       [unitless ]
+!  86            : Organic carbon aerosol optical depth     [unitless ]
+!  87            : Accumulation mode seasalt optical depth  [unitless ]
+!  88            : Coarse mode seasalt optical depth        [unitless ]
+!  89            : Total dust optical depth                 [unitless ]
+!  90            : Total seasalt tracer concentration       [unitless ]
+!  91            : Pure O3 (not Ox) concentration           [v/v      ]
+!  92            : NO concentration                         [v/v      ]
+!  93            : NOy concentration                        [v/v      ]
+!  94            : Grid box height                          [m        ]
+!  95            : Relative humidity                        [%        ]
+!  96            : Sea level pressure                       [hPa      ]
+!  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  99            : P(surface) - PTOP                        [hPa      ]
+!  100           : Temperature                              [K        ]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
@@ -359,21 +358,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
 
-            ELSE IF ((N .ge. 60) .and. (N .le. 66)) THEN
-
-               !--------------------------------------
-               ! TOTAL DUST OPTD @ 400 nm [unitless]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               R = N - 59
-
-               ! Scaling factor to 400 nm
-               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
-
-               ! Accumulate
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
-
-            ELSE IF ( N == 89 .and. IS_Ox ) THEN
+            ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
                !--------------------------------------
                ! PURE O3 CONCENTRATION [v/v]
@@ -383,7 +368,7 @@
      &                      ( STT(I,J,L,IDTOX) * FRACO3(I,J,L) *
      &                        TCVV(IDTOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 90 .and. IS_NOx ) THEN
+            ELSE IF ( N == 92 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO CONCENTRATION [v/v]
@@ -393,7 +378,7 @@
      &                      ( STT(I,J,L,IDTNOX) * FRACNO(I,J,L) *
      &                        TCVV(IDTNOX)      / AD(I,J,L)      )
 
-            ELSE IF ( N == 91 .and. IS_NOy ) THEN
+            ELSE IF ( N == 93 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy CONCENTRATION [v/v]
@@ -437,7 +422,7 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
     
-            ELSE IF ( N == 74 .and. IS_FULLCHEM ) THEN
+            ELSE IF ( N == 76 .and. IS_FULLCHEM ) THEN
 
                !--------------------------------------
                ! OH CONCENTRATION [molec/cm3]
@@ -445,7 +430,7 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
               
-            ELSE IF ( N == 75 .and. IS_NOx ) THEN
+            ELSE IF ( N == 77 .and. IS_NOx ) THEN
 
                !--------------------------------------
                ! NO2 CONCENTRATION [v/v]
@@ -455,7 +440,7 @@
      &                      ( STT(I,J,L,IDTNOX) * FRACNO2(I,J,L) *
      &                        TCVV(IDTNOX)      / AD(I,J,L)       )
  
-            ELSE IF ( N == 76 ) THEN
+            ELSE IF ( N == 78 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [m] 
@@ -464,7 +449,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_m( I, J )
                ENDIF
  
-            ELSE IF ( N == 77 ) THEN
+            ELSE IF ( N == 79 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [layers] 
@@ -473,7 +458,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_L( I, J )
                ENDIF
 
-            ELSE IF ( N == 78 ) THEN
+            ELSE IF ( N == 80 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -481,21 +466,21 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( AIRDEN(L,I,J) * XNUMOLAIR * 1d-6 )
 
-            ELSE IF ( N == 79 ) THEN
+            ELSE IF ( N == 81 ) THEN
 
                !--------------------------------------
                ! 3_D CLOUD FRACTION [unitless]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + CLDF(L,I,J)
 
-            ELSE IF ( N == 80 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 82 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTH [unitless]
                !--------------------------------------
                Q(X,Y,1,W) = Q(X,Y,1,W) + OPTD(L,I,J)
 
-            ELSE IF ( N == 81 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 83 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -504,7 +489,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE(I,J,CLDTOPS(I,J))
                ENDIF
 
-            ELSE IF ( N == 82 ) THEN
+            ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD @ 400 nm [unitless]
@@ -519,7 +504,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 83 ) THEN
+            ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD @ 400 nm [unitless]
@@ -537,7 +522,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 84 ) THEN
+            ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD @ 400 nm [unitless]
@@ -555,7 +540,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 85 ) THEN
+            ELSE IF ( N == 87 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD @ 400 nm [unitless]
@@ -573,7 +558,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 86 ) THEN
+            ELSE IF ( N == 88 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD 400 nm [unitless]
@@ -591,7 +576,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 87 ) THEN
+            ELSE IF ( N == 89 ) THEN
                
                !--------------------------------------
                ! TOTAL DUST OPTD @ 400 nm [unitless]
@@ -606,7 +591,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
                ENDDO
 
-            ELSE IF ( N == 88 .and. IS_SEASALT ) THEN
+            ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
@@ -616,21 +601,21 @@
      &                        STT(I,J,L,IDTSALC) ) *
      &                        TCVV(IDTSALA)  / AD(I,J,L) 
 
-            ELSE IF ( N == 93 ) THEN
+            ELSE IF ( N == 94 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
                !--------------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + BXHEIGHT(I,J,L)
 
-            ELSE IF ( N == 94 ) THEN
+            ELSE IF ( N == 95 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
                !--------------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + RH(I,J,L)
 
-            ELSE IF ( N == 95 .and. IS_SLP ) THEN
+            ELSE IF ( N == 96 .and. IS_SLP ) THEN
 
                !--------------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -639,21 +624,21 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + SLP(I,J)
                ENDIF
 
-            ELSE IF ( N == 96 ) THEN
+            ELSE IF ( N == 97 ) THEN
 
                !--------------------------------------
                ! ZONAL (U) WIND [m/s]
                !--------------------------------------               
                Q(X,Y,K,W) = Q(X,Y,K,W) + UWND(I,J,L)
 
-            ELSE IF ( N == 97 ) THEN
+            ELSE IF ( N == 98 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [m/s]
                !--------------------------------------            
                Q(X,Y,K,W) = Q(X,Y,K,W) + VWND(I,J,L)
 
-            ELSE IF ( N == 98 ) THEN
+            ELSE IF ( N == 99 ) THEN
 
                !--------------------------------------
                ! SURFACE PRESSURE - PTOP [hPa]
@@ -662,7 +647,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) - PTOP ) 
                ENDIF
 
-            ELSE IF ( N == 99 ) THEN 
+            ELSE IF ( N == 100 ) THEN 
 
                !--------------------------------------
                ! TEMPERATURE [K]
