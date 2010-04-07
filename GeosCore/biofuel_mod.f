@@ -178,7 +178,8 @@
 !  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
-!        accounting for FSCLYR from CMN_O3 (phs,3/17/08) 
+!        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
+!  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -200,6 +201,10 @@
       USE TRACERID_MOD,         ONLY : IDTTOLU, IDTXYLE, IDTC2H4
       USE TRACERID_MOD,         ONLY : IDTC2H2, IDTGLYC, IDTHAC
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
+      ! for US emission fix (hotp 11/20/09)
+      USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
+      USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
+      USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
 
       IMPLICIT NONE
       
@@ -818,12 +823,13 @@
                ENDIF
             ENDIF
 
-
-            ! ND34 -- archive biofuel burning species [molec/cm2/s]
-            IF ( DO_ND34 ) THEN
-               AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
-     &                                       BXHEIGHT_CM )
-            ENDIF
+            ! move below so that BIOFUEL array is complete before
+            ! archiving diagnostic info (hotp 11/23/09)
+!            ! ND34 -- archive biofuel burning species [molec/cm2/s]
+!            IF ( DO_ND34 ) THEN
+!               AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
+!     &                                       BXHEIGHT_CM )
+!            ENDIF
          ENDDO  
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]
@@ -847,6 +853,110 @@
       ENDDO  
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! update aromatics based on CO over US (hotp 11/23/09)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+            ! If EPA/NEI99 emissions are turned on....
+            IF ( LNEI99 ) THEN
+
+               ! If we are over the USA ...
+               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+                  ! update aromatics if necessary (hotp 11/20/09)
+                  ! molecC/cm3/s XXXX = molec/cm3/s CO * 
+                  !                     mol XXXX/mol CO *
+                  !                     molec C/molec XXXX
+
+                  ! BENZ (6 carbon/molec)
+                  IF ( IDBFBENZ > 0 ) THEN
+                     BIOFUEL(IDBFBENZ,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 4.06d-3 * 6.d0
+                  ENDIF
+
+                  ! TOLU (7 carbon/molec)
+                  IF ( IDBFTOLU > 0 ) THEN
+                     BIOFUEL(IDBFTOLU,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 2.01d-3 * 7.d0
+                  ENDIF
+
+                  ! XYLE (8 carbon/molec)
+                  IF ( IDBFXYLE > 0 ) THEN
+                     BIOFUEL(IDBFXYLE,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 0.82d-3 * 8.d0
+                  ENDIF
+
+                  ! GLYX (molec/cm3/s)
+                  IF ( IDBFGLYX > 0 ) THEN
+                     BIOFUEL(IDBFGLYX,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 6.62d-3 
+                  ENDIF
+
+                  ! MGLY
+                  IF ( IDBFMGLY > 0 ) THEN
+                     BIOFUEL(IDBFMGLY,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 3.47d-3 
+                  ENDIF
+
+                  ! C2H4 (2 carbons/molec)
+                  IF ( IDBFC2H4 > 0 ) THEN
+                     BIOFUEL(IDBFC2H4,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 15.7d-3 * 2.d0
+                  ENDIF
+
+                  ! C2H2 (2 carbons/molec)
+                  IF ( IDBFC2H2 > 0 ) THEN
+                     BIOFUEL(IDBFC2H2,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 19.0d-3 * 2.d0
+                  ENDIF
+
+                  ! GLYC
+                  IF ( IDBFGLYC > 0 ) THEN
+                     BIOFUEL(IDBFGLYC,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 3.66d-3
+                  ENDIF
+
+                  ! HAC
+                  IF ( IDBFHAC > 0 ) THEN
+                     BIOFUEL(IDBFHAC,I,J) = 
+     &                  BIOFUEL(IDBFCO,I,J) * 3.31d-3             
+                  ENDIF
+
+               ENDIF ! USA_MASK
+
+            ENDIF ! LNEI99
+      ENDDO ! I
+      ENDDO ! J
+!$OMP END PARALLEL DO
+
+
+      ! Save diagnostic information (biofuel burning emissions) (hotp 11/23/09)
+      ! ND34 -- archive biofuel burning species [molec/cm2/s] or
+      ! [molecC/cm2/s] for species transported as carbon
+      IF ( DO_ND34 ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, BXHEIGHT_CM, N )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+            ! BXHEIGHT_CM = the surface grid box height in cm
+            BXHEIGHT_CM = BXHEIGHT(I,J,1) * 1d2
+
+            ! loop over biofuel species
+            DO N = 1, NBFTRACE
+               ! ND34 -- archive biofuel burning species [molec/cm2/s]
+               AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
+     &                                       BXHEIGHT_CM )
+            ENDDO ! NBFTRACE
+
+      ENDDO ! I
+      ENDDO ! J
+!$OMP END PARALLEL DO
+      ENDIF ! ND34
 
       !=================================================================
       ! FORMAT statements
