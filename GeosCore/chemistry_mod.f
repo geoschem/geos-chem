@@ -192,7 +192,7 @@
             ! Call SMVGEAR routines
             CALL CHEMDR
 
-             ! Do seasalt aerosol chemistry
+            ! Do seasalt aerosol chemistry
              IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
