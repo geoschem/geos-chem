@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Tue Mar 16 12:45:11 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme
+! Time                 : Tue Mar 16 10:29:04 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/Paulot_scheme
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(139),FIX(1) )
+!      EQUIVALENCE( C(138),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -75,7 +75,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: V_CSPEC(NVAR)
 ! V_CSPEC_ADJ - Concentrations of variable species (global) [**]
   REAL(kind=dp) :: V_CSPEC_ADJ(NVAR)
-
+   
 ! NJ - Number of cost function being evaluated [**]
   INTEGER, PARAMETER :: NJ = 1 
 ! NTT - Total number of tropospheric grid cells
@@ -93,17 +93,17 @@ MODULE gckpp_Global
 ! IND - Reaction numbers for each (define in INIT_KPP)
   INTEGER :: IND(NREACT)
 
+! INLINED global variable declarations
+
+! INLINED global variable declarations
+
 !$OMP THREADPRIVATE(VAR,VAR_ADJ,VAR_R_ADJ,V_CSPEC,V_CSPEC_ADJ, C )
 !$OMP THREADPRIVATE(FIX,JLOOP,RCONST,TIME)
-
-! Move stack_ptr here and make THREADPRIVATE for OMP parallelization (dkh, 07/28/09) 
+   
+! Move stack_ptr here and make THREADPRIVATE for OMP parallelization 
+! (dkh, 07/28/09) 
   INTEGER :: stack_ptr = 0 ! last written entry
 !$OMP THREADPRIVATE( stack_ptr )
-
-! INLINED global variable declarations
-
-! INLINED global variable declarations
-
 
 END MODULE gckpp_Global
 
