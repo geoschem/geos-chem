@@ -325,10 +325,6 @@ C
 
           ELSE
              CALL SMVGEAR
-      print*, MAXLOC(CSPEC)
-      print*, 'After driver:'
-      print*, MAXVAL(CSPEC)
-
 C
 C *********************************************************************
 C * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *
