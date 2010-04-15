@@ -340,7 +340,7 @@
       INTEGER,            INTENT(IN)    :: THIS_YYYY
       INTEGER,            INTENT(IN)    :: THIS_MM
 !      REAL*8,              INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
-      REAL*8,             INTENT(INOUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)
+      REAL*8,             INTENT(OUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)
 
       ! Local variables
       LOGICAL, SAVE           :: FIRST = .TRUE.
@@ -379,7 +379,7 @@
       IF ( UPDATED ) THEN
          GFED2_BIOMASS  = 0D0
       ELSE
-         BIOM_OUT = GFED2_BIOMASS
+         CALL REARRANGE_BIOM(GFED2_BIOMASS,BIOM_OUT)
          RETURN
       ENDIF
       

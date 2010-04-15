@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Tue Mar 16 12:45:11 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme
+! Time                 : Fri Apr  9 17:24:39 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme_2
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -32,8 +32,8 @@ CONTAINS
 
 
 
-! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
-
+!! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
+!
 !!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !!  User-defined Rate Law functions
 !!  Note: the default argument type for rate laws, as read from the equations file, is single precision
@@ -180,17 +180,17 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SUBROUTINE Update_RCONST (R_KPP)
+SUBROUTINE Update_RCONST ( R_KPP )
 
   USE gckpp_Monitor
-
+        
   ! INPUT ARGUMENT:
   REAL*8, INTENT(IN) :: R_KPP(:,:)
-
+ 
   INTEGER :: N
-
+ 
   DO N = 1, NREACT
-    RCONST(N) = R_KPP(JLOOP,IND(N))
+     RCONST(N) = R_KPP(JLOOP,IND(N))
   END DO
       
 END SUBROUTINE Update_RCONST
