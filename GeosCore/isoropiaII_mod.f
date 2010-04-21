@@ -71,6 +71,7 @@
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISOROPIAII for offline aerosol
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,6 +129,8 @@
 !  24 Aug 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
 !  18 Dec 2009 - H. O. T. Pye - Added division checks
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
+!  21 Apr 2010 - E. Sofen     - Prevent out-of-bounds errors for offline
+!                               aerosol simulations where HNO3 is undefined
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,7 +153,7 @@
       LOGICAL, SAVE            :: FIRST = .TRUE.
       INTEGER                  :: I,    J,    L,    N
       REAL*8                   :: ANO3, GNO3, RHI,  TEMPI
-      REAL*8                   :: TCA,  TMG,  TK
+      REAL*8                   :: TCA,  TMG,  TK,   HNO3_DEN
       REAL*8                   :: TNA,  TCL,  TNH3, TNH4
       REAL*8                   :: TNIT, TNO3, TSO4, VOL
       REAL*8                   :: AERLIQ(NIONSA+NGASAQA+2)
@@ -247,7 +250,7 @@
 !$OMP+PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  )
 !$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
 !$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
-!$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV                        )
+!$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -439,6 +442,9 @@
             ! HNO3 [mole/m3] is in GAS(2); convert & store in STT [kg]
             STT(I,J,L,IDTHNO3) = MAX( 63.d-3 * VOL * GAS(2), CONMIN )
 
+            ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
+            HNO3_DEN           = STT(I,J,L,IDTHNO3)
+
          ELSE
 
             !---------------------
@@ -453,6 +459,9 @@
             ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
             ! aerosol simulations (bec, 4/15/05)
             GAS_HNO3(I,J,L) = GAS(2)
+
+            ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
+            HNO3_DEN        = GAS(2) * VOL * 63d-3
 
          ENDIF
 
@@ -486,10 +495,19 @@
      &                          STT(I,J,L,IDTNH4) /18d0         +
      &                          STT(I,J,L,IDTSALA)*0.3061d0/23.0d0 )
 
-         DEN_SAV            = ( STT(I,J,L,IDTSO4) / 96d0 * 2d0  +
-     &                          STT(I,J,L,IDTNIT) /62d0         + 
-     &                          STT(I,J,L,IDTHNO3)/63d0         +
-     &                          STT(I,J,L,IDTSALA) *0.55d0/ 35.45d0 )
+!------------------------------------------------------------------------------
+! Prior to 4/21/10:
+! HNO3 is not defined for offline aerosol simulations, therefore this code
+! will cause an out-of-bounds error. (sofen, bmy, 4/21/10)
+!         DEN_SAV            = ( STT(I,J,L,IDTSO4) / 96d0 * 2d0  +
+!     &                          STT(I,J,L,IDTNIT) /62d0         + 
+!     &                          STT(I,J,L,IDTHNO3)/63d0         +
+!     &                          STT(I,J,L,IDTSALA) *0.55d0/ 35.45d0 )
+!------------------------------------------------------------------------------
+         DEN_SAV            = ( STT(I,J,L,IDTSO4)  / 96d0   * 2d0     +
+     &                          STT(I,J,L,IDTNIT)  / 62d0             + 
+     &                          HNO3_DEN           / 63d0             +
+     &                          STT(I,J,L,IDTSALA) * 0.55d0 / 35.45d0 )
 
          ! Value if DEN_SAV and NUM_SAV too small.
          ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
