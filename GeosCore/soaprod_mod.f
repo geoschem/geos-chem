@@ -29,7 +29,8 @@
 !  (8 ) carbon_mod.f  : Module containing routines for carbons simulation
 !
 !  NOTES:
-!  (1 ) Based on restart_mod.f (dkh, 11/09/06)  
+!  (1 ) Based on restart_mod.f (dkh, 11/09/06) 
+!  (2 ) Removed debug output (bmy, 4/21/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -69,6 +70,7 @@
 !
 !  NOTES:
 !  (1 ) Based on MAKE_RESTART_FILE 
+!  (2 ) Removed debug output (bmy, 4/21/10)
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -167,9 +169,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         print*, ' ntracer = ', n , nn(n), in(n),  
-     &  jn(n), sum(tracer(:,:,:))
-
          CALL BPCH2( IU_OAP,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
@@ -203,9 +202,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         print*, ' ntracer = ', n , nn(n), in(n),  
-     &  jn(n), sum(tracer(:,:,:))
-
          CALL BPCH2( IU_OAP,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
@@ -217,16 +213,10 @@
       ! Close file
       CLOSE( IU_OAP )
    
-      print*, ' done with gprod '
-
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_SOAPROD_FILE: wrote file' )
       
       CALL CHECK_APRODGPROD()
-
-      ! debug 
-      print*, '##SOA debug: APROD to file: ', SUM(APROD(:,:,:,:,:,:))
-      print*, '##SOA debug: GPROD to file: ', SUM(GPROD(:,:,:,:,:,:))
 
       ! Return to calling program
       END SUBROUTINE MAKE_SOAPROD_FILE
@@ -284,6 +274,7 @@
 !  (17) Add fancy output string (bmy, 4/26/04)
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
+!  (19) Removed debug output (bmy, 4/21/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -378,8 +369,6 @@
 
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_OAP,'read_soaprod_file:6')
 
-         print*, ' ntracer = ', ntracer , nn(ntracer), in(ntracer),  
-     &  jn(ntracer), sum(tracer(:,:,:))
          !==============================================================
          ! Assign data from the TRACER array to either APROD or GPROD
          !==============================================================
@@ -429,10 +418,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_SOAPROD_FILE: read file' )
 
       CALL CHECK_APRODGPROD()
-
-      ! debug 
-      print*, '##SOA debug: APROD from file: ', SUM(APROD(:,:,:,:,:,:))
-      print*, '##SOA debug: GPROD from file: ', SUM(GPROD(:,:,:,:,:,:))
 
       ! Return to calling program
       END SUBROUTINE READ_SOAPROD_FILE
@@ -544,7 +529,7 @@
       ! update if more than 5% off
       IF( ATEMP>=1.0d-12 ) THEN
          WRITE( 6, '(a)' ) 'BAD APROD'
-         print*,ATEMP
+         print*, ATEMP
          DO IPR = 1, NPROD(JHC)
          DO NOX = 1, NNOX(JHC)
            APROD(I,J,L,NOX,IPR,1:3) = PRODPERCOFSTT(1:3)
@@ -553,7 +538,7 @@
       ENDIF
       IF( GTEMP>=1.0d-12 ) THEN
          WRITE( 6, '(a)' ) 'BAD GPROD'
-         print*,GTEMP
+         print*, GTEMP
          DO IPR = 1, NPROD(JHC)
          DO NOX = 1, NNOX(JHC)
            GPROD(I,J,L,NOX,IPR,1:3) = PRODPERCOFSTT(1:3)
@@ -781,9 +766,6 @@
 !      MAXPROD = MHC * MPROD * MNOX * 2 
       MAXPROD = MHC * MPROD * MNOX
    
-      ! dkh debug
-      print*, 'MAXPROD = ', MAXPROD  
-
       ALLOCATE( GPROD( IIPAR, JJPAR, LLPAR, MNOX, MPROD, MHC ),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GPROD' )
@@ -834,8 +816,6 @@
       PRODPERCOFSTT(6)   = 1.d0 / (     NNOX(6)    * 2.d0 )
 
       PRODPERCOFSTT(7:9) = 1.d0 / ( SUM(NNOX(7:9)) * 2.d0 )
-
-      print*, '##SOA debug, PRODPERCOFSTT', PRODPERCOFSTT, NNOX
 
       ! Initialize mapping arrays for reading in products from file
       N = 0 
