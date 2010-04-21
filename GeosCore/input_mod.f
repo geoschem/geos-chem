@@ -3438,8 +3438,8 @@
       ! Local variables
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
-      ! Increased to 120 from 100 (mpb,2009)
-      INTEGER             :: ND49, N_TRACERS, TRACERS(120)
+      ! Increased to 121 from 100 (mpb,2009)
+      INTEGER             :: ND49, N_TRACERS, TRACERS(121)
       INTEGER             :: IMIN, IMAX,      FREQ
       INTEGER             :: JMIN, JMAX,      N_ND49
       INTEGER             :: LMIN, LMAX
@@ -3536,6 +3536,7 @@
 !  NOTES:
 !  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
 !        (amv, bmy, 12/21/09)
+!  (2 ) Increase tracer number to 121. (ccc, 4/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3546,7 +3547,8 @@
       ! Local variables
       LOGICAL              :: DO_ND50
       INTEGER              :: N,      I,       AS  
-      INTEGER              :: N_ND50, IMIN,    IMAX, TRACERS(100)   
+      ! Increased # of tracers to 121. (ccc, 4/20/10)
+      INTEGER              :: N_ND50, IMIN,    IMAX, TRACERS(121)   
       INTEGER              :: JMIN,   JMAX,    LMIN, LMAX
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
       CHARACTER(LEN=255)   :: FILE
@@ -3645,6 +3647,7 @@
 !  NOTES:
 !  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
 !        (amv, bmy, 12/21/09)
+!  (2 ) Increase # of tracers to 121 (ccc, 4/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3658,8 +3661,8 @@
       ! Local variables
       LOGICAL              :: DO_ND51
       INTEGER              :: N,      I,       AS
-      ! Increased to 120 from 100 (mpb,2009)
-      INTEGER              :: N_ND51, FREQ,    TRACERS(120)
+      ! Increased to 121 from 100 (mpb,2009)
+      INTEGER              :: N_ND51, FREQ,    TRACERS(121)
       INTEGER              :: IMIN,   IMAX,    JMIN
       INTEGER              :: JMAX,   LMIN,    LMAX
       REAL*8               :: HR1,    HR2,     HR_WRITE
@@ -3783,7 +3786,8 @@
       ! Local variables
       LOGICAL              :: DO_ND51
       INTEGER              :: N,      I,       AS
-      INTEGER              :: N_ND51, FREQ,    TRACERS(100)
+      ! Increase to 121 from 100 (ccc, 4/20/10)
+      INTEGER              :: N_ND51, FREQ,    TRACERS(121)
       INTEGER              :: IMIN,   IMAX,    JMIN
       INTEGER              :: JMAX,   LMIN,    LMAX
       REAL*8               :: HR1,    HR2,     HR_WRITE

@@ -88,7 +88,7 @@ CHEM = standard
 endif
 
 ifeq ($(NTRAC),54)
-CHEM = standard
+CHEM = SOA 
 endif
 
 endif

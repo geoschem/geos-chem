@@ -19,15 +19,16 @@
 !  (4 ) GEOS_5      : Enables code for GEOS-5 met fields & chemistry
 !  (5 ) GRIDREDUCED : Enables code for reduced stratosphere grids
 !  (6 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
-!  (7 ) NESTED_CH   : Enables code for 1 x 1    CHINA  NESTED GRID
-!  (8 ) NESTED_NA   : Enables code for 1 x 1    N. AM. NESTED GRID
-!  (9 ) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
-!  (10) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
-!  (11) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
+!  (7 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
+!  (8 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
+!  (9 ) NESTED_EUR  : Enables code for EUROPE NESTED GRID
+!  (10) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
+!  (11) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
+!  (12) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
 !  (13) IBM_AIX     : Enables code for IBM/AIX compiler
 !  (14) IBM_XLF     : Enables code for IBM/XLF compiler
-!  (14) LINUX_PGI   : Enables code for Linux w/ PGI compiler
-!  (15) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
+!  (15) LINUX_PGI   : Enables code for Linux w/ PGI compiler
+!  (16) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
 !  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
 !                                                                            .
 !  NOTES:

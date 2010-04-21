@@ -108,6 +108,7 @@
 !  112           : Myrcene emissions                        [atomC/cm2/s]
 !  113           : 3-Carene emissions                       [atomC/cm2/s]
 !  114           : Ocimene emissions                        [atomC/cm2/s]
+!  115-121       : AOD output                               [unitless   ]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
@@ -128,7 +129,7 @@
 !  (14) Bug fix: replace "PS-PTOP" with "PEDGE-$" (bmy, phs, 10/7/08)
 !  (15) Bug fix in GET_LOCAL_TIME (ccc, 12/10/08)
 !  (16) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 9/26/07)
-!  (17) Updates in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
+!  (17) Updates in WRITE_DIAG51b (ccc, tai, bmy, 10/13/09)
 !  (18) Updates to AOD output.  Also have the option to write to HDF 
 !        (amv, bmy, 12/21/09)
 !  (19) Added MEGAN species (mpb, bmy, 12/21/09)
@@ -160,7 +161,9 @@
       LOGICAL              :: DO_SAVE_DIAG51b
       INTEGER              :: IOFF,           JOFF,    LOFF
       INTEGER              :: I0,             J0
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(100)
+      ! Increased to 120 from 100 (mpb,2009)
+      ! Increased to 121 (ccc, 4/20/10)
+      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(121)
       INTEGER              :: ND51_IMIN,      ND51_IMAX
       INTEGER              :: ND51_JMIN,      ND51_JMAX
       INTEGER              :: ND51_LMIN,      ND51_LMAX
@@ -320,7 +323,7 @@
 !
 !******************************************************************************
 !  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 1/24/07)
+!  (bmy, 8/20/02, 4/20/10)
 !
 !  NOTES:
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
@@ -531,6 +534,17 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
+
+            ELSE IF ( N > 114 ) THEN
+
+               R = N - 114
+
+               ! Scaling factor to 400 nm
+               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -1124,7 +1138,7 @@
 !  Subroutine WRITE_DIAG51 computes the time-average of quantities between
 !  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
 !  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 10/7/08)  
+!  (bmy, 12/1/00, 4/20/10)  
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -1245,7 +1259,7 @@
 
          SELECT CASE( ND51_TRACERS(W) )
 
-            CASE( 89, 90, 74, 75 )
+            CASE( 91, 92, 76, 77 )
                !--------------------------------------------------------
                ! Avoid div by zero for tracers which are archived each
                ! chem timestep and only available in the troposphere
@@ -1256,7 +1270,7 @@
                   Q(X,Y,K,W) = 0d0
                ENDIF
 
-            CASE( 60:66, 82:87 )
+            CASE( 84:89, 115:121 )
 
                !--------------------------------------------------------
                ! Avoid division by zero for tracers which are archived
@@ -1268,7 +1282,7 @@
                   Q(X,Y,K,W) = 0d0
                ENDIF
 
-            CASE( 104:113 )
+            CASE( 105:114 )
 
                !--------------------------------------------------------
                ! Avoid division by zero for tracers which are archived 
@@ -1318,7 +1332,7 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ((N .ge. 60) .and. (N .le. 66))  THEN
+         ELSE IF ( N > 114 ) THEN
 
             !---------------------
             ! bin 1 dust OD
@@ -1326,9 +1340,9 @@
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
             GMNL     = ND51_NL
-            GMTRC    = N - 39
+            GMTRC    = N - 93
 
-         ELSE IF ( N == 89 ) THEN
+         ELSE IF ( N == 91 ) THEN
 
             !---------------------
             ! Pure O3
@@ -1338,7 +1352,7 @@
             GMNL     = ND51_NL
             GMTRC    = N_TRACERS + 1
 
-         ELSE IF ( N == 90 ) THEN
+         ELSE IF ( N == 92 ) THEN
             !---------------------
             ! Pure NO [v/v]
             !---------------------
@@ -1347,7 +1361,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 91 ) THEN
+         ELSE IF ( N == 93 ) THEN
             !---------------------
             ! NOy 
             !---------------------
@@ -1356,7 +1370,7 @@
             GMNL     = ND51_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 74 ) THEN
+         ELSE IF ( N == 76 ) THEN
 
             !---------------------
             ! OH 
@@ -1366,7 +1380,7 @@
             GMNL      = ND51_NL
             GMTRC     = 1
 
-         ELSE IF ( N == 75 ) THEN
+         ELSE IF ( N == 77 ) THEN
 
             !---------------------
             ! NO2 
@@ -1376,7 +1390,7 @@
             GMNL     = ND51_NL
             GMTRC    = 25
 
-         ELSE IF ( N == 76 ) THEN 
+         ELSE IF ( N == 78 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1386,7 +1400,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 77 ) THEN
+         ELSE IF ( N == 79 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1396,7 +1410,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 80 ) THEN
 
             !---------------------
             ! Air Density 
@@ -1406,7 +1420,7 @@
             GMNL     = ND51_NL
             GMTRC    = 22
 
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 81 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1416,7 +1430,7 @@
             GMNL     = ND51_NL
             GMTRC    = 19
 
-         ELSE IF ( N == 80 ) THEN
+         ELSE IF ( N == 82 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1426,7 +1440,7 @@
             GMNL     = 1
             GMTRC    = 20
             
-         ELSE IF ( N == 81 ) THEN
+         ELSE IF ( N == 83 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1436,7 +1450,7 @@
             GMNL     = 1
             GMTRC    = 21
 
-         ELSE IF ( N == 82 ) THEN
+         ELSE IF ( N == 84 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -1446,7 +1460,7 @@
             GMNL     = ND51_NL
             GMTRC    = 6
 
-         ELSE IF ( N == 83 ) THEN
+         ELSE IF ( N == 85 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1456,7 +1470,7 @@
             GMNL     = ND51_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 84 ) THEN
+         ELSE IF ( N == 86 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1466,7 +1480,7 @@
             GMNL     = ND51_NL
             GMTRC    = 12
             
-         ELSE IF ( N == 85 ) THEN
+         ELSE IF ( N == 87 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1476,7 +1490,7 @@
             GMNL     = ND51_NL
             GMTRC    = 15
 
-         ELSE IF ( N == 86 ) THEN
+         ELSE IF ( N == 88 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1486,7 +1500,7 @@
             GMNL     = ND51_NL
             GMTRC    = 18
 
-         ELSE IF ( N == 87 ) THEN
+         ELSE IF ( N == 89 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1496,7 +1510,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 88 ) THEN
+         ELSE IF ( N == 90 ) THEN
 
             !---------------------
             ! Total seasalt
@@ -1506,7 +1520,7 @@
             GMNL     = ND51_NL
             GMTRC    = 24
 
-         ELSE IF ( N == 93 ) THEN
+         ELSE IF ( N == 94 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1516,7 +1530,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 94 ) THEN
+         ELSE IF ( N == 95 ) THEN
 
             !---------------------
             ! Relative humidity 
@@ -1526,7 +1540,7 @@
             GMNL     = ND51_NL
             GMTRC    = 17
 
-         ELSE IF ( N == 95 ) THEN
+         ELSE IF ( N == 96 ) THEN
 
             !---------------------
             ! Sea level prs
@@ -1536,7 +1550,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 96 ) THEN
+         ELSE IF ( N == 97 ) THEN
 
             !---------------------
             ! U-wind
@@ -1546,7 +1560,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 97 ) THEN
+         ELSE IF ( N == 98 ) THEN
 
             !---------------------
             ! V-wind
@@ -1556,7 +1570,7 @@
             GMNL     = ND51_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 98 ) THEN
+         ELSE IF ( N == 99 ) THEN
 
             !---------------------
             ! Psurface - PTOP 
@@ -1566,7 +1580,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 99 ) THEN
+         ELSE IF ( N == 100 ) THEN
 
             !---------------------
             ! Temperature
@@ -1578,7 +1592,7 @@
             
 ! ================================================================
 ! Added with MEGAN v2.1. (ccc, 11/20/09)
-         ELSE IF ( N == 100 ) THEN
+         ELSE IF ( N == 101 ) THEN
             
             !-----------------------------------
             ! PARDR [W/m2] (mpb,2009)
@@ -1588,17 +1602,17 @@
             GMNL     = ND51_NL
             GMTRC    = 20
 
-         ELSE IF ( N == 101 ) THEN
+         ELSE IF ( N == 102 ) THEN
             
             !-----------------------------------
-            ! PARDR [W/m2] (mpb,2009)
+            ! PARDF [W/m2] (mpb,2009)
             !-----------------------------------
             CATEGORY = 'DAO-FLDS' 
             UNIT     = 'W/m2'    
             GMNL     = ND51_NL
             GMTRC    = 21
 
-         ELSE IF ( N == 102 ) THEN
+         ELSE IF ( N == 103 ) THEN
 
             !-----------------------------------
             ! DAILY LAI [W/m2] (mpb,2009)
@@ -1608,7 +1622,7 @@
             GMNL     = ND51_NL
             GMTRC    = 32
 
-         ELSE IF ( N == 103 ) THEN
+         ELSE IF ( N == 104 ) THEN
 
             !---------------------
             ! T at 2m
@@ -1619,7 +1633,7 @@
             GMNL     = ND51_NL
             GMTRC    = 5
 
-         ELSE IF ( N == 104 ) THEN
+         ELSE IF ( N == 105 ) THEN
 
             !---------------------
             ! ISOPRENE emissions 
@@ -1630,7 +1644,7 @@
             GMNL     = ND51_NL
             GMTRC    = 1     
 
-         ELSE IF ( N == 105 ) THEN
+         ELSE IF ( N == 106 ) THEN
 
             !---------------------
             ! MONOTERPENE emissions 
@@ -1642,7 +1656,7 @@
             GMNL     = ND51_NL
             GMTRC    = 4    
 
-         ELSE IF ( N == 106 ) THEN
+         ELSE IF ( N == 107 ) THEN
 
             !---------------------
             ! MBO emissions 
@@ -1655,7 +1669,7 @@
             GMTRC    = 5    
 
 
-         ELSE IF ( N == 107 ) THEN
+         ELSE IF ( N == 108 ) THEN
 
             !---------------------
             ! a-pine emissions 
@@ -1667,7 +1681,7 @@
             GMNL     = ND51_NL
             GMTRC    = 7    
 
-         ELSE IF ( N == 108 ) THEN
+         ELSE IF ( N == 109 ) THEN
 
             !---------------------
             ! b-pine emissions 
@@ -1679,7 +1693,7 @@
             GMNL     = ND51_NL
             GMTRC    = 8   
 
-         ELSE IF ( N == 109 ) THEN
+         ELSE IF ( N == 110 ) THEN
 
             !---------------------
             ! Limonene emissions 
@@ -1692,7 +1706,7 @@
             GMTRC    = 9    
 
 
-         ELSE IF ( N == 110 ) THEN
+         ELSE IF ( N == 111 ) THEN
 
             !---------------------
             ! Sabinene emissions 
@@ -1704,7 +1718,7 @@
             GMNL     = ND51_NL
             GMTRC    = 10    
 
-         ELSE IF ( N == 111 ) THEN
+         ELSE IF ( N == 112 ) THEN
 
             !---------------------
             ! Myrcene emissions 
@@ -1717,7 +1731,7 @@
             GMTRC    = 11    
 
 
-         ELSE IF ( N == 112 ) THEN
+         ELSE IF ( N == 113 ) THEN
 
             !---------------------
             ! 3-carene emissions 
@@ -1729,7 +1743,7 @@
             GMNL     = ND51_NL
             GMTRC    = 12    
 
-         ELSE IF ( N == 113 ) THEN
+         ELSE IF ( N == 114 ) THEN
 
             !---------------------
             ! Ocimene emissions 
@@ -1809,6 +1823,8 @@
       GOOD_CT      = 0d0
       GOOD_CHEM    = 0d0
       GOOD_CT_CHEM = 0d0
+      GOOD_EMIS    = 0d0
+      GOOD_CT_EMIS = 0d0
 
       ! Return to calling program
       END SUBROUTINE WRITE_DIAG51

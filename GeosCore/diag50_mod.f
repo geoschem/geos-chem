@@ -89,6 +89,7 @@
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
 !  99            : P(surface) - PTOP                        [hPa      ]
 !  100           : Temperature                              [K        ]
+!  105-121       : AOD output                               [unitless ]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
@@ -357,6 +358,20 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
+
+            ELSE IF (N > 114) THEN
+
+               !--------------------------------------
+               ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               R = N - 114
+
+               ! Scaling factor to 400 nm
+               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -854,7 +869,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ((N .ge. 60) .and. (N .le. 66)) THEN
+         ELSE IF ( N > 114 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -862,7 +877,7 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND50_NL
-            GMTRC     = N - 39
+            GMTRC     = N - 93
 
          ELSE IF ( N == 89 ) THEN
 

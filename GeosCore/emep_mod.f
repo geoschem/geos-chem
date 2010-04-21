@@ -463,7 +463,7 @@
 
       IF ( SCALEYEAR > 1989 ) THEN
 
-         ! new EMEP data is only defined from 1990-2005
+         ! new EMEP data is only defined from 1990-2007
          EMEP_YEAR = MIN( SCALEYEAR, 2007 )
 
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx, 0 )

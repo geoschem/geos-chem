@@ -512,7 +512,7 @@
       ENDIF
 
       ! Pickup BASE_YEAR according to SIMulation YEAR
-      IF ( SIM_YEAR >= 2006 ) THEN
+      IF ( SIM_YEAR > 2000 ) THEN
          BASE_YEAR = 2006
       ELSE
          BASE_YEAR = 2000
