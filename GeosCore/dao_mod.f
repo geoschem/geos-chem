@@ -1359,8 +1359,8 @@
       ! COSSZA begins here!   
       !=================================================================
 
-      ! Midpoint of the time interval for computing SUNCOS
-      ! Convert from minutes to hours
+      ! 1/2 of the time interval (normally the chemistry timestep)
+      ! for computing SUNCOS.  Convert from minutes to hours.
       OFFSET = GET_TS_SUN_2() / 60d0
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
@@ -1404,19 +1404,8 @@
             !===========================================================
 
             ! Local time at box (I,J) [hours]
-            TIMLOC = GET_LOCALTIME( I )
-
-            IF ( I==23 .and. J==34 ) THEN 
-               PRINT*, '### TIMLOC no offset: ', TIMLOC
-            ENDIF 
-
-            ! Local time at box (I,J) [hours]
             TIMLOC = GET_LOCALTIME( I, OFFSET )
 
-            IF ( I==23 .and. J==34 ) THEN 
-               PRINT*, '### TIMLOC w/ offset, ', OFFSET, TIMLOC
-            ENDIF 
-           
             ! Hour angle at box (I,J) [radians]
             AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
