@@ -167,9 +167,6 @@
          ENDDO
 !$OMP END PARALLEL DO
 
-         print*, ' ntracer = ', n , nn(n), in(n),  
-     &  jn(n), sum(tracer(:,:,:))
-
          CALL BPCH2( IU_OAP,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,   
@@ -202,9 +199,6 @@
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-         print*, ' ntracer = ', n , nn(n), in(n),  
-     &  jn(n), sum(tracer(:,:,:))
 
          CALL BPCH2( IU_OAP,    MODELNAME, LONRES,    LATRES,    
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
@@ -378,8 +372,6 @@
 
          IF ( IOS /= 0 ) CALL IOERROR( IOS,IU_OAP,'read_soaprod_file:6')
 
-         print*, ' ntracer = ', ntracer , nn(ntracer), in(ntracer),  
-     &  jn(ntracer), sum(tracer(:,:,:))
          !==============================================================
          ! Assign data from the TRACER array to either APROD or GPROD
          !==============================================================
