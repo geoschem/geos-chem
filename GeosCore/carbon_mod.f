@@ -3732,10 +3732,6 @@ c
       !---------------------------
       ! SOA5 net Production (kg) (dkh, 11/11/06)  
       !---------------------------
-      !-----------------------
-      ! Prior to 3/4/05:
-      !IF ( ND07 > 0 ) THEN
-      !-----------------------
       IF ( ND07 > 0 .and. L <= LD07 ) THEN
          AD07_HC(I,J,L,5) = AD07_HC(I,J,L,5)
      &                    + ( AERMASS - STT(I,J,L,IDTSOA5) )
@@ -5369,23 +5365,12 @@ c
             IF ( IS_OCPO ) EMIS_SAVE(I,J,IDTOCPO) = OCSRC(I,J,2)
             IF ( IS_ALPH ) EMIS_SAVE(I,J,IDTALPH) = BIOG_ALPH(I,J)
             IF ( IS_LIMO ) THEN
-               !------------------------------------------------------------
-               ! Prior to 1/11/09:
-               ! Bug fix: Should be EMIS_SAVE(I,J,IDTLIMO) since we are
-               ! within a parallel loop.
-               !EMIS_SAVE(:,:,IDTLIMO) = BIOG_LIMO(I,J)
-               !------------------------------------------------------------
                EMIS_SAVE(I,J,IDTLIMO) = BIOG_LIMO(I,J)
+
                ! lead to too much ORVC_TERP in the 1st layer?
                ORVC_TERP(I,J,1)   = ORVC_TERP(I,J,1) + BIOG_TERP(I,J)
             ENDIF
             IF ( IS_ALCO ) THEN
-               !------------------------------------------------------------
-               ! Prior to 1/11/09:
-               ! Bug fix: Should be EMIS_SAVE(I,J,IDTALCO) since we are
-               ! within a parallel loop.
-               !EMIS_SAVE(:,:,IDTALCO) = BIOG_ALCO(I,J)
-               !------------------------------------------------------------
                EMIS_SAVE(I,J,IDTALCO) = BIOG_ALCO(I,J)
 
                ! lead to too much ORVC_SESQ in the 1st layer?

@@ -753,11 +753,6 @@
       !=================================================================
 
       ! Get the number of I-6 fields
-!------------------------------------------------------------
-! Prior to 10/15/09:
-! Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!#if   defined( GEOS_5 ) && defined( IN_CLOUD_OD )
-!------------------------------------------------------------
 #if   defined( GEOS_5 )
       N_I6 = N_I6_FIELDS
 #else

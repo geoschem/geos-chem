@@ -1680,20 +1680,6 @@
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
      &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
 
-!------------------------------------------------------------------------------
-! Prior to 1/4/10:
-! Add better error-checking for exponential terms (win, bmy, 1/4/10)
-!            ! Aqueous phase SO2 loss rate (v/v/timestep): 
-!            L2  = EXP( ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM )  
-!            L3  = EXP( ( SO2_ss - O3    ) * KaqO3   * DTCHEM )       
-!
-!            ! Loss by H2O2
-!            L2S = SO2_ss * H2O20 * (L2 - 1.D0) / ((SO2_ss * L2) - H2O20)  
-!
-!            ! Loss by O3
-!            L3S = SO2_ss * O3    * (L3 - 1.D0) / ((SO2_ss * L3) - O3)     
-!------------------------------------------------------------------------------
-
             !----------------------------------------------------------
             ! Compute loss by H2O2.  Prevent floating-point exception
             ! by not allowing the exponential to go to infinity if 
@@ -1903,11 +1889,6 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
-      !-----------------------------------------------------------------
-      ! Prior to 1/28/10:
-      ! Remove reference to GET_GNO3 (bmy, 1/28/10)
-      !USE ISOROPIA_MOD,    ONLY : GET_GNO3
-      !-----------------------------------------------------------------
 
       ! Add these for GET_GNO3 fix (lyj, bmy, 10/7/08)
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3

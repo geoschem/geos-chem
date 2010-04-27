@@ -2006,11 +2006,6 @@
       USE TRACER_MOD,  ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-!-----------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
-!#     include "CMN"       ! IEBD1 etc
-!-----------------------------------------------------------------------------
 
       ! Local variables
       INTEGER            :: N
@@ -2034,18 +2029,6 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:2' )
       READ( SUBSTRS(1:N), * ) TS_CHEM
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
-!      ! Use embedded chemistry?
-!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
-!      READ( SUBSTRS(1:N), * ) LEMBED
-!
-!      ! Embedded chemistry limits?
-!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_chemistry_menu:4' )
-!      READ( SUBSTRS(1:N), * ) IEBD1, JEBD1, IEBD2, JEBD2
-!------------------------------------------------------------------------------
-
       ! Read and save CSPEC ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_chemistry_menu:3' )
       READ( SUBSTRS(1:N), * ) LSVCSPEC
@@ -2064,13 +2047,6 @@
       WRITE( 6, '(  a)' ) '--------------'
       WRITE( 6, 100     ) 'Turn on chemistry?          : ', LCHEM
       WRITE( 6, 110     ) 'Chemistry timestep [min]    : ', TS_CHEM
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
-!      WRITE( 6, 100     ) 'Turn on EMBEDDED CHEMISTRY? : ', LEMBED
-!      WRITE( 6, 120     ) 'EMBEDDED CHEM lower L box:  : ', IEBD1, JEBD1
-!      WRITE( 6, 120     ) 'EMBEDDED CHEM upper R box   : ', IEBD2, JEBD2
-!------------------------------------------------------------------------------
       WRITE( 6, 100     ) 'Use CSPEC restart?          : ', LSVCSPEC
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
 

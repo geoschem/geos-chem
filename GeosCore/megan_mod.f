@@ -713,14 +713,6 @@
       EMMONOT = 0.d0
 
       DO K = 1 , N
-
-!----------------------------------------------------------------------------
-! Prior to 3/9/10:
-! Now correct order of MEGAN arguments
-!--- Previous to (hotp, ccc, 3/9/10)
-!         MONO = GET_EMMONOG_MEGAN( I , J , TS , SUNCOS , Q_DIR ,
-!     &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
-!----------------------------------------------------------------------------
          MONO = GET_EMMONOG_MEGAN( I , J , SUNCOS, TS , Q_DIR ,
      &                             Q_DIFF , XNUMOL , SPECIES(K) ) 
 

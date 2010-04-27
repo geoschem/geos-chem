@@ -1,10 +1,4 @@
 ! $Id: ruralbox.f,v 1.2 2010/02/25 21:07:03 bmy Exp $
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!      SUBROUTINE RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-!     &                     LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
-!------------------------------------------------------------------------------
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 !
 !******************************************************************************
@@ -68,12 +62,6 @@
 #     include "CMN_SIZE"       ! Size parameters
 #     include "comode.h"       ! NPVERT
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!      LOGICAL, INTENT(IN)     :: LEMBED 
-!      INTEGER, INTENT(IN)     :: IEBD1, IEBD2, JEBD1, JEBD2
-!------------------------------------------------------------------------------
       REAL*8,  INTENT(IN)     :: AD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: T(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(IN)     :: AVGW(IIPAR,JJPAR,LLPAR)
@@ -111,31 +99,7 @@
             ! JLOP is the 1-D grid box loop index
             JLOP(I,J,L) = 0
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!            ! Filter to do chemistry in a window when 
-!            ! rest of model is running global run.
-!            ! LEMBED - Logical for embedded window defined by
-!            !          IEBD1, IEBD2, JEBD1, JEBD2
-!            IF ( LEMBED ) THEN
-!               IF ( I < IEBD1 .OR. I > IEBD2  .OR. 
-!     &              J < JEBD1 .OR. J > JEBD2 ) GOTO 40
-!            ENDIF
-!------------------------------------------------------------------------------
-            
             IF ( IGLOBCHEM <= 0 ) THEN
-
-! === testing === BDF
-!               if (i .eq. 30) then
-!                  temp(i,j,1) = dble(get_tpause_level(i,j))
-!                  write(6,*) i,j, 'val of last trop box: ', temp(i,j,1)
-!                  templ = its_in_the_trop(i,j,l)
-!                  write(6,*) '     ', l, 'trop: ', templ
-!                  templ = its_in_the_strat(i,j,l)
-!                  write(6,*) '     ', l, 'strat: ', templ
-!               endif
-! === end testing === BDF
 
                !=======================================================
                ! Skip over strat boxes
@@ -199,12 +163,6 @@
             IYSAVE(JLOOP)  = J
             IZSAVE(JLOOP)  = L                              
 
-! === testing === BDF
-!            if (i .eq. 18 .and. j .eq. 23 .and. l .eq. 19) then
-!               write(6,*) 'using offending box'
-!            endif
-! === end testing === BDF
-
             ! get box volume [cm3]
             VOLUME(JLOOP)  = BOXVL(I, J, L)
 
@@ -229,13 +187,6 @@
          ! NIJLOOP is the number of surface boxes
          IF ( L == 1 ) NIJLOOP = JLOOP
       ENDDO
-
-
-! === testing === BDF
-!      write(6,*) '  in ruralbox, number of tropospheric boxes: ', jloop
-!      call flush(6)
-!      call write_fields3(temp,'jloptest')
-! === testing === BDF
 
       ! NTLOOP is the number of total tropospheric boxes
       NTLOOP = JLOOP

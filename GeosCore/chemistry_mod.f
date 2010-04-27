@@ -83,11 +83,6 @@
       USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
       USE H2_HD_MOD,       ONLY : CHEM_H2_HD
       USE HCN_CH3CN_MOD,   ONLY : CHEM_HCN_CH3CN
-      !--------------------------------------------------------------------
-      ! Prior to 1/28/10:
-      ! Modified for ISOROPIA II (ccc, bmy, 1/28/10)
-      !USE ISOROPIA_MOD,    ONLY : DO_ISOROPIA
-      !-------------------------------------------------------------------
       USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
       USE LOGICAL_MOD,     ONLY : LCARB, LCHEM,  LCRYST, LDUST
       USE LOGICAL_MOD,     ONLY : LPRT,  LSSALT, LSULF,  LSOA
@@ -205,11 +200,6 @@
                 IF ( LSSALT ) THEN
                 
                    ! ISOROPIA takes Na+, Cl- into account
-                   !-------------------------------------------
-                   ! Prior to 1/28/10:
-                   ! Modified for ISORROPIA II (bmy, 1/28/10)
-                   !CALL DO_ISOROPIA
-                   !-------------------------------------------
                    CALL DO_ISOROPIAII
                 
                 ELSE
@@ -278,11 +268,6 @@
              IF ( LSSALT ) THEN
              
                 ! ISOROPIA takes Na+, Cl- into account
-                !-------------------------------------------------------
-                ! Prior to 1/28/10:
-                ! Modified for ISOROPIA II (ccarouge, bmy, 1/28/10)
-                !CALL DO_ISOROPIA
-                !-------------------------------------------------------
                 CALL DO_ISOROPIAII
              
              ELSE
@@ -670,12 +655,6 @@
          CALL Shuffle_kpp2user(VAR,V_CSPEC)  
 
          ! Pass KPP concentrations V_CSPEC to geos-chem CSPEC
-         !---------------------------------------------------------
-         ! Prior to 1/20/10:
-         ! Now use NSPEC_GC (# of active species in GEOS-Chem).
-         ! (ccc, 01/20/10)   
-         !DO N =1, NVAR
-         !---------------------------------------------------------
          DO N =1, NSPEC_GC
             CSPEC(JLOOP,N) = V_CSPEC(N)
          ENDDO

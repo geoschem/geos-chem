@@ -153,6 +153,7 @@
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
+!  (37) Now make sure not to call SCHEM if LINOZ is used. (bmy, 4/27/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -179,16 +180,11 @@
       ! To use CSPEC_FULL restart (dkh, 02/12/09
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
-      USE LOGICAL_MOD,          ONLY : LSVCSPEC
+      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
 
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!#     include "CMN"             ! IEBD1, IEBD2, etc.
-!------------------------------------------------------------------------------
 #     include "CMN_O3"          ! EMISRRN, EMISRR
 #     include "CMN_NOX"         ! SLBASE
 #     include "comode.h"        ! SMVGEAR variables
@@ -247,12 +243,6 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
-!-----------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-!     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
-!-----------------------------------------------------------------------------
       CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 
       !### Debug
@@ -470,26 +460,19 @@
       ! is the chemistry solver
       CALL PHYSPROC( SUNCOS, SUNCOSB )
 
-
-!--- Previous to (ccc, 12/9/09)
-!      !*********** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *************
-!      IF ( LKPP ) THEN
-!         NTT = NTTLOOP
-!!--- CSPEC_FOR_KPP not used anymore (ccc, 12/3/09)
-!!         CSPEC_FOR_KPP = CSPEC
-!!         CALL gckpp_Driver()
-!      ENDIF
-!      !********************************************
-
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
 
-      ! SCHEM applies a simplified strat chemistry in order
-      ! to prevent stuff from building up in the stratosphere
-      CALL SCHEM
+      ! Don't call SCHEM if we are using LINOZ (bmy, 4/27/10)
+      IF ( .not. LLINOZ ) THEN
 
-      !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
+         ! SCHEM applies a simplified strat chemistry in order
+         ! to prevent stuff from building up in the stratosphere
+         CALL SCHEM
+
+         !### Debug
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
+      ENDIF
 
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry

@@ -326,12 +326,6 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-!-----------------------------------------------------------------------
-! Prior to 12/18/09:
-! Also need to RETURN for 0.5 x 0.666 nested grid simulations
-! (mpb, bmy, 12/18/09)
-!#if   defined( GRID1x1 )
-!-----------------------------------------------------------------------
 #if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
 #if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
