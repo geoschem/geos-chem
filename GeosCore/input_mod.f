@@ -4840,6 +4840,10 @@
 !        And test that all time steps are multiple of the smallest one.
 !        (ccc, 5/13/09)
 !  (3 ) Corrected typos -99999 instead of -999999 (phs, bmy, 8/21/09)
+!  (4 ) Now compute TS_SUN_2 which is 1/2 of the chemistry timestep (or
+!        smallest timestep if LCHEM=LEMIS=LDRYD=F).  This is used to compute
+!        SUNCOS at the midpoint of the timestep instead of the beginning.
+!        (bmy, 4/27/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4850,7 +4854,8 @@
       USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
       
       ! Local variables
-      INTEGER              :: I, J, K, L, TS_SMALLEST, TS_DIAG
+      INTEGER              :: I,           J,       K,       L
+      INTEGER              :: TS_SMALLEST, TS_DIAG, TS_SUN_2
       
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -4859,7 +4864,7 @@
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
 
-      ! Only do unit conversion if 
+      ! Only do unit conversion if necessary
       IF ( LTRAN .or. LCONV .or. LTURB ) THEN
          TS_UNIT = MAX( TS_DYN, TS_CONV )
       ENDIF
@@ -4939,16 +4944,24 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
+      ! We need to compute the cosine of the solar zenith angle at the 
+      ! center of the relevant timestep.  Take 1/2 of the proper time 
+      ! interval and store for future reference. (bmy, 4/27/10)
+      IF ( LCHEM .or. LEMIS .or. LDRYD ) THEN
+         TS_SUN_2 = TS_CHEM     / 2   ! 1/2 of chemistry timestep
+      ELSE 
+         TS_SUN_2 = TS_SMALLEST / 2   ! 1/2 of dynamic (smallest) timestep
+      ENDIF
 
       ! Initialize timesteps in "time_mod.f"
-      CALL SET_TIMESTEPS( CHEMISTRY=TS_CHEM, EMISSION=TS_EMIS, 
-     &                    DYNAMICS=TS_DYN,   UNIT_CONV=TS_UNIT,
-     &                    CONVECTION=TS_CONV, DIAGNOS=TS_DIAG )
+      CALL SET_TIMESTEPS( CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
+     &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
+     &                    SUNCOS     = TS_SUN_2 )
 
       
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )
-
 
       ! Return to MAIN program
       END SUBROUTINE CHECK_TIME_STEPS
