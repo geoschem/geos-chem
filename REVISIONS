@@ -3,6 +3,11 @@ REVISIONS (v8-02-05)
 Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% NOTE: It is recommended to use the gitk viewer to examine the source    %%%
+%%%       code modifications that have been added to GEOS-Chem!             %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 
 New in v8-02-05:
 ===============================================================================

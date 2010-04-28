@@ -1183,7 +1183,7 @@ c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
                ! I-J-L indices
                IX = IXSAVE(JLOOP)
                IY = IYSAVE(JLOOP)
-               IZ = IZSAVE(JLOOP)
+               IZ = IZSAVE(JLOOP)               
 
                ! Save J-values for 2PM diagnostic boxes
                ! Use AD22 array for J-value diagnostic (bmy, 9/30/99)

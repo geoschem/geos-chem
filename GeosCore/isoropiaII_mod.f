@@ -387,17 +387,6 @@
          CNTRL(2) = 1.0d0
 
          ! Insert concentrations [mole/m3] into WI & prevent underflow
-!------------------------------------------------------------------------------
-! Prior to 2/1/10:
-! This code is now done above, so comment it out here (bmy, 2/1/10) 
-!           ! As of 11/2007, ISORROPIAII does not conserve mass when 
-!           ! Ca,K,Mg are non-zero. If you would like to consider Ca, 
-!           ! K, Mg from seasalt and dust, isoropiaIIcode.f ISRP4F 
-!           ! routines must be debugged.  
-!         TCA      = 0d0
-!         TK       = 0d0
-!         TMG      = 0d0
-!------------------------------------------------------------------------------
          WI(1)    = MAX( TNA,  CONMIN )
          WI(2)    = MAX( TSO4, CONMIN )
          WI(3)    = MAX( TNH3, CONMIN )
@@ -495,15 +484,6 @@
      &                          STT(I,J,L,IDTNH4) /18d0         +
      &                          STT(I,J,L,IDTSALA)*0.3061d0/23.0d0 )
 
-!------------------------------------------------------------------------------
-! Prior to 4/21/10:
-! HNO3 is not defined for offline aerosol simulations, therefore this code
-! will cause an out-of-bounds error. (sofen, bmy, 4/21/10)
-!         DEN_SAV            = ( STT(I,J,L,IDTSO4) / 96d0 * 2d0  +
-!     &                          STT(I,J,L,IDTNIT) /62d0         + 
-!     &                          STT(I,J,L,IDTHNO3)/63d0         +
-!     &                          STT(I,J,L,IDTSALA) *0.55d0/ 35.45d0 )
-!------------------------------------------------------------------------------
          DEN_SAV            = ( STT(I,J,L,IDTSO4)  / 96d0   * 2d0     +
      &                          STT(I,J,L,IDTNIT)  / 62d0             + 
      &                          HNO3_DEN           / 63d0             +

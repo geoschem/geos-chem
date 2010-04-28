@@ -731,7 +731,6 @@
          CALL AIRQNT
 
          ! Compute the cosine of the solar zenith angle array SUNCOS
-         ! NOTE: SUNCOSB is not really used in PHYSPROC (bmy, 2/13/07)
          CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
          ! Compute tropopause height for ND55 diagnostic

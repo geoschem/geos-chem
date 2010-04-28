@@ -71,6 +71,7 @@
       PUBLIC  :: GET_TS_DYN
       PUBLIC  :: GET_TS_EMIS
       PUBLIC  :: GET_TS_UNIT
+      PUBLIC  :: GET_TS_SUN_2
       PUBLIC  :: GET_CT_CHEM
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
@@ -162,13 +163,16 @@
 !  (29) Add NYMD_DIAG, GET_NYMD_DIAG, TIMESTAMP_DIAG to get the good timestamp
 !       for diagnostic filenames (ccc, 8/12/09)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Apr 2010 - R. Yantosca - Added OFFSET argument to GET_LOCALTIME
+!  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
+!                              for computing SUNCOS.
+!  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Date and time variables
       INTEGER           :: NYMDb,      NHMSb,       NYMDe   
       INTEGER           :: NHMSe,      NYMD,        NHMS
-      ! To get the good day for diagnostic filenames. (ccc, 8/12/09) 
       INTEGER           :: NYMD_DIAG
       INTEGER           :: MONTH,      DAY,         YEAR
       INTEGER           :: HOUR,       MINUTE,      SECOND
@@ -180,6 +184,7 @@
       ! Timesteps
       INTEGER           :: TS_CHEM,   TS_CONV,     TS_DIAG
       INTEGER           :: TS_DYN,    TS_EMIS,     TS_UNIT
+      INTEGER           :: TS_SUN_2
 
       ! Timestep counters
       INTEGER           :: CT_CHEM,   CT_CONV,     CT_DYN    
@@ -549,7 +554,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE SET_TIMESTEPS( CHEMISTRY, CONVECTION, DYNAMICS,  
-     &                          EMISSION,  UNIT_CONV,  DIAGNOS )
+     &                          EMISSION,  UNIT_CONV,  DIAGNOS,
+     &                          SUNCOS )
 !
 ! !INPUT PARAMETERS:
 !
@@ -559,6 +565,7 @@
       INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
       INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
       INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
+      INTEGER, INTENT(IN) :: SUNCOS       ! 1/2 of timestep for SUNCOS [min]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -566,6 +573,9 @@
 !  (2 ) Also zero CT_XTRA (tmf, bmy, 10/20/05)
 !  (3 ) Add TS_DIAG as the diagnostic timestep. (ccc, 5/13/09)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Apr 2010 - R. Yantosca - Now add SUNCOS argument to set 1/2 of the
+!                              interval for computing the cosine of the
+!                              solar zenith angle.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -576,6 +586,7 @@
       TS_EMIS  = EMISSION
       TS_UNIT  = UNIT_CONV
       TS_DIAG  = DIAGNOS
+      TS_SUN_2 = SUNCOS
 
       ! Zero timestep counters
       CT_CHEM = 0
@@ -597,6 +608,7 @@
       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
+      WRITE( 6, '(''Offset for SUNCOS   [min] : '', i4 )' ) TS_SUN_2
 
       ! Return to calling program
       END SUBROUTINE SET_TIMESTEPS
@@ -1776,7 +1788,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I ) RESULT( THISLOCALTIME )
+      FUNCTION GET_LOCALTIME( I, OFFSET ) RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
@@ -1784,22 +1796,41 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I              ! Longitude index
+      INTEGER, INTENT(IN)           :: I        ! Longitude index
+      REAL*8,  INTENT(IN), OPTIONAL :: OFFSET   ! Offset to apply to GMT [hrs]
 !
 ! !RETURN VALUE:
 !
-      REAL*8              :: THISLOCALTIME  ! Local time [hrs]
+      REAL*8                        :: THISLOCALTIME  ! Local time [hrs]
 ! 
+! !REMARKS:
+!  Local Time = GMT + ( longitude / 15 ) since each hour of time
+!  corresponds to 15 degrees of longitude on the globe
+!
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Apr 2010 - R. Yantosca - Add OFFSET to argument list, to allow the
+!                              local time to be computed at an arbitrary time
+!                              (e.g. at the halfway point of an interval)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! Local Time = GMT + ( longitude / 15 ) since each hour of time
-      ! corresponds to 15 degrees of longitude on the globe
-      THISLOCALTIME = GET_GMT() + ( GET_XMID( I ) / 15d0 )
-      
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: OFF 
+
+      ! Save the value of OFFSET in a local variable
+      IF ( PRESENT( OFFSET ) ) THEN 
+         OFF = OFFSET
+      ELSE
+         OFF = 0d0
+      ENDIF
+
+      ! Local time  =   GMT time [hrs]    +   longitude     / 15
+      THISLOCALTIME = ( GET_GMT() + OFF ) + ( GET_XMID( I ) / 15d0 ) 
+
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 
       IF ( THISLOCALTIME < 0  ) THISLOCALTIME = THISLOCALTIME + 24d0
@@ -2009,6 +2040,36 @@
       THIS_TS_UNIT = TS_UNIT
 
       END FUNCTION GET_TS_UNIT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ts_sun_2
+!
+! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS_SUN_2, which is 1/2 of
+!  the interval at which we are computing the cosine of the solar zenith
+!  angle, aka SUNCOS.  This is required to move the time at which we compute
+!  SUNCOS to the middle of the chemistry timestep interval.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_TS_SUN_2() RESULT( THIS_TS_SUN_2 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_TS_SUN_2  ! 1/2 of SUNCOS interval [min]
+! 
+! !REVISION HISTORY: 
+!  27 Apr 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      THIS_TS_SUN_2 = TS_SUN_2
+
+      END FUNCTION GET_TS_SUN_2
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3711,6 +3772,8 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
+
+
       END MODULE TIME_MOD
 
 

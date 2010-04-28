@@ -326,12 +326,6 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-!-----------------------------------------------------------------------
-! Prior to 12/18/09:
-! Also need to RETURN for 0.5 x 0.666 nested grid simulations
-! (mpb, bmy, 12/18/09)
-!#if   defined( GRID1x1 )
-!-----------------------------------------------------------------------
 #if   defined( GRID1x1   ) || defined( GRID05x0666 ) 
 #if   defined( NESTED_CH ) || defined( NESTED_NA   ) 
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
@@ -1297,7 +1291,7 @@
       SUBROUTINE COSSZA( JDAY, SUNCOS )
 !
 !******************************************************************************
-!  COSSZA computes the cosine of the solar zenith angle. (bmy 1/21/98, 2/13/07)
+!  COSSZA computes the cosine of the solar zenith angle. (bmy 1/21/98, 4/27/10)
 !
 !  Arguments as input:
 !  ============================================================================
@@ -1326,11 +1320,14 @@
 !        functions from "grid_mod.f" (bmy, 2/3/03)
 !  (13) Now uses GET_LOCALTIME from "time_mod.f" to get the local time. 
 !        Added parallel DO loop. Removed NHMSb, NSEC arguments. (bmy, 2/13/07)
+!  (14) Now compute SUNCOS at the midpoint of the relevant time interval
+!        (i.e. the chemistry timestep).   Also make the A and B coefficients
+!        parameters instead of variables. (bmy, 4/27/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD,    ONLY : GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_LOCALTIME
+      USE TIME_MOD,    ONLY : GET_LOCALTIME, GET_TS_SUN_2
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_GCTM"    ! Physical constants
@@ -1338,24 +1335,27 @@
       ! Arguments
       INTEGER, INTENT(IN)  :: JDAY
       REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
-
+      
       ! Local variables
       INTEGER              :: I, IJLOOP, J
-      REAL*8               :: A0, A1, A2, A3, B1, B2, B3
-      REAL*8               :: R, AHR, DEC, TIMLOC, YMID_R 
+      REAL*8               :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+
+      ! Coefficients for solar declination angle
+      REAL*8,  PARAMETER   :: A0 = 0.006918d0
+      REAL*8,  PARAMETER   :: A1 = 0.399912d0
+      REAL*8,  PARAMETER   :: A2 = 0.006758d0
+      REAL*8,  PARAMETER   :: A3 = 0.002697d0
+      REAL*8,  PARAMETER   :: B1 = 0.070257d0
+      REAL*8,  PARAMETER   :: B2 = 0.000907d0
+      REAL*8,  PARAMETER   :: B3 = 0.000148d0
 
       !=================================================================
       ! COSSZA begins here!   
       !=================================================================
 
-      ! Coefficients for solar declination angle
-      A0  = 0.006918d0
-      A1  = 0.399912d0
-      A2  = 0.006758d0
-      A3  = 0.002697d0
-      B1  = 0.070257d0
-      B2  = 0.000907d0
-      B3  = 0.000148d0
+      ! 1/2 of the time interval (normally the chemistry timestep)
+      ! for computing SUNCOS.  Convert from minutes to hours.
+      OFFSET = GET_TS_SUN_2() / 60d0
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
       R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
@@ -1396,10 +1396,10 @@
             ! the sun last passed the meridian (i.e. the time since the
             ! last local noon).  Convert to radians for the COS below.
             !===========================================================
-  
+
             ! Local time at box (I,J) [hours]
-            TIMLOC = GET_LOCALTIME( I )
-           
+            TIMLOC = GET_LOCALTIME( I, OFFSET )
+
             ! Hour angle at box (I,J) [radians]
             AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             

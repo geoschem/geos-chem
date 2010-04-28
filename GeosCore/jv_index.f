@@ -4,7 +4,7 @@
 !******************************************************************************
 !  Subroutine JV_INDEX computes the mapping between the CTM indices
 !  (from "chem.dat") for J-values to the FAST-J indices (from "ratj.d")
-!  for J-values.  (bmy, 10/5/98, 03/15/10)
+!  for J-values.  (bmy, 10/5/98, 4/27/10)
 !
 !  NOTES:
 !  (1 ) Assumes the ordering of a species with several branches in 
@@ -14,6 +14,7 @@
 !        CMN anymore. Now loop from NCS = 1..NCSGAS (bdf, bmy, 4/8/03)
 !  (4 ) Now reset NCS to NCSURBAN after loop (dbm, bmy, 10/16/06)
 !  (5 ) Increase species name length (fp, 6/09)
+!  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -69,9 +70,7 @@
                ! change formatting for longer name (FP 6/2009)
                WRITE ( 6, 100 ) I,         SPECNAME,  IBRCH, 
      &                          RINDEX(I), RNAMES(N), BRANCH(N)
-! 100           FORMAT('Harvard #: ', i3, 1x, a4, ' Branch: ', i2, 
-!     &                ' --->  Fast-J #: ', i3, 1x, a4, ' Branch: ',i2 )
- 100           FORMAT('Harvard #: ', i3, 1x, a7, ' Branch: ', i2, 
+ 100           FORMAT('GEOS-Chem #: ', i3, 1x, a7, ' Branch: ', i2, 
      &                ' --->  Fast-J #: ', i3, 1x, a7, ' Branch: ',i2 )
                EXIT
             ENDIF

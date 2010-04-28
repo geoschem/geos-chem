@@ -79,11 +79,6 @@
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
-!------------------------------------------------------------------------------
-! Prior to 2/26/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
-!      LOGICAL :: LEMBED          ! DEPRECATED, will be removed
-!------------------------------------------------------------------------------
 
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
 
