@@ -1339,7 +1339,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 1/4/10) 
+!  (rjp, bmy, 11/26/02, 4/28/10) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1393,6 +1393,7 @@
 !  (12) Updated to match JPL 2006 + full chem (jaf, bmy, 10/15/09)
 !  (13) Now prevent floating-point exceptions when taking the exponential
 !        terms. (win, bmy, 1/4/10)
+!  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1700,9 +1701,24 @@
      &               ( (SO2_ss * L2) - H2O20 )  
             ELSE
 
+               !-------------------------------------------------------------
+               ! Prior to 4/28/10:
                ! If exponential can't be computed, set to
                ! the initial H2O2 concentration
-               L2S = H2O20
+               !L2S = H2O20
+               !-------------------------------------------------------------
+
+               ! NOTE from Jintai Lin (4/28/10):
+               ! However, in the case of a negative XX, L2S should be 
+               ! approximated as SO2_ss, instead of H2O20. In other words, 
+               ! L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / ( (SO2_ss*L2) - H2O20 )
+               ! reaches different limits when XX reaches positive infinity 
+               ! and negative infinity.
+               IF ( XX > 0.d0 ) THEN 
+                  L2S = H2O20 
+               ELSE 
+                  L2S = SO2_ss
+               ENDIF
 
             ENDIF
 
@@ -1726,10 +1742,20 @@
 
             ELSE
  
+               !-------------------------------------------------------------
+               ! Prior to 4/28/10:
                ! If exponential can't be computed, set to
                ! the initial O3 concentration
-               L3S = O3
+               !L3S = O3
+               !-------------------------------------------------------------
 
+               ! Follow the same logic for L3S as described in
+               ! Jintai Lin's note above (bmy, 4/28/10)
+               IF ( XX > 0.d0 ) THEN 
+                  L3S = O3 
+               ELSE 
+                  L3S = SO2_ss 
+               ENDIF
             ENDIF
 
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
