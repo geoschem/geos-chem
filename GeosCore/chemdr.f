@@ -153,7 +153,6 @@
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
-!  (37) Now make sure not to call SCHEM if LINOZ is used. (bmy, 4/27/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -463,16 +462,15 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
 
-      ! Don't call SCHEM if we are using LINOZ (bmy, 4/27/10)
-      IF ( .not. LLINOZ ) THEN
+      ! SCHEM applies a simplified strat chemistry in order
+      ! to prevent stuff from building up in the stratosphere
+      !
+      ! NOTE: SCHEM still needs to be called whether or not LINOZ is
+      ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
+      CALL SCHEM
 
-         ! SCHEM applies a simplified strat chemistry in order
-         ! to prevent stuff from building up in the stratosphere
-         CALL SCHEM
-
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
-      ENDIF
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
 
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
