@@ -81,8 +81,7 @@
 !  (69) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
 !  (70) RH       (REAL*8 ) : Relative humidity                   [%]
 !  (71) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
-!  (72) SUNCOSB  (REAL*8 ) : COSINE( SZA ) at next chem time     [unitless]
-!  (73) EFLUX    (REAL*8 ) : Latent heat flux                    [W/m2]
+!  (72) EFLUX    (REAL*8 ) : Latent heat flux                    [W/m2]
 !
 !  Module Routines:
 !  ============================================================================
@@ -162,6 +161,7 @@
 !  (31) Add fractions of land and water, FRLAND, FROCEAN, FRLANDIC, FRLAKE 
 !        for methane (kjw, 8/18/09)
 !  (32) Bug fix in AVGPOLE (bmy, 12/18/09)
+!  (33) Remove obsolete SUNCOSB array (bmy, 4/28/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -243,7 +243,11 @@
       REAL*8,  ALLOCATABLE :: SPHU2(:,:,:)
       REAL*8,  ALLOCATABLE :: SPHU (:,:,:)
       REAL*8,  ALLOCATABLE :: SUNCOS(:)
-      REAL*8,  ALLOCATABLE :: SUNCOSB(:)
+!---------------------------------------------------------
+! Prior to 4/28/10:
+! This is now obsolete (bmy, 4/28/10)
+!      REAL*8,  ALLOCATABLE :: SUNCOSB(:)
+!---------------------------------------------------------
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLI(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLW(:,:,:)
@@ -1649,7 +1653,7 @@
 !
 !******************************************************************************
 !  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 6/11/08)
+!  (bmy, 6/26/00, 4/28/10)
 !
 !  NOTES:
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
@@ -1683,6 +1687,7 @@
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
 !  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
+!  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1857,12 +1862,18 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
 
-      ! Only allocate SUNCOSB for a full-chemistry run (bdf, bmy, 4/1/03)
-      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
-         ALLOCATE( SUNCOSB( MAXIJ ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOSB' )
-         SUNCOSB = 0d0
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 4/28/10:
+! Now remove SUNCOSB, we now compute the photolysis at the midpt of the
+! chemistry timestep.  We never did reorder the SMVGEAR boxes, which was
+! the only reason SUNCOSB was added in the first place. (bmy, 4/28/10)
+!      ! Only allocate SUNCOSB for a full-chemistry run (bdf, bmy, 4/1/03)
+!      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
+!         ALLOCATE( SUNCOSB( MAXIJ ), STAT=AS )
+!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOSB' )
+!         SUNCOSB = 0d0
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2284,7 +2295,7 @@
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DAO deallocates all met field arrays. 
-!  (bmy, 6/26/00, 1/17/07)
+!  (bmy, 6/26/00, 4/28/10)
 ! 
 !  NOTES:
 !  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
@@ -2304,6 +2315,7 @@
 !  (12) Now deallocate GCAP met fields (bmy, 5/25/05)
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (14) Deallocate additional arrays for GEOS-5 (bmy, 1/17/07)
+!  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !******************************************************************************
 !
       !=================================================================
@@ -2381,7 +2393,11 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
-      IF ( ALLOCATED( SUNCOSB  ) ) DEALLOCATE( SUNCOSB  )
+!------------------------------------------------------------
+! Prior to 4/28/10:
+! Remove obsolete SUNCOSB (bmy, 4/28/10)
+!      IF ( ALLOCATED( SUNCOSB  ) ) DEALLOCATE( SUNCOSB  )
+!------------------------------------------------------------
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )

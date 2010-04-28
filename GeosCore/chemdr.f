@@ -153,7 +153,7 @@
 !  (35) Move the KPP interface in physproc.f to save memory (ccc, 12/3/09)
 !  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
-!  (37) Now make sure not to call SCHEM if LINOZ is used. (bmy, 4/27/10)
+!  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -161,7 +161,12 @@
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-      USE DAO_MOD,              ONLY : SUNCOSB,  T
+!---------------------------------------------------------------------------
+! Prior to 4/28/10:
+! Remove obsolete SUNCOSB (bmy, 4/28/10)
+!      USE DAO_MOD,              ONLY : SUNCOSB,  T
+!---------------------------------------------------------------------------
+      USE DAO_MOD,              ONLY : T
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -458,21 +463,25 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS, SUNCOSB )
+!-------------------------------------------
+! Prior to 4/28/10:
+! Remove obsolete SUNCOSB (bmy, 4/28/10)
+!     CALL PHYSPROC( SUNCOS, SUNCOSB )
+!-------------------------------------------
+      CALL PHYSPROC( SUNCOS )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
 
-      ! Don't call SCHEM if we are using LINOZ (bmy, 4/27/10)
-      IF ( .not. LLINOZ ) THEN
+      ! SCHEM applies a simplified strat chemistry in order
+      ! to prevent stuff from building up in the stratosphere
+      !
+      ! NOTE: SCHEM still needs to be called whether or not LINOZ is
+      ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
+      CALL SCHEM
 
-         ! SCHEM applies a simplified strat chemistry in order
-         ! to prevent stuff from building up in the stratosphere
-         CALL SCHEM
-
-         !### Debug
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
-      ENDIF
+      !### Debug
+      IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SCHEM' )
 
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry

@@ -70,7 +70,12 @@
       USE DAO_MOD,           ONLY : INTERP,          PS1
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
-      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
+!----------------------------------------------------------------------
+! Prior to 4/28/10:
+! Remove obsolete SUNCOSB (bmy, 4/28/10)
+!      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
+!----------------------------------------------------------------------
+      USE DAO_MOD,           ONLY : SUNCOS
       USE DAO_MOD,           ONLY : MAKE_RH
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
