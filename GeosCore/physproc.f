@@ -1,10 +1,15 @@
 ! $Id: physproc.f,v 1.6 2010/02/02 17:00:02 bmy Exp $
-      SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
+!---------------------------------------------------------
+! Prior to 4/28/10:
+! Remove obsolete SUNCOSB (bmy, 4/28/10)
+!      SUBROUTINE PHYSPROC( SUNCOS, SUNCOSB )
+!---------------------------------------------------------
+      SUBROUTINE PHYSPROC( SUNCOS )
 !
 !******************************************************************************
 !  Subroutine PHYSPROC is the driver for SMVGEAR II chemistry.  It calls both
 !  CALCRATE to compute the rxn rates and the SMVGEAR solver routine.
-!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 1/20/10)
+!  (M. Jacobson 1993; bdf, bmy, 4/18/03, 4/28/10)
 !
 !  NOTES:
 !  (1 ) For GEOS-CHEM we had to remove ABSHUM, AIRDENS, CSPEC, IXSAVE, IYSAVE,
@@ -72,7 +77,7 @@ C CHEMINTV = TIME INTERVAL FOR CHEMISTRY
 C IRCHEM   = COUNTS # CHEMINTV TIME-INTERVALS
 C
       ! Arguments
-      REAL*8, INTENT(IN) :: SUNCOS(MAXIJ), SUNCOSB(MAXIJ)
+      REAL*8, INTENT(IN) :: SUNCOS(MAXIJ) !,  SUNCOSB(MAXIJ) (bmy, 4/28/10)
       
       ! Local variables
       INTEGER IDLAST,IMLAST,NMINADD,NHRADD,NDAYADD,NMONADD,NYEARAD
@@ -299,19 +304,7 @@ C *********************************************************************
 C
 
           CALL CALCRATE(SUNCOS)
-
-!--- Previous to (ccc, 12/9/09)
-!          !***************KPP_INTERFACE****************
-!          IF ( LKPP ) THEN
-!             DO KLOOP = 1, KTLOOP        
-!                JLOOP         = JREORDER(JLOOPLO+KLOOP)
-!                DO NK          = 1, NTRATES(NCS)
-!                   R_KPP(JLOOP,NK) = RRATE_FOR_KPP(KLOOP,NK)
-!                ENDDO
-!             ENDDO
-!          ENDIF
-!          !********************************************
-
+C
 C *********************************************************************
 C *                        SOLVE CHEMICAL ODES                        *
 C *********************************************************************
@@ -350,235 +343,241 @@ C
           
  640      CONTINUE
 !$OMP END PARALLEL DO
-C        CONTINUE KBLK = 1, NBLOCKUSE
-C
-C *********************************************************************
-C *           REORDER GRID-CELLS FROM LEAST TO MOST STIFF             *
-C *********************************************************************
-C AT SUNRISE/SET REORDER CELLS SO THOSE WITH SIMILAR SUNRISE GROUP TOGETHER
-C OTHERWISE,  REORDER CELLS SO THOSE WITH SIMILAR STIFFNESS GROUP TOGETHER
-C JREORDER  = GIVES ORIGINAL  GRID-CELL FROM RE-ORDERED GRID-CELL
-C LREORDER  = GIVES ORIGINAL GRID CELL FROM RE-ORDERED CELL, EXCEPT, 
-C             WHEN CELL IS A VIRTUAL BOUNDARY CELL, THEN LREORDER 
-C             GIVES ORIGINAL EDGE CELL FROM RE-ORDERED V. B. CELL 
-C JLOOPC    = IDENTIFIES AN EDGE CELL FOR EACH VIRTUAL BOUNDARY CELL; 
-C             OTHERWISE, IDENTIFIES THE JLOOP CELL 
-C
 
-         !==============================================================
-         ! New additions to reordering based on Loretta's implementation
-         ! (bdf, 4/1/03)
-         !==============================================================
-         IF (ISREORD.EQ.1) THEN
-            NSUNRISE = 0
-            NSUNSET  = 0
-
-            DO 660 JLOOP = 1, NTLOOPUSE
-               JLOOPC    = LREORDER(JLOOP)
-               IX        = IXSAVE(JLOOPC)
-               IY        = IYSAVE(JLOOPC)
-               IJWINDOW  = (IY-1)*IIPAR + IX
-
-               IF( SUNCOS(IJWINDOW) .GT. -.25 .AND.
-     &             SUNCOS(IJWINDOW) .LT. .25 ) THEN
-                  ITWO(JLOOP)  = 1
-                  NSUNRISE     = NSUNRISE + 1
-                  CSUMA(JLOOP) = SUNCOS(IJWINDOW) - 
-     &                           ABS( SUNCOSB(IJWINDOW) )
-               ELSE
-                  ITWO(JLOOP)  = 0
-                  CSUMA(JLOOP) = ERRMX2(JLOOP)
-               ENDIF
- 660        CONTINUE
-
-            NNORISE = NTLOOPUSE - NSUNRISE - NSUNSET
-
-            DO 670 JLOOP = 1, NTLOOPUSE
-               LREORDER(JLOOP) = JREORDER(JLOOP)
-               CSUMC(   JLOOP) = CSUMA(   JLOOP)
- 670        CONTINUE
-C
-C *********************************************************************
-C    REORDER GRID-CELLS SO ALL CELLS WHERE SUNSET OCCURS ARE AT END
-C         LREORDER AND CSUMC ARE USED HERE ONLY TO STORE VALUES
-C        OF JREORDER AND CSUMA TEMPORARILY AND ARE USED ELSEWHERE
-C                       FOR A DIFFERENT PURPOSE. 
-C *********************************************************************
-C
-          JLLAST             = NTLOOPUSE 
-          DO 700 JLOOP       = 1, NTLOOPUSE
-           IF (ITWO(JLOOP).EQ.2) THEN
-            JREORDER(JLLAST) = LREORDER(JLOOP) 
-            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
-            JLLAST           = JLLAST - 1 
-           ENDIF
- 700      CONTINUE
-C
-C *********************************************************************
-C    NOW REORDER GRID-CELLS SO ALL CELLS WHERE SUNRISE OCCURS ARE 
-C           IMMEDIATELY BEFORE CELLS WHERE SUNSET OCCURS 
-C *********************************************************************
-C
-          DO 705 JLOOP       = 1, NTLOOPUSE
-           IF (ITWO(JLOOP).EQ.1) THEN
-            JREORDER(JLLAST) = LREORDER(JLOOP) 
-            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
-            JLLAST           = JLLAST - 1 
-           ENDIF
- 705      CONTINUE
-C
-C *********************************************************************
-C FINALLY, PLACE ALL OTHER GRID CELLS BEFORE SUNRISE AND SUNSET CELLS.
-C              JLLAST WILL EQUAL ZERO AFTER THIS LOOP 
-C *********************************************************************
-C
-          DO 710 JLOOP       = 1, NTLOOPUSE
-           IF (ITWO(JLOOP).EQ.0) THEN
-            JREORDER(JLLAST) = LREORDER(JLOOP) 
-            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
-            JLLAST           = JLLAST - 1 
-           ENDIF
- 710      CONTINUE 
-C
-C *********************************************************************
-C REORDER GRID-CELLS IN THREE STEPS:
-C   1) WHERE NO SUNRISE/SET, FROM LEAST TO MOST STIFF 
-C      (SMALLER ERRMX2 (CSUMA) -->LESS STIFF) 
-C      CSUMA = ERRMX2
-C   2) WHERE SUNRISE OCCURS, FROM TIME OF SUNRISE 
-C      CSUMA = TIME OF SUNRISE (IN SECONDS PAST MIDNIGHT)
-C   3) WHERE SUNSET  OCCURS, FROM TIME OF SUNSET  
-C      CSUMA = TIME OF SUNSET (IN SECONDS PAST MIDNIGHT)
-C
-C SORT USING HEAPSORT ROUTINE (NUMERICAL RECIPES), AN N(logb2)N PROCESS 
-C THIS REORDERING SCHEME IS VERY FAST, ALTHOUGH COMPLICATED.
-C ERRMX2 FROM SMVGEAR: DENOTES STIFFNESS (LARGER VALUE --> MORE STIFF).
-C *********************************************************************
-C
-          DO 760 IT             = 1, 3 
-           IF (IT.EQ.1) THEN
-            IRADD               = 0.d0
-            LVAL                = IRADD + NNORISE  * 0.5d0 + 1
-            IRVAL               = IRADD + NNORISE
-           ELSEIF (IT.EQ.2) THEN
-            IRADD               = NNORISE 
-            LVAL                = IRADD + NSUNRISE * 0.5d0 + 1
-            IRVAL               = IRADD + NSUNRISE
-           ELSEIF (IT.EQ.3) THEN
-            IRADD               = NNORISE + NSUNRISE  
-            LVAL                = IRADD + NSUNSET  * 0.5d0 + 1
-            IRVAL               = IRADD + NSUNSET 
-           ENDIF 
-C
-           IRADD1               = IRADD + 1
-C
-           IF (IRVAL.GT.IRADD1) THEN
-C
- 800        IF (LVAL.GT.IRADD1) THEN
-             LVAL                = LVAL - 1
-             VALLOW              = CSUMA(   LVAL)
-             JREORD              = JREORDER(LVAL)        
-            ELSE 
-             VALLOW              = CSUMA(   IRVAL)
-             JREORD              = JREORDER(IRVAL)        
-             CSUMA(   IRVAL)     = CSUMA(   IRADD1)
-             JREORDER(IRVAL)     = JREORDER(IRADD1) 
-             IRVAL               = IRVAL - 1
-             IF (IRVAL.EQ.IRADD1) THEN
-              CSUMA(    IRADD1)  = VALLOW
-              JREORDER( IRADD1)  = JREORD
-              GOTO 760 
-             ENDIF
-            ENDIF
-            IPAR                 = LVAL
-            JPAR                 = LVAL + LVAL - IRADD 
-C
- 820        IF (JPAR.LE.IRVAL) THEN
-             IF (JPAR.LT.IRVAL) THEN
-              JPAR1              = JPAR + 1
-              IF (CSUMA(JPAR).LT.CSUMA(JPAR1)) JPAR = JPAR1
-             ENDIF
-             IF (VALLOW.LT.CSUMA(JPAR)) THEN
-              CSUMA(   IPAR)     = CSUMA(   JPAR)
-              JREORDER(IPAR)     = JREORDER(JPAR)
-              IPAR               = JPAR
-              JPAR               = JPAR + JPAR - IRADD 
-              GOTO 820 
-             ENDIF
-            ENDIF
-C
-            CSUMA(   IPAR)       = VALLOW
-            JREORDER(IPAR)       = JREORD 
-            GOTO 800  
-C
-           ENDIF
-C          ENDIF IRVAL.GT.0
- 760      CONTINUE 
-C
-C *********************************************************************
-C  DETERMINE HOW MANY BLOCKS ARE NEEDED IN EACH REORDER GROUP (SUNRISE,
-C                 SUNSET, STIFFNESS) AFTER REORDERING
-C *********************************************************************
-C NBLOCKROW = # BLOCKS OF EACH REORDER GROUP (STIFFNESS, SUNRISE, SUNSET)
-C IUSESIZE  = # OF GRID CELLS IN EACH GRID BLOCK
-C NCELLROW  = # OF GRID CELLS IN EACH REORDER GROUP
-C NNORISE   = # OF STIFFNESS (NON-SUNRISE, NON-SUNSET) CELLS
-C NSUNRISE  = # OF SUNRISE CELLS
-C NSUNSET   = # OF SUNSET  CELLS
-C NREBLOCK  = COUNTS NUMBER OF NEW BLOCKS
-C
-
-          NSUMBLOCK        = 0
-          NREBLOCK         = 0
-          JLOOPLO          = 0 
-C
-          !write(6,*) 'norise,sunrise,sunset=',nnorise,nsunrise,nsunset
-          DO 770 IT        = 1, 3
-           IF (IT.EQ.1) THEN
-            NCELLROW       = NNORISE
-            NBLOCKROW      = 1 + NCELLROW / (KULOOP    + 0.0001d0)
-           ELSEIF (IT.EQ.2) THEN
-            NCELLROW       = NSUNRISE
-            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
-           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
-           ELSEIF (IT.EQ.3) THEN
-            NCELLROW       = NSUNSET
-            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
-           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
-           ENDIF
-C
-           NSUMBLOCK       = NSUMBLOCK + NBLOCKROW
-C
-           IF (NSUMBLOCK.GT.MXBLOCK) THEN
-!            write(6,*) 'val of mxblock= ',mxblock
-!            WRITE(6,*)'PHYSPROC: NSUMBLOCK>MXBLOCK. INCREASE MXBLOCK ',
-!     1                 NSUMBLOCK, NNORISE, NSUNRISE, NSUNSET, KULOOP 
-            STOP
-           ENDIF
-C
-           IF (NCELLROW.EQ.0) THEN
-            NBLOCKROW      = 0
-           ELSE
-            IAVBLOK            = 1 + NCELLROW / (NBLOCKROW + 0.0001d0)
-            IAVGSIZE           = MIN(IAVBLOK,KULOOP)
-            IREMAIN            = NCELLROW
-C
-            !write(6,*) 'it,nblockrow,iavesize= ',it,nblockrow,iavgsize
-            DO 765 KBLK        = 1, NBLOCKROW
-             NREBLOCK          = NREBLOCK + 1
-             IUSESIZE          = MIN(IAVGSIZE,MAX(IREMAIN,0))
-             JLOWVAR(NREBLOCK) = JLOOPLO
-             KTLPVAR(NREBLOCK) = IUSESIZE
-             IREMAIN           = IREMAIN - IUSESIZE
-             JLOOPLO           = JLOOPLO + IUSESIZE
- 765        CONTINUE
-           ENDIF
- 770      CONTINUE
-C770      CONTINUE IT = 1, 3
-C
-        ENDIF
-C       ENDIF ISREORD.EQ.1 
-C
+!------------------------------------------------------------------------------
+! Prior to 4/28/10:
+! Comment out code for reordering grid boxes.  We don't use this as it is
+! not computationally efficient for our situation. (bmy, 4/28/10)
+!C        CONTINUE KBLK = 1, NBLOCKUSE
+!C
+!C *********************************************************************
+!C *           REORDER GRID-CELLS FROM LEAST TO MOST STIFF             *
+!C *********************************************************************
+!C AT SUNRISE/SET REORDER CELLS SO THOSE WITH SIMILAR SUNRISE GROUP TOGETHER
+!C OTHERWISE,  REORDER CELLS SO THOSE WITH SIMILAR STIFFNESS GROUP TOGETHER
+!C JREORDER  = GIVES ORIGINAL  GRID-CELL FROM RE-ORDERED GRID-CELL
+!C LREORDER  = GIVES ORIGINAL GRID CELL FROM RE-ORDERED CELL, EXCEPT, 
+!C             WHEN CELL IS A VIRTUAL BOUNDARY CELL, THEN LREORDER 
+!C             GIVES ORIGINAL EDGE CELL FROM RE-ORDERED V. B. CELL 
+!C JLOOPC    = IDENTIFIES AN EDGE CELL FOR EACH VIRTUAL BOUNDARY CELL; 
+!C             OTHERWISE, IDENTIFIES THE JLOOP CELL 
+!C
+!
+!         !==============================================================
+!         ! New additions to reordering based on Loretta's implementation
+!         ! (bdf, 4/1/03)
+!         !==============================================================
+!         IF (ISREORD.EQ.1) THEN
+!            NSUNRISE = 0
+!            NSUNSET  = 0
+!
+!            DO 660 JLOOP = 1, NTLOOPUSE
+!               JLOOPC    = LREORDER(JLOOP)
+!               IX        = IXSAVE(JLOOPC)
+!               IY        = IYSAVE(JLOOPC)
+!               IJWINDOW  = (IY-1)*IIPAR + IX
+!
+!               IF( SUNCOS(IJWINDOW) .GT. -.25 .AND.
+!     &             SUNCOS(IJWINDOW) .LT. .25 ) THEN
+!                  ITWO(JLOOP)  = 1
+!                  NSUNRISE     = NSUNRISE + 1
+!                  CSUMA(JLOOP) = SUNCOS(IJWINDOW) - 
+!     &                           ABS( SUNCOSB(IJWINDOW) )
+!               ELSE
+!                  ITWO(JLOOP)  = 0
+!                  CSUMA(JLOOP) = ERRMX2(JLOOP)
+!               ENDIF
+! 660        CONTINUE
+!
+!            NNORISE = NTLOOPUSE - NSUNRISE - NSUNSET
+!
+!            DO 670 JLOOP = 1, NTLOOPUSE
+!               LREORDER(JLOOP) = JREORDER(JLOOP)
+!               CSUMC(   JLOOP) = CSUMA(   JLOOP)
+! 670        CONTINUE
+!C
+!C *********************************************************************
+!C    REORDER GRID-CELLS SO ALL CELLS WHERE SUNSET OCCURS ARE AT END
+!C         LREORDER AND CSUMC ARE USED HERE ONLY TO STORE VALUES
+!C        OF JREORDER AND CSUMA TEMPORARILY AND ARE USED ELSEWHERE
+!C                       FOR A DIFFERENT PURPOSE. 
+!C *********************************************************************
+!C
+!          JLLAST             = NTLOOPUSE 
+!          DO 700 JLOOP       = 1, NTLOOPUSE
+!           IF (ITWO(JLOOP).EQ.2) THEN
+!            JREORDER(JLLAST) = LREORDER(JLOOP) 
+!            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
+!            JLLAST           = JLLAST - 1 
+!           ENDIF
+! 700      CONTINUE
+!C
+!C *********************************************************************
+!C    NOW REORDER GRID-CELLS SO ALL CELLS WHERE SUNRISE OCCURS ARE 
+!C           IMMEDIATELY BEFORE CELLS WHERE SUNSET OCCURS 
+!C *********************************************************************
+!C
+!          DO 705 JLOOP       = 1, NTLOOPUSE
+!           IF (ITWO(JLOOP).EQ.1) THEN
+!            JREORDER(JLLAST) = LREORDER(JLOOP) 
+!            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
+!            JLLAST           = JLLAST - 1 
+!           ENDIF
+! 705      CONTINUE
+!C
+!C *********************************************************************
+!C FINALLY, PLACE ALL OTHER GRID CELLS BEFORE SUNRISE AND SUNSET CELLS.
+!C              JLLAST WILL EQUAL ZERO AFTER THIS LOOP 
+!C *********************************************************************
+!C
+!          DO 710 JLOOP       = 1, NTLOOPUSE
+!           IF (ITWO(JLOOP).EQ.0) THEN
+!            JREORDER(JLLAST) = LREORDER(JLOOP) 
+!            CSUMA(   JLLAST) = CSUMC(   JLOOP) 
+!            JLLAST           = JLLAST - 1 
+!           ENDIF
+! 710      CONTINUE 
+!C
+!C *********************************************************************
+!C REORDER GRID-CELLS IN THREE STEPS:
+!C   1) WHERE NO SUNRISE/SET, FROM LEAST TO MOST STIFF 
+!C      (SMALLER ERRMX2 (CSUMA) -->LESS STIFF) 
+!C      CSUMA = ERRMX2
+!C   2) WHERE SUNRISE OCCURS, FROM TIME OF SUNRISE 
+!C      CSUMA = TIME OF SUNRISE (IN SECONDS PAST MIDNIGHT)
+!C   3) WHERE SUNSET  OCCURS, FROM TIME OF SUNSET  
+!C      CSUMA = TIME OF SUNSET (IN SECONDS PAST MIDNIGHT)
+!C
+!C SORT USING HEAPSORT ROUTINE (NUMERICAL RECIPES), AN N(logb2)N PROCESS 
+!C THIS REORDERING SCHEME IS VERY FAST, ALTHOUGH COMPLICATED.
+!C ERRMX2 FROM SMVGEAR: DENOTES STIFFNESS (LARGER VALUE --> MORE STIFF).
+!C *********************************************************************
+!C
+!          DO 760 IT             = 1, 3 
+!           IF (IT.EQ.1) THEN
+!            IRADD               = 0.d0
+!            LVAL                = IRADD + NNORISE  * 0.5d0 + 1
+!            IRVAL               = IRADD + NNORISE
+!           ELSEIF (IT.EQ.2) THEN
+!            IRADD               = NNORISE 
+!            LVAL                = IRADD + NSUNRISE * 0.5d0 + 1
+!            IRVAL               = IRADD + NSUNRISE
+!           ELSEIF (IT.EQ.3) THEN
+!            IRADD               = NNORISE + NSUNRISE  
+!            LVAL                = IRADD + NSUNSET  * 0.5d0 + 1
+!            IRVAL               = IRADD + NSUNSET 
+!           ENDIF 
+!C
+!           IRADD1               = IRADD + 1
+!C
+!           IF (IRVAL.GT.IRADD1) THEN
+!C
+! 800        IF (LVAL.GT.IRADD1) THEN
+!             LVAL                = LVAL - 1
+!             VALLOW              = CSUMA(   LVAL)
+!             JREORD              = JREORDER(LVAL)        
+!            ELSE 
+!             VALLOW              = CSUMA(   IRVAL)
+!             JREORD              = JREORDER(IRVAL)        
+!             CSUMA(   IRVAL)     = CSUMA(   IRADD1)
+!             JREORDER(IRVAL)     = JREORDER(IRADD1) 
+!             IRVAL               = IRVAL - 1
+!             IF (IRVAL.EQ.IRADD1) THEN
+!              CSUMA(    IRADD1)  = VALLOW
+!              JREORDER( IRADD1)  = JREORD
+!              GOTO 760 
+!             ENDIF
+!            ENDIF
+!            IPAR                 = LVAL
+!            JPAR                 = LVAL + LVAL - IRADD 
+!C
+! 820        IF (JPAR.LE.IRVAL) THEN
+!             IF (JPAR.LT.IRVAL) THEN
+!              JPAR1              = JPAR + 1
+!              IF (CSUMA(JPAR).LT.CSUMA(JPAR1)) JPAR = JPAR1
+!             ENDIF
+!             IF (VALLOW.LT.CSUMA(JPAR)) THEN
+!              CSUMA(   IPAR)     = CSUMA(   JPAR)
+!              JREORDER(IPAR)     = JREORDER(JPAR)
+!              IPAR               = JPAR
+!              JPAR               = JPAR + JPAR - IRADD 
+!              GOTO 820 
+!             ENDIF
+!            ENDIF
+!C
+!            CSUMA(   IPAR)       = VALLOW
+!            JREORDER(IPAR)       = JREORD 
+!            GOTO 800  
+!C
+!           ENDIF
+!C          ENDIF IRVAL.GT.0
+! 760      CONTINUE 
+!C
+!C *********************************************************************
+!C  DETERMINE HOW MANY BLOCKS ARE NEEDED IN EACH REORDER GROUP (SUNRISE,
+!C                 SUNSET, STIFFNESS) AFTER REORDERING
+!C *********************************************************************
+!C NBLOCKROW = # BLOCKS OF EACH REORDER GROUP (STIFFNESS, SUNRISE, SUNSET)
+!C IUSESIZE  = # OF GRID CELLS IN EACH GRID BLOCK
+!C NCELLROW  = # OF GRID CELLS IN EACH REORDER GROUP
+!C NNORISE   = # OF STIFFNESS (NON-SUNRISE, NON-SUNSET) CELLS
+!C NSUNRISE  = # OF SUNRISE CELLS
+!C NSUNSET   = # OF SUNSET  CELLS
+!C NREBLOCK  = COUNTS NUMBER OF NEW BLOCKS
+!C
+!
+!          NSUMBLOCK        = 0
+!          NREBLOCK         = 0
+!          JLOOPLO          = 0 
+!C
+!          !write(6,*) 'norise,sunrise,sunset=',nnorise,nsunrise,nsunset
+!          DO 770 IT        = 1, 3
+!           IF (IT.EQ.1) THEN
+!            NCELLROW       = NNORISE
+!            NBLOCKROW      = 1 + NCELLROW / (KULOOP    + 0.0001d0)
+!           ELSEIF (IT.EQ.2) THEN
+!            NCELLROW       = NSUNRISE
+!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
+!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
+!           ELSEIF (IT.EQ.3) THEN
+!            NCELLROW       = NSUNSET
+!            !NBLOCKROW      = 1 + NCELLROW * 3./ (KULOOP  + 0.0001d0)
+!           NBLOCKROW      = 1 + NCELLROW / (KULOOP  + 0.0001d0)
+!           ENDIF
+!C
+!           NSUMBLOCK       = NSUMBLOCK + NBLOCKROW
+!C
+!           IF (NSUMBLOCK.GT.MXBLOCK) THEN
+!!            write(6,*) 'val of mxblock= ',mxblock
+!!            WRITE(6,*)'PHYSPROC: NSUMBLOCK>MXBLOCK. INCREASE MXBLOCK ',
+!!     1                 NSUMBLOCK, NNORISE, NSUNRISE, NSUNSET, KULOOP 
+!            STOP
+!           ENDIF
+!C
+!           IF (NCELLROW.EQ.0) THEN
+!            NBLOCKROW      = 0
+!           ELSE
+!            IAVBLOK            = 1 + NCELLROW / (NBLOCKROW + 0.0001d0)
+!            IAVGSIZE           = MIN(IAVBLOK,KULOOP)
+!            IREMAIN            = NCELLROW
+!C
+!            !write(6,*) 'it,nblockrow,iavesize= ',it,nblockrow,iavgsize
+!            DO 765 KBLK        = 1, NBLOCKROW
+!             NREBLOCK          = NREBLOCK + 1
+!             IUSESIZE          = MIN(IAVGSIZE,MAX(IREMAIN,0))
+!             JLOWVAR(NREBLOCK) = JLOOPLO
+!             KTLPVAR(NREBLOCK) = IUSESIZE
+!             IREMAIN           = IREMAIN - IUSESIZE
+!             JLOOPLO           = JLOOPLO + IUSESIZE
+! 765        CONTINUE
+!           ENDIF
+! 770      CONTINUE
+!C770      CONTINUE IT = 1, 3
+!C
+!        ENDIF
+!C       ENDIF ISREORD.EQ.1 
+!C
+!------------------------------------------------------------------------------
  855   CONTINUE
  860  CONTINUE
 C
