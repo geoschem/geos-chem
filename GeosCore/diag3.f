@@ -1473,6 +1473,7 @@
 !  (18) OPSSc  Sea Salt (coarse) Opt Depth(400 nm) : unitless : SCALECHEM
 !  (19) HGSSc  Hygroscopic growth of SSc           : unitless : SCALECHEM
 !  (20) SSSc   Sea Salt (coarse) Surface Area      : cm2/cm3  : SCALECHEM  
+!  (21-27)     Dust Optical Depth for each size    : unitless : SCALECHEM  
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -1485,6 +1486,7 @@
 !  (5 ) Updated tracers for new aerosols from Mian Chin (rvm, bmy, 3/1/02)
 !  (6 ) Now scale online dust fields by SCALECHEM (bmy, 4/9/04)
 !  (7 ) Also save out extra diagnostics for cryst sulfur tracers (bmy, 1/5/05)
+!  (8 ) Save out extra diagnostics for dust AOD in each size bin (clh, 5/7/10)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -1506,7 +1508,7 @@
                   UNIT = 'unitless'
             END SELECT
                
-            IF ( N > 3 .AND. N < 6 ) THEN
+            IF (( N > 3 .AND. N < 6 ) .OR. (N > 20)) THEN
 
                ! Online or offline dust fields?
                IF ( LDUST ) THEN
@@ -1543,12 +1545,12 @@
          ! If we are using the crystalline sulfate tracers (LCRYST=T),
          ! then also save out the extra ND21 diagnostics:
          !
-         ! #21: Opt depth for HYSTERESIS CASE            [unitless]
-         ! #22: Opt depth for SOLID CASE                 [unitless]
-         ! #23: Opt depth for LIQUID CASE                [unitless]
-         ! #24: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
-         ! #25: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
-         ! #26: Radiative forcing                        [W/m2    ]    
+         ! #28: Opt depth for HYSTERESIS CASE            [unitless]
+         ! #29: Opt depth for SOLID CASE                 [unitless]
+         ! #30: Opt depth for LIQUID CASE                [unitless]
+         ! #31: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
+         ! #32: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
+         ! #33: Radiative forcing                        [W/m2    ]    
          !==============================================================
          IF ( LCRYST ) THEN
             

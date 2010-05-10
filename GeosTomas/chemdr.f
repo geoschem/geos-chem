@@ -161,7 +161,7 @@
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-      USE DAO_MOD,              ONLY : SUNCOSB,  T
+      USE DAO_MOD,              ONLY : T
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -185,11 +185,6 @@
       IMPLICIT NONE
 
 #     include "CMN_SIZE"        ! Size parameters
-!------------------------------------------------------------------------------
-! Prior to 2/26/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
-!#     include "CMN"             ! IEBD1, IEBD2, etc.
-!------------------------------------------------------------------------------
 #     include "CMN_O3"          ! EMISRRN, EMISRR
 #     include "CMN_NOX"         ! SLBASE
 #     include "comode.h"        ! SMVGEAR variables
@@ -476,7 +471,7 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS, SUNCOSB )
+      CALL PHYSPROC( SUNCOS )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

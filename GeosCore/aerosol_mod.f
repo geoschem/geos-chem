@@ -57,6 +57,8 @@
 !       WERADIUS is same as ERADIUS, but excludes dry dust, BCPO and OCPO;
 !       use same units as ERADIUS. (tmf, 3/2/09)
 !  (9 ) Add SOAG and SOAM species. (tmf, ccc, 3/2/09)
+!  (10) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!       (clh, 05/07/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -547,7 +549,7 @@
       IMPLICIT NONE
 
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODAER, QAA, RAA
+#     include "jv_cmn.h"   ! ODAER, QAA, RAA, QAA_AOD (clh)
 #     include "CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTLOOP
 
@@ -1198,7 +1200,7 @@
       ! #1: Cloud optical depths (1000 nm) --> from "optdepth_mod.f"       
       ! #2: Max Overlap Cld Frac           --> from "optdepth_mod.f" 
       ! #3: Random Overlap Cld Frac        --> from "optdepth_mod.f" 
-      ! #4: Dust optical depths (400 nm)   --> from "rdust.f"
+      ! #4: Dust optical depths            --> from "rdust.f"
       ! #5: Dust surface areas             --> from "rdust.f"
       !
       ! Computed previously in "rdaer.f":
@@ -1222,12 +1224,20 @@
       ! #18 Sea Salt (coarse) Opt Depth(400 nm)      [unitless]
       ! #20 Sea Salt (coarse) Surface Area           [cm2/cm3 ]
       !
+      ! #21: Dust optical depths (0.15 um)     --> from "rdust.f"
+      ! #22: Dust optical depths (0.25 um)     --> from "rdust.f"
+      ! #23: Dust optical depths (0.4 um)     --> from "rdust.f"
+      ! #24: Dust optical depths (0.8 um)     --> from "rdust.f"
+      ! #25: Dust optical depths (1.5 um)     --> from "rdust.f"
+      ! #26: Dust optical depths (2.5 um)     --> from "rdust.f"
+      ! #27: Dust optical depths (4.0 um)     --> from "rdust.f"
+
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
       IF ( ND21 > 0 ) THEN
 
-         ! Loop over aerosol types
+         ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, IRHN, J, JLOOP, L, N, R ) 
@@ -1246,10 +1256,11 @@
                ! Index for type of aerosol and RH value
                IRHN = ( (N-1) * NRH ) + R
 
-               ! Optical Depths (scaled to 400nm)
+               ! Optical Depths (scaled to jv_spec_aod.dat wavelength, clh)
                AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + 
-     &                             ODAER(I,J,L,IRHN) * 
-     &                             QAA(2,IND(N)+R-1) / QAA(4,IND(N)+R-1)
+     &                        ODAER(I,J,L,IRHN) * 
+     &                        QAA_AOD(IND(N)+R-1) / QAA(4,IND(N)+R-1)
+
             ENDDO
             ENDDO
             ENDDO

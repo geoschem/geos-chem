@@ -89,7 +89,7 @@
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
 !  99            : P(surface) - PTOP                        [hPa      ]
 !  100           : Temperature                              [K        ]
-!  105-121       : AOD output                               [unitless ]
+!  115-121       : size resolved dust optical depth         [unitless   ]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
@@ -111,6 +111,8 @@
 !  (15) Updates & bug fixes in WRITE_DIAG50 (ccc, tai, bmy, 10/13/09)
 !  (16) Updates to AOD output.  Also have the option to write to HDF 
 !        (amv, bmy, 12/21/09)
+!  (17) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!       (clh, 05/07/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -242,7 +244,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
-#     include "jv_cmn.h"  ! ODAER
+#     include "jv_cmn.h"  ! ODAER, QAA, QAA_OUT
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 #     include "comode.h"  ! NPVERT
@@ -253,7 +255,7 @@
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
       INTEGER             :: H, I, J, K, L, M, N
       INTEGER             :: PBLINT,  R, X, Y, W
-      REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
+      REAL*8              :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
@@ -331,7 +333,7 @@
       !-----------------------
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALE400nm ) 
+!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
 !$OMP+SCHEDULE( DYNAMIC )
       DO W = 1, ND50_N_TRACERS
 
@@ -358,20 +360,6 @@
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / AD(I,J,L) )
-
-            ELSE IF (N > 114) THEN
-
-               !--------------------------------------
-               ! TOTAL DUST OPTD @ 400 nm [unitless]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               R = N - 114
-
-               ! Scaling factor to 400 nm
-               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
-
-               ! Accumulate
-               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -507,22 +495,22 @@
             ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
-               ! SULFATE AOD @ 400 nm [unitless]
+               ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
                   
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,R) * SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
-               ! BLACK CARBON AOD @ 400 nm [unitless]
+               ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -530,17 +518,17 @@
                   ! Index for ODAER
                   H          = NRH + R
                   
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
-               ! ORG CARBON AOD @ 400 nm [unitless]
+               ! ORG CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -548,17 +536,17 @@
                   ! Index for ODAER
                   H          = 2*NRH + R
 
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1) 
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 87 ) THEN
 
                !--------------------------------------
-               ! ACCUM SEASALT AOD @ 400 nm [unitless]
+               ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -566,17 +554,17 @@
                   ! Index for ODAER
                   H          = 3*NRH + R
 
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
                  
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 88 ) THEN
 
                !--------------------------------------
-               ! COARSE SEASALT AOD 400 nm [unitless]
+               ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -584,27 +572,41 @@
                   ! Index for ODAER
                   H          = 4*NRH + R
 
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
                   
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODAER(I,J,L,H) * SCALEAODnm
                ENDDO
 
             ELSE IF ( N == 89 ) THEN
                
                !--------------------------------------
-               ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength[unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST
 
-                  ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  ! Scaling factor to AOD wavelength (clh, 05/09)
+                  SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALE400nm
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
                ENDDO
+
+            ELSE IF (N > 114) THEN
+
+               !--------------------------------------
+               ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               R = N - 114
+
+               ! Scaling factor to AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ODMDUST(I,J,L,R)*SCALEAODnm
 
             ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
@@ -826,7 +828,7 @@
          ! Pick the proper divisor, depending on whether or not the
          ! species in question is archived only each chem timestep
          SELECT CASE ( ND50_TRACERS(W) )
-            CASE( 89, 90, 74, 75 )
+            CASE (91, 92, 76, 77 )
                DIVISOR = COUNT_CHEM3D
             CASE DEFAULT
                DIVISOR = COUNT
@@ -869,17 +871,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ( N > 114 ) THEN
-
-            !---------------------
-            ! Total dust OD
-            !---------------------
-            CATEGORY  = 'OD-MAP-$'
-            UNIT      = 'unitless'
-            GMNL      = ND50_NL
-            GMTRC     = N - 93
-
-         ELSE IF ( N == 89 ) THEN
+         ELSE IF ( N == 91 ) THEN
 
             !---------------------
             ! Pure O3
@@ -889,7 +881,7 @@
             GMNL     = ND50_NL
             GMTRC    = N_TRACERS + 1
 
-         ELSE IF ( N == 90 ) THEN
+         ELSE IF ( N == 92 ) THEN
 
             !---------------------
             ! Pure NO 
@@ -899,7 +891,7 @@
             GMNL     = ND50_NL
             GMTRC    = 9
 
-         ELSE IF ( N == 91 ) THEN
+         ELSE IF ( N == 93 ) THEN
 
             !---------------------
             ! NOy 
@@ -909,7 +901,7 @@
             GMNL     = ND50_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 74 ) THEN
+         ELSE IF ( N == 76 ) THEN
 
             !---------------------
             ! OH 
@@ -919,7 +911,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 75 ) THEN
+         ELSE IF ( N == 77 ) THEN
 
             !---------------------
             ! NO2 
@@ -929,7 +921,7 @@
             GMNL     = ND50_NL
             GMTRC    = 25
 
-         ELSE IF ( N == 76 ) THEN 
+         ELSE IF ( N == 78 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -939,7 +931,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 77 ) THEN
+         ELSE IF ( N == 79 ) THEN
 
             !---------------------
             ! PBL Height [layers]
@@ -949,7 +941,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 78 ) THEN
+         ELSE IF ( N == 80 ) THEN
 
             !---------------------
             ! Air Density 
@@ -959,7 +951,7 @@
             GMNL     = ND50_NL
             GMTRC    = 22
 
-         ELSE IF ( N == 79 ) THEN
+         ELSE IF ( N == 81 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -969,7 +961,7 @@
             GMNL     = ND50_NL
             GMTRC    = 19
 
-         ELSE IF ( N == 80 ) THEN
+         ELSE IF ( N == 82 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -979,7 +971,7 @@
             GMNL      = 1
             GMTRC     = 20
             
-         ELSE IF ( N == 81 ) THEN
+         ELSE IF ( N == 83 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -988,7 +980,7 @@
             GMNL      = 1
             GMTRC     = 21
 
-         ELSE IF ( N == 82 ) THEN
+         ELSE IF ( N == 84 ) THEN
 
             !---------------------
             ! Sulfate AOD
@@ -998,7 +990,7 @@
             GMNL      = ND50_ NL
             GMTRC     = 6
 
-         ELSE IF ( N == 83 ) THEN
+         ELSE IF ( N == 85 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1008,7 +1000,7 @@
             GMNL      = ND50_NL
             GMTRC     = 9
 
-         ELSE IF ( N == 84 ) THEN
+         ELSE IF ( N == 86 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
@@ -1018,7 +1010,7 @@
             GMNL      = ND50_ NL
             GMTRC     = 12
             
-         ELSE IF ( N == 85 ) THEN
+         ELSE IF ( N == 87 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1028,7 +1020,7 @@
             GMNL      = ND50_NL
             GMTRC     = 15
 
-         ELSE IF ( N == 86 ) THEN
+         ELSE IF ( N == 88 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1038,7 +1030,7 @@
             GMNL      = ND50_NL
             GMTRC     = 18
 
-         ELSE IF ( N == 87 ) THEN
+         ELSE IF ( N == 89 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1048,7 +1040,17 @@
             GMNL      = ND50_NL
             GMTRC     = 4
 
-         ELSE IF ( N == 88 ) THEN
+         ELSE IF ( N > 114 ) THEN
+
+            !---------------------
+            ! Dust OD (bins 1-7)
+            !---------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND50_NL
+            GMTRC     = N - 94
+
+         ELSE IF ( N == 90 ) THEN
 
             !----------------------
             ! Total Seasalt
@@ -1058,7 +1060,7 @@
             GMNL     = ND50_NL
             GMTRC    = 24
 
-         ELSE IF ( N == 93 ) THEN
+         ELSE IF ( N == 94 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1068,7 +1070,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 94 ) THEN
+         ELSE IF ( N == 95 ) THEN
 
             !---------------------
             ! Relative humidity
@@ -1078,7 +1080,7 @@
             GMNL     = ND50_NL
             GMTRC    = 17
 
-         ELSE IF ( N == 95 ) THEN
+         ELSE IF ( N == 96 ) THEN
 
             !---------------------
             ! Sea level prs [hPa]
@@ -1088,7 +1090,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 96 ) THEN
+         ELSE IF ( N == 97 ) THEN
 
             !---------------------
             ! U-wind [m/s]
@@ -1098,7 +1100,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 97 ) THEN
+         ELSE IF ( N == 98 ) THEN
 
             !---------------------
             ! V-wind [m/s]
@@ -1108,7 +1110,7 @@
             GMNL      = ND50_NL
             GMTRC     = 2
 
-         ELSE IF ( N == 98 ) THEN
+         ELSE IF ( N == 99 ) THEN
 
             !---------------------
             ! Psurface [hPa] 
@@ -1118,7 +1120,7 @@
             GMNL      = 1
             GMTRC     = 1
 
-         ELSE IF ( N == 99 ) THEN
+         ELSE IF ( N == 100 ) THEN
 
             !---------------------
             ! Temperature
