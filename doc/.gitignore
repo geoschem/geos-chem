@@ -9,4 +9,5 @@ geostomas
 *.log
 *.ps
 *.pdf
+*.tex
 *.toc
