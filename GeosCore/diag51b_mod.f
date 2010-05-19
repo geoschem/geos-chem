@@ -108,7 +108,7 @@
 !  112           : Myrcene emissions                        [atomC/cm2/s]
 !  113           : 3-Carene emissions                       [atomC/cm2/s]
 !  114           : Ocimene emissions                        [atomC/cm2/s]
-!  115-121       : AOD output                               [unitless   ]
+!  115-121       : size resolved dust optical depth         [unitless   ]
 !
 !  NOTES:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
@@ -133,6 +133,8 @@
 !  (18) Updates to AOD output.  Also have the option to write to HDF 
 !        (amv, bmy, 12/21/09)
 !  (19) Added MEGAN species (mpb, bmy, 12/21/09)
+!  (20) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!       (clh, 05/07/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -379,7 +381,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
 #     include "cmn_fj.h"  ! includes CMN_SIZE
-#     include "jv_cmn.h"  ! ODAER
+#     include "jv_cmn.h"  ! ODAER, QAA, QAA_AOD
 #     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
 #     include "CMN_GCTM"  ! SCALE_HEIGHT
 
@@ -390,7 +392,7 @@
       LOGICAL           :: IS_CHEM,     IS_DIAG, IS_EMIS
       INTEGER           :: H, I, J, K, L, M, N
       INTEGER           :: PBLINT,  R, X, Y, W, XMIN
-      REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALE400nm
+      REAL*8            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16) :: STAMP
 
       ! Aerosol types (rvm, aad, bmy, 7/20/04)
@@ -504,7 +506,7 @@
       IF ( IS_DIAG ) THEN
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALE400nm ) 
+!$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm ) 
 !$OMP+SCHEDULE( DYNAMIC )
       DO W = 1, ND51_N_TRACERS
 
@@ -534,17 +536,6 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
      &                      ( STT(I,J,L,N) * TCVV(N) / 
      &                        AD(I,J,L)    * GOOD(I) )
-
-            ELSE IF ( N > 114 ) THEN
-
-               R = N - 114
-
-               ! Scaling factor to 400 nm
-               SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
-
-               ! Accumulate
-               Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &              ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
 
             ELSE IF ( N == 91 .and. IS_Ox ) THEN
 
@@ -689,23 +680,23 @@
             ELSE IF ( N == 84 ) THEN
 
                !--------------------------------------
-               ! SULFATE AOD @ 400 nm [unitless]
+               ! SULFATE AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO H = 1, NRH
                   
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(1)+H-1) / QAA(4,IND(1)+H-1) 
+                  SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(4,IND(1)+H-1) 
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
+     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 85 ) THEN
 
                !--------------------------------------
-               ! BLACK CARBON AOD @ 400 nm [unitless]
+               ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -714,17 +705,17 @@
                   H          = NRH    + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
+     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 86 ) THEN
 
                !--------------------------------------
-               ! ORG CARBON AOD @ 400 nm [unitless]
+               ! ORG CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -733,17 +724,17 @@
                   H          = 2*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(3)+R-1) / QAA(4,IND(3)+R-1)
+                  SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
+     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 87 ) THEN
 
                !--------------------------------------
-               ! ACCUM SEASALT AOD @ 400 nm [unitless]
+               ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -752,17 +743,17 @@
                   H          = 3*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) ) 
+     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) ) 
                ENDDO
 
             ELSE IF ( N == 88 ) THEN
 
                !--------------------------------------
-               ! COARSE SEASALT AOD 400 nm [unitless]
+               ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NRH
@@ -771,28 +762,43 @@
                   H          = 4*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ODAER(I,J,L,H) * SCALE400nm * GOOD_CHEM(X) )
+     &                   ( ODAER(I,J,L,H) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
 
             ELSE IF ( N == 89 ) THEN               
 
                !--------------------------------------
-               ! TOTAL DUST OPTD @ 400 nm [unitless]
+               ! TOTAL DUST OPTD @ jv_spec_aod.dat wavelength  [unitless]
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
                DO R = 1, NDUST 
 
                   ! Scaling factor to 400 nm
-                  SCALE400nm = QAA(3,IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                 ( ODMDUST(I,J,L,R) * SCALE400nm * GOOD_CHEM(X) )
+     &                 ( ODMDUST(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
                ENDDO
+
+            ELSE IF ( N > 114 ) THEN
+
+               !--------------------------------------
+               ! Dust BINS 1-7 optical depth [unitless]
+               ! NOTE: Only archive at chem timestep
+               !--------------------------------------
+               R = N - 114
+
+               ! Scaling factor to AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+               ! Accumulate
+               Q(X,Y,K,W) = Q(X,Y,K,W) +
+     &              ( ODMDUST(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
 
             ELSE IF ( N == 90 .and. IS_SEASALT ) THEN
 
@@ -1332,16 +1338,6 @@
             GMNL     = ND51_NL
             GMTRC    = N
 
-         ELSE IF ( N > 114 ) THEN
-
-            !---------------------
-            ! bin 1 dust OD
-            !---------------------
-            CATEGORY = 'OD-MAP-$'
-            UNIT     = 'unitless'
-            GMNL     = ND51_NL
-            GMTRC    = N - 93
-
          ELSE IF ( N == 91 ) THEN
 
             !---------------------
@@ -1509,6 +1505,16 @@
             UNIT     = 'unitless'
             GMNL     = ND51_NL
             GMTRC    = 4
+
+         ELSE IF ( N > 114 ) THEN
+
+            !---------------------
+            ! dust OD (bins 1-7)
+            !---------------------
+            CATEGORY = 'OD-MAP-$'
+            UNIT     = 'unitless'
+            GMNL     = ND51_NL
+            GMTRC    = N - 94
 
          ELSE IF ( N == 90 ) THEN
 

@@ -59,6 +59,9 @@
 !  (10) Modified to archive only hydrophilic aerosol/aqueous dust surface area
 !        (excluding BCPO and OCPO) for aqueous chemistry calculations 
 !        Dust surfaces are considered aqueous only when RH > 35% (tmf, 3/6/09)
+!  (11) Add AOD output for all dust size bins (clh, 5/7/10)
+!  (12) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!       (clh, 05/07/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1064,7 +1067,7 @@
       IMPLICIT NONE
 
 #     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
+#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA, QAA_AOD (clh)
 #     include "CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTTLOOP
 
@@ -1181,8 +1184,9 @@
       ! Tracer #1: Cloud optical depths    (from "optdepth_mod.f")
       ! Tracer #2: Max Overlap Cld Frac    (from "optdepth_mod.f")
       ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
-      ! Tracer #4: Dust optical depths at 400 nm (from all size bins)
+      ! Tracer #4: Dust optical depths (total all size bins)
       ! Tracer #5: Dust surface areas (from all size bins)
+      ! Tracers #21-27: Dust AOD for each size bin
       !==============================================================
       IF ( ND21 > 0 ) THEN
 
@@ -1196,10 +1200,16 @@
             DO I = 1, IIPAR
 
                !--------------------------------------
-               ! ND21 tracer #4: Dust optical depths
+               ! ND21 tracer #4: Dust optical depths (clh)
                !--------------------------------------
                AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &              ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
+     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
+
+               !--------------------------------------
+               ! ND21 tracer #21-27: size-resolved dust optical depths
+               !--------------------------------------
+               AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
+     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
@@ -1461,7 +1471,7 @@
          ! Tracer #1: Cloud optical depths    (from "optdepth_mod.f")
          ! Tracer #2: Max Overlap Cld Frac    (from "optdepth_mod.f")
          ! Tracer #3: Random Overlap Cld Frac (from "optdepth_mod.f")
-         ! Tracer #4: Dust optical depths at 400 nm (from all size bins)
+         ! Tracer #4: Dust optical depths at  (from all size bins)
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
          IF ( ND21 > 0 ) THEN

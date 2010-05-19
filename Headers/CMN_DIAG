@@ -73,6 +73,7 @@
       ! Changed PD44 to 41 (tmf, 1/7/09)
       ! Now set PD52 to 1 (jaegle 2/26/09)
       ! Increase PD46 from 6 to 13 (mpb, ccc, 11/19/09)
+      ! increase PD21 from 20 to 27 (clh, 05/06/10)
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
       INTEGER, PARAMETER :: PD05=10        
@@ -91,7 +92,7 @@
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=0            
       INTEGER, PARAMETER :: PD20=0 
-      INTEGER, PARAMETER :: PD21=20
+      INTEGER, PARAMETER :: PD21=27
       INTEGER, PARAMETER :: PD22=8
       INTEGER, PARAMETER :: PD23=0           
       INTEGER, PARAMETER :: PD24=NNPAR        

@@ -56,6 +56,7 @@
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
 !  99            : P(surface) - PTOP                        [hPa      ]
 !  100           : Temperature                              [K        ]
+!  115-121       : size resolved dust optical depth         [unitless   ]
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
@@ -67,6 +68,8 @@
 !  (6 ) Bug fix: replace "PS-PTOP" with "PEDGE-$" (phs, bmy, 10/7/08)
 !  (7 ) Modified to archive O3, NO, NOy as tracers 89, 90, 91  (tmf, 10/22/07)
 !  (8 ) Bug fix in DIAG49 for diangostic output of SLP. (bmy, 10/13/09)
+!  (9 ) Modify AOD output to wavelength specified in jv_spec_aod.dat 
+!       (clh, 05/07/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -166,7 +169,7 @@
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
-#     include "jv_cmn.h"    ! ODAER, ODMDUST
+#     include "jv_cmn.h"    ! ODAER, ODMDUST, QAA, QAA_OUT
 #     include "CMN_O3"      ! XNUMOLAIR
 #     include "CMN_GCTM"    ! SCALE_HEIGHT
 
@@ -175,7 +178,7 @@
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_Ox,   IS_NOx,     IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W
-      REAL*8             :: LT, TAU, Q(LLPAR), SCALE400nm
+      REAL*8             :: LT, TAU, Q(LLPAR), SCALEAODnm
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
@@ -435,7 +438,7 @@
          ELSE IF ( N == 84 ) THEN
 
             !---------------------------------------
-            ! SULFATE AOD @ 400nm [unitless]
+            ! SULFATE AOD @ jv_spec_aod.dat wavelength[unitless]
             !--------------------------------------- 
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -443,18 +446,18 @@
 
             DO R = 1, NRH
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,R) * SCALE400nm
+                  Q(L) = ODAER(I,J,L,R) * SCALEAODnm
                ENDDO
             ENDDO
 
          ELSE IF ( N == 85 ) THEN
 
             !-------------------------------------
-            ! BLACK CARBON AOD @ 400nm [unitless]
+            ! BLACK CARBON AOD @ jv_spec_aod.dat wavelength[unitless]
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -462,18 +465,18 @@
 
             DO R = 1, NRH
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(2)+R-1) / QAA(4,IND(2)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,NRH+R) * SCALE400nm
+                  Q(L) = ODAER(I,J,L,NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
          ELSE IF ( N == 86 ) THEN
 
             !-----------------------------------
-            ! ORGANIC CARBON AOD [unitless]
+            ! ORGANIC CARBON AOD @ jv_spec_aod.dat wavelength [unitless]
             !-----------------------------------            
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -481,18 +484,18 @@
 
             DO R = 1, NRH
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(3)+R-1) / QAA(4,IND(3)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,2*NRH+R) * SCALE400nm
+                  Q(L) = ODAER(I,J,L,2*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
          ELSE IF ( N == 87 ) THEN
             
             !-------------------------------------
-            ! ACCUM SEASALT AOD @ 400nm [unitless]
+            ! ACCUM SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
             !-------------------------------------
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -500,18 +503,18 @@
 
             DO R = 1, NRH
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(4)+R-1) / QAA(4,IND(4)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,3*NRH+R) * SCALE400nm
+                  Q(L) = ODAER(I,J,L,3*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
          ELSE IF ( N == 88 ) THEN
 
             !-------------------------------------
-            ! COARSE SEASALT AOD @ 40nm [unitless]
+            ! COARSE SEASALT AOD @ jv_spec_aod.dat wavelength[unitless]
             !-------------------------------------            
             CATEGORY = 'OD-MAP-$'
             UNIT     = 'unitless'
@@ -519,18 +522,18 @@
 
             DO R = 1, NRH
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(5)+R-1) / QAA(4,IND(5)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,4*NRH+R) * SCALE400nm
+                  Q(L) = ODAER(I,J,L,4*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
          ELSE IF ( N == 89 ) THEN
 
             !-----------------------------------
-            ! TOTAL DUST OPT DEPTH [unitless]
+            ! TOTAL DUST OPT DEPTH @ jv_spec_aod.dat wavelength[unitless]
             !-----------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
@@ -538,12 +541,30 @@
 
             DO R = 1, NDUST
 
-               ! Scaling factor for 400nm
-               SCALE400nm = QAA(2,IND(6)+R-1) / QAA(4,IND(6)+R-1) 
+               ! Scaling factor for AOD wavelength (clh, 05/09)
+               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
 
                DO L = 1, K
-                  Q(L) = ODMDUST(I,J,L,R)* SCALE400nm
+                  Q(L) = ODMDUST(I,J,L,R)* SCALEAODnm
                ENDDO
+            ENDDO
+
+         ELSE IF ( N > 114 ) THEN
+
+            !-----------------------------------
+            ! DUST BINS 1-7 OPT DEPTH @ jv_spec_aod.dat wavelength [unitless]
+            !-----------------------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMTRC     = 21+(N-115)
+
+            R = N - 114
+
+            ! Scaling factor for AOD wavelength (clh, 05/09)
+            SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
+
+            DO L = 1, K
+               Q(L) = ODMDUST(I,J,L,R) * SCALEAODnm
             ENDDO
 
          ELSE IF ( N == 90 .and. IS_SEASALT ) THEN

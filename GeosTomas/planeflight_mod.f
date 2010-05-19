@@ -86,8 +86,8 @@
 !  (20) Add new RO2 species according to 'globchem.dat' (tmf, 1/7/09) 
 !  (21) Make sure we have 3 spaces in the exponential format (phs, 7/13/09)
 !  (22) Output the grid cell indexes (kjw, 8/18/09)
-!  (21) Change MAXVARS from 95 to 250  (win, 7/28/09)
-!******************************************************************************
+!  (23) Add AN and NOy species. (fp, 3/10/10)
+!  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat (clh, 5/14/09)!******************************************************************************
 !
       IMPLICIT NONE
       
@@ -998,6 +998,7 @@
 !  (10) Change planeflight output time step. (ccc, 8/27/09)
 !  (10) Add case matching for TOMAS rates (win, 7/28/09)
 !  (11) Modify PTAUE calculation w/ ref to GET_TS_DYN  (win, 7/28/09)
+!  (11) Now scale AOD's to jv_spec_aod.dat wavelength. (clh, 5/14/09)
 !******************************************************************************
 !
       ! Reference to F90 modules 
@@ -1013,7 +1014,7 @@
       IMPLICIT NONE
       
 #     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
-#     include "jv_cmn.h"   ! ODAER, QAA
+#     include "jv_cmn.h"   ! ODAER, QAA, QAA_AOD
 #     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
@@ -1021,7 +1022,7 @@
       LOGICAL             :: PCHEM
       INTEGER             :: I, IP, IRHN, J, L, JLOOP, M, N, R, RH, V
       INTEGER             :: LPLANE
-      REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, S400nm
+      REAL*8              :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL*8              :: VARI(NPVAR)
       REAL*8,  PARAMETER  :: MISSING = -999.99999999d0
 
@@ -1246,8 +1247,9 @@
                         ! Loop over RH bins
                         DO RH = 1, NRH
                         
-                           ! Scaling factor for 400nm
-                           S400nm  = QAA(2,IND(N)+RH-1) / 
+                           ! Scaling factor for wavelength specified in
+                           ! jv_spec_aod.dat
+                           SAODnm  = QAA_AOD(IND(N)+RH-1) / 
      &                               QAA(4,IND(N)+RH-1) 
 
                            ! Index for type of aerosol and RH value
@@ -1256,7 +1258,7 @@
                            ! Sum AOD over all RH bins and store in VARI(V)
                            ! Sum over all vertical levels (bmy, 10/24/05)
                            VARI(V) = VARI(V) + 
-     &                               SUM( S400nm * ODAER(I,J,:,IRHN) )
+     &                               SUM( SAODnm * ODAER(I,J,:,IRHN) )
                         ENDDO
 
                   !--------------------------
@@ -1276,8 +1278,9 @@
                         ! Loop over RH bins
                         DO RH = 1, NRH
                         
-                           ! Scaling factor for 400nm
-                           S400nm  = QAA(2,IND(N)+RH-1) / 
+                           ! Scaling factor for wavelength specified in
+                           ! jv_spec_aod.dat
+                           SAODnm  = QAA_AOD(IND(N)+RH-1) / 
      &                               QAA(4,IND(N)+RH-1) 
 
                            ! Index for type of aerosol and RH value
@@ -1293,7 +1296,7 @@
                            ! Sum AOD over all RH bins and store in VARI(V)
                            ! Sum from surface to level where the plane is
                            VARI(V) = VARI(V) + 
-     &                          SUM( S400nm * ODAER(I,J,1:LPLANE,IRHN) )
+     &                          SUM( SAODnm * ODAER(I,J,1:LPLANE,IRHN) )
                         ENDDO
                      ENDIF
 

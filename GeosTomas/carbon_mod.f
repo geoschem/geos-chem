@@ -14,6 +14,7 @@
 !  at Caltech was taken and further modified accordingly (rjp, bmy, 7/15/04)
 !  This simulation introduces additional following species:
 !     ALPH, LIMO, ALCO, SOA1, SOA2, SOA3, SOA4, SOG1, SOG2, SOG3, SOG4
+!     SOA5, SOG5 (dkh, 03/24/07)  
 !
 !  References for BC/OC emissions:
 ! --------------------------------
@@ -1731,12 +1732,13 @@
 !        NH4, NIT are defined as tracers). (rjp, bmy, 8/3/06) 
 !  (4 ) Updated formulation of SOG condensation onto OC aerosol, according
 !        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
+!  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
-      USE DIAG_MOD,     ONLY : AD07_HC 
+      USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTSOA1, IDTSOA2, IDTSOA3
@@ -1745,11 +1747,7 @@
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5  ! (dkh, 03/24/07)  
       USE TIME_MOD,     ONLY : GET_TS_CHEM,      GET_MONTH
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
-!--------------------------------------------------------------------------
-! Prior to 12/21/09:
-!      USE LOGICAL_MOD,  ONLY : LDICARB
-!--------------------------------------------------------------------------
-
+      USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! XNUMOL
@@ -2035,49 +2033,53 @@
       ! Initialize burdens to 0. (ccc, 5/3/10)
       SOA_BURD = 0d0
 
-      ! dkh print some diagnostics 
-      DARO2_TOT_0(:)    = DARO2_TOT(:)
+      !------------------------------------------------------------------------
+      !### Now only print when ND70 is turned on (bmy, 4/21/10)
+      IF ( LPRT ) THEN
 
-      print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                         MAXVAL(GLOB_DARO2(:,:,:,1,1))
+        ! dkh print some diagnostics 
+         DARO2_TOT_0(:)    = DARO2_TOT(:)
+         DARO2_TOT(1) = DARO2_TOT(1) + SUM(GLOB_DARO2(:,:,:,1,1)) / 1d9
+         DARO2_TOT(2) = DARO2_TOT(2) + SUM(GLOB_DARO2(:,:,:,2,1)) / 1d9
+         DARO2_TOT(3) = DARO2_TOT(3) + SUM(GLOB_DARO2(:,:,:,1,2)) / 1d9
+         DARO2_TOT(4) = DARO2_TOT(4) + SUM(GLOB_DARO2(:,:,:,2,2)) / 1d9
+         DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
+         DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
 
+         PRINT*, ' MAX DARO2 = ',   MAXLOC(GLOB_DARO2(:,:,:,1,1)),
+     &                              MAXVAL(GLOB_DARO2(:,:,:,1,1))
+         PRINT*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
+     &                              DARO2_TOT(1) - DARO2_TOT_0(1)
+         PRINT*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
+     &                              DARO2_TOT(2) - DARO2_TOT_0(2)
+         PRINT*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
+     &                              DARO2_TOT(3) - DARO2_TOT_0(3)
+         PRINT*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
+     &                              DARO2_TOT(4) - DARO2_TOT_0(4)
+         PRINT*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
+     &                              DARO2_TOT(5) - DARO2_TOT_0(5)
+         PRINT*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
+     &                              DARO2_TOT(6) - DARO2_TOT_0(6)
 
-      DARO2_TOT(1) = DARO2_TOT(1) + SUM(GLOB_DARO2(:,:,:,1,1)) / 1d9
-      DARO2_TOT(2) = DARO2_TOT(2) + SUM(GLOB_DARO2(:,:,:,2,1)) / 1d9
-      DARO2_TOT(3) = DARO2_TOT(3) + SUM(GLOB_DARO2(:,:,:,1,2)) / 1d9
-      DARO2_TOT(4) = DARO2_TOT(4) + SUM(GLOB_DARO2(:,:,:,2,2)) / 1d9
-      DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
-      DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
- 
-      print*, 'GLOB_DARO2 11 =', DARO2_TOT(1),
-     &                           DARO2_TOT(1) - DARO2_TOT_0(1)
-      print*, 'GLOB_DARO2 21 =', DARO2_TOT(2),
-     &                           DARO2_TOT(2) - DARO2_TOT_0(2)
-      print*, 'GLOB_DARO2 12 =', DARO2_TOT(3),
-     &                           DARO2_TOT(3) - DARO2_TOT_0(3)
-      print*, 'GLOB_DARO2 22 =', DARO2_TOT(4),
-     &                           DARO2_TOT(4) - DARO2_TOT_0(4)
-      print*, 'GLOB_DARO2 13 =', DARO2_TOT(5),
-     &                           DARO2_TOT(5) - DARO2_TOT_0(5)
-      print*, 'GLOB_DARO2 23 =', DARO2_TOT(6),
-     &                           DARO2_TOT(6) - DARO2_TOT_0(6)
+         ! hotp 7/22/09 diagnostic
+         ! convert daven's numbers to be kg of parent HC reacted, not kg of
+         ! RO2 reacted, use Marom/Mro2
+         PRINT*,'Accumulated parent HC reacted to RO2H,N products in Tg'
+         PRINT*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
+     &        (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
+         PRINT*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
+     &        (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
+         PRINT*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
+     &        (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
+         PRINT*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
+     &        (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
+         PRINT*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
+     &        (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
+         PRINT*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
+     &        (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
+      ENDIF
+      !------------------------------------------------------------------------
 
-      ! hotp 7/22/09 diagnostic
-      ! convert daven's numbers to be kg of parent HC reacted, not kg of
-      ! RO2 reacted, use Marom/Mro2
-      print*,'Accumulated parent HC reacted to RO2H,N products in Tg'
-      print*, 'GLOB_DBRO2 11 =', DARO2_TOT(1)*78/159,
-     &                (DARO2_TOT(1) - DARO2_TOT_0(1))*78/159
-      print*, 'GLOB_DBRO2 21 =', DARO2_TOT(2)*78/159,
-     &                (DARO2_TOT(2) - DARO2_TOT_0(2))*78/159
-      print*, 'GLOB_DTRO2 12 =', DARO2_TOT(3)*92/173,
-     &                (DARO2_TOT(3) - DARO2_TOT_0(3))*92/173
-      print*, 'GLOB_DTRO2 22 =', DARO2_TOT(4)*92/173,
-     &                (DARO2_TOT(4) - DARO2_TOT_0(4))*92/173
-      print*, 'GLOB_DXRO2 13 =', DARO2_TOT(5)*106/187,
-     &                (DARO2_TOT(5) - DARO2_TOT_0(5))*106/187
-      print*, 'GLOB_DXRO2 23 =', DARO2_TOT(6)*106/187,
-     &                (DARO2_TOT(6) - DARO2_TOT_0(6))*106/187
 
       AM0_AROM_PROD(1) = AM0_AROM_PROD(1) 
      &                 + GLOB_AM0_AROM(1,1)
@@ -4882,6 +4884,7 @@ ccc
 !        turned on (dkh, bmy, 1/24/08)
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
 !  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
+!  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4891,6 +4894,9 @@ ccc
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
+      ! Speciated MEGAN monoterpenes (hotp 3/10/10)
+      USE MEGAN_MOD,     ONLY : GET_EMMONOG_MEGAN
+      ! ----
       USE TIME_MOD,      ONLY : GET_MONTH,        GET_TS_CHEM
       USE TIME_MOD,      ONLY : GET_TS_EMIS,      ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
@@ -5125,6 +5131,81 @@ ccc
             ! We do not transport SESQ (C15H24) 
             ! because its chemical lifetime is short (reactive)
             BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+
+
+            ! The new MEGAN implementation has speciated information
+            ! (hotp 3/7/10)
+            ! For GCAP Meteorology year 2000 in Tg/yr:
+            ! ------------------------------
+            ! HC Class  New MEGAN  Old MEGAN
+            ! --------  ---------  ---------
+            ! ALPH        84         92
+            ! LIMO        10         27
+            ! TERP         3.2        3.5
+            ! ALCO        47         38
+            ! SESQ        15         15    (no change for SESQ)
+            !           -----      -----
+            ! TOTAL      159        176
+            ! ------------------------------
+            IF ( LMEGANMONO ) THEN
+
+               ! bug fix: swap TMMP and SC (hotp 3/10/10)
+               ! ALPH in kg compound
+               ! a-pinene
+               BIOG_ALPH(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'APINE') * FC1
+               ! b-pinene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'BPINE') * FC1
+               ! sabinene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'SABIN') * FC1
+               ! d3-carene
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                                   PDR, PDF, 1d0, 'CAREN') * FC1
+               ! terpenoid ketones (assumed to behave like sabinene)
+               BIOG_ALPH(I,J) = BIOG_ALPH(I,J) + 
+     &                          + ( DIUR_ORVC(I,J) * FC4 * 0.04D0 ) !using campher
+      
+               ! LIMO in kg compound
+               ! limonene
+               BIOG_LIMO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'LIMON') * FC1 
+
+               ! TERP in kg compound
+               ! terpinene and terpinolene 
+               ! Use ratio to alpha-pinene from Griffin 1999 GRL:
+               ! 3% of monoterpenes are terpinene + terpinolene
+               ! 35% of monoterpenes are a-pinene.
+               ! Will be revised when other monoterpene emissions are
+               ! implemented in megan_mod.f.
+               BIOG_TERP(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP,
+     &                          PDR, PDF, 1d0, 'APINE') * FC1 * 3d0/35d0
+
+               ! ALCO in kg compound
+               ! myrcene
+               BIOG_ALCO(I,J) = GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'MYRCN') * FC1
+               ! ocimene
+               BIOG_ALCO(I,J) = BIOG_ALCO(I,J) +
+     &                          GET_EMMONOG_MEGAN( I, J, SC, TMMP, 
+     &                                   PDR, PDF, 1d0, 'OCIMN') * FC1
+               ! Other reactive volatile organic carbon emissions
+               ! (terpenoid alcohols)
+               BIOG_ALCO(I,J) = BIOG_ALCO(I,J)
+     &                          + ( DIUR_ORVC(I,J) * FC2 * 0.09D0 ) !using LINALOOL
+ 
+               ! SESQ (same as above)
+               ! We do not transport SESQ (C15H24) 
+               ! because its chemical lifetime is short (reactive)
+               ! Will be revised when sesq emissions are implemented in
+               ! megan_mod.f.
+               BIOG_SESQ(I,J) = DIUR_ORVC(I,J) * FC3 * 0.05D0
+
+            ENDIF ! end speciated MEGAN (hotp)
 
          ENDDO
          ENDDO

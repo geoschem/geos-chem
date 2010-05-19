@@ -61,6 +61,7 @@
 # !REVISION HISTORY: 
 #  25 Jan 2010 - R. Yantosca - Initial version for TOMAS microphysics
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
+#  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -164,7 +165,7 @@ diag_oh_mod.o            ocean_mercury_mod.o     vdiff_pre_mod.o             \
 diag_pl_mod.o            ohsave.o                vistas_anthro_mod.o         \
 diagoh.o                 optdepth_mod.o          wetscav_mod.o               \
 xtra_read_mod.o          aero_drydep.o           tomas_mod.o                 \
-tomas_tpcore_mod.o          
+tomas_tpcore_mod.o       RD_AOD.o          
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -273,10 +274,6 @@ biofuel_mod.o               : biofuel_mod.f                                  \
 
 biofit.o                    : biofit.f
 
-#biomass_mod.o               : diag_mod.o              gc_biomass_mod.o       \
-#                              gfed2_biomass_mod.o     logical_mod.o          \
-#                              tracerid_mod.o          tracer_mod.o  
-
 biomass_mod.o               : diag_mod.o              gc_biomass_mod.o       \
                               gfed2_biomass_mod.o     logical_mod.o          \
                               tracerid_mod.o          
@@ -384,9 +381,6 @@ cleanup.o                   : cleanup.f                                      \
                               tpcore_geos5_window_mod.o  tomas_mod.o
 
 CLDSRF.o                    : CLDSRF.f
-
-#co2_mod.o                   : co2_mod.f               biomass_mod.o          \
-#                              diag04_mod.o            tracer_mod.o    
 
 co2_mod.o                   : co2_mod.f               biomass_mod.o          \
                               diag04_mod.o            tracer_mod.o           \
@@ -519,14 +513,6 @@ emisop_grass.o              : emisop_grass.f          dao_mod.o
 
 emisop_mb.o                 : emisop_mb.f             dao_mod.o
 
-#emissdr.o                   : emissdr.f                                      \
-#                              acetone_mod.o           aircraft_nox_mod.o     \
-#                              biofuel_mod.o           dao_mod.o              \
-#                              diag_mod.o              lightning_nox_mod.o    \
-#                              logical_mod.o           megan_mod.o            \
-#                              tracer_mod.o            tracerid_mod.o         \
-#                              meganut_mod.o
-
 emissdr.o                   : emissdr.f                                      \
                               acetone_mod.o           aircraft_nox_mod.o     \
                               biofuel_mod.o           dao_mod.o              \
@@ -621,10 +607,6 @@ get_global_ch4.o            : get_global_ch4.f
 
 getifsun.o                  : getifsun.f              comode_mod.o
 
-#gfed2_biomass_mod.o         : gfed2_biomass_mod.f                            \
-#                              future_emissions_mod.o  logical_mod.o          \
-#                              tracer_mod.o  
-
 gfed2_biomass_mod.o         : gfed2_biomass_mod.f                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
@@ -662,12 +644,6 @@ h2_hd_mod.o                 : h2_hd_mod.f                                    \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        meganut_mod.o
 
-#hcn_ch3cn_mod.o             : hcn_ch3cn_mod.f                                \
-#                              biomass_mod.o           dao_mod.o              \
-#                              diag_mod.o              geia_mod.o             \
-#                              global_oh_mod.o         logical_mod.o          \
-#                              pbl_mix_mod.o      
-
 hcn_ch3cn_mod.o             : hcn_ch3cn_mod.f                                \
                               biomass_mod.o           dao_mod.o              \
                               diag_mod.o              geia_mod.o             \
@@ -693,22 +669,6 @@ initialize.o                : initialize.f                                   \
                               diag_pl_mod.o           logical_mod.o 
 
 inphot.o                    : inphot.f
-
-#input_mod.o                 : input_mod.f                                    \
-#                              benchmark_mod.o         biofuel_mod.o          \
-#                              biomass_mod.o           diag03_mod.o           \
-#                              diag04_mod.o            diag41_mod.o  	     \
-#                              diag42_mod.o            diag48_mod.o  	     \
-#                              diag49_mod.o            diag50_mod.o  	     \
-#                              diag51_mod.o            diag56_mod.o  	     \
-#                              diag_oh_mod.o           diag_pl_mod.o 	     \
-#                              drydep_mod.o            future_emissions_mod.o \
-#                              gamap_mod.o             logical_mod.o 	     \
-#                              mercury_mod.o           ocean_mercury_mod.o    \
-#                              planeflight_mod.o       restart_mod.o 	     \
-#                              tpcore_bc_mod.o         tracerid_mod.o	     \
-#                              tracer_mod.o            transport_mod.o	     \
-#                              upbdflx_mod.o           wetscav_mod.o
 
 input_mod.o                 : input_mod.f                                    \
                               benchmark_mod.o         biofuel_mod.o          \
@@ -759,28 +719,6 @@ logical_mod.o               : logical_mod.f
 lump.o                      : lump.f                                         \
                               comode_mod.o            tracerid_mod.o
 
-#main.o                      : main.f                                         \
-#                              a3_read_mod.o           a6_read_mod.o          \
-#                              benchmark_mod.o         carbon_mod.o           \
-#                              chemistry_mod.o         convection_mod.o       \
-#                              comode_mod.o            vdiff_mod.o            \
-#                              diag_mod.o              diag41_mod.o           \
-#                              diag42_mod.o            diag48_mod.o           \
-#                              diag49_mod.o            diag50_mod.o           \
-#                              diag51_mod.o            diag_oh_mod.o          \
-#                              dao_mod.o               drydep_mod.o           \
-#                              emissions_mod.o         global_ch4_mod.o       \
-#                              gcap_read_mod.o         gwet_read_mod.o        \
-#                              i6_read_mod.o           input_mod.o            \
-#                              lai_mod.o               lightning_nox_mod.o    \
-#                              linoz_mod.o             logical_mod.o          \
-#                              megan_mod.o             pbl_mix_mod.o          \
-#                              ocean_mercury_mod.o     planeflight_mod.o      \
-#                              tracer_mod.o            transport_mod.o        \
-#                              tropopause_mod.o        restart_mod.o          \
-#                              upbdflx_mod.o           uvalbedo_mod.o         \
-#                              wetscav_mod.o           xtra_read_mod.o
-
 main.o                      : main.f                                         \
                               a3_read_mod.o           a6_read_mod.o          \
                               benchmark_mod.o         carbon_mod.o           \
@@ -821,13 +759,6 @@ mercury_mod.o               : mercury_mod.f                                  \
                               tracer_mod.o    
 
 MIESCT.o                    : MIESCT.f
-
-#ndxx_setup.o                : ndxx_setup.f                                   \
-#                              biomass_mod.o           biofuel_mod.o          \
-#                              diag_mod.o              diag_oh_mod.o          \
-#                              drydep_mod.o            logical_mod.o          \
-#                              planeflight_mod.o       tracer_mod.o           \
-#                              tracerid_mod.o          wetscav_mod.o     
 
 ndxx_setup.o                : ndxx_setup.f                                   \
                               biofuel_mod.o           diag_mod.o             \
@@ -881,6 +812,8 @@ planeflight_mod.o           : planeflight_mod.f                              \
 precipfrac.o                : precipfrac.f            dao_mod.o
 
 pulsing.o                   : pulsing.f
+
+RD_AOD.o                    : RD_AOD.f
 
 rd_js.o                     : rd_js.f
 
@@ -945,13 +878,6 @@ setbase.o                   : setbase.f
 
 setemdep.o                  : setemdep.f              drydep_mod.o           \
                               tracer_mod.o            tracerid_mod.o
-
-#setemis.o                   : setemis.f                                      \
-#                              aircraft_nox_mod.o      biofuel_mod.o          \
-#                              biomass_mod.o           comode_mod.o           \
-#                              diag_mod.o              logical_mod.o          \
-#                              lightning_nox_mod.o     pbl_mix_mod.o          \
-#                              tracerid_mod.o          tropopause_mod.o    
 
 setemis.o                   : setemis.f                                      \
                               aircraft_nox_mod.o      biofuel_mod.o          \
