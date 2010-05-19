@@ -479,7 +479,6 @@
                   IREF = I + I0
                   EMIST(I,J,IDEBENZ) = EMISTBENZ(IREF,JREF) * 
      &               FLIQCO2(IREF, JREF) 
-!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
                ENDDO
             ENDDO
          
@@ -496,7 +495,6 @@
                   IREF = I + I0
                   EMIST(I,J,IDETOLU) = EMISTTOLU(IREF,JREF) *  
      &               FLIQCO2(IREF, JREF) 
-!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
                ENDDO
             ENDDO
          
@@ -513,7 +511,6 @@
                   IREF = I + I0
                   EMIST(I,J,IDEXYLE) = EMISTXYLE(IREF,JREF) * 
      &               FLIQCO2(IREF, JREF) 
-!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
                ENDDO
             ENDDO
          
@@ -530,7 +527,6 @@
                   IREF = I + I0
                   EMIST(I,J,IDEC2H4) = EMISTC2H4(IREF,JREF) *
      &               FLIQCO2(IREF, JREF) 
-!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
 
                ENDDO
             ENDDO
@@ -548,7 +544,6 @@
                   IREF = I + I0
                   EMIST(I,J,IDEC2H2) = EMISTC2H2(IREF,JREF) *
      &               FLIQCO2(IREF, JREF) 
-!     &               FLIQCO2(IREF, JREF) / FLIQCO290(IREF, JREF)
 
                ENDDO
             ENDDO
