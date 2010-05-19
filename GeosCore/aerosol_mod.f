@@ -301,7 +301,7 @@
       USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
       USE TRACERID_MOD, ONLY : IDTOCPO, IDTOCPI, IDTSALA, IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSO4  
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -391,11 +391,13 @@
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
+               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
                OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
      &                     +   STT(I,J,L,IDTSOA1)
      &                     +   STT(I,J,L,IDTSOA2)
      &                     +   STT(I,J,L,IDTSOA3)
-     &                     +   STT(I,J,L,IDTSOA4) ) / AIRVOL(I,J,L)
+     &                     +   STT(I,J,L,IDTSOA4)
+     &                     +   STT(I,J,L,IDTSOA5) ) / AIRVOL(I,J,L)
  
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
