@@ -58,6 +58,8 @@
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
+!  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +84,6 @@
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
-      LOGICAL :: LEMBED          ! DEPRECATED, will be removed
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
 
       !%%%% Cloud convection %%%%
@@ -200,6 +201,31 @@
       LOGICAL :: LBFCH4          ! Use CH4 biofuel emissions?
       LOGICAL :: LBMCH4          ! Use CH4 biomass emissions?
       LOGICAL :: LCH4BUD         ! Use computing CH4 budget
+
+      !%%%% For the CO2 offline simulation only %%%%
+      LOGICAL :: LGENFF      
+      LOGICAL :: LANNFF      
+      LOGICAL :: LMONFF      
+      LOGICAL :: LSEASBB
+      LOGICAL :: LBIONETORIG  
+      LOGICAL :: LBIONETCLIM  
+      LOGICAL :: LBIODAILY
+      LOGICAL :: LBIODIURNAL    
+      LOGICAL :: LOCEAN     
+      LOGICAL :: LFFBKGRD
+      LOGICAL :: LBIOSPHTAG     
+      LOGICAL :: LFOSSILTAG     
+      LOGICAL :: LOCN1997
+      LOGICAL :: LOCN2009ANN
+      LOGICAL :: LOCN2009MON
+      LOGICAL :: LSHIPEDG
+      LOGICAL :: LSHIPICO
+      LOGICAL :: LSHIPSCALE
+      LOGICAL :: LSHIPTAG
+      LOGICAL :: LPLANE
+      LOGICAL :: LPLANESCALE
+      LOGICAL :: LPLANETAG
+      LOGICAL :: LCHEMCO2
 
       !%%%% HDF5 output %%%%
       LOGICAL :: LND50_HDF       ! Save ND50  diagnostic in HDF5?

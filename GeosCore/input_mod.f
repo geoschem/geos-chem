@@ -280,7 +280,10 @@
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
             CALL READ_DEPOSITION_MENU             
 
-         ELSE IF ( INDEX( LINE, 'GAMAP MENU'      ) > 0 ) THEN
+         ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN !Ray Nassar
+            CALL READ_CO2_SIM_MENU
+                                    
+         ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
             CALL READ_GAMAP_MENU                 
                                                   
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
@@ -1906,6 +1909,278 @@
 
       ! Return to calling program
       END SUBROUTINE READ_EMISSIONS_MENU
+
+!------------------------------------------------------------------------------
+
+      SUBROUTINE READ_CO2_SIM_MENU
+!
+!******************************************************************************
+!  Subroutine READ_CO2_SIM_MENU reads the CO2 SIM MENU section of 
+!  the GEOS-Chem input file. (R Nassar, 2009-03-02)
+!******************************************************************************
+!
+      ! References to F90 modules
+
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+
+      USE LOGICAL_MOD, ONLY : LANTHRO, LFOSSIL
+      USE LOGICAL_MOD, ONLY : LGENFF, LANNFF, LMONFF, LSTREETS
+      USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
+	USE LOGICAL_MOD, ONLY : LBIODAILY, LBIODIURNAL
+	USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
+      USE LOGICAL_MOD, ONLY : LOCN1997, LOCN2009ANN, LOCN2009MON
+	USE LOGICAL_MOD, ONLY : LFFBKGRD
+	USE LOGICAL_MOD, ONLY : LSHIPEDG, LSHIPICO, LPLANE
+	USE LOGICAL_MOD, ONLY : LBIOSPHTAG, LFOSSILTAG
+	USE LOGICAL_MOD, ONLY : LSHIPTAG, LPLANETAG
+	USE LOGICAL_MOD, ONLY : LSHIPSCALE, LPLANESCALE
+	USE LOGICAL_MOD, ONLY : LCHEMCO2
+
+      USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_O3"      ! FSCALYR
+
+      ! Local variables
+      INTEGER              :: N
+      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG, LOC
+
+      !=================================================================
+      ! READ_CO2_SIM_MENU begins here!
+      !=================================================================
+
+      ! Location for error messages
+      LOC = 'READ_CO2_SIM_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      !---------------------------------------------------------------
+      ! Fossil Fuel Emissions
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:1' )
+
+      ! Use Generic Fossil Fuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:2' )
+      READ( SUBSTRS(1:N), * ) LGENFF
+
+      ! Use annual Fossil Fuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:3' )
+      READ( SUBSTRS(1:N), * ) LANNFF
+
+      ! Use monthly Fossil Fuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:4' )
+      READ( SUBSTRS(1:N), * ) LMONFF
+
+      !---------------------------------------------------------------
+      ! Chemical source of CO2 from oxidation of fossil fuel CO, CH4 etc.
+      !---------------------------------------------------------------
+      ! Chemical source of CO2 from oxidation of CO, CH4 and organics?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:5' )
+      READ( SUBSTRS(1:N), * ) LCHEMCO2
+
+      !---------------------------------------------------------------
+      ! Biomass and Biofuel Emissions
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:6' )
+
+      ! Use seasonal only biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:7' )
+      READ( SUBSTRS(1:N), * ) LSEASBB
+
+      ! Use GFED2 monthly biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:8' )
+      READ( SUBSTRS(1:N), * ) LGFED2BB
+
+      ! Use GFED2 8-day biomass emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:9' )
+      READ( SUBSTRS(1:N), * ) L8DAYBB
+
+      ! Include biofuel emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:10' )
+      READ( SUBSTRS(1:N), * ) LBIOFUEL
+
+      !---------------------------------------------------------------
+      ! Terrestrial Exchange
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:11' )
+
+      ! Turn on CASA biosphere daily average?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:12' )
+      READ( SUBSTRS(1:N), * ) LBIODAILY
+
+      ! Turn on CASA biosphere with diurnal cycle?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:13' )
+      READ( SUBSTRS(1:N), * ) LBIODIURNAL
+
+      ! Use original Net Terrestrial Exchange?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:14' )
+      READ( SUBSTRS(1:N), * ) LBIONETORIG
+
+      ! Use Net Terrestrial Exchange Climatology?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:15' )
+      READ( SUBSTRS(1:N), * ) LBIONETCLIM
+
+      !---------------------------------------------------------------
+      ! Ocean Exchange
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:16' )
+
+      ! Use Ocean Exchange from Takahashi 1997?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:17' )
+      READ( SUBSTRS(1:N), * ) LOCN1997
+
+      ! Use annual Ocean Exchange from Takahashi 2009?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:18' )
+      READ( SUBSTRS(1:N), * ) LOCN2009ANN
+
+      ! Use monthly Ocean Exchange from Takahashi 2009?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:19' )
+      READ( SUBSTRS(1:N), * ) LOCN2009MON
+
+      !---------------------------------------------------------------
+      ! Ship and Aircraft CO2 Emissions
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:20' )
+
+      ! Turn on EDGAR ship emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:21' )
+      READ( SUBSTRS(1:N), * ) LSHIPEDG
+
+      ! Turn on ICOADS ship emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:22' )
+      READ( SUBSTRS(1:N), * ) LSHIPICO
+
+      ! Turn on Aircraft emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:23' )
+      READ( SUBSTRS(1:N), * ) LPLANE
+
+      !---------------------------------------------------------------
+      ! Tagged CO2
+      !---------------------------------------------------------------
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:24' )
+
+      !Background CO2 (no emissions or exchange) for Tagged-CO2 runs
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:25' )
+      READ( SUBSTRS(1:N), * ) LFFBKGRD
+
+      ! Turn on biosphere and ocean exchange region tagged tracers?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:26' )
+      READ( SUBSTRS(1:N), * ) LBIOSPHTAG
+
+      ! Turn on fossil fuel emission region tagged tracers?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:27' )
+      READ( SUBSTRS(1:N), * ) LFOSSILTAG
+
+      ! Turn on global ship emissions tagged tracer?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:28' )
+      READ( SUBSTRS(1:N), * ) LSHIPTAG
+
+      ! Turn on global aircraft emissions tagged tracer?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO2_sim_menu:29' )
+      READ( SUBSTRS(1:N), * ) LPLANETAG
+
+      !=================================================================
+      ! Resolve conflicting selections by assuming the 'best' choice
+      !=================================================================
+
+	!--- Fossil Fuel ----------------
+	IF (LMONFF) THEN
+		LGENFF = .FALSE.
+		LANNFF = .FALSE.
+	ENDIF
+	IF (LANNFF) THEN
+		LGENFF = .FALSE.
+	ENDIF
+
+	!--- Biomass Burning ------------
+	IF (L8DAYBB) THEN
+		LGFED2BB = .FALSE.
+		LSEASBB  = .FALSE.
+	ENDIF
+	IF (LGFED2BB) THEN
+		LSEASBB = .FALSE.
+	ENDIF
+
+	!--- CASA Biosphere -------------
+	IF (LBIODIURNAL) THEN
+		LBIODAILY = .FALSE.
+	ENDIF
+
+	!--- Net Terrestrial Exchange ---
+	IF (LBIONETCLIM) THEN
+		LBIONETORIG = .FALSE.
+	ENDIF
+	
+	!--- Ocean Exchange -------------
+	IF (LOCN2009MON) THEN
+		LOCN2009ANN = .FALSE.
+		LOCN1997 = .FALSE.
+	ENDIF
+	IF (LOCN2009ANN) THEN
+		LOCN1997 = .FALSE.
+	ENDIF
+
+	!--- Ship Emissions -------------
+	IF (LSHIPICO) THEN
+		LSHIPEDG = .FALSE.
+	ENDIF
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+	IF (ITS_A_CO2_SIM() ) THEN
+        WRITE(6,'(/,a)') 'CO2 SIMULATION MENU ' //
+     &      '(overwrites any other settings related to CO2)'
+        WRITE(6,'(  a)') '-------------------------------------'
+	  WRITE(6, 90    ) 'Fossil Fuel emissions'
+	  WRITE(6,100    ) '  Generic FF emissions        :', LGENFF
+	  WRITE(6,100    ) '  Annual FF emissions         :', LANNFF
+	  WRITE(6,100    ) '  Monthly FF emissions        :', LMONFF
+	  WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):', LCHEMCO2
+	  WRITE(6, 90    ) 'Biomass Burning emissions'
+	  WRITE(6,100    ) '  Seasonal only biomass       :', LSEASBB
+	  WRITE(6,100    ) '  GFED2 monthly biomass       :', LGFED2BB
+	  WRITE(6,100    ) '  GFED2 8-day biomass         :', L8DAYBB
+	  WRITE(6,100    ) 'Biofuel emissions             :', LBIOFUEL
+	  WRITE(6, 90    ) 'Terrestrial Exchange'
+	  WRITE(6,100    ) '  CASA Biosphere daily average:', LBIODAILY
+	  WRITE(6,100    ) '  CASA Biosphere diurnal cycle:', LBIODIURNAL
+	  WRITE(6,100    ) '  Net Terr Exch - Original    :', LBIONETORIG
+	  WRITE(6,100    ) '  Net Terr Exch - Climatology :', LBIONETCLIM
+	  WRITE(6,90     ) 'Ocean Exchange' 
+	  WRITE(6,100    ) '  Takahashi 1997              :', LOCN1997 
+	  WRITE(6,100    ) '  Takahashi 2009 annual       :', LOCN2009ANN 
+	  WRITE(6,100    ) '  Takahashi 2009 monthly      :', LOCN2009MON
+	  WRITE(6,90     ) 'Ship and Plane Emissions' 
+	  WRITE(6,100    ) '  EDGAR ship emissions        :', LSHIPEDG 
+	  WRITE(6,100    ) '  ICOADS ship emissions       :', LSHIPICO 
+	  WRITE(6,100    ) '  Aviation emissions          :', LPLANE 
+	  WRITE(6, 90    ) 'Tagged CO2 settings'
+	  WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :', LFFBKGRD 
+	  WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :', LBIOSPHTAG 
+	  WRITE(6,100    ) '  Tag Fossil Fuel CO2         :', LFOSSILTAG 
+	  WRITE(6,100    ) '  Tag Global Ship CO2         :', LSHIPTAG
+	  WRITE(6,100    ) '  Tag Global Aviation CO2     :', LPLANETAG
+        WRITE(6,'(  a)') '-------------------------------------'
+      ENDIF      
+
+      ! FORMAT statements
+  90  FORMAT( A )
+ 100  FORMAT( A, L5 )
+ 110  FORMAT( A, L5, A )
+
+      ! Return to calling program
+      END SUBROUTINE READ_CO2_SIM_MENU
 
 !------------------------------------------------------------------------------
 
@@ -5034,7 +5309,6 @@
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
       USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
-!      USE LOGICAL_MOD,   ONLY : LEMBED,     LCONV,      LDBUG      
       USE LOGICAL_MOD,   ONLY : LCONV,      LDBUG      
       USE LOGICAL_MOD,   ONLY : LDIAG,      LPRT,       LSTDRUN    
       USE LOGICAL_MOD,   ONLY : LDRYD,      LAIRNOX,    LANTHRO    
@@ -5054,11 +5328,19 @@
       USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
       USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
       USE LOGICAL_MOD,   ONLY : LNEI05
-      ! >> (dkh, 02/12/09) 
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
-      ! << 
       USE LOGICAL_MOD,   ONLY : LLINOZ
-      USE LOGICAL_MOD,   ONLY : LMODISLAI, LPECCA
+      USE LOGICAL_MOD,   ONLY : LMODISLAI,   LPECCA
+      USE LOGICAL_MOD,   ONLY : LGENFF,      LANNFF,      LMONFF
+      USE LOGICAL_MOD,   ONLY : LSEASBB,     LBIODAILY,   LBIODIURNAL 
+      USE LOGICAL_MOD,   ONLY : LBIONETORIG, LBIONETCLIM
+      USE LOGICAL_MOD,   ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
+      USE LOGICAL_MOD,   ONLY : LFFBKGRD
+      USE LOGICAL_MOD,   ONLY : LBIOSPHTAG,  LFOSSILTAG
+      USE LOGICAL_MOD,   ONLY : LSHIPEDG,    LSHIPICO,    LPLANE
+      USE LOGICAL_MOD,   ONLY : LSHIPSCALE,  LPLANESCALE
+      USE LOGICAL_MOD,   ONLY : LSHIPTAG,    LPLANETAG
+      USE LOGICAL_MOD,   ONLY : LCHEMCO2
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -5087,7 +5369,6 @@
       LSOA         = .FALSE.
       LSSALT       = .FALSE.
       LCHEM        = .FALSE.
-!      LEMBED       = .FALSE.
       LCONV        = .FALSE.
       LDBUG        = .FALSE.
       LDIAG        = .FALSE.
@@ -5147,10 +5428,30 @@
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
 
-      ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
-      LMODISLAI    = .FALSE.
-      LPECCA       = .FALSE.
-
+      !Specifically for CO2 simulation (R Nassar, 2009-03-02)
+      LGENFF       = .FALSE.
+      LANNFF       = .FALSE.
+      LMONFF       = .FALSE.
+      LSEASBB      = .FALSE.
+      LBIONETORIG  = .FALSE.
+      LBIONETCLIM  = .FALSE.
+      LBIODAILY    = .FALSE.
+      LBIODIURNAL  = .FALSE.
+      LOCN1997     = .FALSE.
+      LOCN2009ANN  = .FALSE.
+      LOCN2009MON  = .FALSE.
+      LFFBKGRD     = .FALSE.
+      LBIOSPHTAG   = .FALSE.
+      LFOSSILTAG   = .FALSE.
+      LSHIPEDG     = .FALSE.
+      LSHIPICO     = .FALSE.
+      LSHIPSCALE   = .FALSE.
+      LSHIPTAG     = .FALSE.
+      LPLANE       = .FALSE.
+      LPLANESCALE  = .FALSE.
+      LPLANETAG    = .FALSE.
+      LCHEMCO2     = .FALSE.
+      
       ! Initialize counters
       CT1          = 0
       CT2          = 0

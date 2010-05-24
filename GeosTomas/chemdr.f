@@ -243,12 +243,6 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
-!-----------------------------------------------------------------------------
-! Prior to 2/26/10:
-! Remove obsolete embedded chemistry stuff (bmy, 2/26/10)
-!      CALL RURALBOX( AD,     T,     AVGW,  ALBD,  SUNCOS, 
-!     &               LEMBED, IEBD1, IEBD2, JEBD1, JEBD2 )
-!-----------------------------------------------------------------------------
       CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 
 
