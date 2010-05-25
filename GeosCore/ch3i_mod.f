@@ -401,32 +401,6 @@
       ! ECH3I: Emission ratio mole CH3I / mole CO for biomass burning
       REAL*8, PARAMETER  :: ECH3I = 4.0d-6 
 
-      !----------------------------------------------------------------------
-      ! Prior to 3/28/00:
-      ! We don't have to scale RADSWG anymore (bmy, 3/28/00)
-      ! scale factor for ocean npp (ng/L per NPP units)
-      !     REAL*8, PARAMETER  :: SCNPP  = 1.0d0 / 2.d5
-      !
-      !! scale factor for RADSWG (ng/L per W/m^2)
-      !! HL: high latitudes (> 50deg), ML: mid latitudes (20-50deg)
-      !REAL*8, PARAMETER  :: SCRADHL  = 5.445D-3    ! r=0.637
-      !REAL*8, PARAMETER  :: OFRADHL  = -6.845D-2
-      !
-      !! mean slope refs 10&11 vs 12
-      !REAL*8, PARAMETER  :: SCRADML  = 3.5D-3      
-      !
-      !! mean offset
-      !REAL*8, PARAMETER  :: OFRADML  = 0.0D0       
-      !
-      !! ** use the following for a maximum estimate
-      !REAL*8, PARAMETER  :: SCRADML  = 3.324D-3    ! refs 10&11
-      !REAL*8, PARAMETER  :: OFRADML  = 3.355D-1
-      !
-      !! ** use the following for a minimum estimate
-      !REAL*8, PARAMETER  :: SCRADML  = 3.796D-3    ! ref 12
-      !REAL*8, PARAMETER  :: OFRADML  = -3.6462D-1
-      !----------------------------------------------------------------------
-
       ! constant CH3I surface water conc. for tropical latitudes (0-20 deg
       ! ** use mean of 0.721D0 for a maximum estimate, median is 0.480D0
       REAL*8, PARAMETER  :: OCTROP   = 0.480D0     ! median
@@ -511,21 +485,6 @@
          ! use latitude centers (YLMID) for different regions
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-
-            !---------------------------------------------------------------
-            ! Prior to 3/24/00:
-            ! We don't need to do the latitudinal scaling since we 
-            ! don't calculate the aqueous CH3I anymore -- we read it 
-            ! from disk now, already in units of [ng/L] (hsu, bmy, 3/24/00)
-            !
-            !IF ( ABS(YLMID(J-J0)).LT.20. ) THEN
-            !   OCDATA(I,J) = OCTROP
-            !ELSE IF ( ABS(YLMID(J-J0)).GT.50. ) THEN
-            !   OCDATA(I,J) = OCDATA(I,J) * SCRADHL + OFRADHL
-            !ELSE
-            !   OCDATA(I,J) = OCDATA(I,J) * SCRADML + OFRADML
-            !ENDIF
-            !---------------------------------------------------------------
 
             ! set all values over land to zero
             IF ( FRCLND(I,J) >= 0.8 ) OCDATA(I,J) = 0.0D0
@@ -1119,48 +1078,6 @@
             ENDDO
             ENDDO
          ENDDO
-
-!------------------------------------------------------------------------------
-! Prior to 6/22/03:
-! Leave this commented here for now (bmy, 6/22/03)
-!#else
-!         
-!         !==============================================================
-!         ! If LFASTJ is not set in "define.h", then treat the decay of 
-!         ! CH3I as if it were radioactive decay.  This is useful for 
-!         ! testing.
-!         !
-!         ! TCHEMA: first order loss rate in 1/s
-!         ! CH3I, lifetime 4 days : TCHEMA = 2.8935E-6
-!         ! (old : CH3I, lifetime 3 days : TCHEMA = 3.85E-6)
-!         !
-!         ! NOTE: If you modify CHEMCH3I so that it will handle more 
-!         ! than one species, you must specify TCHEMA as an array, loop 
-!         ! over N, and then compute RLRAD as:
-!         !        
-!         !       RLRAD = DTCHEM*TCHEMA(N)
-!         !
-!         ! Also redefine RDLOSS so that it is just the exponential term, 
-!         ! which can then be multiplied by the tracer STT in one step 
-!         ! (bmy, 1/11/99)         
-!         !==============================================================
-!         SPECNAME = 'CH3I'
-!         TCHEMA   = 2.8935D-6
-!         RLRAD    = DTCHEM * TCHEMA
-!         RDLOSS   = EXP( -RLRAD )
-!
-!         DO N = 1, N_TRACERS
-!         DO L = 1, LLTROP
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!            STT(I,J,L,N) = STT(I,J,L,N) * RDLOSS
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!         
-!#endif
-!------------------------------------------------------------------------------
 
 !-----------------------------------------------------------------------------
 !### Debug output in unit 97 ...comment out if necessary (bmy, 11/23/98)

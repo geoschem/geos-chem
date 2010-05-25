@@ -1,4 +1,3 @@
-! $Id: chemdr.f,v 1.8 2010/03/15 19:33:24 ccarouge Exp $
       SUBROUTINE CHEMDR
 !
 !******************************************************************************
@@ -161,11 +160,6 @@
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-!---------------------------------------------------------------------------
-! Prior to 4/28/10:
-! Remove obsolete SUNCOSB (bmy, 4/28/10)
-!      USE DAO_MOD,              ONLY : SUNCOSB,  T
-!---------------------------------------------------------------------------
       USE DAO_MOD,              ONLY : T
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
@@ -463,11 +457,6 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-!-------------------------------------------
-! Prior to 4/28/10:
-! Remove obsolete SUNCOSB (bmy, 4/28/10)
-!     CALL PHYSPROC( SUNCOS, SUNCOSB )
-!-------------------------------------------
       CALL PHYSPROC( SUNCOS )
 
       !### Debug

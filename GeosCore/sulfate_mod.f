@@ -1701,13 +1701,6 @@
      &               ( (SO2_ss * L2) - H2O20 )  
             ELSE
 
-               !-------------------------------------------------------------
-               ! Prior to 4/28/10:
-               ! If exponential can't be computed, set to
-               ! the initial H2O2 concentration
-               !L2S = H2O20
-               !-------------------------------------------------------------
-
                ! NOTE from Jintai Lin (4/28/10):
                ! However, in the case of a negative XX, L2S should be 
                ! approximated as SO2_ss, instead of H2O20. In other words, 
@@ -1742,13 +1735,6 @@
 
             ELSE
  
-               !-------------------------------------------------------------
-               ! Prior to 4/28/10:
-               ! If exponential can't be computed, set to
-               ! the initial O3 concentration
-               !L3S = O3
-               !-------------------------------------------------------------
-
                ! Follow the same logic for L3S as described in
                ! Jintai Lin's note above (bmy, 4/28/10)
                IF ( XX > 0.d0 ) THEN 
@@ -7080,11 +7066,6 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!------------------------------------------------------------
-! Prior to 3/5/10:
-! STREETS needs to be held PRIVATE (dkh, bmy, 3/5/10)
-!!$OMP+PRIVATE( I, J )
-!------------------------------------------------------------
 !$OMP+PRIVATE( I, J, STREETS )
       DO J = 1, JJPAR
       DO I = 1, IIPAR

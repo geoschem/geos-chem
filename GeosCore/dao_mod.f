@@ -243,11 +243,6 @@
       REAL*8,  ALLOCATABLE :: SPHU2(:,:,:)
       REAL*8,  ALLOCATABLE :: SPHU (:,:,:)
       REAL*8,  ALLOCATABLE :: SUNCOS(:)
-!---------------------------------------------------------
-! Prior to 4/28/10:
-! This is now obsolete (bmy, 4/28/10)
-!      REAL*8,  ALLOCATABLE :: SUNCOSB(:)
-!---------------------------------------------------------
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLI(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLW(:,:,:)
@@ -1862,19 +1857,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
 
-!------------------------------------------------------------------------------
-! Prior to 4/28/10:
-! Now remove SUNCOSB, we now compute the photolysis at the midpt of the
-! chemistry timestep.  We never did reorder the SMVGEAR boxes, which was
-! the only reason SUNCOSB was added in the first place. (bmy, 4/28/10)
-!      ! Only allocate SUNCOSB for a full-chemistry run (bdf, bmy, 4/1/03)
-!      IF ( LCHEM .and. ITS_A_FULLCHEM_SIM() ) THEN
-!         ALLOCATE( SUNCOSB( MAXIJ ), STAT=AS )
-!         IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOSB' )
-!         SUNCOSB = 0d0
-!      ENDIF
-!------------------------------------------------------------------------------
-
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
@@ -2393,11 +2375,6 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
-!------------------------------------------------------------
-! Prior to 4/28/10:
-! Remove obsolete SUNCOSB (bmy, 4/28/10)
-!      IF ( ALLOCATED( SUNCOSB  ) ) DEALLOCATE( SUNCOSB  )
-!------------------------------------------------------------
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )
