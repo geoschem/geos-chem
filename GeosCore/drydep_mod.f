@@ -163,6 +163,7 @@
 !  (29) Add aromatics SOA (dkh)
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
+!  (31) Updates for mercury simulation (ccc, 5/17/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -182,7 +183,8 @@
       PUBLIC :: MAXDEP
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
-
+      PUBLIC :: DRYHg0, DRYHg2, DryHgP !CDH
+      
       ! ... and these routines
       PUBLIC :: CLEANUP_DRYDEP     
       PUBLIC :: DO_DRYDEP
@@ -233,6 +235,8 @@
       REAL*8               :: A_DEN(MAXDEP)
       CHARACTER(LEN=14)    :: DEPNAME(MAXDEP)
 
+      ! Additional variables for mercury sim (cdh, 9/1/09)
+      INTEGER              :: DRYHg0, DRYHg2, DryHgP
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -1642,12 +1646,12 @@ C** equations (15)-(17) of Walcek et al. [1986]
                   ! do this for non-size-resolved tracers where 
                   ! AIROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
                   !=====================================================
-                  ! use Zhang et al for all aerosols (hotp 10/26/07)
-                  !VDS = 0.002D0*USTAR(IJLOOP)
-                  !IF (OBK(IJLOOP) .LT. 0.0D0) THEN
-                  !   VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
-                  !ENDIF
-C***                               
+!                  ! use Zhang et al for all aerosols (hotp 10/26/07)
+!                  VDS = 0.002D0*USTAR(IJLOOP)
+!                  IF (OBK(IJLOOP) .LT. 0.0D0) THEN
+!                     VDS = VDS*(1.D0+(-300.D0/OBK(IJLOOP))**0.6667D0)
+!                  ENDIF
+!C***                               
 !                  IF ( OBK(IJLOOP) .EQ. 0.0D0 )
 !     c                 WRITE(6,156) OBK(IJLOOP),IJLOOP,LDT
 ! 156              FORMAT(1X,'OBK(IJLOOP)=',E11.2,1X,' IJLOOP =',I4,
@@ -1655,6 +1659,7 @@ C***
 !                  CZH  = ZH(IJLOOP)/OBK(IJLOOP)
 !                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
 !     x                                 (-CZH)**0.6667D0
+
                   RSURFC(K, LDT) =
      &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, 
      &                              USTAR(IJLOOP))
@@ -3344,6 +3349,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
+      USE TRACERID_MOD, ONLY : ID_Hg0 !eck added 19jul06
       USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
@@ -4231,19 +4237,34 @@ C** Load array DVEL
          ! Mercury tracers
          !----------------------------------
 
-         ! Hg2 -- Divalent Mercury
          ELSE IF ( IS_Hg ) THEN
+             ! add dry dep of Hg0 (eck, 19jul06)
+             ! Hg0 -- Elemental Mercury
+             IF ( N == ID_Hg0(ID_Hg_tot) ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = ID_Hg0(ID_Hg_tot)
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'Hg0'
+               HSTAR(NUMDEP)   = 0.11
+               ! F0 consistent with Lin et al (2006)
+               F0(NUMDEP)      = 1.0d-5
+               XMW(NUMDEP)     = 201d-3
+               AIROSOL(NUMDEP) = .FALSE. 
+            ENDIF
+
+            ! Hg2 -- Divalent Mercury
             IF ( N == ID_Hg2(ID_Hg_tot) ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'Hg2'
-               HSTAR(NUMDEP)   = 1.0d+14
+               HSTAR(NUMDEP)   = 1.0d+6
                F0(NUMDEP)      = 0.0d0
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
 
+            ! HgP -- Particulate Mercury
             IF ( N == ID_HgP(ID_Hg_tot) ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = ID_HgP(ID_Hg_tot)
@@ -4257,7 +4278,41 @@ C** Load array DVEL
          ENDIF
       ENDDO
       
+      !=================================================================
+      ! Additional variables required for mercury simultion
+      ! Locate the drydep species w/in the DEPSAV array
+      !=================================================================
+      IF ( IS_HG ) THEN
 
+         ! Initialize flags
+         ! add dry dep of Hg0
+         DRYHg0 = 0
+         DRYHg2 = 0
+         DRYHgP = 0
+         
+         ! If drydep is turned on ...
+         IF ( LDRYD ) THEN
+         
+            ! Loop over drydep species
+            DO N = 1, NUMDEP
+
+               ! Locate by DEPNAME
+               SELECT CASE ( TRIM( DEPNAME(N) ) )
+                  ! add dry dep of Hg(0)
+                  CASE( 'Hg0' )
+                     DRYHg0 = N
+                  CASE( 'Hg2' )
+                     DRYHg2 = N
+                  CASE( 'HgP' )
+                     DRYHgP = N
+                  CASE DEFAULT
+                     ! nothing
+                END SELECT
+             ENDDO
+
+          ENDIF
+
+       ENDIF
 
       !=================================================================
       ! Allocate arrays

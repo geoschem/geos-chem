@@ -184,7 +184,8 @@
 !#### HARDWIRE SWITCH : use YEAR instead of GET_YEAR() to use the same
 !#### base year as anthropogenic emissions
 !         CALL COMPUTE_BIOMASS_EMISSIONS( YEAR, MONTH )
-         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
+!         CALL COMPUTE_BIOMASS_EMISSIONS( GET_YEAR(), MONTH )
+         CALL COMPUTE_BIOMASS_EMISSIONS( 2006, MONTH )
       ENDIF
          
       ! Test by simulation type

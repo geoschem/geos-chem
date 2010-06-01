@@ -114,12 +114,40 @@
          FIRST = .FALSE.
       ENDIF
 
-#if   defined( GRIDREDUCED )
+!-----------------------------------
+! Prior to 5/20/10
+!#if   defined( GRIDREDUCED )
+!-----------------------------------
+! CDH added extra cases for GEOS5
+! Also changed default file location
+#if   defined( GRIDREDUCED ) && defined( GEOS_5 )
+
+      ! Filename for 47-level GEOS5 model
+      FILENAME = 
+     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#elif defined( GEOS_5 )
+
+      ! Filename for full level GEOS5 model
+      FILENAME = 
+     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#elif   defined( GRIDREDUCED )
 
       ! Filename for 30-level model
       FILENAME = TRIM( DATA_DIR )                           // 
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#else
+      ! Filename for full vertical grid
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
+#endif
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -128,7 +156,9 @@
       ! Get the TAU0 value for the start of the given month
       ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
       XTAU = GET_TAU0( THISMONTH, 1, 1985 )
-
+ 
+#if   defined( GRIDREDUCED )
+ 
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     
      &                 XTAU,      IGLOB,     JGLOB,      
@@ -139,19 +169,6 @@
       O3 = ARRAY2
 
 #else
-
-      ! Filename for full vertical grid
-      FILENAME = TRIM( DATA_DIR )                           // 
-     &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
-     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - GET_GLOBAL_O3: Reading ', a )
-
-      ! Get the TAU0 value for the start of the given month
-      ! Assume "generic" year 1985 (TAU0 = [0, 744, ... 8016])
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 )
 
       ! Read O3 data (v/v) from the binary punch file (tracer #51)
       CALL READ_BPCH2( FILENAME, 'IJ-AVG-$', 51,     

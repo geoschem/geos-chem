@@ -4430,12 +4430,15 @@
 !  the GEOS-CHEM input file. (bmy, 2/24/06)
 !
 !  NOTES:
+!  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LPREINDHG
       USE MERCURY_MOD,       ONLY : INIT_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
+      USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
+      USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
  
       ! Local variables
@@ -4459,6 +4462,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
+      ! Use preindustrial simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:4' )
+      READ( SUBSTRS(1:N), * ) LPREINDHG
+
       ! Name of ocean restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
       READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
@@ -4475,6 +4482,7 @@
      &                     ANTHRO_Hg_YEAR
       WRITE( 6, 110     ) 'Error check tag & total Hg? : ', USE_CHECKS
       WRITE( 6, 110     ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
+      WRITE( 6, 110     ) 'Preindustrial simulation?   : ', LPREINDHG
       WRITE( 6, 120     ) 'Ocean Hg restart file       : ',
      &                     TRIM( Hg_RST_FILE )
 
@@ -4488,6 +4496,8 @@
 
          ! Initialize "mercury_mod.f"
          CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+         CALL INIT_LAND_MERCURY()
+         CALL INIT_DEPO_MERCURY()
 
          ! Initialize "ocean_mercury_mod.f"
          IF ( LDYNOCEAN ) THEN

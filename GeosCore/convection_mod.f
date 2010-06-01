@@ -636,6 +636,7 @@
 !        save memory especially when running at 2x25 or greater resolution 
 !        (bmy, 1/31/08)
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
+!  (19) Updates for mercury simulation (ccc, 5/17/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -643,12 +644,15 @@
       USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
       USE GRID_MOD,          ONLY : GET_AREA_M2
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN
-      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
       USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
       USE TIME_MOD,          ONLY : GET_TS_CONV
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2
+      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP 
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DAO_MOD,           ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
       IMPLICIT NONE
 
@@ -684,6 +688,7 @@
 
       ! TINY = a very small number
       REAL*8, PARAMETER      :: TINY = 1d-14 
+      REAL*8, PARAMETER      :: TINY2 = 1d-30 
 
       ! ISOL is an index for the diagnostic arrays
       INTEGER                :: ISOL
@@ -695,8 +700,10 @@
       ! DNS is the double precision value for NS
       REAL*8                 :: DNS
      
-      ! Amt of Hg2 scavenged out of the column (sas, bmy, 1/19/05)
+      ! Amt of Hg2, HgP scavenged out of the column (sas, bmy, 1/19/05)
       REAL*8                 :: WET_Hg2
+      REAL*8                 :: WET_HgP 
+      REAL*8                 :: SNOW_HT
 
       !=================================================================
       ! NFCLDMX begins here!
@@ -813,7 +820,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
-!$OMP+PRIVATE( WET_Hg2                                                )
+!$OMP+PRIVATE( WET_Hg2, WET_HgP, SNOW_HT                              )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
@@ -1080,10 +1087,11 @@
                      ENDIF
   
                      !=================================================
-                     ! Pass the amount of Hg2 lost in wet scavenging
-                     ! [kg] to "ocean_mercury_mod.f" via ADD_Hg2_WET.
-                     ! We must also divide by DNS, the # of internal 
-                     ! timesteps. (sas, bmy, 1/19/05, 1/6/06)
+                     ! Pass the amount of Hg2 and HgP lost in wet 
+                     ! scavenging [kg] to "ocean_mercury_mod.f" via 
+                     ! ADD_Hg2_WET and ADD_HgP_WET. We must also divide 
+                     ! by DNS, the # of internal timesteps. 
+                     ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
                      !=================================================
                      IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
@@ -1095,6 +1103,36 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
+#if defined(GEOS_5)
+                        ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+                        SNOW_HT = SNOMAS(I,J)
+#else
+                        ! GEOS1-4 snow heigt (water equivalent) in mm
+                        SNOW_HT = SNOW(I,J)
+#endif 
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, 
+     &                                         SNOW_HT )
+                     ENDIF
+
+                     IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
+
+                        ! Wet scavenged Hg(P) in [kg/s]
+                        WET_HgP = ( T0 * AREA_M2 ) / ( TCVV(IC) * DNS )
+
+                        ! Convert [kg/s] to [kg]
+                        WET_HgP = WET_HgP * NDT 
+
+                        ! Pass to "ocean_mercury_mod.f"
+                        CALL ADD_HgP_WD( I, J, IC, WET_HgP )
+#if defined(GEOS_5)
+                        ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+                        SNOW_HT = SNOMAS(I,J)
+#else
+                        ! GEOS1-4 snow heigt (water equivalent) in mm
+                        SNOW_HT = SNOW(I,J)
+#endif 
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
+     &                                         SNOW_HT  )
                      ENDIF
 
                   !=====================================================
@@ -1169,7 +1207,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-      ! Add a check to set negative values in Q to TINY
+      ! Add a check to set negative values in Q to TINY2
       ! (ccc, 4/15/09)
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED   )
@@ -1178,7 +1216,7 @@
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY)
+         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY2)
       ENDDO
       ENDDO
       ENDDO

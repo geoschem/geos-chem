@@ -183,6 +183,8 @@
 
       !%%%% Dynamic ocean Hg model %%%%
       LOGICAL :: LDYNOCEAN       ! Use dynamic ocean Hg model?
+      LOGICAL :: LPREINDHG       ! Preindustrial mercury simulation (eds)
+
 
       !%%%% For the CH4 offline simulation only %%%%
       LOGICAL :: LGAO            ! Use gas & oil emissions?

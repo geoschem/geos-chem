@@ -1275,6 +1275,12 @@
       DESCRIPT(N) = 'gamma HO2'
       OFFSET(N)   = SPACING * 49
 
+      ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
+      N           = N + 1
+      CATEGORY(N) = 'SNOW-HG'
+      DESCRIPT(N) = 'Hg mass in snow and ice'
+      OFFSET(N)   = SPACING * 49
+
 !(FP 06/19/2009)
       N           = N + 1
       CATEGORY(N) = 'THETA-$'
@@ -1332,7 +1338,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG03_MOD,   ONLY : ND03
+      USE DIAG03_MOD,   ONLY : ND03,PD03
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG42_MOD,   ONLY : ND42
@@ -1374,6 +1380,7 @@
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
+      USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -1470,7 +1477,8 @@
       IF ( ND03 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(03) = 16 + N_TRACERS
+!         NTRAC(03) = 16 + N_TRACERS
+         NTRAC(03) = PD03 + N_TRACERS
 
          ! Loop over tracers for HG-SRCE, PL-HG2-$, OCEAN-HG
          DO T = 1, NTRAC(03)
@@ -1535,23 +1543,65 @@
                   UNIT (T,03) = 'kg/m2/s'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg biomass burn emis'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 14 )
+                  NAME (T,03) = 'Hg_vg'
+                  FNAME(T,03) = 'Hg vegetation emissions'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 15 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg soil emissions'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE(16 )
+                  NAME (T,03) = 'Hg_up'
+                  FNAME(T,03) = 'Hg ocean up flux'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE(17 )
+                  NAME (T,03) = 'Hg_down'
+                  FNAME(T,03) = 'Hg ocean downflux'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 18 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE( 14 )
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 19 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE( 15 )
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 20 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE( 16 )
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 21 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE ( 17: )
-                  NAME (T,03) = TRACER_NAME(T-16)
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 22 )
+                  NAME (T,03) = 'Hg2_SSR'
+                  FNAME(T,03) = 'Loss rate Hg2 from sea salt'
+                  UNIT (T,03) = '/s'
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 23 )
+                  NAME (T,03) = 'Hg2_Br'
+                  FNAME(T,03) = 'Prod of Hg2 from Br'
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 24 )
+                  NAME (T,03) = 'Br'
+                  FNAME(T,03) = 'Br concentration'
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE( 25 )
+                  NAME (T,03) = 'BrO'
+                  FNAME(T,03) = 'BrO concentration'
+                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
+               CASE ( 26: )
+                  NAME (T,03) = TRACER_NAME(T-PD03) !CDH 18->22
 
                   ! Tracer 3 should be "HgC" instead of "HgP"
                   IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
@@ -1559,7 +1609,7 @@
                   ENDIF
 
                   FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
-                  INDEX(T,03) = ( T - 16 ) + ( SPACING * 41 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 41 )
                CASE DEFAULT
                   ! Nothing
             END SELECT

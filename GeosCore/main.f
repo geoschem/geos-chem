@@ -170,6 +170,9 @@
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
 
+      USE OCEAN_MERCURY_MOD, ONLY : LHG2HALFAEROSOL !CDH 9/26/09
+      USE TRACERID_MOD,      ONLY : ID_HG2, ID_HgP !CDH 9/26/09
+
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
       
@@ -190,6 +193,8 @@
       INTEGER            :: ELAPSED_SEC, NHMSb, RC
       REAL*8             :: TAU,         TAUb         
       CHARACTER(LEN=255) :: ZTYPE
+
+      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -704,6 +709,14 @@
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
+
+            ! For mercury simulations ...
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+
+               ! Read AVHRR daily leaf-area-index
+               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+
+            ENDIF 
                
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
@@ -862,7 +875,25 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
             IF ( LCONV ) THEN
+               
+               ! Partition Hg(II) between aerosol and gas
+               IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
+                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
+     &                 ( STT(:,:,:,ID_HGP(1)) +
+     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
+                  STT(:,:,:,ID_HGP(1)) = STT(:,:,:,ID_HGP(1)) +
+     &                   0.5D0 * STT(:,:,:,ID_HG2(1))
+                  STT(:,:,:,ID_HG2(1)) = 0.5D0 * STT(:,:,:,ID_HG2(1))
+               ENDIF
+
                CALL DO_CONVECTION
+
+               ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+               IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
+                  STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
+     &                    (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
+                  STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
+               ENDIF
 
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
@@ -919,7 +950,30 @@
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
-         IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
+         IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
+
+            ! Partition Hg(II) between aerosol and gas
+            IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
+               HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
+     &              ( STT(:,:,:,ID_HGP(1)) +
+     &              0.5D0 * STT(:,:,:,ID_HG2(1)) )
+               STT(:,:,:,ID_HGP(1)) = STT(:,:,:,ID_HGP(1)) +
+     &              0.5D0 * STT(:,:,:,ID_HG2(1))
+               STT(:,:,:,ID_HG2(1)) = 0.5D0 * STT(:,:,:,ID_HG2(1))
+            ENDIF
+            
+            CALL DO_WETDEP
+            
+            ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+            IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
+               STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
+     &              (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
+               STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
+            ENDIF
+
+
+         ENDIF
+
 
 
          !==============================================================
@@ -955,16 +1009,22 @@
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
-         
+
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
+
             ! Accumulate several diagnostic quantities
             CALL DIAG1
-         
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
+
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
-         
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
+
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) CALL DIAG42
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
             IF ( DO_SAVE_DIAG50 ) CALL DIAG50
@@ -972,16 +1032,17 @@
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
 
-            !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
-
             ! Plane following diagnostic
             IF ( ND40 > 0 ) THEN 
                
+               print*, 'Call planeflight'
                ! Archive data along the flight track
                CALL PLANEFLIGHT
             ENDIF
-            
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
          !==============================================================
@@ -992,15 +1053,20 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
+
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
          IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
 
          ! Comment out for now 
          !! Column timeseries

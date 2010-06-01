@@ -86,6 +86,7 @@
       ! ... except these routines
       PUBLIC :: EMISSRnPbBe 
       PUBLIC :: CHEMRnPbBe
+      PUBLIC :: SLQ   ! cdh, use in mercury_mod
 
       !=================================================================
       ! MODULE VARIABLES

@@ -91,6 +91,7 @@
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
 #  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
+#  14 May 2010 - C. Carouge  - Updates for mercury simulation
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -363,6 +364,9 @@ dao_mod.o                   : dao_mod.f                                      \
 
 decomp.o                    : decomp.f
 
+depo_mercury_mod.o          : depo_mercury_mod.f                             \
+                              dao_mod.o               tracerid_mod.o
+
 diag03_mod.o                : diag03_mod.f            tracerid_mod.o
 
 diag04_mod.o                : diag04_mod.f
@@ -567,6 +571,8 @@ gfed2_biomass_mod.o         : gfed2_biomass_mod.f                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
+global_br_mod.o             : global_br_mod.f         tropopause_mod.o 
+
 global_ch4_mod.o            : global_ch4_mod.f                               \
                               dao_mod.o               diag_mod.o             \
                               diag_oh_mod.o           diag_pl_mod.o          \
@@ -666,6 +672,11 @@ ksparse.o                   : ksparse.f
 
 lai_mod.o                   : lai_mod.f
 
+land_mercury_mod.o          : land_mercury_mod.f                             \
+                              biomass_mod.o           dao_mod.o              \
+                              depo_mercury_mod.o      lai_mod.o              \
+                              logical_mod.o           tracerid_mod.o         \
+
 LEGND0.o                    : LEGND0.f
 
 lightning_nox_mod.o         : lightning_nox_mod.f                            \
@@ -713,12 +724,15 @@ megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
 mercury_mod.o               : mercury_mod.f                                  \
-                              dao_mod.o               diag03_mod.o           \
-                              diag_mod.o              drydep_mod.o           \
+                              dao_mod.o               depo_mercury_mod.o     \
+                              diag03_mod.o            diag_mod.o             \
+                              drydep_mod.o            global_br_mod.o        \
                               global_o3_mod.o         global_oh_mod.o        \
+                              land_mercury_mod.o      lai_mod.o              \
                               logical_mod.o           ocean_mercury_mod.o    \
-                              pbl_mix_mod.o           tracerid_mod.o         \
-                              tracer_mod.o    
+                              pbl_mix_mod.o           RnPbBe_mod.o           \
+                              tracerid_mod.o          tracer_mod.o           \
+                              tropopause_mod.o        vdiff_pre_mod.o
 
 MIESCT.o                    : MIESCT.f
 
@@ -737,9 +751,9 @@ nei2005_anthro_mod.o        : nei2005_anthro_mod.f                           \
 NOABS.o                     : NOABS.f
 
 ocean_mercury_mod.o         : ocean_mercury_mod.f                            \
-                              dao_mod.o               diag03_mod.o           \
-                              logical_mod.o           tracerid_mod.o         \
-                              tracer_mod.o    
+                              dao_mod.o               depo_mercury_mod.o     \
+                              diag03_mod.o            logical_mod.o          \
+                              tracerid_mod.o          tracer_mod.o    
 
 ohsave.o                    : ohsave.f                comode_mod.o           \
                               diag_mod.o              tracerid_mod.o
