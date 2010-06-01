@@ -1,5 +1,3 @@
-! $Id: isrpia.inc,v 1.1 2010/02/02 16:57:45 bmy Exp $
-!
 !******************************************************************************
 !  File "isrpia.inc" contains the common block declarations and some 
 !  parameters for the ISORROPIAII code. This file replaces "isoropia.h" from
@@ -33,6 +31,7 @@
 !  (6 ) Divided common blocks so that READ-ONLY variables are not mixed with
 !        variables that are modified (hotp)
 !  (7 ) Removed DRYF since it is not used (hotp)
+!  (8 ) Bug fix: CRRAT was being truncated at column 72 (hotp, bmy, 6/1/10)
 !******************************************************************************
 !
       ! leave this implicit statement for isoropiaIIcode.f variables
@@ -221,8 +220,10 @@
       COMMON /CASE/        SCASE
 !$OMP THREADPRIVATE( /CASE/ )
 
-      REAL*8            :: SULRATW, SULRAT, SODRAT, SO4RAT, CRNARAT, CRRAT
-      COMMON /CASE2/       SULRATW, SULRAT, SODRAT, SO4RAT, CRNARAT, CRRAT
+      REAL*8            :: SULRATW, SULRAT,  SODRAT,
+     &                     SO4RAT,  CRNARAT, CRRAT
+      COMMON /CASE2/       SULRATW, SULRAT,  SODRAT, 
+     &                     SO4RAT,  CRNARAT, CRRAT
 !$OMP THREADPRIVATE( /CASE2/ )
 
       REAL*8            :: EPS

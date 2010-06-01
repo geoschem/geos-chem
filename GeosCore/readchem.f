@@ -4,7 +4,7 @@
 !******************************************************************************
 !  Subroutine READCHEM reads species 2names, chemical rxns, and photolysis 
 !  reactions from the "globchem.dat" chemistry mechanism file for SMVGEAR II.  
-!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 8/9/06)
+!  (M. Jacobson 1997; bdf, bmy, 5/9/03, 6/1/10)
 !
 !  NOTES:
 !  (1 ) Added space in FORMAT strings for more products.  Also now references
@@ -33,6 +33,9 @@
 !       The same branching rxns are also implemented in EP photolysis
 !          HOC2H4O ------> HO2 + 2CH2O         : marked as 'I' in P column
 !          HOC2H4O --O2--> HO2 + GLYC          : marked as 'J' in P column
+!  (10) In "510 FORMAT", the format of 'B' in kinetic reactions section of 
+!        smv2.log does not match variable type and causes code to crash when 
+!        run with ifort -check all flag. (hotp, bmy, 6/1/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1041,8 +1044,13 @@ C
      1       'DELIMETER ',A2,' HAD INCORRECT # OF REACTIONS ',I5)
  450  FORMAT('READCHEM: ORD# REACT ',I3,' CANT HAVE COEFF > 1')
  470  FORMAT('READCHEM: SURFACE REACTION ',I5,'HAS THREE REACTANTS ')
- 510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
-     1       A6,2(A1,A6),14(A1,0PF3.1,A6))  
+!---------------------------------------------------------------------------
+! Prior to 6/1/10:
+! Update format to eliminate error in smv2.log (hotp 6/1/10)
+! 510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
+!---------------------------------------------------------------------------
+ 510  FORMAT(I3,1X,ES7.1,1X,F7.2,1X,I6,1X,0PF3.2,1X,
+     1       A6,2(A1,A6),14(A1,0PF3.1,A6)) 
  520  FORMAT( 'KINETIC REACTIONS FOR ', A,' CHEMISTRY',/,   
      1        'RATE CONSTANTS HAVE FORM K = A * (300/T)**B * EXP(C/T).')
  521  FORMAT( 'NMBR   A       B     C     Fv       REACTION' )
