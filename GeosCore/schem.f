@@ -191,9 +191,23 @@
      &                    XTAU,      1,         JGLOB,     
      &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
+!%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATOH )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 ) 
+         ! Cast from REAL*4 to REAL*8
+         STRATOH = ARRAY(1,:,:)
+#else
          ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
          CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATOH )
-         
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       
          !==============================================================
          ! Read in monthly mean archived J-values
          !==============================================================
