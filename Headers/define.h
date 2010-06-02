@@ -168,4 +168,13 @@
 #error "SPARC must be defined in header file define.h"
 #endif
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Stop the run if we are running w/ GEOS-5 72-level grid
+!%%% This prevents dimension mismatch when reading SCHEM data fields!
+!%%% (ltm, bmy, 6/2/10)
+#if defined( GEOS_5 ) && !defined( GRIDREDUCED )
+#error "Cannot run GEOS-5 with the full vertical 72 level grid!"
+#error "We are working on a patch to fix this soon!"
+#endif 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !EOC
