@@ -1540,8 +1540,23 @@
      &                 XTAU,      1,         JGLOB,     
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%% Original code here:
+!%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
+!%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 )
+      ! Cast from REAL*4 to REAL*8
+      CO_PRODS = ARRAY(1,:,:)
+#else
       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
       CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       !=================================================================
       ! Read in CO loss rates [s^-1]
@@ -1556,8 +1571,23 @@
      &                 XTAU,      1,         JGLOB,     
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%% Original code here:
+!%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
+!%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 )
+      ! Cast from REAL*4 to REAL*8
+      CO_LOSSS = ARRAY(1,:,:)
+#else
       ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
       CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Return to calling program
       END SUBROUTINE READ_PCO_LCO_STRAT

@@ -1997,6 +1997,25 @@ cdrevet
      &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
 cdrevet
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%-----------------------------------------------------------------------
+!%%% Original code here:
+!%%%         ! use 2D arrays for TRANSFER ZONAL
+!%%%         DUMMY_IN(:,:) = ARRAY(1,:,:)
+!%%%
+!%%%         ! Copy REAL*4 to REAL*8 data, and resize from (JGLOB,LGLOB) 
+!%%%         ! to (JJPAR,LLPAR) -- vertically regrid if necessary
+!%%%         CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
+!%%%
+!%%%         COPROD(:,:,M) = DUMMY_OUT(:,:)
+!%%%-----------------------------------------------------------------------
+#if   defined( GEOS_5 ) 
+         ! Cast from REAL*4 to REAL*8
+         COPROD(:,:,M) = ARRAY(1,:,:)
+#else
          ! use 2D arrays for TRANSFER ZONAL
          DUMMY_IN(:,:) = ARRAY(1,:,:)
 
@@ -2005,13 +2024,12 @@ cdrevet
          CALL TRANSFER_ZONAL( DUMMY_IN, DUMMY_OUT )
 
          COPROD(:,:,M) = DUMMY_OUT(:,:)
-
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ENDDO
-
 
       ! Return to calling program
       END SUBROUTINE READ_COPROD
-
 
 !------------------------------------------------------------------------------
 

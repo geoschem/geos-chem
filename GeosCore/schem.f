@@ -209,8 +209,23 @@
      &                       XTAU,      1,         JGLOB,     
      &                       LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%% Original code here:
+!%%%            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!%%%            CALL TRANSFER_ZONAL( ARRAY(1,:,:), SJVALUE(:,:,NN) )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 ) 
+            ! Cast from REAL*4 to REAL*8
+            SJVALUE(:,:,NN) = ARRAY(1,:,:)
+#else
             ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
             CALL TRANSFER_ZONAL( ARRAY(1,:,:), SJVALUE(:,:,NN) )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ENDDO
 
          !==============================================================
@@ -225,9 +240,24 @@
      &                    XTAU,      1,         JGLOB,     
      &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%% Original code here:
+!%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COPROD )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 )
+         ! Cast from REAL*4 to REAL*8
+         COPROD = ARRAY(1,:,:)
+#else
          ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
          CALL TRANSFER_ZONAL( ARRAY(1,:,:), COPROD )
-         
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ 
          !==============================================================
          ! Read in CO loss rates
          !==============================================================
@@ -240,8 +270,23 @@
      &                    XTAU,      1,         JGLOB,     
      &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
+!%%% since the SCHEM data are saved at the reduced resolution.  This will
+!%%% be fixed in a subsequent version. (ltm, bmy, 6/2/10)
+!%%%---------------------------------------------------------------------
+!%%% Original code:
+!%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
+!%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COLOSS )
+!%%%---------------------------------------------------------------------
+#if   defined( GEOS_5 )
+         ! Cast from REAL*4 to REAL*8
+         COLOSS = ARRAY(1,:,:)
+#else
          ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
          CALL TRANSFER_ZONAL( ARRAY(1,:,:), COLOSS )
+#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDIF
 
