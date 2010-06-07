@@ -1,159 +1,65 @@
-! $Id: mercury_mod.f,v 1.24 2009/09/01 19:21:18 cdh Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: LAND_MERCURY_MOD
+!
+! !DESCRIPTION: Module LAND\_MERCURY\_MOD contains variables and routines for
+! the land emissions for the GEOS-Chem mercury simulation. (eck, ccc, 6/2/10)
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE LAND_MERCURY_MOD
-
 !
-!******************************************************************************
-!  Module MERCURY_MOD contains variables and routines for the GEOS-CHEM 
-!  mercury simulation. (eck, bmy, 12/14/04, 4/6/06)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) TRANSP      (REAL*8 ) : Plant transpiration rate [m/s]
-!  (2 ) Hg0dryGEOS  (REAL*8 ) : Dry dep. Hg0 from restart file [kg/s]
-!  (3 ) HgIIdryGEOS (REAL*8 ) : Dry dep. HgII from restart file [kg/s]
-!  (4 ) HgIIwetGEOS (REAL*8 ) : Wet dep. HgII from restart file [kg/s]
-!
-!  Module Routines:
-!  ===========================================================================
-!  (1 ) BIOMASSHG            : Wildfire Hg emissions
-!  (2 ) VEGEMIS              : Transpiration Hg emissions 
-!  (3 ) SOILEMIS             : Soil Hg emissions
-!  (4 ) LAND_MERCURY_FLUX    : Land model for Hg
-!  (5 ) READ_NASA_TRANSP     : Read transpiration rates from file
-!  (6 ) GTMM_DR              : Driver routine for GTMM code.
-!  (7 ) MAKE_GTMM_RESTART    : Write restart file for deposition for GTMM
-!  (8 ) READ_GTMM_RESTART    : Read restart file for deposition for GTMM
-!  (9 ) INIT_LAND_MERCURY    : Allocates and zeroes all module arrays
-!  (10) CLEANUP_LAND_MERCURY : Deallocates all module arrays
-!
-!  GEOS-CHEM modules referenced by land_mercury_mod.f
-!  ============================================================================
-!  (1 ) biomass_mod.f      : Wrapper for biomass emissions
-!  (2 ) bpch2_mod.f        : Module to read bpch files
-!  (3 ) dao_mod.f          : Module w/ arrays for DAO met fields
-!  (4 ) error_mod.f        : Module for catching errors
-!  (5 ) file_mod.f         : Module w/ file unit numbers
-!  (6 ) grid_mod.f         : Module w/ horizontal grid information
-!  (7 ) lai_mod.f          : Module w/ routines to read and store AVHRR LAI
-!  (8 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (9 ) ocean_mercury_mod.f: Module w/ routines to compute oceanic Hg fluxes
-!  (10) time_mod.f         : Module w/ routines to compute date & time
-!  (11) tracer_mod.f       :
-!  (12) tracerid_mod.f     : Module w/ pointers to tracers & emissions
-!  (13) transfer_mod.f     : Module w/ routines to copy data from REAL*4 to
-!                            REAL*8
-!
-!  Nomenclature: 
-!  ============================================================================
-!  (1 ) Hg(0)  a.k.a. Hg0  : Elemental   mercury
-!  (2 ) Hg(II) a.k.a. Hg2  : Divalent    mercury
-!  (3 ) HgP                : Particulate mercury
-!
-!  Mercury Tracers (1-3 are always defined; 4-21 are defined for tagged runs)
-!  ============================================================================
-!  (1 ) Hg(0)              : Hg(0)  - total tracer
-!  (2 ) Hg(II)             : Hg(II) - total tracer 
-!  (3 ) HgP                : HgP    - total tracer
-!  ------------------------+---------------------------------------------------
-!  (4 ) Hg(0)_an           : Hg(0)  - North American anthropogenic
-!  (5 ) Hg(0)_ae           : Hg(0)  - European Anthropogenic
-!  (6 ) Hg(0)_aa           : Hg(0)  - Asian anthropogenic
-!  (7 ) Hg(0)_ar           : Hg(0)  - Rest of World Anthropogenic
-!  (8 ) Hg(0)_oc           : Hg(0)  - Ocean emission
-!  (9 ) Hg(0)_ln           : Hg(0)  - Land reemission
-!  (10) Hg(0)_nt           : Hg(0)  - Land natural emission
-!  ------------------------+---------------------------------------------------
-!  (11) Hg(II)_an          : Hg(II) - North American anthropogenic
-!  (12) Hg(II)_ae          : Hg(II) - European Anthropogenic
-!  (13) Hg(II)_aa          : Hg(II) - Asian anthropogenic
-!  (14) Hg(II)_ar          : Hg(II) - Rest of World Anthropogenic
-!  (15) Hg(II)_oc          : Hg(II) - Ocean emission
-!  (16) Hg(II)_ln          : Hg(II) - Land reemission
-!  (17) Hg(II)_nt          : Hg(II) - Land natural emission
-!  ------------------------+---------------------------------------------------
-!  (18) HgP_an             : HgP    - North American anthropogenic
-!  (19) HgP_ae             : HgP    - European anthropogenic
-!  (20) HgP_aa             : HgP    - Asian anthropogenic
-!  (21) HgP_ar             : HgP    - Rest of world anthropogenic
-!  ------------------------+---------------------------------------------------
-!  (22) HgP_oc             : HgP    - Ocean emission        (FOR FUTURE USE)
-!  (23) HgP_ln             : HgP    - Land reemission       (FOR FUTURE USE)
-!  (24) HgP_nt             : HgP    - Land natural emission (FOR FUTURE USE)
-!
-!  References:
-!  ============================================================================
-!  (3 ) Selin, N., et al. (2007). "Chemical cycling and deposition of 
-!       atmospheric mercury: Global constraints from observations." 
-!       J. Geophys. Res. 112.
-!  (4 ) Selin, N., et al. (2008). "Global 3-D land-ocean-atmospehre model
-!       for mercury: present-day versus preindustrial cycles and
-!       anthropogenic enrichment factors for deposition." Global
-!       Biogeochemical Cycles 22: GB2011.
-!  (5 ) Allison, J.D. and T.L. Allison (2005) "Partition coefficients for
-!       metals in surface water, soil and waste." Rep. EPA/600/R-05/074,
-!       US EPA, Office of Research and Development, Washington, D.C.
-!  (6 ) Mintz, Y and G.K. Walker (1993). "Global fields of soil moisture
-!       and land surface evapotranspiration derived from observed
-!       precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
-!       1305-1334.
-!
-!  NOTES:
-!  (1 ) Move all land emissions routine for mercury to this new module.
-!       (ccc 9/10/09)
-!******************************************************************************
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "mercury_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
-
-      ! ... except these routines
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
       PUBLIC :: BIOMASSHG
       PUBLIC :: VEGEMIS
       PUBLIC :: SOILEMIS
       PUBLIC :: LAND_MERCURY_FLUX
+      PUBLIC :: GTMM_DR
       PUBLIC :: SNOWPACK_MERCURY_FLUX
       PUBLIC :: INIT_LAND_MERCURY
       PUBLIC :: CLEANUP_LAND_MERCURY
-
-      ! ... except these variables
-      PRIVATE :: TRANSP
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+!
+! !PRIVATE DATA MEMBERS:
+!
+      ! Plant transpiration rate [m/s]
       REAL*8,  ALLOCATABLE :: TRANSP(:,:)
-      
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
+!
+! !REVISION HISTORY:
+!
+!  2 Jun 10 - C. Carouge  - Group all land emissions routine for mercury 
+!                           into this new module.
+!EOP
+!------------------------------------------------------------------------------
+
       CONTAINS
 
-!----------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: LAND_MERCURY_FLUX
+!
+! !DESCRIPTION: Subroutine LAND\_MERCURY\_FLUX calculates emissions of Hg(0) 
+!  from prompt recycling of previously deposited mercury to land, in [kg/s].  
+!  (eck, cdh, eds, 7/30/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE LAND_MERCURY_FLUX( LFLUX, LHGSNOW )
 !
-!******************************************************************************
-!  Subroutine LAND_MERCURY_FLUX calculates emissions of Hg(0) from 
-!  prompt recycling of previously deposited mercury to land, in [kg/s].  
-!  (eck, cdh, eds, 7/30/08)
-!  
-!  Arguments as Output
-!  ============================================================================
-!  (1 ) LFLUX (REAL*8) : Flux of Hg(0) from the promptly recycled land emissions!                        [kg/s]
-!
-!  NOTES:
-!  (1 ) Now uses SNOWMAS from DAO_MOD for compatibility with GEOS-5.
-!       (eds 7/30/08)
-!  (2 ) Now includes REEMFRAC in parallelization; previous versions may have
-!       overwritten variable. (cdh, eds 7/30/08)
-!  (3 ) Now also reemit Hg(0) from ice surfaces, including sea ice 
-!       (cdh, 8/19/08)
-!******************************************************************************
+! !USES:
 !
       USE TRACERID_MOD,  ONLY : ID_Hg0,          N_Hg_CATS
       USE LOGICAL_MOD,   ONLY : LSPLIT
@@ -163,14 +69,31 @@
       USE DEPO_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE DAO_MOD,       ONLY : IS_ICE, IS_LAND
 
-
 #     include "CMN_SIZE"      ! Size parameters
 
-      ! Arguments 
-      REAL*8,  INTENT(OUT)  :: LFLUX(IIPAR,JJPAR,N_Hg_CATS)
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL, INTENT(IN)   :: LHGSNOW
-       
-  
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT)  :: LFLUX(IIPAR,JJPAR,N_Hg_CATS)
+!
+! !REVISION HISTORY:
+!
+!  (1 ) Now uses SNOWMAS from DAO_MOD for compatibility with GEOS-5.
+!       (eds 7/30/08)
+!  (2 ) Now includes REEMFRAC in parallelization; previous versions may have
+!       overwritten variable. (cdh, eds 7/30/08)
+!  (3 ) Now also reemit Hg(0) from ice surfaces, including sea ice 
+!       (cdh, 8/19/08)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!  
       REAL*8                :: DTSRCE, REEMFRAC, SNOW_HT
       REAL*8, PARAMETER     :: SEC_PER_YR = 365.25d0 * 86400d0
       INTEGER               :: I,      J,      NN
@@ -238,16 +161,17 @@
      
       ! Return to calling program
       END SUBROUTINE LAND_MERCURY_FLUX
-
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE BIOMASSHG( EHg0_bb )
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine BIOMASSHG is the subroutine for Hg(0) emissions from biomass
-!  burning. These emissions are active only for present day simulations and
-!  not for preindustrial simulations (eck, cdh, eds, 7/30/08)
+! !IROUTINE: BIOMASSHG
+!
+! !DESCRIPTION: Subroutine BIOMASSHG is the subroutine for Hg(0) emissions 
+!  from biomass burning. These emissions are active only for present day 
+!  simulations and not for preindustrial simulations (eck, cdh, eds, 7/30/08)
 !
 !  Emissions are based on an inventory of CO emissions from biomass burning 
 !  (Duncan et al. J Geophys Res 2003), multiplied by a Hg/CO ratio in BB plumes
@@ -257,13 +181,16 @@
 !  best estimate was 1.5e-7 mol Hg/ mol CO, we chose the highest value
 !  (2.1e-7 mol Hg/ mol CO) in the range because the simulations shown in
 !  Selin et al. (GBC 2008) required large Hg(0) emissions to sustain
-!  reasonable atmospheric Hg(0) concentrations. (eck, 11/13/2008)   
+!  reasonable atmospheric Hg(0) concentrations. (eck, 11/13/2008)
+!\\
+!\\
+! !INTERFACE:
+! 
+      SUBROUTINE BIOMASSHG( EHg0_bb )
 !
-!******************************************************************************
+! !USES:
 !     
-
-      ! References to F90 modules
-! IDBCO moved from BIOMASS_MOD to TRACERID_MOD. (ccc, 5/6/10)
+      ! IDBCO moved from BIOMASS_MOD to TRACERID_MOD. (ccc, 5/6/10)
 !      USE BIOMASS_MOD,    ONLY: BIOMASS, IDBCO
       USE BIOMASS_MOD,    ONLY: BIOMASS
       USE TRACERID_MOD,    ONLY: IDBCO
@@ -273,11 +200,19 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-
-      !Arguments
+!
+! !OUTPUT PARAMETERS:
+!
       REAL*8, DIMENSION(:,:),INTENT(OUT) :: EHg0_bb
-      
-      ! Local variables
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!     
       REAL*8                 :: DTSRCE, E_CO, AREA_CM2
       INTEGER                :: I, J
 
@@ -331,15 +266,16 @@
 
 
       END SUBROUTINE BIOMASSHG
-
+!EOC
 !-----------------------------------------------------------------------------
-
-      SUBROUTINE VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine VEGEMIS is the subroutine for Hg(0) emissions from vegetation 
-!  by evapotranspiration.
-!  (eck, cdh, eds, 7/30/08)
+! !IROUTINE: VEGEMIS
+!
+! !DESCRIPTION: Subroutine VEGEMIS is the subroutine for Hg(0) emissions from 
+!  vegetation by evapotranspiration. (eck, cdh, eds, 7/30/08)
 !
 !  Vegetation emissions are proportional to the evapotranspiration rate and the
 !  soil water mercury content. We assume a constant concentration of mercury
@@ -369,11 +305,14 @@
 ! pattern while maintining the global mean. The scaling factor, EHg0_dist,
 ! also accounts for the anthropogenic enhancement of soil Hg in the present 
 ! day. 
+!\\
+!\\
+! !INTERFACE:
 !
-!******************************************************************************
-!       
-
-      ! References to F90 modules      
+      SUBROUTINE VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+!
+! !USES:
+!
       USE DAO_MOD,        ONLY: RADSWG, IS_LAND
       USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
       USE TIME_MOD,       ONLY: GET_TS_EMIS
@@ -381,13 +320,24 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DEP"      ! FRCLND
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
       LOGICAL,                INTENT(IN)  :: LGCAPEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
+!
+! !OUTPUT PARAMETERS:
+!
       REAL*8, DIMENSION(:,:), INTENT(OUT) :: EHg0_vg
-
-      ! Local Variables
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!     
       REAL*8             :: DRYSOIL_HG, SOILWATER_HG, AREA_M2, VEG_EMIS
       INTEGER            :: I, J
 
@@ -450,14 +400,17 @@
       ENDIF
 
       END SUBROUTINE VEGEMIS
-
+!EOC
 !------------------------------------------------------------------------------
- 
-      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SIOLEMIS is the subroutine for Hg(0) emissions from soils.
-!  (eck, eds, 7/30/08)
+! !IROUTINE: SOILEMIS
+!
+! !DESCRIPTION: \subsection*{Overview}
+!  Subroutine SIOLEMIS is the subroutine for Hg(0) emissions 
+!  from soils. (eck, eds, 7/30/08)
 !  
 !  Soil emissions are a function of solar radiation at ground level 
 !  (accounting for attenuation by leaf canopy) and surface temperature. 
@@ -466,7 +419,7 @@
 !  Finally, this emission factor is multiplied by the soil mercury
 !  concentration and scaled to meet the global emission total.
 !
-!  Comments on soil Hg concentration:
+!\subsection*{Comments on soil Hg concentration}
 !  We chose the preindustrial value of 45 ng Hg /g dry soil as the mean of
 !  the range quoted in Selin et al. (GBC 2008): 20-70 ng/g (Andersson, 1967; 
 !  Shacklette et al., 1971; Richardson et al., 2003; Frescholtz and Gustin,
@@ -476,16 +429,14 @@
 !  We calculate the present-day soil Hg distribution by adding a global mean
 !  6.75 ng/g (=0.15 * 45 ng/g) according to present-day Hg deposition.
 !  (eck, 11/13/08)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Notes
-!  (1 ) Added comments. (cdh, eds, 7/30/08)
-!  (2 ) Now include light attenuation by the canopy after sunset. Emissions
-!       change by < 1% in high-emission areas  (cdh, 8/13/2008)
-!  (3 ) Removed FRCLND for consistency with other Hg emissions (cdh, 8/19/08) 
-!******************************************************************************
+      SUBROUTINE SOILEMIS( EHg0_dist, EHg0_so )
 !
-
-      ! References to F90 modules      
+! !USES:
+!
       USE LAI_MOD,        ONLY: ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE DAO_MOD,        ONLY: RADSWG, SUNCOS, TS, IS_LAND
       USE TIME_MOD,       ONLY: GET_MONTH, ITS_A_NEW_MONTH
@@ -495,12 +446,28 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DEP"      ! FRCLND
-
-      ! Arguments
+!
+! !INPUT PARAMETERS:
+!
       REAL*8, DIMENSION(:,:), INTENT(IN) :: EHg0_dist
+!
+! !OUTPUT PARAMETERS:
+!
       REAL*8, DIMENSION(:,:), INTENT(OUT):: EHg0_so
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!
+!  (1 ) Added comments. (cdh, eds, 7/30/08)
+!  (2 ) Now include light attenuation by the canopy after sunset. Emissions
+!       change by < 1% in high-emission areas  (cdh, 8/13/2008)
+!  (3 ) Removed FRCLND for consistency with other Hg emissions (cdh, 8/19/08)
+!  2 June 2010 - C. Carouge  - Solve  
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!     
       REAL*8             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
       REAL*8             :: AREA_M2, DRYSOIL_HG, SNOW_HT
       INTEGER            :: I, J, JLOOP
@@ -556,6 +523,8 @@
             ! attenuated based on LAI
             LIGHTFRAC = EXP( -TAUZ / SUNCOSVALUE )
 
+!------------------------------------------------------------------------------
+! Prior to (cdh, ccc, 6/2/10)
 !            ! if there is sunlight
 !            IF (SUNCOS(JLOOP) > 0d0 .and. RADSWG(I,J) > 0d0 ) THEN
 !
@@ -574,7 +543,7 @@
 !               LIGHTFRAC = EXP( -TAUZ / 0.17D0 )
 !
 !            ENDIF
-
+!------------------------------------------------------------------------------
             ! Dry soil Hg concentration, ng Hg /g soil
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
@@ -782,6 +751,224 @@
       ! Return to calling program
       END SUBROUTINE SNOWPACK_MERCURY_FLUX
 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: GTMM\_DR
+!
+! !DESCRIPTION: GTMM\_DR is a driver to call GTMM from GEOS-Chem (ccc, 9/15/09)
+!\\
+!\\
+! !INTERFACE: 
+!
+      SUBROUTINE GTMM_DR( Hg0gtm )
+! 
+! !USES:
+!
+      USE BPCH2_MOD
+      USE DAO_MOD,           ONLY : IS_LAND
+      USE FILE_MOD,          ONLY : IU_FILE, IOERROR
+      USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
+      USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
+      USE DEPO_MERCURY_MOD,  ONLY : CHECK_DIMENSIONS
+      USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
+      USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
+    
+#     include "CMN_SIZE"          ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      ! Emission of Hg0 calculated by GTMM for the month [kg/s]
+      REAL*8, INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
+! 
+! !REVISION HISTORY:
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER   :: YEAR    ! Current year 
+      INTEGER   :: MONTH   ! Current month
+      INTEGER   :: DAY
+      INTEGER   :: NYMD, NHMS
+      
+
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: TSURF    ! Ground temperature
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: PRECIP   ! Total precipitation
+                                                    ! for the month
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: SOLAR_W  ! Solar radiation for 
+                                                    ! the month
+
+      REAL*4, DIMENSION(IIPAR, JJPAR)   :: TRACER   ! Temporary array
+
+      ! Monthly average deposition arrays
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg0mth_dry
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_dry
+      REAL*8, DIMENSION(IIPAR, JJPAR)   :: Hg2mth_wet
+
+      INTEGER               :: IOS, I, J, L
+
+      CHARACTER(LEN=255)    :: FILENAME
+
+      ! For binary punch file, version 2.0
+      INTEGER               :: NI,        NJ,      NL
+      INTEGER               :: IFIRST,    JFIRST,  LFIRST
+      INTEGER               :: HALFPOLAR, CENTER180
+      INTEGER               :: NTRACER,   NSKIP
+      REAL*4                :: LONRES,    LATRES
+      REAL*8                :: ZTAU0,     ZTAU1
+      CHARACTER(LEN=20)     :: MODELNAME
+      CHARACTER(LEN=40)     :: CATEGORY
+      CHARACTER(LEN=40)     :: UNIT     
+      CHARACTER(LEN=40)     :: RESERVED
+
+
+      !=================================================================
+      ! GTMM_DR begins here!
+      !=================================================================
+      ! Initialise arrays
+      NYMD      = GET_NYMD()
+      NHMS      = GET_NHMS()
+
+      TSURF   = 0d0
+      PRECIP  = 0d0
+      SOLAR_W = 0d0
+      Hg0gtm  = 0d0
+
+      ! Reset deposition arrays.
+      Hg0mth_dry = 0d0
+      Hg2mth_dry = 0d0
+      Hg2mth_wet = 0d0
+
+      CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+
+      !=================================================================
+      ! Read monthly meteorology fields
+      !=================================================================
+
+!--- Filename to use after tests (ccc)
+!      FILENAME = TRIM( DATA_DIR ) // 'mercury_200501/' //
+!     &           'GTM/MET_FIELDS/mean_YYYYMM.bpch'
+
+      FILENAME = '/home/ccarouge/GTM/MET_FIELDS/' //
+     &           'mean_200501.bpch'
+    
+      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
+    
+      ! Echo some input to the screen
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 100   ) 
+      WRITE( 6, 110   ) TRIM( FILENAME )
+ 100  FORMAT( 'G T M M  H g   M E T   F I L E   I N P U T' )
+ 110  FORMAT( /, 'GTMM_DR: Reading ', a )
+
+      ! Open the binary punch file for input
+      CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
+    
+      !-----------------------------------------------------------------
+      ! Read concentrations -- store in the TRACER array
+      !-----------------------------------------------------------------
+      DO 
+         READ( IU_FILE, IOSTAT=IOS )                              
+     &        MODELNAME, LONRES, LATRES, HALFPOLAR, CENTER180
+       
+         ! IOS < 0 is end-of-file, so exit
+         IF ( IOS < 0 ) EXIT
+       
+         ! IOS > 0 is a real I/O error -- print error message
+         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:1' )
+       
+         READ( IU_FILE, IOSTAT=IOS )                               
+     &        CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,  
+     &        NI,       NJ,       NL,   IFIRST, JFIRST, LFIRST,    
+     &        NSKIP
+       
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:2' )
+       
+         READ( IU_FILE, IOSTAT=IOS )                               
+     &        ( ( TRACER(I,J), I=1,NI ), J=1,NJ )
+       
+         IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'rd_gtmm_dr:3' )
+       
+         !--------------------------------------------------------------
+         ! Assign data from the TRACER array to the arrays.
+         !--------------------------------------------------------------
+       
+         ! Process dry deposition data 
+         IF ( CATEGORY(1:8) == 'GMAO-2D' ) THEN 
+          
+            ! Make sure array dimensions are of global size
+            ! (NI=IIPAR; NJ=JJPAR, NL=1), or stop the run
+            CALL CHECK_DIMENSIONS( NI, NJ, NL )
+          
+            ! Save into arrays
+            IF ( NTRACER == 54 .OR. NTRACER == 59 ) THEN
+             
+               !----------
+               ! Surface temperature
+               !----------
+             
+               ! Store surface temperature in TSURF array
+               TSURF(:,:)   = TRACER(:,JJPAR:1:-1)
+             
+            ELSE IF ( NTRACER == 26 .OR. NTRACER == 29 ) THEN
+             
+               !----------
+               ! Total precipitation
+               !----------
+             
+               ! Store precipitation in PRECIP array
+               PRECIP(:,:)   = TRACER(:,JJPAR:1:-1)
+             
+            ELSE IF ( NTRACER == 37 .OR. NTRACER == 51 ) THEN
+
+               !----------
+               ! Solar radiation
+               !----------
+
+               ! Store solar radiation in SOLAR_W array
+               SOLAR_W(:,:) = TRACER(:,JJPAR:1:-1)
+
+            ENDIF
+         ENDIF
+       
+      ENDDO
+    
+      ! Close file
+      CLOSE( IU_FILE )      
+    
+      !=================================================================
+      ! Read GTMM restart file to get data from previous month
+      !=================================================================
+      CALL READ_GTMM_RESTART(NYMD,      NHMS, Hg0mth_dry, Hg2mth_dry, 
+     &                       Hg2mth_wet )
+
+      !=================================================================
+      ! Call GTMM model
+      !=================================================================
+#if defined( GTMM_Hg )
+      CALL GTMM_coupled(YEAR                     , MONTH  , 
+     &                  Hg0mth_dry(:,JJPAR:1:-1) , 
+     &                  Hg2mth_dry(:,JJPAR:1:-1), 
+     &                  Hg2mth_wet(:,JJPAR:1:-1), TSURF  , PRECIP, 
+     &                  SOLAR_W                  , Hg0gtm(:,JJPAR:1:-1)
+     &                  )
+#endif
+
+      ! Use LAND/OCEAN mask on the land emissions
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         IF ( .NOT.(IS_LAND(I, J)) ) Hg0gtm(I,J) = 0d0
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE GTMM_DR      
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE INIT_LAND_MERCURY( )

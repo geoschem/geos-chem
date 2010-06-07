@@ -173,6 +173,8 @@
       USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
       USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
+      ! For mercury simulation. (ccc, 6/4/10)
+      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
       USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
       ! To handle tracers with several dry dep. tracers
       !(ccc, 2/3/10)
@@ -182,7 +184,7 @@
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
       USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
       USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP
+      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
 
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
@@ -210,7 +212,8 @@
       USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
       USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO, IDTC2H4
+      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO,      IDTC2H4
+      USE TRACERID_MOD, ONLY : IS_Hg2
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
@@ -2473,7 +2476,9 @@
      &                  IIPAR,     JJPAR,     LD38,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD38) )
          ENDDO
+
       ENDIF
+
 !
 !******************************************************************************
 !  ND39: Rainout loss of tracer in large scale rains 
@@ -3651,6 +3656,24 @@
          ND69 = 0
       ENDIF
 
+      !==================================================================
+      ! Special case for mercury simulation. We need to store AD38, AD39,
+      ! AD44 to ensure that we have monthly average in GTMM restart file
+      !==================================================================
+      IF ( LGTMM ) THEN
+         N = 1
+         NN = GET_WETDEP_IDWETD( N )
+         DO WHILE( .NOT.(IS_Hg2( NN )) )
+            
+            N = N + 1
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
+            
+         ENDDO
+
+         CALL UPDATE_DEP( N )
+      ENDIF
+            
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 

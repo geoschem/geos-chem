@@ -643,7 +643,7 @@
       USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
       USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
       USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
 !      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
       USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
@@ -1081,7 +1081,8 @@
                      ! scavenging in cloud updrafts [kg/s].  We must 
                      ! divide by DNS, the # of internal timesteps.
                      !==================================================
-                     IF ( ND38 > 0 .and. ISOL > 0 .and. K <= LD38 ) THEN
+                     IF ( ( ND38 > 0 .or. LGTMM )
+     &                    .and. ISOL > 0 .and. K <= LD38 ) THEN
                         AD38(I,J,K,ISOL) = AD38(I,J,K,ISOL) +
      &                       ( T0 * AREA_M2 / ( TCVV(IC) * DNS ) )
                      ENDIF

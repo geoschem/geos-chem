@@ -755,7 +755,7 @@
       ! References to F90 modules
       USE DIAG_MOD,          ONLY : AD38, CONVFLUP 
       USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
 !      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
@@ -1140,7 +1140,7 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
-               IF ( ND38 > 0 .and. NN > 0 ) THEN
+               IF ( ( ND38 > 0 .or. LGTMM ) .and. NN > 0 ) THEN
 
                   ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)

@@ -1401,7 +1401,7 @@ c$$$
       USE TRACER_MOD,   ONLY : STT,         TRACER_NAME, TRACER_MW_G
       USE TRACERID_MOD, ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD, ONLY : ID_Hg0,      ID_Hg2
-      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
+      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -1610,68 +1610,6 @@ c$$$
 
       ! Return to calling program
       END SUBROUTINE READ_OCEAN_Hg_RESTART
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL ) 
-!
-!******************************************************************************
-!  Subroutine CHECK_DIMENSIONS makes sure that the dimensions of the Hg 
-!  restart file extend to cover the entire grid. (sas, cdh, bmy, 3/28/06)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NI (INTEGER) : Number of longitudes read from restart file
-!  (2 ) NJ (INTEGER) : Number of latitudes  read from restart file
-!  (3 ) NL (INTEGER) : Numbef of levels     read from restart file
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NI, NJ, NL
-
-#     include "CMN_SIZE"
-
-      !=================================================================
-      ! CHECK_DIMENSIONS begins here!
-      !=================================================================
-
-      ! Error check longitude dimension: NI must equal IIPAR
-      IF ( NI /= IIPAR ) THEN
-         WRITE( 6, 100 ) 
- 100     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
-      ENDIF
-
-      ! Error check latitude dimension: NJ must equal JJPAR
-      IF ( NJ /= JJPAR ) THEN
-         WRITE( 6, 110 ) 
- 110     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
-      ENDIF
-      
-      ! Error check vertical dimension: NL must equal LLPAR
-      IF ( NL /= 1 ) THEN
-         WRITE( 6, 120 ) 
- 120     FORMAT( 'ERROR reading in Hg restart file', /
-     &           'Wrong number of longitudes encountered', /
-     &           'STOP in CHECK_DIMENSIONS ("ocean_mercury_mod.f")' )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         CALL GEOS_CHEM_STOP
-      ENDIF
-
-      ! Return to calling program
-      END SUBROUTINE CHECK_DIMENSIONS
 
 !------------------------------------------------------------------------------
 

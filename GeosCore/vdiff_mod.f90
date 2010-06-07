@@ -1719,7 +1719,16 @@ contains
 
     USE DIAG_MOD,     ONLY : TURBFLUP, AD44
     USE GRID_MOD,     ONLY : GET_AREA_M2
- 
+
+    USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
+    USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_DD, ADD_HgP_DD
+    USE TRACERID_MOD, ONLY : IS_Hg0, IS_Hg2, IS_HgP
+    USE LOGICAL_MOD,  ONLY : LDYNOCEAN, LGTMM !cdh
+    USE DAO_MOD,      ONLY : LWI, IS_ICE !cdh
+    USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
+    USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
+
+
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1729,7 +1738,8 @@ contains
 ! !REVISION HISTORY:
 !
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
-!       (ccc, 11/19/09) 
+!       (ccc, 11/19/09)
+! 4 June 2010  - C. Carouge  - Updates for mercury simulations with GTMM 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1755,6 +1765,8 @@ contains
     real*8 :: wk1, wk2
     integer :: pbl_top
       
+    REAL*8  :: DEP_KG !(cdh, 8/28/09)
+
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
@@ -1828,7 +1840,7 @@ contains
 
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
-!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top )
+!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -1881,6 +1893,15 @@ contains
           enddo
        endif
 
+       ! Add emissions for mercury simulation. May be useful for other
+       ! offline simulations
+       IF ( ITS_A_MERCURY_SIM() ) THEN
+          do N = 1, N_TRACERS
+             eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
+                  GET_TS_EMIS() / 60.d0
+          enddo
+       ENDIF
+
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -1925,8 +1946,39 @@ contains
              ! only use the lowest model layer for calculating drydep fluxes
              ! given that as2 is in v/v
              dflx(I,J,NN) = DEPSAV(I,J,N) * as2(I,J,1,NN) / TCVV(NN) 
+
+
+             ! If flag is set to treat Hg2 as half aerosol, half gas, then
+             ! use average deposition velocity (cdh, 9/01/09)
+             IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
+
+                dflx(I,J,NN) =  &
+                     ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
+                     as2(I,J,1,NN) / TCVV(NN) 
+                
+             ENDIF
           endif
           
+          ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
+          ! so disable deposition over water here.
+          ! LWI is exactly zero for water (includes some fresh water) 
+          ! in GEOS-5. Note LWI is not exactly zero for earlier GEOS versions,
+          ! but non-local PBL mixing is only defined for GEOS-5.
+          ! ocean_mercury_mod defines ocean based on fraction 
+          ! land, albedo and mixed layer depth. The difference with LWI is
+          ! small. (cdh, 8/28/09) 
+          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
+             DFLX(I,J,NN) = 0D0
+          ENDIF
+
+          ! CDH (9/11/09)
+          ! Turn off Hg(0) deposition to snow and ice because we haven't yet
+          ! included emission from these surfaces and most field studies
+          ! suggest Hg(0) emissions exceed deposition during sunlit hours.
+          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. IS_ICE(I,J) ) THEN
+             DFLX(I,J,NN) = 0D0
+          ENDIF
+
           
        enddo
 
@@ -1972,6 +2024,30 @@ contains
        ! surface flux = emissions - dry deposition
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
+
+       ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
+       IF ( ITS_A_MERCURY_SIM() ) THEN
+          
+          DO N = 1, NUMDEP
+             
+             NN = NTRAIND(N)
+             
+             ! Deposition mass, kg
+             DEP_KG = dflx( I, J, N) * GET_AREA_M2(J) * GET_TS_CONV()
+             
+             IF ( IS_Hg2(NN) ) THEN 
+                
+                CALL ADD_HG2_DD( I, J, N, DEP_KG )
+
+             ELSE IF ( IS_HgP( NN ) ) THEN
+                
+                CALL ADD_HGP_DD( I, J, N, DEP_KG )
+                
+             ENDIF
+
+          ENDDO
+       ENDIF
+
     enddo
     enddo
 !$OMP END PARALLEL DO
@@ -1979,7 +2055,7 @@ contains
     ! drydep fluxes diag. for SMVGEAR mechanism 
     ! for gases -- moved from DRYFLX in drydep_mod.f to here
     ! for aerosols -- 
-    if (ND44 > 0) then 
+    if (ND44 > 0 .or. LGTMM ) then 
 
        do N = 1, NUMDEP
           SELECT CASE ( DEPNAME(N) )

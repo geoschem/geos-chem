@@ -109,6 +109,7 @@ LIB     = $(ROOTDIR)/lib
 KPP     = $(ROOTDIR)/KPP
 MOD     = $(ROOTDIR)/mod
 TOM     = $(ROOTDIR)/GeosTomas
+GTMM    = $(ROOTDIR)/GTMM
 UTIL    = $(ROOTDIR)/GeosUtil
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
@@ -163,6 +164,7 @@ realclean:
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
 	@$(MAKE) -C $(TOM) clean
+	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
@@ -177,6 +179,19 @@ docclean:
 
 help:
 	@$(MAKE) -C $(HELP)
+
+#=============================================================================
+# Targets for mercury simulation (ccc, 6/7/10)
+#=============================================================================
+
+allhg:
+	@$(MAKE) libhg
+	@$(MAKE) exe
+
+libhg: libutil libkpp libgtmm libiso libcore
+
+libgtmm:
+	@$(MAKE) -C $(GTMM)
 
 #==============================================================================
 # Dependencies listing (grep "USE " to get the list of module references!)
@@ -365,7 +380,7 @@ dao_mod.o                   : dao_mod.f                                      \
 decomp.o                    : decomp.f
 
 depo_mercury_mod.o          : depo_mercury_mod.f                             \
-                              dao_mod.o               tracerid_mod.o
+                              dao_mod.o               tracerid_mod.o         
 
 diag03_mod.o                : diag03_mod.f            tracerid_mod.o
 
@@ -998,8 +1013,9 @@ vistas_anthro_mod.o         : vistas_anthro_mod.f                            \
 
 wetscav_mod.o               : wetscav_mod.f                                  \
                               dao_mod.o               diag_mod.o             \
-                              logical_mod.o           ocean_mercury_mod.o    \
-                              tracerid_mod.o          tracer_mod.o
+                              depo_mercury_mod.o      logical_mod.o          \
+                              ocean_mercury_mod.o     tracerid_mod.o         \
+                              tracer_mod.o
 
 XSEC1D.o                    : XSEC1D.f
 

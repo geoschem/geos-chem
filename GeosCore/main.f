@@ -77,6 +77,8 @@
 !----------------------------------------------------------------------
       USE DAO_MOD,           ONLY : SUNCOS
       USE DAO_MOD,           ONLY : MAKE_RH
+      !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
+      USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
       USE ERROR_MOD,         ONLY : DEBUG_MSG,       ERROR_STOP
@@ -103,6 +105,8 @@
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
       USE LOGICAL_MOD,       ONLY : LLINOZ,    LWINDO
+      ! Add LGTMM logical for mercury simulation (ccc, 11/19/09)
+      USE LOGICAL_MOD,       ONLY : LGTMM
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -172,6 +176,9 @@
 
       USE OCEAN_MERCURY_MOD, ONLY : LHG2HALFAEROSOL !CDH 9/26/09
       USE TRACERID_MOD,      ONLY : ID_HG2, ID_HgP !CDH 9/26/09
+      USE TRACERID_MOD,      ONLY : IS_Hg2
+      ! For GTMM for mercury simulations. (ccc, 6/7/10)
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -186,7 +193,7 @@
       LOGICAL            :: FIRST = .TRUE.
       LOGICAL            :: LXTRA 
       INTEGER            :: I,           IOS,   J,         K,      L
-      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN
+      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN,  NN
       INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
       INTEGER            :: YEAR,        MONTH, DAY,       DAY_OF_YEAR
       INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
@@ -555,6 +562,29 @@
             !===========================================================
             CALL INITIALIZE( 2 ) ! Zero arrays
             CALL INITIALIZE( 3 ) ! Zero counters
+         ENDIF
+
+         !=============================================================
+         !   ***** W R I T E   MERCURY RESTART  F I L E *****
+         !     ***** MUST be done after call to diag3 *****
+         !=============================================================
+         ! Make land restart file: for GTMM runs only, beginning of each 
+         ! month but not start of the run.
+         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
+            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
+               N = 1
+               NN = GET_WETDEP_IDWETD( N )
+               DO WHILE( .NOT.(IS_Hg2( NN )) )
+               
+                  N = N + 1
+                  ! Tracer number
+                  NN = GET_WETDEP_IDWETD( N )
+
+               ENDDO
+
+               CALL UPDATE_DEP( N )
+            ENDIF
+            CALL MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
          ENDIF
 
          !==============================================================
@@ -1143,6 +1173,12 @@
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
+
+#if defined( GTMM_Hg )
+      ! Deallocate arrays from GTMM model for mercury simulation
+      IF ( LGTMM ) CALL CleanupCASAarrays
+#endif
+
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
       ! Print ending time of simulation

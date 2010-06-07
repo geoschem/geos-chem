@@ -130,6 +130,7 @@
 !       (tmf, 1/7/09)
 !  (27) Remove support for SGI compiler.  Bug fix in RAINOUT. (bmy, 7/20/09)
 !  (28) Update mercury simulation. (ccc, 5/17/10)
+!  (29) Add LGTMM as condition to output AD39. (ccc, 11/18/09)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -3733,6 +3734,7 @@
       
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,           ONLY : SNOW, SNOMAS
+      USE LOGICAL_MOD,       ONLY : LGTMM
 
       IMPLICIT NONE
 
@@ -3963,7 +3965,8 @@
                   ENDIF
 
                   ! ND39 diag - save rainout losses in [kg/s]
-                  IF ( ND39 > 0 .and. L <= LD39 ) THEN
+                  ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                  IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
@@ -4116,7 +4119,8 @@
                      ENDIF
 
                      ! ND39 diag -- save rainout losses in [kg/s]
-                     IF ( ND39 > 0 .and. L <= LD39 ) THEN
+                     ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                     IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
                         AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
 
@@ -4342,7 +4346,8 @@
                      ENDIF
 
                      ! ND39 diag -- save rainout losses in [kg/s]
-                     IF ( ND39 > 0 .and. L <= LD39 ) THEN
+                     ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                     IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
                         AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                      ENDIF
   
@@ -4415,7 +4420,8 @@
 		  DSTT(NN,L,I,J) = 0d0
                   
                   ! ND39 diag -- save rainout losses in [kg/s]
-                  IF ( ND39 > 0 .and. L <= LD39 ) THEN
+                  ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                  IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
@@ -4540,7 +4546,8 @@
                   ENDIF
 
                   ! ND39 diag -- save washout loss in [kg/s]
-                  IF ( ND39 > 0 .and. L <= LD39 ) THEN
+                  ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                  IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
                      AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
                   ENDIF
 
