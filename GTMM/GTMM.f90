@@ -51,6 +51,12 @@ PROGRAM GTMM
                                              ! Leave LCPLE to .FALSE. for the 
                                              ! stand-alone model. (ccc, 11/2/09)
 
+  CALL makeCASAarrays               !subroutine in defineArrays
+
+!
+  CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm (ccc)
+!
+
 !<<<<<VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   print '(a)', ''
@@ -74,12 +80,6 @@ PROGRAM GTMM
        &decomposition'
   print '(a)', '   '
 !<<<<<END VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-  CALL makeCASAarrays               !subroutine in defineArrays
-
-!ccc
-  CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm
-!ccc
 
   IF (.NOT.LRESTART) THEN   ! NPP equilibrium only done for the first run
   h=1

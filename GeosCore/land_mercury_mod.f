@@ -952,8 +952,8 @@
       ! Call GTMM model
       !=================================================================
 #if defined( GTMM_Hg )
-      CALL GTMM_coupled(YEAR                     , MONTH  , 
-     &                  Hg0mth_dry(:,JJPAR:1:-1) , 
+      CALL GTMM_coupled(YEAR                    , MONTH  , 
+     &                  Hg0mth_dry(:,JJPAR:1:-1), 
      &                  Hg2mth_dry(:,JJPAR:1:-1), 
      &                  Hg2mth_wet(:,JJPAR:1:-1), TSURF  , PRECIP, 
      &                  SOLAR_W                  , Hg0gtm(:,JJPAR:1:-1)

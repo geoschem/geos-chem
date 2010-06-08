@@ -35,8 +35,11 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
   
   USE      defineArrays
 
-  USE      HgdataforGC_mod   ! New module to save/read Hg data for 
+  USE      DORESTART_MOD     ! New module to save/read Hg data for 
                              ! GEOS-CHEM. (ccc, 11/3/09)   
+
+  USE      INPUT_GTMM_MOD
+  
 !<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   IMPLICIT NONE
@@ -57,6 +60,15 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
 
   LOGICAL           :: LCPLE
 
+  ! Give value to LCPLE 
+  LCPLE=.TRUE.
+
+  CALL readCASAparam
+  CALL makeCASAarrays               !subroutine in defineArrays
+
+!
+  CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm (ccc)
+!
 !<<<<<VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   print '(a)', ''
@@ -80,13 +92,7 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
   print '(a)', '   '
 !<<<<<END VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-  ! Give LCPLE value
-  LCPLE=.TRUE.
-
-  CALL readCASAparam
-  CALL makeCASAarrays               !subroutine in defineArrays
-
-  CALL read_CASA_output   !subroutine in loadCASAinput.f90
+  CALL doReadCASAfromRestart   
 
   h=1
      

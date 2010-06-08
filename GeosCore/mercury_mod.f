@@ -210,6 +210,7 @@
       REAL*8,  ALLOCATABLE :: EHg0_vg(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_so(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_gtm(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_gtm1(:,:)
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
@@ -1854,6 +1855,7 @@
 ! Added for GTMM (ccc, 11/19/09)
       USE LOGICAL_MOD,       ONLY : LGTMM
       USE LAND_MERCURY_MOD,  ONLY : GTMM_DR
+      USE TRACERID_MOD,      ONLY : ID_Hg_tot, ID_Hg0
 
 #     include "CMN_SIZE"          ! Size parameters
 
@@ -1892,26 +1894,34 @@
 
       ENDIF
 
-      CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
-      
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
-      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
-      
-      EHg0_ln = EHg0_ln + EHg0_snow
-      
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GTMM_DR(EHg0_gtm(:,:))
+            CALL GTMM_DR(EHg0_gtm1(:,:))
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
+  
+         CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+      
+         N        = ID_Hg0(ID_Hg_tot)
+         EHg0_gtm = EHg0_gtm1 + EHg0_snow(:,:,N)
+      
       ELSE
          
+         CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
+      
+         CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
+         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+      
+         EHg0_ln = EHg0_ln + EHg0_snow
+      
          CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
          CALL SOILEMIS( EHg0_dist, EHg0_so )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SOILEMIS' )
+
       ENDIF
 
       CALL BIOMASSHG( EHg0_bb )
@@ -2569,11 +2579,11 @@
                ! No other emissions
                EHg0_bb = 0D0
                EHg0_oc = 0D0
-               EHg0_ln = 0D0
                EHg0_nt = 0D0
                IF ( LGTMM ) THEN
                   EHg0_gtm = 0D0
                ELSE
+                  EHg0_ln = 0D0
                   EHg0_vg = 0D0
                   EHg0_so = 0D0
                ENDIF
@@ -2586,7 +2596,7 @@
             T_Hg = T_Hg_An +
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
-     &             EHg0_ln(I,J,ID_Hg_tot) +
+     &             EHg0_nt(I,J) +
      &             EHg0_gtm(I,J)
          ELSE
             T_Hg = T_Hg_An +
@@ -2634,11 +2644,7 @@
                ! Natural land sources of Hg0
                N            = ID_Hg0(ID_Hg_nt)
 
-               IF ( LGTMM ) THEN
-                  E_Hg         = F_OF_PBL * EHg0_gtm(I,J) * DTSRCE
-               ELSE
-                  E_Hg         = F_OF_PBL * EHg0_nt(I,J) * DTSRCE
-               ENDIF
+               E_Hg         = F_OF_PBL * EHg0_nt(I,J) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
 
                !--------------------
@@ -2732,8 +2738,8 @@
             IF ( LGTMM ) THEN
                AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An        * DTSRCE )
                AD03(I,J,3) = AD03(I,J,3) + ( EHg0_oc(I,J,N) * DTSRCE )
-               AD03(I,J,4) = AD03(I,J,4) + ( EHg0_ln(I,J,N) * DTSRCE )
-               AD03(I,J,5) = AD03(I,J,5) + ( EHg0_gtm(I,J)  * DTSRCE )
+               AD03(I,J,4) = AD03(I,J,4) + ( EHg0_gtm(I,J)  * DTSRCE )
+               AD03(I,J,5) = AD03(I,J,5) + ( EHg0_nt(I,J) * DTSRCE )
                AD03(I,J,13)= AD03(I,J,13)+ ( EHg0_bb(I,J)*DTSRCE)
             ELSE
                AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An        * DTSRCE )
@@ -2754,7 +2760,7 @@
             ELSE
                IF ( LGTMM ) THEN
                   AD03_nat(I,J,N) = DTSRCE * (
-     &                 EHg0_ln(I,J,N) + 
+     &                 EHg0_nt(I,J) + 
      &                 EHg0_bb(I,J)   +
      &                 EHg0_gtm(I,J)  ) 
                ELSE
@@ -4776,10 +4782,6 @@ c$$$
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
       EHg0_oc = 0d0
 
-      ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_ln' )
-      EHg0_ln = 0d0
-
       ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
       EHg0_dist = 0d0
@@ -4794,11 +4796,19 @@ c$$$
 
       IF ( LGTMM ) THEN
 
+         ALLOCATE( EHg0_gtm1( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm1' )
+         EHg0_gtm1 = 0d0
+
          ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm' )
          EHg0_gtm = 0d0
 
       ELSE
+
+         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_ln' )
+         EHg0_ln = 0d0
 
          ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_vg' )
@@ -4994,6 +5004,7 @@ c$$$      ENDIF
       IF ( ALLOCATED( EHg0_nt  ) ) DEALLOCATE( EHg0_nt )
       IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
       IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
+      IF ( ALLOCATED( EHg0_gtm1 ) ) DEALLOCATE( EHg0_gtm1)
       IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )
       IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so )
       IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist )

@@ -151,8 +151,6 @@ CONTAINS
     READ(20) hslowpool_Hg
     READ(20) harmoredpool_Hg
   
-    print*, 'read1'
-
     READ(20) surfstrpool_Hg
     READ(20) surfmetpool_Hg
     READ(20) surfmicpool_Hg
@@ -162,15 +160,11 @@ CONTAINS
     READ(20) slowpool_Hg
     READ(20) armoredpool_Hg
          
-    print*, 'read2'
-
     READ(20) Hg0_surf_soil
     READ(20) HgII_surf_soil
     READ(20) hleafpool_Hg
     READ(20) leafpool_Hg
     
-    print*, 'read3'
-
     READ(20) leafpool
     READ(20) cwdpool
     READ(20) abovewoodpool
@@ -184,8 +178,6 @@ CONTAINS
     READ(20) soilmicpool
     READ(20) slowpool
     READ(20) armoredpool
-
-    print*, 'read4'
 
     READ(20) hleafpool
     READ(20) hfrootpool

@@ -54,7 +54,7 @@ CONTAINS
 
     ! Open binary file to write data
     FILENAME = OUTPUTPATH // 'HgPools'
-    OPEN(UNIT=20, file=FILENAME, STATUS="NEW", FORM="UNFORMATTED")
+    OPEN(UNIT=20, file=FILENAME, FORM="UNFORMATTED")
 
     ! Write data to FILENAME
     WRITE(20) hsurfstrpool_Hg

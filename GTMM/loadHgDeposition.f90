@@ -112,8 +112,6 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
 !     filename1(f_len+10:f_len+14)=em_years(yr)
      filename1(f_len+10:f_len+14)=read_year
 
-     print*,'CCCCCCCCCCCCC filename CCCCCCCCCCCCC', filename1
-
      OPEN(UNIT=3, FILE=filename1, IOSTAT=ios, FORM="FORMATTED")
      READ(3,FMT="(72E12.5)") Hg0dryGEOS
      CLOSE(3)
