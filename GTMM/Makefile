@@ -50,6 +50,8 @@ HDR     = $(ROOTDIR)/Headers
 HELP    = $(ROOTDIR)/help
 LIB     = $(ROOTDIR)/lib
 MOD     = $(ROOTDIR)/mod
+LGTMM   = -L$(LIB) -lHg
+
 
 # Include header file.  This returns variables CC, F90, FREEFORM, LD, R8,
 # as well as the default Makefile compilation rules for source code files.
@@ -76,10 +78,12 @@ lib: $(OBJ)
 	$(AR) crs libHg.a $(OBJ)
 	mv libHg.a $(LIB)
 
-gtmm: lib exe
+gtmm:
+	@$(MAKE) lib
+	@$(MAKE) exe
 
 exe: 
-	$(LD) $(OBJ) $(LINK) -o gtmm
+	$(LD) $(OBJ) $(LGTMM) -o gtmm
 
 clean:
 	rm -f *.o *.mod gtmm

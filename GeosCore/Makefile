@@ -186,12 +186,16 @@ help:
 
 allhg:
 	@$(MAKE) libhg
-	@$(MAKE) exe
+	@$(MAKE) exehg
 
 libhg: libutil libkpp libgtmm libiso libcore
 
 libgtmm:
 	@$(MAKE) -C $(GTMM)
+
+exehg:
+	$(LD) $(OBJ) $(LHG) -o $(EXE)
+	cp -f $(EXE) $(BIN)
 
 #==============================================================================
 # Dependencies listing (grep "USE " to get the list of module references!)
