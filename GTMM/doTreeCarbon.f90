@@ -27,38 +27,39 @@
 !$OMP END PARALLEL WORKSHARE
       !initalize variables
 
-      IF (yr .eq. 1 .and. mo .eq. 1) THEN
-!$OMP PARALLEL WORKSHARE    &
-!$OMP DEFAULT(SHARED)
-              leafpool(:,1)=0.00d0
-              abovewoodpool(:,1)=0.00d0
-              belowwoodpool(:,1)=0.00d0
-              frootpool(:,1)=0.00d0
-              surfstrpool(:,1)=0.00d0
-              surfmetpool(:,1)=0.00d0
-              cwdpool(:,1)=0.00d0
-              surfmicpool(:,1)=0.00d0
-              soilstrpool(:,1)=0.00d0
-              soilmetpool(:,1)=0.00d0
-              soilmicpool(:,1)=0.00d0
-              slowpool(:,1)=0.00d0
-              armoredpool(:,1)=0.00d0
-              fuelshortage(:,1)=0.00d0
-              carbonout_leaf(:,1)=0.00d0
-              carbonout_abovewood(:,1)=0.00d0
-              carbonout_belowwood(:,1)=0.00d0
-              carbonout_froot(:,1)=0.00d0
-              carbonout_cwd(:,1)=0.00d0
-              carbonout_surfmet(:,1)=0.00d0
-              carbonout_surfstr(:,1)=0.00d0
-              carbonout_soilmet(:,1)=0.00d0
-              carbonout_soilstr(:,1)=0.00d0
-              carbonout_surfmic(:,1)=0.00d0
-              carbonout_soilmic(:,1)=0.00d0
-              carbonout_slow(:,1)=0.00d0
-              carbonout_armored(:,1)=0.00d0
-!$OMP END PARALLEL WORKSHARE
-      ENDIF
+!--- Now done in defineArrays.f90. (ccc, 6/11/10)
+!      IF (yr .eq. 1 .and. mo .eq. 1) THEN
+!!$OMP PARALLEL WORKSHARE    &
+!!$OMP DEFAULT(SHARED)
+!              leafpool(:,1)=0.00d0
+!              abovewoodpool(:,1)=0.00d0
+!              belowwoodpool(:,1)=0.00d0
+!              frootpool(:,1)=0.00d0
+!              surfstrpool(:,1)=0.00d0
+!              surfmetpool(:,1)=0.00d0
+!              cwdpool(:,1)=0.00d0
+!              surfmicpool(:,1)=0.00d0
+!              soilstrpool(:,1)=0.00d0
+!              soilmetpool(:,1)=0.00d0
+!              soilmicpool(:,1)=0.00d0
+!              slowpool(:,1)=0.00d0
+!              armoredpool(:,1)=0.00d0
+!              fuelshortage(:,1)=0.00d0
+!              carbonout_leaf(:,1)=0.00d0
+!              carbonout_abovewood(:,1)=0.00d0
+!              carbonout_belowwood(:,1)=0.00d0
+!              carbonout_froot(:,1)=0.00d0
+!              carbonout_cwd(:,1)=0.00d0
+!              carbonout_surfmet(:,1)=0.00d0
+!              carbonout_surfstr(:,1)=0.00d0
+!              carbonout_soilmet(:,1)=0.00d0
+!              carbonout_soilstr(:,1)=0.00d0
+!              carbonout_surfmic(:,1)=0.00d0
+!              carbonout_soilmic(:,1)=0.00d0
+!              carbonout_slow(:,1)=0.00d0
+!              carbonout_armored(:,1)=0.00d0
+!!$OMP END PARALLEL WORKSHARE
+!      ENDIF
       
       !NPP: transfer NPP into living biomass pools
 

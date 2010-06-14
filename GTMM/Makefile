@@ -190,6 +190,9 @@ getSoilParams.o                : getSoilParams.f90     defineConstants.o     \
 input_gtmm_mod.o               : input_gtmm_mod.f90    defineConstants.o     \
                                  defineArrays.o
 
+load_GC_data.o                 : load_GC_data.f90      defineConstants.o     \
+                                 loadCASAinput.o       CasaRegridModule.o   
+
 loadCASAinput.o                : loadCASAinput.f90     defineConstants.o     \
                                  defineArrays.o        CasaRegridModule.o
 

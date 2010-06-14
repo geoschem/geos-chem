@@ -533,6 +533,9 @@ MODULE defineArrays
   REAL*8, ALLOCATABLE :: Hg0dry(:,:)
   REAL*8, ALLOCATABLE :: HgIIdry(:,:) 
   REAL*8, ALLOCATABLE :: HgIIwet(:,:)
+  REAL*8, ALLOCATABLE :: Hg0dry_mo(:,:,:)
+  REAL*8, ALLOCATABLE :: HgIIdry_mo(:,:,:) 
+  REAL*8, ALLOCATABLE :: HgIIwet_mo(:,:,:)
   REAL*8, ALLOCATABLE :: HgP(:,:)
   REAL*8, ALLOCATABLE :: HgAq(:,:)
   REAL*8, ALLOCATABLE :: hHgAq(:,:)
@@ -1001,6 +1004,9 @@ CONTAINS
     ALLOCATE(Hg0dry(n_veg, 1))
     ALLOCATE(HgIIdry(n_veg, 1)) 
     ALLOCATE(HgIIwet(n_veg, 1))
+    ALLOCATE(Hg0dry_mo(n_veg, 1, 12))
+    ALLOCATE(HgIIdry_mo(n_veg, 1, 12)) 
+    ALLOCATE(HgIIwet_mo(n_veg, 1, 12))
     ALLOCATE(HgP(n_veg, 1))
     ALLOCATE(HgAq(n_veg, 1))
     ALLOCATE(hHgAq(n_veg, 1))
@@ -1049,7 +1055,463 @@ CONTAINS
     ALLOCATE(surfmicpoolEQ(n_veg, 12))
     ALLOCATE(soilmicpoolEQ(n_veg, 12))
     ALLOCATE(HgAqmonthly(HgPOOLSequilibriumYear,12))
+
   END SUBROUTINE makeCASAarrays
       
+  SUBROUTINE initialize
+
+    ! Initialize all arrays to 0.
+
+    clay = 0.d0
+    silt = 0.d0
+    sand = 0.d0
+    litcn = 0.d0
+    lignin = 0.d0
+    lrage = 0.d0
+    woodage = 0.d0
+    
+    SMparams = 0.d0
+    last_soilm = 0.d0
+    
+    PET = 0.d0
+    AHI = 0.d0
+    
+    last_pack = 0.d0
+    spack = 0.d0
+    bgmoist = 0.d0
+    NPPmoist = 0.d0
+    EET = 0.d0
+    NPPmoist_temp = 0.d0
+    bgmoist_temp = 0.d0
+    bgmoistpret = 0.d0
+    NPPmoistpret = 0.d0
+    soilm = 0.d0
+    rdr = 0.d0
+    current_ppt = 0.d0
+    eeta = 0.d0
+    eetb = 0.d0
+    this_soilm = 0.d0
+    bgratio = 0.d0
+    
+    srmax = 0.d0
+    LAImax = 0.d0
+    LAI_temp = 0.d0
+    FPAR = 0.d0
+    LAI = 0.d0
+    sr = 0.d0
+    
+    topt = 0.d0
+    maxlai = 0.d0
+    lais = 0.d0
+    
+    LTCON = 0.d0
+    LTVAR = 0.d0
+    
+    abovewoodpool = 0.d0
+    belowwoodpool = 0.d0
+    leafpool = 0.d0
+    frootpool = 0.d0
+    cwdpool = 0.d0
+    surfstrpool = 0.d0
+    surfmetpool = 0.d0
+    surfmicpool = 0.d0
+    soilstrpool = 0.d0
+    soilmetpool = 0.d0
+    soilmicpool = 0.d0
+    slowpool = 0.d0
+    armoredpool = 0.d0
+    
+    !woody pools Hg 
+    abovewoodpool_Hg = 0.d0
+    belowwoodpool_Hg = 0.d0
+    leafpool_Hg = 0.d0
+    frootpool_Hg = 0.d0
+    cwdpool_Hg = 0.d0
+    surfstrpool_Hg = 0.d0
+    surfmetpool_Hg = 0.d0
+    surfmicpool_Hg = 0.d0
+    soilstrpool_Hg = 0.d0
+    soilmetpool_Hg = 0.d0
+    soilmicpool_Hg = 0.d0
+    slowpool_Hg = 0.d0
+    armoredpool_Hg = 0.d0
+    total_tree_hg = 0.d0
+    
+    hleafpool = 0.d0
+    hfrootpool = 0.d0
+    hsurfstrpool = 0.d0
+    hsurfmetpool = 0.d0
+    hsurfmicpool = 0.d0
+    hsoilstrpool = 0.d0
+    hsoilmetpool = 0.d0
+    hsoilmicpool = 0.d0
+    hslowpool = 0.d0
+    harmoredpool = 0.d0
+    
+    !herb pools Hg
+    hleafpool_Hg = 0.d0
+    hfrootpool_Hg = 0.d0
+    hsurfstrpool_Hg = 0.d0
+    hsurfmetpool_Hg = 0.d0
+    hsurfmicpool_Hg = 0.d0
+    hsoilstrpool_Hg = 0.d0
+    hsoilmetpool_Hg = 0.d0
+    hsoilmicpool_Hg = 0.d0
+    hslowpool_Hg = 0.d0
+    harmoredpool_Hg = 0.d0
+    total_herb_hg = 0.d0
+    
+    !max hg woody pool
+    max_hg_leaf = 0.d0
+    max_hg_surfstr = 0.d0
+    max_hg_surfmet = 0.d0
+    max_hg_surfmic = 0.d0
+    max_hg_soilstr = 0.d0
+    max_hg_soilmet = 0.d0
+    max_hg_soilmic = 0.d0
+    max_hg_slow = 0.d0
+    max_hg_armored = 0.d0
+    
+    !max hg herb pools
+    max_hg_hleaf = 0.d0
+    max_hg_hsurfstr = 0.d0
+    max_hg_hsurfmet = 0.d0
+    max_hg_hsurfmic = 0.d0
+    max_hg_hsoilstr = 0.d0
+    max_hg_hsoilmet = 0.d0
+    max_hg_hsoilmic = 0.d0
+    max_hg_hslow = 0.d0
+    max_hg_harmored = 0.d0
+    
+    abovewoodpools = 0.d0
+    belowwoodpools = 0.d0
+    leafpools = 0.d0
+    frootpools = 0.d0
+    cwdpools = 0.d0
+    surfstrpools = 0.d0
+    surfmetpools = 0.d0
+    surfmicpools = 0.d0
+    soilstrpools = 0.d0
+    soilmetpools = 0.d0
+    soilmicpools = 0.d0
+    slowpools = 0.d0
+    armoredpools = 0.d0
+    
+    hleafpools = 0.d0
+    hfrootpools = 0.d0
+    hsurfstrpools = 0.d0
+    hsurfmetpools = 0.d0
+    hsurfmicpools = 0.d0
+    hsoilstrpools = 0.d0
+    hsoilmetpools = 0.d0
+    hsoilmicpools = 0.d0
+    hslowpools = 0.d0
+    harmoredpools = 0.d0
+    
+    fuelshortage = 0.d0     
+    
+    LtN = 0.d0
+    annK_leaf = 0.d0
+    annK_leaf_hg = 0.d0
+    annK_wood = 0.d0
+    annK_froot = 0.d0
+    K_wood = 0.d0
+    K_froot = 0.d0
+    K_leaf = 0.d0
+    K_hleaf = 0.d0
+    K_hfroot = 0.d0
+    K_surfmet = 0.d0
+    K_surfstr = 0.d0
+    K_soilmet = 0.d0 
+    K_soilstr = 0.d0
+    K_cwd = 0.d0
+    K_surfmic = 0.d0
+    K_soilmic = 0.d0 
+    K_slow = 0.d0
+    K_armored = 0.d0
+    slitscalar = 0.d0 
+    shlitscalar = 0.d0 
+    srootlitscalar = 0.d0
+    sabiotic = 0.d0
+    sabiotsmc = 0.d0
+    sabiotlign = 0.d0
+    metabfract = 0.d0
+    structuralLignin = 0.d0
+    lignineffect = 0.d0
+    soilmicDecayFactor = 0.d0
+    slowDecayFactor = 0.d0
+    armoredDecayFactor = 0.d0
+    fid = 0.d0
+    decayClayFactor = 0.d0
+    eff_soilmic2slow = 0.d0
+    latitude = 0.d0
+    latitude1 = 0.d0
+    fuelwooddemand = 0.d0
+    
+    !in doNPP
+    T1 = 0.d0
+    T2low = 0.d0
+    T2high = 0.d0
+    NPPtemp = 0.d0
+    IPAR = 0.d0
+    NPP = 0.d0
+    epsilona = 0.d0
+    bgtemp = 0.d0
+    abiotic = 0.d0
+    
+    !in doHerbivory
+    grass_herbivory = 0.d0
+    trees_herbivory = 0.d0
+    herb_seasonality = 0.d0
+    
+    !in doLeafRootShedding
+    MINLAI = 0.d0
+    SUMLAI = 0.d0
+    AVELAI = 0.d0
+    LTVARSUM = 0.d0
+    SUMLAInew = 0.d0
+    litterscalar = 0.d0
+    hlitterscalar = 0.d0
+    rootlitscalar = 0.d0
+    
+    !in getFireParams
+    ccWood = 0.d0
+    ccLeaf = 0.d0
+    PET_current = 0.d0
+    CCratio_current = 0.d0
+    ccFineLitter = 0.d0
+    ccCWD = 0.d0
+    CCratio_previous = 0.d0
+    mortality_tree = 0.d0
+    mortality_hfroot = 0.d0
+    
+    !in doTreeCarbon
+    leafinput = 0.d0
+    woodinput = 0.d0
+    frootinput = 0.d0
+    herbivory = 0.d0
+    carbonout_leaf = 0.d0
+    carbonout_abovewood = 0.d0
+    carbonout_belowwood = 0.d0
+    carbonout_froot = 0.d0
+    carbonout_cwd = 0.d0
+    carbonout_surfmet = 0.d0
+    carbonout_surfstr = 0.d0
+    carbonout_soilmet = 0.d0
+    carbonout_soilstr = 0.d0
+    carbonout_surfmic = 0.d0
+    carbonout_soilmic = 0.d0
+    carbonout_slow = 0.d0
+    carbonout_armored = 0.d0
+    hgout_surfmet = 0.d0
+    hgout_surfstr = 0.d0
+    hgout_leaf = 0.d0
+    hgout_soilstr = 0.d0
+    hgout_surfmic = 0.d0
+    hgout_soilmic = 0.d0
+    hgout_slow = 0.d0
+    hgout_armored = 0.d0
+    hgout_soilmet = 0.d0
+    
+    Hg_pool_fluxes1 = 0.d0
+    Hg_pool_fluxes2 = 0.d0
+    Hg_pool_fluxes3 = 0.d0
+    Hg_pool_fluxes4 = 0.d0
+    Hg_pool_fluxes5 = 0.d0
+    Hg_pool_fluxes6 = 0.d0
+    
+    Hg_hpool_fluxes1 = 0.d0
+    Hg_hpool_fluxes2 = 0.d0
+    Hg_hpool_fluxes3 = 0.d0
+    Hg_hpool_fluxes4 = 0.d0
+    Hg_hpool_fluxes5 = 0.d0
+    Hg_hpool_fluxes6 = 0.d0
+    
+    f_carbonout_surfmet = 0.d0
+    f_carbonout_surfstr = 0.d0
+    f_carbonout_leaf = 0.d0
+    f_carbonout_soilstr = 0.d0
+    f_carbonout_surfmic = 0.d0
+    f_carbonout_soilmic = 0.d0
+    f_carbonout_slow = 0.d0
+    f_carbonout_armored = 0.d0
+    f_carbonout_soilmet = 0.d0
+    
+    resppool_surfstr_hg = 0.d0
+    resppool_surfmet_hg = 0.d0
+    resppool_surfmic_hg = 0.d0
+    resppool_soilstr_hg = 0.d0
+    resppool_soilmic_hg = 0.d0
+    resppool_soilmet_hg = 0.d0
+    resppool_slow_hg = 0.d0
+    resppool_armored_hg = 0.d0
+    resp_surfstr_hg = 0.d0
+    resp_surfmet_hg = 0.d0
+    resp_surfmic_hg = 0.d0
+    resp_soilstr_hg = 0.d0
+    resp_soilmic_hg = 0.d0
+    resp_soilmet_hg = 0.d0
+    resp_slow_hg = 0.d0
+    resp_armored_hg = 0.d0
+    
+    combusted_leaf_hg = 0.d0
+    combusted_surfstr_hg = 0.d0
+    combusted_surfmet_hg = 0.d0
+    combusted_surfmic_hg = 0.d0
+    combusted_soilstr_hg = 0.d0
+    combusted_soilmet_hg = 0.d0
+    combusted_soilmic_hg = 0.d0
+    combusted_slow_hg = 0.d0
+    combusted_armored_hg = 0.d0
+    nonCombusted_leaf_hg = 0.d0
+    fuelwoodout_hg = 0.d0
+    wresp_hg = 0.d0
+    wcomb_hg = 0.d0
+    wherb_hg = 0.d0
+    wbiof_hg = 0.d0
+    hresp_hg = 0.d0
+    hcomb_hg = 0.d0
+    hherb_hg = 0.d0
+    resppool_surfstr = 0.d0
+    resppool_surfmet = 0.d0
+    resppool_surfmic = 0.d0
+    resppool_soilstr = 0.d0
+    resppool_soilmet = 0.d0
+    resppool_soilmic = 0.d0
+    resppool_slow = 0.d0
+    resppool_armored = 0.d0
+    resp_surfstr = 0.d0
+    resp_surfmet = 0.d0
+    resp_surfmic = 0.d0
+    resp_soilstr = 0.d0
+    resp_soilmet = 0.d0
+    resp_soilmic = 0.d0
+    resp_slow = 0.d0
+    resp_armored = 0.d0
+    temp = 0.d0
+    combusted_leaf = 0.d0
+    combusted_abovewood = 0.d0
+    combusted_cwd = 0.d0
+    combusted_surfstr = 0.d0
+    combusted_surfmet = 0.d0
+    combusted_surfmic = 0.d0
+    combusted_soilstr = 0.d0
+    combusted_soilmet = 0.d0
+    combusted_soilmic = 0.d0
+    combusted_slow = 0.d0
+    combusted_armored = 0.d0
+    nonCombusted_leaf = 0.d0
+    nonCombusted_abovewood = 0.d0
+    nonCombusted_belowwood = 0.d0
+    nonCombusted_froot = 0.d0
+    fuelwoodout = 0.d0
+    wresp = 0.d0
+    wcomb = 0.d0
+    wherb = 0.d0
+    wbiof = 0.d0
+    hresp = 0.d0
+    hcomb = 0.d0
+    hherb = 0.d0
+    veg_burn = 0.d0 
+    !in getAgeClassBF
+    
+    ageClassIndex = 0.d0
+    BFallClasses = 0.d0
+    BFleftCurrentMonth = 0.d0
+    BFtemp = 0.d0
+    ageCurrentClass = 0.d0
+    
+    !in organizeAgeClasses
+    ageClassSorted = 0.d0
+    ageClassSortedInd = 0.d0
+    tempAge = 0.d0
+    
+    !in processData
+    NPPmonthly = 0.d0
+    respmonthly = 0.d0
+    combmonthly = 0.d0
+    herbmonthly = 0.d0
+    biofmonthly = 0.d0
+    respEQ = 0.d0
+    combEQ = 0.d0
+    herbEQ = 0.d0
+    biofEQ = 0.d0
+    NPPmonthly_hg = 0.d0
+    respmonthly_hg = 0.d0
+    combmonthly_hg = 0.d0
+    herbmonthly_hg = 0.d0
+    biofmonthly_hg = 0.d0
+    respEQ_hg = 0.d0
+    combEQ_hg = 0.d0
+    herbEQ_hg = 0.d0
+    biofEQ_hg = 0.d0    
+    evapEQ_hg = 0.d0
+    reemitEQ_hg = 0.d0
+    photoEQ_hg = 0.d0
+    leafpoolEQ_hg = 0.d0
+    slowpoolEQ_hg = 0.d0
+    armoredpoolEQ_hg = 0.d0
+    surfstrpoolEQ_hg = 0.d0
+    soilstrpoolEQ_hg = 0.d0
+    surfmetpoolEQ_hg = 0.d0
+    soilmetpoolEQ_hg = 0.d0
+    surfmicpoolEQ_hg = 0.d0
+    soilmicpoolEQ_hg = 0.d0
+    HgAqEQ_hg = 0.d0
+    biomeAnnual_Hg = 0.d0
+    
+    !in doHgDeposition
+    Hg0dry = 0.d0
+    HgIIdry = 0.d0 
+    HgIIwet = 0.d0
+    HgP = 0.d0
+    HgAq = 0.d0
+    hHgAq = 0.d0
+    Hg0_surf_leaf = 0.d0
+    Hg0_surf_soil = 0.d0
+    HgII_surf_leaf = 0.d0
+    HgII_surf_soil = 0.d0
+    maxallLAI = 0.d0
+    fstom = 0.d0
+    fleaf = 0.d0
+    fsoil = 0.d0
+    fsum = 0.d0
+    freemitted = 0.d0
+    reemitted = 0.d0
+    temp_hg = 0.d0
+    photoreduced = 0.d0
+    Hg0out = 0.d0 
+    
+    reemmonthly_hg = 0.d0 
+    photmonthly_hg = 0.d0
+    slowmonthly = 0.d0
+    armoredmonthly = 0.d0
+    surfstrmonthly = 0.d0
+    surfmetmonthly = 0.d0
+    surfmicmonthly = 0.d0
+    soilstrmonthly = 0.d0
+    soilmetmonthly = 0.d0
+    soilmicmonthly = 0.d0
+    leafmonthly = 0.d0
+    slowmonthly_hg = 0.d0
+    armoredmonthly_hg = 0.d0
+    surfstrmonthly_hg = 0.d0
+    surfmetmonthly_hg = 0.d0
+    surfmicmonthly_hg = 0.d0
+    soilstrmonthly_hg = 0.d0
+    soilmetmonthly_hg = 0.d0
+    soilmicmonthly_hg = 0.d0
+    leafmonthly_hg = 0.d0
+    leafpoolEQ = 0.d0
+    slowpoolEQ = 0.d0
+    armoredpoolEQ = 0.d0
+    surfstrpoolEQ = 0.d0
+    soilstrpoolEQ = 0.d0
+    surfmetpoolEQ = 0.d0
+    soilmetpoolEQ = 0.d0
+    surfmicpoolEQ = 0.d0
+    soilmicpoolEQ = 0.d0
+    HgAqmonthly = 0.d0
+  END SUBROUTINE initialize
   
 END MODULE defineArrays

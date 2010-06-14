@@ -37,8 +37,6 @@
       real*8 :: max_pools(n_veg,4)
       real*8 :: excess(n_veg, 1)
 
-      LOGICAL, SAVE :: FIRST=.TRUE.
-
       filename3(1:f_len_output)=outputpath
 
       !Woody vegetation carbon fluxes
@@ -58,33 +56,34 @@
 
       !initalize variables
 
-!--- Previous to (ccc, 11/3/09)
-!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
-      IF ( FIRST .AND. .NOT. LCPLE ) THEN
-!$OMP PARALLEL WORKSHARE   &
-!$OMP DEFAULT(SHARED)
-              surfstrpool_Hg(:,1)=0.00d0
-              surfmetpool_Hg(:,1)=0.00d0
-              surfmicpool_Hg(:,1)=0.00d0
-              soilstrpool_Hg(:,1)=0.00d0
-              soilmetpool_Hg(:,1)=0.00d0
-              soilmicpool_Hg(:,1)=0.00d0
-              slowpool_Hg(:,1)=0.00d0
-              armoredpool_Hg(:,1)=0.00d0
-              
-              hgout_leaf(:,1)=0.00d0
-              hgout_surfmet(:,1)=0.00d0
-              hgout_surfstr(:,1)=0.00d0
-              hgout_soilmet(:,1)=0.00d0
-              hgout_soilstr(:,1)=0.00d0
-              hgout_surfmic(:,1)=0.00d0
-              hgout_soilmic(:,1)=0.00d0
-              hgout_slow(:,1)=0.00d0
-              hgout_armored(:,1)=0.00d0
-              HgAq(:,1)=0.0d0 
-!$OMP END PARALLEL WORKSHARE    
-              FIRST = .FALSE.
-      ENDIF
+!--- Now done in defineArrays.f90. (ccc, 6/11/10)
+!!--- Previous to (ccc, 11/3/09)
+!!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
+!      IF ( FIRST .AND. .NOT. LCPLE ) THEN
+!!$OMP PARALLEL WORKSHARE   &
+!!$OMP DEFAULT(SHARED)
+!              surfstrpool_Hg(:,1)=0.00d0
+!              surfmetpool_Hg(:,1)=0.00d0
+!              surfmicpool_Hg(:,1)=0.00d0
+!              soilstrpool_Hg(:,1)=0.00d0
+!              soilmetpool_Hg(:,1)=0.00d0
+!              soilmicpool_Hg(:,1)=0.00d0
+!              slowpool_Hg(:,1)=0.00d0
+!              armoredpool_Hg(:,1)=0.00d0
+!              
+!              hgout_leaf(:,1)=0.00d0
+!              hgout_surfmet(:,1)=0.00d0
+!              hgout_surfstr(:,1)=0.00d0
+!              hgout_soilmet(:,1)=0.00d0
+!              hgout_soilstr(:,1)=0.00d0
+!              hgout_surfmic(:,1)=0.00d0
+!              hgout_soilmic(:,1)=0.00d0
+!              hgout_slow(:,1)=0.00d0
+!              hgout_armored(:,1)=0.00d0
+!              HgAq(:,1)=0.0d0 
+!!$OMP END PARALLEL WORKSHARE    
+!              FIRST = .FALSE.
+!      ENDIF
       
       IF (mo .eq. 1) THEN
 !$OMP PARALLEL WORKSHARE   &

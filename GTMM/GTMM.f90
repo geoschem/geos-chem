@@ -51,11 +51,16 @@ PROGRAM GTMM
                                              ! Leave LCPLE to .FALSE. for the 
                                              ! stand-alone model. (ccc, 11/2/09)
 
+  LOGICAL :: FIRST=.TRUE.
+
   CALL makeCASAarrays               !subroutine in defineArrays
 
+  CALL initialize
 !
   CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm (ccc)
 !
+
+  IF ( LRESTART ) FIRST=.FALSE.
 
 !<<<<<VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -81,6 +86,9 @@ PROGRAM GTMM
   print '(a)', '   '
 !<<<<<END VERIFY CONSTANTS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+  CALL load_data(LCPLE)    !subroutine in loadCASAinput.f90
+  CALL CONV_TO_1D
+
   IF (.NOT.LRESTART) THEN   ! NPP equilibrium only done for the first run
   h=1
   print *, 'starting spinup to npp equilibirum'
@@ -89,7 +97,7 @@ PROGRAM GTMM
   DO year=1,NPPequilibriumYear
      print *, yr
      DO month=1,12
-        CALL load_data(year, month, LCPLE)    !subroutine in loadCASAinput.f90
+!        CALL load_data(year, month, LCPLE)    !subroutine in loadCASAinput.f90
         CALL doLatitude
         CALL getSoilParams
         CALL getSoilMoistParams
@@ -97,7 +105,7 @@ PROGRAM GTMM
 
         CALL doPET
         CALL doSoilMoisture
-        CALL doFPARandLAI
+        CALL doFPARandLAI(FIRST)
         CALL doOptimumTemperature
         CALL doNPP
         CALL doHerbivory
@@ -127,6 +135,7 @@ PROGRAM GTMM
      IF (h > 25) THEN
         h=1
      ENDIF
+     FIRST=.FALSE.
   END DO
 
   ! Save values to restart file
@@ -138,17 +147,18 @@ PROGRAM GTMM
   IF ( LRESTART ) THEN     ! Need to load data from previous run
      CALL doReadCASAfromRestart   
 
-     ! Read Hg data saved from equilibrium run. (ccc, 11/3/09)
+     ! Read Hg data saved from previous run. (ccc, 11/3/09)
      CALL doReadHgforGC
   ENDIF
 
 
   ! run terrestrial mercury
   age_class=1
+  mo = 1
   DO year=(NPPequilibriumYear+1),(HgPoolsequilibriumYear)
      print *, yr
      DO month=1,12
-        CALL load_data(year, month, LCPLE)     !subroutine in loadCASAinput.f90
+!        CALL load_data(year, month, LCPLE)     !subroutine in loadCASAinput.f90
         CALL getSoilParams
         CALL getSoilMoistParams
         CALL doLatitude

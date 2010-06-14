@@ -71,32 +71,60 @@ CONTAINS
 
 !------------------------------------------------------------------------------
 
-  SUBROUTINE load_data(year, month, LCPLE, TS, PREACC, RADSWG)
+  SUBROUTINE load_data(LCPLE)
 
    USE defineConstants
 
    ! ARGUMENTS
-   INTEGER, INTENT(IN)  :: year, month
    LOGICAL, INTENT(IN)  :: LCPLE
-
-   REAL*8, INTENT(IN), OPTIONAL, DIMENSION(72, 46)  :: TS, &
-        PREACC, RADSWG
 
    ! OTHER VARIABLES
    
    integer   ::   i, j, k, l, m, n, b, c, ios
    character(len=f_len+8)                :: filename
-   real*8, dimension(columns, rows)      ::   mask1, dummy
-   real*8, dimension(columns, rows, 12)  ::   dummy12
    real*8, dimension(72,46)              ::   geos
    real*8, dimension(columns, rows)      ::   geos1x1
    character(3), dimension(12)           ::   months     ! Months names
    
-   real*8  :: radius=6378140.000d0 !m at equator
-   real*8  :: pi=3.14159265d0
-   real*8  :: g, a, apixel
-   real*8, dimension(columns, rows)  :: gridAreac
-   real*8  :: testa(180)
+   !<<<<<<<< ALLOCATE ARRAYS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+   
+
+   IF (.NOT. ALLOCATED(perc_tree) ) &
+        ALLOCATE (perc_tree(columns, rows), stat=ios)
+   
+   IF (.NOT. ALLOCATED(perc_herb) ) &
+        ALLOCATE (perc_herb(columns, rows), stat=ios)
+   
+   IF (.NOT. ALLOCATED(airt) ) &
+        ALLOCATE (airt(columns, rows,12), stat=ios)
+   
+   IF (.NOT. ALLOCATED(ppt) ) &
+        ALLOCATE (ppt(columns, rows,12), stat=ios)
+   
+   IF (.NOT. ALLOCATED(ppt_mo) ) &
+        ALLOCATE (ppt_mo(1,12))
+   
+   IF (.NOT. ALLOCATED(solrad) ) &
+        ALLOCATE (solrad(columns, rows,12), stat=ios)
+   
+   IF (.NOT. ALLOCATED(NDVI) ) &
+        ALLOCATE (NDVI(columns, rows,12), stat=ios)
+   
+   IF (.NOT. ALLOCATED(BF) ) &
+        ALLOCATE (BF(columns, rows,12), stat=ios)
+
+   IF (.NOT. ALLOCATED(soiltext) ) &
+        ALLOCATE (soiltext(columns, rows), stat=ios)
+   
+   IF (.NOT. ALLOCATED(veg) ) &
+        ALLOCATE (veg(columns, rows), stat=ios)
+   
+   IF (.NOT. ALLOCATED(fuelneed) ) &
+        ALLOCATE (fuelneed(columns, rows), stat=ios)
+   
+   IF (.NOT. ALLOCATED(popdens) ) &
+        ALLOCATE (popdens(columns, rows), stat=ios)
+   
 
    !<<<<<<<<READ IN DATA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -107,9 +135,6 @@ CONTAINS
    read(2,*) months
    close(2)
 
-   IF (.NOT. ALLOCATED(perc_tree) ) &
-        ALLOCATE (perc_tree(columns, rows), stat=ios)
-   
    filename(1:f_len)=filepath
    filename(f_len+1:f_len+8)='perc_tre'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
@@ -122,9 +147,6 @@ CONTAINS
       close(2)
    END IF
 
-   IF (.NOT. ALLOCATED(perc_herb) ) &
-        ALLOCATE (perc_herb(columns, rows), stat=ios)
-   
    filename(f_len+1:f_len+8)='perc_her'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
    IF (IOS /= 0) THEN
@@ -136,104 +158,67 @@ CONTAINS
       close(2)
    END IF
 
-   IF (.NOT. ALLOCATED(airt) ) &
-        ALLOCATE (airt(columns, rows,12), stat=ios)
-   
    CALL CasaRegridInit
-!ccc   DO i=1,12
-   IF ( LCPLE ) THEN
-      CALL regrid4x5to1x1(1, TS, geos1x1)
-   ELSE
-      filename(f_len+1:f_len+5)='airtg'
-      !ccc   filename(f_len+6:f_len+8)=months(i)
-      filename(f_len+6:f_len+8)=months(month)
-      open(unit=2, file=filename, form='FORMATTED', iostat=ios)
-      IF (IOS /= 0) THEN
-         print '(a)', 'There was an error reading the air temp file... &
-              &aborting run'
-         stop
-      ENDIF
+   IF ( .NOT. (LCPLE) ) THEN
+      DO i=1,12
+         filename(f_len+1:f_len+5)='airtg'
+         filename(f_len+6:f_len+8)=months(i)
+         open(unit=2, file=filename, form='FORMATTED', iostat=ios)
+         IF (IOS /= 0) THEN
+            print '(a)', 'There was an error reading the air temp file... &
+                 &aborting run'
+            stop
+         ENDIF
       
-      read(2,*) geos
-      close(2)
+         read(2,*) geos
+         close(2)
       
-      CALL regrid4x5to1x1(1, geos, geos1x1)
-   ENDIF
-   
-   !ccc   airt(:,:,i)=geos1x1
-   airt(:,:,month)=geos1x1
-   geos(:,:)=0.0d0
-   geos1x1(:,:)=0.0d0
-   !ccc END DO
-   !ccc   airt(:,:,:)=airt(:,:,:)-273.15
-   airt(:,:,month)=airt(:,:,month)-273.15d0
-   
-   IF (.NOT. ALLOCATED(ppt) ) &
-        ALLOCATE (ppt(columns, rows,12), stat=ios)
-   
-!ccc   DO i=1,12   
-   IF ( LCPLE ) THEN
-      CALL regrid4x5to1x1(1, PREACC, geos1x1)
-   ELSE
-      filename(f_len+1:f_len+5)='pptg_'
-      !ccc      filename(f_len+6:f_len+8)=months(i)
-      filename(f_len+6:f_len+8)=months(month)
-      open(unit=2, file=filename, form='FORMATTED', iostat=ios)
-      IF (IOS /= 0) THEN
-         print '(a)', 'There was an error reading the precipitation file...&
-              &aborting run'
-         stop
-      ENDIF
-   
-      read(2,*) geos
-      close(2)
-      
-      CALL regrid4x5to1x1(1, geos, geos1x1)
-   ENDIF
-!ccc      ppt(:,:,i)=geos1x1
-   ppt(:,:,month)=geos1x1
-   geos(:,:)=0.0d0
-   geos1x1(:,:)=0.0d0
-!ccc   END DO
-   
-   IF (.NOT. ALLOCATED(ppt_mo) ) &
-        ALLOCATE (ppt_mo(1,12))
-   
-   DO i=1,12
-      ppt_mo(1,i)=sum(ppt(:,:,i))
-   END DO
-      
-   IF (.NOT. ALLOCATED(solrad) ) &
-        ALLOCATE (solrad(columns, rows,12), stat=ios)
-   
-!ccc   DO i=1,12
-   IF ( LCPLE ) THEN
-      CALL regrid4x5to1x1(1, RADSWG, geos1x1)
-   ELSE
-      filename(f_len+1:f_len+5)='radg_'
-!ccc      filename(f_len+6:f_len+8)=months(i)
-      filename(f_len+6:f_len+8)=months(month)
-      open(unit=2, file=filename, form='FORMATTED', iostat=ios)
-      IF (IOS /= 0) THEN
-         print '(a)', 'There was an error reading the solar radiation file&
-                    &...aborting run'
-         stop
-      ENDIF
+         CALL regrid4x5to1x1(1, geos, geos1x1)
+         airt(:,:,i)=geos1x1
 
-      read(2,*) geos
-      close(2)
+         geos(:,:)=0.0d0
+         geos1x1(:,:)=0.0d0
 
-      CALL regrid4x5to1x1(1, geos, geos1x1)
-   ENDIF
-!ccc      solrad(:,:,i)=geos1x1
-      solrad(:,:,month)=geos1x1
-      geos(:,:)=0.0d0
-      geos1x1(:,:)=0.0d0
-!ccc   END DO
-
-   IF (.NOT. ALLOCATED(NDVI) ) &
-        ALLOCATE (NDVI(columns, rows,12), stat=ios)
+         airt(:,:,i)=airt(:,:,i)-273.15
+      
+         filename(f_len+1:f_len+5)='pptg_'
+         filename(f_len+6:f_len+8)=months(i)
+         open(unit=2, file=filename, form='FORMATTED', iostat=ios)
+         IF (IOS /= 0) THEN
+            print '(a)', 'There was an error reading the precipitation file...&
+                 &aborting run'
+            stop
+         ENDIF
+         
+         read(2,*) geos
+         close(2)
+         
+         CALL regrid4x5to1x1(1, geos, geos1x1)
+         ppt(:,:,i)=geos1x1
+         geos(:,:)=0.0d0
+         geos1x1(:,:)=0.0d0
    
+         ppt_mo(1,i)=sum(ppt(:,:,i))
+
+         filename(f_len+1:f_len+5)='radg_'
+         filename(f_len+6:f_len+8)=months(i)
+         open(unit=2, file=filename, form='FORMATTED', iostat=ios)
+         IF (IOS /= 0) THEN
+            print '(a)', 'There was an error reading the solar radiation file&
+                 &...aborting run'
+            stop
+         ENDIF
+
+         read(2,*) geos
+         close(2)
+
+         CALL regrid4x5to1x1(1, geos, geos1x1)
+         solrad(:,:,i)=geos1x1
+         geos(:,:)=0.0d0
+         geos1x1(:,:)=0.0d0
+      END DO
+   ENDIF
+
    DO i=1,12
       filename(f_len+1:f_len+5)='NDVI_'
       filename(f_len+6:f_len+8)=months(i)
@@ -241,16 +226,13 @@ CONTAINS
       IF (IOS /= 0) THEN
          print '(a)', 'There was an error reading the NDVI file...&
                        &aborting run'
-      stop
-   ELSE
-      read(2,*) NDVI(:,:,i)
-      close(2)
-   END IF
+         stop
+      ELSE
+         read(2,*) NDVI(:,:,i)
+         close(2)
+      END IF
    END DO
  
-   IF (.NOT. ALLOCATED(BF) ) &
-        ALLOCATE (BF(columns, rows,12), stat=ios)
-
    DO i=1,12
       filename(f_len+1:f_len+5)='burn_'
       filename(f_len+6:f_len+8)=months(i)
@@ -265,9 +247,6 @@ CONTAINS
       END IF
    END DO
 
-   IF (.NOT. ALLOCATED(soiltext) ) &
-        ALLOCATE (soiltext(columns, rows), stat=ios)
-   
    filename(f_len+1:f_len+8)='soiltext'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
    IF (IOS /= 0) THEN
@@ -278,9 +257,6 @@ CONTAINS
       read(2,*) soiltext
       close(2)
    END IF
-   
-   IF (.NOT. ALLOCATED(veg) ) &
-        ALLOCATE (veg(columns, rows), stat=ios)
    
    filename(f_len+1:f_len+8)='vegetati'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
@@ -293,9 +269,6 @@ CONTAINS
       close(2)
    END IF
 
-   IF (.NOT. ALLOCATED(fuelneed) ) &
-        ALLOCATE (fuelneed(columns, rows), stat=ios)
-   
    filename(f_len+1:f_len+8)='fuelneed'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
    IF (IOS /= 0) THEN
@@ -306,9 +279,6 @@ CONTAINS
       read(2,*) fuelneed
       close(2)
    END IF
-   
-   IF (.NOT. ALLOCATED(popdens) ) &
-        ALLOCATE (popdens(columns, rows), stat=ios)
    
    filename(f_len+1:f_len+8)='popdenst'
    open(unit=2, file=filename, form='FORMATTED', iostat=ios)
@@ -324,6 +294,22 @@ print *, 'Finished reading in data...now resizing arrays'
 print *, ''
 !<<<<<<<<<<END READ IN DATA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
+END SUBROUTINE load_data
+
+SUBROUTINE CONV_TO_1D
+
+   USE defineConstants
+
+   integer :: i
+   character(len=f_len+8)                :: filename
+   
+   real*8, dimension(columns, rows)      ::   mask1, dummy
+
+   real*8  :: radius=6378140.000d0 !m at equator
+   real*8  :: pi=3.14159265d0
+   real*8  :: g, a, apixel
+   real*8, dimension(columns, rows)  :: gridAreac
+   real*8  :: testa(180)
 
 !<<<<<<<<<<CONVERT MAPS INTO ONE COLUMN WITH ONLY VEGETATED GRID
 !CELLS>>>>>>
@@ -353,68 +339,69 @@ print *, ''
    IF (.NOT. ALLOCATED(maxt      ) ) ALLOCATE(maxt(n_veg, 1))
    IF (.NOT. ALLOCATED(mint      ) ) ALLOCATE(mint(n_veg, 1))
 
-veg1            =maskfile(veg, mask2)
-soiltext1       =maskfile(soiltext, mask2)
-fuelneed1       =maskfile(fuelneed, mask2)
-popdens1        =maskfile(popdens, mask2)
-perc_tree1      =maskfile(perc_tree, mask2)
-perc_herb1      =maskfile(perc_herb, mask2)
-airt1           =mask12file(airt, mask2)
-ppt1            =mask12file(ppt, mask2)
-solrad1         =mask12file(solrad, mask2)
-NDVI1           =mask12file(NDVI, mask2)
-BF1             =mask12file(BF, mask2)
-!BF1             =BF1*1.10
-frac_veg(:,1)=perc_tree1(:,1)+perc_herb1(:,1)
-
-DO i=1, n_veg
-   IF (frac_veg(i,1) .gt. 0d0) THEN
-        frac_tree(i,1)=perc_tree1(i,1)/frac_veg(i,1)
-        frac_herb(i,1)=perc_herb1(i,1)/frac_veg(i,1)
-   ELSE
-        frac_tree(i,1)=0.0d0
-        frac_herb(i,1)=0.0d0
-   ENDIF
-END DO
-
-DO i=1, n_veg
-   maxt(i,1)=maxval(airt1(i,:))
-   mint(i,1)=minval(airt1(i,:))
- !  DO j=1, 12
- !  IF (BF1(i,j) .gt. 1.0) THEN
- !      BF1(i,j)=1.0
- !  ENDIF
- !  END DO
-END DO
-!makes a grid area map depending on the resolution 
-
-g=0.0d0
-a=90.0d0
-DO i=1,rows
-   apixel=2.00d0*pi*radius
-   apixel=apixel/columns
-   apixel=apixel*apixel
-   g=a*0.0174532925d0
-   testa(i)=cos(g)
-   gridAreac(:,i)=apixel*abs(testa(i))
-   a=a-1!(180.0/rows)
-END DO
-print *, sum(gridAreac)
-gridAreab       =maskfile(gridAreac, mask2)
-gridAreaa       =gridAreac
-
-
-filename(f_len+1:f_len+8)='grida1x1'
-OPEN(UNIT=4, file=filename, FORM='FORMATTED')
-WRITE(4,FMT="(360E12.5)") gridAreaa
-CLOSE(4)
-
-filename(f_len+1:f_len+8)='gridarea'
-OPEN(UNIT=4, file=filename, FORM='FORMATTED')
-WRITE(4,FMT="(1E12.5)") gridAreab
-CLOSE(4)
-END SUBROUTINE load_data
-
+   veg1            =maskfile(veg, mask2)
+   soiltext1       =maskfile(soiltext, mask2)
+   fuelneed1       =maskfile(fuelneed, mask2)
+   popdens1        =maskfile(popdens, mask2)
+   perc_tree1      =maskfile(perc_tree, mask2)
+   perc_herb1      =maskfile(perc_herb, mask2)
+   airt1           =mask12file(airt, mask2)
+   ppt1            =mask12file(ppt, mask2)
+   solrad1         =mask12file(solrad, mask2)
+   NDVI1           =mask12file(NDVI, mask2)
+   BF1             =mask12file(BF, mask2)
+   !BF1             =BF1*1.10
+   frac_veg(:,1)=perc_tree1(:,1)+perc_herb1(:,1)
+   
+   DO i=1, n_veg
+      IF (frac_veg(i,1) .gt. 0d0) THEN
+         frac_tree(i,1)=perc_tree1(i,1)/frac_veg(i,1)
+         frac_herb(i,1)=perc_herb1(i,1)/frac_veg(i,1)
+      ELSE
+         frac_tree(i,1)=0.0d0
+         frac_herb(i,1)=0.0d0
+      ENDIF
+   END DO
+   
+   DO i=1, n_veg
+      maxt(i,1)=maxval(airt1(i,:))
+      mint(i,1)=minval(airt1(i,:))
+      !  DO j=1, 12
+      !  IF (BF1(i,j) .gt. 1.0) THEN
+      !      BF1(i,j)=1.0
+      !  ENDIF
+      !  END DO
+   END DO
+   !makes a grid area map depending on the resolution 
+   
+   g=0.0d0
+   a=90.0d0
+   DO i=1,rows
+      apixel=2.00d0*pi*radius
+      apixel=apixel/columns
+      apixel=apixel*apixel
+      g=a*0.0174532925d0
+      testa(i)=cos(g)
+      gridAreac(:,i)=apixel*abs(testa(i))
+      a=a-1!(180.0/rows)
+   END DO
+   print *, sum(gridAreac)
+   gridAreab       =maskfile(gridAreac, mask2)
+   gridAreaa       =gridAreac
+   
+   
+   filename(1:f_len)=filepath
+   filename(f_len+1:f_len+8)='grida1x1'
+   OPEN(UNIT=4, file=filename, FORM='FORMATTED')
+   WRITE(4,FMT="(360E12.5)") gridAreaa
+   CLOSE(4)
+   
+   filename(f_len+1:f_len+8)='gridarea'
+   OPEN(UNIT=4, file=filename, FORM='FORMATTED')
+   WRITE(4,FMT="(1E12.5)") gridAreab
+   CLOSE(4)
+ END SUBROUTINE CONV_TO_1D
+ 
 !-----------------------------------------------------------------------------
 function maskfile(dummy,mask3) result (masked_file)
 

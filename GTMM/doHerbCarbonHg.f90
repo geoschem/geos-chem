@@ -37,8 +37,6 @@
       real*8 :: max_pools(n_veg,4)
       real*8 :: excess(n_veg, 1)
  
-      LOGICAL, SAVE :: FIRST=.TRUE.
-
       filename3(1:47)=outputpath
 
       !herbaceous vegetation carbon fluxes
@@ -54,32 +52,33 @@
       leafinput(:,1)=NPP(:,mo)*0.40d0   !40% NPP aboveground
       frootinput(:,1)=NPP(:,mo)*0.60d0  !60% NPP belowground
 
-      !initalize variables
-!--- Previous to (ccc, 11/3/09)
-!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
-      IF ( FIRST .AND. .NOT. LCPLE ) THEN
-              hsurfstrpool_Hg(:,1)=0.00d0
-              hsurfmetpool_Hg(:,1)=0.00d0
-              hsurfmicpool_Hg(:,1)=0.00d0
-              hsoilstrpool_Hg(:,1)=0.00d0
-              hsoilmetpool_Hg(:,1)=0.00d0
-              hsoilmicpool_Hg(:,1)=0.00d0
-              hslowpool_Hg(:,1)=0.00d0
-              harmoredpool_Hg(:,1)=0.00d0
-              
-              hgout_leaf(:,1)=0.00d0
-              hgout_surfmet(:,1)=0.00d0
-              hgout_surfstr(:,1)=0.00d0
-              hgout_soilmet(:,1)=0.00d0
-              hgout_soilstr(:,1)=0.00d0
-              hgout_surfmic(:,1)=0.00d0
-              hgout_soilmic(:,1)=0.00d0
-              hgout_slow(:,1)=0.00d0
-              hgout_armored(:,1)=0.00d0
-              hHgAq(:,1)=0.0d0
-           
-              FIRST = .FALSE.
-      ENDIF
+!--- Now done in defineArrays.f90. (ccc, 6/11/10)
+!      !initalize variables
+!!--- Previous to (ccc, 11/3/09)
+!!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
+!      IF ( FIRST .AND. .NOT. LCPLE ) THEN
+!              hsurfstrpool_Hg(:,1)=0.00d0
+!              hsurfmetpool_Hg(:,1)=0.00d0
+!              hsurfmicpool_Hg(:,1)=0.00d0
+!              hsoilstrpool_Hg(:,1)=0.00d0
+!              hsoilmetpool_Hg(:,1)=0.00d0
+!              hsoilmicpool_Hg(:,1)=0.00d0
+!              hslowpool_Hg(:,1)=0.00d0
+!              harmoredpool_Hg(:,1)=0.00d0
+!              
+!              hgout_leaf(:,1)=0.00d0
+!              hgout_surfmet(:,1)=0.00d0
+!              hgout_surfstr(:,1)=0.00d0
+!              hgout_soilmet(:,1)=0.00d0
+!              hgout_soilstr(:,1)=0.00d0
+!              hgout_surfmic(:,1)=0.00d0
+!              hgout_soilmic(:,1)=0.00d0
+!              hgout_slow(:,1)=0.00d0
+!              hgout_armored(:,1)=0.00d0
+!              hHgAq(:,1)=0.0d0
+!           
+!              FIRST = .FALSE.
+!      ENDIF
 !$OMP PARALLEL         &
 !$OMP DEFAULT(SHARED)
 !$OMP WORKSHARE

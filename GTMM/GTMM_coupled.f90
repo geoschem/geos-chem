@@ -66,6 +66,8 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
   CALL readCASAparam
   CALL makeCASAarrays               !subroutine in defineArrays
 
+  CALL initialize
+
 !
   CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm (ccc)
 !
@@ -103,7 +105,11 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
   mo = month
   
   print *, year
-  CALL load_data(year, month, LCPLE, TS, PREACC, RADSWG) !in loadCASAinput.f90
+!  CALL load_data(year, month, LCPLE, TS, PREACC, RADSWG) !in loadCASAinput.f90
+  CALL load_data(LCPLE) !in loadCASAinput.f90
+  CALL load_GC_data(month, TS, PREACC, RADSWG)
+  CALL CONV_TO_1D
+
   CALL getSoilParams
   CALL getSoilMoistParams
   CALL doLatitude

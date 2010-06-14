@@ -12,18 +12,16 @@
       REAL*8     :: photo_frac(n_veg, 1)
       INTEGER   ::  i
       
-      LOGICAL, SAVE :: FIRST = .TRUE.
-
-!--- Previous to (ccc, 11/3/09)
-!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
-      IF ( FIRST .AND. .NOT. LCPLE ) THEN
-              Hg0_surf_soil(:,1)=0.0d0
-              HgII_surf_soil(:,1)=0.0d0
-              hleafpool_Hg(:,1)=0.0d0
-              leafpool_Hg(:,1)=0.0d0
-
-              FIRST = .FALSE.
-      ENDIF
+!--- Now done in defineArrays.f90. (ccc, 6/11/10)
+!!      IF (yr .eq. (NPPequilibriumYear+1) .and. mo .eq. 1) THEN
+!      IF ( FIRST .AND. .NOT. LCPLE ) THEN
+!              Hg0_surf_soil(:,1)=0.0d0
+!              HgII_surf_soil(:,1)=0.0d0
+!              hleafpool_Hg(:,1)=0.0d0
+!              leafpool_Hg(:,1)=0.0d0
+!
+!              FIRST = .FALSE.
+!      ENDIF
       
       !!!!!   Hg0dry
       !! 1 - deposited to leaf and soil surfaces

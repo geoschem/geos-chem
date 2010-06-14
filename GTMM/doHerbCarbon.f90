@@ -14,19 +14,20 @@
       leafinput(:,1)=NPP(:,mo)*0.40d0    ! 40% of NPP is aboveground
       frootinput(:,1)=NPP(:,mo)*0.60d0   ! 60% of NPP is belowground
 
-      !Initalize variables
-      IF (yr .eq. 1 .and. mo .eq. 1) THEN
-              hleafpool(:,1)=0d0
-              hfrootpool(:,1)=0d0
-              hsurfstrpool(:,1)=0d0
-              hsurfmetpool(:,1)=0d0
-              hsurfmicpool(:,1)=0d0
-              hsoilstrpool(:,1)=0d0
-              hsoilmetpool(:,1)=0d0
-              hsoilmicpool(:,1)=0d0
-              hslowpool(:,1)=0d0
-              harmoredpool(:,1)=0d0
-      ENDIF
+!--- Now done in defineArrays.f90 (ccc, 6/11/10)
+!      !Initalize variables
+!      IF (yr .eq. 1 .and. mo .eq. 1) THEN
+!              hleafpool(:,1)=0d0
+!              hfrootpool(:,1)=0d0
+!              hsurfstrpool(:,1)=0d0
+!              hsurfmetpool(:,1)=0d0
+!              hsurfmicpool(:,1)=0d0
+!              hsoilstrpool(:,1)=0d0
+!              hsoilmetpool(:,1)=0d0
+!              hsoilmicpool(:,1)=0d0
+!              hslowpool(:,1)=0d0
+!              harmoredpool(:,1)=0d0
+!      ENDIF
       
 !$OMP PARALLEL        &
 !$OMP DEFAULT(SHARED)

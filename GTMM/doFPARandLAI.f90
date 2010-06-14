@@ -1,4 +1,4 @@
-      SUBROUTINE doFPARandLAI
+      SUBROUTINE doFPARandLAI(FIRST)
 
       USE defineConstants
       USE loadCASAinput
@@ -6,11 +6,11 @@
 
       implicit none
 
+      LOGICAL, INTENT(IN) :: FIRST
+       
       INTEGER :: i 
       character(len=f_len_output+4) :: filename3
 
-      LOGICAL, SAVE :: FIRST = .TRUE.
-       
       filename3(1:f_len_output)=outputpath
 
 !--- Previous to (ccc, 11/4/09)      
@@ -71,7 +71,6 @@
                  ENDIF
               END DO
 !$OMP END PARALLEL DO
-              FIRST = .FALSE.
       END IF
       
       !begin to calculate FPAR
