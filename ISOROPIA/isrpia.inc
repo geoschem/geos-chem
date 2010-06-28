@@ -32,6 +32,8 @@
 !        variables that are modified (hotp)
 !  (7 ) Removed DRYF since it is not used (hotp)
 !  (8 ) Bug fix: CRRAT was being truncated at column 72 (hotp, bmy, 6/1/10)
+!  (9 ) IONIC should be REAL*8 for consistency with -r8 flag during
+!        compiling of isoropiaIIcode routines (hotp, bmy, 6/28/10)
 !******************************************************************************
 !
       ! leave this implicit statement for isoropiaIIcode.f variables
@@ -136,20 +138,26 @@
       REAL*8     :: MOLAL(NIONS), MOLALR(NPAIR), M0(NPAIR)
       REAL*8     :: GAMA(NPAIR)  
       REAL*8     :: GAMOU(NPAIR), GAMIN(NPAIR),  GASAQ(NGASAQ)
-      REAL*8     :: COH,           CHNO3,       CHCL
+      REAL*8     :: COH,          CHNO3,         CHCL
       REAL*8     :: WATER         
       COMMON /IONS/ MOLAL,        MOLALR,        M0,
      &              GAMA,         
      &              GAMOU,        GAMIN,         GASAQ,
-     &              COH,          CHNO3,       CHCL,
+     &              COH,          CHNO3,         CHCL,
      &              WATER    
 !$OMP THREADPRIVATE( /IONS/ )
 
       REAL*8     ::  ZZ(NPAIR),   Z(NIONS),      EPSACT
       COMMON /IONS2/ ZZ,          Z,             EPSACT
       ! IONS2 is read-only
-
-      REAL*4     ::  IONIC
+      
+      !----------------------------------------------------------------------
+      ! Prior to 6/28/10:
+      ! IONIC should be REAL*8 for consistency with -r8 flag during
+      ! compiling of isoropiaIIcode routines (hotp 6/23/10)
+      !REAL*4     ::  IONIC
+      !----------------------------------------------------------------------
+      REAL*8     ::  IONIC
       COMMON /IONS3/ IONIC
 !$OMP THREADPRIVATE( /IONS3/ )
 
