@@ -55,6 +55,7 @@
          flambda(i,1)=flambda(i,1)+(coef(3,mo)*latitude1(i,1)**2.00d0)
          flambda(i,1)=flambda(i,1)+(coef(4,mo)*latitude1(i,1)**3.00d0)
 !      END DO
+
 !      DO i=1,n_veg
          fid(i,1)=0.0d0
          IF (AHI(i,1).gt. 0d0 .and. airt1(i,mo) .gt. 0d0) THEN

@@ -55,6 +55,8 @@ PROGRAM GTMM
 
   CALL makeCASAarrays               !subroutine in defineArrays
 
+  CALL readCASAparam
+
   CALL initialize
 !
   CALL READ_GTMM_INPUT_FILE         !read data from input.gtmm (ccc)

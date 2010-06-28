@@ -116,7 +116,7 @@
       soilm(:,1)=this_soilm(:,1)
       
       fid(:,1)=fid(:,1)*0.0d0
-      fid(:,1)=0.500d0+(0.500d0*(EET(:,1)/PET(:,1)))
+!      fid(:,1)=0.500d0+(0.500d0*(EET(:,1)/PET(:,1)))
       
 !--- Previous to (ccc, 11/10/09)
 !      DO i=1, n_veg
@@ -135,8 +135,8 @@
       bgratio(:,1)=(last_soilm(:,1)-SMparams(:,1))
       bgratio(:,1)=bgratio(:,1)+current_ppt(:,1)
       bgratio(:,1)=bgratio(:,1)/PET(:,1)
-      
-      
+
+
       fid(:,1)=fid(:,1)*0.0d0
 !$OMP END WORKSHARE
 

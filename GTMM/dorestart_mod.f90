@@ -235,21 +235,42 @@ CONTAINS
     WRITE(20) herb_seasonality
     WRITE(20) grass_herbivory
     WRITE(20) trees_herbivory
-    WRITE(20) LTCON
-    WRITE(20) LTVARSUM
     WRITE(20) rootlitscalar
     WRITE(20) litterscalar
     WRITE(20) hlitterscalar
-    WRITE(20) AVELAI
     WRITE(20) NPP
     WRITE(20) abiotic
     WRITE(20) lais
-    WRITE(20) topt
     WRITE(20) ccWood
     WRITE(20) ccLeaf
     WRITE(20) ccFineLitter
     WRITE(20) ccCwd
-    WRITE(20) mortality_tree
+    WRITE(20) PET
+    WRITE(20) CCratio_previous
+
+    ! Only used if restart the run from the carbon equilibrium year. 
+    ! If the mercury equilibrium run is started, use data saved in HgPools
+    WRITE(20) leafpool
+    WRITE(20) surfstrpool
+    WRITE(20) surfmetpool
+    WRITE(20) surfmicpool
+    WRITE(20) soilstrpool
+    WRITE(20) soilmetpool
+    WRITE(20) soilmicpool
+    WRITE(20) slowpool
+    WRITE(20) armoredpool
+    WRITE(20) hleafpool
+    WRITE(20) hsurfstrpool
+    WRITE(20) hsurfmetpool
+    WRITE(20) hsurfmicpool
+    WRITE(20) hsoilstrpool
+    WRITE(20) hsoilmetpool
+    WRITE(20) hsoilmicpool
+    WRITE(20) hslowpool
+    WRITE(20) harmoredpool
+    WRITE(20) abovewoodpool
+    WRITE(20) belowwoodpool
+    WRITE(20) frootpool
 
     ! Close file
     CLOSE(20)
@@ -295,21 +316,46 @@ CONTAINS
     READ(20) herb_seasonality
     READ(20) grass_herbivory
     READ(20) trees_herbivory
-    READ(20) LTCON
-    READ(20) LTVARSUM
+!    READ(20) LTCON
+!    READ(20) LTVARSUM
     READ(20) rootlitscalar
     READ(20) litterscalar
     READ(20) hlitterscalar
-    READ(20) AVELAI
+!    READ(20) AVELAI
     READ(20) NPP
     READ(20) abiotic
     READ(20) lais
-    READ(20) topt
+!    READ(20) topt
     READ(20) ccWood
     READ(20) ccLeaf
     READ(20) ccFineLitter
     READ(20) ccCwd
-    READ(20) mortality_tree
+!    READ(20) mortality_tree
+    WRITE(20) PET
+    WRITE(20) CCratio_previous
+! Only used if restart from the carbon equilibrium year. Else use the data
+! saved in HgPools
+    WRITE(20) leafpool
+    WRITE(20) surfstrpool
+    WRITE(20) surfmetpool
+    WRITE(20) surfmicpool
+    WRITE(20) soilstrpool
+    WRITE(20) soilmetpool
+    WRITE(20) soilmicpool
+    WRITE(20) slowpool
+    WRITE(20) armoredpool
+    WRITE(20) hleafpool
+    WRITE(20) hsurfstrpool
+    WRITE(20) hsurfmetpool
+    WRITE(20) hsurfmicpool
+    WRITE(20) hsoilstrpool
+    WRITE(20) hsoilmetpool
+    WRITE(20) hsoilmicpool
+    WRITE(20) hslowpool
+    WRITE(20) harmoredpool
+    WRITE(20) abovewoodpool
+    WRITE(20) belowwoodpool
+    WRITE(20) frootpool
 
     ! Close file
     CLOSE(20)

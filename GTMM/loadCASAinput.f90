@@ -400,6 +400,12 @@ SUBROUTINE CONV_TO_1D
    OPEN(UNIT=4, file=filename, FORM='FORMATTED')
    WRITE(4,FMT="(1E12.5)") gridAreab
    CLOSE(4)
+
+   filename(f_len+1:f_len+8)='mask_veg'
+   OPEN(UNIT=4, file=filename, FORM='FORMATTED')
+   WRITE(4,FMT="(1E12.5)") mask2
+   CLOSE(4)
+   
  END SUBROUTINE CONV_TO_1D
  
 !-----------------------------------------------------------------------------
