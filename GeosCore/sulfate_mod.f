@@ -5,7 +5,7 @@
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/5/10)
+!  (rjp, bdf, bmy, 6/22/00, 6/30/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -216,6 +216,7 @@
 !        (amv, phs, 10/15/2009) 
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
 !  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
+!  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -1339,7 +1340,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 4/28/10) 
+!  (rjp, bmy, 11/26/02, 6/30/10) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1394,6 +1395,7 @@
 !  (13) Now prevent floating-point exceptions when taking the exponential
 !        terms. (win, bmy, 1/4/10)
 !  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
+!  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1414,6 +1416,9 @@
       USE SEASALT_MOD,     ONLY : GET_ALK
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+
+      ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
+      USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_GCTM"    ! AIRMW
@@ -1583,12 +1588,32 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-      
+#if   defined ( GEOS_5 )
+
+         !----------------------------------------
+         ! GEOS-5: Get LWC, FC from met fields
+         ! (jaf, bmy, 6/30/10)
+         !----------------------------------------
+
+         ! Get cloud fraction from met fields
+         FC      = CLDF(L,I,J)
+
+         ! Get liquid water content within cloud from met fields (kg/kg)
+         ! Convert to m3/m3 averaged over grid box
+         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+
+#else
+         !----------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !----------------------------------------
+
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
          LWC     = GET_LWC( TK ) * FC
+
+#endif
 
          ! Zero variables
          KaqH2O2 = 0.d0
