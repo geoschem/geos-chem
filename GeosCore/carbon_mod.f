@@ -4,7 +4,7 @@
 !******************************************************************************
 !  Module CARBON_MOD contains arrays and routines for performing a 
 !  carbonaceous aerosol simulation.  Original code taken from Mian Chin's 
-!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 2/08/10)
+!  GOCART model and modified accordingly. (rjp, bmy, 4/2/04, 6/30/10)
 !
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -171,6 +171,7 @@
 !        onto OC aerosol, according to recommendations of Aerosol Working 
 !        Group. (amv, clh, bmy, 12/21/09)
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
+!  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -1668,6 +1669,7 @@
 !  (4 ) Updated formulation of SOG condensation onto OC aerosol, according
 !        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
+!  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1715,6 +1717,17 @@
       !=================================================================
       ! SOA_CHEMISTRY begins here!
       !=================================================================
+
+      !this section is need to initialize the equalibirum constants and
+      !yield parameters, (jje 06/22/10)
+      IF ( FIRST ) THEN
+
+         ! initialize alphas, Koms and rxn rate constants
+         CALL SOA_PARA_INIT
+
+         FIRST = .FALSE.
+      ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  )
