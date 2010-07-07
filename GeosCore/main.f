@@ -166,6 +166,7 @@
       USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
       USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
       USE ERROR_MOD,         ONLY : IT_IS_NAN, IT_IS_FINITE   !yxw
+      USE ERROR_MOD,         ONLY : SAFE_DIV
       ! To save CSPEC_FULL restart (dkh, 02/12/09)
       USE LOGICAL_MOD,       ONLY : LSVCSPEC
       USE RESTART_MOD,       ONLY : MAKE_CSPEC_FILE
@@ -908,14 +909,30 @@
                
                ! Partition Hg(II) between aerosol and gas
                IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-     &                 ( STT(:,:,:,ID_HGP(1)) +
-     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-                  STT(:,:,:,ID_HGP(1)) = STT(:,:,:,ID_HGP(1)) +
-     &                   0.5D0 * STT(:,:,:,ID_HG2(1))
-                  STT(:,:,:,ID_HG2(1)) = 0.5D0 * STT(:,:,:,ID_HG2(1))
-               ENDIF
+!--- Prior to (ccc, 7/7/10)
+! Use SAFE_DIV for the division to avoid NaN or overflow.
+!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
+!     &                 ( STT(:,:,:,ID_HGP(1)) +
+!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
+!$OMP PARALLEL DO      &
+!$OMP DEFAULT(SHARED)  &
+!$OMP PRIVATE(L, J, I)
+                  DO L=1,LLPAR
+                  DO J=1,JJPAR
+                  DO I=1,IIPAR
+                     HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
+     &                    STT(I,J,L,ID_HGP(1)) +
+     &                    0.5D0 * STT(I,J,L,ID_HG2(1)),
+     &                    1.D0 )
 
+                     STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
+     &                    0.5D0 * STT(I,J,L,ID_HG2(1))
+                     STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
+               ENDIF
                CALL DO_CONVECTION
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
@@ -928,7 +945,8 @@
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
             ENDIF 
-         ENDIF                  
+         ENDIF 
+
 
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
@@ -959,6 +977,7 @@
             IF ( LEMIS ) CALL DO_EMISSIONS
          ENDIF    
 
+
          !===========================================================
          !               ***** C H E M I S T R Y *****
          !===========================================================    
@@ -976,6 +995,7 @@
             CALL DO_CHEMISTRY
 
          ENDIF 
+
  
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
@@ -984,12 +1004,29 @@
 
             ! Partition Hg(II) between aerosol and gas
             IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-               HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-     &              ( STT(:,:,:,ID_HGP(1)) +
-     &              0.5D0 * STT(:,:,:,ID_HG2(1)) )
-               STT(:,:,:,ID_HGP(1)) = STT(:,:,:,ID_HGP(1)) +
-     &              0.5D0 * STT(:,:,:,ID_HG2(1))
-               STT(:,:,:,ID_HG2(1)) = 0.5D0 * STT(:,:,:,ID_HG2(1))
+!--- Prior to (ccc, 7/7/10)
+! Use SAFE_DIV for the division to avoid NaN or overflow.
+!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
+!     &                 ( STT(:,:,:,ID_HGP(1)) +
+!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
+!$OMP PARALLEL DO      &
+!$OMP DEFAULT(SHARED)  &
+!$OMP PRIVATE(L, J, I)
+                  DO L=1,LLPAR
+                  DO J=1,JJPAR
+                  DO I=1,IIPAR
+                     HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
+     &                    STT(I,J,L,ID_HGP(1)) +
+     &                    0.5D0 * STT(I,J,L,ID_HG2(1)),
+     &                    0.66D0 )
+
+                     STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
+     &                    0.5D0 * STT(I,J,L,ID_HG2(1))
+                     STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
+                  ENDDO
+                  ENDDO
+                  ENDDO
+!$OMP END PARALLEL DO
             ENDIF
             
             CALL DO_WETDEP
