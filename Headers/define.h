@@ -146,7 +146,7 @@
 !#define SPARC       'SPARC'
 
 !----- Simulation type -----
-#define GTMM_Hg
+!#define GTMM_Hg
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 

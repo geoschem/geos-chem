@@ -175,8 +175,6 @@
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
 
-      USE OCEAN_MERCURY_MOD, ONLY : LHG2HALFAEROSOL !CDH 9/26/09
-      USE TRACERID_MOD,      ONLY : ID_HG2, ID_HgP !CDH 9/26/09
       USE TRACERID_MOD,      ONLY : IS_Hg2
       ! For GTMM for mercury simulations. (ccc, 6/7/10)
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
@@ -201,8 +199,6 @@
       INTEGER            :: ELAPSED_SEC, NHMSb, RC
       REAL*8             :: TAU,         TAUb         
       CHARACTER(LEN=255) :: ZTYPE
-
-      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -907,40 +903,7 @@
             !===========================================================
             IF ( LCONV ) THEN
                
-               ! Partition Hg(II) between aerosol and gas
-               IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-!--- Prior to (ccc, 7/7/10)
-! Use SAFE_DIV for the division to avoid NaN or overflow.
-!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-!     &                 ( STT(:,:,:,ID_HGP(1)) +
-!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      &
-!$OMP DEFAULT(SHARED)  &
-!$OMP PRIVATE(L, J, I)
-                  DO L=1,LLPAR
-                  DO J=1,JJPAR
-                  DO I=1,IIPAR
-                     HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
-     &                    STT(I,J,L,ID_HGP(1)) +
-     &                    0.5D0 * STT(I,J,L,ID_HG2(1)),
-     &                    1.D0 )
-
-                     STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
-     &                    0.5D0 * STT(I,J,L,ID_HG2(1))
-                     STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
-                  ENDDO
-                  ENDDO
-                  ENDDO
-!$OMP END PARALLEL DO
-               ENDIF
                CALL DO_CONVECTION
-
-               ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-               IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-                  STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
-     &                    (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
-                  STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
-               ENDIF
 
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
@@ -1002,43 +965,8 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
-            ! Partition Hg(II) between aerosol and gas
-            IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-!--- Prior to (ccc, 7/7/10)
-! Use SAFE_DIV for the division to avoid NaN or overflow.
-!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-!     &                 ( STT(:,:,:,ID_HGP(1)) +
-!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      &
-!$OMP DEFAULT(SHARED)  &
-!$OMP PRIVATE(L, J, I)
-                  DO L=1,LLPAR
-                  DO J=1,JJPAR
-                  DO I=1,IIPAR
-                     HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
-     &                    STT(I,J,L,ID_HGP(1)) +
-     &                    0.5D0 * STT(I,J,L,ID_HG2(1)),
-     &                    0.66D0 )
-
-                     STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
-     &                    0.5D0 * STT(I,J,L,ID_HG2(1))
-                     STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
-                  ENDDO
-                  ENDDO
-                  ENDDO
-!$OMP END PARALLEL DO
-            ENDIF
-            
             CALL DO_WETDEP
             
-            ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-            IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-               STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
-     &              (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
-               STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
-            ENDIF
-
-
          ENDIF
 
 
