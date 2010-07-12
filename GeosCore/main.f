@@ -914,9 +914,9 @@
 !                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
 !     &                 ( STT(:,:,:,ID_HGP(1)) +
 !     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      &
-!$OMP DEFAULT(SHARED)  &
-!$OMP PRIVATE(L, J, I)
+!$OMP PARALLEL DO      
+!$OMP+DEFAULT(SHARED)  
+!$OMP+PRIVATE(L, J, I)
                   DO L=1,LLPAR
                   DO J=1,JJPAR
                   DO I=1,IIPAR
@@ -1009,9 +1009,9 @@
 !                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
 !     &                 ( STT(:,:,:,ID_HGP(1)) +
 !     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      &
-!$OMP DEFAULT(SHARED)  &
-!$OMP PRIVATE(L, J, I)
+!$OMP PARALLEL DO      
+!$OMP+DEFAULT(SHARED)  
+!$OMP+PRIVATE(L, J, I)
                   DO L=1,LLPAR
                   DO J=1,JJPAR
                   DO I=1,IIPAR
