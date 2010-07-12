@@ -1,91 +1,54 @@
-! $Id$
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: CasaRegridModule
+!
+! !DESCRIPTION: Module CasaRegridModule contains arrays and variables used to 
+!  regrid the GEOS-5 data from 1 x 1 Generic to 2 x 2.5, and 4 x 5 geos grids.
+!  (bmy, 1/14/08)
+!
+!  CasaRegridModule uses the regridding software "MAP_A2A" from S-J Lin.  
+!  This is area-preserving mapping.  For example, if you have a quantity 
+!  such as kg/m2/s or W/m2, MAP_A2A will multiply by the area on the
+!  input grid, then regrid, and divide by the area on the output grid,
+!  such that the total quantity is preserved.  
+! !INTERFACE: 
+!
 MODULE CasaRegridModule
-
-  !=========================================================================
-  ! Module "CasaRegridModule" contains arrays and variables used to regrid 
-  ! the GEOS-5 data from 1 x 1 Generic to 2 x 2.5, and 4 x 5 geos grids.
-  ! (bmy, 1/14/08)
-  !
-  ! CasaRegridModule uses the regridding software "MAP_A2A" from S-J Lin.  
-  ! This is area-preserving mapping.  For example, if you have a quantity 
-  ! such as kg/m2/s or W/m2, MAP_A2A will multiply by the area on the
-  ! input grid, then regrid, and divide by the area on the output grid,
-  ! such that the total quantity is preserved.  
-  !
-  ! Module Variables:
-  ! ------------------------------------------------------------------------
-  ! (1 ) I1x1          (INTEGER) : Number of longitudes   at 1.0 x 1.0      
-  ! (2 ) J1x1          (INTEGER) : Number of latitudes    at 1.0 x 1.0     
-  ! (3 ) L1x1          (INTEGER) : Number of altitudes    at 1.0 x 1.0      
-  ! (4 ) XEDGE_1x1     (REAL*4 ) : Longitude edges        at 1.0 x 1.0
-  ! (5 ) YEDGE_1x1     (REAL*4 ) : Latitude  edges        at 1.0 x 1.0   
-  ! (6 ) SINE_1x1      (REAL*4 ) : Sine of latitude edges at 1.0 x 1.0   
-  ! (7 ) I2x25         (INTEGER) : Number of longitudes   at 2.0 x 2.5       
-  ! (8 ) J2x25         (INTEGER) : Number of latitudes    at 2.0 x 2.5     
-  ! (9 ) L2x25         (INTEGER) : Number of altitudes    at 2.0 x 2.5   
-  ! (10) XEDGE_2x25    (REAL*4 ) : Longitude edges        at 2.0 x 2.5 
-  ! (11) YEDGE_2x25    (REAL*4 ) : Latitude  edges        at 2.0 x 2.5    
-  ! (12) SINE_2x25     (REAL*4 ) : Sine of latitude edges at 2.0 x 2.5   
-  ! (13) I4x5          (INTEGER) : Number of longitudes   at 4.0 x 5.0    
-  ! (14) J4x5          (INTEGER) : Number of latitudes    at 4.0 x 5.0   
-  ! (15) L4x5          (INTEGER) : Number of altitudes    at 4.0 x 5.0 
-  ! (16) XEDGE_4x5     (REAL*4 ) : Longitude edges        at 4.0 x 5.0 
-  ! (17) YEDGE_4x5     (REAL*4 ) : Latitude  edges        at 4.0 x 5.0     
-  ! (18) SINE_4x5      (REAL*4 ) : Sine of latitude edges at 4.0 x 5.0    
-  ! (19) D2R           (REAL*4 ) : Conversion of degrees to radians
-  !
-  ! Module Routines:
-  ! ------------------------------------------------------------------------
-  ! (1 ) regrid1x1to4x5          : Calls MAP_A2A to regrid 1x1  -> 4x5
-  ! (1 ) regrid4x5to1x1          : Calls MAP_A2A to regrid 4x5  -> 1x1
-  ! (1 ) regrid1x1to2x25         : Calls MAP_A2A to regrid 1x1  -> 2x25
-  ! (1 ) regrid2x25to1x1         : Calls MAP_A2A to regrid 2x25 -> 1x1
-  ! (5 ) MAP_A2A                 : S-J Lin's top-level regridding routine
-  ! (6 ) YMAP                    : Internal subroutine for MAP_A2A
-  ! (7 ) PPM_LAT                 : Internal subroutine for MAP_A2A
-  ! (8 ) XMAP                    : Internal subroutine for MAP_A2A
-  ! (9 ) PPM_CYCLE               : Internal subroutine for MAP_A2A
-  ! (10) LMPPM                   : Internal subroutine for MAP_A2A
-  ! (11) HUYNH                   : Internal subroutine for MAP_A2A
-  ! (12) CasaRegridInit         : Initializes lon/lat/alt arrays etc.
-  !
-  ! NOTES:
-  ! (1 ) Modify regriddGeos5To* routines so that if all values are zero,
-  !       then we just fill the output data array with zeros and return.
-  !       This ought to speed up program execution. (bmy, 11/14/06)
-  !=========================================================================
-
+!
+! !USES:
+!
   IMPLICIT NONE
-  
-  !-------------------------------------------------------------------------
-  ! PUBLIC/PRIVATE module declarations
-  !-------------------------------------------------------------------------
 
   ! Make everything PRIVATE
   PRIVATE
-
-  ! ... except these variables ...
-  PUBLIC :: I1x1,      J1x1,      L1x1    
-  !PUBLIC :: I1x125,    J1x125,    L1x125  
-  PUBLIC :: I2x25,     J2x25,     L2x25   
-  PUBLIC :: I4x5,      J4x5,      L4x5    
-
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
   ! ... and these routines
   PUBLIC :: regrid1x1to4x5
   PUBLIC :: regrid4x5to1x1
   PUBLIC :: regrid1x1to2x25
   PUBLIC :: regrid2x25to1x1
   PUBLIC :: CasaRegridInit
-
-  !-------------------------------------------------------------------------
-  ! MODULE VARIABLES
-  !-------------------------------------------------------------------------
+!
+! !PUBLIC DATA MEMBERS:
+!
+  ! ... except these variables ...
+  PUBLIC :: I1x1,      J1x1,      L1x1    
+  !PUBLIC :: I1x125,    J1x125,    L1x125  
+  PUBLIC :: I2x25,     J2x25,     L2x25   
+  PUBLIC :: I4x5,      J4x5,      L4x5    
 
   ! Size parameters for 1x1, 2x2.5, 4x5 grids
   INTEGER, PARAMETER  :: I1x1     = 360,  J1x1     = 180,  L1x1     = 72    
   INTEGER, PARAMETER  :: I2x25    = 144,  J2x25    = 91,   L2x25    = 72
   INTEGER, PARAMETER  :: I4x5     = 72,   J4x5     = 46,   L4x5     = 72
-
+!
+! !PRIVATE DATA MEMBERS:
+!
   ! Degrees to Radians
   REAL*8,  PARAMETER  :: D2R = 3.141592658979323d0 / 180d0
 
@@ -127,39 +90,45 @@ MODULE CasaRegridModule
 
   ! Latitude edges
   REAL*8 :: sine_4x5( J4x5 + 1 )
-
-  !-------------------------------------------------------------------------
-  ! MODULE ROUTINES
-  !-------------------------------------------------------------------------
+!
+! !REVISION HISTORY:
+!  
+! (1 ) Modify regriddGeos5To* routines so that if all values are zero,
+!       then we just fill the output data array with zeros and return.
+!       This ought to speed up program execution. (bmy, 11/14/06)
+!EOP
+!------------------------------------------------------------------------------
 
 CONTAINS
 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: regrid4x5to1x1
+!
+! !DESCRIPTION: Subroutine regrid4x5to1x1 is a wrapper for MAP_A2A, which is 
+!  called to regrid from the GEOS-5 4x5 grid to the GENERIC 1x1 grid. 
+!  (bmy, 11/8/06)
+!
   SUBROUTINE regrid4x5to1x1( iv, q1, q2 )
-
-    !=======================================================================
-    ! Subroutine "regrid4x5to1x1" is a wrapper for MAP_A2A, which is 
-    ! called to regrid from the GEOS-5 4x5 grid to the GENERIC 1x1 grid. 
-    ! (bmy, 11/8/06)
-    !  
-    ! Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (1 ) IV (INTEGER) : IV = 0 is scalar field; IV = 1 is vector field
-    ! (2 ) Q1 (REAL*4 ) : Input data on 4x5 grid
-    !
-    !  Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (3 ) Q2 (REAL*4 ) : Output data on 1x1 grid
-    !
-    ! NOTES:
-    !=======================================================================
-
-    ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
     INTEGER, INTENT(IN)  :: iv
     REAL*8,  INTENT(IN)  :: q1( I4x5, J4x5 )
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2( I1x1, J1x1 )
-
+!
+! !REVISION HISTORY: 
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     !---------------------------------
     ! regridGeos5to1x1 begins here!
     !---------------------------------
@@ -175,33 +144,37 @@ CONTAINS
                   I1x1, J1x1, xedge_1x1, sine_1x1, q2, 0, iv )
 
   END SUBROUTINE regrid4x5to1x1
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: regrid1x1to4x5
+!
+! !DESCRIPTION: Subroutine regrid1x1to4x5 is a wrapper for MAP_A2A, which is 
+!  called to regrid from the GENERIC 1x1 grid to the GEOS-5 4x5 grid.
+!  (bmy, 11/8/06)
+!
+! !INTERFACE:
+!
   SUBROUTINE regrid1x1to4x5( iv, q1, q2 )
-
-    !=======================================================================
-    ! Subroutine "regrid1x1to4x5" is a wrapper for MAP_A2A, which is 
-    ! called to regrid from the GENERIC 1x1 grid to the GEOS-5 4x5 grid.
-    ! (bmy, 11/8/06)
-    !  
-    ! Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (1 ) IV (INTEGER) : IV = 0 is scalar field; IV = 1 is vector field
-    ! (2 ) Q1 (REAL*4 ) : Input data on 1x1 grid
-    !
-    !  Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (3 ) Q2 (REAL*4 ) : Output data on 4x5 grid
-    !
-    ! NOTES:
-    !=======================================================================
-
-    ! Arguments
+!
+! !INPUT PARAMETERS:
+!
     INTEGER, INTENT(IN)  :: iv
     REAL*8,  INTENT(IN)  :: q1( I1x1, J1x1 )
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2( I4x5, J4x5 )
-
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     !---------------------------------
     ! regridGeos5to1x1 begins here!
     !---------------------------------
@@ -217,33 +190,38 @@ CONTAINS
                   I4x5, J4x5, xedge_4x5, sine_4x5, q2, 0, iv )
 
   END SUBROUTINE regrid1x1to4x5
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: regrid2x25to1x1
+!
+! !DESCRIPTION: Subroutine regrid2x25to1x1 is a wrapper for MAP_A2A, which is 
+!  called to regrid from the GENERIC 1x1 grid to the GEOS 2 x 2.5 grid.
+!  (bmy, 11/8/06)
+!
+!
+! !INTERFACE
+!
   SUBROUTINE regrid2x25to1x1( iv, q1, q2 )
-
-    !=======================================================================
-    ! Subroutine regrid2x25to1x1 is a wrapper for MAP_A2A, which is 
-    ! called to regrid from the GENERIC 1x1 grid to the GEOS 2 x 2.5 grid.
-    ! (bmy, 11/8/06)
-    !  
-    ! Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (1 ) IV (INTEGER) : IV = 0 is scalar field; IV = 1 is vector field
-    ! (2 ) Q1 (REAL*4 ) : Input data on 2x25 grid
-    !
-    !  Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (3 ) Q2 (REAL*4 ) : Output data on 1x1 grid
-    !
-    ! NOTES:
-    !=======================================================================
-
-    ! Arguments
+!
+! !INPUT PARAMETERS:
+!
     INTEGER, INTENT(IN)  :: iv
     REAL*8,  INTENT(IN)  :: q1( I2x25, J2x25 )
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2( I1x1,  J1x1  )
-
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     !---------------------------------
     ! regridGeos5to1x125 begins here!
     !---------------------------------
@@ -259,33 +237,37 @@ CONTAINS
                   I1x1,  J1x1,  xedge_1x1,  sine_1x1,  q2, 0, iv )
 
   END SUBROUTINE regrid2x25to1x1
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: regrid1x1to2x25
+!
+! !DESCRIPTION: Subroutine regridGeos5to2x25 is a wrapper for MAP_A2A, which 
+!  regrids from the GEOS-5 1x1 grid to the GEOS 2 x 2.5 grid.  
+!  (bmy, 11/8/06)
+!
+! !INTERFACE:
+!
   SUBROUTINE regrid1x1to2x25( iv, q1, q2 )
-
-    !=======================================================================
-    ! Subroutine regridGeos5to2x25 is a wrapper for MAP_A2A, which 
-    ! regrids from the GEOS-5 1x1 grid to the GEOS 2 x 2.5 grid.  
-    ! (bmy, 11/8/06)
-    !  
-    ! Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (1 ) IV (INTEGER) : IV = 0 is scalar field; IV = 1 is vector field
-    ! (2 ) Q1 (REAL*4 ) : Input data on 1 x 1 grid
-    !
-    ! Arguments as Input:
-    ! ----------------------------------------------------------------------
-    ! (3 ) Q2 (REAL*4 ) : Output data on 2 x 2.5 grid
-    !
-    ! NOTES:
-    !=======================================================================
-
-    ! Arguments
+!
+! !INPUT PARAMETERS:
+!
     INTEGER, INTENT(IN)  :: iv
     REAL*8,  INTENT(IN)  :: q1( I1x1,  J1x1  )
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2( I2x25, J2x25 )
-
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     !---------------------------------
     ! regridGeos5to2x25 begins here!
     !---------------------------------
@@ -301,49 +283,45 @@ CONTAINS
                   I2x25, J2x25, xedge_2x25, sine_2x25, q2, 0, iv )
 
   END SUBROUTINE regrid1x1to2x25
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: map_a2a
+!
+! !DESCRIPTION: Subroutine MAP_A2A is a orizontal arbitrary grid to arbitrary 
+!  grid conservative high-order mapping regridding routine by S-J Lin.
+!
+! !INTERFACE:
+!
   SUBROUTINE map_a2a( im, jm, lon1, sin1, q1, &
                       in, jn, lon2, sin2, q2, ig, iv)
 !
-!******************************************************************************
-!  Subroutine MAP_A2A is a orizontal arbitrary grid to arbitrary grid 
-!  conservative high-order mapping regridding routine by S-J Lin.
+! !INPUT PARAMETERS:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) IM, JM  (REAL*4 ) : Longitude and Latitude dimensions of INPUT grid
-!  (3  ) LON1    (REAL*4 ) : Longitude edges (degrees) of INPUT grid
-!  (4  ) SIN1    (REAL*4 ) : Sine of Latitude Edges (radians) of INPUT grid
-!  (5  ) Q1      (REAL*4 ) : Quantity on INPUT grid
-!  (6-7) IN, JN  (INTEGER) : Longitude and Latitude dimensions of OUTPUT grid
-!  (8  ) LON2    (REAL*4 ) : Longitude edges (degrees) of INPUT grid
-!  (9  ) SIN2    (REAL*4 ) : Sine of Latitude Edges (radians) of OUTPUT grid
-!  (11 ) IG      (INTEGER) : IG=0: pole to pole; 
-!                            IG=1 J=1 is half-dy north of south pole
-!  (12 ) IV      (INTEGER) : IV=0: Regrid scalar quantity
-!                            IV=1: Regrid vector quantity (e.g. U & V winds)
-!  Arguments as Output:
-!  ============================================================================
-!  (10 ) Q1      (REAL*4 ) : Regridded quantity on OUTPUT grid
+    INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
+    REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
+    REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
+    REAL*8,  INTENT(IN)  :: q1(im,jm)
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+    REAL*8,  INTENT(OUT) :: q2(in,jn)
+!
+!  !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
 !
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
 !      Also updated comments. (bmy, 9/21/00)
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-    ! Arguments
-    INTEGER, INTENT(IN)  :: im, jm, in, jn, ig, iv
-    REAL*8,  INTENT(IN)  :: lon1(im+1), lon2(in+1)
-    REAL*8,  INTENT(IN)  :: sin1(jm+1), sin2(jn+1)
-    REAL*8,  INTENT(IN)  :: q1(im,jm)
-    REAL*8,  INTENT(OUT) :: q2(in,jn)
-
-    ! Local variables
+! !LOCAL VARIABLES:
+!
     INTEGER              :: i,j,k
     REAL*8               :: qtmp(in,jm)
 
@@ -378,30 +356,29 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE map_a2a
-
+!EOC
 !------------------------------------------------------------------------------
-
-  SUBROUTINE ymap(im, jm, sin1, q1, jn, sin2, q2, ig, iv)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Routine to perform area preserving mapping in N-S from an arbitrary
-!  resolution to another.
+! !IROUTINE: ymap
 !
+! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
+!  arbitrary resolution to another.
+!
+! !REMARKS:
 !  sin1 (1) = -1 must be south pole; sin1(jm+1)=1 must be N pole.
 !
 !  sin1(1) < sin1(2) < sin1(3) < ... < sin1(jm) < sin1(jm+1)
 !  sin2(1) < sin2(2) < sin2(3) < ... < sin2(jn) < sin2(jn+1)
 !
-!  Developer: S.-J. Lin
-!  First version: piece-wise constant mapping
-!  Apr 1, 2000
-!  Last modified:
+! !INTERFACE:
 !
-!  Converted to F90 freeform format and added to "Geos3RegridModule"
-!  (bmy, 9/21/00)
-!******************************************************************************
+  SUBROUTINE ymap(im, jm, sin1, q1, jn, sin2, q2, ig, iv)
 !
-    ! Arguments
+! !INPUT PARAMETERS:
+!
     INTEGER, INTENT(IN)  :: im            ! original E-W dimension
     INTEGER, INTENT(IN)  :: jm            ! original N-S dimension
     INTEGER, INTENT(IN)  :: jn            ! Target N-S dimension
@@ -415,11 +392,26 @@ CONTAINS
                                           !  the cell
     REAL*8,  INTENT(IN)  :: sin2(jn+1-ig) ! Target cell's southern edge
                                           !  sin(lat2)
-
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2(im,jn)     ! Mapped data at the 
                                           !  target resolution
-
-    ! Local Variables
+!
+! !AUTHOR:
+!  S.-J. Lin
+!  First version: piece-wise constant mapping
+!  Apr 1, 2000
+!  Last modified:
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     INTEGER              :: i, j0, m, mm, j
     REAL*8               :: al(im,jm), ar(im,jm), a6(im,jm), dy1(jm)
     REAL*8,  PARAMETER   :: r3 = 1./3., r23 = 2./3. 
@@ -519,31 +511,47 @@ CONTAINS
     endif
 
   END SUBROUTINE YMAP
-
+!EOC
 !------------------------------------------------------------------------------
-
-  SUBROUTINE ppm_lat(im, jm, ig, q, al, ar, a6, jord, iv)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine PPM_LAT is called by YMAP.  Written by S-J Lin, and
+! !IROUTINE: ppm_lat
+!
+! !DESCRIPTION: Subroutine PPM\_LAT is called by YMAP.  Written by S-J Lin, and
 !  converted to F90 freeform format by Bob Yantosca. (bmy, 9/21/00)
 !
-!  INPUT
-!  ig=0: scalar pole to pole
-!  ig=1: D-grid u-wind; not defined at poles because of staggering
-!******************************************************************************
+! !INTERFACE:
 !
-    ! Arguments
+  SUBROUTINE ppm_lat(im, jm, ig, q, al, ar, a6, jord, iv)
+!
+! INPUT PARAMETERS:
+!
     INTEGER           :: im, jm          !  Dimensions
     INTEGER           :: ig
-    REAL*8            :: q(im,jm-ig)
-    REAL*8            :: al(im,jm-ig)
-    REAL*8            :: ar(im,jm-ig)
-    REAL*8            :: a6(im,jm-ig)
     INTEGER           :: jord
     INTEGER           :: iv              ! iv=0 scalar
                                          ! iv=1 vector
-    ! Local
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL*8            :: q(im,jm-ig)
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL*8            :: al(im,jm-ig)
+    REAL*8            :: ar(im,jm-ig)
+    REAL*8            :: a6(im,jm-ig)
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     REAL*8            :: dm(im,jm-ig)
     REAL*8, PARAMETER :: r3 = 1./3. 
     INTEGER           :: i, j, im2, iop, jm1
@@ -705,30 +713,25 @@ CONTAINS
      enddo
 
   END SUBROUTINE ppm_lat
-
+!EOC
 !------------------------------------------------------------------------------
-
-  SUBROUTINE xmap(im, jm, lon1, q1, in, lon2, q2)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Routine to perform area preserving mapping in E-W from an arbitrary
-!  resolution to another.
+! !IROUTINE: xmap
+!
+! !DESCRIPTION: Routine to perform area preserving mapping in E-W from an 
+!  arbitrary resolution to another.
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
 !  im is lon1(im+1) = lon1(1); Note the equal sign is true geographysically.
 !
-!  lon1(1) < lon1(2) < lon1(3) < ... < lon1(im) < lon1(im+1)
-!  lon2(1) < lon2(2) < lon2(3) < ... < lon2(in) < lon2(in+1)
+! !INTERFACE:
 !
-!  Developer: S.-J. Lin
-!  First version: piece-wise constant mapping
-!  Apr 1, 2000
-!  Last modified:
+  SUBROUTINE xmap(im, jm, lon1, q1, in, lon2, q2)
 !
-!  Converted to F90 freeform format and added to "Geos3RegridModule" 
-!  (bmy, 9/21/00)
-!******************************************************************************
+! !INPUT PARAMETERS:
 !
-    ! Input
     INTEGER, INTENT(IN)  :: im           ! original E-W dimension
     INTEGER, INTENT(IN)  :: in           ! Target E-W dimension
     INTEGER, INTENT(IN)  :: jm           ! original N-S dimension
@@ -737,9 +740,20 @@ CONTAINS
     REAL*8,  INTENT(IN)  :: q1(im,jm)    ! original data at center of 
                                          !  the cell
     REAL*8,  INTENT(IN)  :: lon2(in+1)   ! Target cell's western edge
+!
+! !OUTPUT PARAMETERS:
+!
     REAL*8,  INTENT(OUT) :: q2(in,jm)    ! Mapped data at the 
                                          !  target resolution
-    ! Local
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     INTEGER              :: i1, i2, i, i0, m, mm, j
 
     REAL*8               :: qtmp(-im:im+im)
@@ -888,25 +902,37 @@ CONTAINS
 1000 continue
 
    END SUBROUTINE xmap
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ppm_cycle
+!
+! !DESCRIPTION: PPM\_CYCLE is called by XMAP
+!
+! !INTERFACE:
+!
    subroutine ppm_cycle(im, q, al, ar, a6, p, iord)
 !
-!******************************************************************************
-!  PPM_CYCLE is called by XMAP
-!  Originally written by S-J Lin -- Converted to F90 Freeform format
-!  and added to Module "Geos3RegridModule" by Bob Yantosca (bmy, 9/21/00)
-!******************************************************************************
-!
-     ! Input 
+! !INPUT PARAMETERS:
+! 
      INTEGER, INTENT(IN)  :: im, iord
      REAL*8,  INTENT(IN)  :: q(1)
- 
-     ! Output
+! 
+! !OUTPUT PARAMETERS:
+!
      REAL*8,  INTENT(OUT) :: al(1), ar(1), a6(1), p(0:im+1)
-
-     ! local
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
      REAL*8               :: dm(0:im), tmp, qmax, qmin
      INTEGER              :: i, lmt
      REAL*8,  PARAMETER   :: r3 = 1./3. 
@@ -947,25 +973,44 @@ CONTAINS
      endif
 
    END SUBROUTINE ppm_cycle
-
+!EOC
 !-----------------------------------------------------------------------------
-
-   SUBROUTINE lmppm(dm, a6, ar, al, p, im, lmt)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine LMPPM is called by PPM_CYCLE.
-!  Originally written by S-J Lin -- Converted to F90 freeform format
-!  and added to "Geos3RegridModule" by Bob Yantosca (bmy, 9/21/00)
+! !IROUTINE: lmppm
 !
+! !DESCRIPTION: Subroutine LMPPM is called by PPM_CYCLE.
+!
+! !REMARKS:
 !  LMT = 0: full monotonicity
 !  LMT = 1: semi-monotonic constraint (no undershoot)
 !  LMT = 2: positive-definite constraint
-!******************************************************************************
+! 
+! !INTERFACE:
+!
+   SUBROUTINE lmppm(dm, a6, ar, al, p, im, lmt)
+!
+! !INPUT PARAMETERS:
 !
      INTEGER           :: im, lmt
+     REAL*8            :: p(im),dm(im)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+     REAL*8            :: a6(im),ar(im),al(im)
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
      INTEGER           :: i
 
-     REAL*8            :: a6(im),ar(im),al(im),p(im),dm(im)
      REAL*8            :: da1, da2, fmin, a6da
      REAL*8, PARAMETER :: r12 = 1.d0/12.d0 
 
@@ -1032,22 +1077,39 @@ CONTAINS
      endif
 
    END SUBROUTINE lmppm
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: huynh
+!
+! !DESCRIPTION: Subroutine HUYNH enforces Huynh's 2nd constraint in 1D 
+!  periodic domain
+!
+! !INTERFACE:
+!
   SUBROUTINE huynh(im, ar, al, p, d2, d1)
 !
-!******************************************************************************
-!  Subroutine HUYNH enforces Huynh's 2nd constraint in 1D periodic domain
+! !INPUT PARAMETERS:
 !
-!  Originally written by S-L Lin -- converted to F90 freeform format
-!  and added to "Geos3RegridModule" by Bob Yantosca (bmy, 9/21/00)
-!******************************************************************************
+    INTEGER :: im
+    REAL*8  :: p(im)
 !
-    INTEGER :: im, i
-    REAL*8  :: ar(im), al(im), p(im), d2(im), d1(im)
-
-    ! Local scalars:
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL*8  :: ar(im), al(im), d2(im), d1(im)
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: i
     REAL*8  :: pmp, lac, pmin, pmax
 
     !===================================================================
@@ -1111,23 +1173,34 @@ CONTAINS
     enddo
 
   END SUBROUTINE huynh
-
+!EOC
 !-----------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CasaRegridInit
+!
+! !DESCRIPTION: Subroutine CasaRegridInit initializes the longitude and 
+!  latitude edge arrays for 0.5 x 0.666, 1 x 1.25, 2 x 2.5, and 4 x 5 grids.
+! (bmy, 11/9/06)
+!
+! !REMARKS:
+!  Computation is done in REAL*8 and then casted to REAL*4 in order
+!  to get correct values for the high-resolution grids. 
+!
+! !INTERFACE:
+!
   SUBROUTINE CasaRegridInit
-
-    !=======================================================================
-    ! Subroutine "Geos5RegridInit" initializes the longitude and latitude
-    ! edge arrays for 0.5 x 0.666, 1 x 1.25, 2 x 2.5, and 4 x 5 grids.
-    ! (bmy, 11/9/06)
-    !
-    ! Computation is done in REAL*8 and then casted to REAL*4 in order
-    ! to get correct values for the high-resolution grids. 
-    !
-    ! NOTES:
-    !=======================================================================
-
-    ! Local variables
+!
+! !REVISION HISTORY:
+!
+!EOP
+!-----------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
     INTEGER :: I, J
     REAL*8  :: DI, DJ
 
@@ -1216,7 +1289,7 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE CasaRegridInit
-
+END MODULE CasaRegridModule
+!EOC
 !-----------------------------------------------------------------------------
 
-END MODULE CasaRegridModule

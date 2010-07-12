@@ -18,30 +18,25 @@ MODULE INPUT_GTMM_MOD
   USE defineArrays
 
   IMPLICIT NONE
+
+  ! Make everything PRIVATE ...
+  PRIVATE
+!
+! !PRIVATE DATA MEMBERS:
+! 
+  INTEGER, PARAMETER :: FIRSTCOL = 38
+  INTEGER, PARAMETER :: HEADER   = 8
+  CHARACTER(LEN=255) :: FILENAME = 'input.gtmm'
+!
+! !PUBLIC MEMBER FUNCTION:
+!
+  PUBLIC :: READ_GTMM_INPUT_FILE
 !
 ! !REVISION HISTORY:
 !  17 Dec 2009 - C. Carouge   - Initial version
 !
 !EOP
 !-----------------------------------------------------------------------------
-
-  !=================================================================
-  ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-  ! and routines from being seen outside "input_gtmm_mod.f"
-  !=================================================================
-     
-  ! Make everything PRIVATE ...
-  PRIVATE
- 
-  ! ... except these routines
-  PUBLIC :: READ_GTMM_INPUT_FILE
-      
-  !=================================================================
-  ! MODULE VARIABLES 
-  !=================================================================
-  INTEGER, PARAMETER :: FIRSTCOL = 38
-  INTEGER, PARAMETER :: HEADER   = 8
-  CHARACTER(LEN=255) :: FILENAME = 'input.gtmm'
 
 CONTAINS
 
@@ -59,9 +54,6 @@ CONTAINS
 !
   SUBROUTINE READ_GTMM_INPUT_FILE
 !
-! !USES:
-!
-!
 ! !REVISION HISTORY:
 !  17 Dec 2009 - C. Carouge  -- Initial version
 !
@@ -78,7 +70,10 @@ CONTAINS
     IU_GTMM=20
     ! Open file
     OPEN( IU_GTMM, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
-    IF ( IOS /= 0 ) stop '1' !CALL IOERROR( IOS, IU_GTMM, 'read_input_file:1' )
+    IF ( IOS /= 0 ) THEN
+       print*, 'Problem opening the input file for GTMM'
+       stop
+    ENDIF
 
     !Read header
     DO i=1,HEADER
@@ -131,4 +126,7 @@ CONTAINS
     
     CLOSE(IU_GTMM)
   END SUBROUTINE READ_GTMM_INPUT_FILE
+
 END MODULE INPUT_GTMM_MOD
+!EOC
+!------------------------------------------------------------------------------

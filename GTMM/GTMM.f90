@@ -1,5 +1,37 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !PROGRAM: GTMM
+!
+! !DESCRIPTION: Based on the CASA (Carnegie, Ames, Stanford Approach) 
+!  terrestrial biogeochemical model designed to simulate the terrestrial
+!  carbon cycle using satellite data
+!
+! !INTERFACE:
+!
 PROGRAM GTMM
+!
+! !USES:
+!
+  USE      defineConstants ! modify defineConstants.f90 to choose
+                         ! parameters for your run 
 
+  USE      loadCASAinput
+  
+  USE      defineArrays
+
+  USE      DORESTART_MOD ! New module to save/read Hg data and 
+                         ! CASA data for continuation runs and GEOS-CHEM. 
+                         ! (ccc, 11/3/09)
+
+  USE      INPUT_GTMM_MOD
+
+  IMPLICIT NONE
+!
+! !AUTHOR:
+!
 !GTMM (Global Terrestrial Mercury Model) Developed by 
 !Nicole Smith-Downey (nicolevdowney@gmail.com) 2006-2009
 !See Smith-Downey, Sunderland and Jacob, JGR Biogeosciences, 2009
@@ -15,34 +47,27 @@ PROGRAM GTMM
 !     based on satellite and surface data.  Global 
 !     Biogeochemical Cycles (7) 811-841.
 !
-!Translated into Matlab and accounted for fires by Guido van 
-!der Werf.  
-!See: van der Werf, G.R., J.T. Randerson, G.J. Collatz and L. 
-!     Giglio, 2003.  Carbon emissions from fires in tropical
-!     and subtropical ecosystems.  Global Change Biology 9
-!     (4) 547-562.
+! !REVISION HISTORY:
 !
-!Translated into Fortran90 and added Mercury simulation by 
-!Nicole Smith Downey - 2006
+! ( 1) Translated into Matlab and accounted for fires by Guido van 
+!      der Werf.  
+!See:  van der Werf, G.R., J.T. Randerson, G.J. Collatz and L. 
+!      Giglio, 2003.  Carbon emissions from fires in tropical
+!      and subtropical ecosystems.  Global Change Biology 9
+!      (4) 547-562.
 !
-      
-!<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  USE      defineConstants ! modify defineConstants.f90 to choose
-                         ! parameters for your run 
-
-  USE      loadCASAinput
-  
-  USE      defineArrays
-
-  USE      DORESTART_MOD ! New module to save/read Hg data and 
-                         ! CASA data for continuation runs and GEOS-CHEM. 
-                         ! (ccc, 11/3/09)
-
-  USE      INPUT_GTMM_MOD
-!<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-  IMPLICIT NONE
-
+! ( 2) Translated into Fortran90 and added Mercury simulation by 
+!      Nicole Smith Downey - 2006
+!
+! ( 3) Main program for offline simulations. Added coupling to GEOS-Chem
+!      (see GTMM_coupled.f90) (ccc, 7/9/10)
+! ( 4) Added capacity to restart runs. (ccc, 7/9/10)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
   REAL*8, DIMENSION(72, 46)  :: Hg0reemit    ! Dummy array. Used for coupling
                                              ! with GC only
   INTEGER :: year, month, ageClass
@@ -52,6 +77,10 @@ PROGRAM GTMM
                                              ! stand-alone model. (ccc, 11/2/09)
 
   LOGICAL :: FIRST=.TRUE.
+
+  !----------------------------------------------------------------------------
+  ! GTMM begins here !
+  !----------------------------------------------------------------------------
 
   CALL makeCASAarrays               !subroutine in defineArrays
 
@@ -92,75 +121,75 @@ PROGRAM GTMM
   CALL CONV_TO_1D
 
   IF (.NOT.LRESTART) THEN   ! NPP equilibrium only done for the first run
-  h=1
-  print *, 'starting spinup to npp equilibirum'
-
-  ! run NPP to equilibrium
-  DO year=1,NPPequilibriumYear
-     print *, yr
-     DO month=1,12
+     h=1
+     print *, 'starting spinup to npp equilibirum'
+     
+     ! run NPP to equilibrium
+     DO year=1,NPPequilibriumYear
+        print *, yr
+        DO month=1,12
 !        CALL load_data(year, month, LCPLE)    !subroutine in loadCASAinput.f90
-        CALL doLatitude
-        CALL getSoilParams
-        CALL getSoilMoistParams
-        CALL getFuelWood
-
-        CALL doPET
-        CALL doSoilMoisture
-        CALL doFPARandLAI(FIRST)
-        CALL doOptimumTemperature
-        CALL doNPP
-        CALL doHerbivory
-        CALL doLeafRootShedding
-        CALL getFireParams
-        IF (n_age_classes == 1) THEN
-           CALL doTreeCarbon
-           CALL doHerbCarbon
-        ELSE
-           DO ageClass=1,n_age_classes
-              CALL getAgeClassBF
-              CALL assignAgeClassToRunningPool
+           CALL doLatitude
+           CALL getSoilParams
+           CALL getSoilMoistParams
+           CALL getFuelWood
+           
+           CALL doPET
+           CALL doSoilMoisture
+           CALL doFPARandLAI(FIRST)
+           CALL doOptimumTemperature
+           CALL doNPP
+           CALL doHerbivory
+           CALL doLeafRootShedding
+           CALL getFireParams
+           IF (n_age_classes == 1) THEN
               CALL doTreeCarbon
               CALL doHerbCarbon
-              CALL assignRanPoolToAgeClass
-              age_class=age_class+1
-           END DO
-           CALL organizeAgeClasses
+           ELSE
+              DO ageClass=1,n_age_classes
+                 CALL getAgeClassBF
+                 CALL assignAgeClassToRunningPool
+                 CALL doTreeCarbon
+                 CALL doHerbCarbon
+                 CALL assignRanPoolToAgeClass
+                 age_class=age_class+1
+              END DO
+              CALL organizeAgeClasses
+           ENDIF
+           !CALL processData
+           age_class=1
+           mo=mo+1
+        END DO
+        mo=1
+        yr=yr+1
+        h=h+1
+        IF (h > 25) THEN
+           h=1
         ENDIF
-        !CALL processData
-        age_class=1
-        mo=mo+1
+        FIRST=.FALSE.
      END DO
-     mo=1
-     yr=yr+1
-     h=h+1
-     IF (h > 25) THEN
-        h=1
-     ENDIF
-     FIRST=.FALSE.
-  END DO
-
-  ! Save values to restart file
-  CALL doSaveCASAforRestart
-
-
+     
+     ! Save values to restart file
+     CALL doSaveCASAforRestart
+     
+     
   ENDIF
-
+  
   IF ( LRESTART ) THEN     ! Need to load data from previous run
      CALL doReadCASAfromRestart   
-
+     
      ! Read Hg data saved from previous run. (ccc, 11/3/09)
      CALL doReadHgforGC
   ENDIF
-
-
+  
+  
   ! run terrestrial mercury
   age_class=1
   mo = 1
   DO year=(NPPequilibriumYear+1),(HgPoolsequilibriumYear)
      print *, yr
      DO month=1,12
-!        CALL load_data(year, month, LCPLE)     !subroutine in loadCASAinput.f90
+!        CALL load_data(year, month, LCPLE)    !subroutine in loadCASAinput.f90
         CALL getSoilParams
         CALL getSoilMoistParams
         CALL doLatitude
@@ -197,7 +226,7 @@ PROGRAM GTMM
         h=1
      ENDIF
   END DO
-
+  
   ! Save Hg data at equilibrium to use in GEOS-Chem. (ccc, 11/3/09)
   CALL doSaveHgforGC
   
@@ -205,3 +234,5 @@ PROGRAM GTMM
   print *, 'deallocating all arrays'
   CALL CleanupCASAarrays
 END PROGRAM GTMM
+!EOC
+!------------------------------------------------------------------------------

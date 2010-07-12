@@ -106,11 +106,8 @@ GTMM.o                         : GTMM.f90              defineConstants.o     \
                                  dorestart_mod.o       input_gtmm_mod.o
 
 GTMM_coupled.o                 : GTMM_coupled.f90      defineConstants.o     \
-                                 loadCASAinput.o       defineArrays.o        \
-                                 HgdataforGC_mod.o
-
-HgdataforGC_mod.o              : HgdataforGC_mod.f90   defineConstants.o     \
-                                 defineArrays.o
+                                 defineArrays.o        dorestart_mod.o       \
+	                         loadCASAinput.o       input_gtmm_mod.o      
 
 HgOutForGEOS.o                 : HgOutForGEOS.f90      defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o        \

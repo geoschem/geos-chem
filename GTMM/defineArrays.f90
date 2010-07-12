@@ -1,12 +1,24 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: defineArrays
+!
+! !DESCRIPTION: Module defineArrays defines all allocatable arrays for GTMM
+!
+! !INTERFACE:
+!
 MODULE defineArrays
-  !makes arrays for use in CASA
-  
+!
+! !USES:
+!  
   USE defineConstants
   
   implicit none
-  
-  
-  !<<<<<<<<<< DECLARE VARIABLES  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!
+! !PUBLIC MEMBERS VARIABLE
+!  
   ! in getSoilParams
   CHARACTER(5), dimension(20000) :: years 
   REAL*8, ALLOCATABLE :: clay(:,:)
@@ -553,15 +565,41 @@ MODULE defineArrays
   REAL*8, ALLOCATABLE :: temp_hg(:,:)
   REAL*8, ALLOCATABLE :: photoreduced(:,:)
   REAL*8, ALLOCATABLE :: Hg0out(:,:) 
-  !<<<<<<<<<<< END DECLARE VARIABLES >>>>>>>>>>>>
-  
+!
+! !REVISION HISTORY:
+!
+! 9 July 2010 - C. Carouge  - Adapted for coupling with GEOS-Chem and restart
+!                             offline simulations.
+!EOP
+!------------------------------------------------------------------------------
+ 
 CONTAINS
   
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: readCASAparam
+!
+! !DESCRIPTION: Subroutine readCASAparam reads some input for CASA
+!
+! !INTERFACE:
+!
   SUBROUTINE readCASAparam
-
+!
+! !USES:
+!
     USE defineConstants
-
-    !declare other variables
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
     CHARACTER(len=f_len+8) :: filename
     integer                 :: ios
 
@@ -591,12 +629,30 @@ CONTAINS
     ENDIF
     
   END SUBROUTINE READCASAPARAM
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: makeCASAarrays
+!
+! !DESCRIPTION: Subroutine makeCASAarrays allocate all allocatable arrays.
+!
+! !INTERFACE:
+!
   SUBROUTINE makeCASAarrays
-    
+!
+! !USES:
+!    
     USE defineConstants
-    
+!
+! !REVISION HISTORY:
+!    
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     ALLOCATE(clay(n_veg, 1))
     ALLOCATE(silt(n_veg, 1))
     ALLOCATE(sand(n_veg, 1))
@@ -1057,9 +1113,26 @@ CONTAINS
     ALLOCATE(HgAqmonthly(HgPOOLSequilibriumYear,12))
 
   END SUBROUTINE makeCASAarrays
-      
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: initialize
+!
+! !DESCRIPTION: Subroutine initialize initialize all allocatable arrays to 0
+!
+! !INTERFACE:
+!   
   SUBROUTINE initialize
-
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
     ! Initialize all arrays to 0.
 
     clay = 0.d0
@@ -1515,3 +1588,5 @@ CONTAINS
   END SUBROUTINE initialize
   
 END MODULE defineArrays
+!EOC
+!------------------------------------------------------------------------------

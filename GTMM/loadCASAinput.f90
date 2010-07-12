@@ -1,85 +1,121 @@
-MODULE loadCASAinput
-
-! Loads input files.  For global studies, these files should be given 
-! as 180 by 360 matrix for 1x1 degree, 360 by 720 for half by half 
-! etc.  This routine will construct a 'mask' with vegetated gridcells
-! and will reshape them into an X by 1 matrix, where X is the total
-! number of vegetated grid cells.  
-! The files which contain monthly varying parameters (i.e. precip)
-! should be given as (for 1x1) 180x360x12, and will be reshaped to
-! an X by 12 matrix, one column for each month
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
+! !MODULE: loadCASAinput
+!
+! !DESCRIPTION: Loads input files.
+!
+! !REMARKS: For global studies, these files should be given 
+!  as 180 by 360 matrix for 1x1 degree, 360 by 720 for half by half 
+!  etc.  This routine will construct a 'mask' with vegetated gridcells
+!  and will reshape them into an X by 1 matrix, where X is the total
+!  number of vegetated grid cells.  
+!  The files which contain monthly varying parameters (i.e. precip)
+!  should be given as (for 1x1) 180x360x12, and will be reshaped to
+!  an X by 12 matrix, one column for each month
+!
+! !INTERFACE:
+!
+MODULE loadCASAinput
+!
+! !USES:
+!
+  USE defineConstants
+  USE CasaRegridModule
 
-
-USE defineConstants
-USE CasaRegridModule
-
-implicit none
-
+  implicit none
+!
+! !PUBLIC DATA MEMBERS:
+!
 !CONTINUOUS FIELD MAPS
-   REAL*8, ALLOCATABLE :: perc_tree(:,:)
-   REAL*8, ALLOCATABLE :: perc_herb(:,:) 
-
+  REAL*8, ALLOCATABLE :: perc_tree(:,:)
+  REAL*8, ALLOCATABLE :: perc_herb(:,:) 
+  
 !RESIZED CONTINUOUS FIELD MAPS
-   REAL*8, ALLOCATABLE :: perc_tree1(:,:)
-   REAL*8, ALLOCATABLE :: perc_herb1(:,:)
-   REAL*8, ALLOCATABLE :: frac_tree(:,:)
-   REAL*8, ALLOCATABLE :: frac_herb(:,:)
-   REAL*8, ALLOCATABLE :: frac_veg(:,:)
+  REAL*8, ALLOCATABLE :: perc_tree1(:,:)
+  REAL*8, ALLOCATABLE :: perc_herb1(:,:)
+  REAL*8, ALLOCATABLE :: frac_tree(:,:)
+  REAL*8, ALLOCATABLE :: frac_herb(:,:)
+  REAL*8, ALLOCATABLE :: frac_veg(:,:)
 
 !CLIMATE FILES
-   REAL*8, ALLOCATABLE :: airt(:,:,:)   !monthly air temperature
-   REAL*8, ALLOCATABLE :: ppt(:,:,:)    !monthly precipitation
-   REAL*8, ALLOCATABLE :: solrad(:,:,:) !monthly solar radiation, 
-                          !Taken from Bishop and Rossow
-                          !average 83-99 from Jim Collatz
+  REAL*8, ALLOCATABLE :: airt(:,:,:)   !monthly air temperature
+  REAL*8, ALLOCATABLE :: ppt(:,:,:)    !monthly precipitation
+  REAL*8, ALLOCATABLE :: solrad(:,:,:) !monthly solar radiation, 
+                                       !Taken from Bishop and Rossow
+                                       !average 83-99 from Jim Collatz
 
-   REAL*8, ALLOCATABLE :: NDVI(:,:,:)   !monthly fraction PAR
-   REAL*8, ALLOCATABLE :: BF(:,:,:)     !fraction gridcell tha burns
-   REAL*8, ALLOCATABLE :: ppt_mo(:,:)   !sum of all precip in each mo
+  REAL*8, ALLOCATABLE :: NDVI(:,:,:)   !monthly fraction PAR
+  REAL*8, ALLOCATABLE :: BF(:,:,:)     !fraction gridcell tha burns
+  REAL*8, ALLOCATABLE :: ppt_mo(:,:)   !sum of all precip in each mo
    
 !RESIZED CLIMATE FILES
-   REAL*8, ALLOCATABLE :: airt1(:,:)
-   REAL*8, ALLOCATABLE :: ppt1(:,:)
-   REAL*8, ALLOCATABLE :: solrad1(:,:)
-   REAL*8, ALLOCATABLE :: NDVI1(:,:)
-   REAL*8, ALLOCATABLE :: BF1(:,:)
-   REAL*8, ALLOCATABLE :: maxt(:,:)
-   REAL*8, ALLOCATABLE :: mint(:,:)
+  REAL*8, ALLOCATABLE :: airt1(:,:)
+  REAL*8, ALLOCATABLE :: ppt1(:,:)
+  REAL*8, ALLOCATABLE :: solrad1(:,:)
+  REAL*8, ALLOCATABLE :: NDVI1(:,:)
+  REAL*8, ALLOCATABLE :: BF1(:,:)
+  REAL*8, ALLOCATABLE :: maxt(:,:)
+  REAL*8, ALLOCATABLE :: mint(:,:)
  
 !OTHER FILES
-   REAL*8, ALLOCATABLE :: soiltext(:,:)  ! soil type
-   REAL*8, ALLOCATABLE :: veg(:,:)       ! vegetation map
-   REAL*8, ALLOCATABLE :: fuelneed(:,:)  ! fuelwood needed 
-                                         !   per capita
-   REAL*8, ALLOCATABLE :: popdens(:,:)   ! population density (/m2)
-   REAL*8, ALLOCATABLE :: gridAreaa(:,:)
-   REAL*8, ALLOCATABLE :: gridAreab(:,:)
+  REAL*8, ALLOCATABLE :: soiltext(:,:)  ! soil type
+  REAL*8, ALLOCATABLE :: veg(:,:)       ! vegetation map
+  REAL*8, ALLOCATABLE :: fuelneed(:,:)  ! fuelwood needed 
+                                        !   per capita
+  REAL*8, ALLOCATABLE :: popdens(:,:)   ! population density (/m2)
+  REAL*8, ALLOCATABLE :: gridAreaa(:,:)
+  REAL*8, ALLOCATABLE :: gridAreab(:,:)
    
 !RESIZED OTHER FILES
-   REAL*8, ALLOCATABLE :: soiltext1(:,:)
-   REAL*8, ALLOCATABLE :: veg1(:,:)
-   REAL*8, ALLOCATABLE :: fuelneed1(:,:)
-   REAL*8, ALLOCATABLE :: popdens1(:,:)
+  REAL*8, ALLOCATABLE :: soiltext1(:,:)
+  REAL*8, ALLOCATABLE :: veg1(:,:)
+  REAL*8, ALLOCATABLE :: fuelneed1(:,:)
+  REAL*8, ALLOCATABLE :: popdens1(:,:)
 
    
-   REAL*8, ALLOCATABLE :: mask2(:,:)
-   
-!<<<<<<<<<END DECLARE VARIABLES>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  REAL*8, ALLOCATABLE :: mask2(:,:)
+!
+! !REVISION HISTORY:
+!
+! 9 July 2010 - C. Carouge  - Modified for coupled simulations with GEOS-Chem
+!                             or to restart offline simulations. 
+!EOP
+!------------------------------------------------------------------------------
 
 CONTAINS
 
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: load_data
+!
+! !DESCRIPTION: Reads input data.
+!
+! !INTERFACE:
+!
   SUBROUTINE load_data(LCPLE)
-
-   USE defineConstants
-
-   ! ARGUMENTS
+!    
+! !USES:
+!
+    USE defineConstants
+!
+! !INPUT PARAMETERS:
+!
    LOGICAL, INTENT(IN)  :: LCPLE
-
-   ! OTHER VARIABLES
-   
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
    integer   ::   i, j, k, l, m, n, b, c, ios
    character(len=f_len+8)                :: filename
    real*8, dimension(72,46)              ::   geos
@@ -290,16 +326,36 @@ CONTAINS
       read(2,*) popdens
       close(2)
    END IF
-print *, 'Finished reading in data...now resizing arrays'
-print *, ''
-!<<<<<<<<<<END READ IN DATA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+   print *, 'Finished reading in data...now resizing arrays'
+   print *, ''
 
-END SUBROUTINE load_data
-
-SUBROUTINE CONV_TO_1D
-
+ END SUBROUTINE load_data
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CONV_TO_1D
+!
+! !DESCRIPTION: Convert maps into one column with only vegetated grid cells
+!
+! !INTERFACE:
+!
+ SUBROUTINE CONV_TO_1D
+!
+! !USES:
+!
    USE defineConstants
-
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
    integer :: i
    character(len=f_len+8)                :: filename
    
@@ -311,12 +367,9 @@ SUBROUTINE CONV_TO_1D
    real*8, dimension(columns, rows)  :: gridAreac
    real*8  :: testa(180)
 
-!<<<<<<<<<<CONVERT MAPS INTO ONE COLUMN WITH ONLY VEGETATED GRID
-!CELLS>>>>>>
-   IF (.NOT. ALLOCATED(mask2) ) &
-    ALLOCATE(mask2(columns, rows))
-    mask1=(perc_tree+perc_herb)
-    mask2=(mask1*veg)
+   IF (.NOT. ALLOCATED(mask2) ) ALLOCATE(mask2(columns, rows))
+   mask1=(perc_tree+perc_herb)
+   mask2=(mask1*veg)
 !<<<<<<<<<<<<REGRID DATA >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 
@@ -407,68 +460,120 @@ SUBROUTINE CONV_TO_1D
    CLOSE(4)
    
  END SUBROUTINE CONV_TO_1D
- 
+!EOC 
 !-----------------------------------------------------------------------------
-function maskfile(dummy,mask3) result (masked_file)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IFUNCTION: maskfile
+!
+! !DESCRIPTION:
+!
+! !INTERFACE:
+!
+ function maskfile(dummy,mask3) result (masked_file)
+!
+! !USES:
+!
+   USE defineConstants
 
-USE defineConstants
-
-implicit none
-
-real*8, dimension(columns, rows) :: dummy, mask3
-real*8, dimension(n_veg,1)  :: masked_file
-
-integer                 :: a,b,c,g,i,j
-character(len=f_len_output+3)       :: filename3
-real*8, dimension(3,n_veg)           :: key
-
-filename3(1:f_len_output)=outputpath
-filename3(f_len_output+1:f_len_output+3)='key'
-
-g=1
-DO i=1,columns
-   DO j=1,rows
-      IF (mask3(i,j) > 0) THEN
-          masked_file(g,1)=dummy(i,j)
-          key(1,g)=i
-          key(2,g)=j
-          key(3,g)=veg(i,j)
-          g=g+1
-      END IF
+   implicit none
+!
+! !INPUT PARAMETERS:
+!
+   real*8, dimension(columns, rows) :: dummy, mask3
+!
+! !RETURN VALUE:
+!
+   real*8, dimension(n_veg,1)  :: masked_file
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   integer                 :: a,b,c,g,i,j
+   character(len=f_len_output+3)       :: filename3
+   real*8, dimension(3,n_veg)           :: key
+   
+   filename3(1:f_len_output)=outputpath
+   filename3(f_len_output+1:f_len_output+3)='key'
+   
+   g=1
+   DO i=1,columns
+      DO j=1,rows
+         IF (mask3(i,j) > 0) THEN
+            masked_file(g,1)=dummy(i,j)
+            key(1,g)=i
+            key(2,g)=j
+            key(3,g)=veg(i,j)
+            g=g+1
+         END IF
+      END DO
    END DO
-END DO
-
-OPEN(UNIT=4, file=filename3, FORM='FORMATTED')
-WRITE(4,FMT="(3F9.2)") key
-CLOSE(4)
-end function maskfile
-
+   
+   OPEN(UNIT=4, file=filename3, FORM='FORMATTED')
+   WRITE(4,FMT="(3F9.2)") key
+   CLOSE(4)
+ end function maskfile
+!EOC 
 !----------------------------------------------------------------------------
-function mask12file(dummy12, mask3) result (masked_12file)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IFUNCTION: mask12file
+!
+! !DESCRIPTION:
+!
+! !INTERFACE:
+!
+ function mask12file(dummy12, mask3) result (masked_12file)
+!
+! !USES:
+!
+   USE defineConstants
 
-USE defineConstants
+   implicit none
+!
+! !INPUT PARAMETERS:
+!
+   real*8, dimension(columns, rows, 12)  ::  dummy12
+   real*8, dimension(columns, rows)      ::  mask3
+!
+! !RETURN VALUE:
+!
+   real*8, dimension(n_veg, 12)              ::  masked_12file
+!
+! !REVISION HISTORY:
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   integer                               ::  a, g, i, j, k
 
-implicit none
-
-real*8, dimension(columns, rows, 12)  ::  dummy12
-real*8, dimension(n_veg, 12)              ::  masked_12file
-real*8, dimension(columns, rows)      ::  mask3
-integer                               ::  a, g, i, j, k
-
-g=1
-DO i=1,columns
-   DO j=1, rows
-      IF (mask3(i,j) .gt. 0d0) THEN
-         DO k=1,12  ! months
-            masked_12file(g,k)=dummy12(i,j,k)
-         END DO
-         g=g+1
-      END IF
+   g=1
+   DO i=1,columns
+      DO j=1, rows
+         IF (mask3(i,j) .gt. 0d0) THEN
+            DO k=1,12  ! months
+               masked_12file(g,k)=dummy12(i,j,k)
+            END DO
+            g=g+1
+         END IF
+      END DO
    END DO
-END DO
-          
-end function mask12file
-
-!----------------------------------------------------------------------------
+   
+ end function mask12file
 
 END MODULE loadCASAinput
+!EOC
+!----------------------------------------------------------------------------
+

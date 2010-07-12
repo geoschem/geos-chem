@@ -1,33 +1,20 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GTMM_coupled
+!
+! !DESCRIPTION: Main subroutine for GTMM when coupled to GEOS-Chem. Replace
+!  GTMM.f90. (ccc, 9/7/10)
+! 
+! !INTERFACE:
+!
 SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
                         TS,   PREACC, RADSWG, Hg0reemit  )
-
-!GTMM (Global Terrestrial Mercury Model) Developed by 
-!Nicole Smith-Downey (nicolevdowney@gmail.com) 2006-2009
-!See Smith-Downey, Sunderland and Jacob, JGR Biogeosciences, 2009
 !
-!Based on the CASA (Carnegie, Ames, Stanford Approach) terrestrial
-!biogeochemical model designed to simulate the terrestrial
-!carbon cycle using satellite data
+! !USES:
 !
-!Original program written by Potter and Randerson
-!See: Potter, C.S., J.T. Randerson, C.B. Field, P.A. Matson, 
-!     P.M.Vitousek, H.A. Mooney, and S.A. Klooster, 1993.  
-!     Terrestrial ecosystem production: A process model
-!     based on satellite and surface data.  Global 
-!     Biogeochemical Cycles (7) 811-841.
-!
-!Translated into Matlab and accounted for fires by Guido van 
-!der Werf.  
-!See: van der Werf, G.R., J.T. Randerson, G.J. Collatz and L. 
-!     Giglio, 2003.  Carbon emissions from fires in tropical
-!     and subtropical ecosystems.  Global Change Biology 9
-!     (4) 547-562.
-!
-!Translated into Fortran90 and added Mercury simulation by 
-!Nicole Smith Downey - 2006
-!
-      
-!<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   USE      defineConstants ! modify defineConstants.f90 to choose
                          ! parameters for your run 
 
@@ -40,19 +27,35 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
 
   USE      INPUT_GTMM_MOD
   
-!<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   IMPLICIT NONE
-  
-  INTEGER, INTENT(INOUT)       :: year, month
+!
+! !INPUT PARAMETERS:
+!  
   REAL*8, INTENT(IN)           :: DD_Hg0(72, 46), DD_HgII(72, 46), &
                                   WD_HgII(72, 46)    ! Hg deposition info.
 
   REAL*8, INTENT(IN),  DIMENSION(72, 46)  :: TS, PREACC, RADSWG !Met field info
-  
+!
+! !INPUT/OUTPUT PARAMETERS:
+!  
+  INTEGER, INTENT(INOUT)       :: year, month
+!
+! !OUTPUT PARAMETERS:
+!  
   REAL*8, INTENT(OUT), DIMENSION(72, 46)  :: Hg0reemit  ! Reemitted flux, 
                                                         ! output to GEOS-Chem
-
+!
+! !REVISION HISTORY:
+!
+! 9 July 2010 - C. Carouge  - First version. Adapted from GTMM.f90
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
   INTEGER :: ageClass
 
   ! Define if we run CASA for carbon equilibre or not.
@@ -142,4 +145,7 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
   ! END OF RUN -- DEALLOCATE ALL
   print *, 'deallocating all arrays'
   CALL CleanupCASAarrays
+
 END SUBROUTINE GTMM_coupled
+!EOC
+!------------------------------------------------------------------------------

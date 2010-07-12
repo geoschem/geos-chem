@@ -1,15 +1,42 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: load_GC_data
+!
+! !DESCRIPTION: Subroutine load\_GC\_data is only used with GTMM coupled to
+!  GEOS-Chem. The subroutine regrid the temperature, precipation and
+!  radiation fields to 1x1. The met fields are read in GTMM_DR in GEOS_Chem.
+!  (ccc, 7/9/10)
+!
+! !INTERFACE:
+!
 SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
-
+!
+! !USES:
+!
   USE defineConstants
   USE loadCASAinput
   USE CasaRegridModule
   
   implicit none
-
-  ! ARGUMENTS
+!
+! !INPUT PARAMETERS:
+!
   INTEGER, INTENT(IN) :: month
   REAL*8, INTENT(IN), DIMENSION(I4x5, J4x5)  :: TS, &
        PREACC, RADSWG
+!
+! !REVISION HISTORY:
+! 
+! 9 July 2010 - C. Carouge  - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
   real*8, dimension(columns, rows)      ::   geos1x1
   
 
@@ -27,3 +54,5 @@ SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
   solrad(:,:,month)=geos1x1
   
 END SUBROUTINE load_GC_data
+!EOC
+!------------------------------------------------------------------------------

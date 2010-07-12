@@ -1,28 +1,42 @@
-SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
-      
-  !this code reads in output from geos chem 4x5 degree, converts it 
-  !to 1x1 degree, then converts it to (n_veg,1) for CASA
-
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-! NOTES:
-! 15 Dec 09 - C. Carouge  - Add arguments for coupling with GEOS-Chem
-!                         - Change format of emission years file to 
-!                           facilitate restart.
-!-----------------------------------------------------------------------
-
+! !IROUTINE: loadHgDeposition
+!
+! !DESCRIPTION: This code reads in output from geos chem 4x5 degree, 
+!  converts it to 1x1 degree, then converts it to (n_veg,1) for CASA
+!
+! !INTERFACE:
+!
+SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
+!
+! !USES:
+!      
   USE defineConstants
   USE loadCASAinput
   USE defineArrays
   USE CasaRegridModule
     
   IMPLICIT NONE
-
-  ! Arguments
+!
+! !INPUT PARAMETERS:
+!
   LOGICAL, INTENT(IN)           :: LCPLE
   
   REAL*8, INTENT(IN), OPTIONAL  :: DD_Hg0(72, 46), DD_HgII(72, 46)
   REAL*8, INTENT(IN), OPTIONAL  :: WD_HgII(72, 46)
-
+!
+! !REVISION HISTORY:
+! 15 Dec 09 - C. Carouge  - Add arguments for coupling with GEOS-Chem
+!                         - Change format of emission years file to 
+!                           facilitate restart.
+!-----------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
   REAL*8 ::                 Hg0dryGEOS(72,46)
   REAL*8 ::                 HgIIdryGEOS(72,46)
   REAL*8 ::                 HgIIwetGEOS(72,46)
@@ -35,8 +49,6 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
   CHARACTER(LEN=f_len+14) :: filename1
   CHARACTER(LEN=f_len+6) :: filename2
   CHARACTER(3), DIMENSION(12) :: months
-!--- Previous to (ccc, 12/15/09)
-!  CHARACTER(4), DIMENSION(HgPoolsequilibriumYear) :: em_years
   INTEGER, DIMENSION(2):: em_years
   INTEGER              :: year
 
@@ -223,22 +235,6 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
 
   ENDIF
   
-!--- Previous to (ccc, 11/12/09)
-!  DO i=1,46
-!     DO j=1,72
-!        HgIIwetGEOS(j,i)=HgIIwetGEOS(j,i)/area_pix(j,i)
-!     END DO
-!  END DO
-!  HgIIwetGEOS(:,:)=HgIIwetGEOS(:,:)/area_pix(:,:)
-!  
-!  HgIIwetGEOS(:,:)=HgIIwetGEOS(:,:)*1000.0d0*2629743.83d0
-!  !now in units of g/m2/mo
-!  
-!  !dry dep is in unitls of molec/cm2/s
-!  HgIIdryGEOS(:,:)=(HgIIdryGEOS(:,:)*(10000.0d0*2629743.83d0*200.59d0))  &
-!                   /(6.022d23)
-!  Hg0dryGEOS(:,:)=(Hg0dryGEOS(:,:)*(10000.0d0*2629743.83d0*200.59d0))    &
-!                   /(6.022d23)
-!  !now in units of g/m2/mo
-
 END SUBROUTINE loadHgDeposition
+!EOC
+!------------------------------------------------------------------------------
