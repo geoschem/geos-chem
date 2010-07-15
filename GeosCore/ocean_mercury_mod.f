@@ -128,12 +128,12 @@
 !      PUBLIC :: IS_ICE_FIX       !cdh
 !      PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
 !      PUBLIC :: SNOW_HG ! CDH snowpack
-      PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM
+      PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
 !      PUBLIC :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       PUBLIC :: LRED_JNO2,   LGEOSLWC
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
-      PUBLIC :: STRAT_BR_FACTOR, LAnthroHgOnly
-      PUBLIC :: LOHO3CHEM
+      PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
+      PUBLIC :: LOHO3CHEM,              LnoUSAemis
          
       !=================================================================
       ! MODULE VARIABLES
@@ -177,11 +177,12 @@
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
-      LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM
+      LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
 !      LOGICAL   :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
       LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
+      LOGICAL   :: LnoUSAemis
       REAL*8    :: STRAT_BR_FACTOR
 
       ! CDH Set this TRUE to use corrected area-flux relationship

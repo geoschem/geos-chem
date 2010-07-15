@@ -1722,9 +1722,10 @@ contains
 
     USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
     USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_DD, ADD_HgP_DD
+    USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
     USE TRACERID_MOD, ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE LOGICAL_MOD,  ONLY : LDYNOCEAN, LGTMM !cdh
-    USE DAO_MOD,      ONLY : LWI, IS_ICE !cdh
+    USE DAO_MOD,      ONLY : LWI, IS_ICE, IS_LAND, SNOMAS, SNOW !cdh
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
 
@@ -1734,6 +1735,8 @@ contains
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
+
+    REAL*8                :: SNOW_HT !cdh
 !
 ! !REVISION HISTORY:
 !
@@ -1840,7 +1843,8 @@ contains
 
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
-!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG )
+!$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
+!$OMP PRIVATE( SNOW_HT )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -1975,7 +1979,15 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. IS_ICE(I,J) ) THEN
+#if defined( GEOS_5 )
+          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+          SNOW_HT = SNOMAS(I,J)
+#else
+          ! GEOS1-4 snow heigt (water equivalent) in mm
+          SNOW_HT = SNOW(I,J)
+#endif 
+          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. &
+               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
 
@@ -2033,16 +2045,26 @@ contains
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, N) * GET_AREA_M2(J) * GET_TS_CONV()
-             
+             DEP_KG = dflx( I, J, NN ) * GET_AREA_M2(J) * GET_TS_CONV() * 60d0
+
+#if defined( GEOS_5 )
+          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+          SNOW_HT = SNOMAS(I,J)
+#else
+          ! GEOS1-4 snow heigt (water equivalent) in mm
+          SNOW_HT = SNOW(I,J)
+#endif 
+
              IF ( IS_Hg2(NN) ) THEN 
                 
-                CALL ADD_HG2_DD( I, J, N, DEP_KG )
+                CALL ADD_HG2_DD( I, J, NN, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, SNOW_HT )
 
              ELSE IF ( IS_HgP( NN ) ) THEN
                 
-                CALL ADD_HGP_DD( I, J, N, DEP_KG )
-                
+                CALL ADD_HGP_DD( I, J, NN, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, SNOW_HT )
+
              ENDIF
 
           ENDDO

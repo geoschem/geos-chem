@@ -80,12 +80,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,         ONLY : SAFE_DIV
       USE DAO_MOD,           ONLY : CLDMAS,    CMFMC, DTRAIN
-      USE OCEAN_MERCURY_MOD, ONLY : LHG2HALFAEROSOL !CDH 9/26/09
-      USE TRACER_MOD,        ONLY : N_TRACERS, TCVV,  STT
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : ID_HG2, ID_HgP !CDH 9/26/09
+      USE MERCURY_MOD,       ONLY : PARTITIONHG
+      USE TRACER_MOD,        ONLY : N_TRACERS, TCVV
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -94,33 +92,10 @@
 
       ! Partition Hg(II) between aerosol and gas
       ! Move from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-!--- Prior to (ccc, 7/7/10)
-! Use SAFE_DIV for the division to avoid NaN or overflow.
-!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-!     &                 ( STT(:,:,:,ID_HGP(1)) +
-!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      
-!$OMP+DEFAULT(SHARED)  
-!$OMP+PRIVATE(L, J, I)
-         DO L=1,LLPAR
-         DO J=1,JJPAR
-         DO I=1,IIPAR
-            HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
-     &           STT(I,J,L,ID_HGP(1)) +
-     &           0.5D0 * STT(I,J,L,ID_HG2(1)),
-     &           0.66D0 )
-            
-            STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
-     &           0.5D0 * STT(I,J,L,ID_HG2(1))
-            STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         CALL PARTITIONHG( 1, STT, HGPFRAC )
       ENDIF
       
-
 #if   defined( GCAP ) 
 
       !-------------------------
@@ -160,10 +135,8 @@
 #endif
 
       ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-      IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-         STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
-     &        (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
-         STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         CALL PARTITIONHG( 2, STT, HGPFRAC )
       ENDIF
       
       ! Return to calling program

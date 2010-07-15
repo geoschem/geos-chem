@@ -199,15 +199,13 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,         ONLY : DEBUG_MSG, SAFE_DIV
+      USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE LOGICAL_MOD,       ONLY : LPRT
-      USE OCEAN_MERCURY_MOD, ONLY : LHG2HALFAEROSOL !CDH 9/26/09
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
-      USE TRACERID_MOD,      ONLY : ID_HG2, ID_HgP !CDH 9/26/09
+      USE MERCURY_MOD,       ONLY : PARTITIONHG
 
 #     include "CMN_SIZE"  ! Size parameters
 
-      INTEGER  :: I, J, L
       REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       !==================================================================
@@ -216,34 +214,10 @@
 
       ! Add partition Hg(II) between aerosol and gas
       ! Moved from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-
-!--- Prior to (ccc, 7/7/10)
-! Use SAFE_DIV for the division to avoid NaN or overflow.
-!                  HGPFRAC = STT(:,:,:,ID_HGP(1)) / 
-!     &                 ( STT(:,:,:,ID_HGP(1)) +
-!     &                   0.5D0 * STT(:,:,:,ID_HG2(1)) )
-!$OMP PARALLEL DO      
-!$OMP+DEFAULT(SHARED)  
-!$OMP+PRIVATE(L, J, I)
-         DO L=1,LLPAR
-         DO J=1,JJPAR
-         DO I=1,IIPAR
-            HGPFRAC(I, J, L) = SAFE_DIV( STT(I,J,L,ID_HGP(1)),
-     &           STT(I,J,L,ID_HGP(1)) +
-     &           0.5D0 * STT(I,J,L,ID_HG2(1)),
-     &           0.66D0 )
-            
-            STT(I,J,L,ID_HGP(1)) = STT(I,J,L,ID_HGP(1)) +
-     &           0.5D0 * STT(I,J,L,ID_HG2(1))
-            STT(I,J,L,ID_HG2(1)) = 0.5D0 * STT(I,J,L,ID_HG2(1))
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-            
-      
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         CALL PARTITIONHG( 1, STT, HGPFRAC )
+      ENDIF            
+     
       ! Wetdep by large-scale (stratiform) precip
       CALL MAKE_QQ( .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
@@ -276,11 +250,9 @@
 
       ! Return all reactive particulate Hg(II) to total Hg(II) tracer
       ! Move from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() .AND. LHG2HALFAEROSOL )THEN
-         STT(:,:,:,ID_HG2(1)) = STT(:,:,:,ID_HG2(1)) +
-     &        (1D0 - HGPFRAC ) * STT(:,:,:,ID_HGP(1))
-         STT(:,:,:,ID_HGP(1)) = HGPFRAC * STT(:,:,:,ID_HGP(1))
-      ENDIF
+      IF ( ITS_A_MERCURY_SIM() ) THEN
+         CALL PARTITIONHG( 2, STT, HGPFRAC )
+      ENDIF 
 
       ! Return to calling program
       END SUBROUTINE DO_WETDEP
@@ -3028,7 +3000,7 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
 
          ! CDH 9/28/2009
-         IF ( TK < 248d0 ) RAINFRAC = 0d0
+!         IF ( TK < 248d0 ) RAINFRAC = 0d0
 
       !------------------------------
       ! ERROR: insoluble tracer!
@@ -3570,7 +3542,7 @@
       ! Washout only happens at or above 268 K
       !
       ! Now allow washout of Hg aerosols (cdh, 4/16/09)
-      IF ( TK >= 268d0 .OR. ITS_A_MERCURY_SIM() ) THEN
+      IF ( ( TK >= 268d0 ) .OR. ITS_A_MERCURY_SIM() ) THEN
          WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
       ELSE
          WASHFRAC = 0d0
@@ -4398,7 +4370,7 @@
                      ! Negative tracer...call subroutine SAFETY
                      IF ( STT(I,J,L,N) < 0d0 .or. 
      &                    IT_IS_NAN( STT(I,J,L,N) ) .or.
-     &                 DSTT(NN,L,I,J) < 0d0 ) THEN
+     &                    DSTT(NN,L,I,J) < 0d0 ) THEN
                         CALL SAFETY( I, J, L, N, 5, 
      &                               LS,             PDOWN(L,I,J), 
      &                               QQ(L,I,J),      ALPHA,        

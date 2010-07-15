@@ -160,10 +160,11 @@
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT, LGCAPEMIS, LPOLARBR
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
 !      USE OCEAN_MERCURY_MOD, ONLY : LHGSNOW,     LHg2HalfAerosol
-      USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW
+      USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW, ADD_HG2_SNOWPACK
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : LHg_WETDasHNO3, STRAT_BR_FACTOR
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly, LOHO3CHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LnoUSAemis,  LBROCHEM
 
       IMPLICIT NONE
 
@@ -181,7 +182,7 @@
       PUBLIC :: INIT_MERCURY
       PUBLIC :: EMISSMERCURY
       PUBLIC :: LHg_WETDasHNO3
-!      PUBLIC :: ADD_HG2_SNOWPACK
+      PUBLIC :: PARTITIONHG
       
       !=================================================================
       ! MODULE VARIABLES
@@ -210,7 +211,7 @@
       REAL*8,  ALLOCATABLE :: EHg0_vg(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_so(:,:)
       REAL*8,  ALLOCATABLE :: EHg0_gtm(:,:)
-      REAL*8,  ALLOCATABLE :: EHg0_gtm1(:,:)
+      REAL*8,  ALLOCATABLE :: EHg0_snow(:,:,:)
       REAL*8,  ALLOCATABLE :: TCOSZ(:,:)
       REAL*8,  ALLOCATABLE :: TTDAY(:,:)
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
@@ -468,7 +469,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : T, AD, IS_WATER, IS_ICE
+      USE DAO_MOD,      ONLY : T, AD, IS_WATER, IS_ICE, IS_LAND
       USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
       USE DIAG03_MOD,   ONLY : AD03_Hg2_Br !cdh added diagnostic
       USE DIAG03_MOD,   ONLY : AD03_Hg2_SS,  LD03,        ND03
@@ -485,7 +486,6 @@
       USE ERROR_MOD,    ONLY : DEBUG_MSG 
 !      USE OCEAN_MERCURY_MOD, ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_DD
-      USE DEPO_MERCURY_MOD, ONLY : ADD_HG2_SNOWPACK
       USE DAO_MOD,          ONLY : SNOW, SNOMAS
       USE PRESSURE_MOD, ONLY : GET_PCENTER 
       USE GRID_MOD,     ONLY : GET_YMID 
@@ -508,7 +508,7 @@
       REAL*8                :: LWC,         AREA_CM2
       REAL*8                :: C_O3,        C_OH,        C_BR
       REAL*8                :: C_BRO
-      REAL*8                :: K_O3,        K_OH,        K_BR         
+      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO         
       REAL*8                :: K_OX,        K_RED       
       REAL*8                :: E_KOX_T,     E_KRED_T    
 
@@ -526,6 +526,7 @@
       REAL*8                :: DEP_HG0,     DEP_HG2
       REAL*8                :: DEP_HG2_DRY, DEP_HG2_SALT
       REAL*8                :: DEP_DRY_FLX
+      REAL*8                :: SNOW_HT
 
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
       REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
@@ -533,18 +534,23 @@
       ! K for reaction Hg2 + OH  [cm3 /molecule /s] (Source: Sommar 2001)
       REAL*8, PARAMETER     :: K_HG_OH  = 8.7d-14 !8.7d-14 (Gas phase)
 
+      ! K for reaction Hg2 + BrO  [cm3 /molecule /s]
+      ! (Source: Raofie and Ariya 2003; 2004)
+      REAL*8, PARAMETER     :: K_HG_BRO  = 1d-14 !1d-15 - 1d-14
+
       ! Gas constant [L atm /K /mol]
       REAL*8, PARAMETER     :: R        = 8.2d-2
 
       ! K for reduction [cm3 /molecule /s] (Source: Selin 2007)
+      ! This variable is unused if LREDJNO2 is TRUE
       REAL*8, PARAMETER     :: K_RED_OH = 1d-10!4.2d-10 from Noelle
                                 !4d-10 works well for Hg+OH/O3
      
       ! CDH 
       ! K for reduction, using J_NO2, [unitless scale factor]
-      ! Source: Holmes 2010
-      ! Tuning within range 5-8D-3 gives reasonable results for Hg+Br chemistry
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 5D-3
+      ! Source: Holmes et al. 2010
+      ! 3.5D-3 for Hg+Br simulation; 1.3D-2 for Hg+OH/O3 simulation
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3 
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
@@ -553,10 +559,11 @@
       REAL*8,  EXTERNAL     :: BOXVL
 
       ! Set of Hg/Br rate constants to use
-      ! (recommended: GoodsiteY, DonohoueYB, DonohoueYBBalabanov)
+      ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
+      ! DonohoueYBBalabanov used by Holmes et al. 2010
       CHARACTER(LEN=*), PARAMETER  :: METHOD='DonohoueYBBalabanov' 
 
-      REAL*8                :: SNOW_HT
+
       !=================================================================
       ! CHEM_Hg0_Hg2 begins here!
       !=================================================================
@@ -569,7 +576,7 @@
 !$OMP+PRIVATE( I,       J,        L,         NN                   )
 !$OMP+PRIVATE( F_PBL,   FC,       FA,        LWC,      AREA_CM2   )
 !$OMP+PRIVATE( C_O3,    C_OH,     C_BR,      C_BRO                )   
-!$OMP+PRIVATE( K_O3,    K_OH,    K_BR                             )
+!$OMP+PRIVATE( K_O3,    K_OH,    K_BR,       K_BRO                )
 !$OMP+PRIVATE( K_OX,    K_RED,   E_KOX_T,    E_KRED_T             )
 !$OMP+PRIVATE( K_DEP0,  K_DEP2,  K_DRYD0,    K_DRYD2,  K_SALT     )
 !$OMP+PRIVATE( OLD_HG0, OLD_HG2,  NEW_HG0,   NEW_HG2              )
@@ -636,12 +643,19 @@
             K_BR = 0d0
          ENDIF
 
+         IF (LBROCHEM) THEN
+            K_BRO = K_HG_BRO * C_BRO
+         ELSE
+            K_BRO = 0d0
+         ENDIF
+         
+
          IF (.NOT. LOHO3CHEM) THEN
             K_O3 = 0D0
             K_OH = 0D0
          ENDIF
 
-         K_OX        = K_O3 + K_OH + K_BR
+         K_OX        = K_O3 + K_OH + K_BR + K_BRO
          
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
@@ -690,7 +704,14 @@
          ! Disable dry deposition of Hg(0) to ice because we do not have
          ! an ice emission model. Perennial ice should have equal emission
          ! and deposition averaged over multiple years. (cdh, 9/11/09)
-         IF ( IS_ICE(I,J) ) THEN
+#if defined( GEOS_5 )
+         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+         SNOW_HT = SNOMAS(I,J)
+#else
+         ! GEOS1-4 snow heigt (water equivalent) in mm
+         SNOW_HT = SNOW(I,J)
+#endif 
+         IF ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) ) THEN
             K_DEP0 = 0D0
          ENDIF
 
@@ -826,20 +847,20 @@
             ! determines whether the box is marine, so we don't need to here.
             ! We should add an if statement to test whether DYNAMIC LAND is 
             ! active.
-            IF ( LDYNOCEAN ) THEN
+            IF ( LDYNOCEAN .AND. (DEP_Hg2 > 0d0) ) THEN
                CALL ADD_Hg2_DD( I, J, ID_Hg2(NN), DEP_HG2 )
             ENDIF           
 
             ! Add deposited Hg(II) to the snowpack
-            IF ( LHGSNOW ) THEN
+            IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
 #if defined(GEOS_5)
-                        ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-                     SNOW_HT = SNOMAS(I,J)
+               ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+               SNOW_HT = SNOMAS(I,J)
 #else
-                        ! GEOS1-4 snow heigt (water equivalent) in mm
-                     SNOW_HT = SNOW(I,J)
+               ! GEOS1-4 snow heigt (water equivalent) in mm
+               SNOW_HT = SNOW(I,J)
 #endif 
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2, SNOW_HT)
+               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,SNOW_HT)
             ENDIF
                
 
@@ -1851,6 +1872,7 @@
       USE LAND_MERCURY_MOD,  ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,  ONLY : SOILEMIS, BIOMASSHG
       USE LAND_MERCURY_MOD,  ONLY : SNOWPACK_MERCURY_FLUX
+      USE GRID_MOD,          ONLY : GET_XMID, GET_YMID
 
 ! Added for GTMM (ccc, 11/19/09)
       USE LOGICAL_MOD,       ONLY : LGTMM
@@ -1862,7 +1884,6 @@
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE. 
       INTEGER       :: THISMONTH, I, J, N
-      REAL*8        :: EHg0_snow(IIPAR,JJPAR,N_HG_CATS)
 
       !=================================================================
       ! EMISSMERCURY begins here!
@@ -1896,25 +1917,16 @@
 
       IF ( LGTMM ) THEN
          IF ( ITS_A_NEW_MONTH() ) THEN
-            CALL GTMM_DR(EHg0_gtm1(:,:))
+            CALL GTMM_DR(EHg0_gtm(:,:))
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
   
-         CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
-      
-         N        = ID_Hg0(ID_Hg_tot)
-         EHg0_gtm = EHg0_gtm1 + EHg0_snow(:,:,N)
-      
       ELSE
          
          CALL LAND_MERCURY_FLUX ( EHg0_ln, LHGSNOW )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a LAND_FLUX' )
       
-         CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
-         IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
-      
-         EHg0_ln = EHg0_ln + EHg0_snow
+!         EHg0_ln = EHg0_ln + EHg0_snow
       
          CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
@@ -1924,8 +1936,34 @@
 
       ENDIF
 
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW )
+      IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
+      
       CALL BIOMASSHG( EHg0_bb )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a BIOMASS' )
+
+      IF ( LnoUSAemis ) THEN
+
+         ! No Anthropogenic emissions over USA (cdh, 5/6/2009)
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            IF ( GET_XMID(I) > -125 .AND. GET_XMID(I) < -65 .AND.
+     &           GET_YMID(J) >  25  .AND. GET_YMID(J) < 50 ) THEN
+               
+               EHg0_An(I,J) = 0d0
+               EHg2_An(I,J) = 0d0
+               EHgP_An(I,J) = 0d0
+               
+               EHg0_bb(I,J) = 0d0
+               EHg0_am(I,J) = 0d0
+               
+            ENDIF
+
+         ENDDO
+         ENDDO
+
+      ENDIF
 
       CALL RESET_HG_DEP_ARRAYS
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: ' //
@@ -2580,6 +2618,7 @@
                EHg0_bb = 0D0
                EHg0_oc = 0D0
                EHg0_nt = 0D0
+               EHg0_snow = 0D0
                IF ( LGTMM ) THEN
                   EHg0_gtm = 0D0
                ELSE
@@ -2597,7 +2636,8 @@
      &             EHg0_bb(I,J) +
      &             EHg0_oc(I,J,ID_Hg_tot) + 
      &             EHg0_nt(I,J) +
-     &             EHg0_gtm(I,J)
+     &             EHg0_gtm(I,J) +
+     &             EHg0_snow(I,J,ID_Hg_tot)
          ELSE
             T_Hg = T_Hg_An +
      &             EHg0_bb(I,J) +
@@ -2605,7 +2645,8 @@
      &             EHg0_ln(I,J,ID_Hg_tot) +
      &             EHg0_nt(I,J) +
      &             EHg0_vg(I,J) +
-     &             EHg0_so(I,J)
+     &             EHg0_so(I,J) +
+     &             EHg0_snow(I,J,ID_Hg_tot)
          ENDIF
 
          !==============================================================
@@ -2726,6 +2767,45 @@
                E_Hg         = F_OF_PBL * EHg0_ln(I,J,ID_Hg_nt) * DTSRCE
                CALL EMITHG( I, J, L, N, E_Hg )
                
+               !--------------------
+               ! Snow re-emissions
+               !--------------------
+
+               ! Anthro re-emission from snow in N. AMERICA
+               N          = ID_Hg0(ID_Hg_na)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_na) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro re-emission from snow in EUROPE
+               N          = ID_Hg0(ID_Hg_eu)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_eu) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro re-emission from snow in ASIA
+               N          = ID_Hg0(ID_Hg_as)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_as) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Anthro re-emission from snow in REST OF WORLD
+               N          = ID_Hg0(ID_Hg_rw)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_rw) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Re-emission from snow in OCEAN 
+               N          = ID_Hg0(ID_Hg_oc)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_oc) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Re-emission from snow in LAND REEMISSION
+               N          = ID_Hg0(ID_Hg_ln)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_ln) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+
+               ! Re-emission from snow in NATURAL
+               N          = ID_Hg0(ID_Hg_nt)
+               E_Hg       = F_OF_PBL * EHg0_snow(I,J,ID_Hg_nt) * DTSRCE
+               CALL EMITHG( I, J, L, N, E_Hg )
+               
             ENDIF
          ENDDO
         
@@ -2741,6 +2821,7 @@
                AD03(I,J,4) = AD03(I,J,4) + ( EHg0_gtm(I,J)  * DTSRCE )
                AD03(I,J,5) = AD03(I,J,5) + ( EHg0_nt(I,J) * DTSRCE )
                AD03(I,J,13)= AD03(I,J,13)+ ( EHg0_bb(I,J)*DTSRCE)
+               AD03(I,J,18)= AD03(I,J,18)+ ( EHg0_snow(I,J,N)*DTSRCE)
             ELSE
                AD03(I,J,1) = AD03(I,J,1) + ( T_Hg_An        * DTSRCE )
                AD03(I,J,3) = AD03(I,J,3) + ( EHg0_oc(I,J,N) * DTSRCE )
@@ -2749,6 +2830,7 @@
                AD03(I,J,13)= AD03(I,J,13)+ ( EHg0_bb(I,J)*DTSRCE)
                AD03(I,J,14)= AD03(I,J,14)+ ( EHg0_vg(I,J)*DTSRCE)
                AD03(I,J,15)= AD03(I,J,15)+ ( EHg0_so(I,J)*DTSRCE)
+               AD03(I,J,18)= AD03(I,J,18)+ ( EHg0_snow(I,J,N)*DTSRCE)
             ENDIF
 
             ! for preindustrial simulation, archive only soil,
@@ -2760,16 +2842,18 @@
             ELSE
                IF ( LGTMM ) THEN
                   AD03_nat(I,J,N) = DTSRCE * (
-     &                 EHg0_nt(I,J) + 
-     &                 EHg0_bb(I,J)   +
-     &                 EHg0_gtm(I,J)  ) 
+     &                 EHg0_nt(I,J)     + 
+     &                 EHg0_bb(I,J)     +
+     &                 EHg0_gtm(I,J)    + 
+     &                 EHg0_snow(I,J,N)  ) 
                ELSE
                   AD03_nat(I,J,N) = DTSRCE * (
      &                 EHg0_ln(I,J,N) + 
      &                 EHg0_nt(I,J) + 
      &                 EHg0_bb(I,J) +
      &                 EHg0_vg(I,J) + 
-     &                 EHg0_so(I,J) ) 
+     &                 EHg0_so(I,J) + 
+     &                 EHg0_snow(I,J,N) ) 
                ENDIF 
             ENDIF
             
@@ -3679,10 +3763,10 @@
       USE TROPOPAUSE_MOD,ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
 !      USE LOGICAL_MOD,   ONLY : LVARTROP
       USE DAO_MOD, ONLY : IS_WATER
-      USE PBL_MIX_MOD, ONLY   : GET_FRAC_OF_PBL
+      USE PBL_MIX_MOD, ONLY   : GET_FRAC_UNDER_PBLTOP
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
-      USE DAO_MOD,       ONLY : LWI
+      USE DAO_MOD,       ONLY : LWI, GET_OBK, IS_ICE
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -3695,7 +3779,7 @@
       ! Local variables
       INTEGER             :: JLOOP
       REAL*8              :: BR_MOLEC_CM3, BR_PPTV, BR_MBL, BR_FAC
-      REAL*8              :: LOCALTIME, HOUR, BRO_PPTV
+      REAL*8              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
 
       ! External functions
       REAL*8, EXTERNAL    :: BOXVL           
@@ -3707,12 +3791,12 @@
 
       ! Constant concentration of BrO assumed for the Polar boundary layer
       ! during springtime bromine explosion. Based on DOAS observations
-      ! at Alert (Simpson et al. ACP 2007). Subject to change
-      REAL*8, PARAMETER   :: BRO_POLAR=5D0
+      ! at Alert (Simpson et al. ACP 2007). This concentration applies
+      ! only under stable atmospheric conditions.
+      REAL*8, PARAMETER   :: BRO_POLAR=10D0
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
-!      REAL*8, PARAMETER   :: J_BRO    = 4D-2   
       ! Rate coefficient BrO + NO -> Br + NO2, cm3/molec/s
       REAL*8, PARAMETER   :: K_BRO_NO = 2.1D-11
       ! Rate coefficient Br + O3 -> BrO + O2, cm3/molec/s
@@ -3771,17 +3855,21 @@
       ! Add Br in the MBL
       !----------------------------------------------------------------
 
-      IF ( IS_WATER(I,J) .AND. (GET_FRAC_OF_PBL(I,J,L) > 0d0) ) THEN
+      ! Fraction of grid box mass which is within the mixed layer
+      FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
+
+      IF ( IS_WATER(I,J) .AND. (FPBL > 0d0) ) THEN
 
          ! Convert BrO concentration to corresponding Br based on
          ! photochemical steady state, pptv
          ! Platt & Janssen, Faraday Discussions (1995)
          BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                     ( K_BR_O3 * GET_O3(I,J,L) )
+     &                     ( K_BR_O3 * GET_O3(I,J,L) ) *
+     &                     FPBL
 
          ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
          BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
-         BrO_PPTV = MAX( BRO_PPTV, BRO_MBL )
+         BrO_PPTV = MAX( BRO_PPTV, BRO_MBL*FPBL )
 
 
       ENDIF      
@@ -3823,43 +3911,50 @@
       ! 1-D grid box index for SUNCOS
       JLOOP = ( (J-1) * IIPAR ) + I
 
-      IF ( (LPOLARBR)         .AND. 
-     &     (GET_FRAC_OF_PBL(I,J,L) > 0d0) .AND.
+      IF ( (LPOLARBR)         .AND. (FPBL > 0d0) .AND.
      &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
-     &     (FRCLND(I,J)< 0.8) .AND. (LWI(I,J)>1D0) ) THEN 
+     &     ( LWI(I,J)==2 )  .AND. GET_OBK(I,J) > 0D0 ) THEN
 
          IF ( ( (GET_YMID(J) > 60D0) .AND. 
      &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
      &        ( (GET_YMID(J) < -50D0) .AND. 
-     &          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 10)  ) ) THEN
+     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 
             ! Br concentration due to bromine explosion, pptv
-            ! Assume [O3] is 5ppb during event
+            ! Assume [O3] is 2ppb during event
             BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                          ( K_BR_O3 * 1.25D11 )            
-             
+     &                          ( K_BR_O3 * 5D10 ) * FPBL
+        
             BR_PPTV  = BR_PPTV  + BR_MBL
-            BrO_PPTV = BrO_PPTV + BRO_POLAR
+            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
 
          ENDIF
 
       ENDIF
+
+! PREVIOUS METHOD based on Br over all sea ice
+c$$$      IF ( (LPOLARBR)         .AND. 
+c$$$     &     (GET_FRAC_OF_PBL(I,J,L) > 0d0) .AND.
+c$$$     &     (SUNCOS(JLOOP) > 0D0) .AND. (T(I,J,1) <= 268D0) .AND.
+c$$$     &     (FRCLND(I,J)< 0.8) .AND. (LWI(I,J)>1D0) ) THEN 
+c$$$
+c$$$         IF ( ( (GET_YMID(J) > 60D0) .AND. 
+c$$$     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
+c$$$     &        ( (GET_YMID(J) < -50D0) .AND. 
+c$$$     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
+c$$$
+c$$$            ! Br concentration due to bromine explosion, pptv
+c$$$            ! Assume [O3] is 5ppb during event
+c$$$            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
+c$$$     &                          ( K_BR_O3 * 1.25D11 )            
+c$$$             
+c$$$            BR_PPTV  = BR_PPTV  + BR_MBL
+c$$$            BrO_PPTV = BrO_PPTV + BRO_POLAR
+c$$$
+c$$$         ENDIF
+c$$$
+c$$$      ENDIF
       
-      !----------------------------------------------------------------
-      ! Add bromine in the polar UT to try to match ARCTAS observations
-      !
-      ! THIS DOESN'T HELP. Need more gradient in the UT, not just a
-      ! multiplicative increase
-      !----------------------------------------------------------------
-    
-!      IF ( (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5) .AND.
-!     &     (GET_YMID(J) > 60D0) .AND. 
-!     &     (GET_PCENTER(I,J,L) <= 600) ) THEN
-!
-!         BR_PPTV  = BR_PPTV  * 10
-!         BRO_PPTV = BRO_PPTV * 10
-!         
-!      ENDIF 
 
       !----------------------------------------------------------------
       ! Impose a diurnal cycle
@@ -4708,6 +4803,92 @@ c$$$
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY, HGPFRAC )
+
+      ! References to F90 modules
+      USE ERROR_MOD, ONLY     : SAFE_DIV, GEOS_CHEM_STOP
+      USE TRACERID_MOD, ONLY  : ID_HG2, ID_HGP
+      USE TRACER_MOD, ONLY    : N_TRACERS
+
+#     include "CMN_SIZE"  ! Size parameters
+
+      INTEGER, INTENT(IN)     :: DIRECTION
+      REAL*8, INTENT(INOUT)   :: STT_COPY(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8, INTENT(INOUT)   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+
+      INTEGER                 :: I,J,L
+
+
+      !=================================================================
+      ! PARTITIONHG begins here!
+      !=================================================================
+      
+      ! Do nothing unless the flag to partition half of Hg2 as particulate
+      IF (.NOT. LHG2HALFAEROSOL ) RETURN
+
+      SELECT CASE (DIRECTION) 
+         CASE (1) ! Split Hg2 into equal parts gaseous and particulate
+
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L=1, LLPAR
+            DO J=1, JJPAR
+            DO I=1, IIPAR
+
+               ! Fraction of particulate Hg which is refractory
+               ! If there is no initial Hg2 or HgP, then assume 50%
+               HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
+     &                 ( STT_COPY(I,J,L,ID_HGP(1)) +
+     &                   0.5D0 * STT_COPY(I,J,L,ID_HG2(1)) ),
+     &                 0.5D0 )
+
+               ! Combine reactive particulate Hg2 with refractory HgP
+               STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
+     &              0.5D0 * STT_COPY(I,J,L,ID_HG2(1))
+               STT_COPY(I,J,L,ID_HG2(1)) = 0.5D0 *
+     &              STT_COPY(I,J,L,ID_HG2(1))
+                  
+
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+      
+
+         CASE(2) ! Recombine reactive particulate Hg2 with reactive gaseous Hg2
+            
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L=1, LLPAR
+            DO J=1, JJPAR
+            DO I=1, IIPAR
+               STT_COPY(I,J,L,ID_HG2(1)) = STT_COPY(I,J,L,ID_HG2(1)) +
+     &              (1D0 - HGPFRAC(I,J,L) ) * STT_COPY(I,J,L,ID_HGP(1))
+               STT_COPY(I,J,L,ID_HGP(1)) = HGPFRAC(I,J,L) * 
+     &              STT_COPY(I,J,L,ID_HGP(1))
+            ENDDO
+            ENDDO
+            ENDDO               
+
+!$OMP END PARALLEL DO
+
+         CASE DEFAULT
+            WRITE( 6,'(A)') 'Unrecognized conversion direction'
+            CALL GEOS_CHEM_STOP
+
+         END SELECT
+
+
+
+      ! Return to calling program
+      END SUBROUTINE PARTITIONHG
+
+!-----------------------------------------------------------------------------
+
+
       SUBROUTINE INIT_MERCURY( THIS_ANTHRO_Hg_YEAR )
 !
 !******************************************************************************
@@ -4794,11 +4975,11 @@ c$$$
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
       EHg0_bb = 0d0
 
-      IF ( LGTMM ) THEN
+      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_snow' )
+      EHg0_snow = 0d0
 
-         ALLOCATE( EHg0_gtm1( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm1' )
-         EHg0_gtm1 = 0d0
+      IF ( LGTMM ) THEN
 
          ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm' )
@@ -4934,6 +5115,8 @@ c$$$      ENDIF
 
       ! Switch turns on Hg+Br chemistry
       LBRCHEM=.TRUE.
+      ! Switch turns on Hg+BrO chemistry
+      LBROCHEM=.FALSE.
       ! Switch turn on Hg+OH, Hg+O3 chemistry
       LOHO3CHEM=.FALSE.
 
@@ -4946,7 +5129,7 @@ c$$$      ENDIF
       ! plus we enable washout by snow and ice (T<268K), which has 
       ! mysteriously not occured for any species. 
       ! If this switch is FALSE, then deposition occurs as in
-      ! Selin et al. (2007, 2008) (cdh, 5/20/09)
+      ! Holmes et al. (2010) (cdh, 5/20/09)
       LHg_WETDasHNO3=.FALSE.
 
       ! Switch specifies that Hg2 is 50% bound to aerosol and 50% in
@@ -4960,10 +5143,13 @@ c$$$      ENDIF
       LHGSNOW = .TRUE.
 
       ! Multiplicative factor for increasing stratospheric Br and BrO
-      STRAT_BR_FACTOR = 2d0
+      STRAT_BR_FACTOR = 1d0
 
       ! Switch turns off all emissions except direct anthropogenic
       LAnthroHgOnly = .FALSE.
+
+      ! Switch turns off all anthropogenic emissions from contiguous USA
+      LnoUSAemis = .FALSE.
 
       !=================================================================
       ! Done
@@ -5001,10 +5187,10 @@ c$$$      ENDIF
       IF ( ALLOCATED( EHgP_an  ) ) DEALLOCATE( EHgP_an )
       IF ( ALLOCATED( EHg0_oc  ) ) DEALLOCATE( EHg0_oc )
       IF ( ALLOCATED( EHg0_ln  ) ) DEALLOCATE( EHg0_ln )
+      IF ( ALLOCATED( EHg0_snow) ) DEALLOCATE( EHg0_snow )
       IF ( ALLOCATED( EHg0_nt  ) ) DEALLOCATE( EHg0_nt )
       IF ( ALLOCATED( EHg0_bb  ) ) DEALLOCATE( EHg0_bb )
       IF ( ALLOCATED( EHg0_gtm  ) ) DEALLOCATE( EHg0_gtm )
-      IF ( ALLOCATED( EHg0_gtm1 ) ) DEALLOCATE( EHg0_gtm1)
       IF ( ALLOCATED( EHg0_vg  ) ) DEALLOCATE( EHg0_vg )
       IF ( ALLOCATED( EHg0_so  ) ) DEALLOCATE( EHg0_so )
       IF ( ALLOCATED( EHg0_dist) ) DEALLOCATE( EHg0_dist )

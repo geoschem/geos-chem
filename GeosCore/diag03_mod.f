@@ -59,7 +59,7 @@
 
       ! Scalars
       INTEGER              :: ND03, LD03
-      INTEGER, PARAMETER   :: PD03 = 25
+      INTEGER, PARAMETER   :: PD03 = 18
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD03(:,:,:)
@@ -221,11 +221,11 @@
 
          ! Pick the proper array & dimensions
          IF ( N == 1 .or. N == 3 .or. N == 4  .or.
-     &        N == 5 .or. N == 6 .or. N == 9 .or. N==13 .or. N==14
-     &        .or. N==15 ) THEN
+     &        N == 5 .or. N == 6 .or. N == 9 .or. N==13 .or. N==14 .or.
+     &        N == 15.or. N == 18 ) THEN
                
             !--------------------------------
-            ! #1,3,4,5,6,9,13,14,15: Hg emissions
+            ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
@@ -311,10 +311,11 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N)
 
-         ELSE IF ( N == 18 ) THEN
+!        ELSE IF ( N == 18 ) THEN
+         ELSE IF ( N == 19 ) THEN
 
             !--------------------------------
-            ! #18: Production of Hg2 from Hg0
+            ! #19: Production of Hg2 from Hg0
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
@@ -322,7 +323,8 @@
             NN                = 1
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX)
 
-         ELSE IF ( N == 19 ) THEN
+!         ELSE IF ( N == 19 ) THEN
+         ELSE IF ( N == 20 ) THEN
 
             !--------------------------------
             ! #20: Prod of Hg(II) from rxn w/OH
@@ -333,7 +335,8 @@
             NN                = 2
             ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX)
 
-         ELSE IF ( N == 20 ) THEN
+!         ELSE IF ( N == 20 ) THEN
+         ELSE IF ( N == 21 ) THEN
 
             !--------------------------------
             ! #21: Prod of Hg(II) from rxn w/O3
@@ -344,10 +347,11 @@
             NN                = 3
             ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX)
       
-         ELSE IF ( N == 21 ) THEN
+!         ELSE IF ( N == 21 ) THEN
+         ELSE IF ( N == 22 ) THEN
             
             !--------------------------------
-            ! #21: Loss of Hg2 from rxn w/sea salt
+            ! #22: Loss of Hg2 from rxn w/sea salt
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
@@ -355,10 +359,11 @@
             NN                = 4
             ARRAY(:,:,1:LMAX) = AD03_Hg2_SS(:,:,1:LMAX)
       
-         ELSE IF ( N == 22 ) THEN
+!         ELSE IF ( N == 22 ) THEN
+         ELSE IF ( N == 23 ) THEN
             
             !--------------------------------
-            ! #22: Loss of Hg2 from rxn w/sea salt
+            ! #23: Loss of Hg2 from rxn w/sea salt
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = '/s'
@@ -366,10 +371,11 @@
             NN                = 5
             ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:) / NCHEMSTEP
 
-         ELSE IF ( N == 23 ) THEN
+!         ELSE IF ( N == 23 ) THEN
+         ELSE IF ( N == 24 ) THEN
 
             !--------------------------------
-            ! #23: Prod of Hg(II) from rxn w/Br 
+            ! #24: Prod of Hg(II) from rxn w/Br 
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
@@ -377,10 +383,11 @@
             NN                = 6
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX)
       
-         ELSE IF ( N == 24 ) THEN
+!         ELSE IF ( N == 24 ) THEN
+         ELSE IF ( N == 25 ) THEN
 
             !--------------------------------
-            ! #24: Br concentration
+            ! #25: Br concentration
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'molec/cm3'
@@ -388,10 +395,11 @@
             NN                = 7
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
       
-         ELSE IF ( N == 25 ) THEN
+!         ELSE IF ( N == 25 ) THEN
+         ELSE IF ( N == 26 ) THEN
 
             !--------------------------------
-            ! #25: Br concentration
+            ! #26: Br concentration
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'molec/cm3'
@@ -453,7 +461,7 @@
       LD03 = MIN( ND03, LLPAR )
 
       ! 2-D array ("HG-SRCE")
-      ALLOCATE( AD03( IIPAR, JJPAR, PD03-3 ), STAT=AS )
+      ALLOCATE( AD03( IIPAR, JJPAR, PD03 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
 
       ! 3-D arrays ("PL-HG2-$")
