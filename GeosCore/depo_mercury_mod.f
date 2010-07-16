@@ -415,12 +415,13 @@
 ! !USES:
 !
       USE BPCH2_MOD
-      USE DIAG_MOD,     ONLY : AD39, AD44, AD38
-      USE FILE_MOD,     ONLY : IU_FILE
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TRACERID_MOD, ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
-      USE TIME_MOD,     ONLY : GET_CT_DYN, GET_CT_CHEM
+      USE DIAG_MOD,      ONLY : AD39, AD44, AD38
+      USE DIRECTORY_MOD, ONLY : RUN_DIR
+      USE FILE_MOD,      ONLY : IU_FILE
+      USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
+      USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
     
 #     include "CMN_SIZE"          ! Size parameters
 !
@@ -465,7 +466,7 @@
       UNIT      = 'molec/cm2/s'
 
       ! Expand date in filename
-      FILENAME  = GTMM_RST_FILE
+      FILENAME  = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info
@@ -534,13 +535,14 @@
 ! 
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE FILE_MOD,     ONLY : IU_FILE,     IOERROR
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TRACER_MOD,   ONLY : STT,         TRACER_NAME, TRACER_MW_G
-      USE TRACERID_MOD, ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-      USE TRACERID_MOD, ONLY : ID_Hg0,      ID_Hg2
+      USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
+      USE DIRECTORY_MOD, ONLY : RUN_DIR
+      USE ERROR_MOD,     ONLY : DEBUG_MSG
+      USE FILE_MOD,      ONLY : IU_FILE,     IOERROR
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TRACER_MOD,    ONLY : STT,         TRACER_NAME, TRACER_MW_G
+      USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
+      USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
 
 #     include "CMN_SIZE"
 !
@@ -578,12 +580,12 @@
       CHARACTER(LEN=40)     :: UNIT     
       CHARACTER(LEN=40)     :: RESERVED
   
-    !=================================================================
-    ! READ_GTMM_RESTART begins here!
-    !=================================================================
+      !=================================================================
+      ! READ_GTMM_RESTART begins here!
+      !=================================================================
 
       ! Copy input file name to a local variable
-      FILENAME = TRIM( GTMM_RST_FILE )
+      FILENAME = TRIM( RUN_DIR ) // TRIM( GTMM_RST_FILE )
     
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )

@@ -1489,7 +1489,7 @@ c$$$
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1, DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -1512,10 +1512,11 @@ c$$$
       !------------------------------
 
       ! MLD file name
-!      FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &           'mercury_200511/mld.geos.' // GET_RES_EXT()        !(anls, 09100111)
-      FILENAME = '/home/anls/'//
-     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
+
+!      FILENAME = '/home/anls/'//
+!     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
      
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1548,8 +1549,11 @@ c$$$
 !-------------------------------------------------
 
       ! Chl file name
-      FILENAME = '/home/anls/mercurymodel_files/'//
-     &           'Chl_2003.geos.4x5'
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
+
+!      FILENAME = '/home/anls/mercurymodel_files/'//
+!     &           'Chl_2003.geos.4x5'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1570,13 +1574,13 @@ c$$$
       ! Net primary productivity [mg/m2/day]
       !--------------------------------
  
-      ! NPP file name
-      FILENAME = '/home/anls/'//
-     &           'mercurymodel_files/NPP_2003.geos.4x5'          !(anls, 100111)
+      ! NPP file name (anls, 100111)
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
 
-!      FILENAME = TRIM( DATA_DIR_1x1 )             // 
-!     &           'mercury_200511/modis_npp.geos.' // GET_RES_EXT() 
- 
+!      FILENAME = '/home/anls/'//
+!     &           'mercurymodel_files/NPP_2003.geos.4x5'          !(anls, 100111)
+
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -1638,7 +1642,7 @@ c$$$
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -1657,11 +1661,11 @@ c$$$
       !=================================================================
       
       ! MLD file name
-!      FILENAME = TRIM( DATA_DIR_1x1 )       // 
-!     &           'mercury_200511/mld.geos.' // GET_RES_EXT()      
+      FILENAME = TRIM( DATA_DIR )       // 
+     &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
 
-      FILENAME = '/home/anls/'//                                 !(anls,100111)
-     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
+!      FILENAME = '/home/anls/'//                                 !(anls,100111)
+!     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1979,15 +1983,16 @@ c$$$
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE FILE_MOD,     ONLY : IU_FILE,     IOERROR
-      USE LOGICAL_MOD,  ONLY : LSPLIT,      LPRT
-      USE TIME_MOD,     ONLY : EXPAND_DATE
-      USE TRACER_MOD,   ONLY : STT,         TRACER_NAME, TRACER_MW_G
-      USE TRACERID_MOD, ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
-      USE TRACERID_MOD, ONLY : ID_Hg0,      ID_Hg2
+      USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG, CHECK_DIMENSIONS
+      USE DIRECTORY_MOD,    ONLY : RUN_DIR
+      USE ERROR_MOD,        ONLY : DEBUG_MSG
+      USE FILE_MOD,         ONLY : IU_FILE,     IOERROR
+      USE LOGICAL_MOD,      ONLY : LSPLIT,      LPRT
+      USE TIME_MOD,         ONLY : EXPAND_DATE
+      USE TRACER_MOD,       ONLY : STT,         TRACER_NAME, TRACER_MW_G
+      USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
+      USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -2022,7 +2027,7 @@ c$$$
       Hg_OCEAN(:,:,:) = 0e0
 
       ! Copy input file name to a local variable
-      FILENAME        = TRIM( Hg_RST_FILE )
+      FILENAME        = TRIM( RUN_DIR ) // TRIM( Hg_RST_FILE )
 
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
@@ -2275,13 +2280,14 @@ c$$$
 !
       ! References to F90 modules
       USE BPCH2_MOD
-      USE FILE_MOD,     ONLY : IU_FILE
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,  ONLY : LSPLIT
-      USE TIME_MOD,     ONLY : EXPAND_DATE, GET_TAU
-      USE TRACERID_MOD, ONLY : ID_Hg_tot,   ID_Hg0
-      USE TRACERID_MOD, ONLY : ID_Hg2,      N_Hg_CATS
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
+      USE DIRECTORY_MOD,    ONLY : RUN_DIR
+      USE FILE_MOD,         ONLY : IU_FILE
+      USE GRID_MOD,         ONLY : GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,      ONLY : LSPLIT
+      USE TIME_MOD,         ONLY : EXPAND_DATE, GET_TAU
+      USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
+      USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
 
 #     include "CMN_SIZE"     ! Size parameters
 
@@ -2316,7 +2322,7 @@ c$$$
       UNIT      = 'kg'
 
       ! Expand date in filename
-      FILENAME  = Hg_RST_FILE
+      FILENAME  = TRIM( RUN_DIR ) // Hg_RST_FILE
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
 
       ! Echo info

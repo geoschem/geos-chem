@@ -3082,7 +3082,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1, DATA_DIR
       USE LOGICAL_MOD,    ONLY : LDYNOCEAN, LPREINDHG
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
@@ -3131,8 +3131,11 @@
             XTAU     = GET_TAU0( 1, 1, 2006 )
 
             ! Filename for anthropogenic mercury source
-            FILENAME = '/home/cdh/GC/Archived-Br/' // 
-     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
+!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
+!     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
+
+            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+     &           'mercury_201002/GEIA_Streets_Hg0.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3221,7 +3224,8 @@
 
          ! Filename for artisanal mining emissions (4x5 only for now)
 !         FILENAME='/as/home/eck/landproject/current/artisanal.bpch'
-         FILENAME='/home/cdh/GC/Archived-Br/artisanal.bpch'
+!         FILENAME='/home/cdh/GC/Archived-Br/artisanal.bpch'
+         FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -3249,8 +3253,11 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = '/home/cdh/GC/Archived-Br/' // 
-     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
+!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
+!     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
+
+            FILENAME = TRIM( DATA_DIR_1x1 )               // 
+     &           'mercury_201002/GEIA_Streets_Hg2.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3305,8 +3312,11 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-            FILENAME = '/home/cdh/GC/Archived-Br/' //
-     &           'GEIA_Streets_HgP.geos.1x1.YYYY'
+!            FILENAME = '/home/cdh/GC/Archived-Br/' //
+!     &           'GEIA_Streets_HgP.geos.1x1.YYYY'
+
+            FILENAME = TRIM( DATA_DIR_1x1)   //
+     &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -3404,11 +3414,15 @@
       IF ( LPREINDHG ) THEN
 !         FILENAME='/as/home/eck/depoproject/bugfix3map.bpch'
 !         FILENAME='/home/cdh/GC/Archived-Br/bugfix3map.bpch'
-         FILENAME='/home/cdh/GC/Archived-Br/soilhg.preind.cdh.bpch'
+!         FILENAME='/home/cdh/GC/Archived-Br/soilhg.preind.cdh.bpch'
+         FILENAME=TRIM( DATA_DIR )           //
+     &        'mercury_201007/soilhg.preind.cdh.bpch'
       ELSE
 !         FILENAME='/as/home/eck/depoproject/bugfix3current.bpch'
 !         FILENAME='/home/cdh/GC/Archived-Br/bugfix3current.bpch'
-         FILENAME='/home/cdh/GC/Archived-Br/soilhg.presentday.cdh.bpch'
+!         FILENAME='/home/cdh/GC/Archived-Br/soilhg.presentday.cdh.bpch'
+         FILENAME=TRIM( DATA_DIR )           //
+     &        'mercury_201007/soilhg.presentday.cdh.bpch'
       ENDIF
 
       ! Echo info
@@ -3441,7 +3455,9 @@
 
       ! Filename for natural land-source mercury
 !      FILENAME= '/as/home/eck/landproject/newnatural.bpch'
-      FILENAME= '/home/cdh/GC/Archived-Br/newnatural.bpch'
+!      FILENAME= '/home/cdh/GC/Archived-Br/newnatural.bpch'
+      FILENAME= TRIM( DATA_DIR )            //
+     &     'mercury_201007/newnatural.bpch'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -4663,9 +4679,13 @@ c$$$
 
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
+!      FILENAME = 
+!     &           '/home/cdh/GC/Archived-Br/jvalues.noon.geos5.4x5'
+!!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+
       FILENAME = 
-     &           '/home/cdh/GC/Archived-Br/jvalues.noon.geos5.4x5'
-!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+     &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
+     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 
       ! Echo some information to the standard output
