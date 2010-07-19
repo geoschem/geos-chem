@@ -745,7 +745,6 @@
       USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
-      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
       USE TRACER_MOD,        ONLY : ID_EMITTED,     ID_TRACER
       USE TRACER_MOD,        ONLY : SIM_TYPE,       N_TRACERS
       USE TRACER_MOD,        ONLY : TCVV,           TRACER_COEFF
@@ -5062,7 +5061,7 @@
       USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
       USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
       USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
-      USE LOGICAL_MOD,   ONLY : LNEI05
+      USE LOGICAL_MOD,   ONLY : LNEI05,     LPREINDHG
       ! >> (dkh, 02/12/09) 
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
@@ -5155,6 +5154,7 @@
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
+      LPREINDHG    = .FALSE.
 
       ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
       LMODISLAI    = .FALSE.

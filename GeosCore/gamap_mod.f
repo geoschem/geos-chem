@@ -1568,39 +1568,43 @@
                   UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 18 )
+                  NAME (T,03) = 'Hg0_snow'
+                  FNAME(T,03) = 'Snow emission of Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 19 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 19 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 20 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 20 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 21 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 21 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 22 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 22 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 23 )
                   NAME (T,03) = 'Hg2_SSR'
                   FNAME(T,03) = 'Loss rate Hg2 from sea salt'
                   UNIT (T,03) = '/s'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 23 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 24 )
                   NAME (T,03) = 'Hg2_Br'
                   FNAME(T,03) = 'Prod of Hg2 from Br'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 24 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 25 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE( 25 )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE( 26 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
-                  INDEX(T,03) = ( T - 17 ) + ( SPACING * 35 ) !CDH 16->17
-               CASE ( 26: )
+                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE ( 27: )
                   NAME (T,03) = TRACER_NAME(T-PD03) !CDH 18->22
 
                   ! Tracer 3 should be "HgC" instead of "HgP"

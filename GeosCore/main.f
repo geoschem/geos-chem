@@ -177,7 +177,8 @@
 
       USE TRACERID_MOD,      ONLY : IS_Hg2
       ! For GTMM for mercury simulations. (ccc, 6/7/10)
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
+      USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
+      USE MERCURY_MOD,       ONLY : PARTITIONHG
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -198,6 +199,8 @@
       INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
       INTEGER            :: ELAPSED_SEC, NHMSb, RC
       REAL*8             :: TAU,         TAUb         
+      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -903,8 +906,18 @@
             !===========================================================
             IF ( LCONV ) THEN
                
+               ! Partition Hg(II) between aerosol and gas
+               IF ( ITS_A_MERCURY_SIM() ) THEN
+                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+               ENDIF
+      
                CALL DO_CONVECTION
 
+               ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+               IF ( ITS_A_MERCURY_SIM() ) THEN
+                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+               ENDIF
+      
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
             ENDIF 
@@ -965,8 +978,18 @@
          !==============================================================
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
+            ! Add partition Hg(II) between aerosol and gas
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+               CALL PARTITIONHG( 1, STT, HGPFRAC )
+            ENDIF            
+     
             CALL DO_WETDEP
             
+            ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+               CALL PARTITIONHG( 2, STT, HGPFRAC )
+            ENDIF 
+
          ENDIF
 
 

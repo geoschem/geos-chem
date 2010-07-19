@@ -600,9 +600,11 @@
 !******************************************************************************
 !
 
-      ! References to F90 modules     
-      USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
+      ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -625,8 +627,11 @@
      
 !      FILENAME='/as/home/eck/transp/nasatransp_4x5.'
 !     &        //CMONTH(MONTH)//'.bpch'
-      FILENAME='/home/eck/emissions/transp/nasatransp_4x5.'
-     &        //CMONTH(MONTH)//'.bpch'
+!      FILENAME='/home/eck/emissions/transp/nasatransp_4x5.'
+!     &        //CMONTH(MONTH)//'.bpch'
+
+      FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/nasatransp_'
+     &        // GET_RES_EXT() // '.'// CMONTH(MONTH) // '.bpch'
 
       XTAU     = GET_TAU0(MONTH, 1, 1995 )
 
@@ -772,7 +777,7 @@
       USE FILE_MOD,          ONLY : IU_FILE, IOERROR
       USE TIME_MOD,          ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,          ONLY : GET_NYMD, GET_NHMS
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR
       USE DEPO_MERCURY_MOD,  ONLY : CHECK_DIMENSIONS
       USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
@@ -850,12 +855,12 @@
       ! Read monthly meteorology fields
       !=================================================================
 
-!--- Filename to use after tests (ccc)
-!      FILENAME = TRIM( DATA_DIR ) // 'mercury_200501/' //
-!     &           'GTM/MET_FIELDS/mean_YYYYMM.bpch'
+      FILENAME = TRIM( DATA_DIR ) // 'mercury_201007/' //
+     &           'mean_metfields/' // GET_NAME_EXT() // 
+     &           '/mean_YYYYMM.bpch'
 
-      FILENAME = '/home/ccarouge/GTM/MET_FIELDS/' //
-     &           'mean_200501.bpch'
+!      FILENAME = '/home/ccarouge/GTM/MET_FIELDS/' //
+!     &           'mean_200501.bpch'
     
       ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
       CALL EXPAND_DATE( FILENAME, NYMD, NHMS )
