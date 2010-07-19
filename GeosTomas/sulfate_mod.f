@@ -219,6 +219,7 @@
 !  (51) Add new array PSO4_SO2AQ for SO4 produced via aqueous chemistry of SO2 
 !        excluding that from heterogeous reaction on sea-salt. (win, 1/25/10)
 !  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
+!  (53) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -1415,6 +1416,7 @@
 !        terms. (win, bmy, 1/4/10)
 !  (14) Save aqueous production rate to PSO4_SO2AQ for TOMAS microphyics
 !        (win, 1/25/10)
+!  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1604,12 +1606,32 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-      
+#if   defined ( GEOS_5 )
+
+         !----------------------------------------
+         ! GEOS-5: Get LWC, FC from met fields
+         ! (jaf, bmy, 6/30/10)
+         !----------------------------------------
+
+         ! Get cloud fraction from met fields
+         FC      = CLDF(L,I,J)
+
+         ! Get liquid water content within cloud from met fields (kg/kg)
+         ! Convert to m3/m3 averaged over grid box
+         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+
+#else
+         !----------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !----------------------------------------
+
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
          LWC     = GET_LWC( TK ) * FC
+
+#endif
 
          ! Zero variables
          KaqH2O2 = 0.d0
