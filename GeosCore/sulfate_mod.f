@@ -3798,6 +3798,8 @@
 !  (12) Add LANTHRO switch to properly turn off the anthropogenic emissions,
 !        READ_AIRCRAFT_SO2, READ_ANTHRO_SOx, READ_ANTHRO_NH3 (ccc, 4/15/09)
 !  (13) Now read new volcanic SO2 emissions daily (jaf, bmy, 10/15/09)
+!  (14) Add LBIOFUEL switch to properly turn off the biofuel emissions,
+!       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3811,7 +3813,7 @@
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
-      USE LOGICAL_MOD,       ONLY : LANTHRO
+      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3873,9 +3875,17 @@
          ! Read monthly mean data
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
-         CALL READ_BIOFUEL_SO2( MONTH )
-         CALL READ_BIOFUEL_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
+
+         ! Add LBIOFUEL szitch to turn off biofuel emissions.
+         ! Warning: Streets 2006 inventory combines both anthropogenic
+         ! and biofuel emissions, so with this inventory it is not
+         ! possible to turn off biofuel emissions.
+         !(ccc, 7/16/10)
+         IF ( LBIOFUEL ) THEN
+            CALL READ_BIOFUEL_SO2( MONTH )
+            CALL READ_BIOFUEL_NH3( MONTH )
+         ENDIF
 
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)
