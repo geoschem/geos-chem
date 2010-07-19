@@ -3,7 +3,7 @@
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/20/09)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, ccc, 2/28/00, 7/13/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -131,6 +131,8 @@
 !  (27) Remove support for SGI compiler.  Bug fix in RAINOUT. (bmy, 7/20/09)
 !  (28) Update mercury simulation. (ccc, 5/17/10)
 !  (29) Add LGTMM as condition to output AD39. (ccc, 11/18/09)
+!  (30) Add snow scavenging, different washout/rainout ratio 
+!       (wqq, ccc, 7/13/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2044,12 +2046,16 @@
                   ! Save location into the lookup table
                   NSOL_INDEX(N) = L 
 
-                  ! Go to next N
-                  GOTO 100
+!--- Prior to (ccc, 7/13/10). Change to EXIT.
+!                  ! Go to next N
+!                  GOTO 100
+
+                  !Go to next N
+                  EXIT
                ENDIF
             ENDDO
 
- 100        CONTINUE
+! 100        CONTINUE
          ENDDO
 
          ! Reset first-time flag
@@ -3772,6 +3778,7 @@
       REAL*8              :: F,     FTOP,   F_PRIME,   WASHFRAC
       REAL*8              :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL*8              :: ALPHA, ALPHA2, WETLOSS,   TMP
+      REAL*8              :: F_RAINOUT,     F_WASHOUT
 
       ! For Hg snowpack. (ccc, 5/17/10)
       REAL*8              :: SNOW_HT
@@ -3811,7 +3818,7 @@
 !$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,   K_RAIN   )
 !$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
-!$OMP+PRIVATE( QDOWN,   AER,         TMP                           )
+!$OMP+PRIVATE( QDOWN,   AER,         TMP,       F_RAINOUT,F_WASHOUT)
 !$OMP+PRIVATE( SNOW_HT                                             )
 !$OMP+SCHEDULE( DYNAMIC )
 
@@ -4060,52 +4067,92 @@
             RAINFRAC    = 0d0
             WASHFRAC    = 0d0
             WETLOSS     = 0d0
+            F_WASHOUT   = 0d0 !CDH
+            F_RAINOUT   = 0d0 !CDH
 
-            ! Rainout criteria
-            IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) > 0d0 ) THEN
-
-               ! Q is the new precip that is forming within grid box (I,J,L)
-               Q = QQ(L,I,J)
+!--- Prior to (wqq, 7/13/10)
+!            ! Rainout criteria
+!            IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) > 0d0 ) THEN
+!
+!               ! Q is the new precip that is forming within grid box (I,J,L)
+!               Q = QQ(L,I,J)
+!------------------------------------------------------------------------------
+            !CDH
+            ! Calculate the fractional area which is subjected to rainout
+            IF (QQ(L,I,J) > 0d0) THEN
 
                ! Compute K_RAIN and F' for either large-scale or convective
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
                IF ( LS ) THEN
-                  K_RAIN  = LS_K_RAIN( Q )
-                  F_PRIME = LS_F_PRIME( Q, K_RAIN )
+                  K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
+                  F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
                ELSE
                   K_RAIN  = 1.5d-3
-                  F_PRIME = CONV_F_PRIME( Q, K_RAIN, DT )
+                  F_PRIME = CONV_F_PRIME( QQ(L,I,J), K_RAIN, DT )
+               ENDIF
+               
+            ELSE
+               
+               F_PRIME = 0d0
+ 
+            ENDIF
+
+
+!CDH
+            ! The following block implements Qiaoqiao's changes
+            ! Calculate the fractional areas subjected to rainout and
+            ! washout. If PDOWN = 0, then all dissolved tracer returns
+            ! to the atmosphere.
+            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+               F_RAINOUT = F_PRIME
+               ! Washout occurs where there is no rainout
+               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+            ELSE
+               F_RAINOUT = 0d0
+               F_WASHOUT = 0d0
+            ENDIF
+!CDH
+!            ! The following block restores previous behavior
+!            F_RAINOUT = 0d0
+!            F_WASHOUT = 0d0
+!            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+!               IF (QQ(L,I,J) > 0d0) THEN
+!                  F_RAINOUT = MAX( FTOP, F_PRIME )
+!               ENDIF 
+!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!            ENDIF
+
+
+            ! F is the effective area of precip seen by grid box (I,J,L) 
+            F = MAX( F_PRIME, FTOP )
+
+
+            ! Rainout criteria
+            IF ( F_RAINOUT > 0d0 ) THEN
+
+               ! ND16 diagnostic...save F 
+               IF ( ND16 > 0 .and. L <= LD16 ) THEN
+                  AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_RAINOUT
+                  CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1 
                ENDIF
 
-               ! F is the effective area of precip seen by grid box (I,J,L) 
-               F = MAX( F_PRIME, FTOP )
+               ! ND17 diagnostic...increment counter
+               IF ( ND17 > 0 .and. L <= LD17 ) THEN
+                  CT17(I,J,L,IDX) = CT17(I,J,L,IDX) + 1
+               ENDIF
 
-               ! Only compute rainout if F > 0. 
-               ! This helps to eliminate unnecessary CPU cycles. 
-               IF ( F > 0d0 ) THEN
+               ! Loop over soluble tracers and/or aerosol tracers    
+               DO NN = 1, NSOL
+                  N = IDWETD(NN)
+                  
+                  ! Call subroutine RAINOUT to comptue the fraction
+                  ! of tracer lost to rainout in grid box (I,J,L) 
+                  CALL RAINOUT( I, J, L, N, K_RAIN, DT, 
+     &                          F_RAINOUT, RAINFRAC )
 
-                  ! ND16 diagnostic...save F 
-                  IF ( ND16 > 0 .and. L <= LD16 ) THEN
-                     AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
-                     CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1 
-                  ENDIF
-
-                  ! ND17 diagnostic...increment counter
-                  IF ( ND17 > 0 .and. L <= LD17 ) THEN
-                     CT17(I,J,L,IDX) = CT17(I,J,L,IDX) + 1
-                  ENDIF
-
-                  ! Loop over soluble tracers and/or aerosol tracers    
-                  DO NN = 1, NSOL
-                     N = IDWETD(NN)
-
-                     ! Call subroutine RAINOUT to comptue the fraction
-                     ! of tracer lost to rainout in grid box (I,J,L) 
-                     CALL RAINOUT( I, J, L, N, K_RAIN, DT, F, RAINFRAC )
-
-                     ! WETLOSS is the amount of tracer in grid box 
-                     ! (I,J,L) that is lost to rainout.
-                     WETLOSS = STT(I,J,L,N) * RAINFRAC
+                  ! WETLOSS is the amount of tracer in grid box 
+                  ! (I,J,L) that is lost to rainout.
+                  WETLOSS = STT(I,J,L,N) * RAINFRAC
 
 !---------------------------------------------------------------------------
 ! Prior to updates from (cdh, ccc, 5/26/10)
@@ -4117,47 +4164,48 @@
 !                     ENDIF
 !----------------------------------------------------------------------------
 
-                     ! Subtract the rainout loss in grid box (I,J,L) from STT
-                     STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
+                  ! Subtract the rainout loss in grid box (I,J,L) from STT
+                  STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
 
-                     ! Add to DSTT the tracer lost to rainout in grid box 
-                     ! (I,J,L) plus the tracer lost to rainout from grid box 
-                     ! (I,J,L+1), which has by now precipitated down into 
-                     ! grid box (I,J,L).  DSTT will continue to accumulate 
-                     ! rained out tracer in this manner until a washout 
-                     ! event occurs.
-                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+                  ! Add to DSTT the tracer lost to rainout in grid box 
+                  ! (I,J,L) plus the tracer lost to rainout from grid box 
+                  ! (I,J,L+1), which has by now precipitated down into 
+                  ! grid box (I,J,L).  DSTT will continue to accumulate 
+                  ! rained out tracer in this manner until a washout 
+                  ! event occurs.
+                  DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
-                     ! ND17 diagnostic...rainout fractions [unitless]
-                     IF ( ND17 > 0 .and. L <= LD17 ) THEN
-                        AD17(I,J,L,NN,IDX) = 
-     &                       AD17(I,J,L,NN,IDX) + RAINFRAC / F
-                     ENDIF
+                  ! ND17 diagnostic...rainout fractions [unitless]
+                  IF ( ND17 > 0 .and. L <= LD17 ) THEN
+                     AD17(I,J,L,NN,IDX) = 
+     &                    AD17(I,J,L,NN,IDX) + RAINFRAC / F_RAINOUT
+                  ENDIF
 
-                     ! ND39 diag -- save rainout losses in [kg/s]
-                     ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-                     IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
-                     ENDIF
+                  ! ND39 diag -- save rainout losses in [kg/s]
+                  ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                  IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
+                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+                  ENDIF
 
-                     ! Negative tracer...call subroutine SAFETY
-                     IF ( STT(I,J,L,N) < 0d0 .or.
-     &                    IT_IS_NAN( STT(I,J,L,N) ) .or.
-     &                    DSTT(NN,L,I,J) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 4, 
-     &                               LS,             PDOWN(L,I,J),  
-     &                               QQ(L,I,J),      ALPHA,        
-     &                               ALPHA2,         RAINFRAC,     
-     &                               WASHFRAC,       MASS_WASH,    
-     &                               MASS_NOWASH,    WETLOSS,      
-     &                               GAINED,         LOST,         
-     &                               DSTT(NN,:,I,J), STT(I,J,:,N) )
-                     ENDIF
-                  ENDDO
-               ENDIF
+                  ! Negative tracer...call subroutine SAFETY
+                  IF ( STT(I,J,L,N) < 0d0 .or.
+     &                 IT_IS_NAN( STT(I,J,L,N) ) .or.
+     &                 DSTT(NN,L,I,J) < 0d0 ) THEN
+                     CALL SAFETY( I, J, L, N, 4, 
+     &                            LS,             PDOWN(L,I,J),  
+     &                            QQ(L,I,J),      ALPHA,        
+     &                            ALPHA2,         RAINFRAC,     
+     &                            WASHFRAC,       MASS_WASH,    
+     &                            MASS_NOWASH,    WETLOSS,      
+     &                            GAINED,         LOST,         
+     &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
+                  ENDIF
+               ENDDO
+            ENDIF
 
-               ! Save FTOP for next level
-               FTOP = F 
+!--- Prior to (wqq, 7/13/10)
+!               ! Save FTOP for next level
+!               FTOP = F 
 
             !==============================================================
             ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
@@ -4219,129 +4267,155 @@
             ! positive values, otherwise, QQ would be equal to 
             ! PDOWN(L+1)-PDOWN(L).           
             !==============================================================
-            ELSE IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) <= 0d0 ) THEN
+!            ELSE IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) <= 0d0 ) THEN
+            IF ( F_WASHOUT > 0d0 ) THEN
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
                ! Q     is the new precip that is forming within box (I,J,L)
                QDOWN = PDOWN(L,I,J)
                Q     = QQ(L,I,J)
 
-               ! Since no precipitation is forming within grid box (I,J,L),
-               ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
-               F = FTOP
- 
-               ! Only compute washout if F > 0.
-               ! This helps to eliminate needless CPU cycles.
-               IF ( F > 0d0 ) THEN
+!--- Prior to (wqq, 7/13/10)
+!               ! Since no precipitation is forming within grid box (I,J,L),
+!               ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
+!               F = FTOP
+! 
+!               ! Only compute washout if F > 0.
+!               ! This helps to eliminate needless CPU cycles.
+!               IF ( F > 0d0 ) THEN
+!
+!                  ! ND16 diagnostic...save F (fraction of grid box raining)
+!                  IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
+!                     AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
+!                     CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
+!                  ENDIF
+!------------------------------------------------------------------------------
 
-                  ! ND16 diagnostic...save F (fraction of grid box raining)
-                  IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
-                     AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
-                     CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
-                  ENDIF
+               ! CDH 
+               IF (F_RAINOUT > 0d0) THEN
+                  ! The precipitation causing washout is the precip entering
+                  ! the top
+                  QDOWN = PDOWN(L+1,I,J)
 
-                  ! ND18 diagnostic...increment counter
-                  IF ( ND18 > 0 .and. L <= LD18 ) THEN
-                     CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
-                  ENDIF
+                  ! The amount of precipitating water entering from above 
+                  ! which evaporates. If there is rainout (new precip
+                  ! forming) then we have no way to estimate this, so assume
+                  ! zero for now. Consequently there will be no resuspended
+                  ! aerosol.
+                  Q = 0d0
+               ELSE
+                  Q = QQ(L,I,J)                  
+               ENDIF
 
-                  ! Loop over soluble tracers and/or aerosol tracers    
-                  DO NN = 1, NSOL
-                     N  = IDWETD(NN)
+               ! ND16 diagnostic...save F (fraction of grid box raining)
+               IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
+                  AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F_WASHOUT
+                  CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
+               ENDIF
 
-                     ! Call WASHOUT to compute the fraction of 
-                     ! tracer lost to washout in grid box (I,J,L)
-                     CALL WASHOUT( I,     J,  L, N, 
-     &                             QDOWN, DT, F, WASHFRAC, AER )
+               ! ND18 diagnostic...increment counter
+               IF ( ND18 > 0 .and. L <= LD18 ) THEN
+                  CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
+               ENDIF
+
+               ! Loop over soluble tracers and/or aerosol tracers    
+               DO NN = 1, NSOL
+                  N  = IDWETD(NN)
+
+                  ! Call WASHOUT to compute the fraction of 
+                  ! tracer lost to washout in grid box (I,J,L)
+                  CALL WASHOUT( I,     J,  L, N, 
+     &                          QDOWN, DT, F_WASHOUT, WASHFRAC, AER )
                   
-                     !=====================================================
-                     ! Washout of aerosol tracers -- 
-                     ! this is modeled as a kinetic process
-                     !=====================================================
-                     IF ( AER ) THEN
+                  !=====================================================
+                  ! Washout of aerosol tracers -- 
+                  ! this is modeled as a kinetic process
+                  !=====================================================
+                  IF ( AER ) THEN
 
-                        ! ALPHA is the fraction of the raindrops that 
-                        ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                        ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 ) / 
-     &                            PDOWN(L+1,I,J) 
+                     ! ALPHA is the fraction of the raindrops that 
+                     ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+                     ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 ) / 
+     &                         PDOWN(L+1,I,J) 
 
-                        ! ALPHA2 is the fraction of the rained-out aerosols
-                        ! that gets resuspended in grid box (I,J,L)
-                        ALPHA2 = 0.5d0 * ALPHA
+                     ! ALPHA2 is the fraction of the rained-out aerosols
+                     ! that gets resuspended in grid box (I,J,L)
+                     ALPHA2 = 0.5d0 * ALPHA
 
-                        ! GAINED is the rained out aerosol coming down from 
-                        ! grid box (I,J,L+1) that will evaporate and re-enter 
-                        ! the atmosphere in the gas phase in grid box (I,J,L).
-                        GAINED = DSTT(NN,L+1,I,J) * ALPHA2
+                     ! GAINED is the rained out aerosol coming down from 
+                     ! grid box (I,J,L+1) that will evaporate and re-enter 
+                     ! the atmosphere in the gas phase in grid box (I,J,L).
+                     GAINED = DSTT(NN,L+1,I,J) * ALPHA2
 
-                        ! Amount of aerosol lost to washout in grid box
-                        ! (qli, bmy, 10/29/02)
-                        WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
+                     ! Amount of aerosol lost to washout in grid box
+                     ! (qli, bmy, 10/29/02)
+                     WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
 
-                        ! Remove washout losses in grid box (I,J,L) from STT.
-                        ! Add the aerosol that was reevaporated in (I,J,L).
-                        ! SO2 in sulfate chemistry is wet-scavenged on the
-                        ! raindrop and converted to SO4 by aqeuous chem.
-                        ! If evaporation occurs then SO2 comes back as SO4
-                        ! (rjp, bmy, 3/23/03)
-                        IF ( N == IDTSO2 ) THEN
-                            STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
-     &                                        + GAINED * 96D0 / 64D0
+                     ! Remove washout losses in grid box (I,J,L) from STT.
+                     ! Add the aerosol that was reevaporated in (I,J,L).
+                     ! SO2 in sulfate chemistry is wet-scavenged on the
+                     ! raindrop and converted to SO4 by aqeuous chem.
+                     ! If evaporation occurs then SO2 comes back as SO4
+                     ! (rjp, bmy, 3/23/03)
+                     IF ( N == IDTSO2 ) THEN
+                        STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
+     &                                     + GAINED * 96D0 / 64D0
 
-                            STT(I,J,L,N)      = STT(I,J,L,N) *
+                        STT(I,J,L,N)      = STT(I,J,L,N) *
      &                                          ( 1d0 - WASHFRAC )
-                        ELSE
-                            STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
-                        ENDIF
-
-                        ! LOST is the rained out aerosol coming down from
-                        ! grid box (I,J,L+1) that will remain in the liquid
-                        ! phase in grid box (I,J,L) and will NOT re-evaporate.
-                        LOST = DSTT(NN,L+1,I,J) - GAINED
-
-                        ! Add the washed out tracer from grid box (I,J,L) to 
-                        ! DSTT.  Also add the amount of tracer coming down
-                        ! from grid box (I,J,L+1) that does NOT re-evaporate.
-                        DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-                        ! Maybe it should be this ????
-                        !DSTT(NN,L,I,J) = LOST + WETLOSS
-
-                        ! ND18 diagnostic...divide washout fraction by F
-                        IF ( ND18 > 0 .and. L <= LD18 ) THEN
-                           AD18(I,J,L,NN,IDX) = 
-     &                          AD18(I,J,L,NN,IDX) + WASHFRAC / F
-                        ENDIF
-
-                     !=====================================================
-                     ! Washout of non-aerosol tracers
-                     ! This is modeled as an equilibrium process
-                     !=====================================================
                      ELSE
+                        STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
+                     ENDIF
+
+                     ! LOST is the rained out aerosol coming down from
+                     ! grid box (I,J,L+1) that will remain in the liquid
+                     ! phase in grid box (I,J,L) and will NOT re-evaporate.
+                     LOST = DSTT(NN,L+1,I,J) - GAINED
+
+                     ! Add the washed out tracer from grid box (I,J,L) to 
+                     ! DSTT.  Also add the amount of tracer coming down
+                     ! from grid box (I,J,L+1) that does NOT re-evaporate.
+                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+                     ! Maybe it should be this ????
+                     !DSTT(NN,L,I,J) = LOST + WETLOSS
+
+                     ! ND18 diagnostic...divide washout fraction by F
+                     IF ( ND18 > 0 .and. L <= LD18 ) THEN
+                        AD18(I,J,L,NN,IDX) = 
+     &                       AD18(I,J,L,NN,IDX) + WASHFRAC / F_WASHOUT
+                     ENDIF
+
+                  !=====================================================
+                  ! Washout of non-aerosol tracers
+                  ! This is modeled as an equilibrium process
+                  !=====================================================
+                  ELSE
                   
-                        ! MASS_NOWASH is the amount of non-aerosol tracer in 
-                        ! grid box (I,J,L) that is NOT available for washout.
-                        MASS_NOWASH = ( 1d0 - F ) * STT(I,J,L,N)
+                     ! MASS_NOWASH is the amount of non-aerosol tracer in 
+                     ! grid box (I,J,L) that is NOT available for washout.
+                     MASS_NOWASH = ( 1d0 - F_WASHOUT ) * STT(I,J,L,N)
                      
-                        ! MASS_WASH is the total amount of non-aerosol tracer
-                        ! that is available for washout in grid box (I,J,L).
-                        ! It consists of the mass in the precipitating
-                        ! part of box (I,J,L), plus the previously rained-out
-                        ! tracer coming down from grid box (I,J,L+1).
-                        ! (Eq. 15, Jacob et al, 2000).
-                        MASS_WASH = ( F*STT(I,J,L,N) ) +DSTT(NN,L+1,I,J)
+                     ! MASS_WASH is the total amount of non-aerosol tracer
+                     ! that is available for washout in grid box (I,J,L).
+                     ! It consists of the mass in the precipitating
+                     ! part of box (I,J,L), plus the previously rained-out
+                     ! tracer coming down from grid box (I,J,L+1).
+                     ! (Eq. 15, Jacob et al, 2000).
+                     MASS_WASH = ( F_WASHOUT*STT(I,J,L,N) ) +
+     &                       DSTT(NN,L+1,I,J)
 
-                        ! WETLOSS is the amount of tracer mass in 
-                        ! grid box (I,J,L) that is lost to washout.
-                        ! (Eq. 16, Jacob et al, 2000)
-                        WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
+                     ! WETLOSS is the amount of tracer mass in 
+                     ! grid box (I,J,L) that is lost to washout.
+                     ! (Eq. 16, Jacob et al, 2000)
+                     WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
 
-                        ! The tracer left in grid box (I,J,L) is what was
-                        ! in originally in the non-precipitating fraction 
-                        ! of the box, plus MASS_WASH, less WETLOSS. 
-                        STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
+                     ! The tracer left in grid box (I,J,L) is what was
+                     ! in originally in the non-precipitating fraction 
+                     ! of the box, plus MASS_WASH, less WETLOSS. 
+                     STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
                   
-                        ! Add washout losses in grid box (I,J,L) to DSTT 
-                        DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+                     ! Add washout losses in grid box (I,J,L) to DSTT 
+                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
 
 !-----------------------------------------------------------------------------
 ! Prior to updates from (cdh, ccc, 5/26/10)
@@ -4353,38 +4427,39 @@
 !                        ENDIF
 !-----------------------------------------------------------------------------
 
-                        ! ND18 diagnostic...we don't have to divide the
-                        ! washout fraction by F since this is accounted for.
-                        IF ( ND18 > 0 .and. L <= LD18 ) THEN
-                           AD18(I,J,L,NN,IDX) = 
-     &                          AD18(I,J,L,NN,IDX) + WASHFRAC
-                        ENDIF
+                     ! ND18 diagnostic...we don't have to divide the
+                     ! washout fraction by F since this is accounted for.
+                     IF ( ND18 > 0 .and. L <= LD18 ) THEN
+                        AD18(I,J,L,NN,IDX) = 
+     &                       AD18(I,J,L,NN,IDX) + WASHFRAC
                      ENDIF
+                  ENDIF
 
-                     ! ND39 diag -- save rainout losses in [kg/s]
-                     ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
-                     IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
-                        AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
-                     ENDIF
+                  ! ND39 diag -- save rainout losses in [kg/s]
+                  ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+                  IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
+                     AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+                  ENDIF
   
-                     ! Negative tracer...call subroutine SAFETY
-                     IF ( STT(I,J,L,N) < 0d0 .or. 
-     &                    IT_IS_NAN( STT(I,J,L,N) ) .or.
-     &                    DSTT(NN,L,I,J) < 0d0 ) THEN
-                        CALL SAFETY( I, J, L, N, 5, 
-     &                               LS,             PDOWN(L,I,J), 
-     &                               QQ(L,I,J),      ALPHA,        
-     &                               ALPHA2,         RAINFRAC,     
-     &                               WASHFRAC,       MASS_WASH,    
-     &                               MASS_NOWASH,    WETLOSS,      
-     &                               GAINED,         LOST,         
-     &                               DSTT(NN,:,I,J), STT(I,J,:,N) )
-                     ENDIF
-                  ENDDO  
-               ENDIF
+                  ! Negative tracer...call subroutine SAFETY
+                  IF ( STT(I,J,L,N) < 0d0 .or. 
+     &                 IT_IS_NAN( STT(I,J,L,N) ) .or.
+     &                 DSTT(NN,L,I,J) < 0d0 ) THEN
+                     CALL SAFETY( I, J, L, N, 5, 
+     &                            LS,             PDOWN(L,I,J), 
+     &                            QQ(L,I,J),      ALPHA,        
+     &                            ALPHA2,         RAINFRAC,     
+     &                            WASHFRAC,       MASS_WASH,    
+     &                            MASS_NOWASH,    WETLOSS,      
+     &                            GAINED,         LOST,         
+     &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
+                  ENDIF
+               ENDDO  
+            ENDIF
 
-               ! Save FTOP for next level
-               FTOP = F   
+!--- Prior to (wqq, 7/13/10)
+!               ! Save FTOP for next level
+!               FTOP = F   
 
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
@@ -4398,7 +4473,8 @@
             ! re-enter the atmosphere in the gas phase in grid box 
             ! (I,J,L).  This is called "resuspension".
             !===========================================================
-            ELSE IF ( ABS( PDOWN(L,I,J) ) < 1d-30 ) THEN
+            IF ( F_WASHOUT == 0d0 .and. F_RAINOUT == 0d0 ) THEN
+            !IF ( ABS( PDOWN(L,I,J) ) < 1d-30 ) THEN
 
                ! No precipitation at grid box (I,J,L), thus F = 0
                F = 0d0
@@ -4455,10 +4531,14 @@
                   ENDIF
                ENDDO
 
-               ! Save FTOP for next level
-               FTOP = F
+!--- Prior to (wqq, 7/13/10)
+!               ! Save FTOP for next level
+!               FTOP = F
+!------------------------------------------
             ENDIF 
-         ENDDO                 
+            ! Save FTOP for next level
+            FTOP = F_RAINOUT + F_WASHOUT
+         ENDDO               
 
          !==============================================================
          ! (7)  W a s h o u t   i n   L e v e l   1
