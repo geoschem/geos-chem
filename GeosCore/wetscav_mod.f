@@ -203,23 +203,13 @@
       ! References to F90 modules
       USE ERROR_MOD,         ONLY : DEBUG_MSG
       USE LOGICAL_MOD,       ONLY : LPRT
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
-      USE MERCURY_MOD,       ONLY : PARTITIONHG
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       !==================================================================
       ! DO_WETDEP begins here!
       !==================================================================
 
-      ! Add partition Hg(II) between aerosol and gas
-      ! Moved from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         CALL PARTITIONHG( 1, STT, HGPFRAC )
-      ENDIF            
-     
       ! Wetdep by large-scale (stratiform) precip
       CALL MAKE_QQ( .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
@@ -249,12 +239,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after conv wetdep' )
 
 #endif
-
-      ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-      ! Move from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         CALL PARTITIONHG( 2, STT, HGPFRAC )
-      ENDIF 
 
       ! Return to calling program
       END SUBROUTINE DO_WETDEP

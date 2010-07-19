@@ -83,19 +83,12 @@
       USE DAO_MOD,           ONLY : CLDMAS,    CMFMC, DTRAIN
       USE MERCURY_MOD,       ONLY : PARTITIONHG
       USE TRACER_MOD,        ONLY : N_TRACERS, TCVV
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM, STT
+      USE TRACER_MOD,        ONLY : STT
 
 #     include "CMN_SIZE"   ! Size parameters
 
       INTEGER :: I, J, L
-      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
-      ! Partition Hg(II) between aerosol and gas
-      ! Move from main.f (ccc, 7/12/10)
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         CALL PARTITIONHG( 1, STT, HGPFRAC )
-      ENDIF
-      
 #if   defined( GCAP ) 
 
       !-------------------------
@@ -134,11 +127,6 @@
 
 #endif
 
-      ! Return all reactive particulate Hg(II) to total Hg(II) tracer
-      IF ( ITS_A_MERCURY_SIM() ) THEN
-         CALL PARTITIONHG( 2, STT, HGPFRAC )
-      ENDIF
-      
       ! Return to calling program
       END SUBROUTINE DO_CONVECTION
 
