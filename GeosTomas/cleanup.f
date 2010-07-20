@@ -84,6 +84,9 @@
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
 !  (43) Now references CLEANUP_TOMAS (win, bmy, 1/25/10)
+!  (44) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (45) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
+!       (ccc, 5/6/10)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -134,6 +137,8 @@
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
+      USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
+      USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
@@ -214,6 +219,8 @@
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY
+      CALL CLEANUP_DEPO_MERCURY
+      CALL CLEANUP_LAND_MERCURY
       CALL CLEANUP_PBL_MIX
       CALL CLEANUP_PJC_PFIX
       CALL CLEANUP_PLANEFLIGHT

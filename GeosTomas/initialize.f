@@ -270,6 +270,7 @@
          IF ( ND16 > 0 ) AD16     = 0e0
          IF ( ND17 > 0 ) AD17     = 0e0
          IF ( ND18 > 0 ) AD18     = 0e0         
+         IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
          IF ( ND24 > 0 ) MASSFLEW = 0d0
          IF ( ND25 > 0 ) MASSFLNS = 0d0
@@ -293,7 +294,6 @@
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0
-         IF ( ND19 > 0 ) AD19     = 0e0
          !potential temp (fp, 6/2009)
          IF ( ND57 > 0 ) AD57     = 0e0
          IF ( ND58 > 0 ) AD58     = 0e0

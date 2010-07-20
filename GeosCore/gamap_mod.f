@@ -1607,10 +1607,11 @@
                CASE ( 27: )
                   NAME (T,03) = TRACER_NAME(T-PD03) !CDH 18->22
 
-                  ! Tracer 3 should be "HgC" instead of "HgP"
-                  IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
-                     NAME(T,03) = 'HgC'
-                  ENDIF
+!--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
+!                  ! Tracer 3 should be "HgC" instead of "HgP"
+!                  IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
+!                     NAME(T,03) = 'HgC'
+!                  ENDIF
 
                   FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
                   INDEX(T,03) = ( T - PD03 ) + ( SPACING * 41 )

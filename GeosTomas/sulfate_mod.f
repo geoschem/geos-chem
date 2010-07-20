@@ -1415,6 +1415,7 @@
 !        terms. (win, bmy, 1/4/10)
 !  (14) Save aqueous production rate to PSO4_SO2AQ for TOMAS microphyics
 !        (win, 1/25/10)
+!  (15) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1736,9 +1737,24 @@
      &               ( (SO2_ss * L2) - H2O20 )  
             ELSE
 
+               !-------------------------------------------------------------
+               ! Prior to 4/28/10:
                ! If exponential can't be computed, set to
                ! the initial H2O2 concentration
-               L2S = H2O20
+               !L2S = H2O20
+               !-------------------------------------------------------------
+
+               ! NOTE from Jintai Lin (4/28/10):
+               ! However, in the case of a negative XX, L2S should be 
+               ! approximated as SO2_ss, instead of H2O20. In other words, 
+               ! L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / ( (SO2_ss*L2) - H2O20 )
+               ! reaches different limits when XX reaches positive infinity 
+               ! and negative infinity.
+               IF ( XX > 0.d0 ) THEN 
+                  L2S = H2O20 
+               ELSE 
+                  L2S = SO2_ss
+               ENDIF
 
             ENDIF
 
@@ -1762,10 +1778,20 @@
 
             ELSE
  
+               !-------------------------------------------------------------
+               ! Prior to 4/28/10:
                ! If exponential can't be computed, set to
                ! the initial O3 concentration
-               L3S = O3
+               !L3S = O3
+               !-------------------------------------------------------------
 
+               ! Follow the same logic for L3S as described in
+               ! Jintai Lin's note above (bmy, 4/28/10)
+               IF ( XX > 0.d0 ) THEN 
+                  L3S = O3 
+               ELSE 
+                  L3S = SO2_ss 
+               ENDIF
             ENDIF
 
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
@@ -1927,12 +1953,7 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE TIME_MOD,        ONLY : GET_ELAPSED_SEC,    GET_MONTH 
       USE TIME_MOD,        ONLY : ITS_A_NEW_MONTH
-      !-----------------------------------------------------------------
-      ! Prior to 1/28/10:
-      ! Remove reference to GET_GNO3 (bmy, 1/28/10)
-      !USE ISOROPIA_MOD,    ONLY : GET_GNO3
-      !-----------------------------------------------------------------
- 
+
       ! Add these for GET_GNO3 fix (lyj, bmy, 10/7/08)
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE DAO_MOD,         ONLY : AIRVOL
@@ -3882,9 +3903,11 @@
 !  (12) Add LANTHRO switch to properly turn off the anthropogenic emissions,
 !        READ_AIRCRAFT_SO2, READ_ANTHRO_SOx, READ_ANTHRO_NH3 (ccc, 4/15/09)
 !  (13) Now read new volcanic SO2 emissions daily (jaf, bmy, 10/15/09)
-!  (13) Now call SRCSF30 to emit sulfate mass and aerosol number into the 
+!  (14) Now call SRCSF30 to emit sulfate mass and aerosol number into the 
 !        size-resolved TOMAS aerosol tracers. Reference to tracer IDs of 
 !        the TOMAS aerosol from tracerid_mod  (win, 1/25/10)
+!  (15) Add LBIOFUEL switch to properly turn off the biofuel emissions,
+!       READ_BIOFUEL_SO2, READ_BIOFUEL_NH3. (ccc, 7/16/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3898,7 +3921,7 @@
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
-      USE LOGICAL_MOD,       ONLY : LANTHRO
+      USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
       USE TRACERID_MOD,      ONLY : IDTSF1,     IDTAW1,   IDTNH4 !(win, 1/25/10)
       USE TRACERID_MOD,      ONLY : IDTNK1     !(win, 1/25/10)
       USE TOMAS_MOD,         ONLY : IBINS,      ICOMP,    IDIAG  !(win, 1/25/10)
@@ -3967,9 +3990,17 @@
          ! Read monthly mean data
          CALL READ_SST( MONTH, YEAR )
          CALL READ_OCEAN_DMS( MONTH )
-         CALL READ_BIOFUEL_SO2( MONTH )
-         CALL READ_BIOFUEL_NH3( MONTH )
          CALL READ_NATURAL_NH3( MONTH )
+
+         ! Add LBIOFUEL szitch to turn off biofuel emissions.
+         ! Warning: Streets 2006 inventory combines both anthropogenic
+         ! and biofuel emissions, so with this inventory it is not
+         ! possible to turn off biofuel emissions.
+         !(ccc, 7/16/10)
+         IF ( LBIOFUEL ) THEN
+            CALL READ_BIOFUEL_SO2( MONTH )
+            CALL READ_BIOFUEL_NH3( MONTH )
+         ENDIF
 
          ! Add LANTHRO switch to turn off anthropogenic emissions.
          ! (ccc, 4/15/09)

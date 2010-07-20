@@ -58,6 +58,7 @@
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
+!  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

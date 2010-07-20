@@ -113,6 +113,7 @@
 !  (93) Add ND57 for potential temperature. (fp, 2/3/10)
 !  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
+!  (95) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
 !******************************************************************************
 ! 
       ! References to F90 modules

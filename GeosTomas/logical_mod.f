@@ -58,6 +58,8 @@
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  22 Jan 2010 - R. Yantosca - Added LTOMAS switch
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
+!  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
+!  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -82,7 +84,7 @@
 
       !%%%% Chemistry %%%%
       LOGICAL :: LCHEM           ! Use chemistry?
-      LOGICAL :: LEMBED          ! DEPRECATED, will be removed
+
       LOGICAL :: LKPP            ! Use KPP solver instead of SMVGEAR?
 
       !%%%% Cloud convection %%%%
@@ -186,6 +188,8 @@
 
       !%%%% Dynamic ocean Hg model %%%%
       LOGICAL :: LDYNOCEAN       ! Use dynamic ocean Hg model?
+      LOGICAL :: LPREINDHG       ! Preindustrial mercury simulation (eds)
+      LOGICAL :: LGTMM           ! GTMM soil model (ccc, 9/16/09)
 
       !%%%% For the CH4 offline simulation only %%%%
       LOGICAL :: LGAO            ! Use gas & oil emissions?
