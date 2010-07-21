@@ -13,12 +13,12 @@
 !  (3 ) MAX_RELERR  (REAL*8 )  : Max error for total-tag error check [unitless]
 !  (4 ) MAX_ABSERR  (REAL*8 )  : Max abs error for total-tag err chk [unitless]
 !  (5 ) MAX_FLXERR  (REAL*8 )  : Max error tol for flux error check  [unitless]
-!  (6 ) Hg2aq_tot   (REAL*8 )  : Total Hg2 conc. in the mixed layer  [kg      ] 
+!  (6 ) Hg2aq_tot   (REAL*8 )  : Total Hg2 conc. in the mixed layer  [kg      ]
 !  (7 ) DD_Hg2      (REAL*8 )  : Array for Hg(II) dry dep'd to ocean [kg      ]
 !  (8 ) Hgaq_tot    (REAL*8 )  : Total Hg conc. in the mixed layer   [kg      ]
 !  (9 ) Hg0aq       (REAL*8 )  : Array for ocean mass of Hg(0)       [kg      ]
 !  (10) Hg2aq       (REAL*8 )  : Array for ocean mass of Hg(II)      [kg      ]
-!  (11) HgC         (REAL*8 )  : Array for ocean mass of HgC         [kg      ]
+!  (11) HgPaq       (REAL*8 )  : Array for ocean mass of HgP         [kg      ]
 !  (12) dMLD        (REAL*8 )  : Array for Change in ocean MLD       [cm      ]
 !  (13) MLD         (REAL*8 )  : Array for instantaneous ocean MLD   [cm      ]
 !  (14) MLDav       (REAL*8 )  : Array for monthly mean ocean MLD    [cm      ]
@@ -27,14 +27,14 @@
 !  (17) RAD         (REAL*8 )  : Array for mean solar radiation      [W/m2    ]
 !  (18) UPVEL       (REAL*8 )  : Array for ocean upwelling velocity  [m/s     ]
 !  (19) WD_Hg2      (REAL*8 )  : Array for Hg(II) wet dep'd to ocean [kg      ]
-!  (20) CHL         (REAL*8 )  : Chl surface concentration           [mg(m3   ]  
-!  (21) CDEEPATL    (REAL*8 )  : Conc. Hg0, Hg2, HgC below MLD-Atl   [pM      ] 
-!  (22) CDEEP       (REAL*8 )  : Conc. of Hg0, Hg2, HgC below MLD    [pM      ]
-!  (23) CDEEPNAT    (REAL*8 )  : Conc. Hg0, Hg2, HgC below MLD-NAtl  [pM      ] 
-!  (24) CDEEPSAT    (REAL*8 )  : Conc. Hg0, Hg2, HgC below MLD-SAtl  [pM      ] 
-!  (25) CDEEPANT    (REAL*8 )  : Conc. Hg0, Hg2, HgC below MLD-Ant   [pM      ] 
-!  (26) CDEEPARC    (REAL*8 )  : Conc. Hg0, Hg2, HgC below MLD-Arc   [pM      ] 
-
+!  (20) CHL         (REAL*8 )  : Chl surface concentration           [mg(m3   ]
+!  (21) CDEEPATL    (REAL*8 )  : Conc. Hg0, Hg2, HgP below MLD-Atl   [pM      ]
+!  (22) CDEEP       (REAL*8 )  : Conc. of Hg0, Hg2, HgP below MLD    [pM      ]
+!  (23) CDEEPNAT    (REAL*8 )  : Conc. Hg0, Hg2, HgP below MLD-NAtl  [pM      ]
+!  (24) CDEEPSAT    (REAL*8 )  : Conc. Hg0, Hg2, HgP below MLD-SAtl  [pM      ]
+!  (25) CDEEPANT    (REAL*8 )  : Conc. Hg0, Hg2, HgP below MLD-Ant   [pM      ]
+!  (26) CDEEPARC    (REAL*8 )  : Conc. Hg0, Hg2, HgP below MLD-Arc   [pM      ]
+!
 !
 !  Module Routines:
 !  ============================================================================
@@ -90,15 +90,16 @@
 !
 !  Nomenclature: 
 !  ============================================================================
-!  (1 ) Hg(0)  a.k.a. Hg0 : Elemental mercury
-!  (2 ) Hg(II) a.k.a. Hg2 : Divalent  mercury
-!  (3 ) HgC               : Colloidal mercury
+!  (1 ) Hg(0)  a.k.a. Hg0 : Elemental   mercury
+!  (2 ) Hg(II) a.k.a. Hg2 : Divalent    mercury
+!  (3 ) HgP               : Particulate mercury
 !
 !  NOTES:
 !  (1 ) Modified ocean flux w/ Sarah's new Ks value (sas, bmy, 2/24/05)
 !  (2 ) Now get HALFPOLAR for GCAP or GEOS grids (bmy, 6/28/05)
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
 !  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
+!  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -163,7 +164,8 @@
       REAL*8,  ALLOCATABLE :: dMLD(:,:)
       REAL*8,  ALLOCATABLE :: Hg0aq(:,:,:)
       REAL*8,  ALLOCATABLE :: Hg2aq(:,:,:)
-      REAL*8,  ALLOCATABLE :: HgC(:,:)
+!      REAL*8,  ALLOCATABLE :: HgC(:,:)
+      REAL*8,  ALLOCATABLE :: HgPaq(:,:)
       REAL*8,  ALLOCATABLE :: MLD(:,:)
       REAL*8,  ALLOCATABLE :: MLDav(:,:)
       REAL*8,  ALLOCATABLE :: newMLD(:,:)
@@ -592,10 +594,12 @@ c$$$
       REAL*8                :: CHg0aq,   CHg0,     vi,       JorgC_kg           
       REAL*8                :: TC,       TK,       Kw
       REAL*8                :: Sc,       ScCO2,    USQ,      MHg
-      REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgC_SUNK
+!      REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgC_SUNK
+      REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgPaq_SUNK
       REAL*8                :: Hg0aq_A,  Hg0aq_B,  Hg0aq_SUM       !REDALERT
       REAL*8                :: Hg2aq_A,  Hg2aq_B,  Hg2aq_SUM       !REDALERT
-      REAL*8                :: HgC_A,    HgC_B,    HgC_SUM       !REDALERT
+!      REAL*8                :: HgC_A,    HgC_B,    HgC_SUM       !REDALERT
+      REAL*8                :: HgPaq_A,    HgPaq_B,    HgPaq_SUM     !REDALERT
       REAL*8                :: FRAC_L,   FRAC_O,   H,        TOTDEP
       REAL*8                :: Hg2_RED_RAD   !redalert
       REAL*8                :: oldMLD,   XTAU,     TOTDEPall                   
@@ -611,10 +615,15 @@ c$$$
       REAL*8                :: C_tot,    Ze,       OC_tot,   Hg0_OX     
 
       ! Parameters
-      REAL*8                :: EC_w,     EC_doc,   C_doc     
-      REAL*8                :: k_radbase, k_biobase,   k_oxbase     
-      REAL*8                :: Kd_part        
-      REAL*8                :: k_ox_dark,    ECchla                       
+      REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
+      REAL*8, PARAMETER     :: EC_doc    = 0.654d0
+      REAL*8, PARAMETER     :: C_doc     = 1.5d0 
+      REAL*8, PARAMETER     :: k_radbase = 1.73d-6 !2.85d-6 !(anls, 090812) 4.32d-6                    
+      REAL*8, PARAMETER     :: k_biobase = 4.1d-10 !(anls, 090728) 3.21d-6   
+      REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 !4.15d-6 (anls,090922)
+      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    !(anls, 090714)  
+      REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
+      REAL*8, PARAMETER     :: ECchla    = 31d0     
 
       ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
       REAL*8,  PARAMETER    :: TO_KGM2S = 1.0D-11 / 3600D0 
@@ -704,31 +713,33 @@ c$$$
 
 !      write(103,'(2I4,4E12.3)') I, J, NPP_tot, A_ocean !   (anls, 090714)
 
-      !Parameters
-      EC_w       = 0.0145d0                           
-      EC_doc     = 0.654d0
-      C_doc      = 1.5d0
-      k_radbase  = 1.73d-6      !2.85d-6    !(anls, 090812) 4.32d-6    
-      k_biobase  = 4.1d-10      !(anls, 090728) 3.21d-6
-      k_oxbase   = 6.64d-6      !4.15d-6 (anls,090922)
-      Kd_part    = 10**(5.5)    !(anls, 090714)
-      k_ox_dark  = 1d-7                  
-      ECchla     = 31d0  
-
-
       ! Loop over latitudes   
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,   vi,   A_M2,   HgC_A,   Hg2_RED,   Hgaq_tot   )
+!!$OMP+PRIVATE( J,   NN,   k_ox,   OC_tot,  Hg2aq_A,   Hg2_CONV   )
+!!$OMP+PRIVATE( N,   TK,   CHg0,   FRAC_L,  Hg2aq_B,   k_red_bio  )
+!!$OMP+PRIVATE( C,   TC,   RADz,   Hg0_OX,  HgC_sum,   k_red_rad  )
+!!$OMP+PRIVATE( D,   EC,   k_red,  OLDMLD,  Hg0aq_A,   TOTDEPall  )
+!!$OMP+PRIVATE( Y,   Ze,   ScCO2,  FRAC_O,  Frac_Hg2,  Hg2aq_tot  )
+!!$OMP+PRIVATE( H,   Kw,   MLDCM,  TOTDEP,  HgC_SUNK,  OC_tot_kg  )
+!!$OMP+PRIVATE( X,   SPM,  HgC_B,  CHg0aq,  Hg2_GONE,  Hg0aq_SUM  )
+!!$OMP+PRIVATE( Sc,  Usq,  C_tot,  Hg0aq_B, JorgC_kg,  Hg2aq_SUM  )
+!!$OMP+PRIVATE( Hg2_RED_RAD                                       )
+!!$OMP+SCHEDULE( DYNAMIC )
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,   HgC_A,   Hg2_RED,   Hgaq_tot   )
-!$OMP+PRIVATE( J,   NN,   k_ox,   OC_tot,  Hg2aq_A,   Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,   FRAC_L,  Hg2aq_B,   k_red_bio  )
-!$OMP+PRIVATE( C,   TC,   RADz,   Hg0_OX,  HgC_sum,   k_red_rad  )
-!$OMP+PRIVATE( D,   EC,   k_red,  OLDMLD,  Hg0aq_A,   TOTDEPall  )
-!$OMP+PRIVATE( Y,   Ze,   ScCO2,  FRAC_O,  Frac_Hg2,  Hg2aq_tot  )
-!$OMP+PRIVATE( H,   Kw,   MLDCM,  TOTDEP,  HgC_SUNK,  OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  HgC_B,  CHg0aq,  Hg2_GONE,  Hg0aq_SUM  )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,  Hg0aq_B, JorgC_kg,  Hg2aq_SUM  )
-!$OMP+PRIVATE( Hg2_RED_RAD                                       )
+!$OMP+PRIVATE( I,   vi,   A_M2,    HgPaq_A, Hg2_RED,    Hgaq_tot   )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2aq_A,    Hg2_CONV   )
+!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  Hg2aq_B,    k_red_bio  )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  HgPaq_sum,  k_red_rad  )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  Hg0aq_A,    TOTDEPall  )
+!$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
+!$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  HgPaq_SUNK, OC_tot_kg  )
+!$OMP+PRIVATE( X,   SPM,  HgPaq_B, CHg0aq,  Hg2_GONE,   Hg0aq_SUM  )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   Hg0aq_B, JorgC_kg,   Hg2aq_SUM  )
+!$OMP+PRIVATE( Hg2_RED_RAD                                         )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -741,7 +752,8 @@ c$$$
 
          ! Initialize values
          Kw         = 0d0
-         HgC_SUNK   = 0d0
+!         HgC_SUNK   = 0d0
+         HgPaq_SUNK   = 0d0
          Hg2_CONV   = 0d0
          TK         = 0d0
          TC         = 0d0 
@@ -761,9 +773,12 @@ c$$$
          Hg2aq_B    = 0d0      !REDALERT
          Hg2aq_A    = 0d0
          Hg2aq_SUM  = 0d0      !!!!!REDALER slut
-         HgC_B      = 0d0      !REDALERT
-         HgC_A      = 0d0
-         HgC_SUM    = 0d0      !!!!!REDALER slut
+!         HgC_B      = 0d0      !REDALERT
+!         HgC_A      = 0d0
+!         HgC_SUM    = 0d0      !!!!!REDALER slut
+         HgPaq_B      = 0d0      !REDALERT
+         HgPaq_A      = 0d0
+         HgPaq_SUM    = 0d0      !!!!!REDALER slut
          Hg2_RED_RAD= 0d0   !readlaert
          C_tot      = 0d0
          Ze         = 0d0
@@ -785,7 +800,8 @@ c$$$
          Hg0aq_B = Hg0aq(I,J,ID_Hg_tot) !REDALER inserted to find ekman pumping
          Hg2aq_B = Hg2aq(I,J,ID_Hg_tot)
          IF ( N == 1) THEN
-            HgC_B = HgC(I,J)
+!            HgC_B = HgC(I,J)
+            HgPaq_B = HgPaq(I,J)
          ENDIF                  !REDALERT end
 
          ! Change ocean mass due to mixed layer depth change
@@ -795,12 +811,14 @@ c$$$
          Hg0aq_A = Hg0aq(I,J,ID_Hg_tot) !REDALER inserted to find ekman pumping
          Hg2aq_A = Hg2aq(I,J,ID_Hg_tot)
          IF ( N == 1) THEN
-            HgC_A = HgC(I,J)
+!            HgC_A = HgC(I,J)
+            HgPaq_A = HgPaq(I,J)
          ENDIF                         
 
          Hg0aq_SUM = Hg0aq_A - Hg0aq_B
          Hg2aq_SUM = Hg2aq_A - Hg2aq_B
-         HgC_SUM   = HgC_A - HgC_B !REDALERT end
+!         HgC_SUM   = HgC_A - HgC_B !REDALERT end
+         HgPaq_SUM   = HgPaq_A - HgPaq_B !REDALERT end
 
          !===========================================================
          ! Make sure we are in an ocean box
@@ -1038,7 +1056,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(3) )
                   ENDIF
  
@@ -1056,7 +1076,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                   ENDIF
 
@@ -1074,7 +1096,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                   ENDIF
 
@@ -1093,7 +1117,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(3) )
                   ENDIF
 
@@ -1112,7 +1138,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(3) )
                   ENDIF
 
@@ -1130,7 +1158,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(3) )
                   ENDIF
 
@@ -1148,7 +1178,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(3) )
                   ENDIF
                
@@ -1163,7 +1195,9 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
+!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(3) )
+                     HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(3) )
                   ENDIF
                
@@ -1197,9 +1231,11 @@ c$$$
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) 
      &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) )
                
-                  ! Hg colloidal
+                  ! Hg particulate
                   IF ( NN == 1 ) THEN
-                     HgC(I,J)  = HgC(I,J) 
+!                     HgC(I,J)  = HgC(I,J) 
+!     &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) )
+                     HgPaq(I,J)  = HgPaq(I,J) 
      &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) )
                   ENDIF
 
@@ -1211,11 +1247,11 @@ c$$$
             !===========================================================
             ! Calculate reduction, conversion, sinking, evasion
             !
-            ! (1) Hg2 <-> HgC and HgC sinks
+            ! (1) Hg2 <-> HgP and HgP sinks
             ! (2) Hg2 <-> Hg0 and Hg0 evades
             !
             ! NOTE: N is the GEOS-CHEM tracer # (for STT)
-            !       and NN is the Hg category # (for Hg0aq, Hg2aq, HgC)
+            !       and NN is the Hg category # (for Hg0aq, Hg2aq, HgP)
             !===========================================================
 
             ! Loop over all Hg categories
@@ -1244,7 +1280,8 @@ c$$$
                TOTDEP        = TOTDEPall * FRAC_O
 
                ! Add deposited Hg(II) to the Hg(II)tot ocean mass [kg]
-               Hg2aq_tot     = Hg2aq(I,J,NN) + HgC(I,J) + TOTDEP      
+!               Hg2aq_tot     = Hg2aq(I,J,NN) + HgC(I,J) + TOTDEP      
+               Hg2aq_tot     = Hg2aq(I,J,NN) + HgPaq(I,J) + TOTDEP      
 
                Hg2aq(I,J,NN) = Hg2aq_tot * Frac_Hg2               
 
@@ -1278,32 +1315,38 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN) - Hg2_GONE
 
                !--------------------------------------------------------
-               ! Calculate new Hg(C) mass
+               ! Calculate new Hg(P) mass
                !--------------------------------------------------------
                IF ( NN == 1 ) THEN
 
-                  ! HgC ocean mass after conversion
-                  HgC(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
+                  ! HgP ocean mass after conversion
+!                  HgC(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
+                  HgPaq(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
                      
 
                   !----------------------------------------------------
                   ! Conversion between OC and Hg                          
                   !----------------------------------------------------
                   ! Hg/C ratio based on HgP(kg) and Stock of organic C(kg)
-                  ! HgC_sunk funtion of C sunk and HgP/C ratio   
+                  ! HgPaq_sunk funtion of C sunk and HgP/C ratio   
         
-                  HgC_SUNK  = JorgC_kg * ( HgC(I,J) / OC_tot_kg)          
+!                  HgC_SUNK  = JorgC_kg * ( HgC(I,J) / OC_tot_kg)          
+                  HgPaq_SUNK  = JorgC_kg * ( HgPaq(I,J) / OC_tot_kg)          
 
 
-                  ! HgC ocean mass after sinking [kg]
+                  ! HgP ocean mass after sinking [kg]
 
-                  HgC(I,J)   = HgC(I,J) - HgC_SUNK
+!                  HgC(I,J)   = HgC(I,J) - HgC_SUNK
 
-                  HgC(I,J)   = MAX ( HgC(I,J) , 0.0 )                 
+!                  HgC(I,J)   = MAX ( HgC(I,J) , 0.0 )                 
+
+                  HgPaq(I,J)   = HgPaq(I,J) - HgPaq_SUNK
+
+                  HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0.0 )                 
 
                   ! Creating a tracer for total Hg2
 !                  Hg2_CONV = HgC(I,J) + Hgaq_tot                   
-                  Hg2_CONV = k_red_bio            ! Hg2aq(I,J,NN) wrong tracer!!!!
+                  Hg2_CONV = k_red_bio            ! Hg2aq(I,J,NN) wrong tracer!!                  Hg2_CONV = k_red_bio            ! Hg2aq(I,J,NN) wrong tracer!!!!
 !                  Hg2_CONV = Hg0aq(I,J,NN) * k_ox_dark * DTSRCE    !SQRT(Usq) 
 
                   ! Store Hg2_CONV for total tracer only
@@ -1397,7 +1440,8 @@ c$$$
                ! Make sure Hg0aq does not underflow (cdh, bmy, 3/28/06)
                Hg0aq(I,J,NN) = MAX( Hg0aq(I,J,NN), SMALLNUM )
 
-               Hgaq_tot = HgC(I,J) + Hg0aq(I,J,NN) + Hg2aq(I,J,NN)
+!               Hgaq_tot = HgC(I,J) + Hg0aq(I,J,NN) + Hg2aq(I,J,NN)
+               Hgaq_tot = HgPaq(I,J) + Hg0aq(I,J,NN) + Hg2aq(I,J,NN)
 
             ENDDO   
 
@@ -1413,7 +1457,7 @@ c$$$
                AD03(I,J,7)  = AD03(I,J,7)  + Hg2aq(I,J,ID_Hg_tot) 
 
                ! Hg2 sunk deep into the ocean [kg/time]
-!               AD03(I,J,8)  = AD03(I,J,8)  + ( HgC_SUNK + 
+!               AD03(I,J,8)  = AD03(I,J,8)  + ( HgPaq_SUNK + 
 !     &                         (FLUX(I,J,NN)*DTSRCE) - TOTDEP)
 !               AD03(I,J,8)  = AD03(I,J,8) + Hg0aq_SUM
                AD03(I,J,8)  = AD03(I,J,8) + Hg2_RED_RAD
@@ -1422,14 +1466,15 @@ c$$$
                AD03(I,J,10) =AD03(I,J,10) + Hgaq_tot        
 !               AD03(I,J,10) =AD03(I,J,10) + ((CHg0aq*H)/CHg0 )         !(anls,100111)  
  
-               ! Hg converted to colloidal [kg/m2/s]
-               AD03(I,J,11) = AD03(I,J,11) + HgC(I,J) 
+               ! Hg converted to particulate [kg/m2/s]
+!               AD03(I,J,11) = AD03(I,J,11) + HgC(I,J) 
+               AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
 
                ! flux up and down (eck)
                AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
 !               AD03(I,J,16) = AD03(I,J,16) + Hg2aq_SUM
                AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
-!               AD03(I,J,17) = AD03(I,J,17) + HgC_SUM
+!               AD03(I,J,17) = AD03(I,J,17) + HgPaq_SUM
 
             ENDIF
 
@@ -1802,9 +1847,12 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepatl(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepatl(3) * MHg * A_M2 * FRAC_O )
+
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepatl(3) * MHg * A_M2 * FRAC_O )
 
                ENDIF
@@ -1821,9 +1869,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepnpa(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                ENDIF
 
@@ -1839,9 +1889,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepnpa(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                ENDIF
 
@@ -1857,9 +1909,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepnat(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepnat(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnat(3) * MHg * A_M2 * FRAC_O )
 
                ENDIF
@@ -1876,9 +1930,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepsat(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepsat(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepsat(3) * MHg * A_M2 * FRAC_O )
 
                ENDIF
@@ -1894,9 +1950,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeepant(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeepant(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepant(3) * MHg * A_M2 * FRAC_O )
 
                ENDIF
@@ -1913,9 +1971,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                 + ( DELTAH * CDeeparc(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                 + ( DELTAH * CDeeparc(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeeparc(3) * MHg * A_M2 * FRAC_O )
 
                ENDIF
@@ -1929,9 +1989,11 @@ c$$$
                Hg2aq(I,J,NN) = Hg2aq(I,J,NN)
      &                    + ( DELTAH * CDeep(2) * MHg * A_M2 * FRAC_O )
 
-               ! HgC
+               ! HgP
                IF ( C == 1 ) THEN
-                  HgC(I,J)   = HgC(I,J)          
+!                  HgC(I,J)   = HgC(I,J)          
+!     &                    + ( DELTAH * CDeep(3) * MHg * A_M2 * FRAC_O )
+                  HgPaq(I,J)   = HgPaq(I,J)          
      &                    + ( DELTAH * CDeep(3) * MHg * A_M2 * FRAC_O )
                ENDIF
 
@@ -1957,7 +2019,8 @@ c$$$
             ENDDO
             
             ! Update colloidal Hg
-            HgC(I,J) = HgC(I,J) * ( MLDnew / MLDold )
+!            HgC(I,J) = HgC(I,J) * ( MLDnew / MLDold )
+            HgPaq(I,J) = HgPaq(I,J) * ( MLDnew / MLDold )
          
          ENDIF
 
@@ -2117,11 +2180,11 @@ c$$$
             ELSE IF ( NTRACER == 3 ) THEN
 
                !----------
-               ! Hg(C)
+               ! Hg(P)
                !----------
 
-               ! Colloidal Hg
-               HgC(:,:)        = Hg_OCEAN(:,:,1)
+               ! Particulate Hg
+               HgPaq(:,:)        = Hg_OCEAN(:,:,1)
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -2181,8 +2244,9 @@ c$$$
      &                   SUM( Hg0aq(:,:,NN) ), 'kg'
       ENDDO
 
-      ! HgC
-      WRITE( 6, 140 ) 3, 'HgC       ', SUM( HgC ), 'kg'
+      ! HgP
+!      WRITE( 6, 140 ) 3, 'HgC       ', SUM( HgC ), 'kg'
+      WRITE( 6, 140 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
 
       ! Format strings
  130  FORMAT( /, 'Total masses for each ocean tracer: ' ) 
@@ -2357,10 +2421,11 @@ c$$$
      &            JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
       !---------------------------
-      ! Total HgC in ocean
+      ! Total HgP in ocean
       !---------------------------
       N            = 3
-      ARRAY(:,:,1) = HgC(:,:)
+!      ARRAY(:,:,1) = HgC(:,:)
+      ARRAY(:,:,1) = HgPaq(:,:)
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
      &            HALFPOLAR, CENTER180, CATEGORY, N, 
@@ -3016,9 +3081,12 @@ c$$$      DD_HgP = 0d0
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
       Hg2aq = 0d0
 
-      ALLOCATE( HgC( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgC' )
-      HgC = 0d0
+!      ALLOCATE( HgC( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgC' )
+!      HgC = 0d0
+      ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+      HgPaq = 0d0
 
       ALLOCATE( MLD( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MLD' )
@@ -3077,7 +3145,7 @@ c$$$      SNOW_HG = 0d0
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now just deallocate arrays.  We have moved the writing of the Hg
-!        restart file to MAKE_OCEAN_Hg_RESTART.  Now also deallocate HgC, dMLD
+!        restart file to MAKE_OCEAN_Hg_RESTART.  Now also deallocate HgP, dMLD
 !        and MLDav arrays. (sas, cdh, bmy, 3/28/06)
 !******************************************************************************
 !     
@@ -3089,7 +3157,8 @@ c$$$      SNOW_HG = 0d0
       IF ( ALLOCATED( dMLD    ) ) DEALLOCATE( dMLD    )
       IF ( ALLOCATED( Hg0aq   ) ) DEALLOCATE( Hg0aq   )  
       IF ( ALLOCATED( Hg2aq   ) ) DEALLOCATE( Hg2aq   )
-      IF ( ALLOCATED( HgC     ) ) DEALLOCATE( HgC     )  
+!      IF ( ALLOCATED( HgC     ) ) DEALLOCATE( HgC     )  
+      IF ( ALLOCATED( HgPaq   ) ) DEALLOCATE( HgPaq   )  
       IF ( ALLOCATED( MLD     ) ) DEALLOCATE( MLD     )
       IF ( ALLOCATED( MLDav   ) ) DEALLOCATE( MLDav   )
       IF ( ALLOCATED( newMLD  ) ) DEALLOCATE( newMLD  )

@@ -270,7 +270,7 @@
          ELSE IF ( N == 11 ) THEN
 
             !--------------------------------
-            ! #11: Hg(C) ocean mass
+            ! #11: Hg(P) ocean mass
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
@@ -281,7 +281,7 @@
          ELSE IF ( N == 12 ) THEN
 
             !--------------------------------
-            ! #12: Converted to colloidal
+            ! #12: Converted to particulate
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'

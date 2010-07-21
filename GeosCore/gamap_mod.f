@@ -1389,6 +1389,8 @@
       INTEGER               :: N, NN, NYMDb, NHMSb, T
       LOGICAL               :: DO_TIMESERIES
 
+      ! For Hg diagnostic: some max number of tracers per diagnostic.
+      INTEGER               :: PD03_PL
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
@@ -1476,12 +1478,16 @@
       !-------------------------------------
       IF ( ND03 > 0 ) THEN
          
-         ! Number of tracers
-!         NTRAC(03) = 16 + N_TRACERS
-         NTRAC(03) = PD03 + N_TRACERS
+         ! Number of tracers:
+         ! PD03     = max # of tracers for HG-SRCE
+         ! PD03_PL  = max # of tracers for HG-SRCE + PL-HG2-$
+         PD03_PL = PD03 + 8
+         
 
          ! Loop over tracers for HG-SRCE, PL-HG2-$, OCEAN-HG
-         DO T = 1, NTRAC(03)
+         ! Loop over tracers for HG-SRCE
+!         DO T = 1, NTRAC(03)
+         DO T = 1, PD03
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1534,12 +1540,16 @@
                   INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
                CASE( 11 )
-                  NAME (T,03) = 'HgC'
-                  FNAME(T,03) = 'Hg in Colloidal phase'
+!                  NAME (T,03) = 'HgC'
+!                  FNAME(T,03) = 'Hg in Colloidal phase'
+                  NAME (T,03) = 'HgP_aq'
+                  FNAME(T,03) = 'Ocean mass of particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 12 )
-                  NAME (T,03) = 'Hg_to_C'
-                  FNAME(T,03) = 'Hg converted to colloidal'
+!                  NAME (T,03) = 'Hg_to_C'
+!                  FNAME(T,03) = 'Hg converted to colloidal'
+                  NAME (T,03) = 'Hg_to_P'
+                  FNAME(T,03) = 'Hg converted to particulate'
                   UNIT (T,03) = 'kg/m2/s'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
@@ -1571,41 +1581,75 @@
                   NAME (T,03) = 'Hg0_snow'
                   FNAME(T,03) = 'Snow emission of Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+         ENDDO
+         
+         ! Loop over tracers for PL-HG2-$
+         DO N = 1, 8
+            T = N + PD03
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
                CASE( 19 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 20 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 21 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 22 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 23 )
                   NAME (T,03) = 'Hg2_SSR'
                   FNAME(T,03) = 'Loss rate Hg2 from sea salt'
                   UNIT (T,03) = '/s'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 24 )
                   NAME (T,03) = 'Hg2_Br'
                   FNAME(T,03) = 'Prod of Hg2 from Br'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 25 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
                CASE( 26 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 35 ) !CCC 17->PD03
-               CASE ( 27: )
-                  NAME (T,03) = TRACER_NAME(T-PD03) !CDH 18->22
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) !CCC 17->PD03
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+         ENDDO
+
+         ! Loop over tracers for OCEAN-HG
+         DO N = 1, N_TRACERS
+         
+            T = N + PD03_PL
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            NAME (T,03) = TRACER_NAME(N) 
 
 !--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
 !                  ! Tracer 3 should be "HgC" instead of "HgP"
@@ -1613,12 +1657,30 @@
 !                     NAME(T,03) = 'HgC'
 !                  ENDIF
 
-                  FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
-                  INDEX(T,03) = ( T - PD03 ) + ( SPACING * 41 )
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
+            FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
+            INDEX(T,03) = ( N ) + ( SPACING * 41 )
          ENDDO
+
+         ! Loop over tracers for SNOW-HG
+         DO N = 1, 1
+         
+            T = N + PD03_PL + N_TRACERS
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            NAME (T,03) = 'Snow_Hg'
+            FNAME(T,03) = 'Tot. Hg in snowpack'
+            INDEX(T,03) = ( N ) + ( SPACING * 49 )
+         ENDDO
+         
+         ! Total max number of tracers for DIAG 03.
+         NTRAC(03) = T
+         
       ENDIF
 
       !-------------------------------------
