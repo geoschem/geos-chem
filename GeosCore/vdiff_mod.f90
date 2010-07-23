@@ -1730,6 +1730,8 @@ contains
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
 
 
+#   include "define.h"
+
     implicit none
 !
 ! !INPUT/OUTPUT PARAMETERS: 
