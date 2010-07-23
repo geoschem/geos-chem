@@ -1534,9 +1534,12 @@
                   FNAME(T,03) = 'Anthro particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 10 )
-                  NAME (T,03) = 'KwHg'
-                  FNAME(T,03) = 'Henry''s Law exchange constant'
-                  UNIT (T,03) = 'cm/h'
+!                  NAME (T,03) = 'KwHg'
+!                  FNAME(T,03) = 'Henry''s Law exchange constant'
+!                  UNIT (T,03) = 'cm/h'
+                  NAME (T,03) = 'Hgaq_tot'
+                  FNAME(T,03) = 'Total oceanic mercury'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
                CASE( 11 )

@@ -140,7 +140,7 @@
 !  (7 ) HG-SRCE  : Total mass of oceanic Hg2       : kg       : 1
 !  (8 ) HG-SRCE  : Mass of Hg2 sunk in the ocean   : kg       : 1
 !  (9 ) HG-SRCE  : Anthropogenic HgP emission      : kg       : 1
-!  (10) HG-SRCE  : Henry's law piston velocity Kw  : cm/h     : em timesteps
+!  (10) HG-SRCE  : Henry's law piston velocity Kw  : cm/h     : em timesteps  (anls, redo)
 !  (11) HG-SRCE  : Mass of Hg(C)                   : kg       : 1
 !  (12) HG-SRCE  : Converted to Colloidal          : kg       : 1
 !  (13) HG-SRCE  : Biomass burning emissions       : kg       : 1
@@ -247,7 +247,7 @@
          ELSE IF ( N == 8 ) THEN
             
             !--------------------------------
-            ! #8: Hg2 sinking loss rate
+            ! #8: Hg2_tot sinking               !anls
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
@@ -258,11 +258,11 @@
          ELSE IF ( N == 10 ) THEN
                
             !--------------------------------
-            ! #10: Kw (piston velocity)
+            ! #10: Hg_tot
             ! Divide by # of emiss timesteps
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
-            UNIT              = 'cm/h'
+            UNIT              = 'kg' !'cm/h'
             LMAX              = 1
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
@@ -270,7 +270,7 @@
          ELSE IF ( N == 11 ) THEN
 
             !--------------------------------
-            ! #11: Hg(P) ocean mass
+            ! #11: Hg(P) ocean mass             !anls
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
@@ -281,7 +281,7 @@
          ELSE IF ( N == 12 ) THEN
 
             !--------------------------------
-            ! #12: Converted to particulate
+            ! #12: Carbon sinking               !anls
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'

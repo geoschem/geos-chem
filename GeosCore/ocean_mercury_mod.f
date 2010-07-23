@@ -537,7 +537,7 @@ c$$$
 !   vi = viscocity of water
 !   N  = molal volumen of mercury = 14.18
 !
-! Viscocity is taken from Loux 2001
+! Viscocity is taken from Loux (2001)
 !
 ! H is the diemensionless Henrys coefficient for elemental mercury
 !
@@ -596,12 +596,7 @@ c$$$
       REAL*8                :: Sc,       ScCO2,    USQ,      MHg
 !      REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgC_SUNK
       REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgPaq_SUNK
-      REAL*8                :: Hg0aq_A,  Hg0aq_B,  Hg0aq_SUM       !REDALERT
-      REAL*8                :: Hg2aq_A,  Hg2aq_B,  Hg2aq_SUM       !REDALERT
-!      REAL*8                :: HgC_A,    HgC_B,    HgC_SUM       !REDALERT
-      REAL*8                :: HgPaq_A,    HgPaq_B,    HgPaq_SUM     !REDALERT
       REAL*8                :: FRAC_L,   FRAC_O,   H,        TOTDEP
-      REAL*8                :: Hg2_RED_RAD   !redalert
       REAL*8                :: oldMLD,   XTAU,     TOTDEPall                   
       REAL*8                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
       REAL*8                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
@@ -618,10 +613,10 @@ c$$$
       REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
       REAL*8, PARAMETER     :: EC_doc    = 0.654d0
       REAL*8, PARAMETER     :: C_doc     = 1.5d0 
-      REAL*8, PARAMETER     :: k_radbase = 1.73d-6 !2.85d-6 !(anls, 090812) 4.32d-6                    
-      REAL*8, PARAMETER     :: k_biobase = 4.1d-10 !(anls, 090728) 3.21d-6   
-      REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 !4.15d-6 (anls,090922)
-      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    !(anls, 090714)  
+      REAL*8, PARAMETER     :: k_radbase = 1.73d-6                     
+      REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
+      REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
+      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    
       REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
@@ -690,7 +685,7 @@ c$$$
       DTSRCE = GET_TS_EMIS() * 60d0
 
       !----------------------------------------------------------------
-      ! Calculate total mean NPP (mg/m2/day)                                                  
+      ! Calculate total mean NPP (mg/m2/day) for later                                                  
       !----------------------------------------------------------------                                     
       ! Initialize values
       NPP_tot = 0d0
@@ -711,7 +706,6 @@ c$$$
 
       NPP_avg = NPP_tot / A_ocean
 
-!      write(103,'(2I4,4E12.3)') I, J, NPP_tot, A_ocean !   (anls, 090714)
 
       ! Loop over latitudes   
 !!$OMP PARALLEL DO
@@ -730,16 +724,15 @@ c$$$
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,   vi,   A_M2,    HgPaq_A, Hg2_RED,    Hgaq_tot   )
-!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2aq_A,    Hg2_CONV   )
-!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  Hg2aq_B,    k_red_bio  )
+!$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED, Hgaq_tot   )
+!$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
+!$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio  )
 !$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  HgPaq_sum,  k_red_rad  )
-!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  Hg0aq_A,    TOTDEPall  )
+!$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
 !$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
 !$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  HgPaq_SUNK, OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  HgPaq_B, CHg0aq,  Hg2_GONE,   Hg0aq_SUM  )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   Hg0aq_B, JorgC_kg,   Hg2aq_SUM  )
-!$OMP+PRIVATE( Hg2_RED_RAD                                         )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE,   )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg,   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -767,19 +760,7 @@ c$$$
          Frac_Hg2   = 0d0   
          Hg2aq_tot  = 0d0
          Hgaq_tot   = 0d0
-         Hg0aq_B    = 0d0      !REDALERT
-         Hg0aq_A    = 0d0
-         Hg0aq_SUM  = 0d0      !!!!!REDALER slut
-         Hg2aq_B    = 0d0      !REDALERT
-         Hg2aq_A    = 0d0
-         Hg2aq_SUM  = 0d0      !!!!!REDALER slut
-!         HgC_B      = 0d0      !REDALERT
-!         HgC_A      = 0d0
-!         HgC_SUM    = 0d0      !!!!!REDALER slut
-         HgPaq_B      = 0d0      !REDALERT
-         HgPaq_A      = 0d0
-         HgPaq_SUM    = 0d0      !!!!!REDALER slut
-         Hg2_RED_RAD= 0d0   !readlaert
+         Hg2_RED    = 0d0
          C_tot      = 0d0
          Ze         = 0d0
          OC_tot     = 0d0
@@ -797,28 +778,10 @@ c$$$
          FRAC_L     = FRCLND(I,J)
          FRAC_O     = 1d0 - FRAC_L
 
-         Hg0aq_B = Hg0aq(I,J,ID_Hg_tot) !REDALER inserted to find ekman pumping
-         Hg2aq_B = Hg2aq(I,J,ID_Hg_tot)
-         IF ( N == 1) THEN
-!            HgC_B = HgC(I,J)
-            HgPaq_B = HgPaq(I,J)
-         ENDIF                  !REDALERT end
-
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes 
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1d-2, MLDcm*1d-2 )
 
-         Hg0aq_A = Hg0aq(I,J,ID_Hg_tot) !REDALER inserted to find ekman pumping
-         Hg2aq_A = Hg2aq(I,J,ID_Hg_tot)
-         IF ( N == 1) THEN
-!            HgC_A = HgC(I,J)
-            HgPaq_A = HgPaq(I,J)
-         ENDIF                         
-
-         Hg0aq_SUM = Hg0aq_A - Hg0aq_B
-         Hg2aq_SUM = Hg2aq_A - Hg2aq_B
-!         HgC_SUM   = HgC_A - HgC_B !REDALERT end
-         HgPaq_SUM   = HgPaq_A - HgPaq_B !REDALERT end
 
          !===========================================================
          ! Make sure we are in an ocean box
@@ -1036,11 +999,6 @@ c$$$
                IF ( C == 1 ) NN = ID_Hg_tot
                IF ( C == 2 ) NN = ID_Hg_oc
 
- !                 Hg0aq_B = Hg0aq(I,J,ID_Hg_tot)         !REDALER inserted to find ekman pumping
- !                 Hg2aq_B = Hg2aq(I,J,ID_Hg_tot)
- !                 IF ( N == 1) THEN
- !                 HgC_B = HgC(I,J)
- !                 ENDIF                           !REDALERT end
 
                ! Atlantic
                IF ( ( X >= -80.0 .and. X < 25.0 )  .and.
@@ -1217,12 +1175,6 @@ c$$$
                ! Loop over all types of tagged tracers
                DO NN = 1, N_Hg_CATS
 
-!                  Hg0aq_B = Hg0aq(I,J,ID_Hg_tot)         !REDALER inserted to find ekman pumping
-!                  Hg2aq_B = Hg2aq(I,J,ID_Hg_tot)
-!                  IF ( N == 1) THEN
-!                     HgC_B = HgC(I,J)
-!                  ENDIF                           !REDALERT end
-
                   ! Hg0
                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) 
      &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) ) 
@@ -1291,9 +1243,6 @@ c$$$
                Hg2_RED       = Hg2aq(I,J,NN) * 0.4d0 * k_red * DTSRCE       
                ! Mass of Hg(0) --> Hg(II)
                Hg0_OX        = Hg0aq(I,J,NN) * k_ox * DTSRCE
-               Hg2_RED_RAD   = Hg2aq(I,J,NN) * 0.4d0 * k_red_rad*DTSRCE
-!               Hg2_RED_BIO   = Hg0aq(I,J,NN) *k_ox_dark * DTSRCE
-
 
                ! Amount of Hg(II) that is lost [kg]
                Hg2_GONE      = Hg2_RED - Hg0_OX                        
@@ -1301,9 +1250,6 @@ c$$$
                ! Cap Hg2_GONE with available Hg2
                IF ( Hg2_GONE > Hg2aq(I,J,NN) ) THEN 
                   Hg2_GONE   = MIN( Hg2_GONE, Hg2aq(I,J,NN) )
-                  Hg2_RED_RAD = 0          !REDALERT
-!      write(103,'(2I4,4E12.3)') I, J, Hg2_RED, Hg0_OX !   (anls, 090714)
-
                ENDIF
 
                IF ( (Hg2_GONE * (-1d0)) >  Hg0aq(I,J,NN)) THEN         
@@ -1344,19 +1290,10 @@ c$$$
 
                   HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0.0 )                 
 
-                  ! Creating a tracer for total Hg2
-!                  Hg2_CONV = HgC(I,J) + Hgaq_tot                   
-                  Hg2_CONV = k_red_bio            ! Hg2aq(I,J,NN) wrong tracer!!                  Hg2_CONV = k_red_bio            ! Hg2aq(I,J,NN) wrong tracer!!!!
-!                  Hg2_CONV = Hg0aq(I,J,NN) * k_ox_dark * DTSRCE    !SQRT(Usq) 
-
-                  ! Store Hg2_CONV for total tracer only
-                  ! Hg2_tot [kg]
-
+                  ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
-                     AD03(I,J,12) = AD03(I,J,12) + Hg2_CONV 
-!                     AD03(I,J,12) = AD03(I,J,12) + ((HG2_CONV * 1.0D12)/ 
-!     &                (A_M2 * FRAC_O * mldcm * 1D-2 * 200.59))             !(anls, 090615) proeve til pM
-                 ENDIF
+                     AD03(I,J,12) = AD03(I,J,12) + JorgC_kg
+                  ENDIF
 
                ENDIF
 
@@ -1457,24 +1394,18 @@ c$$$
                AD03(I,J,7)  = AD03(I,J,7)  + Hg2aq(I,J,ID_Hg_tot) 
 
                ! Hg2 sunk deep into the ocean [kg/time]
-!               AD03(I,J,8)  = AD03(I,J,8)  + ( HgPaq_SUNK + 
-!     &                         (FLUX(I,J,NN)*DTSRCE) - TOTDEP)
-!               AD03(I,J,8)  = AD03(I,J,8) + Hg0aq_SUM
-               AD03(I,J,8)  = AD03(I,J,8) + Hg2_RED_RAD
+               AD03(I,J,8)  = AD03(I,J,8)  + HgPaq_SUNK
 
                ! HgTot aqua mass [kg] 
                AD03(I,J,10) =AD03(I,J,10) + Hgaq_tot        
-!               AD03(I,J,10) =AD03(I,J,10) + ((CHg0aq*H)/CHg0 )         !(anls,100111)  
  
-               ! Hg converted to particulate [kg/m2/s]
+               ! HgP ocean mass [kg]
 !               AD03(I,J,11) = AD03(I,J,11) + HgC(I,J) 
                AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
 
                ! flux up and down (eck)
                AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
-!               AD03(I,J,16) = AD03(I,J,16) + Hg2aq_SUM
                AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
-!               AD03(I,J,17) = AD03(I,J,17) + HgPaq_SUM
 
             ENDIF
 
@@ -1559,17 +1490,13 @@ c$$$
       ! MLD file name
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()  
-
-!      FILENAME = '/home/anls/'//
-!     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
      
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - OCEAN_MERCURY_READ: Reading ', a )  
 
-      ! TAU0 value (uses year 2003) !(uses year 1985)
+      ! TAU0 value (uses year 2003) !(uses year 1985, anls)
       TAU = GET_TAU0( THISMONTH, 1, 1985 )
-!       TAU = GET_TAU0( THISMONTH, 1, 2003 )
 
       ! Read from disk; original units are [m]
       CALL READ_BPCH2( FILENAME, 'BXHGHT-$',    5,  
@@ -1597,9 +1524,6 @@ c$$$
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/Chl_2003.geos.' // GET_RES_EXT()
 
-!      FILENAME = '/home/anls/mercurymodel_files/'//
-!     &           'Chl_2003.geos.4x5'
-
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
@@ -1622,9 +1546,6 @@ c$$$
       ! NPP file name (anls, 100111)
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/NPP_2003.geos.' // GET_RES_EXT()
-
-!      FILENAME = '/home/anls/'//
-!     &           'mercurymodel_files/NPP_2003.geos.4x5'          !(anls, 100111)
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -1708,9 +1629,6 @@ c$$$
       ! MLD file name
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
-
-!      FILENAME = '/home/anls/'//                                 !(anls,100111)
-!     &           'mercurymodel_files/MLD_DReqDT.geos.4x5'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -3176,3 +3094,4 @@ c$$$      SNOW_HG = 0d0
      
       ! End of module
       END MODULE OCEAN_MERCURY_MOD
+
