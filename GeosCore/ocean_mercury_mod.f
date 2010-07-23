@@ -727,12 +727,12 @@ c$$$
 !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED, Hgaq_tot   )
 !$OMP+PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV   )
 !$OMP+PRIVATE( N,   TK,   CHg0,    FRAC_L,  k_red_bio  )
-!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  HgPaq_sum,  k_red_rad  )
+!$OMP+PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad  )
 !$OMP+PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall  )
 !$OMP+PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,   Hg2aq_tot  )
 !$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  HgPaq_SUNK, OC_tot_kg  )
-!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE,   )
-!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg,   )
+!$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
+!$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
