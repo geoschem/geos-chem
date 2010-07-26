@@ -299,7 +299,7 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2, SNOW_HT )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, N, DEP_Hg2 )
 !
 ! !USES:
 !
@@ -307,13 +307,14 @@
       USE DAO_MOD,           ONLY : IS_ICE
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
+
+#     include 'define.h'
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
       INTEGER, INTENT(IN)   :: I, J, N
       REAL*8,  INTENT(IN)   :: Dep_Hg2
-      REAL*8,  INTENT(IN)   :: SNOW_HT
 !
 ! !REVISION HISTORY:
 !  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to
@@ -325,7 +326,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-!      REAL*8                :: SNOW_HT
+      REAL*8                :: SNOW_HT
       INTEGER               :: NN
 
       !=================================================================
@@ -343,13 +344,13 @@
          NN = GET_HgP_CAT( N ) 
       ENDIF
 
-!#if defined(GEOS_5)
-!      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!      SNOW_HT = SNOMAS(I,J)
-!#else
-!      ! GEOS1-4 snow heigt (water equivalent) in mm
-!      SNOW_HT = SNOW(I,J)
-!#endif 
+#if defined(GEOS_5)
+      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+      SNOW_HT = SNOMAS(I,J)
+#else
+      ! GEOS1-4 snow heigt (water equivalent) in mm
+      SNOW_HT = SNOW(I,J)
+#endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
       IF ( (SNOW_HT > 1d0) .OR. (IS_ICE(I,J)) ) THEN
@@ -945,6 +946,7 @@
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )
+      
       END SUBROUTINE CLEANUP_DEPO_MERCURY
 
       END MODULE DEPO_MERCURY_MOD

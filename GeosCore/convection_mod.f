@@ -707,7 +707,6 @@
       ! Amt of Hg2, HgP scavenged out of the column (sas, bmy, 1/19/05)
       REAL*8                 :: WET_Hg2
       REAL*8                 :: WET_HgP 
-      REAL*8                 :: SNOW_HT
 
       !=================================================================
       ! NFCLDMX begins here!
@@ -824,7 +823,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( CMOUT, DELQ, ENTRN, I, IC, ISOL, ISTEP, J, AREA_M2, K  ) 
 !$OMP+PRIVATE( MB, QB, QC, QC_PRES, QC_SCAV, T0, T1, T2, T3, T4, TSUM )
-!$OMP+PRIVATE( WET_Hg2, WET_HgP, SNOW_HT                              )
+!$OMP+PRIVATE( WET_Hg2, WET_HgP                                       )
 !$OMP+SCHEDULE( DYNAMIC )
       DO IC = 1, NC
 
@@ -1108,15 +1107,7 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_Hg2_WD( I, J, IC, WET_Hg2 )
-#if defined(GEOS_5)
-                        ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-                        SNOW_HT = SNOMAS(I,J)
-#else
-                        ! GEOS1-4 snow heigt (water equivalent) in mm
-                        SNOW_HT = SNOW(I,J)
-#endif 
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2, 
-     &                                         SNOW_HT )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
                      ENDIF
 
                      IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
@@ -1129,15 +1120,7 @@
 
                         ! Pass to "ocean_mercury_mod.f"
                         CALL ADD_HgP_WD( I, J, IC, WET_HgP )
-#if defined(GEOS_5)
-                        ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-                        SNOW_HT = SNOMAS(I,J)
-#else
-                        ! GEOS1-4 snow heigt (water equivalent) in mm
-                        SNOW_HT = SNOW(I,J)
-#endif 
-                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP,
-     &                                         SNOW_HT  )
+                        CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
                      ENDIF
 
                   !=====================================================

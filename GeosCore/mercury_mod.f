@@ -853,14 +853,7 @@
 
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW .AND. (DEP_Hg2>0d0) ) THEN
-#if defined(GEOS_5)
-               ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-               SNOW_HT = SNOMAS(I,J)
-#else
-               ! GEOS1-4 snow heigt (water equivalent) in mm
-               SNOW_HT = SNOW(I,J)
-#endif 
-               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY,SNOW_HT)
+               CALL ADD_HG2_SNOWPACK(I,J,ID_Hg2(NN),DEP_HG2_DRY)
             ENDIF
                
 

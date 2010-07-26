@@ -806,7 +806,6 @@
       REAL*8                     :: CONU(IIPAR,LLPAR)     
       REAL*8                     :: DCONDT(IIPAR,LLPAR)   
 
-      REAL*8                 :: SNOW_HT
       !=================================================================
       ! CONVTRAN begins here!
       !=================================================================
@@ -1194,15 +1193,7 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
-#if defined(GEOS_5)
-                     ! GEOS5 snow height (water equivalent) in mm. 
-                     ! (Docs wrongly say m)
-                     SNOW_HT = SNOMAS(I,J)
-#else
-                     ! GEOS1-4 snow heigt (water equivalent) in mm
-                     SNOW_HT = SNOW(I,J)
-#endif 
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2, SNOW_HT )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
                   ENDIF
                   !eck/eds
                   IF ( IS_HgP( M ) ) THEN
@@ -1221,15 +1212,7 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_HgP_WD( II, J, M, WET_HgP )
-#if defined(GEOS_5)
-                     ! GEOS5 snow height (water equivalent) in mm.
-                     ! (Docs wrongly say m)
-                     SNOW_HT = SNOMAS(I,J)
-#else
-                     ! GEOS1-4 snow heigt (water equivalent) in mm
-                     SNOW_HT = SNOW(I,J)
-#endif 
-                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP, SNOW_HT )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
                   ENDIF
                ENDIF
 

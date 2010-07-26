@@ -2049,23 +2049,15 @@ contains
              ! Deposition mass, kg
              DEP_KG = dflx( I, J, NN ) * GET_AREA_M2(J) * GET_TS_CONV() * 60d0
 
-#if defined( GEOS_5 )
-          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          SNOW_HT = SNOMAS(I,J)
-#else
-          ! GEOS1-4 snow heigt (water equivalent) in mm
-          SNOW_HT = SNOW(I,J)
-#endif 
-
              IF ( IS_Hg2(NN) ) THEN 
                 
                 CALL ADD_HG2_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, SNOW_HT )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
 
              ELSE IF ( IS_HgP( NN ) ) THEN
                 
                 CALL ADD_HGP_DD( I, J, NN, DEP_KG )
-                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG, SNOW_HT )
+                CALL ADD_Hg2_SNOWPACK( I, J, NN, DEP_KG )
 
              ENDIF
 

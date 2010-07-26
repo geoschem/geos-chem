@@ -708,20 +708,6 @@ c$$$
 
 
       ! Loop over latitudes   
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I,   vi,   A_M2,   HgC_A,   Hg2_RED,   Hgaq_tot   )
-!!$OMP+PRIVATE( J,   NN,   k_ox,   OC_tot,  Hg2aq_A,   Hg2_CONV   )
-!!$OMP+PRIVATE( N,   TK,   CHg0,   FRAC_L,  Hg2aq_B,   k_red_bio  )
-!!$OMP+PRIVATE( C,   TC,   RADz,   Hg0_OX,  HgC_sum,   k_red_rad  )
-!!$OMP+PRIVATE( D,   EC,   k_red,  OLDMLD,  Hg0aq_A,   TOTDEPall  )
-!!$OMP+PRIVATE( Y,   Ze,   ScCO2,  FRAC_O,  Frac_Hg2,  Hg2aq_tot  )
-!!$OMP+PRIVATE( H,   Kw,   MLDCM,  TOTDEP,  HgC_SUNK,  OC_tot_kg  )
-!!$OMP+PRIVATE( X,   SPM,  HgC_B,  CHg0aq,  Hg2_GONE,  Hg0aq_SUM  )
-!!$OMP+PRIVATE( Sc,  Usq,  C_tot,  Hg0aq_B, JorgC_kg,  Hg2aq_SUM  )
-!!$OMP+PRIVATE( Hg2_RED_RAD                                       )
-!!$OMP+SCHEDULE( DYNAMIC )
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,   vi,   A_M2,    Hg2_RED, Hgaq_tot   )
