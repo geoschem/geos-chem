@@ -1,92 +1,131 @@
-! $Id: diag04_mod.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+!------------------------------------------------------------------------------
+!                        University of Toronto and                            !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!     
+! !MODULE: diag04_mod
+!     
+! !DESCRIPTION: Module DIAG04\_MOD contains arrays and routines for archiving 
+!  the ND04 diagnostic -- CO2 emissions and fluxes.
+!\\   
+!\\   
+! !INTERFACE:
+!     
       MODULE DIAG04_MOD
-!
-!******************************************************************************
-!  Module DIAG04_MOD contains arrays and routines for archiving the ND04
-!  diagnostic -- CO2 emissions and fluxes (bmy, 7/26/05, 9/5/06) 
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD04         (REAL*4) : Array for Hg emissions & ocean masses 
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ZERO_DIAG04           : Sets all module arrays to zero
-!  (2 ) WRITE_DIAG04          : Writes data in module arrays to bpch file
-!  (3 ) INIT_DIAG04           : Allocates all module arrays
-!  (4 ) CLEANUP_DIAG04        : Deallocates all module arrays
-!
-!  GEOS-CHEM modules referenced by diag04_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f           : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f           : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f            : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f            : Module w/ horizontal grid information
-!  (5 ) time_mod.f            : Module w/ routines to compute date & time
-!
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
-!        (bmy, 9/5/06)
-!******************************************************************************
-!
+!     
+! !USES:
+!     
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag04_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC
       PUBLIC 
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
+!
+! !PUBLIC DATA MEMBERS:
+!
       ! Scalars
-      INTEGER              :: ND04
-      INTEGER, PARAMETER   :: PD04 = 6
+      INTEGER              :: ND04, LD04
+      INTEGER, PARAMETER   :: PD04 = 10
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD04(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-     
+      REAL*4,  ALLOCATABLE :: AD04_plane(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD04_chem(:,:,:)
+!     
+! !PUBLIC MEMBER FUNCTIONS:
+!     
+      PUBLIC :: CLEANUP_DIAG04
+      PUBLIC :: INIT_DIAG04
+      PUBLIC :: WRITE_DIAG04
+      PUBLIC :: ZERO_DIAG04
+!     
+! !PRIVATE MEMBER FUNCTIONS:
+!     
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%   BUYER BEWARE! Tagged CO2 tracers only work for 2 x 2.5 grid!   %%%
+!  %%%   Someone will have to make this more general later on...        %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!                                                                             .
+! !REVISION HISTORY:
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
+!  (3 ) Modified for ship emissions (2-D), aircraft emissions (3-D) and 
+!       chemical source for CO2 (3-D) (RayNassar, 2009-12-23)
+!  20 May 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                        University of Toronto and                            !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag04
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG04 zeroes the ND04 diagnostic array.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG04
 !
-!******************************************************************************
-!  Subroutine ZERO_DIAG04 zeroes the ND04 diagnostic array (bmy, 7/26/05)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
+#     include "CMN_SIZE"  ! Size parameters
+!
+! !REVISION HISTORY: 
+!  26 Jul 2005 - R. Yantosca - Initial version
+!  18 May 2010 - R. Nassar   - Also zero AD04_PLANE, AD04_CHEM arrays
+!  18 May 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
       !=================================================================
       ! ZERO_DIAG04 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND04 is turned off
       IF ( ND04 == 0 ) RETURN
 
-      ! Zero array
-      AD04(:,:,:) = 0e0
+      ! Zero 2-D array (for N=7 tracers) and 3-D plane and chem arrays
+      AD04(:,:,:)       = 0e0
+      AD04_plane(:,:,:) = 0e0
+      AD04_chem(:,:,:)  = 0e0
 
-      ! Return to calling program
       END SUBROUTINE ZERO_DIAG04
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                        University of Toronto and                            !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag04
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG04 writes the ND04 diagnostic arrays 
+!  to the binary punch file at the proper time.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG04
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 7/26/05, 9/3/06)
+! !USES:
 !
+      USE BPCH2_MOD, ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+      USE FILE_MOD,  ONLY : IU_BPCH
+      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! TINDEX
+!
+! !REMARKS:
 !   # : Field     : Description                  : Units       : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) CO2-SRCE  : CO2 fossil fuel emissions    : molec/cm2/s : SCALE
@@ -95,26 +134,25 @@
 !  (4 ) CO2-SRCE  : CO2 biomass emissions        : molec/cm2/s : SCALE
 !  (5 ) CO2-SRCE  : CO2 biofuel emissions        : molec/cm2/s : SCALE
 !  (6 ) CO2-SRCE  : CO2 net terrestrial exchange : molec/cm2/s : SCALE
-!
-!  NOTES:
+!  (7 ) CO2-SRCE  : CO2 ship emissions           : molec/cm2/s : SCALE
+!  (8 ) CO2-SRCE  : CO2 aircraft emissions (3-D) : molec/cm2/s : SCALE
+!  (9 ) CO2-SRCE  : CO2 chemical source (3-D)    : molec/cm2/s : SCALE
+!  (10) CO2-SRCE  : CO2 chem source surf correct : molec/cm2/s : SCALE! 
+! 
+! !REVISION HISTORY: 
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
-!        (bmy, 9/5/06)
-!******************************************************************************
+!  18 May 2010 - R. Nassar   - Now write out AD04_PLANE, ADO4_CHEM
+!  18 May 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD, ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      USE FILE_MOD,  ONLY : IU_BPCH
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TINDEX
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER            :: CENTER180, HALFPOLAR, IFIRST, JFIRST 
       INTEGER            :: LFIRST,    LMAX,      M,      N       
-      REAL*4             :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*4             :: LONRES,    LATRES
       REAL*8             :: DIAGb,     DIAGe,       SCALE
       CHARACTER(LEN=20)  :: MODELNAME 
@@ -143,6 +181,8 @@
 
       !=================================================================
       ! Write data to the bpch file
+      ! Note: if any of the ARRAY or AD04* dimensions are wrong, the 
+      ! run will crash with "ERROR RUNNING GEOS-CHEM" at the end.
       !=================================================================
 
       ! Loop over ND04 diagnostic tracers
@@ -150,76 +190,144 @@
 
          ! Get quantities
          N            = TINDEX(4,M)
-         CATEGORY     = 'CO2-SRCE'
-         !UNIT         = 'molec/cm2/s'
-         UNIT         = ''                     ! Let GAMAP pick the unit
-         ARRAY(:,:,1) = AD04(:,:,N) / SCALE
+ 
+         IF ( N <= 7 ) THEN
+
+            CATEGORY     = 'CO2-SRCE'
+            UNIT         = 'molec/cm2/s'
+            !UNIT         = ''                     ! Let GAMAP pick the unit
+            LMAX = 1
+            ARRAY(:,:,1) = AD04(:,:,N) / SCALE
+
+         ELSE IF ( N == 8 ) THEN
+
+            CATEGORY     = 'CO2-SRCE'
+            UNIT         = 'molec/cm3/s'
+            LMAX = LD04
+            ARRAY(:,:,1:LMAX) = AD04_plane(:,:,1:LMAX) / SCALE
+
+         ELSE IF ( N == 9 ) THEN
+
+            CATEGORY     = 'CO2-SRCE'
+            UNIT         = 'molec/cm3/s'
+            LMAX = LD04
+            ARRAY(:,:,1:LMAX) = AD04_chem(:,:,1:LMAX) / SCALE
+            
+         ELSE IF ( N == 10 ) THEN
+
+            CATEGORY     = 'CO2-SRCE'
+            UNIT         = 'molec/cm2/s'
+            LMAX = 1
+            ARRAY(:,:,1) = AD04(:,:,N) / SCALE
+            
+         ELSE 
+
+            CYCLE
+            
+         ENDIF
 
          ! Write data to disk
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
+     &               IIPAR,     JJPAR,     LMAX,    IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
+
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG04
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                        University of Toronto and                            !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag04
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG04 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG04
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG04 allocates all module arrays (bmy, 7/26/05)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
 #     include "CMN_SIZE" 
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  26 Jul 2005 - R. Yantosca - Initial version
+!  18 May 2010 - R. Nassar   - Now initialize AD04_PLANE, AD04_CHEM
+!  18 May 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       
       !=================================================================
       ! INIT_DIAG04 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND04 is turned off
       IF ( ND04 == 0 ) RETURN
 
+      ! Get number of levels for 3-D arrays
+	LD04 = MIN( ND04, LLPAR )
+	
       ! 2-D array ("CO2-SRCE")
       ALLOCATE( AD04( IIPAR, JJPAR, PD04 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD04' )
 
+      ! 3-D arrays ("CO2-SRCE")
+      ALLOCATE( AD04_plane( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD04_plane' )
+
+      ALLOCATE( AD04_chem( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD04_chem' )
+
       ! Zero arrays
       CALL ZERO_DIAG04
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG04
-
+!EOC
 !------------------------------------------------------------------------------
-
+!                        University of Toronto and                            !
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag04
+!
+! !DESCRIPTION: Subroutine CLEANUP_DIAG04 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG04
+! 
+! !REVISION HISTORY: 
+!  26 Jul 2005 - R. Yantosca - Initial version
+!  18 May 2010 - R. Nassar   - Now ce
+!  18 May 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG04 deallocates all module arrays (bmy, 7/26/05)
-!
-!  NOTES:
-!******************************************************************************
+! !LOCAL VARIABLES:
 !
       !=================================================================
       ! CLEANUP_DIAG04 begins here!
       !=================================================================
-      IF ( ALLOCATED( AD04 ) ) DEALLOCATE( AD04 ) 
+      IF ( ALLOCATED( AD04       ) ) DEALLOCATE( AD04 ) 
+      IF ( ALLOCATED( AD04_plane ) ) DEALLOCATE( AD04_plane )
+      IF ( ALLOCATED( AD04_chem  ) ) DEALLOCATE( AD04_chem  ) 
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG04
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG04_MOD
