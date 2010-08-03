@@ -531,6 +531,7 @@
 !        conducting the appropriate scaling for optical depth for ND21
 !        diagnostic.  Now make MONTH and YEAR optional arguments.  Now bundled
 !        into "aerosol_mod.f".  (rvm, aad, clh, bmy, 7/20/04)
+!  (11) Now remove FWET from extinction efficiency computation (avd, 8/3/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -576,8 +577,11 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
 
-      ! Fraction of aerosol from H2O
-      REAL*8		  :: FWET      
+      !-------------------------------------------------
+      ! Prior to 8/3/10:
+      !!Fraction of aerosol from H2O
+      !REAL*8		  :: FWET      
+      !-------------------------------------------------
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -952,11 +956,17 @@
             ! Wet radius in "jv_spec.dat"
             RW(R) = RAA(4,IND(N)+R-1)	
 
-            ! Wet frac of aerosol 
-            FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
+            !--------------------------------------------------------------
+            ! Prior to 8/3/10:
+            !! Wet frac of aerosol 
+            !FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
+            !
+            !! Extinction efficiency Q for each RH bin
+            !QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
+            !--------------------------------------------------------------
 
             ! Extinction efficiency Q for each RH bin
-            QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
+            QW(R) = QAA(4,IND(N)+R-1)
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
