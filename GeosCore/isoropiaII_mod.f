@@ -131,6 +131,7 @@
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  21 Apr 2010 - E. Sofen     - Prevent out-of-bounds errors for offline
 !                               aerosol simulations where HNO3 is undefined
+!  23 Jul 2010 - R. Yantosca  - Bug fix: corrected typo in ND42 diag section
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -466,7 +467,12 @@
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999d0.
             ! (hotp, ccc, 12/18/09)
             HPLUSTEMP       = 1d20
-            PH_SAV          = -999d0
+            !-------------------------------------------------------------
+            ! Prior to 7/23/10:
+            ! Bug fix: this should be PH_SAV(I,J,L) (sofen, bmy, 7/12/10)
+            !PH_SAV          = -999d0
+            !-------------------------------------------------------------
+            PH_SAV(I,J,L)   = -999d0
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1d3/18d0
 

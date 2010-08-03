@@ -377,9 +377,11 @@
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
-!    7 Oct 2009 - A. van Donkelaar - initial version
-!   20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
-!
+!  07 Oct 2009 - A. van Donkelaar - initial version
+!  20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
+!  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
+!                              in updated files (by Aaron van Donkelaar) to
+!                              fix a problem in the VOC emissions.
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -447,7 +449,12 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_200910/' //
+!------------------------------------------------------------------------------
+! Prior to 7/12/10:
+! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
+!         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_200910/' //
+!------------------------------------------------------------------------------
+         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_201007/' //
      &               'NEI2005.' // TRIM( SNAME ) // '.1x1.AVG.bpch'
 
          ! Echo info
@@ -704,8 +711,10 @@
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY:
-!   03 Nov 2009 - A. van Donkelaar - initial version
-!
+!  03 Nov 2009 - A. van Donkelaar - initial version
+!  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
+!                              in updated files (by Aaron van Donkelaar) to
+!                              fix a problem in the VOC emissions.!
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -773,8 +782,12 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200910/' //
-!         FILENAME  = '/home/phs/data/NEI2005/data/version2/' //
+!------------------------------------------------------------------------------
+! Prior to 7/12/10:
+! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
+!         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200910/' //
+!------------------------------------------------------------------------------
+         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
      &            'NEI2005.' // TRIM( SNAME ) 
      &             // '.1t2x2t3.AVG.na.bpch'
 
