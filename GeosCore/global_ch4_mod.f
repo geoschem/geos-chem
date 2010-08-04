@@ -25,24 +25,23 @@
 !
 !  Module Routines: 
 !  =========================================================================== 
-!  (1 ) GET_GLOBAL_CH4        : Computes latitudinal, yearly CH4 gradient
-!  (2 ) CH4_AVGTP             : Computes 24-h average pressure & temperature
-!  (3 ) EMISSCH4              : Handles CH4 emissions
-!  (4 ) CHEMCH4               : Handles CH4 chemistry (various sinks)
-!  (7 ) CH4_DECAY             : Computes decay of CH4 w/ OH in the troposphere
-!  (8 ) CH4_OHSAVE            : Saves OH conc. for CH3CCl3 diagnostic
-!  (9 ) CH4_STRAT             : Computes loss of CH4 in the stratosphere
-!  (10) CH4_BUDGET            : Computes global CH4 budgets, sources & sinks
-!  (11) SUM_CH4               : Sums a sub-region of the TCH4 budget array
-!  (12) INIT_CH4              : Allocates and zeroes module arrays
-!  (13) CLEANUP_CH4           : Deallocates module arrays
-!  (14) WETLAND_EMIS          : Computes CH4 emissions from Wetland
-!  (16) CH4_DISTRIB           : Distributes chemical loss of CH4 to all tracers
-!  (17) BIOBURN_EMIS          : Gets CH4 emissions from GFED2 biomass burning
-!  (18) RICE_EMIS             : Gets and scales CH4 rice emissions
-!  (19) BIOFUEL_EMIS          : Gets CH4 emissions from Yevich and Logan 2003
-!  (20) ASEASONAL_ANTHRO_EMIS : Gets aseasonal anthropogenic CH4 emissions
-!  (21) ASEASONAL_NATURAL_EMIS: Gets aseasonal natural CH4 emissions
+!  (1 ) CH4_AVGTP             : Computes 24-h average pressure & temperature
+!  (2 ) EMISSCH4              : Handles CH4 emissions
+!  (3 ) CHEMCH4               : Handles CH4 chemistry (various sinks)
+!  (4 ) CH4_DECAY             : Computes decay of CH4 w/ OH in the troposphere
+!  (5 ) CH4_OHSAVE            : Saves OH conc. for CH3CCl3 diagnostic
+!  (6 ) CH4_STRAT             : Computes loss of CH4 in the stratosphere
+!  (7 ) CH4_BUDGET            : Computes global CH4 budgets, sources & sinks
+!  (8 ) SUM_CH4               : Sums a sub-region of the TCH4 budget array
+!  (9 ) INIT_CH4              : Allocates and zeroes module arrays
+!  (10) CLEANUP_CH4           : Deallocates module arrays
+!  (11) WETLAND_EMIS          : Computes CH4 emissions from Wetland
+!  (12) CH4_DISTRIB           : Distributes chemical loss of CH4 to all tracers
+!  (13) BIOBURN_EMIS          : Gets CH4 emissions from GFED2 biomass burning
+!  (14) RICE_EMIS             : Gets and scales CH4 rice emissions
+!  (15) BIOFUEL_EMIS          : Gets CH4 emissions from Yevich and Logan 2003
+!  (16) ASEASONAL_ANTHRO_EMIS : Gets aseasonal anthropogenic CH4 emissions
+!  (17) ASEASONAL_NATURAL_EMIS: Gets aseasonal natural CH4 emissions
 !
 !  GEOS-CHEM modules referenced by global_ch4_mod.f
 !  ============================================================================
@@ -97,7 +96,7 @@
 !        (bmy, 7/20/04)
 !  (21) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (22) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (23) Updated CH4 simulation (wecht, cph, ccarouge, 10/1/09)
+!  (23) Updated CH4 simulation (kjw, cph, ccarouge, 10/1/09)
 !******************************************************************************
 !     
       IMPLICIT NONE
@@ -512,7 +511,7 @@
          IREF = I + I0
 
 
-         IF ( .NOT.LNLPBL ) THEN
+         IF ( .NOT. LNLPBL ) THEN
             DO N = 1, N_TRACERS
                STT(IREF,JREF,1,N) = STT(IREF,JREF,1,N) + 
      &            CH4_EMIS(IREF,JREF,ID_TRACER(N))
@@ -538,7 +537,7 @@
 
             DO N = 2, PD58
                AD58(IREF,JREF,N) = AD58(IREF,JREF,N) + 
-     &            CH4_EMIS(IREF,JREF,ID_TRACER(N)) 
+     &            CH4_EMIS(IREF,JREF,N) 
      &            / XNUMOL_CH4 * DTSRCE * AREA_CM2
             ENDDO
          ENDIF
@@ -609,6 +608,9 @@
 !
 !******************************************************************************
 !  Subroutine WETLAND_CH4 calculates emissions of CH4 [kg] by Wetland.
+!  For a description of the GEOS-Chem wetland CH4 emission routine, see
+!  a paper titled, "Magnitude and trends of wetland methane emissions from 
+!  the Hudson Bay Lowlands (Canada)" by C. Pickett-Heaps
 !
 !  NOTES:
 !  (1 ) Adapted by Jérôme Drevet (3/06) from the BIOME-TG Wetland-Methane
@@ -683,7 +685,7 @@
 
       WRITE( 6, '(a)' ) '% EMISSCH4 --- BEGIN WETLAND_EMIS'
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
      &           'Wet_frac.'       // GET_NAME_EXT_2D()      //
      &           '.'               // GET_RES_EXT()
 
@@ -698,7 +700,6 @@
      &                        1,      ARRAY,     QUIET=.TRUE.)
 
       CALL TRANSFER_2D( ARRAY(:,:), WETFRAC(:,:) )
-      print*,'done wetfrac?'
 
       ! WETFRAC is maximum inundatable area in a box
       WETFRAC =  WETFRAC / 100d0
@@ -721,32 +722,39 @@
       ! REALWET is the actual inundated fraction of a box
       REALWET(:,:) = 0d0
 
-      ! GEOS4 calculation
+      ! GEOS4 calculation of inundated fraction
 #if   defined( GEOS_4 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273) THEN
+	 IF (TSKIN(I,J) > 273d0) THEN
          ! We want emissions from land boxes only
          IF (LWI(I,J) == 1) THEN 
 	    ! If wetness>0.1, the wetland fraction is equal
             ! to the maximal potential wetland fraction
-            IF (GWETTOP(I,J) > 0.1) THEN
+            IF (GWETTOP(I,J) > 0.1d0) THEN
 		REALWET(I,J) = WETFRAC(I,J)
             ELSE
-		REALWET(I,J) = 0.
+		REALWET(I,J) = 0.d0
             ENDIF
 	 ENDIF
 	 ENDIF	
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
-      ! GEOS5 Calculation
+      ! GEOS5 Calculation of inundated fraction
 #elif defined( GEOS_5 )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 	 ! We don't want emissions in frozen regions
-	 IF (TSKIN(I,J) > 273) THEN
+	 IF (TSKIN(I,J) > 273d0) THEN
          ! We want emissions from any box that contains some land
          ! FRLAND is fraction of grid box that is land
          IF (FRLAND(I,J) > 0) THEN 
@@ -758,22 +766,22 @@
      &                       / FRLAND(I,J)
 
             ! Catch for negative EFF_GWET
-            IF ( EFF_GWET(I,J) < 0 ) THEN
+            IF ( EFF_GWET(I,J) < 0d0 ) THEN
                EFF_GWET(I,J) = 0d0
             ENDIF
 
 	    ! If wetness>0.1, the wetland fraction is equal
             ! to the maximal potential wetland fraction
-            IF (EFF_GWET(I,J) > 0.1) THEN
+            IF (EFF_GWET(I,J) > 0.1d0) THEN
 		REALWET(I,J) = WETFRAC(I,J)
             ELSE
-		REALWET(I,J) = 0.
+		REALWET(I,J) = 0.d0
             ENDIF
 	 ENDIF
 	 ENDIF	
       ENDDO
       ENDDO
-
+!$OMP END PARALLEL DO
 
 #endif
 
@@ -793,7 +801,7 @@
 
       XTAU = GET_TAU0( 1, 1, 2000 )
 
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/wetlands/' //
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/wetlands/' //
      &           'Carbon_litter.'     // GET_NAME_EXT_2D()      //
      &           '.'                  // GET_RES_EXT()
 
@@ -804,7 +812,7 @@
       CALL TRANSFER_2D( ARRAY, LITTER_C )
 
 
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
      &           'Carbon_soil.'    // GET_NAME_EXT_2D()      //
      &           '.'               // GET_RES_EXT()
 
@@ -825,8 +833,7 @@
 
       WRITE( CYEAR, '(i4)' ) YEAR
 
-      print*,'Skin Temp'
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/wetlands/' //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/wetlands/' //
      &           'TSKIN.'          // CYEAR                  // 
      &           '.'               // GET_NAME_EXT()         // 
      &           '.'               // GET_RES_EXT()
@@ -846,70 +853,86 @@
 
       METHANE_OUT = 0d0	
 
+      ! Comments from Jed Kaplan and Jerome Drevet below:
+      !    (moist_scale can be between 0.07 and 0.14)
+      !    (emit_fact can be between 0.001 and 0.005)
+      ! Jerome's paper uses MOIST_SCALE = 0.19 (kjw, 6/9/09)
+      !
+      ! Jed and Jerome tune parameter values to the wetland emission
+      !    routine using GEOS-4 met variables. I have tuned the model
+      !    using GEOS-5 met variables and found that EMIT_FACT=.01 
+      !    and MOIST_SCALE=.1 give a reasonable balance between
+      !    extratropical and tropical emissions, kjw (7/20/10). 
+      MOIST_SCALE=0.1d0
+      EMIT_FACT = .01d0
+
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I, litterfast, litterslow, soilfast, soilslow       )
+!$OMP+PRIVATE(HETEROR, F_TEMP,   TROPICNESS, EMIT_TROPIC, EMIT_TEMPER )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
         
-	 IF ( tskin(I,J) < 233. ) THEN
-	    F_TEMP = 0
+	 IF ( tskin(I,J) < 233.d0 ) THEN
+	    F_TEMP = 0d0
 	 ELSE
-	    F_TEMP = exp(308.56*(1.0/56.02-
-     &           1.0/(tskin(I,J)-227.13))) !Lloyd & Taylor 1994	
+	    F_TEMP = exp(308.56d0*(1.0d0/56.02d0-
+     &           1.0d0/(tskin(I,J)-227.13d0))) !Lloyd & Taylor 1994	
 	 ENDIF
 
          ! Calculate Heterotrophic respiration
-         litterfast = 0.985 * LITTER_C(i,j)
-         litterslow = 0.015 * LITTER_C(i,j)
-         soilfast =  0.985 * SOIL_C(i,j)
-         soilslow =  0.015 * SOIL_C(i,j)
+         litterfast = 0.985d0 * LITTER_C(i,j)
+         litterslow = 0.015d0 * LITTER_C(i,j)
+         soilfast =  0.985d0 * SOIL_C(i,j)
+         soilslow =  0.015d0 * SOIL_C(i,j)
 
-	 HETEROR = 1e3* F_TEMP *( litterfast*0.3
-     &                          + litterslow*0.05
-     &                          + soilfast*0.03
-     &                          + soilslow*0.001 ) * 0.34 / 12.
+	 HETEROR = 1d3* F_TEMP *( litterfast*0.3d0
+     &                          + litterslow*0.05d0
+     &                          + soilfast*0.03d0
+     &                          + soilslow*0.001d0 ) * 0.34d0 / 12d0
 
 
          ! Calculate "tropicness" of each box
-       	 TROPICNESS = exp((MEAN_T(I,J) - 303.15) / 8.)
-	 IF ( TROPICNESS < 0 ) THEN
-            TROPICNESS = 0
+       	 TROPICNESS = exp((MEAN_T(I,J) - 303.15d0) / 8d0)
+	 IF ( TROPICNESS < 0d0 ) THEN
+            TROPICNESS = 0d0
 	 ENDIF
-	 IF ( TROPICNESS > 1 ) THEN
-            TROPICNESS = 1
+	 IF ( TROPICNESS > 1d0 ) THEN
+            TROPICNESS = 1d0
 	 ENDIF
 
          
-         EMIT_TROPIC = 0.0
-         EMIT_TEMPER = 0.0
+         EMIT_TROPIC = 0.0d0
+         EMIT_TEMPER = 0.0d0
 
-         ! (moist_scale can be between 0.07 and 0.14)
-         ! (emit_fact can be between 0.001 and 0.005)
-         ! the lines above are comments by Jerome.  His paper publishes
-         ! a value of 0.19 for MOIST_SCALE (kjw, 6/9/09)
-	 MOIST_SCALE=0.1
-         EMIT_FACT = .01
+!         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
+!     &                * REALWET(I,J) 
+!
+!         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
+!     &                * REALWET(I,J) 
 
-         EMIT_TROPIC = EMIT_TROPIC + HETEROR * MOIST_SCALE 
-     &                * REALWET(I,J) 
+         EMIT_TROPIC = HETEROR * MOIST_SCALE * REALWET(I,J) 
 
-         EMIT_TEMPER = EMIT_TEMPER + HETEROR * EMIT_FACT 
-     &                * REALWET(I,J) 
+         EMIT_TEMPER = HETEROR * EMIT_FACT   * REALWET(I,J) 
 
 
 	 METHANE_OUT(I,J) = TROPICNESS      * EMIT_TROPIC +
      &                     (1 - TROPICNESS) * EMIT_TEMPER  !gCH4/m2/mth	  
 
 	
-	 IF (METHANE_OUT(I,J) < 0 ) THEN
-            METHANE_OUT(I,J)=0
+	 IF (METHANE_OUT(I,J) < 0d0 ) THEN
+            METHANE_OUT(I,J)=0d0
          ENDIF
 
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
 
       ! METHANE_OUT:  g/m2/y --> molec/cm2/s
-      METHANE_OUT = METHANE_OUT/16d0/1e4/(24d0*MONTHDATES(GM)*3.6e3)
-     &              * 6.023e23 
+      METHANE_OUT = METHANE_OUT/16d0/1d4/(24d0*MONTHDATES(GM)*3.6d3)
+     &              * 6.023d23 
 
       ! Add to emission array
       CH4_EMIS(:,:,10) = METHANE_OUT
@@ -1189,17 +1212,16 @@
       !=================================================================
 
       !4.7 Rice Emissions
-      ! For now, we only have emissions from 2004.
-      ! Otherwise, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      ! For now, we only have emissions from 2004 in DATA_DIR.
+      ! Tau date of bpch emission files is Jan 1 of that year
       CYEAR='2004'
-      ! Tau date of bpch emission files is Jan 1 of the current year
-      ! For now, we only have emissions from 2004.
-      ! Otherwise, use:
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
       XTAU = GET_TAU0( 1, 1, 2004 )
+      ! When DATA_DIR updated with more emission files, use:
+      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
 
-      FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+      ! Read Rice Emissions
+      FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'      //
      &           'rice.'          // CYEAR             // 
      &           '.'              // GET_NAME_EXT_2D() // 
      &           '.'              // GET_RES_EXT()
@@ -1212,7 +1234,7 @@
 
       ! Get annual and monthly mean soil wetness from GEOS
       ! One file contains both monthly and annual mean GWETTOP
-      FILENAME = TRIM( DATA_DIR )  // 'CH4_200909/'  //
+      FILENAME = TRIM( DATA_DIR )  // 'CH4_200911/GWETTOP/'  //
      &           'GWETTOP.'        // CYEAR          // 
      &           '.'               // GET_NAME_EXT() // 
      &           '.'               // GET_RES_EXT()
@@ -1242,6 +1264,8 @@
       ENDDO
       ENDDO
 
+      ! Subtract rice emissions from natural wetlands to prevent double
+      ! counting of emissions from the same source.
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          if (CH4_EMIS(I,J,7) > 0) THEN   ! If rice > 0
@@ -1400,21 +1424,20 @@
       !=================================================================
 
 
-      ! For now, we only have emissions from 2004.
-      ! Otherwise, use:
-      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      ! For now, we only have emissions from 2004 in DATA_DIR.
+      ! Tau date of bpch emission files is Jan 1 of that year
       CYEAR='2004'
-
-      ! Tau date of bpch emission files is Jan 1 of the current year
-      ! For now, we only have emissions from 2004.
-      ! Otherwise, use:
-      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
       XTAU = GET_TAU0( 1, 1, 2004 )
+      ! When DATA_DIR updated with more emission files, use:
+      !      WRITE( CYEAR, '(i4)' ) GET_YEAR()
+      !      XTAU = GET_TAU0( 1, 1, GET_YEAR() )
+
+
 
 
       !4.2 Gas and Oil emissions
       IF ( LGAO ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'gas_oil.'       // CYEAR             // 
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
@@ -1428,7 +1451,7 @@
 
       !4.3 Coal Mine emissions
       IF ( LCOL ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'coal.'          // CYEAR             // 
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
@@ -1441,7 +1464,7 @@
 
       !4.4 Livestock emissions
       IF ( LLIV ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'livestock.'     // CYEAR             // 
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
@@ -1455,7 +1478,7 @@
 	
       !4.5 Waste emissions
       IF ( LWAST ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'waste.'         // CYEAR             // 
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
@@ -1468,7 +1491,7 @@
 
       !4.8 Other Anthropogenic Emissions
       IF ( LOTANT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'other.'         // CYEAR             // 
      &              '.'              // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
@@ -1534,7 +1557,7 @@
 
       !4.11 Soil Absorption
       IF ( LSOABS ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'soilabs.'       // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
@@ -1546,7 +1569,7 @@
 
       !4.12 Other Natural Emissions
       IF ( LOTNAT ) THEN
-         FILENAME = TRIM( DATA_DIR ) // 'CH4_200909/'     //
+         FILENAME = TRIM( DATA_DIR ) // 'CH4_200911/'     //
      &              'termites.'      // GET_NAME_EXT_2D() //
      &              '.'              // GET_RES_EXT() 
 
@@ -1608,11 +1631,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD, ALBD
+      USE DAO_MOD,       ONLY : AD
       USE DIAG_MOD,      ONLY : AD43
-      USE DIAG_PL_MOD,   ONLY : AD65
       USE DIRECTORY_MOD, ONLY : DATA_DIR, OH_DIR
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP, IT_IS_NAN, IT_IS_FINITE
+      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH, OH
       USE TIME_MOD,      ONLY : GET_DAY, GET_MONTH, GET_NYMDb, GET_NYMDe
       USE TIME_MOD,      ONLY : GET_TAU, GET_YEAR
       USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2, GET_MODELNAME
@@ -1685,90 +1708,29 @@
          CALL READ_COPROD
          print*,'READ_COPROD DONE'
 
-         ! Added following line to increase strat. sink strength
-         ! Hmm, the values I printed out above for COprod are very small, 
-         ! all less than 1e-15. (jsw)
-c         COprod = COprod * 3d0
-         ! Commented the above line because it was giving me negative CH4
-         ! concentrations in the stratosphere.
-
-         ! Initialize the CH4 burden TCH4
-         ! (ccc, 7/23/09)
+         ! Initialize the CH4 burden TCH4 [molec/box], (ccc, 7/23/09)
          TCH4(:,:,:,1) = STT(:,:,:,1) * XNUMOL_CH4 
       ENDIF
-
-!!   DO WE NEED THIS?  I don't think so.   kjw (6/12/09)
-c$$$cdrevet
-c$$$      IF ( ND65 > 0 ) THEN
-c$$$      	 DO I=1, IIPAR
-c$$$	 DO J=1, JJPAR
-c$$$	 DO L=1, LLPAR   ! molec/cm3/s
-c$$$c         AD65(I,J,L,3) = AD65(I,J,L,3) + COPROD(1,J,L) * BAIRDENS(I,J,L)
-c$$$         AD65(I,J,L,3) = COPROD(J,L,GET_MONTH())
-c$$$	 ENDDO
-c$$$	 ENDDO
-c$$$	 ENDDO
-c$$$      ENDIF
-c$$$cdrevet
 
       ! Increment counter of timesteps
       NTALDT = NTALDT + 1
 
-      !=================================================================
-      ! (2) Calculate the production and destruction of CO from 
-      !     gas-phase chemistry only.
-      !
-      ! Concerning O3, there are 3 options:   if (m lt 9) then MM_add = '0' 
-      !                                       else MM_add = ''
-      !   A) The OH parameterization is calculated using GEOS monthly 
-      !      means (NCLIMATOLOGY=0) for the independent variable O3.  
-      !      The O3 column above independent variable is determined 
-      !      using jal's O3  climatologies for both the tropospheric 
-      !      and stratospheric portions of the O3 column 
-      !      (NCLIMATOLOGY2=1).  
-      !
-      !   B) The O3 variable is determined from jal's O3 climatolgies 
-      !      (tropospheric portion) and the o3 column above variable 
-      !      is determined from jal's O3 climatolgies (NCLIMATOLOGY=1 & 
-      !      NCLIMATOLOGY2=1).
-      !
-      !=================================================================
 
       !================================================================
-      ! (3) get parameterized OH fields or monthly mean fields.
+      ! (2) get parameterized OH fields or monthly mean fields.
       !
       ! Variables of note:
       ! ---------------------------------------------------------------
       ! (1) BOH = storage array for OH fields.
       !
       ! (2) NOHDO = switch
-      !       ONLY USE CASE 5 as of 5/28/08 (kjw)
-      !       = 0 : Use OH field from full chemistry monthly avg (jd).
-      !       = 1 : Get parameterized OH field.
-      !       = 2 : Get Clarissa's climatological OH (jsw)
-      !       = 3 : Get Monthly GEOS_MEAN OH (kjw)  <-- Path to files
-      !                 years < 1991 is incorrect (kjw, 3/26/08)
-      !       = 4 : Get Duncan OH (kjw)
-      !       = 5 : Get GEOS-Chem OH (v5-07-08) (kjw, 5/28/08)
+      !       ONLY CASE 1 available as of 7/20/10 (kjw)
+      !       = 1 : Get GEOS-Chem OH (v5-07-08) (kjw, 5/28/08)
       !
-      ! (3) LPAUSE =  the vertical level of the tropopause.  Above this
-      !     level, no [OH] is calculated.  The user can feed this
-      !     SR a high value for LPAUSE which effectively turns this 
-      !     option off (i.e., LPAUSE > MVRTBX). If the [OH] = -999 
-      !     then the [OH] was not calculated.
       !================================================================
       
       ! 3D OH Field
       BOH(:,:,:) = 0d0
-
-      ! The following appear to be the maximum levels of the troposphere
-      ! we do this so that we are not reading OH fields that we'll never
-      ! use (these OH fields not used in stratosphere).   (kjw, 6/5/09)
-      IF      ( TRIM( GET_NAME_EXT() ) .EQ. 'geos4' ) THEN
-         TROPP = 17
-      ELSE IF ( TRIM( GET_NAME_EXT() ) .EQ. 'geos5' ) THEN
-         TROPP = 34
-      ENDIF
 
       ! Change value of NOHDO as listed above
       NOHDO = 1
@@ -1778,38 +1740,42 @@ c$$$cdrevet
          ! NOHDO = 1: GEOS-Chem OH v5-07-08
          CASE ( 1 )
 
-            FILENAME = '/home/kjw/GEOS-Chem/files/OH/'   //
-!ccc     &                 'OH_3Dglobal.GEOS5_47L.4x5'
-     &                 'OH_3Dglobal.GEOS4_30L.4x5'
-
-c            FILENAME = TRIM( OH_DIR )   //
-c     &                 'OH_3Dglobal.'   //   GET_NAME_EXT()   //
-c     &                 '.'              //   GET_RES_EXT()
-
-
-            WRITE( 6, 44 ) TRIM ( FILENAME )
-            
-            WRITE( 6, 45 ) TROPP
- 44         FORMAT( '     - READ OH from: ', a )
- 45         FORMAT( '     - READ OH:  TROPP :    ', I2 )
-	    CALL FLUSH( 6 )
 
           ! LMN is the current month
             LMN = GET_MONTH()
 
-	    XTAU = GET_TAU0( LMN, 1, 1985 ) 
-            print*,'before bpch read'
-            CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 1,      
-     &                       XTAU,      IGLOB,     JGLOB,      
-     &                       LLPAR,     ARRAY,     QUIET=.FALSE.)
+          ! Global OH 
+            CALL GET_GLOBAL_OH( LMN )
 
-            print*,'after bpch read'
-	    DO L=1, TROPP
-	       CALL TRANSFER_2D( ARRAY(:,:,L), BOH(:,:,L) )
-	    ENDDO
-            print*,'OH read done'
-        
+            BOH = OH
+
+!            FILENAME = TRIM( OH_DIR )   //
+!     &                 'OH_3Dglobal.'   //   GET_NAME_EXT()   //
+!     &                 '.'              //   GET_RES_EXT()
+!
+!            WRITE( 6, 44 ) TRIM ( FILENAME )
+! 44         FORMAT( '     - READ OH from: ', a )
+!	    CALL FLUSH( 6 )
+!
+!          ! LMN is the current month
+!            LMN = GET_MONTH()
+!
+!	    XTAU = GET_TAU0( LMN, 1, 1985 ) 
+!            print*,'     - READ OH:  before CALL READ_BPCH2'
+!            CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 1,      
+!     &                       XTAU,      IGLOB,     JGLOB,      
+!     &                       LLPAR,     ARRAY,     QUIET=.FALSE.)
+!
+!            print*,'     - READ OH:  after CALL READ_BPCH2'
+!	    DO L=1, LLPAR
+!	       CALL TRANSFER_2D( ARRAY(:,:,L), BOH(:,:,L) )
+!	    ENDDO
+!            print*,'     - READ OH:  OH read done'
+
+
+         ! Default.  GEOS_CHEM_STOP
          CASE DEFAULT
+
             WRITE( 6, '(a)' ) 'Invalid selection for NOHDO!'
             WRITE( 6, '(a)' ) 'Halting execution in CHEMCH4!'
             CALL GEOS_CHEM_STOP
@@ -1833,8 +1799,8 @@ c     &                 '.'              //   GET_RES_EXT()
       ENDIF
 
       !=================================================================
-      ! (4) Save OH concentrations for printing of global mean [OH] at
-      !     end of simulation.
+      ! (4) Save OH concentrations for printing of global mean [OH] and
+      !     CH3CCLl3 at end of simulation.
       !=================================================================
       print*, 'START CH4_OHSAVE'
       CALL CH4_OHSAVE
@@ -1867,8 +1833,6 @@ c     &                 '.'              //   GET_RES_EXT()
       ! (7) calculate CH4 chemistry in layers above tropopause.
       !=================================================================
       CALL CH4_STRAT
-      print*,'END CH4_STRAT'
-      CALL FLUSH ( 6 )
 
       !=================================================================
       ! (8) distribute the chemistry sink from total CH4 to other CH4 
@@ -1930,7 +1894,8 @@ c     &                 '.'              //   GET_RES_EXT()
 !
 !*****************************************************************************
 !  Subroutine READ_COPROD reads production and destruction rates for CO in 
-!  the stratosphere. (bnd, bmy, 1/17/01, 10/3/05)
+!  the stratosphere. CO destruction rate is assumed equal to CH4 production
+!  rate for the GEOS-Chem CH4 simulation. (bnd, bmy, 1/17/01, 10/3/05)
 !
 !  Module Variables:
 !  ===========================================================================
@@ -1990,12 +1955,11 @@ c     &                 '.'              //   GET_RES_EXT()
 	 CALL FLUSH( 6 )
 
 
-cdrevet
-         ! Read P(CO) in units of [v/v/s]
+         ! Read P(CO) in units of [v/v/s].  drevet.
          CALL READ_BPCH2( FILENAME, 'PORL-L=$', 9,     
      &                    XTAU,      1,         JGLOB,     
      &                    LGLOB,     ARRAY,     QUIET=.TRUE. )
-cdrevet
+
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% SCHEM PATCH: Do not call TRANSFER_ZONAL when using the GEOS-5 grid
@@ -2071,9 +2035,7 @@ cdrevet
       USE DAO_MOD,    ONLY : AIRVOL
       USE TIME_MOD,   ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
       USE TRACER_MOD, ONLY : STT
-cdrevet
-      USE DIAG_MOD,   ONLY : AD19
-cdrevet      	      
+      USE DIAG_MOD,   ONLY : AD19    	      
 
 #     include "CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
@@ -2081,12 +2043,12 @@ cdrevet
 
       ! Local variables
       LOGICAL          :: FIRST_DECAY=.TRUE.
-      INTEGER          :: I, J, L, M, N
+      INTEGER          :: I, J, L, M, N, MM
       REAL*8           :: DT, GCH4, STT2GCH4, KRATE
 
       ! External variables
       REAL*8, EXTERNAL :: BOXVL
-
+      
 
       !=================================================================
       ! CH4_DECAY begins here!
@@ -2109,7 +2071,12 @@ cdrevet
 	TROPOCH4=0d0
       ENDIF
 
-      DO L = 1, MAXVAL( LPAUSE )
+      MM = MAXVAL( LPAUSE )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, J, I, KRATE, STT2GCH4, GCH4 )
+!$OMP+REDUCTION( +:TROPOCH4 )
+      DO L = 1, MM !MAXVAL( LPAUSE )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -2129,15 +2096,19 @@ cdrevet
 	
             ! Sum loss in TCH4(3) (molecules/box)
             TCH4(I,J,L,3) = TCH4(I,J,L,3)+ 
-     &           ( GCH4 * BOXVL(I,J,L)* KRATE * BOH(I,J,L) * DT)
+     &           ( GCH4 * BOXVL(I,J,L) * KRATE * BOH(I,J,L) * DT)
 
-            TROPOCH4=TROPOCH4+GCH4*KRATE*BOH(I,J,L)*DT/STT2GCH4
+            TROPOCH4=TROPOCH4 + GCH4 * KRATE * BOH(I,J,L) * DT / 
+     &               STT2GCH4
 
             ! Modify AD19 Diagnostic
             ! How much CH4 (kg) is lost by reaction with OH
 	    IF ( ND19 > 0 ) THEN  ! --> [kg/box]
-	    	AD19(I,J,12) = AD19(I,J,12) + 
-     &	            ( GCH4 * KRATE * BOH(I,J,L) * DT ) / STT2GCH4
+               IF ( L <= LD19 ) THEN
+!	    	AD19(I,J,12) = AD19(I,J,12) + 
+                  AD19(I,J,L) = AD19(I,J,L) + 
+     &                 ( GCH4 * KRATE * BOH(I,J,L) * DT ) / STT2GCH4
+               ENDIF
 	    ENDIF
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
@@ -2150,7 +2121,9 @@ cdrevet
       ENDDO
       ENDDO
       ENDDO
-	print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
+!$OMP END PARALLEL DO
+
+      print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
 
       ! Return to calling program
       END SUBROUTINE CH4_DECAY
@@ -2162,10 +2135,6 @@ cdrevet
 !*****************************************************************************
 !  Subroutine CH4_OHSAVE archives the CH3CCl3 lifetime from the OH
 !  used in the CH4 simulation. (bnd, jsw, bmy, 1/16/01, 7/20/04)
-!
-!  Subroutine CH4_OHSAVE now ONLY archives OH concentrations to be printed
-!  as global mean OH by PRINT_DIAG_OH at the end of the simulation.  The
-!  CH3CCl3 lifetime capability was disabled many years ago. (kjw, 6/12/09)
 !
 !  The annual mean tropopause is stored in the LPAUSE array 
 !  (from header file "CMN").  LPAUSE is defined such that: 
@@ -2327,7 +2296,7 @@ cdrevet
             ! Convert back from [molec CH4/cm3] --> [kg/box] 
             STT(I,J,L,1) = GCH4 / STT2GCH4
 
-		
+            ! Prevent negative values in STT
 	    IF ( STT(I,J,L,1) < 0 ) THEN
 		STT(I,J,L,1)=0
 	    ENDIF

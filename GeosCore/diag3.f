@@ -1443,10 +1443,17 @@
          CATEGORY     = 'CH4-LOSS'
          N            = 1
 	
+! Replace LLPAR by LD19= # of levels requested in input.geos. (ccc, 7/29/10)
+!         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &               HALFPOLAR, CENTER180, CATEGORY, N,
+!     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+!     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+     &               IIPAR,     JJPAR,     LD19,    IFIRST,     
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF

@@ -602,8 +602,8 @@ global_br_mod.o             : global_br_mod.f         tropopause_mod.o
 global_ch4_mod.o            : global_ch4_mod.f                               \
                               dao_mod.o               diag_mod.o             \
                               diag_oh_mod.o           diag_pl_mod.o          \
-                              logical_mod.o           tracer_mod.o           \
-                              vdiff_pre_mod.o  
+                              global_oh_mod.o         logical_mod.o          \
+                              tracer_mod.o            vdiff_pre_mod.o  
 
 global_hno3_mod.o           : global_hno3_mod.f                              \
                               dao_mod.o               tracer_mod.o  
