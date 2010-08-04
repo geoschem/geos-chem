@@ -114,6 +114,7 @@
 !  (94) Add ND57 for potential temperature. (fp, 2/3/10)
 !  (95) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
+!  (96) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -180,6 +181,8 @@
       USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
       USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
+      ! For mercury simulation. (ccc, 6/4/10)
+      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
       USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
       ! To handle tracers with several dry dep. tracers
       !(ccc, 2/3/10)
@@ -189,7 +192,7 @@
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
       USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
       USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP
+      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
 
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
@@ -221,6 +224,7 @@
       USE TRACERID_MOD, ONLY : IDTNK1,      IDTSF1,      IDTSS1   !(win, 1/25/10)
       USE TRACERID_MOD, ONLY : IDTECIL1,    IDTECOB1   !(win, 1/25/10)
       USE TRACERID_MOD, ONLY : IDTOCIL1,    IDTOCOB1,    IDTDUST1  !(win, 1/25/10)
+      USE TRACERID_MOD, ONLY : IS_Hg2
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
       USE DIAG_PL_MOD,  ONLY : GET_FAM_NAME         !(win, 1/25/10)
@@ -2486,7 +2490,9 @@
      &                  IIPAR,     JJPAR,     LD38,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD38) )
          ENDDO
+
       ENDIF
+
 !
 !******************************************************************************
 !  ND39: Rainout loss of tracer in large scale rains 
@@ -2822,6 +2828,7 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     1,        IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
 
             ! Special case for tracers with several deposition tracers.
             ! (E.G. ISOPN: ISOPND and ISOPNB). Not aerosols (ccc, 2/3/10)
@@ -3197,6 +3204,70 @@
 !
       IF ( ND56 > 0 ) CALL WRITE_DIAG56
 !
+!******************************************************************************
+!  ND57: THETA
+!
+!  Potential temperature
+!******************************************************************************
+! 
+! (FP 6/2009)
+  
+      IF ( ND57 > 0 ) THEN
+
+         CATEGORY          = 'THETA-$'
+         UNIT              = 'K'
+         ARRAY(:,:,1:LD57) = AD57(:,:,1:LD57) / SCALEDIAG
+         NN                = 1
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD57,        IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
+      ENDIF
+
+
+!
+!******************************************************************************
+!  ND58: CH4 Emission Diagnostics
+!
+!   #  : Field   : Description                 : Units     : Scale Factor
+!  ---------------------------------------------------------------------------
+!  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
+!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
+!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
+!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
+!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
+!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
+!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
+!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
+!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
+!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
+!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
+!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
+!******************************************************************************
+
+      IF ( ND58 > 0 ) THEN
+         CATEGORY = 'CH4-EMIS'
+
+         DO M = 1, TMAX(58)
+            N  = TINDEX(58,M)
+            IF ( N > PD58 ) CYCLE
+            NN = N
+
+            UNIT = 'kg'
+
+            ARRAY(:,:,1) = AD58(:,:,N)
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
+         ENDDO
+      ENDIF
+
+!
 !*****************************************************************************
 !  ND59: Size-resolved primary aerosol emission (win, 8/22/07)
 !        Unit is amount of aerosol per time of simulation e.g. sulfate[=] kg S
@@ -3370,46 +3441,6 @@
          ENDDO
 
       ENDIF         
-
-!
-!******************************************************************************
-!  ND58: CH4 Emission Diagnostics
-!
-!   #  : Field   : Description                 : Units     : Scale Factor
-!  ---------------------------------------------------------------------------
-!  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
-!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
-!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
-!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
-!******************************************************************************
-
-      IF ( ND58 > 0 ) THEN
-         CATEGORY = 'CH4-EMIS'
-
-         DO M = 1, TMAX(58)
-            N  = TINDEX(58,M)
-            IF ( N > PD58 ) CYCLE
-            NN = N
-
-            UNIT = 'kg'
-
-            ARRAY(:,:,1) = AD58(:,:,N)
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
-      ENDIF
 
 #if   defined( TOMAS )
 !
@@ -4258,6 +4289,24 @@
          ND69 = 0
       ENDIF
 
+      !==================================================================
+      ! Special case for mercury simulation. We need to store AD38, AD39,
+      ! AD44 to ensure that we have monthly average in GTMM restart file
+      !==================================================================
+      IF ( LGTMM ) THEN
+         N = 1
+         NN = GET_WETDEP_IDWETD( N )
+         DO WHILE( .NOT.(IS_Hg2( NN )) )
+            
+            N = N + 1
+            ! Tracer number
+            NN = GET_WETDEP_IDWETD( N )
+            
+         ENDDO
+
+         CALL UPDATE_DEP( N )
+      ENDIF
+            
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 

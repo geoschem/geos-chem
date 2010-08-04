@@ -749,15 +749,19 @@
 !  (7 ) Now treat "negative detrainment" as entrainment, which will better 
 !        conserve mixing ratio (swu, bmy, 6/27/06)
 !  (8 ) Bug fix: avoid div by zero in formula for CHAT (bmy, 12/19/06)
+!  (9 ) Updates for mercury simulation (ccc, 5/6/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIAG_MOD,          ONLY : AD38, CONVFLUP 
       USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
-      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
+!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_WD, ADD_HgP_WD !eck/eds
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2
+      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP !eck/eds
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DAO_MOD,           ONLY : SNOMAS, SNOW 
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! ND38, LD38, ND14, LD14
@@ -794,7 +798,7 @@
       REAL*8                     :: DENOM,   SMALL,   MBSTH,   MUPDUDP
       REAL*8                     :: MINC,    MAXC,    QN,      FLUXIN
       REAL*8                     :: D_NSTEP, FLUXOUT, NETFLUX, AREA_M2
-      REAL*8                     :: WET_Hg2, PLUMEIN     
+      REAL*8                     :: WET_Hg2, WET_HgP, PLUMEIN !eck/eds
       REAL*8                     :: CHAT(IIPAR,LLPAR)     
       REAL*8                     :: COND(IIPAR,LLPAR)     
       REAL*8                     :: CMIX(IIPAR,LLPAR)     
@@ -1135,7 +1139,7 @@
 
                ! Only save to ND38 if it's turned on, if there are soluble 
                ! tracers, and if we are below the LD38 level limit
-               IF ( ND38 > 0 .and. NN > 0 ) THEN
+               IF ( ( ND38 > 0 .or. LGTMM ) .and. NN > 0 ) THEN
 
                   ! GEOS-CHEM lon, lat, alt indices
                   II = IDEEP(I)
@@ -1189,6 +1193,26 @@
 
                      ! Pass to "ocean_mercury_mod.f"
                      CALL ADD_Hg2_WD( II, J, M, WET_Hg2 )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_Hg2 )
+                  ENDIF
+                  !eck/eds
+                  IF ( IS_HgP( M ) ) THEN
+
+                     ! GEOS-CHEM lon & lat indices
+                     II      = IDEEP(I)
+                     JJ      = J
+
+                     ! Grid box surface area [m2] 
+                     AREA_M2 = GET_AREA_M2( JJ )
+
+                     ! Hg2 wet-scavenged out of the column [kg]
+                     WET_HgP = MU(I,KP1) * AREA_M2     * 100d0         / 
+     &                         GRAV      * CONU(I,KP1) *(1d0-FISG(I,K))/
+     &                         TCVV(M)   * DELT 
+
+                     ! Pass to "ocean_mercury_mod.f"
+                     CALL ADD_HgP_WD( II, J, M, WET_HgP )
+                     CALL ADD_Hg2_SNOWPACK( II, J, M, WET_HgP )
                   ENDIF
                ENDIF
 

@@ -748,7 +748,6 @@
       USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
-      USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
       USE TRACER_MOD,        ONLY : ID_EMITTED,     ID_TRACER
       USE TRACER_MOD,        ONLY : SIM_TYPE,       N_TRACERS
       USE TRACER_MOD,        ONLY : TCVV,           TRACER_COEFF
@@ -2326,26 +2325,6 @@
       WRITE( 6, 100     ) 'Use solver coded by KPP?    : ', LKPP
 
          
-      ! Optional test, available if KPPTRACER is defined in define.h
-#ifdef KPPTRACER
-
-      write(MSG,'( a, i3, a, i3, a)')
-     &       'Number of TRACERS in INPUT.GEOS (', N_TRACERS,
-     &       ') and in KPP (', KPPTRACER,
-     &       ') do not match!'
-            
-      IF ( LKPP ) THEN
-
-#if KPPTRACER == 43         
-         IF ( N_TRACERS /= 43 ) CALL ERROR_STOP( MSG, 'input_mod.f' )
-#endif
-
-#if KPPTRACER == 54
-         IF ( N_TRACERS /= 54 ) CALL ERROR_STOP( MSG, 'input_mod.f' )
-#endif
-         
-      ENDIF
-#endif
       
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -4705,18 +4684,23 @@
 !  the GEOS-CHEM input file. (bmy, 2/24/06)
 !
 !  NOTES:
+!  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
+!  ( 2) Add options to use GTMM for mercury soil emissions (ccc, 9/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LPREINDHG, LGTMM
       USE MERCURY_MOD,       ONLY : INIT_MERCURY
       USE OCEAN_MERCURY_MOD, ONLY : INIT_OCEAN_MERCURY
+      USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
+      USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
  
       ! Local variables
       LOGICAL                    :: USE_CHECKS
       INTEGER                    :: ANTHRO_Hg_YEAR,  N 
       CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM), Hg_RST_FILE
+      CHARACTER(LEN=255)         :: GTMM_RST_FILE
 
       !=================================================================
       ! READ_MERCURY_MENU begins here!
@@ -4726,7 +4710,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
       READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
 
-      ! Use dynamic ocean model?
+      ! Use error check for tag/tot Hg?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
       READ( SUBSTRS(1:N), * ) USE_CHECKS
 
@@ -4734,12 +4718,30 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
+      ! Use preindustrial simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:4' )
+      READ( SUBSTRS(1:N), * ) LPREINDHG
+
       ! Name of ocean restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
       READ( SUBSTRS(1:N), '(a)' ) Hg_RST_FILE
 
+      ! Use GTMM ?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
+      READ( SUBSTRS(1:N), * ) LGTMM
+
+      ! Name of GTMM restart file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
+      READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
+
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
+
+      ! Check on logical
+      IF (.NOT.( ITS_A_MERCURY_SIM() ) ) THEN
+         LGTMM     = .FALSE.
+         LDYNOCEAN = .FALSE.
+      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -4750,8 +4752,12 @@
      &                     ANTHRO_Hg_YEAR
       WRITE( 6, 110     ) 'Error check tag & total Hg? : ', USE_CHECKS
       WRITE( 6, 110     ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
+      WRITE( 6, 110     ) 'Preindustrial simulation?   : ', LPREINDHG
       WRITE( 6, 120     ) 'Ocean Hg restart file       : ',
      &                     TRIM( Hg_RST_FILE )
+      WRITE( 6, 110     ) 'Use GTMM ?                  : ', LGTMM
+      WRITE( 6, 120     ) '=> GTMM restart file        : ',
+     &                     TRIM( GTMM_RST_FILE )
 
       ! FORMAT statements
  100  FORMAT( A, I4  )
@@ -4763,6 +4769,8 @@
 
          ! Initialize "mercury_mod.f"
          CALL INIT_MERCURY( ANTHRO_Hg_YEAR )
+         CALL INIT_LAND_MERCURY()
+         CALL INIT_DEPO_MERCURY(TRIM( GTMM_RST_FILE ))
 
          ! Initialize "ocean_mercury_mod.f"
          IF ( LDYNOCEAN ) THEN
@@ -5327,7 +5335,7 @@
       USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
       USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
       USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
-      USE LOGICAL_MOD,   ONLY : LNEI05
+      USE LOGICAL_MOD,   ONLY : LNEI05,     LPREINDHG
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       USE LOGICAL_MOD,   ONLY : LLINOZ
       USE LOGICAL_MOD,   ONLY : LMODISLAI,   LPECCA
@@ -5427,6 +5435,7 @@
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
+      LPREINDHG    = .FALSE.
 
       !Specifically for CO2 simulation (R Nassar, 2009-03-02)
       LGENFF       = .FALSE.

@@ -179,6 +179,7 @@
 !  (22) Added TOMAS tracers IDTH2SO4, IDTNK1-IDTNK30, IDTSF1-IDTSF30, 
 !        IDTSS1-IDTSS30, IDTECIL1-IDTECIL30, IDTECOB1-IDTECOB30, 
 !        IDTOCIL1-IDTOCIL30, IDTOCOB1-IDTOCOB30, and IDTAW1-IDTAW30 (win, 6/23/09)
+!  (23) Updates for mercury simulation (ccc, 5/17/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -505,6 +506,10 @@
                IDTCO    = N
                IDBFCO   = COUNT
 
+               !(fp)             
+               COUNT_BB = COUNT_BB + 1
+               IDBCO   = COUNT_BB
+
                ! Special case: Tagged CO
                ! Set some emission flags and then exit
                ! NOTE: To satisfy IF statement in EMISSDR for using 
@@ -516,10 +521,6 @@
                   IDTISOP   = 1
                   EXIT
                ENDIF
-
-               !(fp)             
-               COUNT_BB = COUNT_BB + 1
-               IDBCO   = COUNT_BB
 
             !-----------------------------------
             ! FEW ASSUMPTIONS FOR H2HD SIM:
@@ -988,6 +989,8 @@
                COUNT    = COUNT + 1
                IDTCO    = 1
                IDBFCO   = COUNT
+               COUNT_BB = COUNT_BB + 1
+               IDBCO    = COUNT_BB 
                NEMANTHRO= 8      ! Reset NEMANTHRO here too (bmy, 7/25/06)
                EXIT
 
@@ -996,6 +999,8 @@
                COUNT    = COUNT + 1
                IDTCO    = 1
                IDBFCO   = COUNT
+               COUNT_BB = COUNT_BB + 1
+               IDBCO    = COUNT_BB 
                EXIT
 
             !--------------------------------
@@ -1007,6 +1012,11 @@
                ID_Hg_tot         = COUNT_Hg0
                IDTHg0            = N
                ID_Hg0(COUNT_Hg0) = N
+
+               ! Special case: Hg BB emissions are scaled from CO:
+               ! (ccc, 5/21/10)
+               COUNT_BB          = COUNT_BB + 1
+               IDBCO             = COUNT_BB 
 
             CASE ( 'HG2' )
                COUNT_Hg2         = COUNT_Hg2 + 1
@@ -2391,6 +2401,83 @@
 
       ! Return to calling program
       END FUNCTION GET_Hg2_CAT
+
+!------------------------------------------------------------------------------
+
+      FUNCTION GET_HgP_CAT( N ) RESULT( NN )
+!
+!******************************************************************************
+!  Function GET_HgP_CAT the HgP category number (i.e. index for DD_HgP and
+!  WD_HgP) given the tracer number. (eck, sas, cdh, bmy, 1/6/05)
+!
+!  Arguments as Input:
+!  ----------------------------------------------------------------------------
+!  (1 ) N (INTEGER) : GEOS-CHEM tracer number
+!
+!  NOTES:
+!  17 May 2010 - C. Carouge   - Added to standard version
+!******************************************************************************
+!
+      ! Arguments
+      INTEGER, INTENT(IN) :: N
+      
+      ! Function value
+      INTEGER             :: NN
+
+      !=================================================================
+      ! GET_HgP_CAT begins here!
+      !=================================================================
+
+      ! Pick the HgP category number from the tracer number
+      IF ( N == ID_HgP(ID_Hg_tot) ) THEN 
+
+         ! Total
+         NN = ID_Hg_tot
+
+      ELSE IF ( N == ID_HgP(ID_Hg_na) ) THEN 
+
+         ! Anthro North America
+         NN = ID_Hg_na
+
+      ELSE IF ( N == ID_HgP(ID_Hg_eu) ) THEN 
+
+         ! Anthro Europe
+         NN = ID_Hg_eu
+
+      ELSE IF ( N == ID_HgP(ID_Hg_as) ) THEN 
+
+         ! Anthro Asia
+         NN = ID_Hg_as
+
+      ELSE IF ( N == ID_HgP(ID_Hg_rw) ) THEN 
+
+         ! Anthro Rest of World
+         NN = ID_Hg_rw
+
+      ELSE IF ( N == ID_HgP(ID_Hg_oc) ) THEN 
+
+         ! Oceans
+         NN = ID_Hg_oc
+
+      ELSE IF ( N == ID_HgP(ID_Hg_ln) ) THEN 
+
+         ! Land re-emission
+         NN = ID_Hg_ln
+
+      ELSE IF ( N == ID_HgP(ID_Hg_nt) ) THEN 
+
+         ! Natural source
+         NN = ID_Hg_nt
+
+      ELSE
+
+         ! Invalid category
+         NN = -1
+
+      ENDIF
+
+      ! Return to calling program
+      END FUNCTION GET_HgP_CAT
 
 !------------------------------------------------------------------------------
 

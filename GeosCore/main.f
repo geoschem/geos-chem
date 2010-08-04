@@ -77,6 +77,8 @@
 !----------------------------------------------------------------------
       USE DAO_MOD,           ONLY : SUNCOS
       USE DAO_MOD,           ONLY : MAKE_RH
+      !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
+      USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
       USE DRYDEP_MOD,        ONLY : DO_DRYDEP
       USE EMISSIONS_MOD,     ONLY : DO_EMISSIONS
       USE ERROR_MOD,         ONLY : DEBUG_MSG,       ERROR_STOP
@@ -103,6 +105,8 @@
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
       USE LOGICAL_MOD,       ONLY : LLINOZ,    LWINDO
+      ! Add LGTMM logical for mercury simulation (ccc, 11/19/09)
+      USE LOGICAL_MOD,       ONLY : LGTMM
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -162,6 +166,7 @@
       USE XTRA_READ_MOD,     ONLY : GET_XTRA_FIELDS,   OPEN_XTRA_FIELDS
       USE XTRA_READ_MOD,     ONLY : UNZIP_XTRA_FIELDS
       USE ERROR_MOD,         ONLY : IT_IS_NAN, IT_IS_FINITE   !yxw
+      USE ERROR_MOD,         ONLY : SAFE_DIV
       ! To save CSPEC_FULL restart (dkh, 02/12/09)
       USE LOGICAL_MOD,       ONLY : LSVCSPEC
       USE RESTART_MOD,       ONLY : MAKE_CSPEC_FILE
@@ -169,6 +174,11 @@
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
+
+      USE TRACERID_MOD,      ONLY : IS_Hg2
+      ! For GTMM for mercury simulations. (ccc, 6/7/10)
+      USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
+      USE MERCURY_MOD,       ONLY : PARTITIONHG
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -183,12 +193,14 @@
       LOGICAL            :: FIRST = .TRUE.
       LOGICAL            :: LXTRA 
       INTEGER            :: I,           IOS,   J,         K,      L
-      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN
+      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN,  NN
       INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
       INTEGER            :: YEAR,        MONTH, DAY,       DAY_OF_YEAR
       INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
       INTEGER            :: ELAPSED_SEC, NHMSb, RC
       REAL*8             :: TAU,         TAUb         
+      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
+
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -552,6 +564,29 @@
             CALL INITIALIZE( 3 ) ! Zero counters
          ENDIF
 
+         !=============================================================
+         !   ***** W R I T E   MERCURY RESTART  F I L E *****
+         !     ***** MUST be done after call to diag3 *****
+         !=============================================================
+         ! Make land restart file: for GTMM runs only, beginning of each 
+         ! month but not start of the run.
+         IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
+            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
+               N = 1
+               NN = GET_WETDEP_IDWETD( N )
+               DO WHILE( .NOT.(IS_Hg2( NN )) )
+               
+                  N = N + 1
+                  ! Tracer number
+                  NN = GET_WETDEP_IDWETD( N )
+
+               ENDDO
+
+               CALL UPDATE_DEP( N )
+            ENDIF
+            CALL MAKE_GTMM_RESTART( NYMD, NHMS, TAU )
+         ENDIF
+
          !==============================================================
          !       ***** T E S T   F O R   E N D   O F   R U N *****
          !==============================================================
@@ -704,6 +739,14 @@
                ! Compute 15-day average temperature for MEGAN
                CALL UPDATE_T_15_AVG
             ENDIF
+
+            ! For mercury simulations ...
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+
+               ! Read AVHRR daily leaf-area-index
+               CALL RDISOLAI( DAY_OF_YEAR, MONTH, YEAR )
+
+            ENDIF 
                
             ! Also read soil-type info for fullchem simulation
             IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_H2HD_SIM() ) THEN
@@ -862,12 +905,24 @@
             !        ***** C L O U D   C O N V E C T I O N *****
             !===========================================================
             IF ( LCONV ) THEN
+               
+               ! Partition Hg(II) between aerosol and gas
+               IF ( ITS_A_MERCURY_SIM() ) THEN
+                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+               ENDIF
+      
                CALL DO_CONVECTION
 
+               ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+               IF ( ITS_A_MERCURY_SIM() ) THEN
+                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+               ENDIF
+      
                !### Debug
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CONVECTION' )
             ENDIF 
-         ENDIF                  
+         ENDIF 
+
 
          !==============================================================
          !    ***** U N I T   C O N V E R S I O N  ( v/v -> kg ) *****
@@ -898,6 +953,7 @@
             IF ( LEMIS ) CALL DO_EMISSIONS
          ENDIF    
 
+
          !===========================================================
          !               ***** C H E M I S T R Y *****
          !===========================================================    
@@ -915,11 +971,27 @@
             CALL DO_CHEMISTRY
 
          ENDIF 
+
  
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
-         IF ( LWETD .and. ITS_TIME_FOR_DYN() ) CALL DO_WETDEP
+         IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
+
+            ! Add partition Hg(II) between aerosol and gas
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+               CALL PARTITIONHG( 1, STT, HGPFRAC )
+            ENDIF            
+     
+            CALL DO_WETDEP
+            
+            ! Return all reactive particulate Hg(II) to total Hg(II) tracer
+            IF ( ITS_A_MERCURY_SIM() ) THEN
+               CALL PARTITIONHG( 2, STT, HGPFRAC )
+            ENDIF 
+
+         ENDIF
+
 
 
          !==============================================================
@@ -955,16 +1027,22 @@
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
          IF ( ITS_TIME_FOR_DIAG() ) THEN
-         
+
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: b DIAGNOSTICS' )
+
             ! Accumulate several diagnostic quantities
             CALL DIAG1
-         
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG1' )
+
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41
-         
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG41' )
+
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) CALL DIAG42
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
             IF ( DO_SAVE_DIAG50 ) CALL DIAG50
@@ -972,16 +1050,17 @@
             ! Increment diagnostic timestep counter. (ccc, 5/13/09)
             CALL SET_CT_DIAG( INCREMENT=.TRUE. )
 
-            !### Debug
-            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
-
             ! Plane following diagnostic
             IF ( ND40 > 0 ) THEN 
                
+               print*, 'Call planeflight'
                ! Archive data along the flight track
                CALL PLANEFLIGHT
             ENDIF
-            
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG40' )
+
+            !### Debug
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a DIAGNOSTICS' )
          ENDIF
 
          !==============================================================
@@ -992,15 +1071,20 @@
          !       to after the call to DO_WETDEP (bmy, 4/22/04)
          !============================================================== 
 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: before TIMESERIES' )
+
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48() ) CALL DIAG48
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 
          IF ( DO_SAVE_DIAG51b ) CALL DIAG51b 
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG51' )
 
          ! Comment out for now 
          !! Column timeseries
@@ -1077,6 +1161,12 @@
 
       ! Deallocate dynamic module arrays
       CALL CLEANUP
+
+#if defined( GTMM_Hg )
+      ! Deallocate arrays from GTMM model for mercury simulation
+      IF ( LGTMM ) CALL CleanupCASAarrays
+#endif
+
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a CLEANUP' )
 
       ! Print ending time of simulation

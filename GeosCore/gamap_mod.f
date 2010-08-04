@@ -731,6 +731,7 @@
 !        to "PEDGE-$" (bmy, 11/16/07)
 !  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
 !  (6 ) Add potential temperature category. (fp, 2/26/10)
+!  21 May 2010 - C. Carouge  - Add diagnostic for mercury simulation
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1307,6 +1308,12 @@
       DESCRIPT(N) = 'gamma HO2'
       OFFSET(N)   = SPACING * 49
 
+      ! For mercury simulation only so we can use same spacing. (ccc, 5/21/10)
+      N           = N + 1
+      CATEGORY(N) = 'SNOW-HG'
+      DESCRIPT(N) = 'Hg mass in snow and ice'
+      OFFSET(N)   = SPACING * 49
+
 !(FP 06/19/2009)
       N           = N + 1
       CATEGORY(N) = 'THETA-$'
@@ -1396,6 +1403,7 @@
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
+      USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
 ! 
 ! !REVISION HISTORY: 
 !  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
@@ -1414,6 +1422,7 @@
 !  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
 !  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1424,6 +1433,8 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
+      ! For Hg diagnostic: some max number of tracers per diagnostic.
+      INTEGER               :: PD03_PL
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
@@ -1508,14 +1519,21 @@
       !
       ! Updated for tagged Hg simulation
       ! (cdh, bmy, 1/9/06)
+      ! Modified to avoid over-sized arrays.
+      ! (ccc, 7/20/10)
       !-------------------------------------
       IF ( ND03 > 0 ) THEN
          
-         ! Number of tracers
-         NTRAC(03) = 16 + N_TRACERS
+         ! Number of tracers:
+         ! PD03     = max # of tracers for HG-SRCE
+         ! PD03_PL  = max # of tracers for HG-SRCE + PL-HG2-$
+         PD03_PL = PD03 + 8
+         
 
          ! Loop over tracers for HG-SRCE, PL-HG2-$, OCEAN-HG
-         DO T = 1, NTRAC(03)
+         ! Loop over tracers for HG-SRCE
+!         DO T = 1, NTRAC(03)
+         DO T = 1, PD03
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1562,50 +1580,156 @@
                   FNAME(T,03) = 'Anthro particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 10 )
-                  NAME (T,03) = 'KwHg'
-                  FNAME(T,03) = 'Henry''s Law exchange constant'
-                  UNIT (T,03) = 'cm/h'
+!                  NAME (T,03) = 'KwHg'
+!                  FNAME(T,03) = 'Henry''s Law exchange constant'
+!                  UNIT (T,03) = 'cm/h'
+                  NAME (T,03) = 'Hgaq_tot'
+                  FNAME(T,03) = 'Total oceanic mercury'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                   MWT  (T,03) = 0e0
                CASE( 11 )
-                  NAME (T,03) = 'HgC'
-                  FNAME(T,03) = 'Hg in Colloidal phase'
+!                  NAME (T,03) = 'HgC'
+!                  FNAME(T,03) = 'Hg in Colloidal phase'
+                  NAME (T,03) = 'HgP_aq'
+                  FNAME(T,03) = 'Ocean mass of particulate Hg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 12 )
-                  NAME (T,03) = 'Hg_to_C'
-                  FNAME(T,03) = 'Hg converted to colloidal'
+!                  NAME (T,03) = 'Hg_to_C'
+!                  FNAME(T,03) = 'Hg converted to colloidal'
+                  NAME (T,03) = 'Hg_to_P'
+                  FNAME(T,03) = 'Hg converted to particulate'
                   UNIT (T,03) = 'kg/m2/s'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
-                  NAME (T,03) = 'Hg2_Hg0'
-                  FNAME(T,03) = 'Prod of Hg2 from Hg0'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
+                  NAME (T,03) = 'Hg_bb'
+                  FNAME(T,03) = 'Hg biomass burn emis'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 14 )
-                  NAME (T,03) = 'Hg2_OH'
-                  FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
+                  NAME (T,03) = 'Hg_vg'
+                  FNAME(T,03) = 'Hg vegetation emissions'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 15 )
-                  NAME (T,03) = 'Hg2_O3'
-                  FNAME(T,03) = 'Prod of Hg2 from O3'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE( 16 )
-                  NAME (T,03) = 'Hg2_SS'
-                  FNAME(T,03) = 'Loss of Hg2 from sea salt'
-                  INDEX(T,03) = ( T - 12 ) + ( SPACING * 35 )
-               CASE ( 17: )
-                  NAME (T,03) = TRACER_NAME(T-16)
-
-                  ! Tracer 3 should be "HgC" instead of "HgP"
-                  IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
-                     NAME(T,03) = 'HgC'
-                  ENDIF
-
-                  FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
-                  INDEX(T,03) = ( T - 16 ) + ( SPACING * 41 )
+                  NAME (T,03) = 'Hg_so'
+                  FNAME(T,03) = 'Hg soil emissions'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE(16 )
+                  NAME (T,03) = 'Hg_up'
+                  FNAME(T,03) = 'Hg ocean up flux'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE(17 )
+                  NAME (T,03) = 'Hg_down'
+                  FNAME(T,03) = 'Hg ocean downflux'
+                  UNIT (T,03) = 'kg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
+               CASE( 18 )
+                  NAME (T,03) = 'Hg0_snow'
+                  FNAME(T,03) = 'Snow emission of Hg'
+                  INDEX(T,03) = T + ( SPACING * 34 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
          ENDDO
+         
+         ! Loop over tracers for PL-HG2-$
+         DO N = 1, 8
+            T = N + PD03
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            ! Get name, long-name, index, and new units
+            SELECT CASE( T )
+               CASE( 19 )
+                  NAME (T,03) = 'Hg2_Hg0'
+                  FNAME(T,03) = 'Prod of Hg2 from Hg0'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 20 )
+                  NAME (T,03) = 'Hg2_OH'
+                  FNAME(T,03) = 'Prod of Hg2 from OH'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+               CASE( 21 )
+                  NAME (T,03) = 'Hg2_O3'
+                  FNAME(T,03) = 'Prod of Hg2 from O3'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 22 )
+                  NAME (T,03) = 'Hg2_SS'
+                  FNAME(T,03) = 'Loss of Hg2 from sea salt'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 23 )
+                  NAME (T,03) = 'Hg2_SSR'
+                  FNAME(T,03) = 'Loss rate Hg2 from sea salt'
+                  UNIT (T,03) = '/s'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 24 )
+                  NAME (T,03) = 'Hg2_Br'
+                  FNAME(T,03) = 'Prod of Hg2 from Br'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 25 )
+                  NAME (T,03) = 'Br'
+                  FNAME(T,03) = 'Br concentration'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 26 )
+                  NAME (T,03) = 'BrO'
+                  FNAME(T,03) = 'BrO concentration'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+         ENDDO
+
+         ! Loop over tracers for OCEAN-HG
+         DO N = 1, N_TRACERS
+         
+            T = N + PD03_PL
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            NAME (T,03) = TRACER_NAME(N) 
+
+!--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
+!                  ! Tracer 3 should be "HgC" instead of "HgP"
+!                  IF ( TRIM( NAME(T,03) ) == 'HgP' ) THEN
+!                     NAME(T,03) = 'HgC'
+!                  ENDIF
+
+            FNAME(T,03) = 'Oceanic ' // TRIM( NAME(T,03) )
+            INDEX(T,03) = ( N ) + ( SPACING * 41 )
+         ENDDO
+
+         ! Loop over tracers for SNOW-HG
+         DO N = 1, 1
+         
+            T = N + PD03_PL + N_TRACERS
+
+            ! Define quantities
+            UNIT (T,03) = 'kg'
+            MOLC (T,03) = 1
+            MWT  (T,03) = 201e-3
+            SCALE(T,03) = 1e0
+
+
+            NAME (T,03) = 'Snow_Hg'
+            FNAME(T,03) = 'Tot. Hg in snowpack'
+            INDEX(T,03) = ( N ) + ( SPACING * 49 )
+         ENDDO
+         
+         ! Total max number of tracers for DIAG 03.
+         NTRAC(03) = T
+         
       ENDIF
 
       !-------------------------------------

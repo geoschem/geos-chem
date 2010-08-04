@@ -266,9 +266,9 @@
             ! to be done in gc_biomass_mod.f but then is not used for 
             ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
             IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
             ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-               	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
 
          !==============================================================

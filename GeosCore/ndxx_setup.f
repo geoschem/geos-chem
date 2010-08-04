@@ -196,6 +196,8 @@
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
       USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
+      ! Added for mercury simulation. (ccc, 6/4/10)
+      USE LOGICAL_MOD,     ONLY : LGTMM
       USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
       USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
       USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
@@ -766,8 +768,12 @@
       ! ND38: Rainout of tracer (nfcldmx.f) 
       !       --> uses AD38 array (allocatable)
       !=================================================================
-      IF ( ND38 > 0 ) THEN
+      ! Allocate AD38 for GTMM. (ccc, 10/29/09)
+      IF ( ND38 > 0 .OR. LGTMM ) THEN
          LD38 = MIN( ND38, LLPAR )
+
+         ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
+         IF ( ND38 == 0 ) LD38 = LLPAR
          
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NMAX()
@@ -783,8 +789,12 @@
       ! ND39: Rainout of tracer (wetdep.f) 
       !       --> uses AD39 array (allocatable)
       !=================================================================
-      IF ( ND39 > 0 ) THEN
+      ! Allocate AD39 for LGTMM. (ccc, 10/29/09)
+      IF ( ND39 > 0 .OR. LGTMM ) THEN
+
          LD39 = MIN( ND39, LLPAR )
+         ! If GTMM on and ND38 off, ND38 should be LLPAR, (ccc, 10/29/09)
+         IF ( ND39 == 0 ) LD39 = LLPAR
 
          ! Get max # of soluble tracers for this simulation
          NMAX = GET_WETDEP_NMAX()
@@ -928,7 +938,8 @@
       IF ( .not. LDRYD ) ND44 = 0
 
       ! Allocate arrays for ND44
-      IF ( ND44 > 0 ) THEN
+      ! Allocate AD44 for LGTMM. (ccc, 10/29/09)
+      IF ( ND44 > 0 .OR. LGTMM ) THEN
 
          ! Get number of tracers for ND44
          IF ( ITS_A_TAGOX_SIM() .or. ITS_A_MERCURY_SIM() ) THEN

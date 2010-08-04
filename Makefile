@@ -41,6 +41,7 @@ include ./Makefile_header.mk
 # Define variables
 GEOSDIR = GeosCore
 GEOSTOM = GeosTomas
+GTMM = GTMM
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete list!
@@ -98,6 +99,15 @@ exetomas:
 
 cleantomas:
 	@$(MAKE) -C $(GEOSTOM) TOMAS=yes clean
+
+#=============================================================================
+# Targets for mercury simulation (ccc, 6/7/10)
+#=============================================================================
+
+.PHONY: hg 
+
+hg:
+	@$(MAKE) -C $(GEOSDIR) allhg
 
 #EOC
 

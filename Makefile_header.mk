@@ -119,11 +119,14 @@ H5L = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib
 # Link to library files created from code in the various subdirs
 # NOTE: -lGeosUtil should always be last!
 LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil
+LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil
 
 # Add the HDF5 library link commands if necessary
 ifeq ($(HDF5),yes) 
 LINK += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
+LHG  += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
 endif
+
 
 #==============================================================================
 # IFORT compilation options (default)

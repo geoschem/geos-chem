@@ -112,6 +112,7 @@
 #undef LINUX_PGI
 #undef LINUX_IFORT
 #undef SPARC
+#undef GTMM_Hg
 
 !==============================================================================
 ! Define the necessary "switches" for GEOS-CHEM. 
@@ -142,6 +143,9 @@
 !#define LINUX_PGI   'LINUX_PGI'
 #define LINUX_IFORT 'LINUX_IFORT'
 !#define SPARC       'SPARC'
+
+!----- Simulation type -----
+!#define GTMM_Hg
 
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
