@@ -822,7 +822,6 @@
       ! Regrid CO emissions to current model resolution [kg/yr]
       CALL DO_REGRID_1x1( 'kg/yr', GEOS_1x1, E_CO )
 
-
       !----------------------------------
       ! Scale ship CO and regrid
       !----------------------------------
@@ -1899,8 +1898,13 @@
 !  (2 ) MONTH (INTEGER) : Current month
 !
 !  NOTES:
+!  (1) Bug fix: now add IF (LEDGARSHIP) block before referencing any of the
+!       ship emissions arrays.  This will help prevent a seg fault error.
+!       (jensberg, bmy, 8/4/10)
 !******************************************************************************
 !
+      USE LOGICAL_MOD, ONLY : LEDGARSHIP
+
       ! Arguments
       INTEGER, INTENT(IN) :: YEAR, MONTH
 
@@ -1913,12 +1917,31 @@
       !=================================================================
 
       ! Compute totals [Tg/yr]
-      T_NOx   = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      T_CO    = SUM( EDGAR_CO       )                 / 1d9   ! Tg CO
-      T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9   ! Tg CO
-      T_SO2an = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9   ! Tg S
-      T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9   ! Tg S
+      !------------------------------------------------------------------------
+      ! Prior to 8/4/10:
+      ! Bug fix: do not reference EDGAR_NOx_SHIP, EDGAR_CO_SHIP, or
+      ! EDGAR_CO_SHIP unless they have been allocated.  Put an IF statement
+      ! to avoid a seg fault error. (jensberg, bmy, 8/4/10)
+      !T_NOx   = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9   ! Tg N
+      !T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9   ! Tg N
+      !T_CO    = SUM( EDGAR_CO       )                 / 1d9   ! Tg CO
+      !T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9   ! Tg CO
+      !T_SO2an = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9   ! Tg S
+      !T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9   ! Tg S
+      !------------------------------------------------------------------------
+      T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+      T_CO       = SUM( EDGAR_CO       )                 / 1d9 ! Tg CO
+      T_SO2an    = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9 ! Tg S
+
+      IF ( LEDGARSHIP ) THEN
+         T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9 ! Tg N
+         T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9 ! Tg CO
+         T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9 ! Tg S
+      ELSE
+         T_NOxSh = 0d0
+         T_COSh  = 0d0
+         T_SO2sh = 0d0
+      ENDIF
 
       ! Print totals
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
