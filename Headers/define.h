@@ -87,6 +87,7 @@
 !                              compilers.  Added switch for IBM XLF compiler. 
 !  15 Oct 2009 - R. Yantosca - Remove IN_CLOUD_OD.  Added ProTex headers.
 !  18 Dec 2009 - Aaron van D - Added NESTED_EU C-preprocessor switch
+!  20 Jul 2010 - C. Carouge  - Added GTMM_Hg for mercury simulation.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,8 +134,8 @@
 !#define GRID05x0666 'GRID05x0666'
 !#define GRID1x1     'GRID1x1'
 !#define GRID1x125   'GRID1x125'
-#define GRID2x25    'GRID2x25'
-!#define GRID4x5     'GRID4x5'
+!#define GRID2x25    'GRID2x25'
+#define GRID4x5     'GRID4x5'
 #define GRIDREDUCED 'GRIDREDUCED'
 
 !----- Compilers -----

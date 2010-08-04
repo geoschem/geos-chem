@@ -4092,7 +4092,6 @@
       USE LOGICAL_MOD,       ONLY : LTOMAS ! (win, 7/16/09)
       
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOW, SNOMAS
       USE LOGICAL_MOD,       ONLY : LGTMM
 
       IMPLICIT NONE
@@ -4116,9 +4115,6 @@
       REAL*8              :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL*8              :: ALPHA, ALPHA2, WETLOSS,   TMP
       REAL*8              :: F_RAINOUT,     F_WASHOUT
-
-      ! For Hg snowpack. (ccc, 5/17/10)
-      REAL*8              :: SNOW_HT
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
@@ -4163,7 +4159,6 @@
 !$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
 !$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
 !$OMP+PRIVATE( QDOWN,   AER,         TMP,       F_RAINOUT,F_WASHOUT)
-!$OMP+PRIVATE( SNOW_HT                                             )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -5134,14 +5129,6 @@
          ! Updates from cdh. (ccc, 5/17/10)
          IF ( IS_Hg ) THEN
 
-#if defined(GEOS_5)
-            ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-            SNOW_HT = SNOMAS(I,J)
-#else
-            ! GEOS1-4 snow heigt (water equivalent) in mm
-            SNOW_HT = SNOW(I,J)
-#endif 
-
             ! Loop over soluble tracers and/or aerosol tracers
             DO NN = 1, NSOL
                N = IDWETD(NN)
@@ -5150,15 +5137,13 @@
                IF ( IS_Hg2( N ) ) THEN
 
                   CALL ADD_Hg2_WD( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   SNOW_HT )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
 
                ! Check if it is a HgP tag
                ELSE IF ( IS_HgP( N ) ) THEN
                   
                   CALL ADD_HgP_WD( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J),
-     &                                   SNOW_HT )
+                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
                   
                ENDIF
 

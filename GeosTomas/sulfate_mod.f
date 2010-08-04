@@ -1439,6 +1439,9 @@
       USE WETSCAV_MOD,     ONLY : H2O2s,   SO2s
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
+      ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
+      USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
+
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_GCTM"    ! AIRMW
 #     include "CMN_DIAG"    ! LD05, ND05, ND44

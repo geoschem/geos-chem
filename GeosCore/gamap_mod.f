@@ -1361,7 +1361,7 @@
 !
 ! !USES:
 !
-      USE DIAG03_MOD,   ONLY : ND03
+      USE DIAG03_MOD,   ONLY : ND03, PD03
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG42_MOD,   ONLY : ND42
@@ -1435,6 +1435,7 @@
 
       ! For Hg diagnostic: some max number of tracers per diagnostic.
       INTEGER               :: PD03_PL
+
       !=================================================================
       ! INIT_TRACERINFO begins here!
       !=================================================================
@@ -1530,7 +1531,6 @@
          PD03_PL = PD03 + 8
          
 
-         ! Loop over tracers for HG-SRCE, PL-HG2-$, OCEAN-HG
          ! Loop over tracers for HG-SRCE
 !         DO T = 1, NTRAC(03)
          DO T = 1, PD03
