@@ -979,7 +979,11 @@
       UTMP(:,:,1:LLPAR) = UWND(:,:,LLPAR:1:-1)
       VTMP(:,:,1:LLPAR) = VWND(:,:,LLPAR:1:-1)
 
-!      ! Do the advection
+      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
+      ! are incremented upside-down (level 1 = top of the atmosphere).
+      ! The levels order is reversed only when written out in diag3.f
+      ! (ccc, 3/8/10)
+      ! Do the advection
 !      CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
 !     &                          LLPAR,    JFIRST,    JLAST,    NG,
 !     &                          MG,       N_TRACERS, Ap,       Bp,
@@ -988,17 +992,12 @@
 !     &                          IORD,     JORD,      KORD,     N_ADJ,
 !     &                          XMASS(:,:,LLPAR:1:-1),
 !     &                          YMASS(:,:,LLPAR:1:-1),
-!     &                          MASSFLEW(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLNS(:,:,LLPAR:1:-1,:),
-!     &                          MASSFLUP(:,:,LLPAR:1:-1,:),    A_M2,
+!     &                          MASSFLEW,
+!     &                          MASSFLNS,
+!     &                          MASSFLUP,    A_M2,
 !     &                          TCVV,     ND24,      ND25,     ND26 )
 
-
-      ! Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-      ! are incremented upside-down (level 1 = top of the atmosphere).
-      ! The levels order is reversed only when written out in diag3.f
-      ! (ccc, 3/8/10)
-      ! Do the advection
+      ! Add input parameters for nested grids. (ccc, 8/3/10)
       CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
      &                          MG,       N_TRACERS, Ap,       Bp,
@@ -1010,7 +1009,8 @@
      &                          MASSFLEW,
      &                          MASSFLNS,
      &                          MASSFLUP,    A_M2,
-     &                          TCVV,     ND24,      ND25,     ND26 )
+     &                          TCVV,     ND24,      ND25,     ND26,
+     &                          I0_W,     J0_W,      J0 )
 
       !=================================================================
       ! Reset surface pressure and ensure mass conservation

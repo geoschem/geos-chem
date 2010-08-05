@@ -80,6 +80,10 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "pjc_pfix_mod.f" (bmy, 11/6/08)
+!  (2 ) Nested grids do not have polar cap and no periodicity at the edge.
+!       Need to restrain the pressure to fixer to an inner window (-1 box in
+!       all directions) because edges mass fluxes and divergence not known.
+!       (lzh, ccc, 8/3/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -133,6 +137,11 @@
       INTEGER             :: IHI,    JULO,    JVLO,    JHI       
       INTEGER             :: ILAT,   ILONG,   IVERT,   J1P       
       INTEGER             :: J2P       
+
+      ! Dimensions for nested grids 
+      INTEGER             :: I1_W,     I2_W,      JU1_W       
+      INTEGER             :: J2_W,     J1P_W,     J2P_W
+      INTEGER             :: BUFF_SIZE
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -371,7 +380,7 @@
 !  NOTES:
 !  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
 !        double-precision with the "D" exponent. (bmy, 5/6/03)
-!
+!  (2 ) New definition for the geometric factor. (lzh, ccc, 8/3/10)
 !******************************************************************************
 !
       implicit none
@@ -394,16 +403,18 @@
 
       integer :: ij
  
-      real*8  :: dp           ! spacing in latitude (rad)
-      real*8  :: ri2_gl
-      real*8  :: rj2m1
+! Variables not used. (ccc, 8/3/10)
+!      real*8  :: dp           ! spacing in latitude (rad)
+!      real*8  :: ri2_gl
+!      real*8  :: rj2m1
       real*8  :: total_area
 
       !----------------
       !Begin execution.
       !----------------
 
-      ri2_gl = i2_gl
+! Not used. (ccc, 8/3/10)
+!      ri2_gl = i2_gl
 
       !---------------------------------
       !Set the relative area (rel_area).
@@ -420,15 +431,20 @@
       !band are the same.
       !---------------------------------------------------------
 
-      rj2m1 = j2_gl - 1
-      dp    = PI / 360D0 
+! Not used for nested grids. (ccc, 8/3/10)
+!      rj2m1 = j2_gl - 1
+!      dp    = PI / 360D0 
 
+! The total area does not cover the full globe so use an other definition
+! for the geometric factor. (lzh, ccc, 8/3/10)
       do ij = ju1_gl, j2_gl
-        geofac(ij) = dp / (2.0d0 * rel_area(1,ij) * ri2_gl)
+!        geofac(ij) = dp / (2.0d0 * rel_area(1,ij) * ri2_gl)
+        geofac(ij) = 1.d0 / COSP_FV(ij)
       end do
 
-      geofac_pc =
-     &  dp / (2.0d0 * Sum (rel_area(1,ju1_gl:ju1_gl+1)) * ri2_gl)
+! geofac_pc used only for polar cap so no need. (ccc, 8/3/10)
+!      geofac_pc =
+!     &  dp / (2.0d0 * Sum (rel_area(1,ju1_gl:ju1_gl+1)) * ri2_gl)
 
       ! Return to calling program
       END SUBROUTINE Calc_Advection_Factors
@@ -807,15 +823,16 @@
         Write (6,*) 'Init_Press_Fix called by ', loc_proc
       end if
 
-      !========================
-      call Average_Press_Poles
-      !========================
-     &  (rel_area, pctm1)
-
-      !========================
-      call Average_Press_Poles
-      !========================
-     &  (rel_area, pmet2)
+! not treat poles (lzh, 07/20/2010)
+!      !========================
+!      call Average_Press_Poles
+!      !========================
+!     &  (rel_area, pctm1)
+!
+!      !========================
+!      call Average_Press_Poles
+!      !========================
+!     &  (rel_area, pmet2)
 
       !-------------------------------------------------------------------
       !We need to calculate pressures at t1+tdt/2.  One ought to use pctm2
@@ -934,6 +951,8 @@
 
       real*8  :: xcolmass_fix(ilo:ihi, julo:jhi)
 
+      real*8  :: xx
+
       !----------------
       !Begin execution.
       !----------------
@@ -943,9 +962,10 @@
       end if
 
 
-      ri2 = i2_gl
+      ri2 = i2_gl - 2 * BUFF_SIZE
 
       mmfd(:) = 0.0d0
+      mmf(:) = 0d0
 
       xcolmass_fix(:,:)   = 0.0d0
 
@@ -964,8 +984,14 @@ c     --------------------------------------
 c     Calculate global-pressure discrepancy.
 c     --------------------------------------
 
+!      dgpress =
+!     &  Sum (ddps(i1:i2,ju1:j2) * rel_area(i1:i2,ju1:j2))
+
+      xx = sum(rel_area(i1_w:i2_w,j1p_w:j2p_w))
       dgpress =
-     &  Sum (ddps(i1:i2,ju1:j2) * rel_area(i1:i2,ju1:j2))
+     &  Sum (ddps(i1_w:i2_w,j1p_w:j2p_w) * 
+     &  rel_area(i1_w:i2_w,j1p_w:j2p_w))
+     &  / xx
 
 
       !----------------------------------------------------------
@@ -978,28 +1004,38 @@ c     --------------------------------------
       !Handle non-Pole regions.
       !------------------------
 
-      do ij = j1p, j2p
-        mmfd(ij) = -(sum(ddps(:,ij)) / ri2 - dgpress) 
+! Work on the inner window only (lzh, ccc, 8/3/10)
+!      do ij = j1p, j2p
+!        mmfd(ij) = -(sum(ddps(:,ij)) / ri2 - dgpress) 
+!      end do
+
+      do ij = j1p_w, j2p_w
+        mmfd(ij) = -(sum(ddps(i1_w:i2_w,ij)) / ri2 - dgpress) 
       end do
 
-      !---------------------------------------------
-      !Handle poles.
-      !Note that polar boxes have all been averaged.
-      !---------------------------------------------
-
-       mmfd(ju1)   = -(ddps(1,ju1)   - dgpress)
-       mmfd(ju1+1) = -(ddps(1,ju1+1) - dgpress)
-       mmfd(j2-1)  = -(ddps(1,j2-1)  - dgpress)
-       mmfd(j2)    = -(ddps(1,j2)    - dgpress)
+! No special case for poles, no poles. (ccc, 8/3/10)
+!      !---------------------------------------------
+!      !Handle poles.
+!      !Note that polar boxes have all been averaged.
+!      !---------------------------------------------
+!
+!       mmfd(ju1)   = -(ddps(1,ju1)   - dgpress)
+!       mmfd(ju1+1) = -(ddps(1,ju1+1) - dgpress)
+!       mmfd(j2-1)  = -(ddps(1,j2-1)  - dgpress)
+!       mmfd(j2)    = -(ddps(1,j2)    - dgpress)
 
 
       !---------------------------------------------
       !Calculate mean meridional fluxes (cos(e)*fy).
       !---------------------------------------------
 
-       mmf(j1p) = mmfd(ju1) / geofac_pc
+! Use geofac, no polar cap. (ccc, 8/3/10)
+!       mmf(j1p) = mmfd(ju1) / geofac_pc
+       mmf(j1p_w) = mmfd(ju1_w) / geofac(j1p_w)
 
-       do ij = j1p, j2p
+! Work on inner domain. (ccc, 8/3/10)
+!       do ij = j1p, j2p
+       do ij = j1p_w, j2p_w-1
           mmf(ij+1) = mmf(ij) + mmfd(ij) / geofac(ij)
        end do
 
@@ -1012,11 +1048,14 @@ c     --------------------------------------
       !i.e., zero.
       !------------------------------------------------------------
 
-      do ij = j1p, j2p
+! Work on inner domain (ccc, 8/3/10)
+!      do ij = j1p, j2p
+      do ij = j1p_w, j2p_w
 
         fxintegral(:) = 0.0d0
 
-        do il = i1, i2
+!        do il = i1, i2
+        do il = i1_w, i2_w
           fxintegral(il+1) =
      &      fxintegral(il) -
      &      (ddps(il,ij) - dgpress) -
@@ -1024,8 +1063,10 @@ c     --------------------------------------
         end do
 
         fxmean = Sum (fxintegral(i1+1:i2+1)) / ri2
+!        fxmean = Sum (fxintegral(i1_w+1:i2_w+1)) / ri2
 
-        do il = i1, i2
+!        do il = i1, i2
+        do il = i1_w, i2_w
           xcolmass_fix(il,ij) = fxintegral(il) - fxmean
         end do
 
@@ -1036,8 +1077,10 @@ c     --------------------------------------
       !-------------------------------------
 
       do ik = k1, k2      
-        do ij = j1p, j2p
-          do il = i1, i2
+!        do ij = j1p, j2p
+!          do il = i1, i2
+        do ij = j1p_w, j2p_w
+          do il = i1_w, i2_w
 
             xmass_fixed(il,ij,ik) = xmass(il,ij,ik) + 
      &                              xcolmass_fix(il,ij) * dbk(ik)
@@ -1046,9 +1089,22 @@ c     --------------------------------------
         end do
       end do
 
+! Grid stops at j2p if nested domain (ccc, 8/3/10)
+!      do ik = k1, k2      
+!        do ij = j1p, j2p+1
+!          do il = i1, i2
+!
+!            ymass_fixed(il,ij,ik) = ymass(il,ij,ik) +
+!     &                              mmf(ij) * dbk(ik)
+!
+!          end do
+!        end do
+!      end do
       do ik = k1, k2      
-        do ij = j1p, j2p+1
-          do il = i1, i2
+!        do ij = j1p, j2p
+!          do il = i1, i2
+        do ij = j1p_w, j2p_w
+          do il = i1_w, i2_w
 
             ymass_fixed(il,ij,ik) = ymass(il,ij,ik) +
      &                              mmf(ij) * dbk(ik)
@@ -1067,74 +1123,6 @@ c     --------------------------------------
 
       ! Return to calling program
       END SUBROUTINE Do_Press_Fix_Llnl
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE Average_Press_Poles
-     &  (rel_area, press)
-!
-!******************************************************************************
-!
-!  ROUTINE
-!    Average_Press_Poles
-!  
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!  
-!  DESCRIPTION
-!    This routine averages pressure at the Poles when the Polar cap is
-!    enlarged.  It makes the last two latitudes equal.
-!  
-!  ARGUMENTS
-!    rel_area : relative surface area of grid box (fraction)
-!    press    : surface pressure (mb)
-!  
-!  NOTES:
-!  
-!******************************************************************************
-! 
-      implicit none
-
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      real*8  :: rel_area(i1:i2, ju1:j2)
-      real*8  :: press   (ilo:ihi, julo:jhi)
-
-
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
-      real*8  :: meanp
-
-
-      !----------------
-      !Begin execution.
-      !----------------
-
-      if (pr_diag) then
-        Write (6,*) 'Average_Press_Poles called by ', loc_proc
-      end if
-
-      meanp =
-     &  Sum (rel_area(i1:i2,ju1:ju1+1)  * 
-     &       press   (i1:i2,ju1:ju1+1)) /
-     &  Sum (rel_area(i1:i2,ju1:ju1+1))
-
-      press(i1:i2,ju1:ju1+1) = meanp
-
-      meanp =
-     &  Sum (rel_area(i1:i2,j2-1:j2)  * 
-     &       press   (i1:i2,j2-1:j2)) /
-     &  Sum (rel_area(i1:i2,j2-1:j2))
-
-      press(i1:i2,j2-1:j2) = meanp
-
-      ! Return to calling program
-      END SUBROUTINE Average_Press_Poles
 
 !------------------------------------------------------------------------------
 
@@ -1248,19 +1236,27 @@ c     --------------------------------------
         dtdy  = tdt / (Re * dp)
         dtdy5 = 0.5d0 * dtdy
 
+!-----lzh----------
+!        dtdx (ju1_gl) = 0.0d0
+!        dtdx5(ju1_gl) = 0.0d0
+!
+!        do ij = ju1_gl + 1, j2_gl - 1
+!
+!          dtdx (ij) = tdt / (dl * Re * cosp(ij))
+!          dtdx5(ij) = 0.5d0 * dtdx(ij)
+!
+!        end do
+!
+!        dtdx (j2_gl)  = 0.0d0
+!        dtdx5(j2_gl)  = 0.0d0
 
-        dtdx (ju1_gl) = 0.0d0
-        dtdx5(ju1_gl) = 0.0d0
-
-        do ij = ju1_gl + 1, j2_gl - 1
-
+!-----------------------------------------------
+! for nested NA or EA (lzh, 07/20/2010)
+        do ij = ju1_gl, j2_gl
           dtdx (ij) = tdt / (dl * Re * cosp(ij))
           dtdx5(ij) = 0.5d0 * dtdx(ij)
-
         end do
-
-        dtdx (j2_gl)  = 0.0d0
-        dtdx5(j2_gl)  = 0.0d0
+!-----------------------------------------------
 
       end if
 
@@ -1275,9 +1271,10 @@ c     --------------------------------------
      &        dtdx5(ij) *
      &        (uu(il,ij,:) + uu(il-1,ij,  :))
           end do
-            crx(1,ij,:) =
-     &        dtdx5(ij) *
-     &        (uu(1,ij,:) + uu(i2,ij,  :))
+! No periodicity (ccc, 8/3/10)
+!            crx(1,ij,:) =
+!     &        dtdx5(ij) *
+!     &        (uu(1,ij,:) + uu(i2,ij,  :))
         end do
 
         do ij = ju1+1, j2
@@ -1293,8 +1290,11 @@ c     --------------------------------------
       else  ! C grid.
       !====
 
-        do ij = ju1, j2
-          do il = i1, i2
+! No ghost zones. (ccc, 8/3/10)
+!        do ij = ju1, j2
+!          do il = i1, i2
+        do ij = ju1+1, j2
+          do il = i1+1, i2
 
             crx(il,ij,:) =
      &        dtdx(ij) * uu(il-1,ij,  :)
@@ -1403,9 +1403,10 @@ c     --------------------------------------
      &     uu(il-1,ij,:) * delpm(il-1,ij,:))
        end do
 
-        xmass(i1,ij,:) = factx *
-     &    (uu(i1,ij,:) * delpm(i1,ij,:)+
-     &     uu(i2,ij,:) * delpm(i2,ij,:))
+! No periodicity. (ccc, 8/3/10)
+!        xmass(i1,ij,:) = factx *
+!     &    (uu(i1,ij,:) * delpm(i1,ij,:)+
+!     &     uu(i2,ij,:) * delpm(i2,ij,:))
 
       end do
 
@@ -1488,7 +1489,22 @@ c     --------------------------------------
       !Calculate N-S divergence.
       !-------------------------
 
-      do ij = j1p, j2p
+! No polar cap. (ccc, 8/3/10)
+!      do ij = j1p, j2p
+!
+!        dpi(i1:i2,ij,:) =
+!     &    (ymass(i1:i2,ij,:) - ymass(i1:i2,ij+1,:)) *
+!     &    geofac(ij)
+!
+!      end do
+!
+!      if(j1p.ne.2) then
+!        dpi(:,2,:) = 0.
+!        dpi(:,j2-1,:) = 0.
+!      endif
+
+!      do ij = j1p_w, j2p_w
+      do ij = j1p, j2p-1
 
         dpi(i1:i2,ij,:) =
      &    (ymass(i1:i2,ij,:) - ymass(i1:i2,ij+1,:)) *
@@ -1496,16 +1512,14 @@ c     --------------------------------------
 
       end do
 
-      if(j1p.ne.2) then
-        dpi(:,2,:) = 0.
-        dpi(:,j2-1,:) = 0.
-      endif
-
-      !===========================
-      call Do_Divergence_Pole_Sum
-      !===========================
-     &  (do_reduction, geofac_pc, dpi, ymass)
-       
+!-----lzh-----------------------
+!      !===========================
+!      call Do_Divergence_Pole_Sum
+!      !===========================
+!     &  (do_reduction, geofac_pc, dpi, ymass)
+! comment out for nested NA (lzh, 07/20/2010)       
+!        dpi(:,1,:) = 0.  ! (lzh, 07/20/2010)
+!        dpi(:,j2,:) = 0.
 
       !-------------------------
       !Calculate E-W divergence.
@@ -1517,9 +1531,10 @@ c     --------------------------------------
      &      dpi(il,ij,:) +
      &      xmass(il,ij,:) - xmass(il+1,ij,:)
         end do
-          dpi(i2,ij,:) =
-     &      dpi(i2,ij,:) +
-     &      xmass(i2,ij,:) - xmass(1,ij,:)
+! No periodicity. (ccc, 8/3/10)
+!          dpi(i2,ij,:) =
+!     &      dpi(i2,ij,:) +
+!     &      xmass(i2,ij,:) - xmass(1,ij,:)
       end do
 
       ! Return to calling program
@@ -1602,140 +1617,14 @@ c     --------------------------------------
      &      0.5d0 * (delpm(il,ij,:) + delpm(il-1,ij,:))
         end do
 
-          pu(i1,ij,:) =
-     &      0.5d0 * (delpm(i1,ij,:) + delpm(i2,ij,:))
+! No periodicity. (ccc, 8/3/10)
+!          pu(i1,ij,:) =
+!     &      0.5d0 * (delpm(i1,ij,:) + delpm(i2,ij,:))
 
       end do
 
       ! Return to calling program
       END SUBROUTINE Set_Press_Terms
-
-!------------------------------------------------------------------------------
-
-      subroutine Do_Divergence_Pole_Sum
-     &  (do_reduction, geofac_pc, dpi, ymass)
-!
-!******************************************************************************
-! 
-!  ROUTINE
-!    Do_Divergence_Pole_Sum
-! 
-!  AUTHORS
-!    Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
-!
-!  DESCRIPTION
-!    This routine sets the divergence at the Poles.
-! 
-!  ARGUMENTS
-!    do_reduction : set to true  if called on Master;
-!                   set to false if called by Slaves
-!    geofac_pc : special geometrical factor (geofac) for Polar cap
-!    dpi   : divergence at a grid point; used to calculate vertical motion (mb)
-!    ymass : horizontal mass flux in N-S direction (mb)
-!
-!  NOTES:
-!
-!******************************************************************************
-!
-      implicit none
-
-      !----------------------
-      !Argument declarations.
-      !----------------------
-
-      logical :: do_reduction
-      real*8  :: geofac_pc
-      real*8  :: dpi  ( i1:i2,   ju1:j2,  k1:k2)
-      real*8  :: ymass(ilo:ihi, julo:jhi, k1:k2)
-
-
-      !----------------------
-      !Variable declarations.
-      !----------------------
-
-      integer :: il, ik
-
-      real*8  :: ri2
-
-      real*8  :: mean_np(k1:k2)
-      real*8  :: mean_sp(k1:k2)
-      real*8  :: sumnp  (k1:k2)
-      real*8  :: sumsp  (k1:k2)
-
-
-      !----------------
-      !Begin execution.
-      !----------------
-
-      ri2 = i2_gl
-
-      !==================
-      if (ju1 == ju1_gl) then
-      !==================
-
-        do ik = k1, k2
-
-          sumsp(ik) = 0.0d0
-
-          do il = i1, i2
-
-            sumsp(ik) = sumsp(ik) + ymass(il,j1p,ik)
-
-          end do
-
-        end do
-
-        do ik = k1, k2
-
-          mean_sp(ik) = -sumsp(ik) / ri2 * geofac_pc
-
-          do il = i1, i2
-
-            dpi(il,ju1,ik) = mean_sp(ik)
-
-          end do
-
-        end do
-
-      !======
-      end if
-      !======
-
-
-      !================
-      if (j2 == j2_gl) then
-      !================
-
-        do ik = k1, k2
-
-          sumnp(ik) = 0.0d0
-
-          do il = i1, i2
-
-            sumnp(ik) = sumnp(ik) + ymass(il,j2p+1,ik)
-
-          end do
-
-        end do
-
-        do ik = k1, k2
-
-          mean_np(ik) = sumnp(ik) / ri2 * geofac_pc
-
-          do il = i1, i2
-
-            dpi(il,j2,ik) = mean_np(ik)
-
-          end do
-
-        end do
-
-      !======
-      end if
-      !======
-
-      ! Return to calling program
-      END SUBROUTINE Do_Divergence_Pole_Sum
 
 !------------------------------------------------------------------------------
 
@@ -1838,11 +1727,25 @@ c     --------------------------------------
       JULO        = JULO_GL 
       JVLO        = JVLO_GL 
       JHI         = JHI_GL 
+! No polar cap. (ccc, 8/3/10)
+!      J1P         = 3 
+      J1P         = 1 
+      J2P         = J2_GL - J1P + 1 
+! Used only to check dimensions
       ILAT        = J2_GL - JU1_GL + 1 
       ILONG       = I2_GL -  I1_GL + 1 
       IVERT       = K2_GL -  K1_GL + 1 
-      J1P         = 3 
-      J2P         = J2_GL - J1P + 1 
+
+! To add a buffer zone to calculate p-fixer for nested grid 
+! simulations. The p-fixer is not calculated for the edge boxes. 
+! (lzh, ccc, 8/3/10)
+      BUFF_SIZE     = 2
+      I1_W          = I1_GL + BUFF_SIZE
+      I2_W          = I2_GL - BUFF_SIZE
+      JU1_W         = JU1_GL + BUFF_SIZE
+      J2_W          = J2_GL - BUFF_SIZE 
+      J1P_W         = 1 + BUFF_SIZE
+      J2P_W         = J2_GL - J1P_W + 1
 
       ! Error check longitude
       IF ( ILONG /= IIPAR ) THEN
@@ -1952,11 +1855,16 @@ c     --------------------------------------
       DLON_FV    = 2.d0 * PI / DBLE( 540 )        !(dan)
        
       ! Latitude edge at south pole [radians]
-      ELAT_FV(1) = -0.5d0 * PI 
+!      ELAT_FV(1) = -0.5d0 * PI 
+! for nested NA or EA (lzh, 07/20/2010) 
+      ELAT_FV(1) = CLAT_FV(1) - 0.25d0 * PI/DBLE(180)
 
       ! SIN and COS of lat edge at south pole [unitless]
-      SINE_FV(1) = -1.d0
-      COSE_FV(1) =  0.d0
+!      SINE_FV(1) = -1.d0
+!      COSE_FV(1) =  0.d0
+! for nested NA or EA (lzh, 07/20/2010) 
+      SINE_FV(1) =  SIN( ELAT_FV(1) )
+      COSE_FV(1) =  COS( ELAT_FV(1) )
          
       ! Latitude edges [radians] (w/ SIN & COS) at intermediate latitudes
       DO J = JU1_GL+1, J2_GL  !2, JJPAR
@@ -1966,21 +1874,30 @@ c     --------------------------------------
       ENDDO
 
       ! Latitude edge at North Pole [radians]
-      ELAT_FV(J2_GL+1) = 0.5d0 * PI
+!      ELAT_FV(J2_GL+1) = 0.5d0 * PI
+! for nested NA or EA (lzh, 07/20/2010) 
+      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25d0* PI/DBLE(180)
 
       ! SIN of lat edge at North Pole
-      SINE_FV(J2_GL+1) = 1.d0
-      
+!      SINE_FV(J2_GL+1) = 1.d0
+! for nested NA or EA (lzh, 07/20/2010) 
+      SINE_FV(J2_GL+1) =  SIN( ELAT_FV(J2_GL+1) )
+      COSE_FV(J2_GL+1) =  COS( ELAT_FV(J2_GL+1) )
+       
       ! Latitude extent of South polar box [radians]
-      DLAT_FV(1) = 2.d0 * ( ELAT_FV(2) - ELAT_FV(1) ) 
+!      DLAT_FV(1) = 2.d0 * ( ELAT_FV(2) - ELAT_FV(1) ) 
+! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Latitude extent of boxes at intermediate latitudes [radians]
-      DO J = JU1_GL+1, J2_GL-1  ! 2, JJPAR-1
+!      DO J = JU1_GL+1, J2_GL-1  ! 2, JJPAR-1
+! for nested NA or EA (lzh, 07/20/2010) 
+      DO J = JU1_GL, J2_GL
          DLAT_FV(J) = ELAT_FV(J+1) - ELAT_FV(J)
       ENDDO
 
       ! Latitude extent of North polar box [radians]
-      DLAT_FV(J2_GL) = 2.d0 * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) ) 
+!      DLAT_FV(J2_GL) = 2.d0 * ( ELAT_FV(J2_GL+1) - ELAT_FV(J2_GL) ) 
+! comment out for nested NA or EA (lzh, 07/20/2010)
 
       ! Other stuff
       DO J = JU1_GL, J2_GL
