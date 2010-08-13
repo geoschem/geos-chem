@@ -60,6 +60,7 @@
 !  10 Dec 2009 - D. Millet - Fix scaling, which is by ozone season
 !  11 Dec 2009 - L. Zhang, A. Van Donkelaar - Add seasonality for NH3 
 !  21 Dec 2009 - R. Yantosca - Added support for 0.5 x 0.666 nested grids
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -382,7 +383,7 @@
 !  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
 !                              in updated files (by Aaron van Donkelaar) to
 !                              fix a problem in the VOC emissions.
-! !REMARKS:
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -419,7 +420,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
@@ -449,11 +450,6 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-!------------------------------------------------------------------------------
-! Prior to 7/12/10:
-! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
-!         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_200910/' //
-!------------------------------------------------------------------------------
          FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_201007/' //
      &               'NEI2005.' // TRIM( SNAME ) // '.1x1.AVG.bpch'
 
@@ -714,8 +710,8 @@
 !  03 Nov 2009 - A. van Donkelaar - initial version
 !  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
 !                              in updated files (by Aaron van Donkelaar) to
-!                              fix a problem in the VOC emissions.!
-! !REMARKS:
+!                              fix a problem in the VOC emissions.
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (leave for future use)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -752,7 +748,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
@@ -782,11 +778,6 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-!------------------------------------------------------------------------------
-! Prior to 7/12/10:
-! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
-!         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200910/' //
-!------------------------------------------------------------------------------
          FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
      &            'NEI2005.' // TRIM( SNAME ) 
      &             // '.1t2x2t3.AVG.na.bpch'

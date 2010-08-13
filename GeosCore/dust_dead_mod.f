@@ -5,7 +5,7 @@
 !  Module DUST_DEAD_MOD contains routines and variables from Charlie Zender's
 !  DEAD dust mobilization model.  Most routines are from Charlie Zender, but
 !  have been modified and/or cleaned up for inclusion into GEOS-Chem.
-!  (tdf, rjp, bmy, 4/6/04, 12/19/09)
+!  (tdf, rjp, bmy, 4/6/04, 8/13/10)
 !
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !  %%% NOTE: The current [dust] code was validated at 2 x 2.5 resolution.  %%%
@@ -294,6 +294,7 @@
 !  (5 ) Defined FLX_MSS_FDG_FCT for GEOS_4 2x2.5, GEOS_5 2x2.5, NESTED_NA and 
 !        NESTED_EU.  Redefined FLX_MSS_FDG_FCT for NESTED_CH, based upon above
 !        changes. (amv, bmy, 12/18/09)
+!  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -330,12 +331,6 @@
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
 
 #if defined(NESTED_CH)  
-      !-------------------------------------------------------------------
-      ! Prior to 12/18/09:
-      ! We need to tune the global dust emissions to the same 
-      ! as the 2 x 2.5 simulation (yxw, dan, bmy, 11/6/08)
-      !REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 * 0.69
-      !-------------------------------------------------------------------
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 3.23d-4
 #elif defined(NESTED_EU)
@@ -350,6 +345,16 @@
 
       
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
+      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+      
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: We may have to retune for MERRA eventually    %%%
+      !%%% but for now, treat MERRA like GEOS-5 (bmy, 8/13/10) %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 

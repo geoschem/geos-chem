@@ -1,33 +1,37 @@
-! $Id: convection_mod.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: convection_mod
+!
+! !DESCRIPTION: Module CONVECTION\_MOD contains routines which select the 
+!  proper convection code for GEOS-3, GEOS-4, GEOS-5/MERRA, or GCAP met 
+!  field data sets. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE CONVECTION_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module CONVECTION_MOD contains routines which select the proper convection
-!  code for GEOS-3, GEOS-4, GEOS-5, or GCAP met field data sets. 
-!  (bmy, 6/28/03, 1/31/08)
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_CONVECTION       : Wrapper routine, chooses correct convection code
-!  (2 ) DO_GEOS4_CONVECT    : Calls GEOS-4 convection routines 
-!  (3 ) DO_GCAP_CONVECT     : Calls GCAP convection routines
-!  (4 ) NFCLDMX             : Convection routine for GEOS-3 and GEOS-5 met
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by convection_mod.f
-!  ============================================================================
-!  (1 ) dao_mod.f           : Module w/ containing arrays for DAO met fields   
-!  (2 ) diag_mod.f          : Module w/ GEOS-Chem diagnostic arrays
-!  (3 ) fvdas_convect_mod.f : Module w/ convection code for fvDAS met fields
-!  (4 ) grid_mod.f          : Module w/ horizontal grid information
-!  (5 ) logical_mod.f       : Module w/ GEOS-Chem logical switches
-!  (6 ) ocean_mercury_mod.f : Module w/ routines for Hg(0) ocean flux
-!  (7 ) pressure_mod.f      : Module w/ routines to compute P(I,J,L)
-!  (8 ) time_mod.f          : Module w/ routines for computing time
-!  (9 ) tracer_mod.f        : Module w/ GEOS-Chem tracer array STT etc
-!  (10) tracerid_mod.f      : Module w/ GEOS-Chem tracer ID flags etc
-!  (11) wetscav_mod.f       : Module w/ routines for wetdep/scavenging
+      PUBLIC  :: DO_CONVECTION
 !
-!  NOTES:
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: DO_GEOS4_CONVECT
+      PRIVATE :: DO_GCAP_CONVECT
+      PRIVATE :: NFCLDMX
+!
+! !REVISION HISTORY:
+!  27 Jan 2004 - R. Yantosca - Initial version
+
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
 !        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
 !        memory problems on the Altix. (bmy, 1/27/04)
@@ -45,48 +49,50 @@
 !  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
 !  (10) Fix for GEOS-5 met fields in routine NFCLDMX (swu, 8/15/07)
 !  (11) Resize DTCSUM array in NFCLDMX to save memory (bmy, 1/31/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "convection_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: DO_CONVECTION
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_convection
+!
+! !DESCRIPTION: Subroutine DO\_CONVECTION calls the appropriate convection 
+!  driver program for different met field data sets.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_CONVECTION
 !
-!******************************************************************************
-!  Subroutine DO_CONVECTION calls the appropriate convection driver program
-!  for different met field data sets. (swu, bmy, 5/25/05, 2/8/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference "CMN_SIZE".  Now references CLDMAS, CMFMC, DTRAIN from
-!        "dao_mod.f" so that we can pass either GEOS-5 or GEOS-3 meteorology
-!        to NFCLDMX. (bmy, 2/8/07)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DAO_MOD,           ONLY : CLDMAS,    CMFMC, DTRAIN
+      USE DAO_MOD,           ONLY : CLDMAS,      CMFMC,  DTRAIN
       USE MERCURY_MOD,       ONLY : PARTITIONHG
-      USE TRACER_MOD,        ONLY : N_TRACERS, TCVV
-      USE TRACER_MOD,        ONLY : STT
+      USE TRACER_MOD,        ONLY : N_TRACERS,   TCVV,   STT
 
 #     include "CMN_SIZE"   ! Size parameters
-
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
+!                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
+!                              we can pass either GEOS-5 or GEOS-3 meteorology
+!                              to NFCLDMX. 
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L
 
 #if   defined( GCAP ) 
@@ -107,7 +113,7 @@
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       !-------------------------
       ! GEOS-5 met fields
@@ -127,26 +133,26 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE DO_CONVECTION
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_geos4_convect
+!
+! !DESCRIPTION: Subroutine DO\_GEOS4\_CONVECT is a wrapper for the 
+!  GEOS-4/fvDAS convection code.  This was broken off from the old 
+!  DO\_CONVECTION routine above.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GEOS4_CONVECT
 !
-!******************************************************************************
-!  Subroutine DO_GEOS4_CONVECT is a wrapper for the GEOS-4/fvDAS convection 
-!  code.  This was broken off from the old DO_CONVECTION routine above.
-!  (swu, bmy, 5/25/05, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
-!        (bmy, 5/25/05)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
-!*****************************************************************************
-!     
-      ! References to F90 modules
       USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
       USE DIAG_MOD,          ONLY : AD37
       USE ERROR_MOD,         ONLY : DEBUG_MSG
@@ -159,16 +165,28 @@
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! ND37, LD37 
-
-      ! Local variables 
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER                    :: INDEXSOL(N_TRACERS) 
-      INTEGER                    :: CONVDT    
-      REAL*8                     :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                     :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8                     :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8                     :: P1, P2, TDT   
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
+!        (bmy, 5/25/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER       :: INDEXSOL(N_TRACERS) 
+      INTEGER       :: CONVDT    
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: P1, P2, TDT   
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -307,27 +325,26 @@
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
 
-      ! Return to calling program
       END SUBROUTINE DO_GEOS4_CONVECT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_gcap_convect
+!
+! !DESCRIPTION: Subroutine DO\_GCAP\_CONVECT is a wrapper for the GCAP 
+!  convection code.  This was broken off from the old DO\_CONVECTION routine 
+!  above.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GCAP_CONVECT
 !
-!******************************************************************************
-!  Subroutine DO_GCAP_CONVECT is a wrapper for the GCAP convection code.  
-!  This was broken off from the old DO_CONVECTION routine above.
-!  (swu, bmy, 5/25/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
-!        (bmy, 5/25/05)
-!  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
-!        (swu, bmy, 11/1/05)
-!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
-!******************************************************************************
-!     
-      ! References to F90 modules
       USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE
       USE DAO_MOD,          ONLY : DNDN,     ENTRAIN,  UPDN, UPDE
       USE DIAG_MOD,         ONLY : AD37
@@ -341,16 +358,29 @@
 
 #     include "CMN_SIZE"         ! Size parameters
 #     include "CMN_DIAG"         ! ND37, LD37 
-
-      ! Local variables 
-      LOGICAL, SAVE             :: FIRST = .TRUE.
-      INTEGER                   :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER                   :: INDEXSOL(N_TRACERS) 
-      INTEGER                   :: CONVDT    
-      REAL*8                    :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                    :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: P1, P2, TDT   
-      REAL*8                    :: GAINMASS
+!
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
+!        (bmy, 5/25/05)
+!  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
+!        (swu, bmy, 11/1/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER       :: INDEXSOL(N_TRACERS) 
+      INTEGER       :: CONVDT    
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: P1, P2, TDT   
+      REAL*8        :: GAINMASS
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -489,31 +519,75 @@
 
       ! Return to calling program
       END SUBROUTINE DO_GCAP_CONVECT
-
 !------------------------------------------------------------------------------
-
-      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
-!  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
-!  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/31/08)
+! !IROUTINE: nfcldmx
 !
+! !DESCRIPTION: Subroutine NFCLDMX is S-J Lin's cumulus transport module for 
+!  3D GSFC-CTM, modified for the GEOS-Chem model.  The "NF" stands for "no 
+!  flipping", and denotes that you don't have to flip the tracer array Q in 
+!  the main program before passing it to NFCLDMX.
+!\\
+!\\
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
 !  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
-!  (bmy, 6/26/03)
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as input:
-!  ==========================================================================
-!  (1 ) NC     : TOTAL number of tracers (soluble + insoluble)  [unitless]
-!  (2 ) TCVV   : MW air (g/mol) / MW of tracer (g/mol)          [unitless]
-!  (3 ) CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-!  (4 ) DTRN   : Detrainment mass flux                          [kg/m2/s]
+      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
+
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (3 )  Q     : Tracer concentration                           [v/v]
+! !USES:
+!
+      ! References to F90 modules
+      USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
+      USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
+      USE GRID_MOD,          ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
+!     USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
+      USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
+      USE TIME_MOD,          ONLY : GET_TS_CONV
+      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP 
+      USE WETSCAV_MOD,       ONLY : COMPUTE_F
+      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DAO_MOD,           ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! Diagnostic switches & arrays
+!
+! !INPUT PARAMETERS: 
+!
+      ! TOTAL number of tracers (soluble + insoluble)  [unitless]
+      INTEGER, INTENT(IN)    :: NC 
+
+      ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
+      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
+
+      ! Detrainment mass flux [kg/m2/s]
+      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
+
+      ! MW air (g/mol) / MW of tracer (g/mol) [unitless]
+      REAL*8,  INTENT(IN)    :: TCVV(NC)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      ! Tracer concentration [v/v]
+      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
+!
+! !REMARKS:
+!  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
+!  flip the tracer array Q in the main program before passing it to NFCLDMX.
+!  (bmy, 2/12/97, 1/31/08)
+!
+!  (2) This version has been customized to work with GEOS-5 met fields.
 !
 !  Reference:
 !  ============================================================================
@@ -554,16 +628,16 @@
 !            k-1      ^                      k+1      ^
 !            ---------|---------             ---------|---------
 !                     |                               |
-!                  CLDMAS(k)                       CLDMAS(k)
+!                  CMFMC(k)                       CMFMC(k)
 !             
 !                                 becomes
-!            k      DTRN(k),                 k      DTRN(k),       
+!            k     DTRAIN(k),                k     DTRAIN(k),       
 !                 QC(k), Q(k)                     QC(k), Q(k)   
 !          
 !                     ^                               ^
 !            ---------|---------             ---------|---------
 !                     |                               |   
-!            k+1   CLDMAS(k+1)               k-1   CLDMAS(k-1)
+!            k+1   CMFMC(k+1)                k-1   CMFMC(k-1)
 !
 !
 !      i.e., the lowest level    used to be  NLAY  but is now  1
@@ -571,7 +645,7 @@
 !            the level above k   used to be  k-1   but is now  k+1
 !            the top of the atm. used to be  1     but is now  NLAY.
 !
-!  The old method required that the vertical dimensions of the CLDMAS, DTRN, 
+!  The old method required that the vertical dimensions of the CMFMC, DTRAIN, 
 !  and Q arrays had to be flipped before and after calling CLDMX.  Also, 
 !  diagnostic arrays generated within CLDMX also had to be flipped.  The new 
 !  indexing eliminates this requirement (and also saves on array operations).  
@@ -582,29 +656,30 @@
 !  Original Release:  12 February 1997
 !                     Version 3, Detrainment and Entrainment are considered.
 !                     The algorithm reduces to that of version 2 if Dtrn = 0.
-! 
+!                                                                             .
 !  Modified By:       Bob Yantosca, for Harvard Atmospheric Sciences
 !  Modified Release:  27 January 1998
 !                     Version 3.11, contains features of V.3 but also 
 !                     scavenges soluble tracer in wet convective updrafts.
-!                     
+!                                                                             .
 !                     28 April 1998
 !                     Version 3.12, now includes mass flux diagnostic
-!         
+!                                                                             .
 !                     11 November 1999
 !                     Added mass-flux diagnostics
-!
+!                                                                             .
 !                     04 January 2000
 !                     Updated scavenging constant AS2
-!
+!                                                                             .
 !                     14 March 2000
 !                     Added new wet scavenging code and diagnostics
 !                     based on the GMI algorithm
-!
+!                                                                             .
 !                     02 May 2000
-!                     Added parallel loop over tracers
-!
-!  NOTES:              
+!                     Added parallel loop over tracers! 
+! 
+! !REVISION HISTORY: 
+!  12 Feb 1997 - M. Prather  - Initial version
 !  (1 ) NFCLDMX is written in Fixed-Form Fortran 90.
 !  (2 ) Added TCVV to the argument list.  Also cleaned up argument
 !        and local variable declarations. (bey, bmy, 11/10/99)
@@ -641,36 +716,13 @@
 !        (bmy, 1/31/08)
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !  (19) Updates for mercury simulation (ccc, 5/17/10)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
-      USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
-      USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
-      USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
-      USE TIME_MOD,          ONLY : GET_TS_CONV
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP 
-      USE WETSCAV_MOD,       ONLY : COMPUTE_F
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches & arrays
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NC 
-      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
-      REAL*8,  INTENT(IN)    :: TCVV(NC)
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
@@ -1211,9 +1263,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE NFCLDMX
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE CONVECTION_MOD

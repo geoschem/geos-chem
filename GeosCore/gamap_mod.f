@@ -73,6 +73,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,15 +90,6 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      !--------------------------------------------------------------------
-      ! Prior to 8/3/10:
-      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
-      ! when these parameters are extended to add more tracers.
-      ! (psk, bmy, 8/3/10)
-      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
-      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
-      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
       INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
       INTEGER,           ALLOCATABLE :: NTRAC(:)
@@ -1424,6 +1416,8 @@
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3637,7 +3631,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else

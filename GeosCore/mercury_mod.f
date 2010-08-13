@@ -154,6 +154,7 @@
 !  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 4/6/06)
 !  (7 ) Now includes LPREINDHG logical switch for preindustrial simulation 
 !       (eds 7/30/08)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -448,7 +449,8 @@
 !        rate is tuned with the OH oxidation rate to match the global Hg(0) 
 !        concentration and seasonal cycle.
 ! 
-!  (3 ) Hg(II) is dry-deposited,        kd calculated by drydep_mod [/s]        !
+!  (3 ) Hg(II) is dry-deposited,        kd calculated by drydep_mod [/s]    
+!
 !  (4 ) Hg(0) is dry deposited,         kd calculated by drydep_mod [/s]
 !         The ocean module separately cacluates Hg(0) dry deposition over
 !         ocean, so this module only includes Hg(0) dry deposition over land.
@@ -466,6 +468,7 @@
 !        of Hg2 lost to rxn w/ seasalt. (eck, cdh, sas, bmy, 4/6/06)
 !  (5 ) Added Hg0 dry deposition (eck)
 !  (6 ) Chemistry and dry deposition now occur simultaneously. (cdh, 7/9/08)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -609,7 +612,7 @@
          ! There should be no liquid water when T < 258K 
          IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
-#if defined( GEOS_5 )
+#if defined( GEOS_5 ) || defined( MERRA )
          IF (LGEOSLWC) THEN
 
             ! Get grid-averaged liquid water content from met fields (kg/kg)
@@ -704,8 +707,11 @@
          ! Disable dry deposition of Hg(0) to ice because we do not have
          ! an ice emission model. Perennial ice should have equal emission
          ! and deposition averaged over multiple years. (cdh, 9/11/09)
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+         SNOW_HT = SNOMAS(I,J)
+#if   defined( MERRA )
+         ! MERRA snow height -- doublecheck units
          SNOW_HT = SNOMAS(I,J)
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -2037,8 +2043,11 @@
 !      DO I  = 1, IIPAR
 !      DO NN = 1, N_Hg_CATS
 !    
-!#if defined( GEOS_5 )
+!#if   defined( GEOS_5 )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!         SNOW_HT = SNOMAS(I,J)
+!#elif defined( MERRA )
+!         ! GEOS5 snow height -- doublecheck units
 !         SNOW_HT = SNOMAS(I,J)
 !#else
 !         ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -2361,8 +2370,11 @@
 !      DO J=1, JJPAR
 !      DO I=1, IIPAR
 !         
-!#if defined( GEOS_5 )
+!#if   defined( GEOS_5 )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!         SNOW_HT = SNOMAS(I,J)
+!#elif defined( GEOS_5 )
+!         ! GEOS5 snow height -- doublecheck units
 !         SNOW_HT = SNOMAS(I,J)
 !#else
 !         ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -4407,8 +4419,11 @@ c$$$         ! Get HgP category number
 c$$$         NN = GET_HgP_CAT( N ) 
 c$$$      ENDIF
 c$$$
-c$$$#if defined( GEOS_5 )
+c$$$#if   defined( GEOS_5 )
 c$$$      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+c$$$      SNOW_HT = SNOMAS(I,J)
+c$$$#elif defined( MERRA )
+c$$$      ! MERRA snow height -- doublecheck units
 c$$$      SNOW_HT = SNOMAS(I,J)
 c$$$#else
 c$$$      ! GEOS1-4 snow heigt (water equivalent) in mm

@@ -1981,8 +1981,11 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+          SNOW_HT = SNOMAS(I,J)
+#elif defined( MERRA )
+          ! GEOS5 snow height -- doublecheck units!
           SNOW_HT = SNOMAS(I,J)
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
