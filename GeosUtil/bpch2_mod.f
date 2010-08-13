@@ -1,4 +1,3 @@
-! $Id: bpch2_mod.f,v 1.2 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -80,6 +79,7 @@
 !        READ_BPCH2 for GEOS-5 vertical levels. (bmy, 2/16/07)
 !  (33) Modifications for GEOS-5 nested grids (bmy, 11/6/08)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -638,6 +638,7 @@
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (6 ) Rename GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Added MERRA model names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,6 +663,12 @@
 
 #elif defined( GCAP )
       MODELNAME = 'GCAP'
+
+#elif defined( MERRA ) && defined( GRIDREDUCED )
+      MODELNAME = 'MERRA_47L'
+      
+#elif defined( MERRA ) 
+      MODELNAME = 'MERRA'
 
 #endif
 
@@ -706,6 +713,10 @@
       CHARACTER(LEN=4) :: NAME_EXT
       NAME_EXT = 'gcap'
 
+#elif defined( MERRA )
+      CHARACTER(LEN=5) :: NAME_EXT
+      NAME_EXT = 'geos5'
+
 #endif
 !
 ! !REVISION HISTORY:
@@ -714,6 +725,8 @@
 !  (3 ) Modified for GCAP and GEOS-5 met fields (bmy, 5/24/05)
 !  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - MERRA uses "geos5" name extension since its
+!                              grid is identical to GEOS-5.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

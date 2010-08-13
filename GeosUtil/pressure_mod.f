@@ -1,4 +1,3 @@
-! $Id: pressure_mod.f,v 1.1 2009/11/20 21:43:03 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,10 +32,10 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 10/30/07)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4 and GEOS-5 (hybrid grids):
+!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
 !  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
 !  is defined as follows:
@@ -87,6 +86,7 @@
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Added Ap and Bp for GEOS-5 met fields (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,11 +270,12 @@
 !  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -376,6 +377,8 @@
 !  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
 !  (5 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute Ap and Bp for MERRA the same way as for
+!                              GEOS-5.  The vertical grids are identical.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,7 +406,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
       !=================================================================
       ! GEOS-5 vertical coordinates (47 or 72 levels)

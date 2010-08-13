@@ -88,6 +88,7 @@
 !  15 Oct 2009 - R. Yantosca - Remove IN_CLOUD_OD.  Added ProTex headers.
 !  18 Dec 2009 - Aaron van D - Added NESTED_EU C-preprocessor switch
 !  20 Jul 2010 - C. Carouge  - Added GTMM_Hg for mercury simulation.
+!  12 Aug 2010 - R. Yantosca - Added MERRA switch for MERRA reanalysis met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,6 +100,7 @@
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
+#undef MERRA
 #undef GRIDREDUCED
 #undef GRID4x5
 #undef GRID2x25  
@@ -125,7 +127,8 @@
 !#define GCAP        'GCAP'
 !#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
-#define GEOS_5      'GEOS_5'
+!#define GEOS_5      'GEOS_5'
+#define MERRA       'MERRA'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -151,7 +154,7 @@
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(GCAP)
+#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP)
 #error "ERROR: GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
 #error "are ALL und efined in header file define.h"
 #endif
@@ -178,6 +181,16 @@
 !%%% (ltm, bmy, 6/2/10)
 #if defined( GEOS_5 ) && !defined( GRIDREDUCED )
 #error "Cannot run GEOS-5 with the full vertical 72 level grid!"
+#error "We are working on a patch to fix this soon!"
+#endif 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Stop the run if we are running w/ MERRA 72-level grid
+!%%% This prevents dimension mismatch when reading SCHEM data fields!
+!%%% (ltm, bmy, 6/2/10)
+#if defined( MERRA ) && !defined( GRIDREDUCED )
+#error "Cannot run MERRA with the full vertical 72 level grid!"
 #error "We are working on a patch to fix this soon!"
 #endif 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
