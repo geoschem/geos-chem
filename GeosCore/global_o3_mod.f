@@ -21,12 +21,17 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_GLOBAL_O3
-      PUBLIC  :: GET_GLOBAL_O3
+      PUBLIC              :: CLEANUP_GLOBAL_O3
+      PUBLIC              :: GET_GLOBAL_O3
+!
+! !PUBLIC DATA MEMBERS:
+!            
+      PUBLIC              :: O3
+      REAL*8, ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: INIT_GLOBAL_O3
+      PRIVATE             :: INIT_GLOBAL_O3
 !
 ! !REVISION HISTORY:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
@@ -41,12 +46,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-      ! Array to store global monthly mean OH field
-      REAL*8, ALLOCATABLE :: O3(:,:,:)
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -73,15 +72,12 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN)  :: THISMONTH       ! Current month
 !
-! !REMARKS:
-! 
-! 
 ! !REVISION HISTORY: 
 !  23 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
@@ -98,6 +94,7 @@
 !  13 Aug 2010 - R. Yantosca - Rewrote logic more cleanly
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5 
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -170,13 +167,15 @@
 #if   defined( GRIDREDUCED )
 
       ! Filename for 47-level model
-      FILENAME = '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #else
 
       ! Filename for 72-level model
-      FILENAME = '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #endif
@@ -300,22 +299,6 @@
 !
       SUBROUTINE CLEANUP_GLOBAL_O3
 !
-! !USES:
-!
-
-!
-! !INPUT PARAMETERS: 
-!
-
-!
-! !INPUT/OUTPUT PARAMETERS: 
-! 
-      TYPE(GC_IDENT), INTENT(INOUT) :: IDENT  ! Obj w/ info from ESMF etc.
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC     ! Return code
-! 
 ! !REVISION HISTORY: 
 !  13 Jul 2004 - R. Yantosca - Initial version
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers

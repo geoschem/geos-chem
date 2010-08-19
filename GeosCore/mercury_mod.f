@@ -613,7 +613,7 @@
          IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
 #if defined( GEOS_5 ) || defined( MERRA )
-         IF (LGEOSLWC) THEN
+         IF ( LGEOSLWC ) THEN
 
             ! Get grid-averaged liquid water content from met fields (kg/kg)
             ! Convert to m3/m3
@@ -710,7 +710,7 @@
 #if   defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
          SNOW_HT = SNOMAS(I,J)
-#if   defined( MERRA )
+#elif defined( MERRA )
          ! MERRA snow height -- doublecheck units
          SNOW_HT = SNOMAS(I,J)
 #else

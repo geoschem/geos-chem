@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: bpch2_mod.f
+! !MODULE: bpch2_mod
 !
 ! !DESCRIPTION: Module BPCH2\_MOD contains the routines used to read data 
 !  from and write data to binary punch (BPCH) file format (v. 2.0).
