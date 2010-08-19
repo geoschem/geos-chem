@@ -142,19 +142,26 @@
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
-
       USE TRACERID_MOD,      ONLY : IS_Hg2
+
       ! For GTMM for mercury simulations. (ccc, 6/7/10)
       USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
       USE MERCURY_MOD,       ONLY : PARTITIONHG
 
+      ! For MERRA met fields (bmy, 8/19/10)
+      USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
+      USE MERRA_CN_MOD,      ONLY : GET_MERRA_CN_FIELDS
+      USE MERRA_CN_MOD,      ONLY : OPEN_MERRA_CN_FIELDS
+      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_1
+      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_2
+      USE MERRA_I6_MOD,      ONLY : OPEN_MERRA_I6_FIELDS
+
       IMPLICIT NONE
       
-      ! Header files 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"          ! Physical constants
-#     include "comode.h" 
+#     include "comode.h"          ! SMVGEAR common blocks
 !
 ! !REMARKS:
 !                                                                             .
@@ -194,6 +201,7 @@
 ! !REVISION HISTORY: 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,8 +294,49 @@
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
 
+#if   defined( MERRA )
+
       !=================================================================
-      !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
+      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
+      !    *****  At the start of the GEOS-Chem simulation   *****
+      !
+      !    Handle MERRA met fields separately from other met products
+      !=================================================================
+
+      ! Open constant fields
+      DATE = (/ 20000101, 000000 /)
+      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+
+      ! Open and read A-1 fields
+      DATE = GET_FIRST_A1_TIME()
+!      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+!      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+!
+!      ! Open and read A-3 fields
+!      DATE = GET_FIRST_A3_TIME()
+!      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+!      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+
+      ! Open & read I-6 fields
+      DATE = (/ NYMD, NHMS /)
+      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+
+      ! Exit
+      GOTO 9999
+#else
+
+      !=================================================================
+      !    *****      U N Z I P   M E T   F I E L D S        *****
+      !    ***** At at the start of the GEOS-Chem simulation *****
+      !
+      !             Here we unzip data for the first time
+      !            for all met field products EXCEPT MERRA.
       !=================================================================
       IF ( LUNZIP ) THEN
 
@@ -340,9 +389,12 @@
          !### Debug output
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
       ENDIF
-      
+
       !=================================================================
-      !    ***** R E A D   M E T   F I E L D S  @ start of run *****
+      !      *****      R E A D   M E T   F I E L D S       *****
+      !      ***** At the start of the GEOS-Chem simulation *****
+      !
+      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data.
       !=================================================================
 
       ! Open and read A-3 fields
@@ -370,6 +422,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
 #if   defined( GEOS_3 )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GEOS-3 meteorology
+      !-----------------------------------------------------------------
+
       ! Open & read GEOS-3 GWET fields
       IF ( LDUST ) THEN
          DATE = GET_FIRST_A3_TIME()
@@ -385,9 +442,15 @@
          CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
       ENDIF
+
 #endif
 
 #if   defined( GCAP )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GCAP meteorology
+      !-----------------------------------------------------------------
+
       ! Read GCAP PHIS and LWI fields (if necessary)
       CALL OPEN_GCAP_FIELDS
       CALL GET_GCAP_FIELDS
@@ -396,6 +459,9 @@
       IF ( LUNZIP ) THEN
          CALL UNZIP_GCAP_FIELDS( 'remove date' )
       ENDIF
+
+#endif
+
 #endif
 
       ! Compute avg surface pressure near polar caps
@@ -601,8 +667,34 @@
          !==============================================================
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
+#if   defined( MERRA )
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
+         !
+         !    The MERRA archive contains hourly surface data fields.
+         !==============================================================
+
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
+         !
+         !     The MERRA archive contains 3-hourly 3-D data fields.
+         !==============================================================
+
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
+         !
+         !    The MERRA archive contains 6-hourly instantaneous data.
+         !==============================================================
+
+#else
+
          !===============================================================
-         !        ***** U N Z I P   M E T   F I E L D S *****
+         !         ***** U N Z I P   M E T   F I E L D S *****
+         !
+         !      Some met data (except MERRA) are stored compressed.
          !===============================================================
          IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
             
@@ -628,7 +720,7 @@
             IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
             IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
 #endif
-         ENDIF     
+         ENDIF
 
          !===============================================================
          !        ***** R E M O V E   M E T   F I E L D S *****  
@@ -648,10 +740,12 @@
             IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
             IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
 #endif
-         ENDIF   
+         ENDIF  
 
          !==============================================================
          !          ***** R E A D   A - 3   F I E L D S *****
+         !
+         !  All met data (except MERRA) contain 3-hourly surface data.
          !==============================================================
          IF ( ITS_TIME_FOR_A3() ) THEN
 
@@ -681,7 +775,9 @@
          ENDIF
 
          !==============================================================
-         !          ***** R E A D   A - 6   F I E L D S *****   
+         !          ***** R E A D   A - 6   F I E L D S *****  
+         !
+         !      All other met fields contain 6-hourly 3-D data. 
          !==============================================================
          IF ( ITS_TIME_FOR_A6() ) THEN
             
@@ -712,6 +808,8 @@
             ! Compute avg pressure at polar caps 
             CALL AVGPOLE( PS2 )
          ENDIF
+
+#endif
 
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
@@ -981,7 +1079,6 @@
 
          ENDIF 
 
- 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1000,8 +1097,6 @@
             ENDIF 
 
          ENDIF
-
-
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
@@ -1031,7 +1126,6 @@
          CALL SET_CURRENT_TIME
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
 
-         
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================

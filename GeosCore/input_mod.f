@@ -525,7 +525,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 10/15/09)
+!  the GEOS-CHEM input file (bmy, 7/20/04, 8/19/10)
 !
 !  NOTES:
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
@@ -539,6 +539,7 @@
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
 !  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
 !  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
+!  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -647,6 +648,14 @@
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+
+      !=================================================================
+      ! Add safety checks for logical switches
+      !=================================================================
+#if   defined( MERRA )
+      ! Turn unzipping off for MERRA met fields
+      LUNZIP = .FALSE. 
+#endif
 
       !=================================================================
       ! Print to screen

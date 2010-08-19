@@ -2523,7 +2523,7 @@
       SEAICE10 = 0d0
 
       ! 20-30% sea ice coverage
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
       SEAICE20 = 0d0
 
@@ -2538,7 +2538,7 @@
       SEAICE40 = 0d0
 
       ! 50-60% sea ice coverage
-      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
       SEAICE50 = 0d0
 

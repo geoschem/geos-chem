@@ -123,11 +123,16 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # List of source files
-SRC = $(wildcard *.f) $(wildcard *.f90)
+SRC := $(wildcard *.f) $(wildcard *.f90)
+
+# Filter out any files if so desired
+SRC := $(filter-out merra_a1_mod.f  \
+                    merra_a3_mod.f, \
+                    $(SRC))
 
 # Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.f=.o)
-OBJ = $(TMP:.f90=.o)
+TMP := $(SRC:.f=.o)
+OBJ := $(TMP:.f90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -752,6 +757,12 @@ mercury_mod.o               : mercury_mod.f                                  \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o
+
+merra_cn_mod.f              : merra_cn_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_i6_mod.f              : merra_i6_mod.f                                 \
+                              logical_mod.o           dao_mod.o
 
 MIESCT.o                    : MIESCT.f
 
