@@ -95,6 +95,7 @@
       PUBLIC  :: ITS_TIME_FOR_EMIS
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
       PUBLIC  :: ITS_TIME_FOR_I6
@@ -171,6 +172,7 @@
 !                              for computing SUNCOS.
 !  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
 !  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
+!  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2900,10 +2902,39 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: its_time_for_a1
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read 
+!  in A1 (average 1-hr fields) and FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_A1() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  20 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! We read A1 fields every 3 hours
+      FLAG = ( MOD( NHMS, 010000 ) == 0 )
+
+      END FUNCTION ITS_TIME_FOR_A1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: its_time_for_a3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
-!  in A-3 (average 3-h fields) and FALSE otherwise. 
+!  in A3 (average 3-hr fields) and FALSE otherwise. 
 !\\
 !\\
 ! !INTERFACE:
@@ -2920,7 +2951,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read A-3 fields every 3 hours
+      ! We read A3 fields every 3 hours
       FLAG = ( MOD( NHMS, 030000 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_A3
@@ -2933,7 +2964,7 @@
 ! !IROUTINE: its_time_for_a6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
-!  in A-6 (average 6-h fields) and FALSE otherwise.
+!  in A6 (average 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -2990,7 +3021,7 @@
 ! !IROUTINE: its_time_for_i6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
-!  in I-6 (instantaneous 6-h fields) and FALSE otherwise.
+!  in I6 (instantaneous 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -3007,7 +3038,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read in I-6 fields at 00, 06, 12, 18 GMT
+      ! We read in I6 fields at 00, 06, 12, 18 GMT
       FLAG = ( MOD( NHMS, 060000 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_I6

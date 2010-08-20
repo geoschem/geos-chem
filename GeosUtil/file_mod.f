@@ -385,6 +385,7 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH 
 !  19 Aug 2010 - R. Yantosca - Remove IU_KZZ  
+!  19 Aug 2010 - R. Yantosca - Now close IU_A1
 !EOP
 !------------------------------------------------------------------------------
 !BOC

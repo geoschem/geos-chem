@@ -1,4 +1,3 @@
-! $Id: megan_mod.f,v 1.4 2010/03/09 21:44:17 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -43,11 +42,17 @@
 
       IMPLICIT NONE
       PRIVATE
+
+#     include "CMN_SIZE"                               ! Size parameters
 !
 ! !DEFINED PARAMETERS:
 ! 
-      ! Scalar
+      ! Scalars
+#if   defined( MERRA ) 
+      INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
+#else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
+#endif
       INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
       REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
@@ -137,6 +142,9 @@
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
 !                              in GET_EMMONOT_MEGAN for parallelization.
+!  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
+!  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
+!                              surface temperature is now an hourly field.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,8 +171,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -317,8 +323,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -464,8 +468,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -665,8 +667,6 @@
 ! !USES:
 !
       USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -746,8 +746,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1678,8 +1676,6 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
-
-#     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 
@@ -2169,8 +2165,6 @@
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-
-#     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 
@@ -2382,8 +2376,6 @@
 ! !USES:
 !
       USE MEGANUT_MOD     ! We use all functions from the module
-
-#     include "CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2460,8 +2452,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-#     include "CMN_SIZE" ! MAXIJ
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -2556,6 +2546,7 @@
 ! !USES:
 !
       USE A3_READ_MOD
+      USE MERRA_A3_MOD
       USE FILE_MOD,    ONLY : IU_A3
       USE JULDAY_MOD,  ONLY : CALDATE
       USE ERROR_MOD,   ONLY : ALLOC_ERR
@@ -2563,14 +2554,13 @@
       USE LOGICAL_MOD, ONLY : LUNZIP
       USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
-      
-#     include "CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
 !  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
 !  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2010 - R. Yantosca - Now reference merra_a3_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2726,12 +2716,18 @@
       ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
       G4AHEAD   = 0
 
+#elif defined( MERRA )
+
+      ! For MERRA, the A1 fields are timestamped on the half-hours:
+      ! 00:30, 01:30, 02:30, ... 23:30
+      G4AHEAD   = 003000
+
 #else
 
       ! For GEOS4, the A-3 fields are timestamped by the center of 
       ! the 3-hr period: 01:30Z, 04:30Z, 07:30Z, 10:30Z, 
       ! 13:30Z, 16:30Z, 19:30Z, 22:30Z
-      G4AHEAD   = 13000
+      G4AHEAD   = 013000
 
 #endif
       
@@ -2782,17 +2778,43 @@
          ENDIF
 
          ! Loop over 3h periods during day
-         DO J = 0, 7
+         !---------------------------------------------------------
+         ! Prior to 8/20/10:
+         ! Eliminate hardwiring; now use DAY_DIM (bmy, 8/20/10)
+         !DO J = 0, 7
+         !---------------------------------------------------------
+         DO J = 0, DAY_DIM-1  
+
+#if   defined( MERRA )
+
+            !-----------------------------
+            ! MERRA met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
 
             ! Open A-3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 30000*J + G4AHEAD )
+            CALL OPEN_MERRA_A3_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
 
             ! Read A-3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 30000*J + G4AHEAD ) 
+            CALL GET_MERRA_A3_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+
+#else
+            !-----------------------------
+            ! All other met field types!
+            ! Sfc temp is 3-hourly data
+            !-----------------------------
+
+            ! Open A-3 fields
+            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+
+            ! Read A-3 fields from disk
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+
+#endif
 
             ! Update hourly temperatures
             CALL UPDATE_T_DAY
-         ENDDO       
+         ENDDO     
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG

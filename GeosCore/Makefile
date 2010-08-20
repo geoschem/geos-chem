@@ -92,6 +92,7 @@
 #  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
+#  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -124,11 +125,6 @@ include $(ROOTDIR)/Makefile_header.mk
 
 # List of source files
 SRC := $(wildcard *.f) $(wildcard *.f90)
-
-# Filter out any files if so desired
-SRC := $(filter-out merra_a1_mod.f  \
-                    merra_a3_mod.f, \
-                    $(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.f=.o)
@@ -737,13 +733,15 @@ main.o                      : main.f                                         \
                               tropopause_mod.o        restart_mod.o          \
                               upbdflx_mod.o           uvalbedo_mod.o         \
                               vdiff_mod.o             wetscav_mod.o          \
-                              xtra_read_mod.o
+                              xtra_read_mod.o         merra_cn_mod.o         \
+                              merra_a1_mod.o          merra_a3_mod.o         \
+                              merra_i6_mod.o
 
 MATIN4.o                    : MATIN4.f
 
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o
+                              meganut_mod.o           merra_a3_mod.o
 
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
@@ -758,10 +756,16 @@ mercury_mod.o               : mercury_mod.f                                  \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o
 
-merra_cn_mod.f              : merra_cn_mod.f                                 \
+merra_a1_mod.o             : merra_a1_mod.f                                 \
                               logical_mod.o           dao_mod.o
 
-merra_i6_mod.f              : merra_i6_mod.f                                 \
+merra_a3_mod.o              : merra_a3_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_cn_mod.o              : merra_cn_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_i6_mod.o              : merra_i6_mod.f                                 \
                               logical_mod.o           dao_mod.o
 
 MIESCT.o                    : MIESCT.f

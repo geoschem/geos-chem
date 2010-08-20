@@ -17,6 +17,10 @@
 !
       IMPLICIT NONE
       PRIVATE
+
+#     include "CMN_SIZE"              ! Size parameters
+#     include "CMN_DIAG"              ! NDxx flags
+#     include "CMN_GCTM"              ! g0
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -33,6 +37,7 @@
 !
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on i6_read_mod.f
+!  20 Aug 2010 - R. Yantosca - Moved include files to top of module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -64,9 +69,9 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : FILE_EXISTS
       USE FILE_MOD,      ONLY : IU_CN
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -87,14 +92,14 @@
       INTEGER            :: IOS, IUNIT
       CHARACTER(LEN=8)   :: IDENT
       CHARACTER(LEN=255) :: GEOS_DIR
-      CHARACTER(LEN=255) :: CN_FILE, TP_FILE
+      CHARACTER(LEN=255) :: CN_FILE
       CHARACTER(LEN=255) :: PATH
 
       !=================================================================
       ! OPEN_CN_FIELDS begins here!
       !=================================================================
 
-      ! Open the file 0 GMT of each day, or on the first call
+      ! Check if it's time to open file
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
          !---------------------------
@@ -113,13 +118,13 @@
          PATH = TRIM( DATA_DIR ) // 
      &          TRIM( GEOS_DIR ) // TRIM( CN_FILE )
 
-         ! Close previously opened A-3 file
+         ! Close previously opened CN file
          CLOSE( IU_CN )
 
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_CN ) ) THEN 
             CALL ERROR_STOP( 'Could not find file!', 
-     &                       'OPEN_CN_FIELDS (merra_i6_mod.f)' )
+     &                       'OPEN_MERRA_CN_FIELDS (merra_cn_mod.f)' )
          ENDIF
 
          !---------------------------
@@ -132,7 +137,7 @@
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
                
          IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_CN, 'open_cn_fields:1' )
+            CALL IOERROR( IOS, IU_CN, 'open_merra_cn_fields:1' )
          ENDIF
 
          ! Echo info
@@ -146,7 +151,7 @@
          ! Get # of fields in file
          !---------------------------
 
-         ! Skip past the ident string
+         ! Read the IDENT string
          READ( IU_CN, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
@@ -194,9 +199,16 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      !=================================================================      
       ! Read data from disk
-      CALL READ_CN( NYMD,   NHMS, 
-     &              FRLAKE, FRLAND, FRLANDIC, FROCEAN, PHIS )
+      !=================================================================
+      CALL READ_CN( NYMD     = NYMD,   
+     &              NHMS     = NHMS, 
+     &              FRLAKE   = FRLAKE, 
+     &              FRLAND   = FRLAND, 
+     &              FRLANDIC = FRLANDIC, 
+     &              FROCEAN  = FROCEAN, 
+     &              PHIS     = PHIS      )
       
       END SUBROUTINE GET_MERRA_CN_FIELDS
 !EOC
@@ -218,13 +230,11 @@
 !
 ! !USES:
 !
+      USE DIAG_MOD,     ONLY : AD67
       USE FILE_MOD,     ONLY : IOERROR
       USE FILE_MOD,     ONLY : IU_CN
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
@@ -280,7 +290,7 @@
          ! IOS < 0: End-of-file, but make sure we have 
          ! found all I-6 fields before exiting loop!
          IF ( IOS < 0 ) THEN
-            CALL CN_CHECK( NFOUND, N_CN )
+            CALL CN_CHECK( NFOUND, N_CN_FIELDS )
             EXIT
          ENDIF
 
@@ -348,13 +358,16 @@
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PHIS )
                   NFOUND = NFOUND + 1
+
+                  ! Convert from [m2/s2] to [m]
+                  PHIS = PHIS / g0
                ENDIF
 
             !--------------------------------
             ! Field not found
             !--------------------------------
             CASE DEFAULT
-               WRITE ( 6, '(a)' ) 'Searching for next CN field!'
+               WRITE ( 6, 200 )
                
          END SELECT
 
@@ -373,7 +386,15 @@
       ENDDO
 
       ! FORMATs
- 210  FORMAT( '     - Found all ', i3, ' CN met fields for ', a )
+ 200  FORMAT( 'Searching for next CN field!'                          )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA CN met fields for ', a )
+
+      !=================================================================
+      ! ND67 diagnostic: 
+      !=================================================================
+      IF ( ND67 > 0 ) THEN
+         AD67(:,:,15) = AD67(:,:,15) + PHIS  ! Sfc geopotential [m]
+      ENDIF
 
       END SUBROUTINE READ_CN
 !EOC
@@ -408,17 +429,21 @@
 !BOC
       ! Test if N_FOUND == N_CN
       IF ( NFOUND /= N_CN ) THEN
+
+         ! Write error msg
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 'ERROR -- not enough I-6 fields found!'      
-
-         WRITE( 6, 120   ) N_CN, NFOUND
- 120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
-     &           ' were found!' )
-
-         WRITE( 6, '(a)' ) '### STOP in CN_CHECK (i6_read_mod.f)'
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) N_CN, NFOUND
+         WRITE( 6, 120   )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-         ! Deallocate arrays and stop (bmy, 10/15/02)
+         ! FORMATs
+ 100     FORMAT( 'ERROR -- not enough MERRA CN fields found!' )
+ 110     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
+     &           ' were found!'                               )
+ 120     FORMAT( '### STOP in CN_CHECK (merra_cn_mod.f)'      )
+
+         ! Deallocate arrays and stop
          CALL GEOS_CHEM_STOP
       ENDIF
 

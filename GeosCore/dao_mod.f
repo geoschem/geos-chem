@@ -1812,6 +1812,8 @@
 !  (3 ) Added TROPP (phs 11/10/06)
 !  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
+!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1823,53 +1825,101 @@
       !=================================================================
       ! COPY_I6_FIELDS begins here!
       !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 8/20/10:
+! Rewrite #if block for clarity
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Copy surface pressure
+!         PS1(I,J)   = PS2(I,J) 
+!
+!#if   !defined( GEOS_5 )
+!         ! Tropopause pressure (except for GEOS-5)
+!         TROPP1(I,J) = TROPP2(I,J)
+!#endif
+!
+!#if   defined( GEOS_3 )
+!         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
+!         ALBD1(I,J) = ALBD2(I,J)  
+!#endif
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#if   defined( GEOS_3 )
+!
+!      !=================================================================
+!      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
+!      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         UWND1(I,J,L) = UWND2(I,J,L)
+!         VWND1(I,J,L) = VWND2(I,J,L)
+!         TMPU1(I,J,L) = TMPU2(I,J,L)
+!         SPHU1(I,J,L) = SPHU2(I,J,L)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#endif
+!-----------------------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+#if   defined( GCAP )
 
-         ! Copy surface pressure
-         PS1(I,J)   = PS2(I,J) 
+      !-----------------
+      ! GCAP met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
 
-#if   !defined( GEOS_5 )
-         ! Tropopause pressure (except for GEOS-5)
-         TROPP1(I,J) = TROPP2(I,J)
+#elif defined( GEOS_3 )
+
+      !-----------------
+      ! GEOS-3 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
+      ALBD1  = ALBD2        ! I6 surface albedo      [unitless]
+      UWND1  = UWND2        ! I6 zonal wind          [m/s]
+      VWND1  = VWND2        ! I6 meridional wind     [m/s]
+      TMPU1  = TMPU2        ! I6 temperature         [K]
+      SPHU1  = SPHU2        ! I6 specific humidity   [g/kg]
+
+#elif defined( GEOS_4 )
+
+      !-----------------
+      ! GEOS-4 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
+
+#elif defined( GEOS_5 )
+
+      !-----------------
+      ! GEOS-5 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa] 
+
+#elif defined( MERRA )
+
+      !-----------------
+      ! MERRA met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      RH1    = RH2          ! I6 relative humidity   [%]
+
 #endif
 
-#if   defined( GEOS_3 )
-         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
-         ALBD1(I,J) = ALBD2(I,J)  
-#endif
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#if   defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
-      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         UWND1(I,J,L) = UWND2(I,J,L)
-         VWND1(I,J,L) = VWND2(I,J,L)
-         TMPU1(I,J,L) = TMPU2(I,J,L)
-         SPHU1(I,J,L) = SPHU2(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      ! Return to calling program
       END SUBROUTINE COPY_I6_FIELDS
 !EOC
 !------------------------------------------------------------------------------
@@ -1929,6 +1979,7 @@
 !  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
+!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2506,6 +2557,11 @@
       ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
       RH2 = 0d0
+
+      ! Evaporation of precipitating convective condensate 	
+      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+      REEVAPCN = 0d0
 
       ! Evaporation of precipitating LS & anvil condensate 	
       ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )

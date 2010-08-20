@@ -149,12 +149,18 @@
       USE MERCURY_MOD,       ONLY : PARTITIONHG
 
       ! For MERRA met fields (bmy, 8/19/10)
-      USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
+      USE MERRA_A1_MOD,      ONLY : GET_MERRA_A1_FIELDS
+      USE MERRA_A1_MOD,      ONLY : OPEN_MERRA_A1_FIELDS
+      USE MERRA_A3_MOD,      ONLY : GET_MERRA_A3_FIELDS
+      USE MERRA_A3_MOD,      ONLY : OPEN_MERRA_A3_FIELDS
       USE MERRA_CN_MOD,      ONLY : GET_MERRA_CN_FIELDS
       USE MERRA_CN_MOD,      ONLY : OPEN_MERRA_CN_FIELDS
       USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_1
       USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_2
       USE MERRA_I6_MOD,      ONLY : OPEN_MERRA_I6_FIELDS
+      USE TIME_MOD,          ONLY : GET_A1_TIME
+      USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_A1
 
       IMPLICIT NONE
       
@@ -311,15 +317,15 @@
 
       ! Open and read A-1 fields
       DATE = GET_FIRST_A1_TIME()
-!      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
-!      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
-!
-!      ! Open and read A-3 fields
-!      DATE = GET_FIRST_A3_TIME()
-!      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
-!      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
-!      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+
+      ! Open and read A-3 fields
+      DATE = GET_FIRST_A3_TIME()
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
       DATE = (/ NYMD, NHMS /)
@@ -327,16 +333,13 @@
       CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
 
-      ! Exit
-      GOTO 9999
 #else
 
       !=================================================================
       !    *****      U N Z I P   M E T   F I E L D S        *****
       !    ***** At at the start of the GEOS-Chem simulation *****
       !
-      !             Here we unzip data for the first time
-      !            for all met field products EXCEPT MERRA.
+      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
       !=================================================================
       IF ( LUNZIP ) THEN
 
@@ -394,7 +397,7 @@
       !      *****      R E A D   M E T   F I E L D S       *****
       !      ***** At the start of the GEOS-Chem simulation *****
       !
-      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data.
+      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
       !=================================================================
 
       ! Open and read A-3 fields
@@ -463,6 +466,10 @@
 #endif
 
 #endif
+
+      !=================================================================
+      !        ***** I N I T I A L I Z A T I O N  continued *****
+      !=================================================================
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
@@ -674,20 +681,56 @@
          !
          !    The MERRA archive contains hourly surface data fields.
          !==============================================================
+         IF ( ITS_TIME_FOR_A1() ) THEN
 
+            ! Get the date/time for the next A-3 data block
+            DATE = GET_A1_TIME()
+
+            ! Open & read A-3 fields
+            CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+            CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
+
+            !%%% NEED TO UPDATE FOR MERRA %%%
+            ! Update daily mean temperature archive for MEGAN biogenics
+            !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+         ENDIf
 
          !==============================================================
          !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
          !
          !     The MERRA archive contains 3-hourly 3-D data fields.
          !==============================================================
+         IF ( ITS_TIME_FOR_A3() ) THEN
+            
+            ! Get the date/time for the next A-6 data block
+            DATE = GET_A3_TIME()
 
+            ! Open and read A-6 fields
+            CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+            CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
+
+            ! Since CLDTOPS is an A-3 field, update the
+            ! lightning NOx emissions [molec/box/6h]
+            IF ( LLIGHTNOX ) CALL LIGHTNING
+         ENDIF
 
          !==============================================================
          !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
          !
          !    The MERRA archive contains 6-hourly instantaneous data.
          !==============================================================
+         IF ( ITS_TIME_FOR_I6() ) THEN
+
+            ! Get the date/time for the next I-6 data block
+            DATE = GET_I6_TIME()
+
+            ! Open and read files
+            CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
+            CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+
+            ! Compute avg pressure at polar caps 
+            CALL AVGPOLE( PS2 )
+         ENDIF
 
 #else
 

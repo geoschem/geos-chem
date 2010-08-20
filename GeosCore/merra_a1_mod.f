@@ -1,261 +1,88 @@
-! $Id: a3_read_mod.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
-      MODULE A3_READ_MOD
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/15/09)
-! 
-!  Module Routines:
-!  =========================================================================
-!  (1 ) UNZIP_A3_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) DO_OPEN_A3      : Returns TRUE if it's time to read A-3 fields
-!  (3 ) OPEN_A3_FIELDS  : Opens met field files residing in the temp dir
-!  (4 ) GET_A3_FIELDS   : Wrapper for routine READ_A3
-!  (5 ) GET_N_A3        : Returns # of A-3 fields for each DAO data set 
-!  (6 ) CHECK_TIME      : Tests if A-3 met field timestamps equal current time
-!  (7 ) READ_A3         : Reads A-3 fields from disk
-!  (8 ) ARCHIVE_ND67_1D : Archives 1-D data arrays into the ND67 diagnostic
-!  (9 ) A3_CHECK        : Checks if we have found all of the A-3 fields
-! 
-!  GEOS-CHEM modules referenced by a3_read_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f     : Module containing NaN and other error check routines
-!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches 
-!  (7 ) file_mod.f      : Module containing file unit #'s and error checks
-!  (8 ) time_mod.f      : Module containing routines for computing time & date
-!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
+! !MODULE: merra_a1_mod
 !
-!  NOTES:
-!  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
-!  (2 ) Now can read from either zipped or unzipped files. (bmy, 12/11/03)
-!  (3 ) Now skips past the GEOS-4 met field ident string (bmy, 12/12/03)
-!  (4 ) Now references "unix_cmds_mod.f", "directory_mod.f", and 
-!        "logical_mod.f" (bmy, 7/20/04)
-!  (5 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
-!  (6 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Fixed typos for GCAP fields and ND67 diagnostics (bmy, 2/9/06)
-!  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (10) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
-!  (11) Extra modifications for GEOS-5 met fields (bmy, 1/17/07)
-!  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
-!  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!******************************************************************************
+! !DESCRIPTION: Module MERRA\_A1\_MOD contains subroutines for reading the 
+!  1-hour time averaged (aka "A1") fields from the MERRA data archive.
+!\\
+!\\
+! !INTERFACE: 
+!
+      MODULE MERRA_A1_MOD
+!
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "a3_read_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: GET_MERRA_A1_FIELDS
+      PUBLIC  :: OPEN_MERRA_A1_FIELDS
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: A1_CHECK
+      PRIVATE :: DO_OPEN_A1
+      PRIVATE :: READ_A1
+!
+! !REMARKS:
+!  Don't bother with the file unzipping anymore.
+!
+! !REVISION HISTORY:
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
+      INTEGER :: N_A1_FIELDS    ! # of fields in the file
 
-      ! ... except these routines
-      PUBLIC :: ARCHIVE_ND67_1D 
-      PUBLIC :: GET_A3_FIELDS
-      PUBLIC :: OPEN_A3_FIELDS
-      PUBLIC :: UNZIP_A3_FIELDS
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Number of A3 fields in the file
-      INTEGER :: N_A3_FIELDS
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE UNZIP_A3_FIELDS( OPTION, NYMD )
-!
-!*****************************************************************************
-!  Subroutine UNZIP_A3_FIELDS invokes a FORTRAN system call to uncompress
-!  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
-!  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 8/4/06)
-!
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) OPTION (CHAR*(*)) : Option
-!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-3 file to be unzipped (optional)
-!
-!  NOTES:
-!  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
-!  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
-!        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
-!  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
-!        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
-!        them (bmy, 7/20/04)
-!  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!*****************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-#     include "CMN_SIZE"
-
-      ! Arguments
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD
-
-      ! Local variables
-      CHARACTER(LEN=255)            :: A3_STR,     GEOS_DIR
-      CHARACTER(LEN=255)            :: A3_FILE_GZ, A3_FILE
-      CHARACTER(LEN=255)            :: UNZIP_BG,   UNZIP_FG
-      CHARACTER(LEN=255)            :: REMOVE_ALL, REMOVE_DATE
-
-      !=================================================================
-      ! UNZIP_A3_FIELDS begins here!
-      !=================================================================
-      IF ( PRESENT( NYMD ) ) THEN
-
-#if   defined( GEOS_3 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_5 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GCAP )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
-         A3_STR   = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#endif
-
-         ! Replace date tokens
-         CALL EXPAND_DATE( GEOS_DIR, NYMD, 000000 )
-         CALL EXPAND_DATE( A3_STR,   NYMD, 000000 )
-
-         ! Location of zipped A-3 file in data dir 
-         A3_FILE_GZ  = TRIM( DATA_DIR   ) // TRIM( GEOS_DIR   ) // 
-     &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
-
-         ! Location of unzipped A-3 file in temp dir 
-         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )     
-         
-         ! Remove A-3 files for this date from temp dir
-         REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
-     &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   
-
-         !==============================================================
-         ! Define the foreground and background UNZIP commands
-         !==============================================================
-
-         ! Foreground unzip
-         UNZIP_FG = TRIM( UNZIP_CMD ) // ' ' // TRIM( A3_FILE_GZ ) // 
-     &              TRIM( REDIRECT  ) // ' ' // TRIM( A3_FILE    )  
-
-         ! Background unzip
-         UNZIP_BG  = TRIM( UNZIP_FG ) // TRIM( BACKGROUND )
-      ENDIF
-
-      !=================================================================
-      ! Define command to remove all A-3 files from the TEMP dir
-      !=================================================================
-      REMOVE_ALL = TRIM( REMOVE_CMD ) // ' '    // TRIM( TEMP_DIR   ) // 
-     &             TRIM( WILD_CARD  ) // '.a3.' // TRIM( WILD_CARD  ) 
-
-      !=================================================================
-      ! Perform an F90 system call to do the desired operation
-      !=================================================================
-      SELECT CASE ( TRIM( OPTION ) )
-         
-         ! Unzip A-3 fields in the Unix foreground
-         CASE ( 'unzip foreground' )
-            WRITE( 6, 100 ) TRIM( A3_FILE_GZ )
-            CALL SYSTEM( TRIM( UNZIP_FG ) )
-
-         ! Unzip A-3 fields in the Unix background
-         CASE ( 'unzip background' )
-            WRITE( 6, 100 ) TRIM( A3_FILE_GZ )
-            CALL SYSTEM( TRIM( UNZIP_BG ) )
-
-         ! Remove A-3 field for this date in temp dir
-         CASE ( 'remove date' )
-            WRITE( 6, 110 ) TRIM( A3_FILE )
-            CALL SYSTEM( TRIM( REMOVE_DATE ) )
-            
-         ! Remove all A-3 fields in temp dir
-         CASE ( 'remove all' )
-            WRITE( 6, 120 ) TRIM( REMOVE_ALL )
-            CALL SYSTEM( TRIM( REMOVE_ALL ) )
-
-         ! Error -- bad option!
-         CASE DEFAULT
-            CALL ERROR_STOP( 'Invalid value for OPTION!', 
-     &                       'UNZIP_A3_FIELDS (a3_read_mod.f)' )
-            
-      END SELECT
-
-      ! FORMAT strings
- 100  FORMAT( '     - Unzipping: ', a )
- 110  FORMAT( '     - Removing: ', a )
- 120  FORMAT( '     - About to execute command: ', a )
-
-      ! Return to calling program
-      END SUBROUTINE UNZIP_A3_FIELDS
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
-
-      FUNCTION DO_OPEN_A3( NYMD, NHMS ) RESULT( DO_OPEN )
+!BOP
 !
-!******************************************************************************
-!  Function DO_OPEN_A3 returns TRUE if is time to open the A-3 met field file
-!  or FALSE otherwise.  This prevents us from opening a file which has already
-!  been opened. (bmy, 6/23/03, 5/25/05)
+! !IROUTINE: do_open_a1
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD 
-!  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for A-3 file open
+! !DESCRIPTION: Function DO\_OPEN\_A1 returns TRUE if is time to open the A1 
+!  met field file or FALSE otherwise.  This prevents us from opening a file 
+!  which has already been opened. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
+      FUNCTION DO_OPEN_A1( NYMD, NHMS ) RESULT( DO_OPEN )
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-
-      ! Local variables
-      LOGICAL             :: DO_OPEN
-      LOGICAL, SAVE       :: FIRST    = .TRUE.
-      INTEGER, SAVE       :: LASTNYMD = -1
-      INTEGER, SAVE       :: LASTNHMS = -1
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD      ! YYYYMMDD and hhmmss to be tested
+      INTEGER, INTENT(IN) :: NHMS      !  to see if it's time to open A1 file
+!
+! !RETURN VALUE:
+!
+      LOGICAL             :: DO_OPEN   ! = T if it is time to open the file
+!
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST    = .TRUE.
+      INTEGER, SAVE :: LASTNYMD = -1
+      INTEGER, SAVE :: LASTNHMS = -1
       
       !=================================================================
-      ! DO_OPEN_A3 begins here!
+      ! DO_OPEN_A1 begins here!
       !=================================================================
 
       ! Initialize
@@ -267,23 +94,11 @@
          GOTO 999
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
-      ! Open A-3 file if it's 00:00 GMT, or on the first call
-      IF ( NHMS == 000000 .or. FIRST ) THEN
+      ! Open A1 file if it's 00:30 GMT,  or on the first call
+      IF ( NHMS == 003000 .or. FIRST ) THEN
          DO_OPEN = .TRUE. 
          GOTO 999
       ENDIF
-
-#else
-
-      ! Open A-3 file if it's 01:30 GMT,  or on the first call
-      IF ( NHMS == 013000 .or. FIRST ) THEN
-         DO_OPEN = .TRUE. 
-         GOTO 999
-      ENDIF
-
-#endif
 
       !=================================================================
       ! Reset quantities for next call
@@ -293,198 +108,172 @@
       LASTNHMS = NHMS
       FIRST    = .FALSE.
 
-      ! Return to calling program
-      END FUNCTION DO_OPEN_A3
-
+      END FUNCTION DO_OPEN_A1
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
-!  
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS timestamps for A-3 file
+! !IROUTINE: 
 !
-!  NOTES:
-!  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
-!  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
-!  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
-!        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
-!        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
-!  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
-!        refers to a valid file on disk (bmy, 3/23/05)
-!  (6 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)  
-!  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
-!******************************************************************************
-!      
-      ! References to F90 modules
+! !DESCRIPTION: Subroutine OPEN\_MERRA\_A1_FIELDS opens the A1 met fields 
+!  file for date NYMD and time NHMS. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS )
+!
+! !USES:
+!
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
+      USE FILE_MOD,      ONLY : FILE_EXISTS
+      USE FILE_MOD,      ONLY : IU_A1
+      USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
-
-#     include "CMN_SIZE"      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
-
-      ! Local variables
-      LOGICAL                :: IT_EXISTS
-      INTEGER                :: IOS
-      CHARACTER(LEN=2)       :: DUM
-      CHARACTER(LEN=8)       :: IDENT
-      CHARACTER(LEN=255)     :: A3_FILE
-      CHARACTER(LEN=255)     :: GEOS_DIR
-      CHARACTER(LEN=255)     :: PATH
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
+      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+! 
+! !REVISION HISTORY:
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: IT_EXISTS
+      INTEGER            :: IOS
+      CHARACTER(LEN=2)   :: DUM
+      CHARACTER(LEN=8)   :: IDENT
+      CHARACTER(LEN=255) :: A1_FILE
+      CHARACTER(LEN=255) :: GEOS_DIR
+      CHARACTER(LEN=255) :: PATH
 
       !=================================================================
-      ! OPEN_A3_FIELDS begins here!
+      ! OPEN_MERRA_A1_FIELDS begins here!
       !=================================================================
- 
-      ! Open A-3 fields at the proper time, or on the first call
-      IF ( DO_OPEN_A3( NYMD, NHMS ) ) THEN
 
-#if   defined( GEOS_3 )
+      ! Check if it's time to open file
+      IF ( DO_OPEN_A1( NYMD, NHMS ) ) THEN
 
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_3_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_4 )
+         !---------------------------
+         ! Initialization
+         !---------------------------
 
          ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_4_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GEOS_5 )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GEOS_5_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#elif defined( GCAP )
-
-         ! Strings for directory & filename
-         GEOS_DIR = TRIM( GCAP_DIR )
-         A3_FILE  = 'YYYYMMDD.a3.' // GET_RES_EXT()
-
-#endif
+         GEOS_DIR = TRIM( MERRA_DIR )
+         A1_FILE  = 'YYYYMMDD.a1.' // GET_RES_EXT()
 
          ! Replace date tokens
-         CALL EXPAND_DATE( A3_FILE,  NYMD, NHMS )
+         CALL EXPAND_DATE( A1_FILE,  NYMD, NHMS )
          CALL EXPAND_DATE( GEOS_DIR, NYMD, NHMS )
 
-         ! If unzipping, open GEOS-4 file in TEMP dir
-         ! If not unzipping, open GEOS-4 file in DATA dir
-         IF ( LUNZIP ) THEN
-            PATH = TRIM( TEMP_DIR ) // TRIM( A3_FILE )
-         ELSE
-            PATH = TRIM( DATA_DIR ) // 
-     &             TRIM( GEOS_DIR ) // TRIM( A3_FILE )
-         ENDIF
+         ! Full file path
+         PATH = TRIM( DATA_DIR ) // 
+     &          TRIM( GEOS_DIR ) // TRIM( A1_FILE )
 
          ! Close previously opened A-3 file
-         CLOSE( IU_A3 )
+         CLOSE( IU_A1 )
 
          ! Make sure the file unit is valid before we open the file
-         IF ( .not. FILE_EXISTS( IU_A3 ) ) THEN
+         IF ( .not. FILE_EXISTS( IU_A1 ) ) THEN
             CALL ERROR_STOP( 'Could not find file!', 
-     &                       'OPEN_A3_FIELDS (a3_read_mod.f)' )
+     &                       'OPEN_MERRA_A1_FIELDS (merra_a1_mod.f)' )
          ENDIF
 
+         !---------------------------
+         ! Open the A1 file
+         !---------------------------
+
          ! Open the file
-         OPEN( UNIT   = IU_A3,         FILE   = TRIM( PATH ),
+         OPEN( UNIT   = IU_A1,         FILE   = TRIM( PATH ),
      &         STATUS = 'OLD',         ACCESS = 'SEQUENTIAL',  
      &         FORM   = 'UNFORMATTED', IOSTAT = IOS )
                
          IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:1' )
+            CALL IOERROR( IOS, IU_A1, 'open_merra_a1_fields:1' )
          ENDIF
 
          ! Echo info
          WRITE( 6, 100 ) TRIM( PATH )
  100     FORMAT( '     - Opening: ', a )
          
-#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( GCAP )
-
-         ! Skip past the ident string
-         READ( IU_A3, IOSTAT=IOS ) IDENT
+         !---------------------------
+         ! Get # of fields in file
+         !---------------------------
+         
+         ! Read the IDENT string
+         READ( IU_A1, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
-            CALL IOERROR( IOS, IU_A3, 'open_a3_fields:2' )
+            CALL IOERROR( IOS, IU_A1, 'open_merra_a1_fields:2' )
          ENDIF
 
          ! The last 2 digits of the ident string
          ! is the # of fields contained in the file
-         READ( IDENT(7:8), '(i2.2)' ) N_A3_FIELDS        
+         READ( IDENT(7:8), '(i2.2)' ) N_A1_FIELDS        
         
-#endif
-
       ENDIF
 
-      ! Return to calling program
-      END SUBROUTINE OPEN_A3_FIELDS
-
+      END SUBROUTINE OPEN_MERRA_A1_FIELDS
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine GET_A3_FIELDS is a wrapper for routine READ_A3.  GET_A3_FIELDS
-!  calls READ_A3 properly for reading GEOS-3, GEOS-4, GEOS-5, or GCAP
-!  met data sets. (bmy, 6/23/03, 1/17/07)
+! !IROUTINE: get_merra_a1_fields 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS of A-3 fields to be read from disk
+! !DESCRIPTION: Subroutine GET\_MERRA\_A1\_FIELDS is a wrapper for routine
+!  READ\_A1.  
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) Now save RADSWG to the RADSWG array (instead of RADIAT).  Now save
-!        CLDFRC to the CLDFRC array (instead of CFRAC).  Now get RADLWG, 
-!        SNOW arrays.  Also updated comments. (bmy, 12/9/03)
-!  (2 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!  (3 ) Bug fix: replace RADSWG in call to READ_A3 for GCAP met fields.
-!        (bmy, 2/9/06)
-!  (4 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (5 ) Now read PARDF, PARDR for GCAP met fields (swu, bmy, 10/4/06)
-!  (6 ) Now read SNOW and GETWETTOP for GCAP met fields (swu, phs, 11/15/06)
-!  (7 ) Now read extra fields for GEOS-5 (bmy, 1/17/07)
-!  (8 ) Now read EFLUX field for non-local PBL scheme (only GEOS5).
-!        (ccc, 5/14/09)
-!  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
-!        (kjw, 8/18/09)
-!******************************************************************************
+      SUBROUTINE GET_MERRA_A1_FIELDS( NYMD, NHMS )
 !
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
+! !USES:
+!
+      USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
+      USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
+      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      RADLWG
+      USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
+      USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
+      USE DAO_MOD, ONLY : SEAICE00, SEAICE10, SEAICE20, SEAICE30
+      USE DAO_MOD, ONLY : SEAICE40, SEAICE50, SEAICE60, SEAICE70
+      USE DAO_MOD, ONLY : SEAICE80, SEAICE90, SLP,      SNODP
+      USE DAO_MOD, ONLY : SNOMAS,   RADSWG,   TROPP,    TS
+      USE DAO_MOD, ONLY : TSKIN,    U10M,     USTAR,    V10M
+      USE DAO_MOD, ONLY : Z0 
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-
-      ! Local variables
-      INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
+#     include "CMN_SIZE"            ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD 
+      INTEGER, INTENT(IN) :: NHMS   !  and hhmmss of data to read from disk
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE :: LASTNYMD = -1
+      INTEGER, SAVE :: LASTNHMS = -1
 
       !=================================================================
-      ! GET_A3_FIELDS begins here!
+      ! Initialization
       !=================================================================
 
       ! Skip over previously-read A-3 fields
@@ -495,859 +284,725 @@
          RETURN
       ENDIF
 
-#if   defined( GEOS_3 ) 
-
+      !=================================================================      
+      ! Read data from disk
       !=================================================================
-      ! For GEOS-3, read the following fields:
-      !    HFLUX, RADSWG, PREACC, PRECON, USTAR, 
-      !    Z0,    PBL,    CLDFRC, U10M,   V10M
-      !=================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     CLDFRC=CLDFRC,  
-     &              HFLUX=HFLUX,   PBL=PBL,       PREACC=PREACC, 
-     &              PRECON=PRECON, RADSWG=RADSWG, TS=TS,
-     &              U10M=U10M,     USTAR=USTAR,   V10M=V10M, 
-     &              Z0=Z0 )              
-
-#elif defined( GEOS_4 )
-
-      !================================================================
-      ! For GEOS-4, read the following fields:
-      !
-      !    ALBEDO, CLDFRC, HFLUX,  GWETTOP, PARDF,  PARDR, 
-      !    PBLH,   PREACC, PRECON, RADLWG,  RADSWG, SNOW,  
-      !    T2M,    TSKIN,  U10M,   USTAR,   V10M,   Z0 
-      !
-      ! NOTES: 
-      ! (1 ) ALBEDO is an A-3 field in GEOS-4.
-      ! (2 ) T2M is used as a proxy for TS in GEOS-4.
-      !================================================================
-      CALL READ_A3( NYMD=NYMD,       NHMS=NHMS,     
-     &              ALBEDO=ALBD,     CLDFRC=CLDFRC, HFLUX=HFLUX,   
-     &              GWETTOP=GWETTOP, PARDF=PARDF,   PARDR=PARDR,  
-     &              PBL=PBL,         PREACC=PREACC, PRECON=PRECON, 
-     &              RADLWG=RADLWG,   RADSWG=RADSWG, SNOW=SNOW,  
-     &              TS=TS,           TSKIN=TSKIN,   U10M=U10M,       
-     &              USTAR=USTAR ,    V10M=V10M,     Z0=Z0 )
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! For GEOS-5, read the following fields:
-      !
-      !    ALBEDO, CLDFRC, EVAP,   GRN,    GWETROOT, GWETTOP, HFLUX, 
-      !    LAI,    PARDF,  PARDR,  PBLH,   PREACC,   PRECON,  PRECSNO,
-      !    RADLWG, RADSWG, SNODP,  SNOMAS, T2M,      TROPP,   TSKIN,   
-      !    U10M,   USTAR,  V10M,   Z0,
-      !    FRLAND, FRLANDIC,      FROCEAN,          FRLAKE
-      !
-      !=================================================================
-      CALL READ_A3( NYMD=NYMD,         NHMS=NHMS,       ALBEDO=ALBD,   
-     &              CLDFRC=CLDFRC,     EVAP=EVAP,       GRN=GRN,       
-     &              GWETROOT=GWETROOT, GWETTOP=GWETTOP, HFLUX=HFLUX,   
-     &              LAI=LAI,           PARDF=PARDF,     PARDR=PARDR,       
-     &              PBL=PBL,           PREACC=PREACC,   PRECON=PRECON, 
-     &              PRECSNO=PRECSNO,   RADLWG=RADLWG,   RADSWG=RADSWG, 
-     &              SNODP=SNODP,       SNOMAS=SNOMAS,   TROPP=TROPP,   
-     &              TS=TS,             TSKIN=TSKIN,     U10M=U10M,     
-     &              USTAR=USTAR,       V10M=V10M,       Z0=Z0, 
-     &              EFLUX=EFLUX,       FRLAND=FRLAND,   FROCEAN=FROCEAN, 
-     &              FRLAKE=FRLAKE,     FRLANDIC=FRLANDIC )
-
-#elif defined( GCAP )
-
-      !================================================================
-      ! For GCAP, read the following fields:
-      !
-      !    ALBEDO, GETWETTOP, MOLENGTH, OICE,  PARDF, PARDR, PBL,
-      !    PREACC, PRECON,    RADSWG,   SNICE, SNOW,  TS,    U10M,  
-      !    USTAR,  V10M
-      !
-      ! NOTES: 
-      !================================================================
-      CALL READ_A3( NYMD=NYMD,     NHMS=NHMS,     
-     &              ALBEDO=ALBD,   GWETTOP=GWETTOP,   MOLENGTH=MOLENGTH,      
-     &              OICE=OICE,     PARDF=PARDF,       PARDR=PARDR,
-     &              PBL=PBL,       PREACC=PREACC,     PRECON=PRECON,
-     &              RADSWG=RADSWG, SNICE=SNICE,       SNOW=SNOW, 
-     &              TS=TS,         U10M=U10M,         USTAR=USTAR,
-     &              V10M=V10M  )
-
-      ! Convert [m] to [mm]
-      SNOW = SNOW*1000.D0
-
-#endif
+      CALL READ_A1( NYMD     = NYMD, 
+     &              NHMS     = NHMS,
+     &              ALBEDO   = ALBD,
+     &              CLDTOT   = CLDFRC,   
+     &              EFLUX    = EFLUX,    
+     &              EVAP     = EVAP,
+     &              FRSEAICE = FRSEAICE,
+     &              FRSNO    = FRSNO, 
+     &              GRN      = GRN,      
+     &              GWETROOT = GWETROOT,
+     &              GWETTOP  = GWETTOP, 
+     &              HFLUX    = HFLUX,  
+     &              LAI      = LAI,
+     &              LWGNT    = RADLWG,
+     &              PARDF    = PARDF,
+     &              PARDR    = PARDR,
+     &              PBLH     = PBL,
+     &              PRECANV  = PREANV,   
+     &              PRECTOT  = PREACC,  
+     &              PRECCON  = PRECON, 
+     &              PRECLSC  = PRELSC,   
+     &              PRECSNO  = PRECSNO,
+     &              SEAICE00 = SEAICE00,
+     &              SEAICE10 = SEAICE10,
+     &              SEAICE20 = SEAICE20,
+     &              SEAICE30 = SEAICE30,
+     &              SEAICE40 = SEAICE40,
+     &              SEAICE50 = SEAICE50,
+     &              SEAICE60 = SEAICE60,
+     &              SEAICE70 = SEAICE70,
+     &              SEAICE80 = SEAICE80,
+     &              SEAICE90 = SEAICE90,
+     &              SLP      = SLP,
+     &              SNODP    = SNODP,
+     &              SNOMAS   = SNOMAS,
+     &              SWGNT    = RADSWG,
+     &              TROPPT   = TROPP,
+     &              T2M      = TS,
+     &              TS       = TSKIN,
+     &              U10M     = U10M,
+     &              USTAR    = USTAR,
+     &              V10M     = V10M,
+     &              Z0M      = Z0        )
 
       ! Save NYMD, NHMS for next call
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-      ! Return to MAIN program
-      END SUBROUTINE GET_A3_FIELDS
-
+      END SUBROUTINE GET_MERRA_A1_FIELDS
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION GET_N_A3( NYMD ) RESULT( N_A3 )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Function GET_N_A3 returns the number of A-3 fields per met data set
-!  (bmy, 6/23/03, 1/17/07) 
+! !IROUTINE: read_a1
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in A-3 fields
+! !DESCRIPTION: Subroutine READ_A1 reads MERRA 1-hour time averaged ("A1") 
+!  met fields from disk.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) GEOS-4/fvDAS now has 19 A-3 fields; we added LAI, RADLWG, SNOW.
-!        (bmy, 12/9/03)
-!  (2 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
-!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (4 ) Increase # of fields for GCAP from 12 to 16 (swu, bmy, 10/4/06)
-!  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
-!  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
-!******************************************************************************
+      SUBROUTINE READ_A1( NYMD,     NHMS, 
+     &                    ALBEDO,   CLDTOT,   EFLUX,    EVAP,    
+     &                    FRSEAICE, FRSNO,    GRN,      GWETROOT, 
+     &                    GWETTOP,  HFLUX,    LAI,      LWGNT,   
+     &                    PARDF,    PARDR,    PBLH,     PRECANV,  
+     &                    PRECTOT,  PRECCON,  PRECLSC,  PRECSNO,  
+     &                    SEAICE00, SEAICE10, SEAICE20, SEAICE30, 
+     &                    SEAICE40, SEAICE50, SEAICE60, SEAICE70, 
+     &                    SEAICE80, SEAICE90, SLP,      SNODP,    
+     &                    SNOMAS,   SWGNT,    TROPPT,   T2M,      
+     &                    TS,       U10M,     USTAR,    V10M,     
+     &                    Z0M                                     )
 !
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-
-      ! Function value
-      INTEGER             :: N_A3
-
-      !=================================================================
-      ! GET_N_A3 begins here!
-      !=================================================================
-#if   defined( GEOS_3 )
-
-      ! GEOS-3 for 1998, 1999 has 14 A-3 fields per file
-      ! GEOS-3 for 2000+      has 11 A-3 fields per file
-      SELECT CASE ( NYMD / 10000 )
-         CASE ( 1998, 1999 )
-            N_A3 = 14
-
-         CASE DEFAULT
-            N_A3 = 11
-      
-      END SELECT
-
-#elif defined( GEOS_4 )
-
-      ! GEOS-4 has 19 A-3 fields
-      N_A3 = 19
-
-#elif defined( GEOS_5 )
-
-      ! GEOS-5 has 33 A-3 fields (only 30 used in GEOS-Chem)
-      N_A3 = 33
-
-#elif defined( GCAP )
-      
-      ! GCAP has 16 fields
-      N_A3 = 16
-
-#endif
-
-      ! Return to calling program
-      END FUNCTION GET_N_A3
-
-!---------------------------------------------------------------------------
-
-      FUNCTION CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) RESULT( ITS_TIME )
+! !USES:
 !
-!******************************************************************************
-!  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
-!  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/23/03, 8/4/06)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER) : YYYYMMDD at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER) : HHMMSS   at which A-3 field is to be read
-!
-!  NOTES:
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
-      
-      ! Function value
-      LOGICAL             :: ITS_TIME
-
-      !=================================================================
-      ! CHECK_TIME begins here!
-      !=================================================================
-      IF ( XYMD == NYMD .AND. XHMS == NHMS ) THEN
-         ITS_TIME = .TRUE.
-      ELSE
-         ITS_TIME = .FALSE.
-      ENDIF
-
-      ! Return to calling program
-      END FUNCTION CHECK_TIME
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE READ_A3( NYMD,    NHMS, 
-     &                    ALBEDO,  CLDFRC, EVAP,   GRN,      GWETROOT,
-     &                    GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE,   
-     &                    PARDF,   PARDR,  PBL,    PREACC,   PRECON,  
-     &                    PRECSNO, RADLWG, RADSWG, RADSWT,   SNICE,    
-     &                    SNODP,   SNOMAS, SNOW,   TROPP,    TS,       
-     &                    TSKIN,   U10M,   USTAR,  V10M,     Z0,
-     &                    EFLUX,   FRLAND, FRLAKE, FROCEAN,  FRLANDIC )
-!
-!******************************************************************************
-!  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 10/15/09)
-! 
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) NYMD     : YYYYMMDD
-!  (2 ) NHMS     :  and HHMMSS of A-3 met fields to be accessed 
-!
-!  A-3 Met Fields as Output:
-!  ============================================================================
-!  (1 ) ALBEDO   : (2-D) GMAO surface albedo at 10 m            [unitless]
-!  (2 ) CLDFRC   : (2-D) GMAO column cloud fraction @ ground    [unitless]
-!  (3 ) EVAP     : (2-D) GMAO evapotranspiration flux 
-!  (4 ) GRN      : (2-D) GMAO greenness index
-!  (5 ) GWETROOT : (2-D) GMAO root soil wetness                 [unitless]
-!  (6 ) GWETTOP  : (2-D) GMAO topsoil wetness                   [unitless]
-!  (7 ) HFLUX    : (2-D) GMAO sensible heat flux                [W/m2] 
-!  (8 ) LAI      : (2-D) GMAO leaf area index                   [m2/m2]
-!  (9 ) MOLENGTH : (2-D) GCAP Monin-Obhukov length              [m]
-!  (10) OICE     : (2-D) GCAP fraction of ocean ice             [unitless]
-!  (11) PARDF    : (2-D) GMAO photosyn active diffuse radiation [W/m2]
-!  (12) PARDR    : (2-D) GMAO photosyn active direct radiation  [W/m2]
-!  (13) PBL      : (2-D) GMAO planetary boundary layer depth    [mb] 
-!  (14) PREACC   : (2-D) GMAO accumulated precip @ ground       [mm H2O/day]
-!  (15) PRECON   : (2-D) GMAO convective  precip @ ground       [mm H2O/day]
-!  (16) PRECSNO  : (2-D) GMAO "snow" precip @ ground            
-!  (17) RADLWG   : (2-D) GMAO upward LW flux @ ground           [W/m2]
-!  (18) RADSWG   : (2-D) GMAO downward SW flux @ ground         [W/m2]
-!  (19) RADSWT   : (2-D) GMAO downward SW flux @ atm top        [W/m2]
-!  (20) SNICE    : (2-D) GCAP fraction of snow/ice              [unitless]
-!  (21) SNODP    : (2-D) GMAO GEOS-5 geometric snow depth       [m]
-!  (22) SNOMAS   : (2-D) GMAO GEOS-5 H2O equiv snow depth       [m]
-!  (23) SNOW     : (2-D) GMAO snow depth (H2O equivalent)       [mm H2O]
-!  (24) TROPP    : (2-D) GMAO tropopause pressure               [hPa]
-!  (25) TS       : (2-D) GMAO surface air temperature           [K]
-!  (26) TSKIN    : (2-D) GMAO radiance temperature              [K]
-!  (27) USTAR    : (2-D) GMAO friction velocity                 [m/s]
-!  (28) U10M     : (2-D) GMAO U-wind at 10 m                    [m/s]
-!  (29) V10M     : (2-D) GMAO V-wind at 10 m                    [m/s]
-!  (30) Z0       : (2-D) GMAO roughness height                  [m] 
-!  (31) EFLUX    : (2-D) GMAO latent heat flux                  [W/m2]
-!  (32) FRLAND   : (2-D) GMAO fraction of land                  [unitless]
-!  (33) FROCEAN  : (2-D) GMAO fraction of ocean                 [unitless]
-!  (34) FRLANDIC : (2-D) GMAO fraction of land ice              [unitless]
-!  (35) FRLAKE   : (2-D) GMAO fraction of lake water            [unitless]
-!
-!  NOTES:
-!  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
-!        date/time output. (bmy, 10/28/03)
-!  (2 ) RADSWG, CLDFRC, USTAR, and Z0. are now 2-D arrays.  Also added RADLWG 
-!        and SNOW arrays via the arg list.  Now skip over LAI. (bmy, 12/9/03)
-!  (3 ) Now modified for GEOS-5 and GCAP met fields.  Added GCAP MOLENGTH,
-!        SNICE, OICE optional arguments. (swu, bmy, 5/25/05)
-!  (4 ) Fixed typo in the ND67 diagnostic for RADSWG (swu, bmy, 2/9/06)
-!  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (6 ) Add "PARDIF", "PARDIR" to case statement for GCAP (swu, bmy, 10/4/06)
-!  (7 ) Add EVAP, GRN, GWETROOT, LAI, PRECSNO, SNODP, SNOMAS, and TROPP as 
-!        optional arguments.  Also update the CASE statement accordingly for 
-!        GEOS-5 fields.  Convert GEOS-5 PRECTOT and PRECCON fields from
-!        [kg/m2/s] to [mm/day] for backwards compatibility. (bmy, 1/17/07)
-!  (8 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
-!  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
-!  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
-!  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_A3
-      USE TIME_MOD,     ONLY : SET_CT_A3,   TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_TO_1D
+      USE FILE_MOD,     ONLY : IOERROR
+      USE FILE_MOD,     ONLY : IU_A1
+      USE TIME_MOD,     ONLY : SET_CT_A1
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! ND67
+#     include "CMN_SIZE"                             ! Size parameters
+#     include "CMN_DIAG"                             ! ND67 flag
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: NYMD                   ! YYYYMMDD and hhmmss     
+      INTEGER, INTENT(IN)  :: NHMS                   !  of data to read
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: ALBEDO  (IIPAR,JJPAR)  ! Sfc albedo [unitless]
+      REAL*8,  INTENT(OUT) :: CLDTOT  (IIPAR,JJPAR)  ! Column cld fraction
+      REAL*8,  INTENT(OUT) :: EFLUX   (IIPAR,JJPAR)  ! Latent heat flux [W/m2]
+      REAL*8,  INTENT(OUT) :: EVAP    (IIPAR,JJPAR)  ! Surface evap [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: FRSEAICE(IIPAR,JJPAR)  ! Sfc sea ice fraction
+      REAL*8,  INTENT(OUT) :: FRSNO   (IIPAR,JJPAR)  ! Sfc snow fraction
+      REAL*8,  INTENT(OUT) :: GRN     (IIPAR,JJPAR)  ! Greenness fraction
+      REAL*8,  INTENT(OUT) :: GWETROOT(IIPAR,JJPAR)  ! Root soil wetness [frac]
+      REAL*8,  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
+      REAL*8,  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
+      REAL*8,  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL*8,  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
+      REAL*8,  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
+      REAL*8,  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
+      REAL*8,  INTENT(OUT) :: PBLH    (IIPAR,JJPAR)  ! PBL height [m]
+      REAL*8,  INTENT(OUT) :: PRECANV (IIPAR,JJPAR)  ! Anv prec @ sfc [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: PRECTOT (IIPAR,JJPAR)  ! Tot prec @ sfc [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: PRECCON (IIPAR,JJPAR)  ! CV prec @ sfc [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: PRECLSC (IIPAR,JJPAR)  ! LS prec @ sfc [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: PRECSNO (IIPAR,JJPAR)  ! Snow precip [kg/m2/s]
+      REAL*8,  INTENT(OUT) :: SEAICE00(IIPAR,JJPAR)  ! Sea ice coverage 00-10%
+      REAL*8,  INTENT(OUT) :: SEAICE10(IIPAR,JJPAR)  ! Sea ice coverage 10-20%
+      REAL*8,  INTENT(OUT) :: SEAICE20(IIPAR,JJPAR)  ! Sea ice coverage 20-30%
+      REAL*8,  INTENT(OUT) :: SEAICE30(IIPAR,JJPAR)  ! Sea ice coverage 30-40%
+      REAL*8,  INTENT(OUT) :: SEAICE40(IIPAR,JJPAR)  ! Sea ice coverage 40-50%
+      REAL*8,  INTENT(OUT) :: SEAICE50(IIPAR,JJPAR)  ! Sea ice coverage 50-60%
+      REAL*8,  INTENT(OUT) :: SEAICE60(IIPAR,JJPAR)  ! Sea ice coverage 60-70%
+      REAL*8,  INTENT(OUT) :: SEAICE70(IIPAR,JJPAR)  ! Sea ice coverage 70-80%
+      REAL*8,  INTENT(OUT) :: SEAICE80(IIPAR,JJPAR)  ! Sea ice coverage 80-90%
+      REAL*8,  INTENT(OUT) :: SEAICE90(IIPAR,JJPAR)  ! Sea ice coverage 90-100%
+      REAL*8,  INTENT(OUT) :: SLP     (IIPAR,JJPAR)  ! Sea level pressure [hPa]
+      REAL*8,  INTENT(OUT) :: SNODP   (IIPAR,JJPAR)  ! Snow depth [m]
+      REAL*8,  INTENT(OUT) :: SNOMAS  (IIPAR,JJPAR)  ! Snow mass [kg/m2]
+      REAL*8,  INTENT(OUT) :: SWGNT   (IIPAR,JJPAR)  ! SW rad @ sfc [W/m2] 
+      REAL*8,  INTENT(OUT) :: TROPPT  (IIPAR,JJPAR)  ! T'pause pressure [hPa]
+      REAL*8,  INTENT(OUT) :: T2M     (IIPAR,JJPAR)  ! T @ 2m height [K]
+      REAL*8,  INTENT(OUT) :: TS      (IIPAR,JJPAR)  ! Sfc skin T [K]
+      REAL*8,  INTENT(OUT) :: U10M    (IIPAR,JJPAR)  ! U-wind @ 10m [m/s]
+      REAL*8,  INTENT(OUT) :: USTAR   (IIPAR,JJPAR)  ! Friction velocity [m/s]
+      REAL*8,  INTENT(OUT) :: V10M    (IIPAR,JJPAR)  ! V-wind @ 10m [m/s]
+      REAL*8,  INTENT(OUT) :: Z0M     (IIPAR,JJPAR)  ! Roughness height [m]
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER           :: I, IOS, J, NFOUND, XYMD, XHMS
+      CHARACTER(LEN=8)  :: NAME
+      CHARACTER(LEN=16) :: STAMP
 
-      ! Arguments
-      INTEGER, INTENT(IN)            :: NYMD, NHMS
-      REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EVAP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GRN(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: LAI(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: OICE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDF(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDR(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PBL(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PREACC(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECON(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECSNO(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNICE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNODP(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOMAS(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOW(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TS(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: U10M(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: USTAR(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: V10M(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: Z0(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAND(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAKE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FROCEAN(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
-
-      ! Local Variables
-      INTEGER                        :: I, IJLOOP, IOS, J, N_A3, NFOUND 
-      REAL*4                         :: Q2(IGLOB,JGLOB)
-      CHARACTER(LEN=8)               :: NAME
-      CHARACTER(LEN=16)              :: STAMP
-      INTEGER                        :: XYMD, XHMS
+      ! Arrays
+      REAL*4            :: Q2(IGLOB,JGLOB)
 
       !=================================================================
-      ! READ_A3 begins here!      
+      ! READ_A1 begins here!      
       !=================================================================
 
-      ! Get the number of A-3 fields stored in this data set
-#if   defined( GEOS_5 )
-      N_A3 = N_A3_FIELDS
-#else
-      N_A3 = GET_N_A3( NYMD )
-#endif
-
-      ! Zero the number of A-3 fields that we have found
+      ! Zero the number of A1 fields that we have found
       NFOUND = 0
 
       !=================================================================
-      ! Read the A-3 fields from disk
+      ! Read the A1 fields from disk
       !=================================================================
       DO
 
-         ! Read the A-3 field name
-         READ( IU_A3, IOSTAT=IOS ) NAME
+         ! Read the A1 field name
+         READ( IU_A1, IOSTAT=IOS ) NAME
 
          ! End of file test -- make sure we have found all fields
          IF ( IOS < 0 ) THEN
-            CALL A3_CHECK( NFOUND, N_A3 )
+            CALL A1_CHECK( NFOUND, N_A1_FIELDS )
             EXIT
          ENDIF
 
          ! IOS > 0: True I/O error; stop w/ err msg
-         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:1' )
+         IF ( IOS > 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:1' )
 
-         ! CASE statement for A-3 fields
+         ! CASE statement for A1 fields
          SELECT CASE ( TRIM( NAME ) )
 
-            !--------------------------------
+            !-------------------------------------
             ! ALBEDO: surface albedo
-            !--------------------------------
+            !-------------------------------------
             CASE ( 'ALBEDO' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:2' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:2' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( ALBEDO ) ) CALL TRANSFER_2D( Q2,ALBEDO )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, ALBEDO )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !---------------------------------
-            ! CLDFRC: column cloud fraction
-            ! (aka CLDTOT in GEOS-5)
-            !---------------------------------
-            CASE ( 'CLDFRC', 'CLDTOT' )
-               READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:3' )
+            !--------------------------------------
+            ! CLDTOT: column cloud fraction
+            !--------------------------------------
+            CASE ( 'CLDTOT' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:3' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( CLDFRC ) ) CALL TRANSFER_2D( Q2,CLDFRC )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, CLDTOT )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !---------------------------------
-            ! EVAP: evapotranspiration flux
-            !---------------------------------
+            !--------------------------------------
+            ! EFLUX: latent heat flux
+            !--------------------------------------
+            CASE ( 'EFLUX' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:4' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, EFLUX )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------------
+            ! EVAP: surface evaporation
+            !--------------------------------------
             CASE ( 'EVAP' )
-               READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:4' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:5' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EVAP ) ) CALL TRANSFER_2D( Q2, EVAP )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, EVAP )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !---------------------------------
+            !--------------------------------------
+            ! FRSEAICE: sea ice fraction
+            !--------------------------------------
+            CASE ( 'FRSEAICE' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:6' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, FRSEAICE )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------------
+            ! FRSNO: snow fraction
+            !--------------------------------------
+            CASE ( 'FRSNO' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:7' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, FRSNO )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !--------------------------------------
             ! GRN: evapotranspiration flux
-            !---------------------------------
+            !--------------------------------------
             CASE ( 'GRN' )
-               READ ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:5' )
+               READ ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:8' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GRN ) ) CALL TRANSFER_2D( Q2, GRN )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, GRN )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
+            !-------------------------------------
             ! GWETROOT: root soil wetness
-            !--------------------------------
+            !-------------------------------------
             CASE ( 'GWETROOT' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:6' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:9' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETROOT ) ) THEN
-                     CALL TRANSFER_2D( Q2,GWETROOT )
-                  ENDIF
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, GWETROOT )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
+            !-------------------------------------
             ! GWETTOP: topsoil wetness 
-            !--------------------------------
-            CASE ( 'GWETTOP', 'SOIL' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:7' )
+            !-------------------------------------
+            CASE ( 'GWETTOP' ) 
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:10' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( GWETTOP ) ) CALL TRANSFER_2D(Q2,GWETTOP)
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, GWETTOP )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
-            ! HFLUX:  sensible heat flux 
-            !--------------------------------
+            !-------------------------------------
+            ! HFLUX: sensible heat flux 
+            !-------------------------------------
             CASE ( 'HFLUX' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:8' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:11' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( HFLUX ) ) CALL TRANSFER_2D( Q2, HFLUX )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, HFLUX )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
+            !-------------------------------------
             ! LAI: GMAO leaf area index
-            !--------------------------------
+            !-------------------------------------
             CASE ( 'LAI' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:9' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:12' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( LAI ) ) CALL TRANSFER_2D( Q2, LAI )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, LAI )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
-            ! MOLENGTH: GCAP M-O length
-            !--------------------------------
-            CASE ( 'MOLENGTH' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:10' )
+            !-------------------------------------
+            ! LWGNT: net LW radiation @ ground
+            !-------------------------------------
+            CASE ( 'LWGNT' ) 
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:13' )
 
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( MOLENGTH ) ) THEN
-                     CALL TRANSFER_2D( Q2, MOLENGTH )
-                  ENDIF
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, LWGNT )
                   NFOUND = NFOUND + 1
                ENDIF
 
-            !--------------------------------
-            ! OICE: GCAP frac of ocean ice
-            !--------------------------------
-            CASE ( 'OICE' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:11' )
-
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( OICE ) ) CALL TRANSFER_2D( Q2, OICE )
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
+            !-------------------------------------
             ! PARDF: photosyn active diff rad
-            !--------------------------------
-            CASE ( 'PARDF', 'PARDIF' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:12' )
+            !-------------------------------------
+            CASE ( 'PARDF'  )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:14' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDF ) ) CALL TRANSFER_2D( Q2, PARDF )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PARDF )
                   NFOUND = NFOUND + 1
                ENDIF  
 
-            !--------------------------------
-            ! PARDR: photosyn active dir rad
-            !--------------------------------
-            CASE ( 'PARDR', 'PARDIR' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:13' )
+            !-------------------------------------
+            ! PARDR: photosyn active direct rad
+            !-------------------------------------
+            CASE ( 'PARDR'  )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:15' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PARDR ) ) CALL TRANSFER_2D( Q2, PARDR )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PARDR )
                   NFOUND = NFOUND + 1
                ENDIF 
 
-            !--------------------------------
-            ! PBL: boundary layer depth
-            !--------------------------------
-            CASE ( 'PBL', 'PBLH' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:14' )
+            !-------------------------------------
+            ! PBLH: boundary layer height
+            !-------------------------------------
+            CASE ( 'PBLH' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:16' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PBL ) ) CALL TRANSFER_2D( Q2, PBL )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PBLH )
                   NFOUND = NFOUND + 1
                ENDIF       
 
-            !--------------------------------
-            ! PREACC: total precip at ground
-            ! (aka PRECTOT in GEOS-5)
-            !--------------------------------
-            CASE ( 'PREACC', 'PRECTOT' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:15' )
+            !-------------------------------------
+            ! PRECANV: anvil precip @ ground
+            !-------------------------------------
+            CASE ( 'PRECANV' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:17' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PREACC ) ) CALL TRANSFER_2D( Q2,PREACC )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PRECANV )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF       
 
-            !--------------------------------
-            ! PRECON: conv precip at ground
-            ! (aka PRECCON in GEOS-5)
-            !--------------------------------
-            CASE ( 'PRECON', 'PRECCON' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:16' )
-              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECON ) ) CALL TRANSFER_2D( Q2,PRECON )
+            !-------------------------------------
+            ! PRECCON: convective precip @ ground
+            !-------------------------------------
+            CASE ( 'PRECCON' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:18' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PRECCON )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF   
 
-            !--------------------------------
-            ! PRECSNO: snow precip at ground
-            !--------------------------------
+            !-------------------------------------
+            ! PRECLSC: LS precip @ ground
+            !-------------------------------------
+            CASE ( 'PRECLSC' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:19' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PRECLSC )
+                  NFOUND = NFOUND + 1
+               ENDIF   
+
+            !-------------------------------------
+            ! PRECTOT: total precip @ ground
+            !-------------------------------------
+            CASE ( 'PRECTOT' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:20' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PRECTOT )
+                  NFOUND = NFOUND + 1
+               ENDIF   
+
+            !-------------------------------------
+            ! PRECSNO: snow precip @ ground
+            !-------------------------------------
             CASE ( 'PRECSNO' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:17' )
-              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( PRECSNO ) ) CALL TRANSFER_2D(Q2,PRECSNO)
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! RADLWG: solar rad at ground 
-            ! (aka LWGNET in GEOS-5)
-            !--------------------------------
-            CASE ( 'RADLWG', 'LWGNET' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:18' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:21' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADLWG ) ) CALL TRANSFER_2D( Q2,RADLWG )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, PRECSNO )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF   
 
-            !--------------------------------
-            ! RADSWG: solar rad at ground 
-            ! (aka SWGNET in GEOS-5)
-            !--------------------------------
-            CASE ( 'RADSWG', 'SWGNET' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:19' )
+            !-------------------------------------
+            ! SEAICE00: Sea ice bin 0-10%
+            !-------------------------------------
+            CASE ( 'SEAICE00' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:22' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWG ) ) CALL TRANSFER_2D( Q2,RADSWG )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE00 )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF   
 
-            !--------------------------------
-            ! RADSWT: solar rad at atm top
-            !--------------------------------
-            CASE ( 'RADSWT' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:20' )
+            !-------------------------------------
+            ! SEAICE10: Sea ice bin 10-20%
+            !-------------------------------------
+            CASE ( 'SEAICE10' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:23' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( RADSWT ) ) CALL TRANSFER_2D( Q2,RADSWT )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE10 )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF   
 
-            !--------------------------------
-            ! SNICE: GCAP frac of snow/ice
-            !--------------------------------
-            CASE ( 'SNICE' ) 
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:21' )
-
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNICE ) ) CALL TRANSFER_2D( Q2, SNICE )
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! SNOMAS: GEOS-5 snow depth 
-            ! (H2O equivalent)
-            !--------------------------------
-            CASE ( 'SNOMAS' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:22' )
+            !-------------------------------------
+            ! SEAICE20: Sea ice bin 20-30%
+            !-------------------------------------
+            CASE ( 'SEAICE20' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:24' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOMAS ) ) CALL TRANSFER_2D( Q2,SNOMAS )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE20 )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------
-            ! SNODP: GEOS-5 snow depth 
-            ! (geometric & snowpack)
-            !--------------------------------
+            !-------------------------------------
+            ! SEAICE30: Sea ice bin 30-40%
+            !-------------------------------------
+            CASE ( 'SEAICE30' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:25' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE30 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE40: Sea ice bin 40-50%
+            !-------------------------------------
+            CASE ( 'SEAICE40' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:26' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE40 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE50: Sea ice bin 50-60%
+            !-------------------------------------
+            CASE ( 'SEAICE50' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:27' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE50 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE60: Sea ice bin 60-70%
+            !-------------------------------------
+            CASE ( 'SEAICE60' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:28' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE60 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE70: Sea ice bin 70-80%
+            !-------------------------------------
+            CASE ( 'SEAICE70' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:29' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE70 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE80: Sea ice bin 80-90%
+            !-------------------------------------
+            CASE ( 'SEAICE80' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:30' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE80 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SEAICE90: Sea ice bin 90-100%
+            !-------------------------------------
+            CASE ( 'SEAICE90' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:31' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SEAICE90 )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SLP: sea level pressure
+            !-------------------------------------
+            CASE ( 'SLP' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:32' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SLP )
+                  NFOUND = NFOUND + 1
+               ENDIF  
+
+            !-------------------------------------
+            ! SNODP: snow depth
+            !-------------------------------------
             CASE ( 'SNODP' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:23' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:33' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNODP ) ) CALL TRANSFER_2D( Q2, SNODP )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SNODP )
                   NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! SNOW: snow depth (H2O equiv.)
-            !--------------------------------
-            CASE ( 'SNOW', 'SNOWD' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:24' )
+               ENDIF 
+ 
+            !-------------------------------------
+            ! SNOMAS: snow mass
+            !-------------------------------------
+            CASE ( 'SNOMAS' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:34' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( SNOW ) ) CALL TRANSFER_2D( Q2, SNOW )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SNOMAS )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------            
-            ! TROPP: tropopause pressure
-            !--------------------------------
-            CASE ( 'TROPP' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:25' )
+            !-------------------------------------
+            ! SWGNT: Net SW radiation @ ground
+            !-------------------------------------
+            CASE ( 'SWGNT' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:35')
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TROPP ) ) CALL TRANSFER_2D( Q2, TROPP )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, SWGNT )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------            
-            ! TS: surface air temperature
-            !--------------------------------
-            CASE ( 'TS', 'TGROUND', 'T2M' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:26' )
+            !-------------------------------------
+            ! TROPPT: Troopause pressure, T-based
+            !-------------------------------------
+            CASE ( 'TROPPT' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TS ) ) CALL TRANSFER_2D( Q2, TS )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, TROPPT )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------            
-            ! TSKIN: radiance temperature
-            !--------------------------------
-            CASE ( 'TSKIN' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:27' )
+            !-------------------------------------
+            ! TS: Surface skin temperature
+            !-------------------------------------
+            CASE ( 'TS' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( TSKIN ) ) CALL TRANSFER_2D( Q2, TSKIN )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, TS )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------            
-            ! U10M: U-wind at 10 m
-            !--------------------------------            
-            CASE ( 'U10M', 'USS' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:28' )
+            !-------------------------------------
+            ! T2M: Temp @ 2m altitude
+            !-------------------------------------
+            CASE ( 'T2M' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( U10M ) ) CALL TRANSFER_2D( Q2, U10M )
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, T2M )
                   NFOUND = NFOUND + 1
-               ENDIF
+               ENDIF  
 
-            !--------------------------------            
-            ! USTAR: friction velocity
-            !--------------------------------            
+            !-------------------------------------
+            ! U10M: U-wind @ 10m altitude
+            !-------------------------------------
+            CASE ( 'U10M' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, U10M )
+                  NFOUND = NFOUND + 1
+               ENDIF 
+
+            !-------------------------------------
+            ! USTAR: Friction velocity
+            !-------------------------------------
             CASE ( 'USTAR' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:29' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( USTAR ) ) CALL TRANSFER_2D( Q2, USTAR )
-                  NFOUND = NFOUND + 1
-               ENDIF
-            
-            !--------------------------------            
-            ! V10M: V-wind at 10 m
-            !--------------------------------            
-            CASE ( 'V10M', 'VSS' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:30' )
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( V10M ) ) CALL TRANSFER_2D( Q2, V10M )
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------            
-            ! Z0: roughness heights
-            !--------------------------------            
-            CASE ( 'Z0', 'Z0M' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:31' )
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( Z0 ) ) CALL TRANSFER_2D( Q2, Z0 ) 
-                  NFOUND = NFOUND + 1
-               ENDIF
-  
-            !--------------------------------            
-            ! Get EFLUX (Lin, 03/31/09)
-            ! EFLUX: Latent heat flux
-            !--------------------------------            
-            CASE ( 'EFLUX' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:32' )
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( EFLUX ) ) CALL TRANSFER_2D( Q2, EFLUX )
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! TPW: just skip over this
-            !--------------------------------
-            CASE ( 'TPW' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:33' )
-
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------
-            ! CLDTMP: just skip over this
-            !--------------------------------
-            CASE ( 'CLDTMP' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:34' )
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  NFOUND = NFOUND + 1
-               ENDIF
-
-            !--------------------------------            
-            ! FRLAND: land fraction
-            !--------------------------------            
-            CASE ( 'FRLAND' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:35')
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAND ) ) CALL TRANSFER_2D( Q2, FRLAND) 
-                  NFOUND = NFOUND + 1
-               ENDIF         
-
-            !--------------------------------            
-            ! FRLAKE: lake fraction
-            !--------------------------------            
-            CASE ( 'FRLAKE' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:36')
-             
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLAKE ) ) CALL TRANSFER_2D( Q2, FRLAKE) 
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, USTAR )
                   NFOUND = NFOUND + 1
                ENDIF 
 
-            !--------------------------------            
-            ! FROCEAN: ocean fraction
-            !--------------------------------            
-            CASE ( 'FROCEAN' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:37')
+            !-------------------------------------
+            ! V10M: V-wind @ 10m altitude
+            !-------------------------------------
+            CASE ( 'V10M' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FROCEAN ) ) THEN
-                     CALL TRANSFER_2D( Q2, FROCEAN ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, V10M )
+                  NFOUND = NFOUND + 1
                ENDIF 
 
-            !--------------------------------            
-            ! FRLANDIC: land ice fraction
-            !--------------------------------            
-            CASE ( 'FRLANDIC' )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:38')
+            !-------------------------------------
+            ! Z0M: roughness height
+            !-------------------------------------
+            CASE ( 'Z0M' )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( FRLANDIC ) ) THEN
-                     CALL TRANSFER_2D( Q2, FRLANDIC ) 
-                     NFOUND = NFOUND + 1
-                  ENDIF
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, Z0M )
+                  NFOUND = NFOUND + 1
                ENDIF 
 
-            !--------------------------------
-            ! Extra GEOS-5 fields
-            ! Skip over for now, add later
-            ! (bmy, 10/7/08)
-            !--------------------------------
-            CASE ( 'PRECANV', 'LWTUP',  'QV2M'  )
-               READ( IU_A3, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A3, 'read_a3:39' )
+            !-------------------------------------
+            ! Skip over these fields for now:
+            ! LWTUP, QV2M, SWGDN, SW
+            !-------------------------------------
+            CASE ( 'LWTUP',  'QV2M', 'SWGDN'  )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
              
-               IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   NFOUND = NFOUND + 1
                ENDIF
+
+            !------------------------------------------------
+            ! Field not found -- skip over
+            !------------------------------------------------
+            CASE DEFAULT
+               WRITE ( 6, 200 )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
 
          END SELECT
-               
+            
          !==============================================================
          ! If we have found all the fields for this time, then exit 
          ! the loop.  Otherwise, go on to the next iteration.
          !==============================================================
-         IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) .and. 
-     &        NFOUND == N_A3 ) THEN 
-            STAMP = TIMESTAMP_STRING( NYMD, NHMS )
-            WRITE( 6, 210 ) NFOUND, STAMP
- 210        FORMAT( '     - Found all ', i3, ' A-3 met fields for ', a )
-            EXIT
+         IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+            IF ( NFOUND == N_A1_FIELDS ) THEN 
+               STAMP = TIMESTAMP_STRING( NYMD, NHMS )
+               WRITE( 6, 210 ) NFOUND, STAMP
+               EXIT
+            ENDIF
          ENDIF
       ENDDO
 
-#if   defined( GEOS_5 )
+      ! FORMATs
+ 200  FORMAT( 'Searching for next MERRA A1 field!'                    )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA A1 met fields for ', a )
 
       !=================================================================
-      ! SPECIAL HANDLING FOR GEOS-5
-      ! ---------------------------
-      ! In GEOS-5, the PRECTOT (cf PREACC) and PRECCON (cf PRECON) met
+      !        %%%%% SPECIAL HANDLING FOR CERTAIN FIELDS %%%%% 
+      !
+      ! In MERRA, the PRECTOT etc. surface precipitation met fields
       ! fields have units of [kg/m2/s].  In all other GEOS versions, 
       ! PREACC and PRECON have units of [mm/day].  
       !
@@ -1364,160 +1019,97 @@
       !       1 / density of water 
       !=================================================================
       
-      ! Convert GEOS-5 PRECTOT from [kg/m2/s] to [mm/day]
-      IF ( PRESENT( PREACC ) ) PREACC = PREACC * 86400d0
-
-      ! Convert GEOS-5 PRECCON from [kg/m2/s] to [mm/day]
-      IF ( PRESENT( PRECON ) ) PRECON = PRECON * 86400d0
-
-#endif
+      ! Convert from [kg/m2/s] --> [mm/day]
+      PRECANV = PRECANV * 86400d0
+      PRECCON = PRECCON * 86400d0
+      PRECLSC = PRECLSC * 86400d0
+      PRECTOT = PRECTOT * 86400d0
 
       !=================================================================
-      ! ND67 diagnostic: A-3 surface fields:
-      !
-      ! (1 ) HFLUX  : sensible heat flux from surface    [W/m2]  
-      ! (2 ) RADSWG : solar radiation @ ground           [W/m2]  
-      ! (3 ) PREACC : total precip. @ ground             [mm/day] 
-      ! (4 ) PRECON : conv.  precip. @ ground            [mm/day] 
-      ! (5 ) TS     : surface air temperature            [K]    
-      ! (6 ) RADSWT : solar radiation @ atm. top         [W/m2]  
-      ! (7 ) USTAR  : friction velocity                  [m/s]   
-      ! (8 ) Z0     : surface roughness height           [m]    
-      ! (9 ) PBL    : planetary boundary layer depth     [hPa]   
-      ! (10) CLDFRC : column cloud fraction              [unitless]  
-      ! (11) U10M   : U-winds @ 10 meters altitude       [m/s]   
-      ! (12) V10M   : V-winds @ 10 meters altitude       [m/s]   
-      ! (13) PS-PBL : Boundary Layer Top Pressure        [hPa]
-      ! (14) ALBD   : Surface Albedo                     [unitless]
-      ! (15) PHIS   : Geopotential Heights               [m]      
-      ! (16) CLTOP  : Cloud Top Height                   [levels]
-      ! (17) TROPP  : Tropopause pressure                [hPa] 
-      ! (18) SLP    : Sea Level pressure                 [hPa]
-      ! (19) TSKIN  : Ground/sea surface temp.           [hPa]  
-      ! (20) PARDF  : Photosyn active diffuse radiation  [W/m2]
-      ! (21) PARDR  : Photosyn active direct  radiation  [W/m2]
-      ! (22) GWET   : Top soil wetness                   [unitless]
-      ! (23) EFLUX  : latent heat flux from surface      [W/m2]
+      ! ND67 diagnostic: A1 surface fields
       !=================================================================
       IF ( ND67 > 0 ) THEN
-         IF ( PRESENT( HFLUX   ) ) AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX
-         IF ( PRESENT( RADSWG  ) ) AD67(:,:,2 ) = AD67(:,:,2 ) + RADSWG
-         IF ( PRESENT( PREACC  ) ) AD67(:,:,3 ) = AD67(:,:,3 ) + PREACC
-         IF ( PRESENT( PRECON  ) ) AD67(:,:,4 ) = AD67(:,:,4 ) + PRECON
-         IF ( PRESENT( TS      ) ) AD67(:,:,5 ) = AD67(:,:,5 ) + TS
-         IF ( PRESENT( RADSWT  ) ) AD67(:,:,6 ) = AD67(:,:,6 ) + RADSWT
-         IF ( PRESENT( USTAR   ) ) AD67(:,:,7 ) = AD67(:,:,7 ) + USTAR
-         IF ( PRESENT( Z0      ) ) AD67(:,:,8 ) = AD67(:,:,8 ) + Z0
-         IF ( PRESENT( PBL     ) ) AD67(:,:,9 ) = AD67(:,:,9 ) + PBL
-         IF ( PRESENT( CLDFRC  ) ) AD67(:,:,10) = AD67(:,:,10) + CLDFRC
-         IF ( PRESENT( U10M    ) ) AD67(:,:,11) = AD67(:,:,11) + U10M
-         IF ( PRESENT( V10M    ) ) AD67(:,:,12) = AD67(:,:,12) + V10M
-         IF ( PRESENT( ALBEDO  ) ) AD67(:,:,14) = AD67(:,:,14) + ALBEDO
-         IF ( PRESENT( TROPP   ) ) AD67(:,:,17) = AD67(:,:,17) + TROPP
-         IF ( PRESENT( TSKIN   ) ) AD67(:,:,19) = AD67(:,:,19) + TSKIN
-         IF ( PRESENT( PARDF   ) ) AD67(:,:,20) = AD67(:,:,20) + PARDF
-         IF ( PRESENT( PARDR   ) ) AD67(:,:,21) = AD67(:,:,21) + PARDR
-         IF ( PRESENT( GWETTOP ) ) AD67(:,:,22) = AD67(:,:,22) + GWETTOP
-         IF ( PRESENT( EFLUX   ) ) AD67(:,:,23) = AD67(:,:,23) + EFLUX
+         AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
+         AD67(:,:,2 ) = AD67(:,:,2 ) + LWGNT    ! Net LW rad @ sfc [W/m2]
+         AD67(:,:,3 ) = AD67(:,:,3 ) + PRECTOT  ! Tot prec @ sfc [kg/m2/s]
+         AD67(:,:,4 ) = AD67(:,:,4 ) + PRECCON  ! CV prec @ sfc [kg/m2/s]
+         AD67(:,:,5 ) = AD67(:,:,5 ) + T2M      ! T @ 2m height [K]
+         AD67(:,:,6 ) = AD67(:,:,6 ) + 0e0      !
+         AD67(:,:,7 ) = AD67(:,:,7 ) + USTAR    ! Friction velocity [m/s]
+         AD67(:,:,8 ) = AD67(:,:,8 ) + Z0M      ! Roughness height [m]
+         AD67(:,:,9 ) = AD67(:,:,9 ) + PBLH     ! PBL height [m]
+         AD67(:,:,10) = AD67(:,:,10) + CLDTOT   ! Column cld fraction
+         AD67(:,:,11) = AD67(:,:,11) + U10M     ! U-wind @ 10m [m/s]
+         AD67(:,:,12) = AD67(:,:,12) + V10M     ! V-wind @ 10m [m/s]
+         AD67(:,:,14) = AD67(:,:,14) + ALBEDO   ! Sfc albedo [unitless]
+         AD67(:,:,17) = AD67(:,:,17) + TROPPT   ! T'pause pressure [hPa]
+         AD67(:,:,18) = AD67(:,:,18) + SLP      ! Sea level pressure [hPa]
+         AD67(:,:,19) = AD67(:,:,19) + TS       ! Sfc skin temperature [K]
+         AD67(:,:,20) = AD67(:,:,20) + PARDF    ! Diffuse PAR [W/m2]
+         AD67(:,:,21) = AD67(:,:,21) + PARDR    ! Direct PAR [W/m2]
+         AD67(:,:,22) = AD67(:,:,22) + GWETTOP  ! Topsoil wetness [frac]
+         AD67(:,:,23) = AD67(:,:,23) + EFLUX    ! Latent heat flux [W/m2]
       ENDIF
-         
-      ! Increment KDA3FLDS -- this is the # of times READ_A3 is called
-      CALL SET_CT_A3( INCREMENT=.TRUE. )
-
-      ! Return to calling program
-      END SUBROUTINE READ_A3
-
-!------------------------------------------------------------------------------
-
-      SUBROUTINE ARCHIVE_ND67_1D( FIELD, N )
-!
-!******************************************************************************
-!  Subroutine ARCHIVE_ND67_1D saves 1-D arrays for the ND67 diagnostic.
-!  (bmy, 6/23/03)
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FIELD (REAL*8 ) : Met field array to be archived into ND67
-!  (2 ) N     (INTEGER) : Index of AD67 array under which to archive data
-!
-!  NOTES
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD67
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-      REAL*8,  INTENT(IN) :: FIELD(MAXIJ)
-
-      ! Local variables
-      INTEGER             :: I, IJLOOP, J
 
       !=================================================================
-      ! ARCHIVE_1D begins here
+      ! Cleanup and quit
       !=================================================================
 
-      ! Zero 1-D counter
-      IJLOOP = 0
+      ! Increment the # of times READ_A1 is called
+      CALL SET_CT_A1( INCREMENT=.TRUE. )
 
-      ! Archive for diagnostic
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IJLOOP      = IJLOOP + 1
-         AD67(I,J,N) = AD67(I,J,N) + FIELD(IJLOOP)
-      ENDDO
-      ENDDO
-
-      ! Return to calling program
-      END SUBROUTINE ARCHIVE_ND67_1D
-
+      END SUBROUTINE READ_A1
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE A3_CHECK( NFOUND, N_A3 )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine A3_CHECK prints an error message if not all of the A-3 met 
-!  fields are found.  The run is also terminated. (bmy, 10/27/00, 6/23/03)
+! !IROUTINE: a1_check
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of A-3 met fields read from disk
-!  (2 ) N_A3   (INTEGER) : # of A-3 met fields expected to be read from disk
+! !DESCRIPTION: Subroutine A1\_CHECK prints an error message if not all of 
+!  the A-3 met fields are found.  The run is also terminated. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES
-!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/23/03)
-!******************************************************************************
+      SUBROUTINE A1_CHECK( NFOUND, N_A1 )
 !
-      ! References to F90 modules
+! !USES:
+!
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NFOUND, N_A3
-
-      !=================================================================
-      ! A3_CHECK begins here!
-      !=================================================================
-      IF ( NFOUND /= N_A3 ) THEN
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NFOUND   ! Number of met fields read in from disk
+      INTEGER, INTENT(IN) :: N_A1     ! Number of expected met fields
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! Test if N_FOUND == N_A1
+      IF ( NFOUND /= N_A1 ) THEN
+         
+         ! Write error msg
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 'ERROR -- not enough A-3 fields found!'      
-
-         WRITE( 6, 120   ) N_A3, NFOUND
- 120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
-     &           ' were found!' )
-
-         WRITE( 6, '(a)' ) '### STOP in A3_CHECK (a3_read_mod.f)'
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) N_A1, NFOUND
+         WRITE( 6, 120   )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-         ! Deallocate arrays and stop (bmy, 10/15/02)
+         ! FORMATs
+ 100     FORMAT( 'ERROR -- not enough MERRA A1 fields found!' )
+ 110     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
+     &           ' were found!'                               )
+ 120     FORMAT( '### STOP in A1_CHECK (merra_a1_mod.f)'      )
+
+         ! Deallocate arrays and stop
          CALL GEOS_CHEM_STOP
+
       ENDIF
 
-      ! Return to calling program
-      END SUBROUTINE A3_CHECK
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE A3_READ_MOD
+      END SUBROUTINE A1_CHECK
+!EOC
+      END MODULE MERRA_A1_MOD

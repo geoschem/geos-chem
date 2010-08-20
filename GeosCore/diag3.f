@@ -1,11 +1,130 @@
-! $Id: diag3.f,v 1.5 2010/03/15 19:33:24 ccarouge Exp $
-      SUBROUTINE DIAG3                                                      
-! 
-!******************************************************************************
-!  Subroutine DIAG3 prints out diagnostics to the BINARY format punch file 
-!  (bmy, bey, mgs, rvm, 5/27/99, 12/15/08)
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!  NOTES: 
+! !ROUTINE: diag3
+!
+! !DESCRIPTION: Subroutine DIAG3 prints out diagnostics to the BINARY PUNCH
+!  format file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DIAG3                                                    
+!
+! !USES:
+!
+      USE BPCH2_MOD
+      ! NBIOMAX now refers to the maximum number of possible
+      ! BB species (hotp 7/31/09)
+      ! NBIOTRCE is the number for a given simulation and
+      ! set of tracers
+      ! NBIOMAX in CMN_SIZE (FP)
+      USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
+      USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
+      USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,     ONLY : AD07_SOAGM
+      USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,     ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,     ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,     ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,     ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,     ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,     ONLY : AD30,        AD31
+      ! potential temperature (hotp 7/31/09)
+      USE DIAG_MOD,     ONLY : AD57
+      USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,     ONLY : AD43,        LTNO
+      USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      ! to save the amount of RO2 consumed by HO2 (*H) or NO (*N)
+      ! CTLxRO2x : # of times a grid box was in the ND43 time range between
+      ! the last .bpch write and current .bpch write
+      USE DIAG_MOD,     ONLY : CTLBRO2H,      CTLBRO2N
+      USE DIAG_MOD,     ONLY : CTLTRO2H,      CTLTRO2N
+      USE DIAG_MOD,     ONLY : CTLXRO2H,      CTLXRO2N
+      USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,     ONLY : AD52
+      USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
+      USE DIAG_MOD,     ONLY : AD19,        AD58,        AD60
+      USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,     ONLY : AD68,        AD69
+      USE DIAG_MOD,     ONLY : AD10,        AD10em
+      USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
+      USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
+      USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
+      USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
+      USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
+      USE DIAG_PL_MOD,  ONLY : AD65
+      ! For mercury simulation. (ccc, 6/4/10)
+      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
+      USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
+      ! To handle tracers with several dry dep. tracers
+      !(ccc, 2/3/10)
+      USE DRYDEP_MOD,   ONLY : DEPNAME
+      USE FILE_MOD,     ONLY : IU_BPCH
+      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
+      USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
+      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
+      USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
+      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
+
+      USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
+      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
+      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
+      USE TIME_MOD,     ONLY : GET_CT_DIAG, GET_CT_A1
+      USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
+      USE TRACER_MOD,   ONLY : TRACER_NAME
+      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
+      USE TRACERID_MOD, ONLY : IDTPB,       IDTDST1,     IDTDST2 
+      USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
+      USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
+      USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
+      ! aromatic SOA
+      USE TRACERID_MOD, ONLY : IDTSOA5
+      USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
+      USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
+      USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
+      USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
+      USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
+      USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
+      USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
+      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO,      IDTC2H4
+      USE TRACERID_MOD, ONLY : IS_Hg2
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN"          ! IFLX, LPAUSE
+#     include "CMN_DIAG"     ! Diagnostic switches & arrays
+#     include "CMN_O3"       ! FMOL, XNUMOL
+#     include "comode.h"     ! IDEMS
+! 
+! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
 !        categories "SO2-AC-$" and "SO2-EV-$".  Now reference F90 module
 !        "tracerid_mod.f".  Now reference NUMDEP from "drydep_mod.f".
@@ -114,128 +233,28 @@
 !  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
 !  (95) Add call to update_dep for mercury simulation at the end.(ccc, 7/19/10)
-!******************************************************************************
-! 
-      ! References to F90 modules
-      USE BPCH2_MOD
-      ! NBIOMAX now refers to the maximum number of possible
-      ! BB species (hotp 7/31/09)
-      ! NBIOTRCE is the number for a given simulation and
-      ! set of tracers
-      ! NBIOMAX in CMN_SIZE (FP)
-      USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
-      USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
-      USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,     ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,     ONLY : AD07_SOAGM
-      USE DIAG_MOD,     ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,     ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,     ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,     ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,     ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,     ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,     ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,     ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,     ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,     ONLY : AD30,        AD31
-      ! potential temperature (hotp 7/31/09)
-      USE DIAG_MOD,     ONLY : AD57
-      USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,     ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,     ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,     ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,     ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,     ONLY : AD43,        LTNO
-      USE DIAG_MOD,     ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,     ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,     ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      ! to save the amount of RO2 consumed by HO2 (*H) or NO (*N)
-      ! CTLxRO2x : # of times a grid box was in the ND43 time range between
-      ! the last .bpch write and current .bpch write
-      USE DIAG_MOD,     ONLY : CTLBRO2H,      CTLBRO2N
-      USE DIAG_MOD,     ONLY : CTLTRO2H,      CTLTRO2N
-      USE DIAG_MOD,     ONLY : CTLXRO2H,      CTLXRO2N
-      USE DIAG_MOD,     ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,     ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,     ONLY : AD52
-      USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
-      USE DIAG_MOD,     ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,     ONLY : AD68,        AD69
-      USE DIAG_MOD,     ONLY : AD10,        AD10em
-      USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
-      USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
-      USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
-      USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
-      USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
-      USE DIAG_PL_MOD,  ONLY : AD65
-      ! For mercury simulation. (ccc, 6/4/10)
-      USE DEPO_MERCURY_MOD, ONLY : UPDATE_DEP
-      USE DRYDEP_MOD,   ONLY : NUMDEP,      NTRAIND
-      ! To handle tracers with several dry dep. tracers
-      !(ccc, 2/3/10)
-      USE DRYDEP_MOD,   ONLY : DEPNAME
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_AREA_M2, GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
-      USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
-      USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
-
-      USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
-      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
-      USE TIME_MOD,     ONLY : GET_CT_DYN,  GET_CT_EMIS, GET_CT_I6   
-      USE TIME_MOD,     ONLY : GET_CT_DIAG 
-      USE TRACER_MOD,   ONLY : N_TRACERS,   STT,         TRACER_MW_G
-      USE TRACER_MOD,   ONLY : TRACER_NAME
-      USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM
-      USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM
-      USE TRACERID_MOD, ONLY : IDTPB,       IDTDST1,     IDTDST2 
-      USE TRACERID_MOD, ONLY : IDTDST3,     IDTDST4,     IDTBCPI 
-      USE TRACERID_MOD, ONLY : IDTOCPI,     IDTALPH,     IDTLIMO 
-      USE TRACERID_MOD, ONLY : IDTSOA1,     IDTSOA2,     IDTSOA3 
-      ! aromatic SOA
-      USE TRACERID_MOD, ONLY : IDTSOA5
-      USE TRACERID_MOD, ONLY : IDTSALA,     IDTSALC,     IDTDMS 
-      USE TRACERID_MOD, ONLY : IDTSO2,      IDTSO4,      IDTNH3 
-      USE TRACERID_MOD, ONLY : IDTOX,       IDTNOX,      IDTHNO3 
-      USE TRACERID_MOD, ONLY : IDTISOP,     IDTACET,     IDTPRPE 
-      USE TRACERID_MOD, ONLY : IDTH2,       IDTHD
-      USE TRACERID_MOD, ONLY : NEMANTHRO ,  IDTSOA4
-      USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
-      USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO,      IDTC2H4
-      USE TRACERID_MOD, ONLY : IS_Hg2
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! IFLX, LPAUSE
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "CMN_O3"     ! FMOL, XNUMOL
-#     include "comode.h"   ! IDEMS
-
-      ! Local variables
+!  20 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND66 for MERRA
+!  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND67 for MERRA
+!  20 Aug 2010 - R. Yantosca - Now added SCALE_A1 for hourly data
+!  20 Aug 2010 - R. Yantosca - Now reference GET_A1_TIME from "time_mod.f"
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
       INTEGER            :: N, NN, NMAX, NTEST
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
-      REAL*8             :: SCALE_I6,  SCALE_A6,  SCALE_A3,  SCALED    
-      REAL*8             :: SCALEDYN,  SCALECONV, SCALESRCE, SCALECHEM 
-      REAL*8             :: SCALEDIAG 
-      REAL*8             :: SCALEX,    SECONDS,   PMASS,     PRESSX
-      REAL*8             :: FDTT,      AREA_M2,   DIAGb,     DIAGe
+      REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
+      REAL*8             :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL*8             :: SCALECONV,  SCALESRCE,  SCALECHEM  
+      REAL*8             :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
+      REAL*8             :: SCALEX,     SECONDS,    PMASS      
+      REAL*8             :: PRESSX,     FDTT,       AREA_M2
+      REAL*8             :: DIAGb,      DIAGe
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
@@ -264,6 +283,7 @@
       SCALECONV  = DBLE( GET_CT_CONV() ) + 1d-32
       SCALESRCE  = DBLE( GET_CT_EMIS() ) + 1d-32
       SCALECHEM  = DBLE( GET_CT_CHEM() ) + 1d-32
+      SCALE_A1   = DBLE( GET_CT_A1()   ) + 1d-32
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1d-32
       SCALE_A6   = DBLE( GET_CT_A6()   ) + 1d-32
       SCALE_I6   = DBLE( GET_CT_I6()   ) + 1d-32
@@ -3417,6 +3437,14 @@
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
+#if   defined( GEOS_3 )
+         SCALE_ND66 = SCALE_I6   ! For GEOS-3, ND66 is 6-hr instantaneous data
+#elif defined( MERRA )
+         SCALE_ND66 = SCALE_A3   ! For MERRA,  ND66 is 3-hour time-avg data
+#else
+         SCALE_ND66 = SCALE_A6   ! Otherwise,  ND66 is 6-hr time-avg data
+#endif
+
          DO M = 1, TMAX(66)
             N  = TINDEX(66,M)
             NN = N 
@@ -3425,34 +3453,25 @@
 
                ! UWND, VWND
                CASE ( 1,2 )
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_I6
-#else
-                  SCALEX = SCALE_A6
-#endif
+                  SCALEX = SCALE_ND66
                   UNIT   = 'm/s'
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_I6
-#else
-                  SCALEX = SCALE_A6
-#endif
+                  SCALEX = SCALE_ND66
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_3 )
-                  SCALEX = SCALE_I6
-#else
-                  SCALEX = SCALE_A6
-#endif
+                  SCALEX = SCALE_ND66
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
                CASE( 5, 6 )
-                  SCALEX = SCALE_A6
+                  SCALEX = SCALE_ND66 
+#if   defined( GEOS_3 )
+                  SCALEX = SCALE_A6      ! GEOS-3 CLDMAS/DTRAIN are 6-hr avg'd
+#endif
                   UNIT   = 'kg/m2/s'
 
                CASE DEFAULT
@@ -3474,28 +3493,28 @@
 !
 !   # : Field  : Description                      : Units    : Scale factor
 !  -----------------------------------------------------------------------
-!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_A3
-!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_A3
-!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_A3
-!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_A3
-!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_A3
-!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_A3
-!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_A3
-!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_A3
-!  (9 ) PBL    : GMAO PBL depth                   : mb       : SCALE_A3
-!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_A3
-!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_A3
-!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_A3
+!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_ND67
+!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_ND67
+!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_ND67
+!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_ND67
+!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_ND67
+!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
+!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
+!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
+!  (9 ) PBL    : GMAO PBL depth                   : mb       : SCALE_ND67
+!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
+!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
+!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
 !  (13) PS-PBL : GMAO Boundary Layer Top Pressure : mb       : SCALEDYN
-!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_I6 
+!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
 !  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
-!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_I6
-!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_I6
-!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_A3
-!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_A3
-!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_A3
-!  (22) GWET   : Top soil wetness                 : unitless : SCALE_A3
+!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_ND67
+!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_ND67
+!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_ND67
+!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_ND67
+!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_ND67
+!  (22) GWET   : Top soil wetness                 : unitless : SCALE_ND67
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -3511,6 +3530,12 @@
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
+#if   defined( MERRA )
+         SCALE_ND67 = SCALE_A1     ! For MERRA, most ND67 fields are hourly
+#else
+         SCALE_ND67 = SCALE_A3     ! Otherwise, most ND67 fields are 3-hourly
+#endif
+
          ! Binary punch file
          DO M = 1, TMAX(67)
             N  = TINDEX(67,M)
@@ -3518,25 +3543,25 @@
 
             SELECT CASE ( N ) 
                CASE ( 1, 2, 6 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'W/m2'
                CASE ( 3, 4 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'mm/day'
                CASE ( 5 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'K'
                CASE ( 7, 11, 12 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'm/s'
                CASE ( 8 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'm'
                CASE ( 9 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 10 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
 
 #if   defined( GCAP )
@@ -3555,36 +3580,40 @@
 #if   defined( GEOS_3 )
                   SCALEX = SCALE_I6 
 #else
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
 #endif
                   UNIT   = 'unitless'
                CASE ( 15 )
                   SCALEX = SCALED
                   UNIT   = 'm'
-               CASE ( 16 ) 
-                  SCALEX = SCALE_A6
+               CASE ( 16 )
+#if   defined( MERRA )
+                  SCALEX = SCALE_A3     ! MERRA CLDTOPS is a 3-hr time avg'd
+#else 
+                  SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
+#endif
                   UNIT   = 'levels'
                CASE ( 17 ) 
-                  SCALEX = SCALE_I6
+                  SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-                  SCALEX = SCALE_I6
+                  SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 19 )
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'K'
-               CASE ( 20 ) 
-                  SCALEX = SCALE_A3
+               CASE ( 20 )
+                  SCALEX = SCALE_ND67
                   UNIT   = 'W/m2'
                CASE ( 21 ) 
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'W/m2'
                CASE ( 22 ) 
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
                CASE ( 23 )
                ! add EFLUX ( Lin, 05/23/08) 
-                  SCALEX = SCALE_A3
+                  SCALEX = SCALE_ND67
                   UNIT   = 'W/m2'
                CASE DEFAULT
                   CYCLE
@@ -3685,5 +3714,5 @@
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 
-      ! Return to calling program
       END SUBROUTINE DIAG3    
+!EOC

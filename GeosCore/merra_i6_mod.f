@@ -65,9 +65,9 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : FILE_EXISTS
       USE FILE_MOD,      ONLY : IU_I6
       USE FILE_MOD,      ONLY : IOERROR
-      USE FILE_MOD,      ONLY : FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS: 
@@ -92,10 +92,10 @@
       CHARACTER(LEN=255) :: PATH
 
       !=================================================================
-      ! OPEN_I6_FIELDS begins here!
+      ! OPEN_MERRA_I6_FIELDS begins here!
       !=================================================================
 
-      ! Open the file 0 GMT of each day, or on the first call
+      ! Check if it's time to open file
       IF ( NHMS == 000000 .or. FIRST ) THEN
 
          !---------------------------
@@ -120,7 +120,7 @@
          ! Make sure the file unit is valid before we open it 
          IF ( .not. FILE_EXISTS( IU_I6 ) ) THEN 
             CALL ERROR_STOP( 'Could not find file!', 
-     &                       'OPEN_I6_FIELDS (merra_i6_mod.f)' )
+     &                       'OPEN_MERRA_I6_FIELDS (merra_i6_mod.f)' )
          ENDIF
 
          !---------------------------
@@ -147,7 +147,7 @@
          ! Get # of fields in file
          !---------------------------
 
-         ! Skip past the ident string
+         ! Read the IDENT string
          READ( IU_I6, IOSTAT=IOS ) IDENT
 
          IF ( IOS /= 0 ) THEN
@@ -192,8 +192,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      !=================================================================      
       ! Read data from disk
-      CALL READ_I6( NYMD, NHMS, PS1, RH1 )
+      !=================================================================
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS, 
+     &              PS   = PS1, 
+     &              RH   = RH1   )
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_1
 !EOC
@@ -227,8 +232,13 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      !=================================================================      
       ! Read data from disk
-      CALL READ_I6( NYMD, NHMS, PS2, RH2 )
+      !=================================================================
+      CALL READ_I6( NYMD = NYMD, 
+     &              NHMS = NHMS,
+     &              PS   = PS2, 
+     &              RH   = RH2   )
       
       END SUBROUTINE GET_MERRA_I6_FIELDS_2
 !EOC
@@ -277,12 +287,15 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER            :: IOS,  NFOUND, N_I6      
       INTEGER            :: XYMD, XHMS
-      REAL*4             :: Q2(IGLOB,JGLOB)
-      REAL*4             :: Q3(IGLOB,JGLOB,LGLOB)
       CHARACTER(LEN=8)   :: NAME
       CHARACTER(LEN=16)  :: STAMP
+
+      ! Arrays
+      REAL*4             :: Q2(IGLOB,JGLOB)
+      REAL*4             :: Q3(IGLOB,JGLOB,LGLOB)
 
       !=================================================================
       ! READ_I6 begins here!
@@ -302,7 +315,7 @@
          ! IOS < 0: End-of-file, but make sure we have 
          ! found all I-6 fields before exiting loop!
          IF ( IOS < 0 ) THEN
-            CALL I6_CHECK( NFOUND, N_I6 )
+            CALL I6_CHECK( NFOUND, N_I6_FIELDS )
             EXIT
          ENDIF
 
@@ -351,7 +364,7 @@
             ! Field not found
             !------------------------------------
             CASE DEFAULT
-               WRITE ( 6, '(a)' ) 'Searching for next I-6 field!'
+               WRITE ( 6, 200 ) 
                
          END SELECT
 
@@ -370,7 +383,8 @@
       ENDDO
 
       ! FORMATs
- 210  FORMAT( '     - Found all ', i3, ' I6 met fields for ', a )
+ 200  FORMAT( 'Searching for next MERRA I6 field!'                    )
+ 210  FORMAT( '     - Found all ', i3, ' MERRA I6 met fields for ', a )
 
       !=================================================================
       ! Cleanup and quit
@@ -412,17 +426,21 @@
 !BOC
       ! Test if NFOUND == N_I6
       IF ( NFOUND /= N_I6 ) THEN
+
+         ! Write error msg
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, '(a)' ) 'ERROR -- not enough I-6 fields found!'      
-
-         WRITE( 6, 120   ) N_I6, NFOUND
- 120     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
-     &           ' were found!' )
-
-         WRITE( 6, '(a)' ) '### STOP in I6_CHECK (i6_read_mod.f)'
+         WRITE( 6, 100   ) 
+         WRITE( 6, 110   ) N_I6, NFOUND
+         WRITE( 6, 120   )
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-         ! Deallocate arrays and stop (bmy, 10/15/02)
+         ! FORMATs
+ 100     FORMAT( 'ERROR -- not enough MERRA I6 fields found!' )
+ 110     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
+     &           ' were found!'                               )
+ 120     FORMAT( '### STOP in A3_CHECK (merra_a3_mod.f)'      )
+
+         ! Deallocate arrays and stop
          CALL GEOS_CHEM_STOP
       ENDIF
 
