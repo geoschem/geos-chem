@@ -230,6 +230,7 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move CMN_SIZE, CMN_DIAG to top of module
+!  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -808,21 +809,18 @@
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
-      !=================================================================
-      ! IS_LAND begins here!
-      !=================================================================
 #if   defined( GEOS_3 )
 
-      !---------------------
+      !--------------------------
       ! GEOS-3
-      !---------------------
+      !--------------------------
       IF ( GET_YEAR() == 1998 ) THEN
 
          ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
@@ -836,30 +834,20 @@
 
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
-      !---------------------
-      ! GEOS-4 & GEOS-5
-      !---------------------
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
 
-
-#elif defined( MERRA )
-
-      !---------------------
-      ! MERRA
-      !---------------------
-
-      ! %%% need to validate this %%%
-      LAND = .TRUE. !( NINT( FRCLAND(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
-
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
@@ -920,20 +908,18 @@
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      !=================================================================
-      ! IS_WATER begins here!
-      !=================================================================
 #if   defined( GEOS_3 )
       
-      !---------------------
+      !--------------------------
       ! GEOS-3 
-      !---------------------
+      !--------------------------
       IF ( GET_YEAR() == 1998 ) THEN
 
          ! 1998 fields don't have LWI/SURFTYPE flags, so use albedo as 
@@ -947,32 +933,20 @@
          
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
       
-      !----------------------
-      ! GEOS-4 and GEOS-5
-      !----------------------
+      !---------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !---------------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
       WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
 
-#elif defined( MERRA )
-
-      !----------------------
-      ! MERRA
-      !----------------------
-
-      !%%% NEED TO TEST THIS %%%
-
-      ! LWI=0 and ALBEDO less than 69.5% is a water box 
-      WATER = .TRUE. !( NINT( FROCEAN(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
-
-
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
@@ -1015,50 +989,37 @@
 !  09 Aug 2005 - R. Yantosca - Initial version
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      !=================================================================
-      ! IS_WATER begins here!
-      !=================================================================
 #if   defined( GEOS_3 )
 
-      !---------------------
+      !--------------------------
       ! GEOS-3
-      !---------------------      
+      !-------------------------- 
 
       ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
       ! as a proxy for water coverage instead: ALBEDO > 0.695
       ICE = ( ALBD(I,J) >= 0.695d0 )
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
-      !---------------------
-      ! GEOS-4 & GEOS-5
-      !---------------------  
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
 
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
 
-#elif defined( MERRA )
-
-      !---------------------
-      ! MERRA
-      !---------------------  
-
-      !%%% NEED TO TEST THIS %%%
-
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      ICE = .TRUE.  !( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
-
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's an ice box if 50% or more of the box is covered by ice
       ICE = ( SNICE(I,J) >= 0.5d0 )
@@ -1100,8 +1061,8 @@
 !     GEOS-3 : THRESH = 80.0, NEIGHBOR = 1
 !     GEOS-4 : THRESH =  0.2, NEIGHBOR = 1
 !     GEOS-5 : THRESH =  0.2, NEIGHBOR = 1
-! 
-
+!                                                                             .
+!  NOTE: This routine is mostly obsolete now.
 ! 
 ! !REVISION HISTORY: 
 !  09 May 2006 - R. Yantosca - Initial version
@@ -1109,6 +1070,7 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1124,11 +1086,6 @@
       ! Initialize
       NEAR = .FALSE.
 
-#if defined( MERRA )
-      ! Do not compute this for MERRA
-      RETURN
-#endif
-              
       ! Loop over neighbor lat positions
       DO NS = -NEIGHBOR, NEIGHBOR
 
@@ -1198,10 +1155,10 @@
                GOTO 999
             ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
             !---------------------------------------------------
-            ! GEOS-4 or GEOS-5 met fields
+            ! GEOS-4 / GEOS-5 / MERRA met fields
             !
             ! LWI = 0.0 is ocean
             ! LWI = 1.0 is land
@@ -1221,11 +1178,6 @@
                ! Break out of loop
                GOTO 999
             ENDIF
-
-#elif defined( MERRA )
-
-            ! For MERRA set NEAR to false for now
-            NEAR = .FALSE.
 
 #endif
 

@@ -244,15 +244,15 @@
 !
       USE DAO_MOD, ONLY : ALBD,     CLDFRC,   EFLUX,    EVAP    
       USE DAO_MOD, ONLY : FRSEAICE, FRSNO,    GRN,      GWETROOT  
-      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      RADLWG
+      USE DAO_MOD, ONLY : GWETTOP,  HFLUX,    LAI,      LWI
       USE DAO_MOD, ONLY : PARDF,    PARDR,    PBL,      PREANV
       USE DAO_MOD, ONLY : PREACC,   PRECON,   PRELSC,   PRECSNO
-      USE DAO_MOD, ONLY : SEAICE00, SEAICE10, SEAICE20, SEAICE30
-      USE DAO_MOD, ONLY : SEAICE40, SEAICE50, SEAICE60, SEAICE70
-      USE DAO_MOD, ONLY : SEAICE80, SEAICE90, SLP,      SNODP
-      USE DAO_MOD, ONLY : SNOMAS,   RADSWG,   TROPP,    TS
-      USE DAO_MOD, ONLY : TSKIN,    U10M,     USTAR,    V10M
-      USE DAO_MOD, ONLY : Z0 
+      USE DAO_MOD, ONLY : RADLWG,   RADSWG,   SEAICE00, SEAICE10 
+      USE DAO_MOD, ONLY : SEAICE20, SEAICE30, SEAICE40, SEAICE50
+      USE DAO_MOD, ONLY : SEAICE60, SEAICE70, SEAICE80, SEAICE90
+      USE DAO_MOD, ONLY : SLP,      SNODP,    SNOMAS,   TROPP
+      USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
+      USE DAO_MOD, ONLY : V10M,     Z0 
 
 #     include "CMN_SIZE"            ! Size parameters
 !
@@ -263,6 +263,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  25 Aug 2010 - R. Yantosca - Now pass LWI down to READ_A1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -300,6 +301,7 @@
      &              GWETTOP  = GWETTOP, 
      &              HFLUX    = HFLUX,  
      &              LAI      = LAI,
+     &              LWI      = LWI,
      &              LWGNT    = RADLWG,
      &              PARDF    = PARDF,
      &              PARDR    = PARDR,
@@ -354,14 +356,14 @@
      &                    ALBEDO,   CLDTOT,   EFLUX,    EVAP,    
      &                    FRSEAICE, FRSNO,    GRN,      GWETROOT, 
      &                    GWETTOP,  HFLUX,    LAI,      LWGNT,   
-     &                    PARDF,    PARDR,    PBLH,     PRECANV,  
-     &                    PRECTOT,  PRECCON,  PRECLSC,  PRECSNO,  
-     &                    SEAICE00, SEAICE10, SEAICE20, SEAICE30, 
-     &                    SEAICE40, SEAICE50, SEAICE60, SEAICE70, 
-     &                    SEAICE80, SEAICE90, SLP,      SNODP,    
-     &                    SNOMAS,   SWGNT,    TROPPT,   T2M,      
-     &                    TS,       U10M,     USTAR,    V10M,     
-     &                    Z0M                                     )
+     &                    LWI,      PARDF,    PARDR,    PBLH,     
+     &                    PRECANV,  PRECTOT,  PRECCON,  PRECLSC,  
+     &                    PRECSNO,  SEAICE00, SEAICE10, SEAICE20, 
+     &                    SEAICE30, SEAICE40, SEAICE50, SEAICE60, 
+     &                    SEAICE70, SEAICE80, SEAICE90, SLP,      
+     &                    SNODP,    SNOMAS,   SWGNT,    TROPPT,   
+     &                    T2M,      TS,       U10M,     USTAR,    
+     &                    V10M,     Z0M                           )
 !
 ! !USES:
 !
@@ -394,6 +396,7 @@
       REAL*8,  INTENT(OUT) :: GWETTOP (IIPAR,JJPAR)  ! Topsoil wetness [frac]
       REAL*8,  INTENT(OUT) :: HFLUX   (IIPAR,JJPAR)  ! Sensible H-flux [W/m2]
       REAL*8,  INTENT(OUT) :: LAI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
+      REAL*8,  INTENT(OUT) :: LWI     (IIPAR,JJPAR)  ! Leaf area index [m2/m2]
       REAL*8,  INTENT(OUT) :: LWGNT   (IIPAR,JJPAR)  ! Net LW rad @ sfc [W/m2]
       REAL*8,  INTENT(OUT) :: PARDF   (IIPAR,JJPAR)  ! Diffuse PAR [W/m2]
       REAL*8,  INTENT(OUT) :: PARDR   (IIPAR,JJPAR)  ! Direct PAR [W/m2]
@@ -427,6 +430,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -601,11 +605,24 @@
                ENDIF
 
             !-------------------------------------
+            ! LWI: land/water/ice flags
+            ! (used for backwards compatibility)
+            !-------------------------------------
+            CASE ( 'LWI' ) 
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:13' )
+
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  CALL TRANSFER_2D( Q2, LWI )
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !-------------------------------------
             ! LWGNT: net LW radiation @ ground
             !-------------------------------------
             CASE ( 'LWGNT' ) 
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:13' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:14' )
 
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, LWGNT )
@@ -617,7 +634,7 @@
             !-------------------------------------
             CASE ( 'PARDF'  )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:14' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:15' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PARDF )
@@ -629,7 +646,7 @@
             !-------------------------------------
             CASE ( 'PARDR'  )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:15' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:16' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PARDR )
@@ -641,7 +658,7 @@
             !-------------------------------------
             CASE ( 'PBLH' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:16' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:17' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PBLH )
@@ -653,7 +670,7 @@
             !-------------------------------------
             CASE ( 'PRECANV' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:17' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:18' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PRECANV )
@@ -665,7 +682,7 @@
             !-------------------------------------
             CASE ( 'PRECCON' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:18' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:19' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PRECCON )
@@ -677,7 +694,7 @@
             !-------------------------------------
             CASE ( 'PRECLSC' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:19' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:20' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PRECLSC )
@@ -689,7 +706,7 @@
             !-------------------------------------
             CASE ( 'PRECTOT' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:20' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:21' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PRECTOT )
@@ -701,7 +718,7 @@
             !-------------------------------------
             CASE ( 'PRECSNO' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:21' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:22' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, PRECSNO )
@@ -713,7 +730,7 @@
             !-------------------------------------
             CASE ( 'SEAICE00' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:22' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:23' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE00 )
@@ -725,7 +742,7 @@
             !-------------------------------------
             CASE ( 'SEAICE10' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:23' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:24' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE10 )
@@ -737,7 +754,7 @@
             !-------------------------------------
             CASE ( 'SEAICE20' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:24' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:25' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE20 )
@@ -749,7 +766,7 @@
             !-------------------------------------
             CASE ( 'SEAICE30' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:25' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:26' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE30 )
@@ -761,7 +778,7 @@
             !-------------------------------------
             CASE ( 'SEAICE40' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:26' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:27' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE40 )
@@ -773,7 +790,7 @@
             !-------------------------------------
             CASE ( 'SEAICE50' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:27' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:28' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE50 )
@@ -785,7 +802,7 @@
             !-------------------------------------
             CASE ( 'SEAICE60' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:28' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:29' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE60 )
@@ -797,7 +814,7 @@
             !-------------------------------------
             CASE ( 'SEAICE70' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:29' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:30' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE70 )
@@ -809,7 +826,7 @@
             !-------------------------------------
             CASE ( 'SEAICE80' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:30' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:31' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE80 )
@@ -821,7 +838,7 @@
             !-------------------------------------
             CASE ( 'SEAICE90' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:31' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:32' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SEAICE90 )
@@ -833,7 +850,7 @@
             !-------------------------------------
             CASE ( 'SLP' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:32' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:33' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SLP )
@@ -845,7 +862,7 @@
             !-------------------------------------
             CASE ( 'SNODP' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:33' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:34' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SNODP )
@@ -857,7 +874,7 @@
             !-------------------------------------
             CASE ( 'SNOMAS' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:34' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:35' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SNOMAS )
@@ -869,7 +886,7 @@
             !-------------------------------------
             CASE ( 'SWGNT' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:35')
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, SWGNT )
@@ -881,7 +898,7 @@
             !-------------------------------------
             CASE ( 'TROPPT' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:36' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, TROPPT )
@@ -893,7 +910,7 @@
             !-------------------------------------
             CASE ( 'TS' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:37' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, TS )
@@ -905,7 +922,7 @@
             !-------------------------------------
             CASE ( 'T2M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:38' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, T2M )
@@ -917,7 +934,7 @@
             !-------------------------------------
             CASE ( 'U10M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:39' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, U10M )
@@ -929,7 +946,7 @@
             !-------------------------------------
             CASE ( 'USTAR' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:40' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, USTAR )
@@ -941,7 +958,7 @@
             !-------------------------------------
             CASE ( 'V10M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:41' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, V10M )
@@ -953,7 +970,7 @@
             !-------------------------------------
             CASE ( 'Z0M' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:42' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   CALL TRANSFER_2D( Q2, Z0M )
@@ -966,7 +983,7 @@
             !-------------------------------------
             CASE ( 'LWTUP',  'QV2M', 'SWGDN'  )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:43' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   NFOUND = NFOUND + 1
@@ -978,7 +995,7 @@
             CASE DEFAULT
                WRITE ( 6, 200 )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:45' )
 
          END SELECT
             
