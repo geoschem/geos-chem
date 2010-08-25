@@ -317,8 +317,8 @@
       REAL*8,  INTENT(IN)   :: Dep_Hg2
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to
-!                              depo_mercury_mod.f
+!  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to depo_mercury_mod.f
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,7 +344,7 @@
          NN = GET_HgP_CAT( N ) 
       ENDIF
 
-#if defined(GEOS_5)
+#if   defined( GEOS_5 ) || defined( MERRA )
       ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
       SNOW_HT = SNOMAS(I,J)
 #else

@@ -39,6 +39,7 @@
 !  02 Jun 2010 - C. Carouge  - Group all land emissions routine for mercury 
 !                              into this new module.
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,6 +90,7 @@
 !  (3 ) Now also reemit Hg(0) from ice surfaces, including sea ice 
 !       (cdh, 8/19/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -114,11 +116,8 @@
       DO I  = 1, IIPAR
       DO NN = 1, N_Hg_CATS
     
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
-#elif  defined( MERRA )
-         ! MERRA snow height -- doublecheck units
          SNOW_HT = SNOMAS(I,J)
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -467,6 +466,7 @@
 !  (3 ) Removed FRCLND for consistency with other Hg emissions (cdh, 8/19/08)
 !  2 June 2010 - C. Carouge  - Solve  
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -503,11 +503,8 @@
       DO J=1, JJPAR
       DO I=1, IIPAR
          
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
-#elif defined( MERRA )
-         ! MERRA snow height -- doublecheck units
          SNOW_HT = SNOMAS(I,J)
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm

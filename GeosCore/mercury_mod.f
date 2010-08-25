@@ -707,11 +707,8 @@
          ! Disable dry deposition of Hg(0) to ice because we do not have
          ! an ice emission model. Perennial ice should have equal emission
          ! and deposition averaged over multiple years. (cdh, 9/11/09)
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
-#elif defined( MERRA )
-         ! MERRA snow height -- doublecheck units
          SNOW_HT = SNOMAS(I,J)
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -2043,11 +2040,8 @@
 !      DO I  = 1, IIPAR
 !      DO NN = 1, N_Hg_CATS
 !    
-!#if   defined( GEOS_5 )
+!#if   defined( GEOS_5 ) || defined( MERRA )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#elif defined( MERRA )
-!         ! GEOS5 snow height -- doublecheck units
 !         SNOW_HT = SNOMAS(I,J)
 !#else
 !         ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -2370,11 +2364,8 @@
 !      DO J=1, JJPAR
 !      DO I=1, IIPAR
 !         
-!#if   defined( GEOS_5 )
+!#if   defined( GEOS_5 ) || defined( MERRA )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-!         SNOW_HT = SNOMAS(I,J)
-!#elif defined( GEOS_5 )
-!         ! GEOS5 snow height -- doublecheck units
 !         SNOW_HT = SNOMAS(I,J)
 !#else
 !         ! GEOS1-4 snow heigt (water equivalent) in mm
@@ -4419,11 +4410,8 @@ c$$$         ! Get HgP category number
 c$$$         NN = GET_HgP_CAT( N ) 
 c$$$      ENDIF
 c$$$
-c$$$#if   defined( GEOS_5 )
+c$$$#if   defined( GEOS_5 ) || defined( MERRA )
 c$$$      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-c$$$      SNOW_HT = SNOMAS(I,J)
-c$$$#elif defined( MERRA )
-c$$$      ! MERRA snow height -- doublecheck units
 c$$$      SNOW_HT = SNOMAS(I,J)
 c$$$#else
 c$$$      ! GEOS1-4 snow heigt (water equivalent) in mm

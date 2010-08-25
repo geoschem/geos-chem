@@ -1744,7 +1744,8 @@ contains
 !
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
-! 4 June 2010  - C. Carouge  - Updates for mercury simulations with GTMM 
+!  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1981,11 +1982,8 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          SNOW_HT = SNOMAS(I,J)
-#elif defined( MERRA )
-          ! GEOS5 snow height -- doublecheck units!
           SNOW_HT = SNOMAS(I,J)
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
