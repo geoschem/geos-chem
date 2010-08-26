@@ -52,6 +52,7 @@
 !  (11) Add AOD output for all dust size bins (clh, 5/7/10)
 !  (12) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -613,7 +614,7 @@
 !                                                                             .
 !  Parameters used in GEOS-CHEM
 !                                                                             .
-!  Longitude: IIPAR 
+!  Longitude: IIPAR
 !  Latitude : JJPAR 
 !  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
 !  Size bins: NDSTBIN  =   4
@@ -634,6 +635,7 @@
 !  (6 ) Updated output statement (bmy, 1/23/07)
 !  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1313,18 +1315,12 @@
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
 #     include "CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTTLOOP
-
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
 !
-
-!
-! !REMARKS:
-! 
-! 
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
@@ -1578,7 +1574,7 @@
 !
 ! !IROUTINE: init_dust
 !
-! !DESCRIPTION: Subroutine INIT\_DUST allocates all module arrays
+! !DESCRIPTION: Subroutine INIT\_DUST allocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:

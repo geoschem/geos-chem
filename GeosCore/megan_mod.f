@@ -2546,7 +2546,7 @@
 ! !USES:
 !
       USE A3_READ_MOD
-      USE MERRA_A3_MOD
+      USE MERRA_A1_MOD
       USE FILE_MOD,    ONLY : IU_A3
       USE JULDAY_MOD,  ONLY : CALDATE
       USE ERROR_MOD,   ONLY : ALLOC_ERR
@@ -2560,7 +2560,7 @@
 !  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
 !  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2010 - R. Yantosca - Now reference merra_a3_mod.f
+!  26 Aug 2010 - R. Yantosca - Now reference merra_a1_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2792,11 +2792,11 @@
             ! Sfc temp is hourly data
             !-----------------------------
 
-            ! Open A-3 fields
-            CALL OPEN_MERRA_A3_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+            ! Open A1 fields
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
 
-            ! Read A-3 fields from disk
-            CALL GET_MERRA_A3_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+            ! Read A1 fields from disk
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
 
 #else
             !-----------------------------
@@ -2804,10 +2804,10 @@
             ! Sfc temp is 3-hourly data
             !-----------------------------
 
-            ! Open A-3 fields
+            ! Open A3 fields
             CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
 
-            ! Read A-3 fields from disk
+            ! Read A3 fields from disk
             CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
 
 #endif

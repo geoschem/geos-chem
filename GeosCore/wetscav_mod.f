@@ -3,7 +3,7 @@
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, ccc, 2/28/00, 7/13/10)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, ccc, 2/28/00, 8/13/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -2111,6 +2111,7 @@
 !  (17) Bug fix: need to use separate conversion parameters for H2O2 and
 !        NH3.  This was the same fix as in COMPUTE_F but until now we had
 !        overlooked this. (havala, bmy, 7/20/09)
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2171,7 +2172,7 @@
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       !------------------------------------------------------------------
       ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
       !

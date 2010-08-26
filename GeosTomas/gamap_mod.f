@@ -1,69 +1,48 @@
-! $Id: gamap_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: gamap_mod
+!
+! !DESCRIPTION: Module GAMAP\_MOD contains routines to create GAMAP 
+!  "tracerinfo.dat" and "diaginfo.dat" files which are customized to each
+!   particular GEOS-Chem simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE GAMAP_MOD
 !
-!******************************************************************************
-!  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
-!  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 12/18/09)
+! !USES:
+!
+      IMPLICIT NONE
+      PRIVATE
+
+#     include "CMN_SIZE"              ! Dimensions of arrays
+#     include "CMN_DIAG"              ! Diagnostic parameters
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: DO_GAMAP
+!
+! !PRIVATE MEMBER FUNCTIONS:
 ! 
-!  Module Variables:
-!  ============================================================================
-!  (1 ) MAXCAT    (INTEGER ) : Maximum # of GAMAP diagnostic categories
-!  (2 ) SPACING   (INTEGER ) : Spacing between GAMAP diagnostic categories
-!  (3 ) NCATS     (INTEGER ) : Counter for number of defined GAMAP categories
-!  (4 ) OFFSET    (INTEGER ) : GAMAP offset for each diagnostic category
-!  (5 ) CATEGORY  (CHAR*40 ) : GAMAP category name
-!  (6 ) DESCRIPT  (CHAR*40 ) : GAMAP category description
-!  (7 ) DFILE     (CHAR*255) : Path name of the GAMAP "diaginfo.dat" file
-!  (8 ) MAXDIAG   (INTEGER ) : Maximum # of GEOS-CHEM diagnostics
-!  (9 ) MAXTRACER (INTEGER ) : Maximum # of tracers per GEOS-CHEM diagnostic
-!  (10) NTRAC     (INTEGER ) : Number of tracers for each GEOS-CHEM diagnostic
-!  (11) INDEX     (INTEGER ) : Diagnostic tracer numbers
-!  (12) MOLC      (INTEGER ) : Ratio of (moles C) / (moles tracer)
-!  (13) MWT       (REAL*4  ) : Tracer molecular weights
-!  (14) SCALE     (REAL*4  ) : GAMAP scale factors (e.g. 1e9 for v/v -> ppbv)
-!  (15) NAME      (CHAR*40 ) : Tracer names
-!  (16) FNAME     (CHAR*40 ) : Full tracer names
-!  (17) UNIT      (CHAR*40 ) : Unit string for each tracer
-!  (18) TFILE     (CHAR*255) : Path name of the GAMAP "tracerinfo.dat" file
-!  (19) STAMP     (CHAR*16 ) : Timestamp w/ system date & time
-!  (20) SIM_NAME  (CHAR*40 ) : Name of the GEOS-CHEM simulation 
+      PRIVATE :: CREATE_DINFO
+      PRIVATE :: CREATE_TINFO
+      PRIVATE :: WRITE_TINFO
+      PRIVATE :: WRITE_SEPARATOR
+      PRIVATE :: INIT_DIAGINFO
+      PRIVATE :: INIT_TRACERINFO
+      PRIVATE :: INIT_GAMAP
+      PRIVATE :: CLEANUP_GAMAP
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_GAMAP             : Driver routine
-!  (2 ) CREATE_DINFO         : Writes customized "diaginfo.dat" file
-!  (3 ) CREATE_TINFO         : Writes customized "tracerinfo.dat" file
-!  (4 ) WRITE_TINFO          : Writes one line to disk for "tracerinfo.dat" 
-!  (5 ) WRITE_SEPARATOR      : Writes separator blocks to "tracerinfo.dat"
-!  (6 ) INIT_DIAGINFO        : Initializes arrays for diaginfo.dat file
-!  (7 ) INIT_TRACERINFO      : Initializes arrays for tracerinfo.dat file
-!  (8 ) INIT_GAMAP           : Allocates and initializes all module arrays
-!  (9 ) CLEANUP_GAMAP        : Deallocates all module arrays
+! !REMARKS:
+!  For more information, please see the GAMAP Online Users' Manual:
+!   http://acmg.seas.harvard.edu/gamap/doc/index.html
 !
-!  GEOS-CHEM modules referenced by "gamap_mod.f"
-!  ============================================================================
-!  (1 ) diag03_mod.f         : Module w/ routines for mercury diagnostics
-!  (2 ) diag41_mod.f         : Module w/ routines for afternoon PBL diag's
-!  (3 ) diag48_mod.f         : Module w/ routines for station timeseries
-!  (4 ) diag49_mod.f         : Module w/ routines for inst timeseries
-!  (5 ) diag50_mod.f         : Module w/ routines for 24hr avg timeseries
-!  (6 ) diag51_mod.f         : Module w/ routines for morning/aft timeseries
-!  (7 ) diag_pl_mod.f        : Module w/ routines for saving family P & L
-!  (8 ) drydep_mod.f         : Module w/ GEOS-CHEM drydep routines
-!  (9 ) error_mod.f          : Module w/ error and NaN check routines
-!  (10) file_mod.f           : Module w/ file unit numbers & I/O error checks
-!  (11) time_mod.f           : Module w/ routines for computing time & date
-!  (12) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
-!  (13) tracerid_mod.f       : Module w/ GEOS-CHEM tracer ID flags
-!  (14) wetscav_mod.f        : Module w/ routines for wetdep/scavenging
-!
-!  References:
-!  ============================================================================
-!  (1 ) For more information, please see the GAMAP Online Users' Manual:
-!        http://www-as.harvard.edu/chemistry/trop/gamap/documentation/
-!
-!  NOTES:
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation. (bmy, 6/30/05)
 !  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
@@ -90,27 +69,19 @@
 !  (20) Minor bug fixes (dkh, bmy, 11/19/09)
 !  (21) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
-!        hdf_mod. (amv, bmy, 12/1
-!  (20) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
-!******************************************************************************
+!        hdf_mod. (amv, bmy, 12/1/09)
+!  (22) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
+!                              #include "CMN_DIAG" to the top of module
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  25 Aug 2010 - R. Yantosca - 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "gamap_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: DO_GAMAP
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! For "diaginfo.dat"
       INTEGER,           PARAMETER   :: MAXCAT    = 150
       INTEGER,           PARAMETER   :: SPACING   = 1000
@@ -121,8 +92,8 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      INTEGER,           PARAMETER   :: MAXDIAG   = 70   
-      INTEGER,           PARAMETER   :: MAXTRACER = 325 !(win, 6/35/09)  
+      INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
+      INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
       INTEGER,           ALLOCATABLE :: INDEX(:,:)
       INTEGER,           ALLOCATABLE :: MOLC(:,:)
@@ -141,31 +112,38 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_gamap
+!
+! !DESCRIPTION: Subroutine DO\_GAMAP is the driver program for creating 
+!  the customized GAMAP files "diaginfo.dat" and "tracerinfo.dat". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GAMAP( DIAGINFO, TRACERINFO )  
 !
-!******************************************************************************
-!  Subroutine DO_GAMAP is the driver program for creating the customized GAMAP
-!  files "diaginfo.dat" and "tracerinfo.dat". (bmy, 5/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
-!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
-!
-!  NOTES: 
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TIME_MOD,   ONLY : SYSTEM_TIMESTAMP
       USE TRACER_MOD, ONLY : GET_SIM_NAME 
-
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
-
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path of "diaginfo.dat"
+      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path of "tracerinfo.dat"
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! DO_GAMAP begins here!
       !=================================================================
@@ -188,25 +166,37 @@
       ! Deallocate variables
       CALL CLEANUP_GAMAP
 
-      ! Return to calling program
       END SUBROUTINE DO_GAMAP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: create_dinfo
+!
+! !DESCRIPTION: Subroutine CREATE\_DINFO writes information about diagnostic 
+!  categories to a customized "diaginfo.dat" file. (bmy, 5/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CREATE_DINFO
 !
-!******************************************************************************
-!  Subroutine CREATE_DINFO  writes information about diagnostic categories
-!  to a customized "diaginfo.dat" file. (bmy, 5/3/05)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!                                
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR, IU_FILE
-
-      ! Local variables
-      INTEGER           :: IOS, N
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IOS, N
 
       !=================================================================
       ! CREATE_DINFO begins here!
@@ -268,35 +258,44 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE CREATE_DINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: create_tinfo
+!
+! !DESCRIPTION: Subroutine CREATE\_TINFO writes information about tracers to 
+!  a customized tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CREATE_TINFO
 !
-!******************************************************************************
-!  Subroutine CREATE_TINFO writes information about tracers to a customized
-!  "tracerinfo.dat" file. (bmy, 4/21/05, 2/6/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
-!  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE FILE_MOD,    ONLY : IOERROR, IU_FILE
       USE LOGICAL_MOD, ONLY : LSOA
       USE LOGICAL_MOD, ONLY : LTOMAS    !(win, 7/9/09)
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Local variables
-      INTEGER              :: D, IOS, N, T
-      REAL*4               :: SCALE_NEW
-      CHARACTER(LEN=2)     :: C
-      CHARACTER(LEN=40)    :: UNIT_NEW, NAME_NEW
+! 
+! !REVISION HISTORY: 
+!  21 Apr 2005 - R. Yantosca - Initial version
+!  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
+!  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: D, IOS, N, T
+      REAL*4            :: SCALE_NEW
+      CHARACTER(LEN=2)  :: C
+      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -554,40 +553,47 @@
          ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE CREATE_TINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_tinfo
+!
+! !DESCRIPTION: Subroutine WRITE\_TINFO writes one line to the customized 
+!  "tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_TINFO( NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
 !
-!******************************************************************************
-!  Subroutine WRITE_TINFO writes one line to the customized "tracerinfo.dat" 
-!  file. (bmy, 5/3/05)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NAME  (CHARACTER) : GAMAP short tracer name
-!  (2 ) FNAME (CHARACTER) : GAMAP long tracer name
-!  (3 ) MWT   (REAL*8   ) : Molecular weight [kg/mole]
-!  (4 ) MOLC  (REAL*8   ) : Moles C per mole tracer (for hydrocarbons)
-!  (5 ) SCALE (REAL*8   ) : GAMAP scale factor (e.g. 1e+9 scales v/v --> ppbv)
-!  (6 ) UNIT  (CHARACTER) : Unit string
-!  (7 ) N     (INTEGER  ) : Tracer number
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_FILE, IOERROR
-
-      ! Argumetns
-      INTEGER,          INTENT(IN) :: MOLC, N
-      REAL*4,           INTENT(IN) :: MWT,  SCALE
-      CHARACTER(LEN=*), INTENT(IN) :: NAME, FNAME, UNIT
-
-      ! Local variables
-      INTEGER                      :: IOS
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
+      CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
+      REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
+      INTEGER,          INTENT(IN) :: MOLC    ! Moles C/mole tracer (for HC's)
+      INTEGER,          INTENT(IN) :: N       ! Tracer number
+      REAL*4,           INTENT(IN) :: SCALE   ! GAMAP scale factor
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT    ! Unit string
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IOS
 
       !=================================================================
       ! WRITE_TINFO begins here!
@@ -604,35 +610,44 @@
       ! FORMAT string
  100  FORMAT( a8, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
 
-      ! Return to calling program
       END SUBROUTINE WRITE_TINFO
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_separator
 
+!
+! !DESCRIPTION: Subroutine WRITE\_SEPARATOR writes a separator block to the 
+!  customized "tracerinfo.dat" file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_SEPARATOR( DIAG )
 !
-!******************************************************************************
-!  Subroutine WRITE_SEPARATOR writes a separator block to the customized
-!  "tracerinfo.dat" file. (bmy, 5/3/05, 2/6/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAG (INTEGER) : GEOS-CHEM diagnostic number 
-!
-!  NOTES:
-!  (1 ) Added new header for GPROD & APROD info (bmy, 2/6/07)
-!  (2 ) Added new header for TOMAS aerosol rate (win, 7/9/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_FILE, IOERROR
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: DIAG
-
-      ! Local variables
-      INTEGER             :: IOS
-      CHARACTER(LEN=79)   :: SEPARATOR
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: DIAG   ! GEOS-Chem diagnostic number
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  06 Feb 2007 - R. Yantosca - Added new header for GPROD & APROD info
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: IOS
+      CHARACTER(LEN=79) :: SEPARATOR
 
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
@@ -685,19 +700,26 @@
  170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
  180  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
      
-      ! Return to calling program
       END SUBROUTINE WRITE_SEPARATOR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diaginfo
+!
+! !DESCRIPTION: Subroutine INIT\_DIAGINFO initializes the CATEGORY, DESCRIPT, 
+!  and OFFSET variables, which are used to define the "diaginfo.dat" file 
+!  for GAMAP.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAGINFO
-!
-!******************************************************************************
-!  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
-!  variables, which are used to define the "diaginfo.dat" file for GAMAP.
-!  (bmy, 10/17/06, 11/16/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  17 Oct 1996 - R. Yantosca - Initial version
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
 !        burning emissions w/ offset of 45000.  Now declare time in the 
 !        troposphere diagnostic with offset of 46000. (phs, bmy, 10/17/06)
@@ -708,13 +730,15 @@
 !  (4 ) Change diagnostic category for ND31 diagnostic from "PS-PTOP" 
 !        to "PEDGE-$" (bmy, 11/16/07)
 !  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
-!  (6 ) Add new diagnostic for TOMAS aerosol emissions and microphysics 
-!        processes rates (win, 7/9/09)
-!  (7 ) Modify category 'TOMAS-3D' to use OFFSET 7 (win, 7/9/09)
-!  (8 ) Add potential temperature category. (fp, 2/26/10)
-!******************************************************************************
+!  (6 ) Add potential temperature category. (fp, 2/26/10)
+!  21 May 2010 - C. Carouge  - Add diagnostic for mercury simulation
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables 
+! !LOCAL VARIABLES:
+! 
       INTEGER :: N
 
       !=================================================================
@@ -1391,40 +1415,25 @@
       ! Number of categories
       NCATS = N
       
-      ! Return to calling program
       END SUBROUTINE INIT_DIAGINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tracerinfo
+!
+! !DESCRIPTION: Subroutine INIT\_TRACERINFO initializes the NAME, FNAME, 
+!  MWT, MOLC, INDEX, MOLC, UNIT arrays which are used to define the 
+!  "tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TRACERINFO
 !
-!******************************************************************************
-!  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
-!  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, phs, 10/17/06, 11/19/09)
-!
-!  NOTES:
-!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
-!        biomass burning emissions w/ offset of 45000.  Bug fix: write out
-!        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
-!        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
-!  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
-!  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
-!        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
-!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
-!  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
-!  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
-!  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
-!        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
-!  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
-!  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
-!        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
-!  (9 ) Add iniformation for ND61 (win, 7/9/09)
-!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
-!        only numbers are real drydep species while the mass species just 
-!        tag along but we need them to show up in diagnostic too.  Reference  
-!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
       USE DIAG03_MOD,   ONLY : ND03, PD03
@@ -1472,16 +1481,42 @@
       USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : IDTNK1     !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! NDxx flags
-
-      ! Local variables
-      INTEGER               :: N, NN, NYMDb, NHMSb, T
-      LOGICAL               :: DO_TIMESERIES
+! 
+! !REVISION HISTORY: 
+!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
+!        biomass burning emissions w/ offset of 45000.  Bug fix: write out
+!        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
+!        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
+!  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
+!  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
+!        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
+!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
+!  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
+!  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
+!  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
+!        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
+!  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
+!  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
+!        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  (9 ) Add iniformation for ND61 (win, 7/9/09)
+!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
+!        only numbers are real drydep species while the mass species just 
+!        tag along but we need them to show up in diagnostic too.  Reference  
+!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
+!  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N, NN, NYMDb, NHMSb, T
+      LOGICAL :: DO_TIMESERIES
 
       ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER               :: PD03_PL
+      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -3778,7 +3813,7 @@ c$$$            ENDDO
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else
@@ -3958,23 +3993,44 @@ c$$$            ENDDO
          SCALE(T,69) = 1e0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRACERINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_gamap
+!
+! !DESCRIPTION: Subroutine INIT\_GAMAP allocates and initializes all 
+!  module variables.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GAMAP( DIAGINFO, TRACERINFO )
 !
-!******************************************************************************
-!  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 8/4/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
-!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+      USE LOGICAL_MOD, ONLY : LND50_HDF,   LND51_HDF, LND51b_HDF
+      USE HDF_MOD,     ONLY : INIT_HDF
+      USE HDF_MOD,     ONLY : HDFCATEGORY
+      USE HDF_MOD,     ONLY : HDFDESCRIPT
+      USE HDF_MOD,     ONLY : HDFNAME
+      USE HDF_MOD,     ONLY : HDFFNAME
+      USE HDF_MOD,     ONLY : HDFUNIT
+      USE HDF_MOD,     ONLY : HDFMOLC
+      USE HDF_MOD,     ONLY : HDFMWT
+      USE HDF_MOD,     ONLY : HDFSCALE
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path for "diaginfo.dat"
+      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path for "tracerinfo.dat"
+!
+! !REVISION HISTORY:
 !  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
 !  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
@@ -3995,32 +4051,14 @@ c$$$            ENDDO
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
 !  (12) Save output to HDF_MOD (amv, bmy, 12/18/09)
-!******************************************************************************
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE LOGICAL_MOD, ONLY : LND50_HDF, LND51_HDF, LND51b_HDF
-
-      USE HDF_MOD, ONLY : INIT_HDF
-      USE HDF_MOD, ONLY : HDFCATEGORY
-      USE HDF_MOD, ONLY : HDFDESCRIPT
-      USE HDF_MOD, ONLY : HDFNAME
-      USE HDF_MOD, ONLY : HDFFNAME
-      USE HDF_MOD, ONLY : HDFUNIT
-      USE HDF_MOD, ONLY : HDFMOLC
-      USE HDF_MOD, ONLY : HDFMWT
-      USE HDF_MOD, ONLY : HDFSCALE
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
-
-      ! Local variables
-      INTEGER                        :: AS, NYMDb, NHMSb
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS, NYMDb, NHMSb
 
       !=================================================================
       ! INIT_GAMAP begins here!
@@ -4112,19 +4150,28 @@ c$$$            ENDDO
          
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_GAMAP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_gamap
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GAMAP deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GAMAP
-!
-!******************************************************************************
-!  Subroutine CLEANUP_GAMAP deallocates all module arrays (bmy, 4/25/05)
 ! 
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  25 Apr 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !===================================================================
       ! CLEANUP_GAMAP begins here!
       !===================================================================
@@ -4140,10 +4187,6 @@ c$$$            ENDDO
       IF ( ALLOCATED( SCALE    ) ) DEALLOCATE( SCALE    )
       IF ( ALLOCATED( UNIT     ) ) DEALLOCATE( UNIT     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GAMAP
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE GAMAP_MOD

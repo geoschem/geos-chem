@@ -1,77 +1,29 @@
-! $Id: diag_mod.f,v 1.2 2010/03/15 19:33:20 ccarouge Exp $
-      MODULE DIAG_MOD 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Module DIAG_MOD contains declarations for allocatable arrays for use with 
-!  GEOS-CHEM diagnostics. (amf, bdf, bmy, 11/30/99, 1/25/10)
+! !MODULE: diag_mod
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) CLEANUP_DIAG : Deallocates all module arrays  
+! !DESCRIPTION: Module DIAG\_MOD contains declarations for allocatable arrays 
+!  for use with GEOS-CHEM diagnostics. 
+!\\
+!\\
+! !INTERFACE: 
 !
-!  GEOS-CHEM modules referenced by diag_mod.f
-!  ============================================================================
-!  none
+      MODULE DIAG_MOD
 !
-!  NOTES:
-!  (1 ) DIAG_MOD is written in Fixed-Format F90.
-!  (2 ) Call subroutine CLEANUP at the end of the MAIN program to deallocate
-!        the memory before the run stops.  It is always good style to free
-!        any memory we have dynamically allocated when we don't need it
-!        anymoren
-!  (3 ) Added ND13 arrays for sulfur emissions (bmy, 6/6/00)
-!  (4 ) Moved ND51 arrays to "diag51_mod.f" (bmy, 11/29/00)
-!  (5 ) Added AD34 array for biofuel burning emissions (bmy, 3/15/01)
-!  (6 ) Eliminated old commented-out code (bmy, 4/20/01)
-!  (7 ) Added AD12 array for boundary layer emissions in routine "setemis.f".
-!        (bdf, bmy, 6/15/01)
-!  (8 ) Added CHEML24, DRYDL24, CTCHDD for archiving daily mean chemical
-!        and drydep loss in chemo3 and chemo3.f (amf, bmy, 7/2/01)
-!  (9 ) Add ND43 arrays LTNO2, CTNO2, LTHO2, CTHO2 (rvm, bmy, 2/27/02)
-!  (10) Add AD01, AD02 arrays for Rn-Pb-Be simulation (hyl, bmy, 8/7/02)
-!  (11) Add AD05 array for sulfate P-L diagnostic (rjp, bdf, bmy, 9/20/02)
-!  (12) Added subroutine CLEANUP_DIAG...moved code here from "cleanup.f", 
-!        so that it is internal to "diag_mod.f".  Added arrays AD13_NH3_bb,
-!        AD13_NH3_bf, AD13_NH3_an for NH3 emissons in ND13.  Deleted obsolete
-!        allocatable arrays CHEML24, DRYDL24, CTCHDD.  Now also added LTNO3
-!        and CTNO3 arrays for ND43 diagnostic.  Added AD13_SO2_bf array for
-!        SO2 biofuel. (bmy, 1/16/03)
-!  (13) Added array AD13_NH3_na for ND13 diagnostic (rjp, bmy, 3/23/03)
-!  (14) Removed P24H and L24H -- these are now defined w/in "tagged_ox_mod.f"
-!        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
-!  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission) 
-!        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
-!  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
-!  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
-!  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
-!  (19) Added array AD13_SO4_bf (bmy, 11/17/04)!
-!  (20) Added extra arrays for ND03 mercury diagnostics (eck, bmy, 12/7/04)
-!  (21) Added extra ND21 array for crystalline sulfur tracers.  Also remove
-!        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
-!  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
-!  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
-!  (24) Added AD30 array for land/water/ice output (bmy, 8/18/05)
-!  (25) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
-!  (26) Added CTO3 counter. Convert ND43 counter arrays from 2D to 3D, for
-!        the variable tropopause. (phs, 1/19/07)
-!  (27) Added AD10 and AD10em arrays for ND10 H2-HD-sim diag (phs, 9/18/07)
-!  (28) Added CTO3_24h to account for time in the troposphere for O3 in
-!        ND47 (phs, 11/17/08)
-!  (29) Added AD52 for Gamma HO2 diagnostic. (jaegle, ccc, 2/26/09)
-!  (30) Updated to save out GLYX production of SOAG in ND07.
-!       (tmf, 3/6/09)
-!  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
-!  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
-!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)  
-!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB, 
-!        AD59_OCIL, and AD59_DUST for size-resolved emission  (win, 1/25/10)
-!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
-!        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
-!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
-!  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
-!       temperature. (fp, 2/3/10)
-!******************************************************************************
-!     
+! !USES:
+!
+      IMPLICIT NONE
+      PUBLIC
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CLEANUP_DIAG
+!
+! !PUBLIC DATA MEMBERS:
+!
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -313,21 +265,87 @@
 
       ! For ND69 -- DXYP diagnostic
       REAL*4,  ALLOCATABLE :: AD69(:,:,:)      
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!
+! !REVISION HISTORY:
+!  30 Nov 1999 - A. Fiore - Initial version
+!  (1 ) DIAG_MOD is written in Fixed-Format F90.
+!  (2 ) Call subroutine CLEANUP at the end of the MAIN program to deallocate
+!        the memory before the run stops.  It is always good style to free
+!        any memory we have dynamically allocated when we don't need it
+!        anymoren
+!  (3 ) Added ND13 arrays for sulfur emissions (bmy, 6/6/00)
+!  (4 ) Moved ND51 arrays to "diag51_mod.f" (bmy, 11/29/00)
+!  (5 ) Added AD34 array for biofuel burning emissions (bmy, 3/15/01)
+!  (6 ) Eliminated old commented-out code (bmy, 4/20/01)
+!  (7 ) Added AD12 array for boundary layer emissions in routine "setemis.f".
+!        (bdf, bmy, 6/15/01)
+!  (8 ) Added CHEML24, DRYDL24, CTCHDD for archiving daily mean chemical
+!        and drydep loss in chemo3 and chemo3.f (amf, bmy, 7/2/01)
+!  (9 ) Add ND43 arrays LTNO2, CTNO2, LTHO2, CTHO2 (rvm, bmy, 2/27/02)
+!  (10) Add AD01, AD02 arrays for Rn-Pb-Be simulation (hyl, bmy, 8/7/02)
+!  (11) Add AD05 array for sulfate P-L diagnostic (rjp, bdf, bmy, 9/20/02)
+!  (12) Added subroutine CLEANUP_DIAG...moved code here from "cleanup.f", 
+!        so that it is internal to "diag_mod.f".  Added arrays AD13_NH3_bb,
+!        AD13_NH3_bf, AD13_NH3_an for NH3 emissons in ND13.  Deleted obsolete
+!        allocatable arrays CHEML24, DRYDL24, CTCHDD.  Now also added LTNO3
+!        and CTNO3 arrays for ND43 diagnostic.  Added AD13_SO2_bf array for
+!        SO2 biofuel. (bmy, 1/16/03)
+!  (13) Added array AD13_NH3_na for ND13 diagnostic (rjp, bmy, 3/23/03)
+!  (14) Removed P24H and L24H -- these are now defined w/in "tagged_ox_mod.f"
+!        Also added AD03 array for Kr85 prod/loss diag. (jsw, bmy, 8/20/03)
+!  (15) Added ND06 (dust emission) and ND07 (carbon aerosol emission) 
+!        diagnostic arrays (rjp, tdf, bmy, 4/5/04)
+!  (16) Added AD13_SO2_sh diagnostic array for ND13 (bec, bmy, 5/20/04)
+!  (17) Added AD07_HC diagnostic array for ND07 (rjp, bmy, 7/13/04)
+!  (18) Moved AD65 & FAMPL to "diag65_mod.f" (bmy, 7/20/04)
+!  (19) Added array AD13_SO4_bf (bmy, 11/17/04)!
+!  (20) Added extra arrays for ND03 mercury diagnostics (eck, bmy, 12/7/04)
+!  (21) Added extra ND21 array for crystalline sulfur tracers.  Also remove
+!        ND03 and ND48 arrays; they are obsolete (bmy, 1/21/05)
+!  (22) Removed AD41 and AFTTOT arrays; they're obsolete (bmy, 2/17/05)
+!  (23) Added AD09, AD09_em arrays for HCN/CH3CN simulation (xyp, bmy, 6/27/05)
+!  (24) Added AD30 array for land/water/ice output (bmy, 8/18/05)
+!  (25) Added AD54 array for time spend in the troposphere (phs, 9/22/06)
+!  (26) Added CTO3 counter. Convert ND43 counter arrays from 2D to 3D, for
+!        the variable tropopause. (phs, 1/19/07)
+!  (27) Added AD10 and AD10em arrays for ND10 H2-HD-sim diag (phs, 9/18/07)
+!  (28) Added CTO3_24h to account for time in the troposphere for O3 in
+!        ND47 (phs, 11/17/08)
+!  (29) Added AD52 for Gamma HO2 diagnostic. (jaegle, ccc, 2/26/09)
+!  (30) Updated to save out GLYX production of SOAG in ND07.
+!       (tmf, 3/6/09)
+!  (31) Add LTO3 for ND45 diag. (ccc, 7/20/09)
+!  (32) Add AD19, AD58, AD60 for CH4 (kjw, 8/18/09)
+!  (33) AD13_NH3_an is 3D now (phs, 10/22/09)  
+!  (34) Add AD59_NUMB, AD59_SULF, AD59_SALT, AD59_ECOB, AD59_ECIL, AD59_OCOB, 
+!        AD59_OCIL, and AD59_DUST for size-resolved emission  (win, 1/25/10)
+!  (35) Add AD60_COND, AD60_COAG, AD60_NUCL, AD60_AQOX, AD60_SOA, and 
+!        AD60_ERROR for TOMAS process rate diagnostics (win, 1/25/10)
+!  (36) Add AD61 and AD61_INST for saving 3-D TOMAS rate (win, 1/25/10)   
+!  (37) Add counter for aromatics SOA and add AD57 diagnostic for potential
+!       temperature. (fp, 2/3/10)
+!  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG
 !
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG deallocates all module arrays.
-!  (bmy, 12/13/02, 1/25/10)
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  13 Dec 2002 - R. Yantosca - Initial version
 !  (1 ) Now also deallocate AD13_NH3_an, AD13_NH3_bb, AD13_NH3_bf arrays
 !        for the ND13 diagnostic.  (bmy, 12/13/02)
 !  (2 ) Now also deallocate AD13_NH3_na array for ND13 (rjp, bmy, 3/23/03)
@@ -346,8 +364,9 @@
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
 !  (15) Now deallocate TOMAS related arrays (win, bmy, 1/25/10)
-!******************************************************************************
-!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
@@ -478,10 +497,7 @@
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG
-      
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE DIAG_MOD 
 

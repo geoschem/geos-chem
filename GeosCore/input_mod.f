@@ -139,6 +139,7 @@
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
+!  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !******************************************************************************
 !
       IMPLICIT NONE

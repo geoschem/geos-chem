@@ -1,15 +1,97 @@
-! $Id: ndxx_setup.f,v 1.5 2010/03/15 19:33:23 ccarouge Exp $
-      SUBROUTINE NDXX_SETUP
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  NDXX_SETUP dynamically allocates memory for certain diagnostic arrays that 
-!  are declared allocatable in "diag_mod.f". (bmy, bey, 6/16/98, 12/18/08)
+! !ROUTINE: ndxx_setup
 !
+! !DESCRIPTION: Subroutine NDXX\_SETUP dynamically allocates memory for 
+!  certain diagnostic arrays that  are declared allocatable in "diag_mod.f". 
+!\\
+!\\
 !  This allows us to reduce the amount of memory that needs to be declared 
 !  globally.  We only allocate memory for arrays if the corresponding 
 !  diagnostic is turned on.
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE NDXX_SETUP
+!
+! !USES:
+!
+      ! References to F90 modules
+      !NBIOMAX moved to CMN_SIZE (fp, 6/2009)
+      !USE BIOMASS_MOD,     ONLY : NBIOMAX
+      USE BIOFUEL_MOD,     ONLY : NBFTRACE
+      USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,        ONLY : AD07_SOAGM
+      USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,        ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,        ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,        ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,        ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,        ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,        ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,        ONLY : AD30,        AD31
+      !FP_ISOP potential temperature diag (6/2009)
+      USE DIAG_MOD,        ONLY : AD57
+      !
+      USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,        ONLY : AD43,        LTNO
+      USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
+      USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
+      USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
+      USE DIAG_MOD,        ONLY : LTLBRO2H,    LTLBRO2N
+      USE DIAG_MOD,        ONLY : LTLTRO2H,    LTLTRO2N
+      USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
+      USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,        ONLY : AD52,        AD54
+      USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
+      USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
+      USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
+      ! Add O3 for ND45 diag. (ccc, 8/12/09)
+      USE DIAG_MOD,        ONLY : LTO3
+      USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
+      USE DRYDEP_MOD,      ONLY : NUMDEP
+      USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
+      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
+      ! Added for mercury simulation. (ccc, 6/4/10)
+      USE LOGICAL_MOD,     ONLY : LGTMM
+      USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
+      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
+      USE TRACER_MOD,      ONLY : N_TRACERS
+      USE TRACERID_MOD,    ONLY : NEMANTHRO
+      USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! Diagnostic switches & arrays
+! 
+! !REVISION HISTORY:
+!  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
 !  (1 ) This subroutine was split off from subroutine INPUT, for clarity
 !  (2 ) Added call to READ49 (bey, 2/99)
 !  (3 ) Eliminate GISS-Specific code, and AIJ, AIL diagnostics (bmy, 3/15/99)
@@ -141,79 +223,13 @@
 !     NEI 2005 (amv, 10/9/09)
 !  (73) AD13_NH3_an is 3D now (phs, 10/22/09)
 !  (74) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
-!******************************************************************************
+!  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      !NBIOMAX moved to CMN_SIZE (fp, 6/2009)
-      !USE BIOMASS_MOD,     ONLY : NBIOMAX
-      USE BIOFUEL_MOD,     ONLY : NBFTRACE
-      USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,        ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,        ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,        ONLY : AD07_SOAGM
-      USE DIAG_MOD,        ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,        ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,        ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,        ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,        ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,        ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,        ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,        ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,        ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,        ONLY : AD30,        AD31
-      !FP_ISOP potential temperature diag (6/2009)
-      USE DIAG_MOD,        ONLY : AD57
-      !
-      USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,        ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,        ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,        ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,        ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,        ONLY : AD43,        LTNO
-      USE DIAG_MOD,        ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,        ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,        ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      USE DIAG_MOD,        ONLY : CTLBRO2H,    CTLBRO2N
-      USE DIAG_MOD,        ONLY : CTLTRO2H,    CTLTRO2N
-      USE DIAG_MOD,        ONLY : CTLXRO2H,    CTLXRO2N
-      USE DIAG_MOD,        ONLY : LTLBRO2H,    LTLBRO2N
-      USE DIAG_MOD,        ONLY : LTLTRO2H,    LTLTRO2N
-      USE DIAG_MOD,        ONLY : LTLXRO2H,    LTLXRO2N
-      USE DIAG_MOD,        ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,        ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,        ONLY : AD52,        AD54
-      USE DIAG_MOD,        ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
-      USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
-      ! Add O3 for ND45 diag. (ccc, 8/12/09)
-      USE DIAG_MOD,        ONLY : LTO3
-      USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
-      USE DRYDEP_MOD,      ONLY : NUMDEP
-      USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
-      USE LOGICAL_MOD,     ONLY : LDUST, LCARB, LSSALT, LCRYST, LDRYD
-      ! Added for mercury simulation. (ccc, 6/4/10)
-      USE LOGICAL_MOD,     ONLY : LGTMM
-      USE PLANEFLIGHT_MOD, ONLY : SETUP_PLANEFLIGHT
-      USE TRACER_MOD,      ONLY : ITS_A_CH3I_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_MERCURY_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_TAGOX_SIM
-      USE TRACER_MOD,      ONLY : ITS_A_H2HD_SIM
-      USE TRACER_MOD,      ONLY : N_TRACERS
-      USE TRACERID_MOD,    ONLY : NEMANTHRO
-      USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: NMAX, AS, NEMISS, LMAX
 
       !=================================================================
@@ -1137,5 +1153,5 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE NDXX_SETUP
+!EOC

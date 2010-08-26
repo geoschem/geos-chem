@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.23 2010/03/15 19:33:25 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -741,7 +740,7 @@ MATIN4.o                    : MATIN4.f
 
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o           merra_a3_mod.o
+                              meganut_mod.o           merra_a1_mod.o
 
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
@@ -756,7 +755,7 @@ mercury_mod.o               : mercury_mod.f                                  \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o
 
-merra_a1_mod.o             : merra_a1_mod.f                                 \
+merra_a1_mod.o              : merra_a1_mod.f                                 \
                               logical_mod.o           dao_mod.o
 
 merra_a3_mod.o              : merra_a3_mod.f                                 \

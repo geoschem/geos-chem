@@ -117,7 +117,6 @@
 !
 ! !DESCRIPTION: Subroutine DO\_GAMAP is the driver program for creating 
 !  the customized GAMAP files "diaginfo.dat" and "tracerinfo.dat". 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -641,8 +640,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: IOS
-      CHARACTER(LEN=79)   :: SEPARATOR
+      INTEGER           :: IOS
+      CHARACTER(LEN=79) :: SEPARATOR
 
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
@@ -1332,7 +1331,6 @@
       ! Number of categories
       NCATS = N
       
-      ! Return to calling program
       END SUBROUTINE INIT_DIAGINFO
 !EOC
 !------------------------------------------------------------------------------
@@ -1417,7 +1415,6 @@
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1428,7 +1425,7 @@
       LOGICAL :: DO_TIMESERIES
 
       ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER               :: PD03_PL
+      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -3811,7 +3808,6 @@
          SCALE(T,69) = 1e0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRACERINFO
 !EOC
 !------------------------------------------------------------------------------

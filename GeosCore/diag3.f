@@ -3432,6 +3432,7 @@
 !  (3) For GEOS-4/fvDAS, UWND, VWND, TMPU, SPHU are A-6 fields.  Adjust
 !       the scale factors accordingly.  Also delete KZZ. (bmy, 6/23/03)
 !  (4) Modified for GEOS-5 and GCAP (bmy, 6/9/05)
+!  20 Aug 2010 - R. Yantosca - Modified for MERRA
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN

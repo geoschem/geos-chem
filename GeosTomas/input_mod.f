@@ -139,6 +139,7 @@
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
+!  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -543,11 +544,14 @@
 !  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
 !  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
+!  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
+!  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
 !******************************************************************************
 !
       ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
@@ -616,36 +620,48 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
-      ! Temp dir
+      ! MERRA subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
-      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+      READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+
+      ! Temp dir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+
+      !=================================================================
+      ! Add safety checks for logical switches
+      !=================================================================
+#if   defined( MERRA )
+      ! Turn unzipping off for MERRA met fields
+      LUNZIP = .FALSE. 
+#endif
 
       !=================================================================
       ! Print to screen
@@ -666,6 +682,8 @@
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
      &                     TRIM( GEOS_5_DIR )
+      WRITE( 6, 110     ) 'MERRA      sub-directory    : ', 
+     &                     TRIM( MERRA_DIR )
       WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
      &                     TRIM( DATA_DIR_1x1 )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
