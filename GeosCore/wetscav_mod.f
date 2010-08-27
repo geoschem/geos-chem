@@ -1499,9 +1499,10 @@
                C_TOT = 1d0 + L2G
                F_L   = L2G / C_TOT
 
-               ! Compute the rate constant K.  Assume scavenging takes
-               ! place only in warm clouds (retention = 0 where T<268)
-            
+!------------------------------------------------------------------------------
+! Prior to 8/7/2009:
+!               ! Compute the rate constant K.  Assume scavenging takes
+!               ! place only in warm clouds (retention = 0 where T<268)
 !               !Scavenging at all temperatures
 !               IF ( T(I,J,L) >= 268d0 ) THEN
 !                  K = KC * F_L  
@@ -1510,15 +1511,15 @@
 !                  K = 0d0
 !                  
 !               ENDIF
+!------------------------------------------------------------------------------
 
+               ! Compute the rate constant K. 
                !CDH allow scavening during riming (8/7/2009
                !Scavenging at all temperatures
                IF ( T(I,J,L) >= 248d0 ) THEN
                   K = KC * F_L  
-                  
                ELSE 
                   K = 0d0
-                  
                ENDIF
 
                ! Distance between grid box centers [m]
@@ -3795,11 +3796,11 @@
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,           FTOP,      ALPHA              )
-!$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,   K_RAIN   )
-!$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC, WASHFRAC )
-!$OMP+PRIVATE( WETLOSS, L,           Q,         NN,       N        )
-!$OMP+PRIVATE( QDOWN,   AER,         TMP,       F_RAINOUT,F_WASHOUT)
+!$OMP+PRIVATE( I,       J,           FTOP,      ALPHA                )
+!$OMP+PRIVATE( ALPHA2,  F,           F_PRIME,   GAINED,    K_RAIN    )
+!$OMP+PRIVATE( LOST,    MASS_NOWASH, MASS_WASH, RAINFRAC,  WASHFRAC  )
+!$OMP+PRIVATE( WETLOSS, L,           Q,         NN,        N         )
+!$OMP+PRIVATE( QDOWN,   AER,         TMP,       F_RAINOUT, F_WASHOUT )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -4050,6 +4051,7 @@
             F_WASHOUT   = 0d0 !CDH
             F_RAINOUT   = 0d0 !CDH
 
+!------------------------------------------------------------------------------
 !--- Prior to (wqq, 7/13/10)
 !            ! Rainout criteria
 !            IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) > 0d0 ) THEN
@@ -4059,7 +4061,7 @@
 !------------------------------------------------------------------------------
             !CDH
             ! Calculate the fractional area which is subjected to rainout
-            IF (QQ(L,I,J) > 0d0) THEN
+            IF ( QQ(L,I,J) > 0d0 ) THEN
 
                ! Compute K_RAIN and F' for either large-scale or convective
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
@@ -4077,35 +4079,58 @@
  
             ENDIF
 
-
-!CDH
-            ! The following block implements Qiaoqiao's changes
-            ! Calculate the fractional areas subjected to rainout and
-            ! washout. If PDOWN = 0, then all dissolved tracer returns
-            ! to the atmosphere.
-            IF ( PDOWN(L,I,J) > 0d0 ) THEN
-               F_RAINOUT = F_PRIME
-               ! Washout occurs where there is no rainout
-               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
-            ELSE
-               F_RAINOUT = 0d0
-               F_WASHOUT = 0d0
-            ENDIF
-!CDH
-!            ! The following block restores previous behavior
-!            F_RAINOUT = 0d0
-!            F_WASHOUT = 0d0
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE from Chris Holmes (8/21/10)
+!%%%
+!%%% Qiaoqiao Wang implemented several changes to wet scavenging that I 
+!%%% know of:
+!%%% 1. Scavenging by snow has different collection efficiency to rain
+!%%% 2. Allow both washout and rainout when QQ>0 and FTOP >F_PRIME.
+!%%%    Previously only rainout occurred when QQ>0. Qiaoqiao reasoned that if
+!%%%    QQ>0 is very small and there is a lot of rain from above, then most of
+!%%%    the box should experience washout and only some of the box should
+!%%%    experience rainout.
+!%%% 3. Specific improvements for BC and OC.
+!%%%
+!%%% TO ENABLE QIAOQIAO'S "ITEM #2" MODIFICATION, UNCOMMENT THESE LINES:
+!%%%
+!            ! The following block implements Qiaoqiao's changes
+!            ! Calculate the fractional areas subjected to rainout and
+!            ! washout. If PDOWN = 0, then all dissolved tracer returns
+!            ! to the atmosphere. (cdh, 7/13/10)
 !            IF ( PDOWN(L,I,J) > 0d0 ) THEN
-!               IF (QQ(L,I,J) > 0d0) THEN
-!                  F_RAINOUT = MAX( FTOP, F_PRIME )
-!               ENDIF 
+!               F_RAINOUT = F_PRIME
+!               ! Washout occurs where there is no rainout
 !               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!            ELSE
+!               F_RAINOUT = 0d0
+!               F_WASHOUT = 0d0
 !            ENDIF
+!
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% NOTE from Chris Holmes (8/21/10)
+!%%% 
+!%%% I reorganized the code so that Qiaoqiao's changes for Item 2 could be 
+!%%% enabled or disabled by commenting just a few lines that Bob has 
+!%%% highlighted:
+!%%%
+!%%% TO DISABLE QIAOQIAO'S MODIFICATION "ITEM #2" AND RESTORE THE
+!%%% SAME ALGORITHM USED IN v8-03-01, UNCOMMENT THESE LINES:
+!%%%
+            ! The following block restores previous behavior
+            F_RAINOUT = 0d0
+            F_WASHOUT = 0d0
+            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+               IF (QQ(L,I,J) > 0d0) THEN
+                  F_RAINOUT = MAX( FTOP, F_PRIME )
+               ENDIF 
+               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+            ENDIF
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
             ! F is the effective area of precip seen by grid box (I,J,L) 
             F = MAX( F_PRIME, FTOP )
-
 
             ! Rainout criteria
             IF ( F_RAINOUT > 0d0 ) THEN
@@ -4183,9 +4208,11 @@
                ENDDO
             ENDIF
 
+!------------------------------------------------------------------------------
 !--- Prior to (wqq, 7/13/10)
 !               ! Save FTOP for next level
 !               FTOP = F 
+!------------------------------------------------------------------------------
 
             !==============================================================
             ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
@@ -4247,7 +4274,10 @@
             ! positive values, otherwise, QQ would be equal to 
             ! PDOWN(L+1)-PDOWN(L).           
             !==============================================================
+!------------------------------------------------------------------------------
+!--- Prior to (wqq, 7/13/10)
 !            ELSE IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) <= 0d0 ) THEN
+!------------------------------------------------------------------------------
             IF ( F_WASHOUT > 0d0 ) THEN
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
@@ -4255,6 +4285,7 @@
                QDOWN = PDOWN(L,I,J)
                Q     = QQ(L,I,J)
 
+!------------------------------------------------------------------------------
 !--- Prior to (wqq, 7/13/10)
 !               ! Since no precipitation is forming within grid box (I,J,L),
 !               ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
@@ -4272,7 +4303,7 @@
 !------------------------------------------------------------------------------
 
                ! CDH 
-               IF (F_RAINOUT > 0d0) THEN
+               IF ( F_RAINOUT > 0d0 ) THEN
                   ! The precipitation causing washout is the precip entering
                   ! the top
                   QDOWN = PDOWN(L+1,I,J)
@@ -4437,9 +4468,11 @@
                ENDDO  
             ENDIF
 
+!-----------------------------------------------------------------------------
 !--- Prior to (wqq, 7/13/10)
 !               ! Save FTOP for next level
 !               FTOP = F   
+!-----------------------------------------------------------------------------
 
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
@@ -4511,11 +4544,13 @@
                   ENDIF
                ENDDO
 
+!-----------------------------------------------------------------------------
 !--- Prior to (wqq, 7/13/10)
 !               ! Save FTOP for next level
 !               FTOP = F
-!------------------------------------------
+!-----------------------------------------------------------------------------
             ENDIF 
+
             ! Save FTOP for next level
             FTOP = F_RAINOUT + F_WASHOUT
          ENDDO               
