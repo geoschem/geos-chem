@@ -2088,7 +2088,7 @@
 !
 ! !IROUTINE: get_ts_sun_2
 !
-! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS_SUN_2, which is 1/2 of
+! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
 !  the interval at which we are computing the cosine of the solar zenith
 !  angle, aka SUNCOS.  This is required to move the time at which we compute
 !  SUNCOS to the middle of the chemistry timestep interval.
@@ -3951,8 +3951,6 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-
-
       END MODULE TIME_MOD
 
 

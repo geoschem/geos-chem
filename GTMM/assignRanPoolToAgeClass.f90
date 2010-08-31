@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: assignRanPoolToAgeClass
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE assignRanPoolToAgeClass
@@ -20,8 +21,7 @@ SUBROUTINE assignRanPoolToAgeClass
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Add parallelization.
+!  09 July 2010 - C. Carouge  - Add parallelization.
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -60,5 +60,4 @@ SUBROUTINE assignRanPoolToAgeClass
 
 END SUBROUTINE assignRanPoolToAgeClass
 !EOC
-!------------------------------------------------------------------------------
 

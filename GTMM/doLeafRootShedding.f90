@@ -14,7 +14,6 @@
 ! Randerson, Thompson, Malmstrom, Field and Fung 1996, GBC 10(4) p585
 !\\
 !\\
-!
 ! !INTERFACE:
 !
 SUBROUTINE doLeafRootShedding
@@ -28,8 +27,7 @@ SUBROUTINE doLeafRootShedding
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -147,4 +145,3 @@ SUBROUTINE doLeafRootShedding
   
 END SUBROUTINE doLeafRootShedding
 !EOC
-!------------------------------------------------------------------------------

@@ -9,7 +9,6 @@
 !  from REAL*4 to REAL*8 arrays after being read from disk.  Also, vertical 
 !  levels will be collapsed in the stratosphere if necessary.  This will help 
 !  us to gain computational advantage. 
-
 !\\
 !\\
 ! !INTERFACE: 
@@ -470,7 +469,6 @@
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
 !  edge data from the native 72-level grid to the reduced 47-level grid.  
-
 !\\
 !\\
 ! !INTERFACE:
@@ -644,7 +642,6 @@
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_TROP transfers tropospheric 3-D 
 !  data from a REAL*4  array to a REAL*8 array. 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -829,7 +826,7 @@
 !
 ! !IROUTINE: transfer_zonal_r8
 !
-! !DESCRIPTION: Subroutine TRANSFER_ZONAL_R4 transfers zonal mean or lat-alt 
+! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R8 transfers zonal mean or lat-alt 
 !  data from a REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of 
 !  dimension (JJPAR,LLPAR).   Regrid data in the vertical if necessary by
 !  lumping levels.

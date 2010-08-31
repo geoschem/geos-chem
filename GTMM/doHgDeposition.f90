@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doHgDeposition
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subrouitine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doHgDeposition
@@ -20,8 +21,7 @@ SUBROUTINE doHgDeposition
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,4 +97,3 @@ SUBROUTINE doHgDeposition
 
 END SUBROUTINE doHgDeposition
 !EOC
-!------------------------------------------------------------------------------

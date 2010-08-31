@@ -533,7 +533,7 @@
 !\\
 !\\
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
-!  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
+!  For GEOS-4/fVDAS, you must use the routines in "fvdas\_convect\_mod.f"
 !\\
 !\\
 ! !INTERFACE:

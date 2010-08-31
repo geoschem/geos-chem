@@ -8,7 +8,8 @@
 ! !DESCRIPTION: Get the burned fraction for the running age class
 !  The idea is that the oldest part of the gridcell burns first, because 
 !  these parts contain the highest fuel loads
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE getAgeClassBF
@@ -19,11 +20,10 @@ SUBROUTINE getAgeClassBF
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -71,4 +71,3 @@ SUBROUTINE getAgeClassBF
 !$OMP END PARALLEL WORKSHARE
 END SUBROUTINE getAgeClassBF
 !EOC
-!------------------------------------------------------------------------------

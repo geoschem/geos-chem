@@ -235,7 +235,7 @@
 ! !IROUTINE: get_merra_a3_fields
 !
 ! !DESCRIPTION: Subroutine GET\_MERRA\_A3\_FIELDS is a wrapper for routine 
-!  READ_A3.
+!  READ\_A3.
 !\\
 !\\
 ! !INTERFACE:
@@ -324,7 +324,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_a3 
 !
 ! !DESCRIPTION: Subroutine READ\_A3 reads the MERRA 3-hour time-averaged
 !  (aka "A3") met fields from disk.

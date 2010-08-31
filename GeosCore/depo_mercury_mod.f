@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: DEPO_MERCURY_MOD
+! !MODULE: depo_mercury_mod
 !
 ! !DESCRIPTION: Module DEPO\_MERCURY\_MOD contains routines to handle
 !  deposition fluxes for mercury. 
@@ -52,28 +52,25 @@
 ! !PRIVATE DATA MEMBERS:
 !
       CHARACTER(LEN=255)   :: GTMM_RST_FILE
-
-      LOGICAL :: LHGSNOW
+      LOGICAL              :: LHGSNOW
 !
 ! !REVISION HISTORY:
 ! 23 Apr 2010 - C. Carouge  - Initial version
 !
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
       CONTAINS
-
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_Hg2_DD
+! !IROUTINE: add_Hg2_dd
 !
-! !DESCRIPTION: Subroutine ADD_Hg2_DD computes the amount of Hg(II) dry deposited 
-!  out of the atmosphere into the column array DD_Hg2. 
-!  (sas, cdh, bmy, 1/19/05, 4/23/10)
+! !DESCRIPTION: Subroutine ADD\_Hg2\_DD computes the amount of Hg(II) dry 
+!  deposited out of the atmosphere into the column array DD\_Hg2. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -91,6 +88,7 @@
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
+!  19 Jan 2005 - S. Strode, C. Holmes - Initial version
 !  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
@@ -101,7 +99,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: NN
+      INTEGER :: NN
       
       !=================================================================
       ! ADD_Hg2_DD begins here!
@@ -117,7 +115,6 @@
       ENDIF
       
      
-      ! Return to calling program
       END SUBROUTINE ADD_Hg2_DD
 !EOC
 !------------------------------------------------------------------------------
@@ -125,11 +122,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_Hg2_WD
+! !IROUTINE: add_Hg2_wd
 !
-! !DESCRIPTION: Subroutine ADD_Hg2_WD computes the amount of Hg(II) wet scavenged 
-!  out of the atmosphere into the column array WD_Hg2. 
-!  (sas, cdh, bmy, 1/19/05, 4/23/10)
+! !DESCRIPTION: Subroutine ADD\_Hg2\_WD computes the amount of Hg(II) wet 
+!  scavenged out of the atmosphere into the column array WD\_Hg2. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -147,6 +143,7 @@
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
+!  19 Jan 2005 - S. Strode, C. Holmes - Initial version
 !  (1 ) WD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
 !        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
@@ -157,7 +154,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: NN
+      INTEGER :: NN
 
       !=================================================================
       ! ADD_Hg2_WD begins here!
@@ -172,7 +169,6 @@
          
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE ADD_Hg2_WD
 !EOC
 !------------------------------------------------------------------------------
@@ -180,11 +176,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_HgP_DD
+! !IROUTINE: add_HgP_dd
 !
-! !DESCRIPTION: Subroutine ADD_HgP_DD computes the amount of HgP dry deposited 
-!  out of the atmosphere into the column array DD_HgP. 
-!  (sas, cdh, bmy, 1/19/05, 4/23/10)
+! !DESCRIPTION: Subroutine ADD\_HgP\_DD computes the amount of HgP dry 
+!  deposited out of the atmosphere into the column array DD\_HgP. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -202,6 +197,7 @@
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
+!  19 Jan 2005 - S. Strode, C. Holmes - Initial version
 !  (1 ) DD_HgP is now a 3-D array.  Also pass N via the argument list. Now 
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
@@ -212,8 +208,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-!
-      INTEGER               :: NN
+      INTEGER :: NN
 
       !=================================================================
       ! ADD_HgP_DD begins here!
@@ -228,7 +223,6 @@
         
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE ADD_HgP_DD
 !EOC
 !------------------------------------------------------------------------------
@@ -236,11 +230,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_HgP_WD
+! !IROUTINE: add_HgP_wd
 !
-! !DESCRIPTION: Subroutine ADD_HgP_WD computes the amount of HgP wet scavenged
-!  out of the atmosphere into the column array WD_HgP. 
-!  (sas, cdh, bmy, 1/19/05, 4/23/10)
+! !DESCRIPTION: Subroutine ADD\_HgP\_WD computes the amount of HgP wet 
+!  scavenged out of the atmosphere into the column array WD\_HgP. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -258,6 +251,7 @@
                                          ! atmosphere [kg]
 !
 ! !REVISION HISTORY:
+!  19 Jan 2005 - S. Strode, C. Holmes - Initial version
 !  (1 ) WD_HgP is now a 3-D array.  Also pass N via the argument list. Now 
 !        call GET_HgP_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
@@ -268,7 +262,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: NN
+      INTEGER :: NN
 
       !=================================================================
       ! ADD_Hg2_WD begins here!
@@ -283,7 +277,6 @@
         
       ENDIF
       
-      ! Return to calling program
       END SUBROUTINE ADD_HgP_WD
 !EOC
 !------------------------------------------------------------------------------
@@ -291,10 +284,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ADD_HG2_SNOWPACK
+! !IROUTINE: add_hg2_snowpack
 !
-! !DESCRIPTION: Subroutine RESET_HG_DEP_ARRAYS adds Hg2 deposition to snowpack.
-!  (cdh, 9/2/08, 4/23/10)
+! !DESCRIPTION: Subroutine ADD\_Hg2\_SNOWPACKS adds Hg2 deposition to snowpack.
 !\\
 !\\
 ! !INTERFACE: 
@@ -317,6 +309,7 @@
       REAL*8,  INTENT(IN)   :: Dep_Hg2
 !
 ! !REVISION HISTORY:
+!  02 Sep 2008 - C. Holmes   - Initial version
 !  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to depo_mercury_mod.f
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !EOP
@@ -326,8 +319,8 @@
 ! !LOCAL VARIABLES:
 !
       ! Local variables
-      REAL*8                :: SNOW_HT
-      INTEGER               :: NN
+      REAL*8  :: SNOW_HT
+      INTEGER :: NN
 
       !=================================================================
       ! ADD_HG2_SNOWPACK begins here!
@@ -363,7 +356,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE ADD_HG2_SNOWPACK
 !EOC
 !------------------------------------------------------------------------------
@@ -371,12 +363,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: RESET_HG_DEP_ARRAYS
+! !IROUTINE: reset_hg_dep_arrays
 !
-! !DESCRIPTION: Subroutine RESET_HG_DEP_ARRAYS resets the wet and dry 
+! !DESCRIPTION: Subroutine RESET\_Hg\_DEP\_ARRAYS resets the wet and dry 
 !  deposition arrays for Hg(II) and Hg(p) to zero. This allows us to call 
-!  OCEAN_MERCURY_FLUX and LAND_MERCURY_FLUX in any order in MERCURY_MOD. 
-!  (cdh, 9/2/08, 4/23/10)
+!  OCEAN\_MERCURY\_FLUX and LAND\_MERCURY\_FLUX in any order in MERCURY\_MOD. 
 !\\
 !\\
 ! !INTERFACE: 
@@ -384,6 +375,7 @@
       SUBROUTINE RESET_HG_DEP_ARRAYS
 !
 ! !REVISION HISTORY:
+!  02 Sep 2008 - C. Holmes   - Initial version
 !  23 Apr 2010 - C. Carouge  - Moved from ocean_mercury_mod.f to
 !                              depo_mercury_mod.f
 !EOP
@@ -403,10 +395,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: MAKE\_GTMM\_RESTART
+! !IROUTINE: make_gtmm_restart
 !
 ! !DESCRIPTION: MAKE\_GTMM\_RESTART writes a GTMM restart file with deposition
-!  fluxes and store deposition fluxes for continuous runs. (ccc, 9/15/09) 
+!  fluxes and store deposition fluxes for continuous runs.
 !\\
 !\\
 ! !INTERFACE: 
@@ -434,6 +426,7 @@
       REAL*8,  INTENT(IN)   :: TAU     ! GEOS-CHEM TAU value corresponding to 
                                        ! NYMD, NHMS
 ! !REVISION HISTORY:
+!  15 Sep 2009 - C. Carouge - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -514,19 +507,17 @@
       ! Close file
       CLOSE( IU_FILE )
     
-      ! Return to calling program
       END SUBROUTINE MAKE_GTMM_RESTART
-  
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: READ\_GTMM\_RESTART
+! !IROUTINE: read_gtmm_restart
 !
 ! !DESCRIPTION: Subroutine READ\_GTMM\_RESTART reads dry and wet deposition 
-!  for mercury from GTMM restart. (ccc, 9/15/09)
+!  for mercury from GTMM restart.
 !\\
 !\\
 ! !INTERFACE: 
@@ -558,6 +549,7 @@
       REAL*8, DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
 ! !REVISION HISTORY:
+!  15 Sep 2009 - C. Carouge - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -712,10 +704,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: UPDATE_DEP
+! !IROUTINE: update_dep
 !
 ! !DESCRIPTION: Subroutine UPDATE\_DEP update the monthly average for wet and 
-!  dry deposition of Hg0 and Hg2 for mercury from GTMM restart. (ccc, 6/4/10)
+!  dry deposition of Hg0 and Hg2 for mercury from GTMM restart.
 !\\
 !\\
 ! !INTERFACE: 
@@ -734,9 +726,7 @@
       INTEGER :: NN    ! Hg2 ID for wet deposition
 !
 ! !REVISION HISTORY:
-! 
-!  4 June 2010  - C. Carouge  - Initial version
-!
+!  04 June 2010  - C. Carouge  - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -767,7 +757,6 @@
       N = IDTHg2
       HG2mth_dd = HG2mth_dd + AD44(:,:,N,1) / SCALECHEM
 
-      ! Return to calling program
       END SUBROUTINE UPDATE_DEP
 !EOC
 !------------------------------------------------------------------------------
@@ -775,11 +764,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: CHECK\_DIMENSIONS
+! !IROUTINE: check_dimensions
 !
 ! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS makes sure that the dimensions of 
 !  the Hg restart file extend to cover the entire grid.
-!  (sas, cdh, bmy, 3/28/06)
 !\\
 !\\
 ! !INTERFACE: 
@@ -796,7 +784,7 @@
       INTEGER, INTENT(IN) :: NI, NJ, NL
 !
 ! !REVISION HISTORY:
-!
+!  30 Aug 2010 - S. Strode, C. Holmes - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -835,7 +823,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHECK_DIMENSIONS
 !EOC
 !------------------------------------------------------------------------------
@@ -843,10 +830,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_DEPO_MERCURY
+! !IROUTINE: init_depo_mercury
 !
-! !DESCRIPTION: Subroutine INIT\_DEPO\_MERCURY initialize deposition arrays for
-!  mercury (ccc, 4/23/10)
+! !DESCRIPTION: Subroutine INIT\_DEPO\_MERCURY initialize deposition arrays 
+!  for mercury.
 !\\
 !\\
 ! !INTERFACE: 
@@ -867,7 +854,8 @@
       CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge   - Moved arrays allocation from ocean_mercury_mod.f
+!  23 Apr 2010 - C. Carouge   - Moved arrays allocation from 
+!                               ocean_mercury_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -922,10 +910,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_DEPO_MERCURY
+! !IROUTINE: cleanup_depo_mercury
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_DEPO\_MERCURY deallocate all arrays
-!  (ccc, 4/23/10)
 !\\
 !\\
 ! !INTERFACE: 
@@ -933,7 +920,7 @@
       SUBROUTINE CLEANUP_DEPO_MERCURY
 !
 ! !REVISION HISTORY:
-!  23 Apr 2010 - C. Carouge   - Moved from ocean_mercury_mod.f
+!  23 Apr 2010 - C. Carouge - Moved from ocean_mercury_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC

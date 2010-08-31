@@ -1,10 +1,9 @@
-! $Id: cac_anthro_mod.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: CAC_ANTHRO_MOD
+! !MODULE: cac_anthro_mod
 !
 ! !DESCRIPTION: Module CAC\_ANTHRO\_MOD contains variables and routines to 
 !  read the  Criteria Air Contaminant Canadian anthropogenic emissions 
@@ -70,7 +69,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_CANADA_MASK
+! !IROUTINE: get_canada_mask
 !
 ! !DESCRIPTION: Function GET\_CANADA\_MASK returns the value of the Canadian 
 !  geographic mask at grid box (I,J).  MASK=1 if (I,J) is within Canada, 
@@ -102,7 +101,6 @@
       !=================================================================
       THISMASK = MASK_CANADA(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_CANADA_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -110,7 +108,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_CAC_ANTHRO
+! !IROUTINE: get_cac_anthro
 !
 ! !DESCRIPTION: Function GET\_CAC\_ANTHRO returns the Critical Air Contaminants
 !  emission for GEOS-Chem grid box (I,J) and tracer N.  Emissions can be 
@@ -209,7 +207,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -217,7 +214,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_CAC_ANTHRO
+! !IROUTINE: emiss_cac_anthro
 !
 ! !DESCRIPTION: Subroutine EMISS\_CAC\_ANTHRO reads the Critical Air 
 !  Contaminants emission fields at 1x1 resolution and regrids them to the 
@@ -427,7 +424,6 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -435,9 +431,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_CAC_ANTHRO_05x0666
+! !IROUTINE: emiss_cac_anthro_05x0666
 !
-! !DESCRIPTION: Subroutine EMISS\_CAC\_ANTHRO_05x0666 reads the Critical Air
+! !DESCRIPTION: Subroutine EMISS\_CAC\_ANTHRO\_05x0666 reads the Critical Air
 !  Contaminants emission fields at nested NA resolution (1/2 x 2/3)
 !  (amv, phs, 11/03/2009)
 !\\
@@ -458,7 +454,7 @@
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY:
-!  3 Nov 2009 - A. van Donkelaar - Initial Version
+!  03 Nov 2009 - A. van Donkelaar - Initial Version
 !
 ! !REMARKS:
 !  (1 ) Emissions are read for a year b/w 2002-2005, and scaled
@@ -641,7 +637,6 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -649,7 +644,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CAC_SCALE_FUTURE
+! !IROUTINE: cac_scale_future
 !
 ! !DESCRIPTION: Subroutine CAC\_SCALE\_FUTURE applies the IPCC future scale 
 !  factors to the Criteria Air Contaminant anthropogenic emissions.
@@ -705,7 +700,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE CAC_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
@@ -713,7 +707,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ANTHRO_TG
+! !IROUTINE: total_anthro_tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the totals for the 
 !  anthropogenic emissions of NOx, CO, SO2 and NH3. (amv, phs, 1/28/09)
@@ -778,7 +772,6 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       
-      ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_Tg
 !EOC
 !------------------------------------------------------------------------------
@@ -786,7 +779,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_CANADA_MASK
+! !IROUTINE: read_canada_mask
 !
 ! !DESCRIPTION: Subroutine READ\_CANADA\_MASK reads and regrids the Canadian 
 !  geographic mask from disk. (amv, phs, 1/28/09)
@@ -848,7 +841,6 @@
       ! Regrid from GEOS 1x1 GRID to current model resolution
       CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, MASK_CANADA )
 
-      ! Return to calling program
       END SUBROUTINE READ_CANADA_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -856,9 +848,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_CANADA_MASK_05x0666
+! !IROUTINE: read_canada_mask_05x0666
 !
-! !DESCRIPTION: Subroutine READ_CANADA_MASK_05x0666 reads the Canadian
+! !DESCRIPTION: Subroutine READ\_CANADA\_MASK\_05x0666 reads the Canadian
 !  geographic mask from disk. (amv, phs, 1/28/09)
 !\\
 !\\
@@ -909,7 +901,6 @@
       ! Cast to REAL*8 before regridding
       MASK_CANADA(:,:) = ARRAY(:,:,1)
 
-      ! Return to calling program
       END SUBROUTINE READ_CANADA_MASK_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -917,7 +908,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_CAC_ANTHRO
+! !IROUTINE: init_cac_anthro
 !
 ! !DESCRIPTION: Subroutine INIT\_CAC\_ANTHRO allocates and zeroes all 
 !  module arrays. (phs, 1/28/09)
@@ -1000,7 +991,6 @@
       ! Read China & SE Asia masks from disk
       CALL READ_CANADA_MASK
 
-      ! Return to calling program
       END SUBROUTINE INIT_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -1008,7 +998,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_CAC_ANTHRO
+! !IROUTINE: cleanup_cac_anthro
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_CAC\_ANTHRO deallocates all module 
 !  arrays. (phs, 1/28/09)
@@ -1034,11 +1024,7 @@
       IF ( ALLOCATED( SO2            ) ) DEALLOCATE( SO2            )
       IF ( ALLOCATED( NH3            ) ) DEALLOCATE( NH3            )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_CAC_ANTHRO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE CAC_ANTHRO_MOD
 !EOC
+      END MODULE CAC_ANTHRO_MOD
+

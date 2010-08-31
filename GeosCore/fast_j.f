@@ -7,11 +7,11 @@
 !
 ! !DESCRIPTION: Subroutine FAST\_J loops over longitude and latitude, and
 !  calls PHOTOJ to compute J-Values for each column at every chemistry 
-!  time-step.  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; 
-!  phs, bmy, 10/7/08)
+!  time-step.  
 !\\
 !\\
 !  References:
+!
 ! \begin{enumerate}
 ! \item H. Liu, J.H. Crawford, R.B. Pierce, P. Norris, S.E. Platnick, G. Chen,
 !       J.A. Logan, R.M. Yantosca, M.J. Evans, C. Kittaka, Y. Feng, and 
@@ -61,6 +61,7 @@
 !                           3 - Maximum Random Overlap (computation intensive)
 !
 ! !REVISION HISTORY:
+!  01 Apr 1998 - P. Murti, R. Martin, R. Yantosca - Initial version
 !  (1 ) Call this routine EACH chemistry time-step, before solver.
 !  (2 ) This routine must know IMAX, JMAX, LMAX. 
 !  (3 ) Now use new !$OMP compiler directives for parallelization (bmy, 5/2/00)

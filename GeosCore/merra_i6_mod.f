@@ -169,7 +169,7 @@
 !
 ! !IROUTINE: get_merra_i6_fields_1
 !
-! !DESCRIPTION: Subroutine GET\_MERRA\_I6\_FIELDS_1 is a wrapper for routine 
+! !DESCRIPTION: Subroutine GET\_MERRA\_I6\_FIELDS\_1 is a wrapper for routine 
 !  READ\_I6.  It reads the initial data at the start of a GEOS-Chem simulation.
 !\\
 !\\
@@ -209,7 +209,7 @@
 !
 ! !IROUTINE: get_merra_i6_fields_2
 !
-! !DESCRIPTION: Subroutine GET\_MERRA\_I6\_FIELDS_2 is a wrapper for routine 
+! !DESCRIPTION: Subroutine GET\_MERRA\_I6\_FIELDS\_2 is a wrapper for routine 
 !  READ\_I6.  It reads the data every 6 hours during a GEOS-Chem simulation.
 !\\
 !\\

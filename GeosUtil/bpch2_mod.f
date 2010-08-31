@@ -624,7 +624,7 @@
 !
 #     include "CMN_SIZE"
 !
-! !RETURN_VALUE:
+! !RETURN VALUE:
 !
       CHARACTER(LEN=20) :: MODELNAME   ! Model name for the current met field
 !

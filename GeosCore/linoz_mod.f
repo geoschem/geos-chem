@@ -1,12 +1,11 @@
-! $Id: linoz_mod.f,v 1.3 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: linoz_mod.f
+! !MODULE: linoz_mod
 !
-! !DESCRIPTION: Module linoz_mod.f contains routines to perform the Linoz 
+! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz 
 !  stratospheric ozone chemistry.
 !\\
 !\\
@@ -514,7 +513,7 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !
 ! !IROUTINE: linoz_strt2m
 !
-! !DESCRIPTION: Subroutine inoz_strt2m sets up a std z* atmosphere: 
+! !DESCRIPTION: Subroutine LINOZ\_STRT2M sets up a std z* atmosphere: 
 !  p = 1000 * 10**(-z*/16 km).
 !\\
 !\\
@@ -1001,9 +1000,6 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: AS
-
-      print*, '### init_linoz'
-      call flush(6)
 
       ! For safety's sake, only allocate arrays on first call
       IF ( FIRST ) THEN 

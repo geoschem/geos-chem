@@ -334,8 +334,8 @@
 !
 ! !IROUTINE: airqnt
 !
-! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m^3 and cm^3], mass 
-!  [kg], density, [kg/m^3], and pressure thickness [hPa] of air for each grid 
+! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m\^3 and cm\^3], mass 
+!  [kg], density, [kg/m\^3], and pressure thickness [hPa] of air for each grid 
 !  box (I,J,L).   The quantity (surface pressure - PTOP) [hPa] at each surface 
 !  grid box (I,J) is also computed. 
 !\\
@@ -866,7 +866,6 @@
 !
 ! !DESCRIPTION: Function IS\_WATER returns TRUE if surface grid box (I,J) is 
 !  an ocean or an ocean-ice box.  
-
 !\\
 !\\
 ! !INTERFACE:
@@ -1443,7 +1442,6 @@
 ! !IROUTINE: cossza
 !
 ! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle.
-
 !\\
 !\\
 ! !INTERFACE:

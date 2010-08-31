@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: 
+! !MODULE: chemistry_mod
 !
 ! !DESCRIPTION: Module CHEMISTRY\_MOD is used to call the proper chemistry 
 !  subroutine for the various GEOS-Chem simulations. 
@@ -55,10 +55,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: do_chemistry
 !
 ! !DESCRIPTION: Subroutine DO\_CHEMISTRY is the driver routine which calls 
-!  the appropriate chemistry subroutine for the various GEOS-Chem simulations. 
+!  the appropriate chemistry subroutine for the various GEOS-Chem simulations.
 !\\
 !\\
 ! !INTERFACE:

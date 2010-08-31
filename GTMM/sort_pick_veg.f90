@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: sort_pick_veg
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE sort_pick_veg(arr, ind)
@@ -23,7 +24,7 @@ SUBROUTINE sort_pick_veg(arr, ind)
   REAL*8, dimension(n_veg, n_age_classes), intent(INOUT) :: arr
 !
 ! !REVISION HISTORY:
-!
+!  09 Jul 2010 - C. Carouge - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -51,4 +52,3 @@ SUBROUTINE sort_pick_veg(arr, ind)
   
 END SUBROUTINE sort_pick_veg
 !EOC
-!------------------------------------------------------------------------------

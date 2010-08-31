@@ -6,14 +6,9 @@
 ! !IROUTINE: doHerbivory
 !
 ! !DESCRIPTION: Subroutine doHerbivory calculate herbivory analog to 
-!  McNaughton (Science, 1989) as fraction of foliage NPP:
-!
-!  log C = 2.04*(log NFP)-4.8
-!  --> C = NFP^2.04*10^(-4.8)
-!
-!  where C= consumption, NFP = Net foliage production (NPP
-!  delivered to leaves)  units kJ/m2/yr
-!
+!  McNaughton (Science, 1989) as fraction of foliage NPP.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doHerbivory
@@ -24,11 +19,18 @@ SUBROUTINE doHerbivory
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
+!
+! !REMARKS:
+!  Herbivory analog to McNaughton is computed as:
+!                                                                             .
+!     log C = 2.04*(log NFP)-4.8   -->  C = NFP^2.04*10^(-4.8)
+!                                                                             .
+!  where C= consumption, NFP = Net foliage production (NPP
+!  delivered to leaves)  units kJ/m2/yr
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization.
+!  09 July 2010 - C. Carouge  - Parallelization.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -108,4 +110,3 @@ SUBROUTINE doHerbivory
   ENDIF
 END SUBROUTINE doHerbivory
 !EOC
-!------------------------------------------------------------------------------

@@ -1,15 +1,14 @@
-! $Id: meganut_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: MEGANUT\_MOD
+! !MODULE: meganut_mod
 !
 ! !DESCRIPTION: Module MEGANUT\_MOD contains functions used by MEGAN.
 !\\
 !\\
-! !INTERFACE
+! !INTERFACE:
 !
       MODULE MEGANUT_MOD
 !
@@ -37,7 +36,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: XLTMMP
+! !FUNCTION: xltmmp
 !
 ! !DESCRIPTION: Function XLTMMP passes the value of the DAO meterological 
 !  field TS(IIPAR,JJPAR) back to the calling subroutine.  This preserves the 
@@ -48,6 +47,7 @@
 !\\
 !\\
 ! !INTERFACE:
+!
       FUNCTION XLTMMP( I, J, IJLOOP ) RESULT( VALUE )
 !
 ! !USES:
@@ -60,6 +60,10 @@
 !
       INTEGER, INTENT(IN)           :: I, J
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
+! 
+! !RETURN VALUE:
+!
+      REAL*8                        :: VALUE
 !
 ! !REVISION HISTORY:
 !
@@ -78,18 +82,8 @@
 !                              kept for backwards compatibility w/ older code
 !------------------------------------------------------------------------------
 !BOC
-! 
-! !LOCAL VARIABLES
-!
-      ! Function value
-      REAL*8                        :: VALUE
-
-      !=================================================================
-      ! XLTMMP begins here!      
-      !=================================================================
       VALUE = TS(I,J)
 
-      ! Return to calling program
       END FUNCTION XLTMMP
 !EOC
 !------------------------------------------------------------------------------
@@ -97,7 +91,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: XLPARDR
+! !FUNCTION: xlpardr
 !
 ! !DESCRIPTION: Function XLPARDR passes the value of the DAO meterological 
 !  field PARDR(IIPAR,JJPAR) back to the calling subroutine.  This preserves 
@@ -106,7 +100,7 @@
 !  with the H/G/I subroutines, but is not used.
 !\\
 !\\
-!!INTERFACE
+! !INTERFACE:
 !
       FUNCTION XLPARDR( I, J, IJLOOP ) RESULT( VALUE )
 !
@@ -121,6 +115,10 @@
       INTEGER, INTENT(IN)           :: I, J
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 !
+! !RETURN VALUE:
+!
+      REAL*8                        :: VALUE
+!
 ! !REVISION HISTORY
 !
 ! 20 Nov 2009 - M. Barkley - Original version
@@ -131,14 +129,8 @@
 !
 ! !LOCAL VARIABLES
 !
-      REAL*8             :: VALUE
-
-      !=================================================================
-      ! XLTMMP begins here!      
-      !=================================================================
       VALUE = PARDR(I,J)
  
-      ! Return to calling program
       END FUNCTION XLPARDR
 !EOC
 !------------------------------------------------------------------------------
@@ -146,7 +138,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !FUNCTION: XLPARDF
+! !FUNCTION: xlpardf
 !
 ! !DESCRIPTION: Function XLPARDF passes the value of the DAO meterological 
 !  field PARDF(IIPAR,JJPAR) back to the calling subroutine.  This preserves 
@@ -155,7 +147,7 @@
 !  with the H/G/I subroutines, but is not used.
 !\\
 !\\
-!!INTERFACE
+! !INTERFACE:
 !
       FUNCTION XLPARDF( I, J, IJLOOP ) RESULT( VALUE )
 !
@@ -170,23 +162,18 @@
       INTEGER, INTENT(IN)           :: I, J
       INTEGER, INTENT(IN), OPTIONAL :: IJLOOP
 !
+! !RETURN VALUE:
+!
+      REAL*8                        :: VALUE
+
+!
 ! !REVISION HISTORY
 !  20 Nov 2009 - M. Barkley - Original version
 !!EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Function value
-      REAL*8             :: VALUE
-
-      !=================================================================
-      ! XLPARDF begins here!      
-      !=================================================================
       VALUE = PARDF(I,J)
  
-      ! Return to calling program
       END FUNCTION XLPARDF
 !EOC
       END MODULE MEGANUT_MOD

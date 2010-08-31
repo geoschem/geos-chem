@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doHerbCarbon
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doHerbCarbon
@@ -17,11 +18,10 @@ SUBROUTINE doHerbCarbon
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelized
+!  09 July 2010 - C. Carouge  - Parallelized
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -257,6 +257,5 @@ SUBROUTINE doHerbCarbon
   ENDIF
 END SUBROUTINE doHerbCarbon
 !EOC
-!------------------------------------------------------------------------------
 
       

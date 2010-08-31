@@ -5,7 +5,7 @@
 !
 ! !MODULE: logical_mod.f
 !
-! !DESCRIPTION: Module LOGICAL_MOD contains all of the logical switches 
+! !DESCRIPTION: Module LOGICAL\_MOD contains all of the logical switches 
 !  used by GEOS-Chem.
 !\\
 !\\

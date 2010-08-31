@@ -3,11 +3,12 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: INPUT\_GTMM\_MOD
+! !MODULE: input_gtmm_mod
 !
 ! !DESCRIPTION: Module INPUT\_GTMM\_MOD contains subroutines to read 
-!  input file for GTMM. (ccc, 11/3/09)
-!
+!  input file for GTMM.
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE INPUT_GTMM_MOD
@@ -18,8 +19,6 @@ MODULE INPUT_GTMM_MOD
   USE defineArrays
 
   IMPLICIT NONE
-
-  ! Make everything PRIVATE ...
   PRIVATE
 !
 ! !PRIVATE DATA MEMBERS:
@@ -28,35 +27,33 @@ MODULE INPUT_GTMM_MOD
   INTEGER, PARAMETER :: HEADER   = 8
   CHARACTER(LEN=255) :: FILENAME = 'input.gtmm'
 !
-! !PUBLIC MEMBER FUNCTION:
+! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: READ_GTMM_INPUT_FILE
 !
 ! !REVISION HISTORY:
 !  17 Dec 2009 - C. Carouge   - Initial version
-!
 !EOP
 !-----------------------------------------------------------------------------
-
-CONTAINS
-
+!BOC
+  CONTAINS
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: READ\_GTMM\_INPUT\_FILE
+! !IROUTINE: read_gtmm_input_file 
 !
 ! !DESCRIPTION: Subroutine READ\_GTMM\_INPUT\_FILE reads the input.gtmm file. 
-!  (ccc, 12/17/09)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE READ_GTMM_INPUT_FILE
 !
 ! !REVISION HISTORY:
 !  17 Dec 2009 - C. Carouge  -- Initial version
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -126,7 +123,5 @@ CONTAINS
     
     CLOSE(IU_GTMM)
   END SUBROUTINE READ_GTMM_INPUT_FILE
-
-END MODULE INPUT_GTMM_MOD
 !EOC
-!------------------------------------------------------------------------------
+END MODULE INPUT_GTMM_MOD

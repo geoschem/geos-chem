@@ -7,7 +7,8 @@
 !
 ! !DESCRIPTION: Calculate potential evapotranspiration (PET) and the annual
 !  heat index (AHI)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doPET
@@ -18,11 +19,10 @@ SUBROUTINE doPET
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -88,4 +88,3 @@ SUBROUTINE doPET
   
 END SUBROUTINE doPET
 !EOC
-!------------------------------------------------------------------------------

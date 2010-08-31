@@ -6,23 +6,9 @@
 ! !IROUTINE: getFireParams
 !
 ! !DESCRIPTION: Calculates combustion completeness (CC, aka combustion
-!  factor or combustion efficiency
-!
-!  Fuel is split into live wood, live leaves (inc grass), fine
-!  litter and coarse litter (cwd)
-!
-!       min CC   max CC   fuel type
-!  CC= [0.2      0.3      live wood
-!       0.8      1.0      live leaves
-!       0.9      1.0      fine litter
-!       0.2,     0.4]     coarse litter
-!
-!  Scaling is as follows: for live material the CC is scaled
-!  linearly with NPP moisture scalar, dead material is scaled
-!  using the PPT over PET ratio, with a running mean to 
-!  include some memory, which is greater for CWD
-!
-!
+!  factor or combustion efficiency.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE getFireParams
@@ -35,9 +21,23 @@ SUBROUTINE getFireParams
   
   implicit none
 !
-! !REVISION HISTORY:
+! !REMARKS:
+!  Fuel is split into live wood, live leaves (inc grass), fine
+!  litter and coarse litter (cwd)
+!                                                                             .
+!       min CC   max CC   fuel type
+!  CC= [0.2      0.3      live wood
+!       0.8      1.0      live leaves
+!       0.9      1.0      fine litter
+!       0.2,     0.4]     coarse litter
+!                                                                             .
+!  Scaling is as follows: for live material the CC is scaled
+!  linearly with NPP moisture scalar, dead material is scaled
+!  using the PPT over PET ratio, with a running mean to 
+!  include some memory, which is greater for CWD
 !
-! 9 July 2010 - C. Carouge  - Parallelization
+! !REVISION HISTORY:
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,4 +134,3 @@ SUBROUTINE getFireParams
   
 END SUBROUTINE getFireParams
 !EOC      
-!------------------------------------------------------------------------------

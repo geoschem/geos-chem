@@ -494,7 +494,7 @@
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
-      IF (.NOT. LNLPBL) THEN
+      IF ( .NOT. LNLPBL ) THEN
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
@@ -1040,7 +1040,7 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
-            IF (.NOT. LNLPBL) THEN
+            IF ( .NOT. LNLPBL ) THEN
                CALL DO_PBL_MIX( LTURB )
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE

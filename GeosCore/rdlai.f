@@ -1,15 +1,14 @@
-! $Id: rdlai.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: RDLAI
+! !ROUTINE: rdlai
 !
 ! !DESCRIPTION: Subroutine RDLAI is used for soil NOx emissions
 !\\
 !\\
-! !INTERFACE
+! !INTERFACE:
 !
       SUBROUTINE RDLAI( JDAY, MONTH, YEAR )
 !
@@ -23,19 +22,19 @@
 #     include "CMN_DEP"
 #     include "CMN_VEL"
 !
-! !INPUT PARAMETERS
+! !INPUT PARAMETERS:
 !
       INTEGER JDAY        ! Simulated day
       INTEGER MONTH       ! Simulated month
       INTEGER YEAR        ! Simulation year
 !
 ! !REVISION HISTORY:
-! Y. Wang, G. Gardner, D. Jacob - Original version (release v2.1)
-! 06 Oct 1999 - R. Yantosca     - Be sure to force double precision with 
-!                                 the DBLE function and the "D" exponent, 
-!                                 wherever necessary
-! 25 Jun 2002 - R. Yantosca     - Replace IMX with IGLOB and JMX with JGLOB
-! 19 Nov 2009 - M. Barkley      - Included the simulation and LAI years
+!  Y. Wang, G. Gardner, D. Jacob - Original version (release v2.1)
+!  06 Oct 1999 - R. Yantosca     - Be sure to force double precision with 
+!                                  the DBLE function and the "D" exponent, 
+!                                  wherever necessary
+!  25 Jun 2002 - R. Yantosca     - Replace IMX with IGLOB and JMX with JGLOB
+!  19 Nov 2009 - M. Barkley      - Included the simulation and LAI years
 !EOP
 !------------------------------------------------------------------------------
 !BOC

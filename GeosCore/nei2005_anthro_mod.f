@@ -1,4 +1,3 @@
-! $Id: nei2005_anthro_mod.f,v 1.5 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -64,7 +63,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !
-! !PRIVATE DATA MEMBERS:
+! !PRIVATE TYPES:
 !
       ! Array for surface area
       REAL*8,  ALLOCATABLE :: A_CM2(:)
@@ -97,13 +96,12 @@
 
       REAL*8,  ALLOCATABLE :: ALK4_WKEND(:,:,:) ! 105
       REAL*8,  ALLOCATABLE :: ACET_WKEND(:,:,:) ! 109
-      REAL*8,  ALLOCATABLE :: MEK_WKEND(:,:,:) ! 110
+      REAL*8,  ALLOCATABLE :: MEK_WKEND(:,:,:)  ! 110
       REAL*8,  ALLOCATABLE :: ALD2_WKEND(:,:,:) ! 111
       REAL*8,  ALLOCATABLE :: PRPE_WKEND(:,:,:) ! 118
       REAL*8,  ALLOCATABLE :: C2H6_WKEND(:,:,:) ! 121
       REAL*8,  ALLOCATABLE :: C3H8_WKEND(:,:,:) ! 119
       REAL*8,  ALLOCATABLE :: CH2O_WKEND(:,:,:) ! 120
-
 !
 ! !DEFINED PARAMETERS:
 !
@@ -681,7 +679,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_NEI2005_ANTHRO_05x0666
+! !IROUTINE: emiss_nei2005_anthro_05x0666
 !
 ! !DESCRIPTION: Subroutine EMISS\_NEI2005\_ANTHRO reads the NEI2005
 !  emission fields at 1/2 x 2.3 resolution
@@ -1186,7 +1184,7 @@
 !
 ! !IROUTINE: get_vistas_season
 !
-! !DESCRIPTION: Subroutine GET_VISTAS_SEASON returns monthly scale
+! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON returns monthly scale
 !  factors to account for monthly variations in NOx emissions
 !  on 1x1 resolution grid (amv, 11/02/09)
 !\\
@@ -1361,7 +1359,7 @@
 !
 ! !IROUTINE: get_vistas_season_05x0666
 !
-! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON\05x0666 returns monthly scale
+! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON\_05x0666 returns monthly scale
 !  factors to account for monthly variations in NOx emissions
 !  for the 0.5 x 0.666 nested grids. (amv, 11/02/09)
 !\\
@@ -1583,8 +1581,7 @@
 !
 ! !IROUTINE: read_nei2005_mask
 !
-! !DESCRIPTION: Subroutine READ\_NEI2005\_MASK reads the mask for NEI data 
-!  
+! !DESCRIPTION: Subroutine READ\_NEI2005\_MASK reads the mask for NEI data  
 !\\
 !\\
 ! !INTERFACE:
@@ -1707,8 +1704,8 @@
 !
 ! !IROUTINE: nei2005_scale_future
 !
-! !DESCRIPTION: Subroutine NEI2005\_SCALE\_FUTURE applies the IPCC future scale 
-!  factors to the NEI2005 anthropogenic emissions.
+! !DESCRIPTION: Subroutine NEI2005\_SCALE\_FUTURE applies the IPCC future 
+!  scale factors to the NEI2005 anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -2145,11 +2142,6 @@
       IF (ALLOCATED(C3H8_WKEND)) DEALLOCATE(C3H8_WKEND)
       IF (ALLOCATED(CH2O_WKEND)) DEALLOCATE(CH2O_WKEND)
       
-      ! Return to calling program
       END SUBROUTINE CLEANUP_NEI2005_ANTHRO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE NEI2005_ANTHRO_MOD
 !EOC
+      END MODULE NEI2005_ANTHRO_MOD

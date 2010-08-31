@@ -115,9 +115,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: open_merra_a1_fields
 !
-! !DESCRIPTION: Subroutine OPEN\_MERRA\_A1_FIELDS opens the A1 met fields 
+! !DESCRIPTION: Subroutine OPEN\_MERRA\_A1\_FIELDS opens the A1 met fields 
 !  file for date NYMD and time NHMS. 
 !\\
 !\\
@@ -346,7 +346,7 @@
 !
 ! !IROUTINE: read_a1
 !
-! !DESCRIPTION: Subroutine READ_A1 reads MERRA 1-hour time averaged ("A1") 
+! !DESCRIPTION: Subroutine READ\_A1 reads MERRA 1-hour time averaged ("A1") 
 !  met fields from disk.
 !\\
 !\\

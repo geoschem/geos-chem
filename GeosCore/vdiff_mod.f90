@@ -1,10 +1,9 @@
-! $Id: vdiff_mod.f90,v 1.3 2009/11/19 14:48:55 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: VDIFF_MOD
+! !MODULE: vdiff_mod
 !
 ! !DESCRIPTION: Module VDIFF\_MOD includes all routines for the non-local PBL
 !  mixing scheme.
@@ -16,16 +15,14 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
-  USE TRACER_MOD, ONLY : pcnst => N_TRACERS
-  
+  USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LLPAR
-  
-  USE LOGICAL_MOD,  ONLY : LPRT
+  USE LOGICAL_MOD,   ONLY : LPRT
   USE ERROR_MOD,     ONLY : DEBUG_MSG
   
-  implicit none
+  IMPLICIT NONE
   
-  private
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -109,7 +106,7 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBINTI
+! !IROUTINE: pbinti
 !
 ! !DESCRIPTION: Subroutine PBINTI initializes time independent variables 
 !  of pbl package
@@ -159,21 +156,6 @@ contains
 ! !DESCRIPTION:
 !  Subroutine vdiff is the driver routine to compute vertical diffusion of 
 !  momentum, moisture, trace constituents and potential temperature. 
-!
-!  Free atmosphere diffusivities are computed first; then modified by the 
-!  boundary layer scheme; then passed to individual parameterizations mvdiff, 
-!  qvdiff.
-!
-!  The free atmosphere diffusivities are based on standard mixing length forms 
-!  for the neutral diffusivity multiplied by functions of Richardson number. 
-!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum, 
-!  potential temperature, and constitutents.
-!
-!  The stable Richardson num function (ri>0) is taken from Holtslag and 
-!  Beljaars (1989), ECMWF proceedings. f = 1 / (1 + 10*ri*(1 + 8*ri)).
-!  The unstable richardson number function (ri<0) is taken from ccm1.
-!  f = sqrt(1 - 18*ri)
-!
 !\\
 !\\
 ! !INTERFACE:
@@ -232,8 +214,22 @@ contains
     real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
 !
-! !REVISION HISTORY:
+! !REMARKS:
+!  Free atmosphere diffusivities are computed first; then modified by the 
+!  boundary layer scheme; then passed to individual parameterizations mvdiff, 
+!  qvdiff.
 !
+!  The free atmosphere diffusivities are based on standard mixing length forms 
+!  for the neutral diffusivity multiplied by functions of Richardson number. 
+!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum, 
+!  potential temperature, and constitutents.
+!
+!  The stable Richardson num function (ri>0) is taken from Holtslag and 
+!  Beljaars (1989), ECMWF proceedings. f = 1 / (1 + 10*ri*(1 + 8*ri)).
+!  The unstable richardson number function (ri<0) is taken from ccm1.
+!  f = sqrt(1 - 18*ri)
+!
+! !REVISION HISTORY:
 ! (1 ) All arguments are full arrays now. Latitude slices are copied in local
 !      variables. (ccc, 11/19/09) 
 !EOP
@@ -689,7 +685,7 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBLDIF
+! !IROUTINE: pbldif
 !
 ! !DESCRIPTION: Subroutine PBLDIF computes the atmospheric boundary layer.
 !  The nonlocal scheme determines eddy diffusivities based on a diagnosed 
@@ -697,15 +693,16 @@ contains
 !  effects for heat and moisture, and constituents are included, along with 
 !  temperature and humidity perturbations which measure the strength of 
 !  convective thermals in the lower part of the atmospheric boundary layer.
+!\\
+!\\
+! References:
 !
-!\subsection*{References}
 !  \begin{enumerate}
 !  \item Holtslag, A. A. M., and B. A. Boville, 1993: \emph{Local versus 
 !         nonlocal boundary-layer diffusion in a global climate model}, 
 !         \underline{J. Clim.}, \textbf{6}, 1825-1842.
 !  \end{enumerate}
-!\\
-!\\
+!
 ! !INTERFACE:
 !
   subroutine pbldif( th      ,q       ,z       ,u       ,v, &
@@ -1147,15 +1144,12 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: QVDIFF
+! !IROUTINE: qvdiff
 !
 ! !DESCRIPTION: Subroutine QVDIFF solve vertical diffusion eqtn for constituent
 !  with explicit srfc flux.
-! 
-!  Procedure for solution of the implicit equation follows :
-!  Richtmyer and Morton (1967,pp 198-199)
 !\\
-!\\
+!\\ 
 ! !INTERFACE:
 !
   subroutine qvdiff( ncnst, qm1, qflx, cc, ze, &
@@ -1186,6 +1180,10 @@ contains
 !
     real*8, intent(out) :: &
          qp1(plonl,plev,ncnst)    ! final constituent
+!
+! !REMARKS:
+!  Procedure for solution of the implicit equation follows :
+!  Richtmyer and Morton (1967,pp 198-199)
 !
 ! !REVISION HISTORY: 
 !EOP
@@ -1254,17 +1252,16 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDIFFAR
+! !IROUTINE: vdiffar
 !
 ! !DESCRIPTION: Subroutine VDIFFAR is the driver routine to compute vertical 
 !  diffusion of trace constituents using archived coefficients for cgs and kvh.
 !  This is a gutted version of vdiff.
-!
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine vdiffar( lat   ,tadv , &
+  SUBROUTINE VDIFFAR( lat   ,tadv , &
                       pmid  ,pint ,rpdel_arg ,rpdeli_arg  ,ztodt, &
                       sflx  ,as2  ,kvh_arg   ,cgs_arg     ,plonl )
 !
@@ -1485,23 +1482,22 @@ contains
     !Output values from local variables to arguments.(ccc, 11/17/09)
     as2(:,lat,:,:) = qp1
     
-  end subroutine vdiffar
+  END SUBROUTINE VDIFFAR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBLDIFAR
+! !IROUTINE: pbldifar
 !
-! !DESCRIPTION: Subroutine PBLDIFAR is a  modified version of pbldif which only
+! !DESCRIPTION: Subroutine PBLDIFAR is a modified version of pbldif which only
 !  calculates cgq given cgs.
-! 
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine pbldifar( t, pmid, cflx, cgs, cgq, plonl )
+  SUBROUTINE PBLDIFAR( t, pmid, cflx, cgs, cgq, plonl )
 ! 
 ! !USES:
 !
@@ -1565,23 +1561,22 @@ contains
        end do
     end do
 
-  end subroutine pbldifar
+  END SUBROUTINE PBLDIFAR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDINTI
+! !IROUTINE: vdinti
 !
 ! !DESCRIPTION: Subroutine VDINTI initializes time independent fields for 
 !  vertical diffusion. Calls initialization routine for boundary layer scheme.
-!
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine vdinti
+  SUBROUTINE VDINTI
 !
 ! !USES:
 ! 
@@ -1668,33 +1663,30 @@ contains
 !-----------------------------------------------------------------------
     call pbinti( gravit)
 
-  end subroutine vdinti
+  END SUBROUTINE VDINTI
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDIFFDR
+! !IROUTINE: vdiffdr
 !
 ! !DESCRIPTION: Subroutine VDIFFDR calculates the vertical diffusion on a 
 !  latitude slice of data.
 !
-! !REMARKS:
 !  \begin{enumerate}
 !  \item The dummy argument as2 is in v\/v. (lin, 06/04/08)
-!  \item TCVV and TRACER_MW_KG assume 12 g/mol for all HCs. Thus, when using 
+!  \item TCVV and TRACER\_MW\_KG assume 12 g/mol for all HCs. Thus, when using 
 !         them to convert units of HCs to be the inputs for vdiffdr, the
 !         converted units are NOT kg/kg for concentrations and kg/m2/s for 
 !         surface flux. However, since the units for both inputs are 
 !         consistent, there should not be any problem. (lin, 06/04/08)
 !  \end{enumerate}
-! 
-!\\
-!\\
+!
 ! !INTERFACE:
 !
-  subroutine vdiffdr(as2)
+  SUBROUTINE VDIFFDR(as2)
 !
 ! !USES:
 ! 
@@ -2320,18 +2312,16 @@ contains
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
-
-  end subroutine vdiffdr
+  END SUBROUTINE VDIFFDR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: UPSIDEDOWN
+! !IROUTINE: upsidedown
 !
 ! !DESCRIPTION: Subroutine UPSIDEDOWN flips a vector upside-down.
-! 
 !\\
 !\\
 ! !INTERFACE:
@@ -2363,21 +2353,19 @@ contains
        dat(LSUM-L+1) = dtmp
     enddo
     
-  end subroutine upsidedown
+  END SUBROUTINE UPSIDEDOWN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: UPSIDEDOWN
+! !IROUTINE: do_pbl_mix_2
 !
-! !DESCRIPTION: Subroutine DO_PBL_MIX2 is the driver routine for planetary 
+! !DESCRIPTION: Subroutine DO\_PBL\_MIX\_2 is the driver routine for planetary 
 !  boundary layer mixing. The PBL layer height and related quantities are 
-!  always computed.
-!  Mixing of tracers underneath the PBL top is toggled by the
-!  DO_TURBDAY switch. (bmy, 2/11/05)
-! 
+!  always computed.   Mixing of tracers underneath the PBL top is toggled 
+!  by the DO\_TURBDAY switch. 
 !\\
 !\\
 ! !INTERFACE:
@@ -2398,10 +2386,11 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: DO_TURBDAY ! Switch which turns on PBL mixing of 
-                                      ! tracers
+    LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
+                                       ! tracers
 !
 ! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2437,8 +2426,7 @@ contains
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) CALL vdiffdr (STT)
 
-    ! Return to calling program
   END SUBROUTINE DO_PBL_MIX_2
-  
-end module vdiff_mod
-!EOC
+!EOC  
+END MODULE vdiff_mod
+

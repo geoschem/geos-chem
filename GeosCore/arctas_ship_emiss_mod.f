@@ -1,13 +1,12 @@
-! $Id: arctas_ship_emiss_mod.f,v 1.1 2009/09/16 14:06:42 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: ARCTAS_SHIP_EMISS_MOD
+! !MODULE: arctas_ship_emiss_mod
 !
 ! !DESCRIPTION: Module ARCTAS\_SHIP\_EMISS\_MOD contains variables and 
-!  routines to read the Arctas Ship emissions. (phs, 1/28/09)
+!  routines to read the Arctas Ship emissions.
 !\\
 !\\
 ! !INTERFACE: 
@@ -33,6 +32,7 @@
 !
 ! !REVISION HISTORY:
 !  28 Jan 2009 - P. Le Sager - Initial Version
+!  31 Aug 2010 - R. Yantosca - Updated comments
 !
 ! !REMARKS:
 !  (1) Part of the ARCTAS pre-campaign composite inventory distributed by
@@ -78,11 +78,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_ARCTAS_SHIP
+! !IROUTINE: get_arctas_ship
 !
 ! !DESCRIPTION: Function GET\_ARCTAS\_SHIP returns the ARCTAS\_SHIP emission 
 !  for GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in
-!  units of [kg/s] or [molec/cm2/s].  (phs, 1/28/09) 
+!  units of [kg/s] or [molec/cm2/s].
 !\\
 !\\
 ! !INTERFACE:
@@ -178,7 +178,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -186,10 +185,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  EMISS_ARCTAS_SHIP
+! !IROUTINE: emiss_arctas_ship
 !
 ! !DESCRIPTION: Subroutine EMISS\_ARCTAS\_SHIP reads the ARCTAS\_SHIP emissions
-!  from disk. (phs, 1/28/09)
+!  from disk.
 !\\
 !\\
 ! !INTERFACE:
@@ -270,7 +269,6 @@
       !--------------------------
       CALL TOTAL_EMISS_Tg
 
-      ! Return to calling program
       END SUBROUTINE EMISS_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -278,11 +276,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_ARCTAS_SHIP
+! !IROUTINE: read_arctas_ship
 !
 ! !DESCRIPTION: Subroutine READ\_ARCTAS\_SHIP reads data from one ARCTAS\_SHIP 
 !  data file from disk, at GENERIC 1x1 resolution and regrids them to the 
-!  current model resolution. (phs, 1/28/09)
+!  current model resolution.
 !\\
 !\\
 ! !INTERFACE:
@@ -372,7 +370,7 @@
 ! !IROUTINE: TOTAL_EMISS_TG
 !
 ! !DESCRIPTION: Subroutine TOTAL\_EMISS\_TG prints the totals for the 
-!  anthropogenic or biomass emissions. (phs, 1/28/09)
+!  anthropogenic or biomass emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -439,7 +437,6 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       
-      ! Return to calling program
       END SUBROUTINE TOTAL_EMISS_Tg
 !EOC
 !------------------------------------------------------------------------------
@@ -450,7 +447,7 @@
 ! !IROUTINE: INIT_ARCTAS_SHIP
 !
 ! !DESCRIPTION: Subroutine INIT\_ARCTAS\_SHIP allocates and zeroes all module 
-!  arrays. (phs, 1/28/09)
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -520,8 +517,6 @@
 
       ENDIF
 
-
-      ! Return to calling program
       END SUBROUTINE INIT_ARCTAS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -532,7 +527,7 @@
 ! !IROUTINE: CLEANUP_ARCTAS_SHIP
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_ARCTAS\_SHIP deallocates all module 
-!  arrays. (phs, 1/28/09)
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -551,11 +546,6 @@
       IF ( ALLOCATED( SO2_SHIP     ) ) DEALLOCATE( SO2_SHIP     )
       IF ( ALLOCATED( CO2_SHIP     ) ) DEALLOCATE( CO2_SHIP     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_ARCTAS_SHIP
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE ARCTAS_SHIP_EMISS_MOD
 !EOC
+      END MODULE ARCTAS_SHIP_EMISS_MOD
