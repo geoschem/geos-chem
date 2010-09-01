@@ -16,19 +16,21 @@
 !  (2 ) GEOS_3      : Enables code for GEOS-3 met fields & chemistry
 !  (3 ) GEOS_4      : Enables code for GEOS-4 met fields & chemistry
 !  (4 ) GEOS_5      : Enables code for GEOS-5 met fields & chemistry
-!  (5 ) GRIDREDUCED : Enables code for reduced stratosphere grids
-!  (6 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
-!  (7 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
-!  (8 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
-!  (9 ) NESTED_EUR  : Enables code for EUROPE NESTED GRID
-!  (10) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
-!  (11) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
-!  (12) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
-!  (13) IBM_AIX     : Enables code for IBM/AIX compiler
-!  (14) IBM_XLF     : Enables code for IBM/XLF compiler
-!  (15) LINUX_PGI   : Enables code for Linux w/ PGI compiler
-!  (16) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
-!  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  (5 ) MERRA       : Enables code for MERRA  met fields & chemistry
+!  (6 ) GRIDREDUCED : Enables code for reduced stratosphere grids
+!  (7 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
+!  (8 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
+!  (9 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
+!  (10) NESTED_EUR  : Enables code for EUROPE NESTED GRID
+!  (11) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
+!  (12) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
+!  (13) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
+!  (14) IBM_AIX     : Enables code for IBM/AIX compiler
+!  (15) IBM_XLF     : Enables code for IBM/XLF compiler
+!  (16) LINUX_PGI   : Enables code for Linux w/ PGI compiler
+!  (17) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
+!  (18) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  (19) GTMM_Hg     : Enables code for Hg simulation with GTMM
 !                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines

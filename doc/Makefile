@@ -98,7 +98,7 @@ $(CORE)/global_o3_mod.f		     \
 $(CORE)/icoads_ship_mod.f	     \
 $(CORE)/input_mod.f		     \
 $(CORE)/isoropiaII_mod.f	     \
-$(CORE)/land_mercury_kmod.f	     \
+$(CORE)/land_mercury_mod.f	     \
 $(CORE)/linoz_mod.f		     \
 $(CORE)/logical_mod.f		     \
 $(CORE)/megan_mod.f	             \

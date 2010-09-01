@@ -632,7 +632,7 @@
             !-------------------------------------
             ! PARDF: photosyn active diff rad
             !-------------------------------------
-            CASE ( 'PARDF'  )
+            CASE ( 'PARDF' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:15' )
              
@@ -644,7 +644,7 @@
             !-------------------------------------
             ! PARDR: photosyn active direct rad
             !-------------------------------------
-            CASE ( 'PARDR'  )
+            CASE ( 'PARDR' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:16' )
              

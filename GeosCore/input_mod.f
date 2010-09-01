@@ -1678,17 +1678,36 @@
          LEDGARSOx  = .TRUE.
       ENDIF
 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
       !%%% off, this will cause an error (because arrays are not   %%%
       !%%% allocated, etc.).  For now, just turn off LEMEPSHIP     %%%
       !%%% and print a warning message.  Whoever wants to fix this %%%
       !%%% in a more robust way is welcome to do so.               %%%
       !%%% (mak, bmy, 10/19/09)                                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LEMEPSHIP .and. ( .not. LEMEP ) ) THEN
          LEMEPSHIP = .FALSE.
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
          WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
+         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Bug fix!  If LMEGANMONO is turned on but LMEGAN is turned %%%
+      !%%% off, this will cause an error (because arrays are not     %%%
+      !%%% allocated, etc.).  For now, just turn off LMEGANMONO      %%%
+      !%%% and print a warning message.  Whoever wants to fix this   %%%
+      !%%% in a more robust way is welcome to do so.                 %%%
+      !%%% (bmy, 10/19/09)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      IF ( LMEGANMONO .and. ( .not. LMEGAN ) ) THEN
+         LMEGANMONO = .FALSE.
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'WARNING! MEGAN emissions are turned off, so'
+         WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       ENDIF
