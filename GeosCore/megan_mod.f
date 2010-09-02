@@ -146,6 +146,8 @@
 !  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
 !  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
 !                              surface temperature is now an hourly field.
+!  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 
+!                              NUM_DAYS (instead of 15) days of sfc temp data 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2547,6 +2549,8 @@
 !  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  26 Aug 2010 - R. Yantosca - Now reference merra_a1_mod.f
+!  01 Sep 2010 - R. Yantosca - Now read in NUM_DAYS of sfc temp data (this had
+!                              been hardwired to 15 days previously)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2747,7 +2751,13 @@
       ENDIF
 
       ! Loop over 15 days
-      DO I = 15+BACK_ONE, 1, -1
+      !------------------------------------------------------------------
+      ! Prior to 9/1/10:
+      ! We now average over NUM_DAYS=10 days of data instead of 15
+      ! days, so rewrite the DO loop accordingly (bmy, 9/1/10)
+      !DO I = 15+BACK_ONE, 1, -1
+      !------------------------------------------------------------------
+      DO I = NUM_DAYS+BACK_ONE, 1, -1
 
          ! Skip February 29th for GCAP (phs, 9/18/07)
          IF ( GCAP_LEAP .AND. I == THISDAY ) CYCLE
