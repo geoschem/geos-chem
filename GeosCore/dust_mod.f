@@ -53,6 +53,7 @@
 !  (12) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -636,6 +637,9 @@
 !  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
+!                              and has units of mm H2O instead of m H2O
+!                              so we need to convert to m H2O.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -774,9 +778,16 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-            ! %%% NOTE: Doublecheck units, GEOS-5 is mm H2O %%%
 #if   defined( GEOS_5 ) || defined( MERRA )
-            SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
+            ! Prior to 9/3/10:
+            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
+            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
+            ! units of liquid-equivalent mm H2O.  Therefore, we need to
+            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
+            !SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
+            SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 #endif
