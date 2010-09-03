@@ -1015,9 +1015,16 @@ c$$$      ENDIF
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-            ! %%% NOTE: Doublecheck units, GEOS-5 is mm H2O %%%
 #if   defined( GEOS_5  ) || defined( MERRA )
-            SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
+            ! Prior to 9/3/10:
+            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
+            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
+            ! units of liquid-equivalent mm H2O.  Therefore, we need to
+            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
+            !SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
+            SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 #endif
