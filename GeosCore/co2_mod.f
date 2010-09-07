@@ -107,7 +107,7 @@
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !                                                                             .
 ! !REVISION HISTORY:
-!  16 Aug 2010 - P. Suntharalingam - Initial version
+!  16 Aug 2005 - P. Suntharalingam - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Now references biomass_mod.f (bmy, 9/27/06)
 !  (3 ) Tagged CO2 capability developed (dbj)
@@ -192,7 +192,7 @@
 ! 
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam - Initial version
+!  16 Aug 2005 - P. Suntharalingam - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) We now get CO2 biomass emissions from biomass_mod.f.  This allows us 
 !        to use either GFED2 or default Duncan et al biomass emissions. 
@@ -734,8 +734,7 @@
 ! 
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  18 May 2010 - R. Nassar, D. Jones - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -749,8 +748,8 @@
       CHARACTER(LEN=255)     :: FILENAME
 
       YEAR = GET_YEAR()
-      if (YEAR < 2004) then
-        YEAR = 2004
+      if (YEAR < 2000) then
+        YEAR = 2000
       endif
       MONTH  = GET_MONTH()
       TAU = GET_TAU0( MONTH, 1, YEAR )
@@ -762,10 +761,6 @@
      &           TRIM( YEAR_STR )        // '.'       // 
      &           TRIM( GET_MODELNAME() ) // '.'       // 
      &           GET_RES_EXT()
-
-! Kalman Filter CO assimilation for 2006
-!     &   '/users/jk/06/dbj/co2_runs/chemsrc/work/' //
-!     &   'GEOS5_CO2_prodrates_KF06_2x25.bpch'  
 
       ARRAY = 0.0e0
 
@@ -827,7 +822,7 @@
 !      -- Ray Nassar 2010-03-10
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
@@ -898,7 +893,7 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      // 
+     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -961,21 +956,18 @@
 !  Methane source distribution are read for the same purpose from 2004 data
 !  provided by Kevin Wecht.
 !                                                                             .
-!  Monoterpenes and Isoprene are read and treated as representative NMHCs.
+!  Monoterpenes and Isoprene are read and treated as representative NMVOCs.
 !                                                                             .
 !     -- Ray Nassar 2010-03-27
 !
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  18 May 2010 - R. Nassar, D. Jones - Initial version 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-
-      ! Local variables
       CHARACTER(LEN=255)      :: FILENAME
       CHARACTER(LEN=4)        :: YEAR_STR
       CHARACTER(LEN=2)        :: MONTH_STR
@@ -986,8 +978,6 @@
 
       REAL*4                  :: ARRAY(IIPAR,JJPAR,1)
 
-      REAL*8, PARAMETER       :: PERCENT_CORRECTION = 4.89d0
-      
       REAL*8                  :: TAU, MONFAC, NMHCFAC, A_CM2(JJPAR)
       
       REAL*8                  :: FOSS_MASS(IIPAR,JJPAR),  FOSS_SUM
@@ -1008,6 +998,12 @@
       REAL*8                  :: OTHER_CORR(IIPAR,JJPAR)
       REAL*8                  :: ISO_CORR(IIPAR,JJPAR)
       REAL*8                  :: MONO_CORR(IIPAR,JJPAR)
+
+      REAL*8, PARAMETER       :: PERCENT_CORRECTION = 4.89d0
+
+      !For # molecules <--> mass in kg
+      REAL*8, PARAMETER       :: CH4FAC = 6.022d23/16d-3
+      REAL*8, PARAMETER       :: CFAC   = 6.022d23/12d-3
 
       !-----------------------------------------------------------------
       ! Get month and year
@@ -1053,7 +1049,7 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'       // 
+     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
 
@@ -1142,15 +1138,15 @@
       !-----------------------------------------------------------------
       ! Convert kg/gridbox/month to molecules/cm2/s
       !-----------------------------------------------------------------
-      MONFAC = 6.022d23/(16d-3*ndays2004(month)*86400d0)
-
+      MONFAC = ndays2004(month)*86400d0
+ 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         LIVE_CORR(I,J)      = LIVE_MASS(I,J)*MONFAC/A_CM2(J)
-         WASTE_CORR(I,J)     = WASTE_MASS(I,J)*MONFAC/A_CM2(J)
-         RICE_CORR(I,J)      = RICE_MASS(I,J)*MONFAC/A_CM2(J)
-         WET_CORR(I,J)       = WET_MASS(I,J)*MONFAC/A_CM2(J)
-         OTHER_CORR(I,J)     = OTHER_MASS(I,J)*MONFAC/A_CM2(J)
+         LIVE_CORR(I,J)      = LIVE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
+         WASTE_CORR(I,J)     = WASTE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
+         RICE_CORR(I,J)      = RICE_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
+         WET_CORR(I,J)       = WET_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
+         OTHER_CORR(I,J)     = OTHER_MASS(I,J)*CH4FAC/MONFAC/A_CM2(J)
       ENDDO
       ENDDO
 
@@ -1179,7 +1175,7 @@
      &           'CO2_201003/ChemSrc/Monoterpene-2004.'      //
      &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
-      WRITE( 6, 150 ) TRIM( FILENAME )
+      WRITE( 6, 160 ) TRIM( FILENAME )
  160  FORMAT( '     - READ_MONOTERPENE: Reading ', a ) 
 
       ! NOTE: use same TAU0 as for isoprene
@@ -1215,22 +1211,22 @@
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         FOSS_MASS(I,J) = FOSSIL_CORR(I,J)*A_CM2(J)*MONFAC
-         ISO_MASS(I,J)  = ISO_CORR(I,J)*A_CM2(J)*MONFAC*NMHCFAC
-         MONO_MASS(I,J) = MONO_CORR(I,J)*A_CM2(J)*MONFAC*NMHCFAC
-         TOT_MASS(I,J)  = EMIS_SUB(I,J)*A_CM2(J)*MONFAC
+         FOSS_MASS(I,J) = FOSSIL_CORR(I,J)*A_CM2(J)*MONFAC/CFAC
+         ISO_MASS(I,J)  = ISO_CORR(I,J)*A_CM2(J)*NMHCFAC*MONFAC/CFAC
+         MONO_MASS(I,J) = MONO_CORR(I,J)*A_CM2(J)*NMHCFAC*MONFAC/CFAC
+         TOT_MASS(I,J)  = EMIS_SUB(I,J)*A_CM2(J)*MONFAC/CFAC
       ENDDO
       ENDDO
 
-      FOSS_SUM = sum(FOSS_MASS(:,:))
-      ISO_SUM  = sum(ISO_MASS(:,:))
-      MONO_SUM = sum(MONO_MASS(:,:))
-      TOT_SUM  = sum(TOT_MASS(:,:))
+      FOSS_SUM = sum(FOSS_MASS(:,:)*1d-9)
+      ISO_SUM  = sum(ISO_MASS(:,:)*1d-9)
+      MONO_SUM = sum(MONO_MASS(:,:)*1d-9)
+      TOT_SUM  = sum(TOT_MASS(:,:)*1d-9)
 	 
-      write(6,200) " GLOBAL FOSS CORR  ESTIMATE ", FOSS_SUM, " PgC/yr"
-      write(6,200) " GLOBAL ISOPRENE   ESTIMATE ", ISO_SUM,  " PgC/yr"
-      write(6,200) " GLOBAL MONTERPENE ESTIMATE ", MONO_SUM, " PgC/yr"
-      write(6,200) " GLOBAL SURF CORR  ESTIMATE ", TOT_SUM,  " PgC/yr"
+	write(6,200) " GLOBAL FOSS CORR       ", FOSS_SUM, " TgC/month"
+	write(6,200) " GLOBAL ISOPRENE        ", ISO_SUM,  " TgC/month"
+	write(6,200) " GLOBAL MONTERPENE      ", MONO_SUM, " TgC/month"
+	write(6,200) " GLOBAL TOTAL SURF CORR ", TOT_SUM,  " TgC/month"
 
  200  FORMAT( A, F9.5, A ) 
 
@@ -1273,8 +1269,7 @@
       REAL*8, INTENT(INOUT)  :: EMFOSS(IIPAR,JJPAR)  ! Fuel to be scaled
 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
-!  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  18 May 2010 - R. Nassar, D. Jones - Initial version 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1307,7 +1302,7 @@
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                               // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'      // 
+     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()
       ENDIF
@@ -1433,7 +1428,7 @@
 !  See References Above
 !
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
@@ -1532,7 +1527,7 @@
 !        emission factors for CO2 per kg drymatter burned
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
@@ -1603,7 +1598,7 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY: 
-!  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  18 May 2010 - R. Nassar, D. Jones - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2109,7 +2104,7 @@
 !        fluxes, 1988-2003, Glob. Biogeochem. Cycles, 20, GB1002.
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
@@ -2266,7 +2261,7 @@
 !  See routine ' ' to read in files with diurnal cycle imposed
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears
 !EOP
 !------------------------------------------------------------------------------
@@ -2374,7 +2369,7 @@
 !        Cycles, 7(4), 811-841.
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Added fixes for leapyears 
 !EOP
 !------------------------------------------------------------------------------
@@ -3153,7 +3148,7 @@
 #     include "CMN_SIZE"
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
@@ -3268,7 +3263,7 @@
       SUBROUTINE CLEANUP_CO2 
 ! 
 ! !REVISION HISTORY: 
-!  16 Aug 2010 - P. Suntharalingam   - Initial version
+!  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
 !EOP
 !------------------------------------------------------------------------------
