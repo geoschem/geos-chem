@@ -1,94 +1,500 @@
-! $Id: tpcore_fvdas_mod.f90,v 1.1 2009/09/16 14:06:01 bmy Exp $
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+! $Id: tpcore_geos5_window_mod.f90,v 1.2 2009/10/15 17:46:23 bmy Exp $
+module TPCORE_GEOS5_WINDOW_MOD
 !
-! !MODULE: Tpcore_FvDas_Mod
+!******************************************************************************
+!  Module TPCORE_GES5_WINDOW_MOD contains routines for the GEOS-4/fvDAS 
+!  transport scheme.  Original code from S-J Lin and Kevin Yeh. 
+!  (bdf, bmy, 5/7/03, 10/29/04)
 !
-! !DESCRIPTION: \subsection*{Overview}
-!  Module Tpcore\_Fvdas\_Mod contains routines for the TPCORE
-!  transport scheme, as implemented in the GMI model (cf. John Tannahill),
-!  based on Lin \ Rood 1995.  The Harvard Atmospheric Chemistry Modeling Group 
-!  has added modifications to implement the Philip-Cameron Smith pressure 
-!  fixer for mass conservation.  Mass flux diagnostics have also been added.
+!  The Harvard Atmospheric Chemistry Modeling Group has modified the original
+!  code in order to implement the Philip-Cameron Smith pressure fixer for mass 
+!  conservation, and also to save out mass fluxes.  These changes are denoted 
+!  in the code by comment tag lines !%%%%%%%.  Also, all modifications to the 
+!  original code are written in ALL CAPITALS.
 !
-!\subsection*{References}
-!  \begin{enumerate}
-!  \item Lin, S.-J., and R. B. Rood, 1996: \emph{Multidimensional flux 
-!         form semi-Lagrangian transport schemes}, 
-!         \underline{ Mon. Wea. Rev.}, \textbf{124}, 2046-2070.
-!  \item Lin, S.-J., W. C. Chao, Y. C. Sud, and G. K. Walker, 1994: 
-!         \emph{A class of the van Leer-type transport schemes and its 
-!         applications to the moisture transport in a General Circulation 
-!         Model}, \underline{Mon. Wea. Rev.}, \textbf{122}, 1575-1593.
-!  \end{enumerate}
+!  Module Routines:
+!  ============================================================================
+!  (1 ) INIT_TPCORE    : Initialization routine for TPCORE
+!  (2 ) EXIT_TPCORE    : Cleanup and exit routine for TPCORE
+!  (3 ) TPCORE_FVDAS   : Driver routine for GEOS-4/TPCORE transport scheme
+!  (4 ) AIR_MASS_FLUX  : TPCORE internal routine
+!  (5 ) TP2G           : TPCORE internal routine
+!  (6 ) TP2D           : TPCORE internal routine
+!  (7 ) XTP            : TPCORE internal routine
+!  (8 ) XMIST          : TPCORE internal routine
+!  (9 ) FXPPM          : TPCORE internal routine
+!  (10) LMPPM          : TPCORE internal routine
+!  (11) HUYNH          : TPCORE internal routine
+!  (12) YTP            : TPCORE internal routine
+!  (13) YMIST          : TPCORE internal routine
+!  (14) FYPPM          : TPCORE internal routine
+!  (15) XPAVG          : TPCORE internal routine
+!  (16) QMAP           : TPCORE internal routine
+!  (17) MAP1_PPM       : TPCORE internal routine
+!  (18) PPM2M          : TPCORE internal routine
+!  (19) STEEPZ         : TPCORE internal routine
+!  (20) KMPPM          : TPCORE internal routine
+!  (21) FCT_X          : TPCORE internal routine
+!  (22) FILLZ          : TPCORE internal routine
+!  (23) PFIX           : TPCORE internal routine
+!  (24) GMEAN          : TPCORE internal routine
+!  (25) ADJ_FX         : TPCORE internal routine
 !
-!\subsection*{Selecting E/W, N/S and vertical advection options}
+!  GEOS-CHEM modules referenced by "tpcore_fvdas_mod.f90" 
+!  ============================================================================
+!  none
 !
-!  The flags IORD, JORD, KORD select which transport schemes are used in the 
-!  E/W, N/S, and vertical directions, respectively.  Here is a list of the
-!  possible values that IORD, JORD, KORD may be set to (original notes from
-!  S-J Lin):
-!   
-!  \begin{enumerate}
-!  \item 1st order upstream scheme (too diffusive, not a real option; 
-!         it can be used for debugging purposes; this is THE only known 
-!         "linear" monotonic advection scheme.).
-!  \item 2nd order van Leer (full monotonicity constraint; 
-!         see Lin et al 1994, MWR)
-!  \item monotonic PPM* (Collela \& Woodward 1984)
-!  \item semi-monotonic PPM (same as 3, but overshoots are allowed)
-!  \item positive-definite PPM (constraint on the subgrid distribution is
-!         only strong enough to prevent generation of negative values;
-!         both overshoots \& undershoots are possible).
-!  \item un-constrained PPM (nearly diffusion free; faster but
-!         positivity of the subgrid distribution is not quaranteed. Use
-!         this option only when the fields and winds are very smooth.
-!  \item Huynh/Van Leer/Lin full monotonicity constraint.  Only KORD can be 
-!         set to 7 to enable the use of Huynh's 2nd monotonicity constraint 
-!         for piece-wise parabolic distribution.
-!  \end {enumerate}
+!  NOTES:
+!  (1 ) Renamed this module from "transport_fv.F90" to "tpcore_fvdas_mod.f90"
+!        to be more consistent with GEOS-CHEM naming convention.  
+!  (2 ) Renamed routine TPCORE to TPCORE_FVDAS to avoid conflict with 
+!        existing routine TPCORE from S-J Lin's version 7.1.m.
+!  (3 ) Added code for PJC pressure fixer.  Also now declare everything
+!        PRIVATE except for INIT_TPCORE, TPCORE_FVDAS, and EXIT_TPCORE.
+!        (bdf, bmy, 5/7/03)
+!  (4 ) Added modifications to save mass fluxes in ND24, ND25, ND26
+!        diagnostics.  Also now make places in the code which have been
+!        modified by Harvard more clear to discern. (bdf, bmy, 9/28/04)
+!  (5 ) Bug fix: Need to multiply ND25 N/S transport fluxes by the array 
+!        RGW_25 which accounts for the latitude factor (bdf, bmy, 10/29/04)
+!  (6 ) Bug fix: In INIT_GEOS5_WINDOW, need to dimension COSE with JM+1 
+!        instead of JM.  (Xiaoguang Gu, bmy, 1/20/09)
+!  09 Sep 2010 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and
+!                              MASSFLUP to save memory space.
+!******************************************************************************
 !
-!  Recommended values:
+! The original module documentation header is listed here:
 !
-!  \begin{itemize}
-!  \item IORD=JORD=3 for high horizontal resolution.
-!  \item KORD=3 or 7  
-!  \end{itemize}  
+! TransPort module for NASA Goddard Chemistry Transport Model
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+! Last modified: February 27, 2002
 !
-!  The implicit numerical diffusion decreases as \_ORD increases.
-!  DO NOT use option 4 or 5 for non-positive definite scalars
-!  (such as Ertel Potential Vorticity).
-!\\
-!\\
-! In GEOS-Chem we have been using IORD=3, JORD=3, KORD=7.  We have tested
-! the OpenMP parallelization with these options.  GEOS-Chem users who wish to
-! use different (I,J,K)ORD options should consider doing single-procsessor
-! vs. multi-processor tests to test the implementation of the parallelization.
+! Purpose: perform the transport of  3-D mixing ratio fields using
+!          externally specified winds and surface pressure on the 
+!          hybrid Eta-coordinate.
+!          One call to tpcore updates the 3-D mixing ratio
+!          fields for one time step (DT).
 !
-!\subsection*{GEOS-4 and GEOS-5 Hybrid Grid Definition}
-!  
-!  For GEOS-4 and GEOS-5 met fields, the pressure at the bottom edge of 
-!  grid box (I,J,L) is defined as follows:
-!  
-!     $$P_{edge}(I,J,L) = A_{k}(L) + [ B_{k}(L) * P_{surface}(I,J) ]$$
-!  
-!  where
+! Schemes: Multi-dimensional Flux Form Semi-Lagrangian (FFSL) schemes
+!          (Lin and Rood 1996, MWR) with many unpublished modifications
 !
-!  \begin{itemize}
-!  \item $P_{surface}$(I,J) is the "true" surface pressure at lon,lat (I,J)
-!  \item $A_{k}$(L) has the same units as surface pressure [hPa]
-!  \item $B_{k}$(L) is a unitless constant given at level edges
-!  \end{itemize}
+! Messaging passing library based on "Pilgrim" developed by W. Sawyer
 !
-!  $A_{k}(L)$ and $B_{k}(L)$ are supplied to us by GMAO.
-!\\
-!\\
-! !REMARKS:
-!  Ak(L) and Bk(L) are defined at layer edges.
+! Suggested compiler options:
+! SGI Origin: f90 -c -r8 -64 -O3 -mips4 -mp
+!             loader: f90 -64 -mp
+! Linux Lahey/Fujitsu lf95 -c -CcdRR8 --tpp
 !
+! Send comments/suggestions to the algorithm developers: 
 !
+!                 S.-J. Lin
+!                 Code 910.3, NASA/GSFC, Greenbelt, MD 20771
+!                 E-mail: slin@dao.gsfc.nasa.gov
+!
+!                 Kevin Yeh
+!                 Code 910.3, NASA/GSFC, Greenbelt, MD 20771
+!                 E-mail: kyeh@dao.gsfc.nasa.gov
+!
+! The algorithm is primarily based on the following papers:
+!
+! 1. Lin, S.-J., and R. B. Rood, 1996: Multidimensional flux form semi-
+!    Lagrangian transport schemes. Mon. Wea. Rev., 124, 2046-2070.
+!
+! 2. Lin, S.-J., W. C. Chao, Y. C. Sud, and G. K. Walker, 1994: A class of
+!    the van Leer-type transport schemes and its applications to the moist-
+!    ure transport in a General Circulation Model. Mon. Wea. Rev., 122,
+!    1575-1593.
+!******************************************************************************
+!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+  !%%%
+  !%%% Add MODULE PRIVATE declarations.  For safety's sake, declare all
+  !%%% routines and variables PRIVATE except for INIT_TPCORE and
+  !%%% TPCORE_FVDAS, which need to be seen outside.  (bdf, bmy, 5/7/03)
+  !%%%
+  PRIVATE
+  PUBLIC :: TPCORE_GEOS5_WINDOW 
+  PUBLIC :: INIT_GEOS5_WINDOW
+  PUBLIC :: EXIT_GEOS5_TPCORE_WINDOW
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+#if defined(SPMD)
+#define PRT_PREFIX  if(gid.eq.0)
+#if defined(PILGRIM)
+ use decompmodule, only: decomptype
+ use ghostmodule, only: ghosttype
+ use parutilitiesmodule, only: gid, parpatterntype, &
+                               parbegintransfer, parendtransfer
+ type(parpatterntype) :: pattern2dmg, pattern2dng
+ type(decomptype) :: decomp2d
+ type(ghosttype)  :: ghost2dmg, ghost2dng
+#else
+ use mod_comm, only: gid, mp_barrier, mp_send3d_ns, &
+                          mp_recv3d_ns, mp_allgather1d
+#endif
+#else
+#define PRT_PREFIX
+#endif
+
+ real ,ALLOCATABLE, save :: dtdx5(:)
+ real ,ALLOCATABLE, save :: dtdy5(:)
+ real ,ALLOCATABLE, save :: cosp(:)
+ real ,ALLOCATABLE, save :: cose(:)
+ real ,ALLOCATABLE, save ::  gw(:)
+ real ,ALLOCATABLE, save :: rgw(:)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added DLAT as allocatable array for PJC pressure fixer 
+ !%%% (bdf, bmy, 5/7/03)
+ !%%%
+ REAL, ALLOCATABLE, SAVE :: DLAT(:)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added RGW_25 as allocatable array for ND25 N/S mass flux diagnostic.
+ !%%% This accounts for the latitude factor. (bdf, bmy, 10/29/04)
+ !%%%
+ REAL, ALLOCATABLE, SAVE :: RGW_25(:) 
+ REAL, ALLOCATABLE, SAVE :: SINE_25(:)    !(dan 0803)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+CONTAINS
+
+!-------------------------------------------------------------------------
+ subroutine init_GEOS5_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
+!-------------------------------------------------------------------------
+
+#if defined(SPMD)
+#if defined(PILGRIM)
+ use decompmodule, only : decompcreate
+ use ghostmodule, only : ghostcreate
+ use parutilitiesmodule, only : gid, gsize, commglobal, parpatterncreate
+#else
+ use mod_comm, only : gid, y_decomp
+#endif
+#endif
+
+ implicit none
+
+!-------
+! Input
+!-------
+
+ integer, intent(in):: im       ! Global E-W dimension
+ integer, intent(in):: jm       ! Global N-S dimension
+ integer, intent(in):: km       ! Vertical dimension
+ integer, intent(out):: jfirst   ! Local first index for N-S
+ integer, intent(out):: jlast    ! Local last index for N-S
+ integer, intent(in):: ng       ! large ghost width
+ integer, intent(in):: mg       ! small ghost width
+
+ real, intent(in):: dt          ! Time step in seconds
+ real, intent(in):: ae          ! Earth's radius (m)
+ real, intent(in):: clat(0:jm+1)    ! latitude in radian  (dan)
+
+!-----
+! Local
+!-----
+
+ real elat(jm+1)    ! cell edge latitude in radian
+ real sine(jm+1)
+ 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Comment out this declaration of DLAT.  DLAT has now been declared
+ !%%% as ALLOCATABLE for use in TPCORE_FVDAS. (bdf, bmy, 5/7/03)
+ !%%%
+ !%%%real dlat(jm)      ! delta-latitude in radian
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Add SINE_25 array as a local variable.  This is used to initialize
+ !%%% the RGW_25 array, which is necessary for the ND25 diagnostic. 
+ !%%% (bdf, bmy, 10/29/04)
+ !%%%
+! REAL SINE_25(JM+1)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ real dlon
+ real pi
+ integer i, j
+
+#if defined(SPMD)
+#if defined(PILGRIM)
+ integer, allocatable :: xdist(:), ydist(:)
+ 
+ allocate(xdist(1))
+ allocate(ydist(gsize))
+!
+! Decomposition
+!
+ xdist(1) = im
+ call newdecomp(jm,gsize,ydist)
+ 
+ jfirst = 1
+ do i=1,gid
+   jfirst = jfirst + ydist(i)
+ enddo
+ jlast = jfirst + ydist(gid+1) - 1
+ 
+ call decompcreate(1, gsize, xdist, ydist, decomp2d )    ! 2D region with 1D lat decomposition
+ call ghostcreate(decomp2d, gid, im, 1, im, .false., &
+                  jm, jfirst-mg, jlast+mg, .false.,  ghost2dmg )
+ call ghostcreate(decomp2d, gid, im, 1, im, .false., &
+                  jm, jfirst-ng, jlast+ng, .false.,  ghost2dng )
+ call parpatterncreate(commglobal, ghost2dmg, pattern2dmg)
+ call parpatterncreate(commglobal, ghost2dng, pattern2dng)
+#else
+!
+! Default decomposition
+!
+ call y_decomp(jm, km, jfirst, jlast, 1, km, gid)
+#endif
+#else
+ jfirst = 1
+ jlast  = jm
+#endif
+
+ if ( jlast - jfirst < 2 ) then
+    write(*,*) 'Minimum size of subdomain is 3'
+ endif
+
+!----------------
+! Allocate arrays
+!----------------
+
+ allocate ( cosp(jm) ) 
+ allocate ( cose(jm+1) ) 
+ allocate (   gw(jm) ) 
+ allocate (  rgw(jm) ) 
+ allocate ( dtdx5(jm) ) 
+ allocate ( dtdy5(jm) ) 
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% We must allocate DLAT here for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
+ ALLOCATE ( DLAT(JM) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% We must allocate RGW_25 here for ND25 N/S transport fluxes diagnostic.
+ !%%% This accounts for the latitude factor.  (bdf, bmy, 10/29/04)
+ !%%%
+ ALLOCATE ( RGW_25(JM) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ALLOCATE ( SINE_25(JM+1) )        !(dan 0803)
+
+ pi = 4. * atan(1.)
+
+ dlon = 2.*pi / float(540)       !(dan)
+
+    ! dan for window
+    !elat(1) = -0.5*pi         ! S. Pole
+    !sine(1) = -1.
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    !SINE_25(1) = -1.0
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !cose(1) =  0.
+
+
+
+ do j=1,jm+1                    !(dan)
+    elat(j) = 0.5*(clat(j-1) + clat(j))
+    sine(j) = sin(elat(j))
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    SINE_25(J) = SIN( CLAT(J) )
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    cose(j) = cos(elat(j))
+ enddo
+
+    !dan for window
+    !elat(jm+1) = 0.5*pi       ! N. Pole
+    !sine(jm+1) = 1.
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize SINE_25 array (bmy, bdf, 10/29/04)
+    !%%%
+    !SINE_25(JM+1) = 1.0
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+    !dlat(1) = 2.*(elat(2) - elat(1))  ! Polar cap  (dan)
+
+ do j=1,jm
+    dlat(j) = elat(j+1) - elat(j)
+ enddo
+    !dlat(jm) = 2.*(elat(jm+1) - elat(jm))    ! Polar cap (dan)
+
+ do j=1,jm
+      gw(j) = sine(j+1) - sine(j)
+    cosp(j) = gw(j) / dlat(j)
+    rgw(j) =  1. / gw(j)
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+    !%%%
+    !%%% Initialize RGW_25 for the ND25 N/S transport fluxes diagnostic.
+    !%%% RGW_25 takes into account the latitude factor. (bdf, bmy, 10/29/04)
+    !%%%
+    RGW_25(J) = 1. / ( SINE_25(J+1) - SINE_25(J) )
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    dtdx5(j) = 0.5 * dt / (dlon*ae*cosp(j))
+    dtdy5(j) = 0.5 * dt / (ae*dlat(j))
+ enddo
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% Comment out the === lines (bmy, 7/20/04)
+ !%%%! Now use REPEAT cmd (bmy, 4/29/03)
+ !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ PRT_PREFIX write( 6, '(a)' ) 'NASA-GSFC Tracer Transport Module successfully initialized'
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% Comment out the === lines (bmy, 7/20/04)
+ !%%%PRT_PREFIX write( 6, '(a)' ) REPEAT( '=', 79 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ end subroutine init_GEOS5_WINDOW
+
+!-------------------------------------------------------------------------
+ subroutine EXIT_GEOS5_TPCORE_WINDOW
+!-------------------------------------------------------------------------
+
+#if defined(SPMD) && defined(PILGRIM)
+ use decompmodule, only : decompfree
+ use ghostmodule, only : ghostfree
+ use parutilitiesmodule, only : commglobal, parpatternfree
+ 
+ call parpatternfree(commglobal, pattern2dmg)
+ call parpatternfree(commglobal, pattern2dng)
+ call ghostfree(ghost2dmg)
+ call ghostfree(ghost2dng)
+ call decompfree(decomp2d)
+#endif
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% 
+ !%%% Comment out original code below (bdf, bmy, 5/9/03)
+ !%%%
+ !%%%deallocate ( cosp ) 
+ !%%%deallocate ( cose ) 
+ !%%%deallocate (   gw ) 
+ !%%%deallocate (  rgw ) 
+ !%%%deallocate ( dtdx5 ) 
+ !%%%deallocate ( dtdy5 ) 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Now deallocate arrays only if they have been allocated (bmy, 5/9/03)
+ !%%% Also deallocate RGW_25 array (bdf, bmy, 10/29/04)
+ !%%%
+ IF ( ALLOCATED( COSP   ) ) DEALLOCATE( COSP   ) 
+ IF ( ALLOCATED( COSE   ) ) DEALLOCATE( COSE   ) 
+ IF ( ALLOCATED( GW     ) ) DEALLOCATE( GW     ) 
+ IF ( ALLOCATED( RGW    ) ) DEALLOCATE( RGW    ) 
+ IF ( ALLOCATED( RGW_25 ) ) DEALLOCATE( RGW_25 )  ! (bdf, bmy, 10/29/04)
+ IF ( ALLOCATED( DTDX5  ) ) DEALLOCATE( DTDX5  ) 
+ IF ( ALLOCATED( DTDY5  ) ) DEALLOCATE( DTDY5  ) 
+ IF ( ALLOCATED( DLAT   ) ) DEALLOCATE( DLAT   )
+ IF ( ALLOCATED( SINE_25) ) DEALLOCATE( SINE_25)  !(dan 0803)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+ end subroutine EXIT_GEOS5_TPCORE_WINDOW
+
+
+!----------------------------------------------------------------------------
+ subroutine TPCORE_GEOS5_WINDOW( dt,    ae, im, jm, km, jfirst,         &
+                                 jlast, ng, mg,                         &
+                                 nq,    ak, bk, u, v, ps1, ps2, ps,  q, &   
+                                 iord, jord, kord, n_adj,               &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS arguments to arg list of TPCORE_FVDAS for PJC/LLNL 
+ !%%% pressure fixer (bdf, bmy, 5/7/03) 
+ !%%%
+                         XMASS,    YMASS,                           &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group         
+ !%%%
+ !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, and 
+ !%%% ND26 to arg list of TPCORE_FVDAS for GEOS-CHEM mass-flux diagnostics 
+ !%%% (bdf, bmy, 9/28/04)
+ !%%%
+                         MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2,     &
+                         TCVV,     ND24,     ND25,     ND26 )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+!----------------------------------------------------------------------------
+
+ implicit none
+
+! Input:
+ integer, intent(in):: im         ! Global E-W dimension
+ integer, intent(in):: jm         ! Global N-S dimension
+ integer, intent(in):: km         ! Vertical dimension
+ integer, intent(in):: jfirst     ! Local first index for N-S
+ integer, intent(in):: jlast      ! Local last index for N-S
+ integer, intent(in):: ng         ! Primary ghost region
+ integer, intent(in):: mg         ! Secondary ghost region
+ integer, intent(in):: nq         ! Ghosted latitudes (3 required by PPM)
+ integer, intent(in):: iord       ! E-W transport scheme
+ integer, intent(in):: jord       ! N-S transport scheme
+ integer, intent(in):: kord       ! Vertical mapping scheme
+ integer, intent(in):: n_adj      ! Number of adjustemnt to air_mass_flux
+                                  ! 0 --> no adjustment
+
+! Recommended values : iord=jord=4, kord=7
+!  _ord:
+!---------------------------------------------------------------------------
+!        1: 1st order upstream scheme 
+!        2: 2nd order van Leer (full monotonicity constraint;
+!           see Lin et al 1994, MWR)
+!        3: Standard monotonic PPM* (Collela & Woodward 1984)
+!        4: New & Improved monotonic PPM
+!        5: positive-definite PPM (constraint on the subgrid distribution is
+!           only strong enough to prevent generation of negative values;
+!           both overshoots & undershootes are possible).
+!        6: un-constrained PPM (nearly diffusion free; faster but
+!           positivity of the subgrid distribution is not quaranteed.
+!        7: Huynh/Van Leer/Lin full monotonicity constraint
+!---------------------------------------------------------------------------
+! Only kord can be set to 7 to enable the use of Huynh's 2nd monotonicity
+! constraint for piece-wise parabolic distribution.
+! *PPM: Piece-wise Parabolic Method
+
+ real, intent(in):: ak(km+1)              ! See below
+ real, intent(in):: bk(km+1)              ! See below
+ real, intent(in):: u(im,jfirst:jlast,km) ! u-wind (m/s) at mid-time-level (t=t+dt/2)
+ real, intent(inout):: v(im,jfirst-mg:jlast+mg,km) ! v-wind (m/s) at mid-time-level (t=t+dt/2)
+
+!------------------------------------------------------
+! The hybrid ETA-coordinate:
+! pressure at layer edges are defined as follows:
+!
+!        p(i,j,k) = ak(k) + bk(k)*ps(i,j)  
+!------------------------------------------------------
+! ak and bk are defined at layer edges.
+
 !                  /////////////////////////////////
 !              / \ ------ Model top P=ak(1) --------- ak(1), bk(1)
 !               |
@@ -112,5082 +518,2909 @@
 !               |
 !              \ / -----Earth's surface P=Psfc ------ ak(km+1), bk(km+1)
 !                 //////////////////////////////////
-!
-! Note: surface pressure can be of any unit (e.g., pascal or mb) as 
-! long as it is consistent with the definition of (ak, bk) defined above.
-!
+
+
+! Note: surface pressure can be of any unit (e.g., pascal or mb) as long as it is
+! consistent with the definition of (ak, bk) defined above
 ! Winds (u,v), ps, and q are assumed to be defined at the same points.
-! 
-! The latitudes are given to the initialization routine: init_tpcore.
-!
-! !INTERFACE: 
-!
-MODULE Tpcore_GEOS5_WINDOW_MOD
-!
-! !USES:
-! 
-  IMPLICIT NONE
-  PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PUBLIC  ::  Init_GEOS5_WINDOW
-  PUBLIC  ::  Exit_GEOS5_Tpcore_WINDOW
-  PUBLIC  ::  Tpcore_GEOS5_WINDOW
-!
-! !PRIVATE MEMBER FUNCTIONS:
-! 
-!  PRIVATE ::  Average_Const_Poles
-  PRIVATE ::  Set_Cross_Terms
-  PRIVATE ::  Calc_Vert_Mass_Flux
-  PRIVATE ::  Set_Jn_Js
-  PRIVATE ::  Calc_Advec_Cross_Terms
-  PRIVATE ::  Qckxyz
-  PRIVATE ::  Set_Lmts
-  PRIVATE ::  Set_Press_Terms
-  PRIVATE ::  Calc_Courant
-  PRIVATE ::  Calc_Divergence
-!  PRIVATE ::  Do_Divergence_Pole_Sum
-!  PRIVATE ::  Do_Cross_Terms_Pole_I2d2
-  PRIVATE ::  Xadv_Dao2
-  PRIVATE ::  Yadv_Dao2
-!  PRIVATE ::  Do_Yadv_Pole_I2d2
-!  PRIVATE ::  Do_Yadv_Pole_Sum
-  PRIVATE ::  Xtp
-  PRIVATE ::  Xmist
-  PRIVATE ::  Fxppm
-  PRIVATE ::  Lmtppm
-  PRIVATE ::  Ytp
-  PRIVATE ::  Ymist
-!  PRIVATE ::  Do_Ymist_Pole1_I2d2
-!  PRIVATE ::  Do_Ymist_Pole2_I2d2
-  PRIVATE ::  Fyppm
-!  PRIVATE ::  Do_Fyppm_Pole_I2d2
-!  PRIVATE ::  Do_Ytp_Pole_Sum
-  PRIVATE ::  Fzppm
-!  PRIVATE ::  Average_Press_Poles
-!
-! !PRIVATE DATA MEMBERS:
-!  
-  REAL*8, ALLOCATABLE, SAVE :: dtdx5(:)
-  REAL*8, ALLOCATABLE, SAVE :: dtdy5(:)
-  REAL*8, ALLOCATABLE, SAVE :: cosp(:)
-  REAL*8, ALLOCATABLE, SAVE :: cose(:)
-  REAL*8, ALLOCATABLE, SAVE :: gw(:)
-  REAL*8, ALLOCATABLE, SAVE :: DLAT(:)
+! The latitudes are given by clat, input to the initialization routine: init_tpcore.
+
+ real, intent(in):: ps1(im,jfirst:jlast)  ! surface pressure at current time
+ real, intent(in):: ps2(im,jfirst:jlast)  ! surface pressure at future time=t+dt
+ real, intent(in):: dt                    ! Transport time step in seconds
+ real, intent(in):: ae                    ! Earth's radius (m)
+
+ real, intent(inout):: q(im,jfirst-ng:jlast+ng,km,nq)  ! Tracer "mixing ratios"
+                                          ! q could easily be re-dimensioned
+ real, intent(out):: ps(im,jfirst:jlast)  ! "predicted" surface pressure
+
+ real  delp(im,jfirst:jlast,km)    ! Predicted thickness at future time (t=t+dt)
+ real  pe(im,km+1,jfirst:jlast)    ! Pressure at layer edges (predicted)
+
+ real  fx(im,jfirst:jlast,km)     ! E-W air mass flux
+ real  va(im,jfirst:jlast,km)     ! N-S CFL at cell center (scalar points)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS for the PJC pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%
+ REAL,    INTENT(IN)    :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added MASSFLEW, MASSFLNS, MASSFLUP, AREA_M2, TCVV, ND24, ND25, ND26
+ !%%% for mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%%
+! REAL,    INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ) ! east/west mass flux
+! REAL,    INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ) ! north/south mass flux
+! REAL,    INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ) ! up/down vertical mass flux
+ REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
+ REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
+ REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
+ REAL,    INTENT(IN)    :: AREA_M2(JM)           ! box area for mass flux diag
+ REAL,    INTENT(IN)    :: TCVV(NQ)              ! tracer masses for flux diag
+ INTEGER, INTENT(IN)    :: ND24                  ! E/W flux diag switch
+ INTEGER, INTENT(IN)    :: ND25                  ! N/S flux diag switch
+ INTEGER, INTENT(IN)    :: ND26                  ! up/down flux diag switch
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!-----------------------
+! Ghosted local arrays:
+!-----------------------
+
+ real  cx(im,jfirst-ng:jlast+ng,km)    ! E-W CFL number on C-grid
+ real delp1(im,jfirst-mg:jlast+mg,km)  ! Pressure thickness at current time (t)
+ real   fy(im,jfirst:jlast+mg,km)      ! N-S air mass flux
+ real   cy(im,jfirst:jlast+mg,km)      ! N-S CFL number on C-grid
+ real  psg(im,jfirst-mg:jlast+mg,2)    ! Was psm and psn
+ real   q2(im,jfirst-ng:jlast+ng)      ! local 2D q array
+ logical ffsl(jfirst-ng:jlast+ng,km)   ! Flag to compute Integer fluxes
+
+! Local arrays for mass fluxes to save memory if diagnostics not used.
+! (ccc, 9/9/10)
+ real MFLEW(im, jm), MFLNS(im, jm)
+
+! Local variables:
+ integer i,j,k,iq
+ integer iord_bg                    ! E-W scheme for background mass flux
+ integer jord_bg                    ! N-S scheme for background mass flux
+ integer js1gd                      ! Southern latitude border (1 on SP PE)
+ integer jn1gd                      ! Northern latitude border (JM on NP PE)
+ integer nx                         ! Internal E-W OpenMP decomposition
+ integer iv                         ! Monotonicity constraints for top and bottom
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Define DTC, QTEMP, TRACE_DIFF for ND26 diagnostic (bdf, bmy, 9/28/04)
+ !%%%
+ REAL DTC(IM,JM,KM,NQ)              ! up/down flux temp array
+ REAL QTEMP(IM,JM,KM,NQ)            ! up/down flux array
+ REAL TRACE_DIFF                    ! up/down flux variable
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ parameter (nx = 1)                 ! Try 2 or 4 if large number of OMP threads
+                                    ! is to be used
+
+ js1gd = max(1,  jfirst-ng)         ! NG latitudes on S (starting at 1)
+ jn1gd = min(jm,jlast+ng)           ! NG latitudes on N (ending at jm)
+
+ iord_bg = 1
+ jord_bg = 1
+
+ iv = 1       ! Enforce strong constraint at top & bottom
+              ! May want to change to iv=0 if diffusion is a problem
+
+ ! iv =0               !(dan.iv 0803)
+ ! iv=-1               !(dan 0803)
 
 
-!
-! !AUTHOR:
-! Original code from Shian-Jiann Lin, GMAO 
-! Modified for GMI model by John Tannahill, LLNL (jrt@llnl.gov)
-! Implemented into GEOS-Chem by Claire Carouge (ccarouge@seas.harvard.edu)
-! ProTeX documentation added by Bob Yantosca (yantosca@seas.harvard.edu)
-! OpenMP parallelization added by Bob Yantosca (yantosca@seas.harvard.edu)
-!
-! !REVISION HISTORY:
-! 05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                             Yeh with the TPCORE routines from the GMI model.
-!                             This eliminates the polar overshoot in the
-!                             stratosphere.
-! 05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                             Declare all REAL variables as REAL*8.  Added
-!                             OpenMP parallel loops in various routines (and
-!                             made some modifications to facilitate OpenMP).
-! 01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
-!                             loops over vertical levels outside the 
-!                             horizontal transport routines for reducing
-!                             processing time.
-!EOP
-!------------------------------------------------------------------------------
+! Ensure inputs are single-valued at poles:
 
-CONTAINS
 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Init_Tpcore
-!
-! !DESCRIPTION: Subroutine Init\_Tpcore allocates and initializes all module
-!  variables,
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Init_GEOS5_WINDOW( IM, JM, KM, JFIRST, JLAST, NG, MG, dt, ae, clat )
-!
-! !USES:
-!
-#   include "CMN_GCTM"                ! Physical constants etc.
-!
-! !INPUT PARAMETERS: 
-!
-    INTEGER, INTENT(IN)  :: IM        ! Global E-W dimension
-    INTEGER, INTENT(IN)  :: JM        ! Global N-S dimension
-    INTEGER, INTENT(IN)  :: KM        ! Vertical dimension
-    INTEGER, INTENT(IN)  :: NG        ! large ghost width
-    INTEGER, INTENT(IN)  :: MG        ! small ghost width
-    REAL*8,  INTENT(IN)  :: dt        ! Time step in seconds
-    REAL*8,  INTENT(IN)  :: ae        ! Earth's radius (m)
-!    REAL*8,  INTENT(IN)  :: clat(JM)  ! latitude in radian
-! (lzh, 07/20/2010)
-    REAL*8,  INTENT(IN)  :: clat(0:JM+1)  ! latitude in radian
+  do j=jfirst,jlast
+     do i=1,im
 
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER, INTENT(OUT) :: JFIRST    ! Local first index for N-S direction
-    INTEGER, INTENT(OUT) :: JLAST     ! Local last  index for N-S direction
-!
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    REAL*8  :: elat(jm+1)      ! cell edge latitude in radian
-    REAL*8  :: sine(jm+1)  
-    REAL*8  :: SINE_25(JM+1)   ! 
-    REAL*8  :: dlon
-    INTEGER :: I, J
+        psg(i,j,1) = ps1(i,j)
+        psg(i,j,2) = ps2(i,j)
+     enddo
+  enddo
 
-    ! NOTE: since we are not using MPI parallelization, we can set JFIRST 
-    ! and JLAST to the global grid limits in latitude. (bmy, 12/3/08)
-    jfirst = 1
-    jlast  = jm
-    
-    if ( jlast - jfirst < 2 ) then
-       write(*,*) 'Minimum size of subdomain is 3'
-    endif
-    
-    !----------------
-    ! Allocate arrays
-    !----------------
-    
-    ALLOCATE( cosp  ( JM ) ) 
-!    ALLOCATE( cose  ( JM ) )  ! (lzh, 07/20/2010)
-    ALLOCATE( cose  ( JM+1 ) ) 
-    ALLOCATE( gw    ( JM ) ) 
-    ALLOCATE( dtdx5 ( JM ) ) 
-    ALLOCATE( dtdy5 ( JM ) ) 
-    ALLOCATE( DLAT  ( JM ) )    ! For PJC pressure-fixer 
-    
-!    dlon = 2.d0 * PI / DBLE( IM )
-!  (lzh, 07/20/2010)
-    dlon = 2.d0 * PI / DBLE( 540 )
+  if ( jfirst == 1 ) then
+       call xpavg(psg(1,1,1), im)
+       call xpavg(psg(1,1,2), im)
+  endif
 
-!    ! S. Pole
-!    elat(1)    = -0.5d0*PI
-!    sine(1)    = -1.0d0
-!    SINE_25(1) = -1.0d0
-!    cose(1)    =  0.0d0
-! (lzh, 07/20/2010)
-    
-!    do j=2,jm  !(lzh, 07/20/2010)
-    do j=1,jm+1
-       elat(j)    = 0.5d0*(clat(j-1) + clat(j))
-       sine(j)    = SIN( elat(j) )
-       SINE_25(J) = SIN( CLAT(J) )
-       cose(j)    = COS( elat(j) ) 
+  if ( jlast == jm ) then
+       call xpavg(psg(1,jm,1), im)
+       call xpavg(psg(1,jm,2), im)
+  endif
+
+#if defined(SPMD)
+! Ghost v, psm and psn north/south --> now in one array psg
+#if defined(PILGRIM)
+  call parbegintransfer(pattern2dmg, km, v, v)
+  call parbegintransfer(pattern2dmg, 2, psg, psg)
+#else
+  call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, mg, mg, v, 1)
+  call mp_send3d_ns(im, jm, jfirst, jlast, 1, 2, mg, mg, psg, 2)
+#endif
+#endif
+
+! Average q at both poles
+  do iq=1,nq
+!$omp parallel do   &
+!$omp shared(im)    &
+!$omp private(k)
+     do k=1,km
+        if ( jfirst == 1 ) then
+             call xpavg(q(1,1,k,iq), im)
+        endif
+        if ( jlast == jm ) then
+             call xpavg(q(1,jm,k,iq), im)
+        endif
+     enddo
+  enddo
+
+#if defined(SPMD)
+#if defined(PILGRIM)
+  call parendtransfer(pattern2dmg, km, v, v)
+  call parendtransfer(pattern2dmg, 2, psg, psg)
+#else
+  call mp_barrier()
+  call mp_recv3d_ns(im, jm, jfirst, jlast, 1, km, mg, mg, v, 1)
+  call mp_recv3d_ns(im, jm, jfirst, jlast, 1, 2, mg, mg, psg, 2)
+  call mp_barrier()
+#endif
+#endif
+
+!----------------------------------------------
+! Compute background air mass fluxes
+!----------------------------------------------
+
+ call air_mass_flux(im, jm, km, jfirst, jlast,      &
+                    iord_bg, jord_bg,   ak, bk,     &
+                    psg, ps,  u, v,                 &
+                    cx, cy, va, fx, fy, ng, mg,     &
+                    ffsl, delp1, delp, pe,  dt,     &
+                    ae, n_adj,                      &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS to the arg list of AIR_MASS_FLUX 
+ !%%% for the PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%
+                    XMASS, YMASS )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+!---------------------------------------------------
+! Do tracer transport
+!---------------------------------------------------
+
+#if defined(SPMD)
+! non-blocking-send for tracer #1
+#if defined(PILGRIM)
+    call parbegintransfer(pattern2dng,km,q(:,:,:,1),q(:,:,:,1))
+#else
+    call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
+                      q(1,jfirst-ng,1,1), 1)
+#endif
+#endif
+
+! Multi_Tracer: 
+   do iq=1,nq
+
+#if defined(SPMD)
+! Receive current tracer
+#if defined(PILGRIM)
+ call parendtransfer(pattern2dng,km,q(:,:,:,iq),q(:,:,:,iq))
+ if (iq < nq) then
+   call parbegintransfer(pattern2dng,km,q(:,:,:,iq+1),q(:,:,:,iq+1))
+ endif
+#else
+ call mp_barrier() 
+ call mp_recv3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
+                   q(1,jfirst-ng,1,iq),iq)
+ call mp_barrier() 
+ if ( iq < nq ) then
+!   non-blocking send for next tracer
+    call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, &
+                      q(1,jfirst-ng,1,iq+1),iq+1)
+ endif
+#endif
+#endif
+
+!$omp parallel do                                   &
+!$omp shared(im,jm,iv,iord,jord,ng,mg,jfirst,jlast) &
+!$omp private(i, j, k, q2)
+
+! Vertical_OMP:  
+
+   do k=1,km
+
+
+
+! Copying q to 2d work array for transport. This allows q to be dimensioned
+! differently from the calling routine.
+
+    do j=js1gd,jn1gd
+       do i=1,im
+          q2(i,j) = q(i,j,k,iq)
+       enddo
     enddo
+
+    IF ( ND24 > 0 ) THEN 
+       MFLEW = MASSFLEW(:,:,K,IQ)
+    ELSE
+       MFLEW(1,1) = MASSFLEW(1,1,1,1)
+    ENDIF
+
+    IF ( ND25 > 0 ) THEN 
+       MFLNS = MASSFLNS(:,:,K,IQ)
+    ELSE
+       MFLNS(1,1) = MASSFLNS(1,1,1,1)
+    ENDIF
+
     
-!    ! N. Pole
-!    elat(jm+1)    = 0.5d0*PI       
-!    sine(jm+1)    = 1.0d0
-!    SINE_25(JM+1) = 1.0d0
-    
-    ! Polar cap (S. Pole)
- !   dlat(1) = 2.d0*(elat(2) - elat(1))   ! (lzh)
- 
-!   do j=2,jm-1
-   do j=1,jm  ! (lzh)
-       dlat(j) = elat(j+1) - elat(j)
+!--- Previous to (ccc, 9/9/10)
+!    call tp2g( q2(1,jfirst-ng),    va(1,jfirst,k),          &
+!               cx(1,jfirst-ng,k),  cy(1,jfirst,k),          &
+!               im,  jm,  iv,   iord,     jord,              &
+!               ng,  mg,  fx(1,jfirst,k), fy(1,jfirst,k),    &
+!               ffsl(jfirst-ng,k),    jfirst,   jlast,       &
+!               delp1(1,jfirst-mg,k),    delp(1,jfirst,k),   &
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+! !%%%
+! !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
+! !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
+! !%%% (bdf, bmy, 9/28/04)
+! !%%%
+!               MASSFLEW(1,1,K,IQ), MASSFLNS(1,1,K,IQ),      &
+!               AREA_M2, TCVV(IQ), ND24, ND25, DT )
+! !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    call tp2g( q2(1,jfirst-ng),    va(1,jfirst,k),          &
+               cx(1,jfirst-ng,k),  cy(1,jfirst,k),          &
+               im,  jm,  iv,   iord,     jord,              &
+               ng,  mg,  fx(1,jfirst,k), fy(1,jfirst,k),    &
+               ffsl(jfirst-ng,k),    jfirst,   jlast,       &
+               delp1(1,jfirst-mg,k),    delp(1,jfirst,k),   &
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Now pass MASSFLEW, MASSFLNS, AREA_M2, TCVV, ND24, ND25, DT as 
+ !%%% arguments to routine TP2G for GEOS-CHEM mass flux diagnostics 
+ !%%% (bdf, bmy, 9/28/04)
+ !%%%
+               MFLEW, MFLNS,      &
+               AREA_M2, TCVV(IQ), ND24, ND25, DT )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+    do j=jfirst,jlast
+       do i=1,im
+          q(i,j,k,iq) = q2(i,j)
+       enddo
     enddo
 
-    ! Polar cap (N. Pole)
-!    dlat(jm) = 2.0d0*(elat(jm+1) - elat(jm))    !(lzh)
-    
-    do j=1,jm
-       gw(j)     = sine(j+1) - sine(j)
-       cosp(j)   = gw(j) / dlat(j)
+! enddo Vertical_OMP
+! enddo Multi_Tracer
 
-       dtdx5(j)  = 0.5d0 * dt / (dlon*ae*cosp(j))
-       dtdy5(j)  = 0.5d0 * dt / (ae*dlat(j))
-    enddo
-      
-    ! Echo info to stdout
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    WRITE( 6, '(a)' ) &
- 'TPCORE_FVDAS (based on GMI) Tracer Transport Module successfully initialized'
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    
-  END SUBROUTINE Init_GEOS5_WINDOW
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Exit_Tpcore
-!
-! !DESCRIPTION: Subroutine Exit\_Tpcore deallocates all module variables.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Exit_GEOS5_TPCORE_WINDOW
-!
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-    
-    ! Deallocate arrays only if they are allocated
-    IF ( ALLOCATED( COSP   ) ) DEALLOCATE( COSP   ) 
-    IF ( ALLOCATED( COSE   ) ) DEALLOCATE( COSE   ) 
-    IF ( ALLOCATED( GW     ) ) DEALLOCATE( GW     ) 
-    IF ( ALLOCATED( DTDX5  ) ) DEALLOCATE( DTDX5  ) 
-    IF ( ALLOCATED( DTDY5  ) ) DEALLOCATE( DTDY5  ) 
-    IF ( ALLOCATED( DLAT   ) ) DEALLOCATE( DLAT   )
+   enddo
+   enddo
 
-  END SUBROUTINE Exit_GEOS5_TPCORE_WINDOW
-!EOC  
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Tpcore_FvDas
-!
-! !DESCRIPTION: Subroutine Tpcore\_FvDas takes horizontal winds on sigma 
-!  (or hybrid sigma-p) surfaces and calculates mass fluxes, and then updates 
-!   the 3D mixing ratio fields one time step (tdt).  The basic scheme is a 
-!   Multi-Dimensional Flux Form Semi-Lagrangian (FFSL) based on the van Leer 
-!   or PPM (see Lin and Rood, 1995).
-!\\
-!\\
-! !INTERFACE:
-!
-!ccc Additional input variables for the nested grids. Need to define
-! the transport window wrt the nested domain and the global high resolution
-! grid.
-!  SUBROUTINE Tpcore_GEOS5_WINDOW( dt,       ae,       IM,      JM,     KM, &
-!                           JFIRST,   JLAST,    ng,      mg,     nq,       &
-!                           ak,       bk,       u,       v,      ps1,      &
-!                           ps2,      ps,       q,       iord,   jord,     &
-!                           kord,     n_adj,    XMASS,   YMASS,  MASSFLEW, &
-!                           MASSFLNS, MASSFLUP, AREA_M2, TCVV,   ND24,     &
-!                           ND25,     ND26 )
-  SUBROUTINE Tpcore_GEOS5_WINDOW( dt,       ae,       IM,      JM,     KM, &
-                           JFIRST,   JLAST,    ng,      mg,     nq,       &
-                           ak,       bk,       u,       v,      ps1,      &
-                           ps2,      ps,       q,       iord,   jord,     &
-                           kord,     n_adj,    XMASS,   YMASS,  MASSFLEW, &
-                           MASSFLNS, MASSFLUP, AREA_M2, TCVV,   ND24,     &
-                           ND25,     ND26,     I0_W,    J0_W,   Y_OFFSET  )
-!
-! !USES:
-!
-    ! Include file w/ physical constants
-#   include "CMN_GCTM"
-!
-! !INPUT PARAMETERS: 
-!
-    ! Transport time step [s]
-    REAL*8,  INTENT(IN)    :: dt                    
+!---------------------------------------------------------------
+! Perform Remapping back to the hybrid sigma-pressure coordinate
+! Mass will be conserved if predicted ps2 == psn (data/model)
+!---------------------------------------------------------------
 
-    ! Earth's radius [m]
-    REAL*8,  INTENT(IN)    :: ae                    
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Save tracer values before vertical transport (bdf, bmy, 9/28/04)
+ !%%%
+ QTEMP = Q
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    ! Global E-W, N-S, and vertical dimensions
-    INTEGER, INTENT(IN)    :: IM         
-    INTEGER, INTENT(IN)    :: JM         
-    INTEGER, INTENT(IN)    :: KM         
+ call qmap(pe, q, im, jm, km, nx, jfirst, jlast, ng, nq,         &
+           ps, ak, bk, kord, iv)
 
-    ! Latitude indices for local first box and local last box
-    ! (NOTE: for global grids these are 1 and JM, respectively)
-    INTEGER, INTENT(IN)    :: JFIRST     
-    INTEGER, INTENT(IN)    :: JLAST 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND26 diag: Up/down flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%%
+ !%%% The vertical transport done in qmap.  We need to find the difference 
+ !%%% in order to to interpret transport.
+ !%%%
+ !%%% Break up diagnostic into up & down fluxes using the surface boundary 
+ !%%% conditions.  Start from top down (really surface up for flipped TPCORE)
+ !%%%
+ IF ( ND26 > 0 ) THEN
 
-    ! Primary ghost region
-    ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: ng
-         
-    ! Secondary ghost region
-    ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: mg         
+    !-----------------
+    ! start with top
+    !-----------------
+    K = 1
 
-    ! Ghosted latitudes (3 required by PPM)
-    ! (NOTE: only required for MPI parallelization; use 0 otherwise)
-    INTEGER, INTENT(IN)    :: nq         
+!$OMP PARALLEL DO           &
+!$OMP DEFAULT( SHARED )     &
+!$OMP PRIVATE( I, J, IQ )  
+    DO IQ = 1, NQ
+    DO I  = 1, IM
+    DO J  = 1, JM
+       DTC(I,J,K,IQ) = ( Q(I,J,K,IQ)     * DELP1(I,J,K)   -          &
+                         QTEMP(I,J,K,IQ) * DELP(I,J,K)  ) *          &
+                       (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
 
-    ! Flags to denote E-W, N-S, and vertical transport schemes
-    INTEGER, INTENT(IN)    :: iord       
-    INTEGER, INTENT(IN)    :: jord       
-    INTEGER, INTENT(IN)    :: kord       
-
-    ! Number of adjustments to air_mass_flux (0 = no adjustment)
-    INTEGER, INTENT(IN)    :: n_adj      
-    
-    ! Ak and Bk coordinates to specify the hybrid grid
-    ! (see the REMARKS section below)
-    REAL*8,  INTENT(IN)    :: ak(KM+1)              
-    REAL*8,  INTENT(IN)    :: bk(KM+1)              
-
-    ! u-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(IN)    :: u(IM,JFIRST:JLAST,KM) 
-
-    ! E/W and N/S mass fluxes [kg/s]
-    ! (These are computed by the pressure fixer, and passed into TPCORE)
-    REAL*8,  INTENT(IN)    :: XMASS(IM,JM,KM)
-    REAL*8,  INTENT(IN)    :: YMASS(IM,JM,KM)
-
-    ! Grid box surface area for mass flux diag [m2]
-    REAL*8,  INTENT(IN)    :: AREA_M2(JM)        
-
-    ! Tracer masses for flux diag
-    REAL*8,  INTENT(IN)    :: TCVV(NQ)              
-
-    ! Diagnostic flags
-    INTEGER, INTENT(IN)    :: ND24    ! Turns on E/W     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND25    ! Turns on N/S     flux diagnostic
-    INTEGER, INTENT(IN)    :: ND26    ! Turns on up/down flux diagnostic 
-
-    ! Nested grids inputs. (ccc, 8/3/10)
-    INTEGER, INTENT(IN)    :: I0_W, J0_W    ! # of boxes for buffer
-    INTEGER, INTENT(IN)    :: Y_OFFSET      ! Offset on the global grid
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! V-wind (m/s) at mid-time-level (t=t+dt/2)
-    REAL*8,  INTENT(INOUT) :: v(IM, JFIRST-MG:JLAST+MG, KM) 
-
-    ! surface pressure at current time
-    REAL*8,  INTENT(INOUT) :: ps1(IM, JFIRST:JLAST)  
-
-    ! surface pressure at future time=t+dt
-    REAL*8,  INTENT(INOUT) :: ps2(IM, JFIRST:JLAST)  
-
-    ! Tracer "mixing ratios" [v/v]
-    REAL*8,  INTENT(INOUT) :: q(IM, JFIRST-NG:JLAST+NG, KM, NQ)  
-
-    ! E/W, N/S, and up/down diagnostic mass fluxes
-!--- Previous to (ccc, 12/3/09)
-!    REAL*8,  INTENT(INOUT) :: MASSFLEW(IM,JM,KM,NQ)  ! for ND24 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLNS(IM,JM,KM,NQ)  ! for ND25 diagnostic
-!    REAL*8,  INTENT(INOUT) :: MASSFLUP(IM,JM,KM,NQ)  ! for ND26 diagnostic 
-    REAL*8,  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
-    REAL*8,  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
-!
-! !OUTPUT PARAMETERS:
-!
-    ! "Predicted" surface pressure [hPa]
-    REAL*8,  INTENT(OUT)   :: ps(IM,JFIRST:JLAST)  
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Modified OpenMp parallelization and move the 
-!                               loops over vertical levels outside the 
-!                               horizontal transport routines for reducing
-!                               processing time.
-!   03 Dec 2009 - C. Carouge  - Modify declarations of MASSFLEW, MASSFLNS and 
-!                               MASSFLUP to save memory space.
-!   03 Aug 2010 - C. Carouge  - Modified for nested grids: no periodicity,
-!                               no poles or polar caps, no ghost zones.
-!                               The concentrations are updated on the inner
-!                               transport window only as defined in
-!                               tpcore_bc_mod.f
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    LOGICAL, PARAMETER :: FILL = .true.                 ! Fill negatives ?
-    INTEGER, PARAMETER :: ADVEC_CONSRV_OPT = 2          ! 2=floating pressure
-    LOGICAL, PARAMETER :: CROSS = .true.
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER            :: rj2m1
-    INTEGER            :: j1p, j2p
-    INTEGER            :: jn (km)
-    INTEGER            :: js (km)
-    INTEGER            :: il, ij, ik, iq, k, j, i
-    INTEGER            :: num, k2m1
-                       
-    REAL*8             :: dap   (km)
-    REAL*8             :: dbk   (km)
-    REAL*8             :: cx(im,jfirst-ng:jlast+ng,km)  ! E-W CFL # on C-grid
-    REAL*8             :: cy(im,jfirst:jlast+mg,km)     ! N-S CFL # on C-grid
-    REAL*8             :: delp1(im, jm, km)  
-    REAL*8             :: delp2(im, jm, km)  
-    REAL*8             :: delpm(im, jm, km)
-    REAL*8             :: pu   (im, jm, km)
-    REAL*8             :: dpi(im, jm, km)
-    REAL*8             :: geofac  (jm)     ! geometrical factor for meridional
-                                           ! advection; geofac uses correct 
-                                           ! spherical geometry, and replaces 
-                                           ! RGW_25. (ccc, 4/1/09)
-!ccc geofac_pc not used. Keep for arguments list in transport subroutines
-    REAL*8             :: geofac_pc        ! geometrical gactor for poles.
-    REAL*8             :: dp
-    REAL*8             :: dps_ctm(im,jm)
-    REAL*8             :: ua (im, jm, km)
-    REAL*8             :: va (im, jm, km)
-    REAL*8             :: wz(im, jm, km)
-    REAL*8             :: dq1(im,jfirst-ng:jlast+ng,km)
-    
-    ! qqu, qqv, adx and ady are now 2d arrays for parallelization purposes.
-    !(ccc, 4/1/08)  
-    REAL*8             :: qqu(im, jm)
-    REAL*8             :: qqv(im, jm)
-    REAL*8             :: adx(im, jm)
-    REAL*8             :: ady(im, jm)
-
-    ! fx, fy, fz and qtemp are now 4D arrays for parallelization purposes.
-    ! (ccc, 4/1/09) 
-    REAL*8             :: fx (im, jm, km, nq)
-    REAL*8             :: fy (im, jm+1, km, nq)           ! one more for edges
-    REAL*8             :: fz  (im, jm, km, nq)
-    REAL*8             :: qtemp (im, jm, km, nq)
-    REAL*8             :: DTC(IM,JM,KM)               ! up/down flux temp array
-    REAL*8             :: TRACE_DIFF                  ! up/down flux variable
-                       
-    LOGICAL, SAVE      :: first = .true.
-    
-    !     ----------------------------------------------------
-    !     ilmt : controls various options in E-W     advection
-    !     jlmt : controls various options in N-S     advection
-    !     klmt : controls various options in vertcal advection
-    !     ----------------------------------------------------
-    
-    INTEGER, SAVE      :: ilmt, jlmt, klmt
-    INTEGER            :: js2g0, jn2g0
-
-
-    ! Nested grid local variables. (ccc, 8/3/10)
-    INTEGER :: xfbox, xlbox, yfbox, ylbox    ! Edge boxes of the transport
-                                             ! window in the nested domain
-    INTEGER :: IM_W, JM_W                    ! # of boxes in the transport
-                                             ! window.
-
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-    
-    IM_W = IM - ( 2 * I0_W )
-    JM_W = JM - ( 2 * J0_W )    
-
-    ! No plar cap for nested grids, so j1p and j2p are the start and end
-    ! of the full domain. (ccc, 7/30/10)
-    j1p = 1
-    j2p = jm
-    
-    ! Calculation of some geographic factors. (ccc, 11/20/08)
-    ! Over full domain.
-    dp    = PI / 360D0
-    
-    do ij = 1, jm
-       geofac(ij) = 1d0 /  cosp(ij)
-    end do
-    
-! Not used. Only for polar caps.
-!    geofac_pc =  &
-!         dp / (2.0d0 * (Sum (area_m2(1:2))/(sum(area_m2) * im)) * im)
-    
-    
-    if (first) then
-       
-       first = .false.
-       
-     ! =============
-       call Set_Lmts  &
-     ! =============
-            (ilmt, jlmt, klmt, im, jm, iord, jord, kord)
-       
-    end if
-    
-    ! Pressure calculations. (ccc, 11/20/08)
-    do ik=1,km
-       dap(ik) = ak(ik+1) - ak(ik)
-       dbk(ik) = bk(ik+1) - bk(ik)
-    enddo
-      
-
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ )
-    do ik=1,km
-
-  ! ====================
-    call Set_Press_Terms  &
-  ! ====================
-         (dap(ik), dbk(ik), ps1, ps2, delp1(:,:,ik), delpm(:,:,ik), &
-         pu(:,:,ik), &
-         1, jm, 1, im, 1, jm, &
-         j1p, j2p, 1, im, 1, jm)
-    !
-    !...intent(in)  dap - difference in ai across layer (mb)
-    !...intent(in)  dbk - difference in bi across layer (mb)
-    !...intent(in)  pres1 - surface pressure at t1 (mb)
-    !...intent(in)  pres2 - surface pressure at t1+tdt (mb)
-    !...intent(out) delp1 - pressure thickness at t1 (mb)
-    !...intent(out) delpm - pressure thickness at t1+tdt/2 (mb)
-    !...intent(out) pu - pressure at edges of box for "u" (mb)
-    !
-
-  ! =================
-    call Calc_Courant  &
-  ! =================
-         (cose, delpm(:,:,ik), pu(:,:,ik), xmass(:,:,ik), ymass(:,:,ik),&
-         cx(:,:,ik), cy(:,:,ik), &
-         j1p, j2p, &
-         1, jm, 1, im, 1, jm, 1, im, 1, jm)
-    !
-    !...intent(in)  cose
-    !...intent(in)  delpm - pressure thickness at t1+tdt/2 (mb)
-    !...intent(in)  pu    - pressure at edges of box for "u" (mb)
-    !...intent(in)  xmass
-    !...intent(in)  ymass
-    !...intent(out) cx    - Courant number
-    !...intent(out) cy    - Courant number
-    !
-
-  ! ====================
-    call Calc_Divergence  &
-  ! ====================
-         (.true., geofac_pc, geofac, dpi(:,:,ik), xmass(:,:,ik), &
-         ymass(:,:,ik), &
-         j1p, j2p, 1, im, &
-         1, jm, 1, im, 1, jm, 1, im, 1, jm)
-    !
-    !...intent(in)  geofac_pc (not used)
-    !...intent(in)  geofac
-    !...intent(in)  xmass
-    !...intent(in)  ymass
-    !...intent(out) dpi    - Mass flux divergence
-    !
-    
-    
-  ! ====================
-    call Set_Cross_Terms  &
-  ! ====================
-         (cx(:,:,ik), cy(:,:,ik), ua(:,:,ik), va(:,:,ik), &
-         j1p, j2p, 1, im, 1, jm, &
-         1, im, 1, jm, 1, im, 1, jm, CROSS)
-    !
-    !...intent(in)  cx
-    !...intent(in)  cy
-    !...intent(in)  CROSS
-    !...intent(out) ua
-    !...intent(out) va
-    !
-    
-    end do
-!$OMP END PARALLEL DO
-
-    dps_ctm(:,:) = Sum (dpi(:,:,:), dim=3)
-    
-  ! ========================
-    call Calc_Vert_Mass_Flux  &
-  ! ========================
-         (dbk, dps_ctm, dpi, wz, &
-         1, im, 1, jm, 1, km)
-    !
-    !...intent(in)  dbk
-    !...intent(in)  dps_ctm
-    !...intent(in)  dpi
-    !...intent(out) wz
-    !
-
-    !.sds2.. have all mass flux here: east-west(xmass), 
-    !        north-south(ymass), vertical(wz)
-    !.sds2.. save omega (vertical flux) as diagnostic
-
-  ! ==============
-    call Set_Jn_Js  &
-  ! ==============
-           (jn, js, cx, &
-           1, im, 1, jm, 1, jm, j1p, j2p, &
-           1, im, 1, jm, 1, km)
-    !
-    !...intent(in)  cx
-    !...intent(out) jn
-    !...intent(out) js
-    !
-    
-    
-    if (advec_consrv_opt == 0) then
-          
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit DO loops to facilitate
-       ! OpenMP parallelization (bmy, 12/5/08)
-       !do ik = 1, km
-       !   
-       !   delp2(:,:,ik) =  &
-       !        dap(ik) +  &
-       !        (dbk(ik) * (ps1(:,:) +  &
-       !        dps_ctm(:,:)))
-       !     
-       !end do
-       !----------------------------------------------------------------
-          
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( IK, IJ, IL )
-       do ik = 1, km
-       do ij = 1, jm
-       do il = 1, im
-          delp2(il,ij,ik) =  &
-               dap(ik) +  &
-               (dbk(ik) * (ps1(il,ij) +  &
-               dps_ctm(il,ij)))
-            
-       end do
-       end do
-       end do
-       !$OMP END PARALLEL DO
-
-    else if ((advec_consrv_opt == 1) .or.  &
-         (advec_consrv_opt == 2)) then
-        
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit DO loops to facilitate
-       ! OpenMP parallelization (bmy, 12/5/08)
-       !do il = 1, im
-       !   
-       !   delp2(:,:,ik) =  &
-       !        dap(ik) +  &
-       !        (dbk(ik) * ps2(:,:))
-       !   
-       !end do
-       !----------------------------------------------------------------
-
-       !$OMP PARALLEL DO           &
-       !$OMP DEFAULT( SHARED     ) &
-       !$OMP PRIVATE( IK, IJ, IL )
-       do ik = 1, km
-       do ij = 1, jm
-       do il = 1, im
-             
-          delp2(il,ij,ik) =  &
-               dap(ik) +  &
-               (dbk(ik) * ps2(il,ij))
-             
-       end do
-       end do
-       end do
-       !$OMP END PARALLEL DO
-            
-    end if
-
-    ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
-    ps = ak(1)+sum(delp2,dim=3)
-         
-
-!--------------------------------------------------------
-! For time optimization : we parallelize over tracers and
-! we loop over the levels outside horizontal transport 
-! subroutines. (ccc, 4/1/09)
-!--------------------------------------------------------
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IQ, IK, adx, ady, qqu, qqv, dq1 )
-    do iq = 1, nq
-
-       do ik = 1, km
-
-       !.sds.. convert to "mass"
-       dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
-
-          
-     ! ===========================
-       call Calc_Advec_Cross_Terms  &
-     ! ===========================
-            (jn(ik), js(ik), q(:,:,ik,iq), qqu, qqv, &
-            ua(:,:,ik), va(:,:,ik), &
-            j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, CROSS)
-
-       !.sds.. notes on arrays
-       !  q (in)    - species mixing ratio
-       !  ua  (in)  - average of Courant numbers from il and il+1
-       !  va  (in)  - average of Courant numbers from ij and ij+1
-       !  qqu (out) - concentration contribution from E-W 
-       !             advection cross terms(mixing ratio)
-       !  qqv (out) - concentration contribution from N-S 
-       !             advection cross terms(mixing ratio)
-              
-     ! ----------------------------------------------------
-     !  Add advective form E-W operator for E-W cross terms.
-     ! ----------------------------------------------------
-         
-     ! ==============
-       call Xadv_Dao2  &
-     ! ==============
-            (2, jn(ik), js(ik), adx, qqv, &
-            ua(:,:,ik), &
-            1, im, 1, jm, 1, jm, j1p, j2p, &
-            1, im, 1, jm)
-       !.sds notes on output arrays
-       !  qqv (in) - concentration contribution from N-S 
-       !             advection (mixing ratio)
-       !  ua  (in) - average of Courant numbers from il and il+1
-       !  adx (out)- cross term due to E-W advection (mixing ratio)
-       !.sds
-         
-     ! ----------------------------------------------------
-     ! Add advective form N-S operator for N-S cross terms.
-     ! ----------------------------------------------------
-         
-     ! ==============
-       call Yadv_Dao2  &
-     ! ==============
-            (2, ady, qqu, va(:,:,ik), &
-            1, im, 1, jm, &
-            j1p, j2p, 1, im, 1, jm, 1, im, 1, jm)
-
-       !.sds notes on output arrays
-       !  qqu (in) - concentration contribution from N-S advection 
-       !             (mixing ratio)
-       !  va  (in) - average of Courant numbers from il and il+1
-       !  ady (out)- cross term due to N-S advection (mixing ratio)
-       !.sds
-       !
-       !Use a 2nd order advection scheme (the "2" in Yadv_Dao2.
-       !(ccc, 7/30/10)
-
-       !... update constituent array qq1 by adding in cross terms 
-       !           - use in fzppm
-
-! Only update concentrations in the transport window!!! (ccc, 8/3/10)
-!       q(:,:,ik,iq) = q(:,:,ik,iq) + ady + adx
-       xfbox = I0_W + 1
-       xlbox = I0_W + IM_W
-
-       yfbox = J0_W + 1
-       ylbox = J0_W + JM_W
-
-
-       q(xfbox:xlbox,yfbox:ylbox,ik,iq) =                 &
-            q(xfbox:xlbox,yfbox:ylbox,ik,iq) + ady(xfbox:xlbox,yfbox:ylbox) &
-            + adx(xfbox:xlbox,yfbox:ylbox)
-
-     ! ========
-       call Xtp  &
-     ! ========
-            (ilmt, jn(ik), js(ik), pu(:,:,ik), cx(:,:,ik), &
-            dq1(:,:,ik), qqv, xmass(:,:,ik), fx(:,:,ik,iq), &
-            j1p, j2p, im, 1, jm, 1, im, 1, jm, &
-            1, im, 1, jm, IORD, y_offset)
-
-       
-       !.sds notes on output arrays
-       !  pu  (in)    - pressure at edges in "u" (mb)
-       !  crx (in)    - Courant number in E-W direction
-       !  xmass(in)   - horizontal mass flux in E-W direction (mb)
-       !  dq1 (inout) - species density (mb) - updated with the E-W flux 
-       !                fx in Xtp)
-       !  qqv (in) - concentration contribution from N-S advection 
-       !                (mixing ratio)
-       !  fx  (out)   - species E-W mass flux
-       !.sds
-
-
-     ! ========
-       call Ytp  &
-     ! ========
-            (jlmt, geofac_pc, geofac, cy(:,:,ik), dq1(:,:,ik), &
-            qqu, qqv, ymass(:,:,ik), fy(:,:,ik,iq), &
-            j1p, j2p, 1, im, 1, jm, im, &
-            1, im, 1, jm, 1, im, 1, jm, jord)
-         
-       !.sds notes on output arrays
-       !  cy (in)     - Courant number in N-S direction
-       !  dq1 (inout) - species density (mb) - updated with the N-S flux 
-       !                (fy in Ytp)
-       !  qqu (in)    - concentration contribution from E-W advection 
-       !                (mixing ratio)
-       !  qqv (inout) - concentration contribution from N-S advection 
-       !                (mixing ratio)  
-       !  ymass(in)   - horizontal mass flux in E-W direction (mb)
-       !  fy  (out)   - species N-S mass flux (need to mult by geofac)
-       !.sds
- 
-        end do
-
-       qtemp(:,:,:,iq) = q(:,:,:,iq)
-
-
-     ! ==========
-       call Fzppm  &
-     ! ==========
-            (klmt, delp1, wz, dq1, q(:,:,:,iq), fz(:,:,:,iq), &
-            j1p, 1, jm, 1, im, 1, jm, &
-            im, km, 1, im, 1, jm, 1, km)
-         
-       !.sds notes on output arrays
-       !   wz  (in) : vertical mass flux
-       !   dq1 (inout) : species density (mb)
-       !   q (in) : species concentration (mixing ratio)
-       !.sds
-         
-         
-
-       if (FILL) then
-        ! ===========
-          call Qckxyz  &
-        ! ===========
-               (dq1, &
-               j1p, j2p, 1, jm, &
-               1, im, 1, jm, 1, im, 1, jm, 1, km)
-       end if
-
-! Update concentrations only on the transport window. (ccc, 8/3/10)       
-!       q(:,:,:,iq) =  &
-!            dq1 / delp2
-       xfbox = I0_W + 1
-       xlbox = I0_W + IM_W
-
-       yfbox = J0_W + 1
-       ylbox = J0_W + JM_W
-
-       q(xfbox:xlbox,yfbox:ylbox,:,iq) =  &
-            dq1(xfbox:xlbox,yfbox:ylbox,:) / delp2(xfbox:xlbox,yfbox:ylbox,:)
-         
-         
+       ! top layer should have no residual.  the small residual is from 
+       ! a non-pressure fixed flux diag.  The z direction may be off by 
+       ! a few percent.
+       !MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ)/dt
+    ENDDO
+    ENDDO
     ENDDO
 !$OMP END PARALLEL DO
 
-    DO iq=1,nq
-       
-       ! Calculate fluxes for diag. (ccc, 11/20/08)
-       !--------------------------------------------------------------
-       ! Prior to 12/11/08:
-       ! Set with J1P and J2P for extended polar cap (bmy, 12/11/08)
-       !js2g0  = max(2,jfirst)          !  No ghosting
-       !jn2g0  = min(jm-1,jlast)        !  No ghosting
-       !--------------------------------------------------------------
-       JS2G0  = MAX( J1P, JFIRST )     !  No ghosting
-       JN2G0  = MIN( J2P, JLAST  )     !  No ghosting
+    !----------------------------------------------------
+    ! get the other fluxes using a mass balance equation
+    !----------------------------------------------------
+    DO K  = 2, KM
+!$OMP PARALLEL DO                      &
+!$OMP DEFAULT( SHARED )                &
+!$OMP PRIVATE( I, J, IQ, TRACE_DIFF )
+    DO IQ = 1, NQ
+    DO I  = 1, IM
+    DO J  = 1, JM
+       TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
+                              QTEMP(I,J,K,IQ) * DELP(I,J,K) ) *  &
+                            (100D0) * AREA_M2(J) / ( 9.8D0* TCVV(IQ) )
 
-       !======================================================================
-       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
-       !  
-       ! Implement ND24 diag: E/W flux of tracer [kg/s]  (ccarouge 12/2/08)  
-       !
-       !  The unit conversion is:
-       !
-       !  Mass    P diff     100      1       area of     kg tracer     1
-       ! ------ = in grid *  ---  *  ---   *  grid box * ----------- * ---
-       !  time    box         1       g       AREA_M2      kg air       s
-       !
-       !   kg       hPa       Pa     s^2        m^2          1          1 
-       !  ----  =  -----  * ----- * -----  *   -----   *   ------  * --------
-       !   s         1       hPa      m          1          TCVV      DeltaT
-       !======================================================================
-       IF ( ND24 > 0 ) THEN
+       DTC(I,J,K,IQ)      = DTC(I,J,K-1,IQ) + TRACE_DIFF
 
-          ! Zero temp array
-          DTC = 0d0
+       MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+    ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED  ) &
-          !$OMP PRIVATE( I, J, K ) 
-          DO K = 1,     KM
-! Only on transport window. (ccc, 8/3/10)
-!          DO J = JS2G0, JN2G0
-!          DO I = 1,     IM
-          DO J = yfbox, ylbox
-          DO I = xfbox, xlbox
+    ENDIF
 
-             ! Compute mass flux
-             DTC(I,J,K)         = ( FX(I,J,K,IQ)  * AREA_M2(J)  * 100.d0 ) / &
-                                  ( TCVV(IQ)   * DT          * 9.8d0  )
+ END subroutine TPCORE_GEOS5_WINDOW
 
-             ! Save into MASSFLEW diagnostic array
-             MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
 
-          ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
+ subroutine air_mass_flux(im, jm, km, jfirst, jlast, iord, jord,    &
+                          ak, bk, psg, ps, u, v, cx, cy, va,        &
+                          fx, fy, ng,  mg,  ffsl, delp1,  delp,     &
+                          pe, dt, ae,  n_adj,                       &   
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS to the arg list of AIR_MASS_FLUX 
+ !%%% for the PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
+ !%%%
+                          XMASS, YMASS )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-       ENDIF
-
-       !======================================================================
-       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
-       !  
-       ! Implement ND25 diag: N/S flux of tracer [kg/s] 
-       ! (bdf, bmy, 9/28/04, ccarouge 12/12/08)
-       !
-       ! NOTE, the unit conversion is the same as desciribed above for the
-       ! ND24 E-W diagnostics.  The geometrical factor was already applied to
-       ! fy in Ytp. (ccc, 4/1/09)
-       !======================================================================
-       IF ( ND25 > 0 ) THEN
-
-          ! Zero temp array
-          DTC = 0d0
-
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED  ) &
-          !$OMP PRIVATE( I, J, K ) 
-          DO K = 1, KM
-! Only on the transport window. (ccc,8/3/10)
-!          DO J = 1, JM 
-!          DO I = 1, IM 
-          DO J = yfbox, ylbox
-          DO I = xfbox, xlbox
-
-             ! Compute mass flux
-             DTC(I,J,K)    = ( FY(I,J,K,IQ) * AREA_M2(J) * 1d2 ) / & 
-                             ( TCVV(IQ)  * DT         * 9.8d0           ) 
-
-             ! Save into MASSFLNS diagnostic array
-             MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
-
-          ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
-
-       ENDIF
-
-       !======================================================================
-       ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
-       !  
-       ! Implement ND26 diag: Up/down flux of tracer [kg/s] 
-       ! (bmy, bdf, 9/28/04, ccarouge 12/2/08)
-       !
-       ! The vertical transport done in qmap.  We need to find the difference 
-       ! in order to to interpret transport.
-       !
-       ! Break up diagnostic into up & down fluxes using the surface boundary 
-       ! conditions.  Start from top down (really surface up for flipped 
-       ! TPCORE)
-       !
-       ! By construction, MASSFLUP is flux into the bottom of the box. The 
-       ! flux at the bottom of KM (the surface box) is not zero by design. 
-       ! (phs, 3/4/08)
-       !======================================================================
-       IF ( ND26 > 0 ) THEN
-          
-          ! Zero temp array
-          DTC = 0d0
-
-          !-----------------
-          ! start with top
-          !-----------------
-          K = 1
-          
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J )  
-! Only on the transport window. (ccc, 8/3/10)
-!          DO J  = 1, JM
-!          DO I  = 1, IM
-          DO J = yfbox, ylbox
-          DO I = xfbox, xlbox
-
-             ! Compute mass flux
-             DTC(I,J,K)         = ( Q(I,J,K,IQ)  * DELP1(I,J,K)   -   &
-                                    QTEMP(I,J,K,IQ) * DELP2(I,J,K)  ) *  &
-                                  (100d0) * AREA_M2(J) / ( 9.8d0 * TCVV(IQ) )
-                
-             ! top layer should have no residual.  the small residual is 
-             ! from a non-pressure fixed flux diag.  The z direction may 
-             ! be off by a few percent.
-             !
-             ! Uncomment now, since this is upflow into the box from its
-             ! bottom (phs, 3/4/08)
-             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
-          
-          !----------------------------------------------------
-          ! Get the other fluxes using a mass balance equation
-          !----------------------------------------------------
-          DO K  = 2, KM
-
-             !$OMP PARALLEL DO                 &
-             !$OMP DEFAULT( SHARED )           &
-             !$OMP PRIVATE( I, J, TRACE_DIFF )
-! Only on the transport window. (ccc, 8/3/10)
-!             DO J  = 1, JM
-!             DO I  = 1, IM
-             DO J = yfbox, ylbox
-             DO I = xfbox, xlbox
-
-                ! Compute tracer difference
-                TRACE_DIFF         = ( Q(I,J,K,IQ)     * DELP1(I,J,K)  -  &
-                                       QTEMP(I,J,K,IQ) * DELP2(I,J,K) ) *  &
-                                       (100D0) * AREA_M2(J) /           &
-                                       ( 9.8D0* TCVV(IQ) )
-                
-                ! Compute mass flux
-                DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
-                  
-                ! Save to the MASSFLUP diagnostic array 
-                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)/DT
-                
-             ENDDO
-             ENDDO
-             !$OMP END PARALLEL DO
-
-          ENDDO
-       ENDIF
-    ENDDO      
-  END SUBROUTINE Tpcore_GEOS5_WINDOW
-!EOC  
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
+!------------------------------------------------------
+! The hybrid ETA-coordinate:
+! pressure at layer edges are defined as follows:
 !
-! !IROUTINE: Set_Cross_Terms
-!
-! !DESCRIPTION: Subroutine Set\_Cross\_Terms sets the cross terms for 
-!  E-W horizontal advection.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_Cross_Terms( crx,   cry,   ua, va, J1P,   J2P,   &
-                              I1_GL, I2_GL, JU1_GL, J2_GL, ILO,   &
-                              IHI,   JULO,  JHI,    I1,    I2,    &
-                              JU1,   J2,    CROSS )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)   :: J1P,    J2P
+!        p(i,j,k) = ak(k) + bk(k)*ps(i,j)          (1)
+!------------------------------------------------------
 
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)   :: JU1_GL, J2_GL
+! Input from Data/Model:
+! (u,v) is the time mean wind at Time=t+dt/2  
+! delp1 is the layer thickness at Time=t
 
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,     I2
-    INTEGER, INTENT(IN)   :: JU1,    J2
+! Output:
+! delp is the predicted thickness at Time=t+dt
+! (fx,fy): background air mass flxues
+! (cx,cy): CFL number
 
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,    IHI
-    INTEGER, INTENT(IN)   :: JULO,   JHI
+ implicit none
 
-    ! Courant number in E-W direction
-    REAL*8,  INTENT(IN) :: crx(ILO:IHI, JULO:JHI)
-
-    ! Courant number in N-S direction
-    REAL*8,  INTENT(IN) :: cry(ILO:IHI, JULO:JHI)
-
-    ! Logical switch.  If CROSS=T then cross-terms will be computed.
-    LOGICAL, INTENT(IN) :: CROSS
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Average of Courant numbers from il and il+1
-    REAL*8, INTENT(OUT) :: ua(ILO:IHI, JULO:JHI)
-
-    ! Average of Courant numbers from ij and ij+1
-    REAL*8, INTENT(OUT) :: va(ILO:IHI, JULO:JHI)
-
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!     
-
-    ! Grid box indices for lon & lat
-    INTEGER :: il, ij
-    
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-    
-    
-    if (.not. CROSS) then
-       
-       ua(:,:) = 0.0d0
-       va(:,:) = 0.0d0
-       
-    else
-       
-       do ij = j1p, j2p
-          do il = i1, i2-1
-             
-             ua(il,ij) = 0.5d0 * (crx(il,ij) + crx(il+1,ij))
-             
-          end do
-! No periodicity. (ccc, 8/3/10)
-!          ua(i2,ij) = 0.5d0 * (crx(i2,ij) + crx(1,ij))
-       end do
-
-! No pole special treatment. (ccc, 8/3/10)
-!       do ij = ju1+1, j2-1
-       do ij = ju1, j2-1
-          do il = i1, i2
-             
-             va(il,ij) = 0.5d0 * (cry(il,ij) + cry(il,ij+1))
-          end do
-       end do
-
-    end if
-    
-  END SUBROUTINE Set_Cross_Terms
-!EOC  
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Calc_Vert_Mass_Flux
-!
-! !DESCRIPTION: Subroutine Calc\_Vert\_Mass\_Flux calculates the vertical 
-!  mass flux.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Calc_Vert_Mass_Flux( dbk, dps_ctm, dpi, wz, I1,  &
-                                  I2,  JU1,     J2,  K1, K2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,  I2
-    INTEGER, INTENT(IN)   :: JU1, J2
-    INTEGER, INTENT(IN)   :: K1,  K2
-
-    ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)  :: dbk(K1:K2)
-
-    ! CTM surface pressure tendency; sum over vertical of dpi
-    ! calculated from original mass fluxes [hPa]
-    REAL*8,  INTENT(IN)  :: dps_ctm(I1:I2, JU1:J2)
-
-    ! Divergence at a grid point; used to calculate vertical motion [mb]
-    REAL*8,  INTENT(IN)  :: dpi(I1:I2, JU1:J2, K1:K2)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Large scale mass flux (per time step tdt) in the vertical
-    ! direction as diagnosed from the hydrostatic relationship [hPa]
-    REAL*8, INTENT(OUT) :: wz(I1:I2, JU1:J2, K1:K2)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops
-!EOP
-!------------------------------------------------------------------------------
-!BOC  
-!
-! !LOCAL VARIABLES:
-!    
-    INTEGER :: ik, ij, il
-       
-!   ----------------
-!   Begin execution.
-!   ----------------
-     
-!   --------------------------------------------------
-!   Compute vertical mass flux from mass conservation.
-!   --------------------------------------------------
-    
-    !---------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! Need to add explicit IJ and IL loops for OpenMP parallelization
-    ! (bmy, 12/5/08)
-    ! 
-    !wz(:,:,k1) =  &
-    !     dpi(:,:,k1) -  &
-    !     (dbk(k1) * dps_ctm(i1:i2,ju1:j2))
-    !
-    !wz(:,:,k2) = 0.0d0
-    !
-    !
-    !do ik = k1 + 1, k2 - 1
-    !   
-    !   wz(:,:,ik) =  &
-    !        wz (:,:,ik-1) +  &
-    !        dpi(:,:,ik)   -  &
-    !        (dbk(ik) * dps_ctm(i1:i2,ju1:j2))
-    !
-    !end do
-    !---------------------------------------------------------------------
-
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( IJ, IL )
-    do ij = ju1, j2
-    do il = i1,  i2
-       wz(il,ij,k1) =  &
-            dpi(il,ij,k1) -  &
-            (dbk(k1) * dps_ctm(il,ij))
-    
-       wz(il,ij,k2) = 0.0d0
-    end do
-    end do
-    !$OMP END PARALLEL DO
-    
-    do ik = k1 + 1, k2 - 1
-       
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( IJ, IL )
-       do ij = ju1, j2
-       do il = i1,  i2
-
-          wz(il,ij,ik) =  &
-               wz (il,ij,ik-1) +  &
-               dpi(il,ij,ik)   -  &
-               (dbk(ik) * dps_ctm(il,ij))
-       end do
-       end do
-       !$OMP END PARALLEL DO
-
-    end do
-
-    
-  END SUBROUTINE Calc_Vert_Mass_Flux
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_Jn_Js
-!
-! !DESCRIPTION: Subroutine Set\_Jn\_Js determines Jn and Js, by looking 
-!  where Courant number is > 1. Jn and Js indicate the limits (north and south
-!  resp.) between Lagrangian and Eulerian transport.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_Jn_Js( jn,  js,     crx,   ILO, IHI, JULO, &
-                        JHI, JU1_GL, J2_GL, J1P, J2P, I1,   &
-                        I2,  JU1,    J2,    K1,  K2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)   :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)   :: I1,     I2
-    INTEGER, INTENT(IN)   :: JU1,    J2
-    INTEGER, INTENT(IN)   :: K1,     K2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)   :: ILO,    IHI
-    INTEGER, INTENT(IN)   :: JULO,   JHI
-
-    ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)  :: crx(ILO:IHI, JULO:JHI, K1:K2)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Northward of latitude index = jn; Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(OUT) :: jn(K1:K2)
-
-    ! Southward of latitude index = js; Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(OUT) :: js(K1:K2)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REMARKS:
-!   We cannot parallelize this subroutine because there is a CYCLE statement
-!   within the outer loop.
-!
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  
-!EOP
-!------------------------------------------------------------------------------
-!BOC  
-!
-! !LOCAL VARIABLES:
-    
-    INTEGER :: il, ij, ik
-    INTEGER :: jn0, js0
-    INTEGER :: jst, jend
-    
-    
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-    
-    ! Start from the equator
-    ! For nested grid, it is the middle of the domain. We do 
-    ! too many tests. For the nested domains in the NH, e.g., 
-    ! js is most likely to be ju1 for all vertical levels, since ju1 
-    ! is pretty close to the equator. But starting from the equator
-    ! for the global grids is also pretty expensive. Done this way for 
-    ! MPI parallelization (the width of each latitude band is small)
-    ! (ccc, 7/29/10)
-    js0  = (j2_gl + 1 ) / 2
-    jn0  = j2_gl - js0 + 1
-    
-    jst  = Max (ju1, j1p)
-    jend = Min (j2,  js0)
-    
-    ikloop1: do ik = k1, k2
-       
-       js(ik) = j1p
+ integer, intent(in):: im
+ integer, intent(in):: jm
+ integer, intent(in):: km
+ integer, intent(in):: jfirst
+ integer, intent(in):: jlast
+ integer, intent(in):: iord
+ integer, intent(in):: jord
+ integer, intent(in):: ng
+ integer, intent(in):: mg
+ integer, intent(in):: n_adj
  
-       do ij = jend, jst, -1
-          do il = i1, i2
-             
-             if (Abs (crx(il,ij,ik)) > 1.0d0) then
-                
-                js(ik) = ij
-                
-!               =============
-                cycle ikloop1
-!               =============
-                
-             end if
-             
-          end do
-       end do
+ real, intent(in):: dt
+ real, intent(in):: ae
+ real, intent(in):: ak(km+1)
+ real, intent(in):: bk(km+1)
+ real, intent(in):: psg(im,jfirst-mg:jlast+mg,2)   ! Was ps1 and ps2
+ real, intent(in):: u(im,jfirst:jlast,km)
+ real, intent(in):: v(im,jfirst-mg:jlast+mg,km)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added XMASS, YMASS for PJC/LLNL pressure fixer (bdf, bmy, 5/7/03) 
+ !%%%
+ REAL, INTENT(IN) :: XMASS(IM,JM,KM), YMASS(IM,JM,KM)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+! Output:
+ logical,intent(out):: ffsl(jfirst-ng:jlast+ng,km)
+ real, intent(out):: cx(im,jfirst-ng:jlast+ng,km)
+ real, intent(out):: delp (im,jfirst:jlast,km)
+
+ real, intent(out):: ps(im,jfirst:jlast)
+ real, intent(out):: fx(im,jfirst:jlast,km)
+ real, intent(out):: cy(im,jfirst:jlast+mg,km)
+ real, intent(out):: fy(im,jfirst:jlast+mg,km)
+ real, intent(out):: va(im,jfirst:jlast,km)
+
+ real, intent(out):: delp1(im,jfirst-mg:jlast+mg,km)
+
+ real, intent(out):: pe(im,km+1,jfirst:jlast)
+
+! Local:
+ real yms(im,jfirst:jlast+mg,km)
+
+ real  tiny
+ parameter (tiny = 1.e-10)
+ real dak, dbk
+ real dtoa, vt
+ integer i,j,k
+
+ integer js2g0
+ integer jn2g0
+ integer jn1g1
+ integer js2gd, jn2gd
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Declare extra variables PJC/LLNL pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
+ REAL :: DELPM(IM,JM,KM), FACTY, UT
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ js2g0  = max(2,jfirst)        ! No ghosting
+ jn2g0  = min(jm-1,jlast)      ! No ghosting
+ jn1g1  = min(jm,jlast+1)      ! Ghost 1 on N
+ js2gd = max(2,  jfirst-ng)    ! NG latitudes on S (starting at 1)
+ jn2gd = min(jm-1,jlast+ng)    ! NG latitudes on N (ending at jm-1)
+
+ dtoa = .5*dt/ae 
+
+ cx(:,:,:)=0D0
+ cy(:,:,:)=0D0
+ fx(:,:,:)=0D0
+ fy(:,:,:)=0D0
+  delp(:,:,:)=0D0
+  ps(:,:)=0D0
+  va(:,:,:)=0D0
+  delp1(:,:,:)=0D0
+  pe(:,:,:)=0D0
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Define DELPM for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
+ DO K = 1, KM
+ DO J = 1, JM
+ DO I = 1, IM
+    DELPM(I,J,K) = ( AK(K+1) - AK(K) ) + &
+                   ( BK(K+1) - BK(K) ) * &                 
+                   ( 0.5d0 * ( PSG(I,J,1) + PSG(I,J,2 ) + 2d0 * AK(1) ) )
+ ENDDO
+ ENDDO
+ ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added for PJC/LLNL pressure-fixer (bdf, bmy, 5/7/03)
+ !%%% Note that DTDY5 is the same everywhere except at the poles, so
+ !%%% we can just pick a value roughly close to the equator
+ !%%%
+ FACTY = DTDY5(JM/2)
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!$omp parallel do private(i, j, k, vt, UT )
+
+  do k=1,km
+
+     do j=js2g0, jn1g1
+         do i=1,im
        
-    end do ikloop1
-    
-    
-    jst  = Max (ju1, jn0)
-    jend = Min (j2,  j2p)
-    
-    ikloop2: do ik = k1, k2
-       
-       jn(ik) = j2p
-       
-       do ij = jst, jend
-          do il = i1, i2
-             
-             if (Abs (crx(il,ij,ik)) > 1.0d0) then
-                
-                jn(ik) = ij
-                
-!               =============
-                cycle ikloop2
-!               =============
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Change calculation of VT for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
+            VT = YMASS(I,J,K) / FACTY / COSE(J) / DELPM(I,J,K) +  &
+                 V(I,J-1,K) * ( 1d0 - DELPM(I,J-1,K) / DELPM(I,J,K) )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+            if ( vt > 0. ) then
+               cy(i,j,k) = dtdy5(j-1)*vt
+            else
+               cy(i,j,k) = dtdy5(j)*vt
+            endif
+             yms(i,j,k) = dtoa*vt*cose(j)
+         enddo
+     enddo
+
+     do j=js2g0,jn2g0
+        do i=1,im
+           if( cy(i,j,k)*cy(i,j+1,k) > 0. ) then
+              if( cy(i,j,k) > 0. ) then
+                  va(i,j,k) = cy(i,j,k)
+              else
+                  va(i,j,k) = cy(i,j+1,k)         
+              endif
+           else
+              va(i,j,k) = 0.
+          endif
+        enddo
+     enddo
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Removed this section for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%    do j=js2g0,jn2g0
+ !%%%          cx(1,j,k) = dtdx5(j)*(u(1,j,k)+u(im,j,k))
+ !%%%       do i=2,im
+ !%%%          cx(i,j,k) = dtdx5(j)*(u(i,j,k)+u(i-1,j,k))
+ !%%%       enddo
+ !%%%    enddo
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Added this section for PJC pressure fixer (bdf, bmy, 5/7/03)
+ !%%%
+     DO J = JS2G0, JN2G0
+        UT        = XMASS(1,J,K) / DTDX5(J) / DELPM(1,J,K) + &
+                    U(IM,J,K) * ( 1d0 - DELPM(IM,J,K) / DELPM(1,J,K) )
+        CX(1,J,K) = DTDX5(J) * UT
+
+        DO I = 2, IM
+           UT        = XMASS(I,J,K) / DTDX5(J) / DELPM(I,J,K) + &
+                       U(I-1,J,K) * ( 1d0 - DELPM(I-1,J,K) / DELPM(I,J,K) )
+           CX(I,J,K) = DTDX5(J) * UT
+        ENDDO
+     ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  enddo
 
-             end if
-             
-          end do
-       end do
 
-    end do ikloop2
-
-  END SUBROUTINE Set_Jn_Js
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Calc_Advec_Cross_Terms
-!
-! !DESCRIPTION: Subroutine Calc\_Advec\_Cross\_Terms calculates the advective 
-!  cross terms.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Calc_Advec_Cross_Terms( jn,     js,    qq1,  qqu,  qqv,   &
-                                     ua,     va,    J1P,  J2P,  I2_GL, &
-                                     JU1_GL, J2_GL, ILO,  IHI,  JULO,  &
-                                     JHI,    I1,    I2,   JU1,  J2,    &
-                                     CROSS )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  ::         I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! Northward of latitude index = jn, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Jn
-
-    ! Southward of latitude index = js, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: Js
-
-    ! Species concentration (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qq1(ILO:IHI, JULO:JHI)
-
-    ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua (ILO:IHI, JULO:JHI)
-
-    ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va (ILO:IHI, JULO:JHI)
-
-    ! Logical switch: If CROSS=T then cross-terms are being computed
-    LOGICAL, INTENT(IN)  :: CROSS
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqu(ILO:IHI, JULO:JHI)
-
-    ! concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel do loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!    
-    INTEGER :: i, imp, il, ij, iu
-    INTEGER :: jv, iuw, iue
-    REAL*8  :: ril, rij, riu
-    REAL*8  :: ru
-! No ghost zones. (ccc, 8/3/10)
-!    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
-    REAL*8  :: qtmp(i1:i2, julo:jhi)
-    
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-    
-    !----------------------------------------------------------------
-    ! Prior to 12/5/08
-    ! Now add explicit IJ and IK loops for OpenMP parallelization
-    ! (bmy, 12/5/08)
-    !do i = 1, i2
-    !   qtmp(i,:,:) = qq1(i,:,:)
-    !enddo
-    !
-    !do il = -i2/3, 0
-    !   qtmp(il,:,:) = qq1(i2+il,:,:)
-    !enddo
-    !
-    !do il = i2+1,i2+i2/3
-    !   qtmp(il,:,:) = qq1(il-i2,:,:)
-    !enddo
-    ! IK loop was removed. (ccc, 4/1/09)
-    !----------------------------------------------------------------
-
-    do ij = julo, jhi
-       do i = 1, i2
-          qtmp(i,ij) = qq1(i,ij)
-       enddo
-    
-! No ghost zones (ccc, 8/3/10)
-!       do il = -i2/3, 0
-!          qtmp(il,ij) = qq1(i2+il,ij)
-!       enddo
-!    
-!       do il = i2+1,i2+i2/3
-!          qtmp(il,ij) = qq1(il-i2,ij)
-!       enddo
-    enddo
-
-!   ================
-    if (.not. CROSS) then
-!   ================
-       
-       qqu(:,:) = qq1(:,:)
-       qqv(:,:) = qq1(:,:)
-       
-       
-!   ====
-    else
-!   ====
-
-       qqu(:,:) = 0.0d0
-       qqv(:,:) = 0.0d0
-       
-       do ij = j1p, j2p
-             
-          if ((ij <= js) .or. (ij >= jn)) then
-
-!          ----------------------------------------------------------
-!          In Polar area, so need to deal with large courant numbers.
-!          ----------------------------------------------------------
-
-             do il = i1, i2
-                   
-!c?
-                iu  = ua(il,ij)
-                riu = iu
-                ru  = ua(il,ij) - riu
-                iu  = il - iu
-                
-                if (ua(il,ij) >= 0.0d0) then
-                   
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Max(i1+1, iu)
-                   iu = Min(iu, i2)
-
-                   qqu(il,ij) =  &
-                        qtmp(iu,ij) +  &
-                        ru * (qtmp(iu-1,ij) - qtmp(iu,ij))
-                   
-                else
-                   
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Min(i1, iu)
-                   iu = Max(iu, i2-1)
-
-                   qqu(il,ij) =  &
-                        qtmp(iu,ij) +  &
-                        ru * (qtmp(iu,ij) - qtmp(iu+1,ij))
-                   
-                end if
-                
-                qqu(il,ij) = qqu(il,ij) - qtmp(il,ij)
-                
-             end do
-             
-          else  ! js < ij < jn
-             
-             !             ---------------------------
-             !             Do interior area (use PPM).
-             !             ---------------------------
-             
-             do il = i1, i2
-                
-                ril = il
-                iu  = ril - ua(il,ij)
-                
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                iu = Min(i1, iu)
-                iu = Max(iu, i2-1)
-
-                qqu(il,ij) =  &
-                     ua(il,ij) *  &
-                     (qtmp(iu,ij) - qtmp(iu+1,ij))
-                
-             end do
-             
-          end if
-
-          do il = i1, i2
-             
-!c?
-             rij = ij
-             jv  = rij - va(il,ij)
-             
-             ! Restrain iu into the domain. (ccc, 8/3/10)
-             jv = Min(j1p, jv)
-             jv = Max(jv, j2p-1)
-
-             qqv(il,ij) =  &
-                  va(il,ij) *  &
-                  (qtmp(il,jv) - qtmp(il,jv+1))
-
-          end do
-       end do
-          
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08
-       ! Now add explicit IJ and IK loops for OpenMP parallelization
-       ! (bmy, 12/5/08)
-       !qqu(i1:i2,ju1:j2,:) =  &
-       !     qtmp(i1:i2,ju1:j2,:) + (0.5d0 * qqu(i1:i2,ju1:j2,:))
-       !
-       !qqv(i1:i2,ju1:j2,:) =  &
-       !     qtmp(i1:i2,ju1:j2,:) + (0.5d0 * qqv(i1:i2,ju1:j2,:))
-       ! IK loop was removed. (ccc, 4/1/09)
-       !----------------------------------------------------------------
-
-       do ij = ju1, j2
-       do il = i1,  i2
-          qqu(il,ij) =  &
-               qtmp(il,ij) + (0.5d0 * qqu(il,ij))
-       
-          qqv(il,ij) =  &
-               qtmp(il,ij) + (0.5d0 * qqv(il,ij))
-       enddo
-       enddo
-       
-!   ======
-    end if
-!   ======
-    
-    
-  END SUBROUTINE Calc_Advec_Cross_Terms
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Qckxyz
-!
-! !DESCRIPTION: Subroutine Qckxyz routine checks for "filling".
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Qckxyz( dq1, J1P, J2P,  JU1_GL, J2_GL, &
-                     ILO, IHI, JULO, JHI,    I1,    &
-                     I2,  JU1, J2,   K1,     K2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-    INTEGER, INTENT(IN)  :: K1,     K2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !DEFINED PARAMETERS:
-!
-    LOGICAL, PARAMETER :: FILL_DIAG = .false.
-!
-! LOCAL VARIABLES:
-!     
-    INTEGER :: il, ij, ik
-    INTEGER :: ip
-    INTEGER :: k1p1, k2m1
-    REAL*8  :: dup, qup
-    REAL*8  :: qly
-    REAL*8  :: sum
-
-
-!     ----------------
-!     Begin execution.
-!     ----------------
-
-    ip = 0
-
-
-!     ----------
-!     Top layer.
-!     ----------
-
-    k1p1 = k1 + 1
-
-    !$OMP PARALLEL DO          &
-    !$OMP DEFAULT( SHARED )    &
-    !$OMP PRIVATE( IJ, IL, IP )
-    do ij = j1p, j2p
-       do il = i1, i2
-
-          if (dq1(il,ij,k1) < 0.0d0) then
-
-             ip = ip + 1
-
-             dq1(il,ij,k1p1) = dq1(il,ij,k1p1) + dq1(il,ij,k1)
-             dq1(il,ij,k1)   = 0.0d0
-            
-          end if
-
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-    
-    do ik = k1 + 1, k2 - 1
-
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED )                   &
-       !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP )
-       do ij = j1p, j2p
-          do il = i1, i2
-             
-             if (dq1(il,ij,ik) < 0.0d0) then
-                
-                ip = ip + 1
-
-!             -----------
-!             From above.
-!             -----------
-
-                qup =  dq1(il,ij,ik-1)
-                qly = -dq1(il,ij,ik)
-                dup =  Min (qly, qup)
-
-                dq1(il,ij,ik-1) = qup - dup
-                dq1(il,ij,ik)   = dup - qly
-
-!             -----------
-!             From below.
-!             -----------
-
-                dq1(il,ij,ik+1) = dq1(il,ij,ik+1) + dq1(il,ij,ik)
-                dq1(il,ij,ik)   = 0.0d0
-                
-             end if
-
-          end do
-       end do
-       !$OMP END PARALLEL DO
-
-    end do
-
-
-!     -------------
-!     Bottom layer.
-!     -------------
-
-    sum  = 0.0d0
-
-    k2m1 = k2 - 1
-
-    ! NOTE: Sum seems to be not used in the loop below!
-    !$OMP PARALLEL DO                          &
-    !$OMP DEFAULT( SHARED )                    &
-    !$OMP PRIVATE( IJ, IL, IP, QUP, QLY, DUP ) &
-    !$OMP REDUCTION( +:SUM ) 
-    do ij = j1p, j2p
-       do il = i1, i2
-
-          if (dq1(il,ij,k2) < 0.0d0) then
-
-             ip = ip + 1
-
-!           -----------
-!           From above.
-!           -----------
-
-             qup =  dq1(il,ij,k2m1)
-             qly = -dq1(il,ij,k2)
-             dup = Min (qly, qup)
-             
-             dq1(il,ij,k2m1) = qup - dup
-
-!           -------------------------
-!           From "below" the surface.
-!           -------------------------
-
-             sum = sum + qly - dup
-
-             dq1(il,ij,k2) = 0.0d0
-
-          end if
-
-       end do
-    end do
-    !$OMP END PARALLEL DO
-
-! We don't want to replace zero values by 1e-30. (ccc, 11/20/08)
-!!     =======================================
-!    where ((dq1(i1:i2,j1p:j2p,:) < 1.0d-30))  &
-!         dq1(i1:i2,j1p:j2p,:) = 1.0d-30
-!!     =======================================
-
-  END SUBROUTINE Qckxyz
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_Lmts
-!
-! !DESCRIPTION: Subroutine Set\_Lmts sets ILMT, JLMT, KLMT.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_Lmts( ilmt, jlmt, klmt, I2_GL, J2_GL, iord, jord, kord )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global maximum longitude (I) and longitude (J) indices
-    INTEGER, INTENT(IN)  :: I2_GL, J2_GL
-
-    ! Flags to denote E-W, N-S, and vertical transport schemes
-    ! (See REMARKS section of routine Tpcore_FvDas for more info)
-    INTEGER, INTENT(IN)  :: iord, jord, kord
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Controls various options in E-W advection
-    INTEGER, INTENT(OUT) :: ilmt
-
-    ! Controls various options in N-S advection
-    INTEGER, INTENT(OUT) :: jlmt
-
-    ! Controls various options in vertical advection
-    INTEGER, INTENT(OUT) :: klmt
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-
-    INTEGER :: j2_glm1
-
-!     ----------------
-!     Begin execution.
-!     ----------------
-
-    j2_glm1 = j2_gl - 1
-
-!c?
-    if (IORD <= 0) then
-       if (i2_gl >= 144) then
-          ilmt = 0
-       else if (i2_gl >= 72) then
-          ilmt = 1
-       else
-          ilmt = 2
-       end if
-    else
-       ilmt = IORD - 3
-    end if
-    
-    
-!c?
-    if (JORD <= 0) then
-       if (j2_glm1 >= 90) then
-          jlmt = 0
-       else if (j2_glm1 >= 45) then
-          jlmt = 1
-       else
-          jlmt = 2
-       end if
-    else
-       jlmt = JORD - 3
-    end if
-
-    klmt = Max ((KORD-3), 0)
-    
-  END SUBROUTINE Set_Lmts
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_Press_Terms
-!
-! !DESCRIPTION: Subroutine Set\_Press\_Terms sets the pressure terms: 
-!  DELP1, DELPM, PU.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_Press_Terms( dap,   dbk,  pres1,  pres2, delp1,   &
-                              delpm, pu,   JU1_GL, J2_GL, ILO,     &
-                              IHI,   JULO, JHI,    J1P,   J2P,     &
-                              I1,    I2,   JU1,    J2)
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! Pressure difference across layer from (ai * pt) term [hPa]
-    REAL*8,  INTENT(IN)  :: dap
-
-    ! Difference in bi across layer - the dSigma term
-    REAL*8,  INTENT(IN)  :: dbk
-
-    ! Surface pressure at t1 [hPa]
-    REAL*8,  INTENT(IN)  :: pres1(ILO:IHI, JULO:JHI)
-    
-    ! Surface pressure at t1+tdt [hPa]
-    REAL*8,  INTENT(IN)  :: pres2(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Pressure thickness, the pseudo-density in a 
-    ! hydrostatic system at t1 [hPa]
-    REAL*8, INTENT(OUT) :: delp1(ILO:IHI, JULO:JHI)
-
-    ! Pressure thickness, the pseudo-density in a 
-    ! hydrostatic system at t1+tdt/2 (approximate) [hPa]
-    REAL*8, INTENT(OUT) :: delpm(ILO:IHI, JULO:JHI)
-
-    ! Pressure at edges in "u" [hPa]
-    REAL*8, INTENT(OUT) :: pu(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: il, ij
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-       delp1(:,:) = dap + (dbk * pres1(:,:))
-    
-       delpm(:,:) =  &
-                dap+  &
-                (dbk * 0.5d0 * (pres1(:,:) + pres2(:,:)))
-
-    do ij = j1p, j2p
-! No periodicity. (ccc, 8/3/10)
-!       pu(1,ij) = 0.5d0 * (delpm(1,ij) + delpm(i2,ij))
-       do il = i1+1, i2
-          
-          pu(il,ij) = 0.5d0 * (delpm(il,ij) + delpm(il-1,ij))
-    
-       end do
-    end do
-
-
-  END SUBROUTINE Set_Press_Terms
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Calc_Courant
-!
-! !DESCRIPTION: Subroutine Calc\_Courant calculates courant numbers from 
-!  the horizontal mass fluxes.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Calc_Courant( cose, delpm, pu,     xmass, ymass, crx, cry,  & 
-                           J1P,  J2P,   JU1_GL, J2_GL, ILO,   IHI, JULO, &
-                           JHI,  I1,    I2,     JU1,   J2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! Cosine of grid box edges
-    REAL*8,  INTENT(IN)  :: cose (JU1_GL:J2_GL)
-
-    ! Pressure thickness, the pseudo-density in a hydrostatic system
-    ! at t1+tdt/2 (approximate) (mb)
-    REAL*8,  INTENT(IN)  :: delpm(ILO:IHI, JULO:JHI)
-
-    ! pressure at edges in "u"  (mb)
-    REAL*8,  INTENT(IN)  :: pu   (iLO:IHI, JULO:JHI)
-
-    ! horizontal mass flux in E-W and N-S directions [hPa]
-    REAL*8,  INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
-    REAL*8,  INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Courant numbers in E-W and N-S directions
-    REAL*8,  INTENT(OUT) :: crx(ILO:IHI, JULO:JHI)
-    REAL*8,  INTENT(OUT) :: cry(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO) 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    INTEGER :: ij, il
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-    crx(:,:) = 0.0d0
-    cry(:,:) = 0.0d0
-
-!-----------------------------------------------------------------------------
-! Prior to 12/4/08:
-! We need to add an outer IK loop for OpenMP parallelization.  
-! Preserve original code here! (bmy, 12/4/08)
-!!   -----------------------------------
-!!   Calculate E-W horizontal mass flux.
-!!   -----------------------------------
-!
-!    do ij = j1p, j2p
-!    
-!       crx(:,ij,:) =  &
-!            xmass(:,ij,:) / pu(:,ij,:)
-!    
-!    end do
-!
-!
-!!   -----------------------------------
-!!   Calculate N-S horizontal mass flux.
-!!   -----------------------------------
-!
-!    do ij = j1p, j2p+1
-!       
-!       cry(:,ij,:) =  &
-!            ymass(:,ij,:) /  &
-!            ((0.5d0 * cose(ij)) *  &
-!            (delpm(:,ij,:) + delpm(:,ij-1,:)))
-!       
-!    end do
-! The IK loop was moved outside the subroutine. (ccc, 4/1/09)
-!-----------------------------------------------------------------------------
-
-
-!      ---------------------------------------------
-!      Calculate E-W and N-S horizontal mass fluxes.
-!      ---------------------------------------------
-
-       do ij = j1p, j2p
-    
-! pu=0 for i1. Start at i1+1. (ccc, 8/3/10)
-          do il = i1+1, i2
-
-             crx(il,ij) =  &
-                  xmass(il,ij) / pu(il,ij)
-          enddo
-       end do
-
-
-       do ij = j1p+1, j2p
-    
-          cry(:,ij) =  &
-               ymass(:,ij) /  &
-               ((0.5d0 * cose(ij)) *  &
-               (delpm(:,ij) + delpm(:,ij-1)))
-       end do
-
-! No polar cap. (ccc, 8/3/10)
-!       cry(:,j2p+1) =  &
-!               ymass(:,j2p+1) /  &
-!               ((0.5d0 * cose(j2p+1)) *  &
-!               (delpm(:,j2p+1) + delpm(:,j2p)))
-
-
-
-  END SUBROUTINE Calc_Courant
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Calc_Divergence
-
-!
-! !DESCRIPTION: Subroutine Calc\_Divergence calculates the divergence.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Calc_Divergence( do_reduction, geofac_pc, geofac, dpi,   &
-                              xmass,        ymass,     J1P,    J2P,   &
-                              I1_GL,        I2_GL,     JU1_GL, J2_GL, &
-                              ILO,          IHI,       JULO,   JHI,   &
-                              I1,           I2,        JU1,    J2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! Set to F if called on Master or T if called by Slaves
-    ! (NOTE: This is only for MPI parallelization, for OPENMP it should be F)
-    LOGICAL, INTENT(IN)  :: do_reduction
-
-    ! Special geometrical factor (geofac) for Polar cap
-    REAL*8 , INTENT(IN)  :: geofac_pc
-
-    ! Geometrical factor for meridional advection; geofac uses correct 
-    ! spherical geometry, and replaces acosp as the meridional geometrical 
-    ! factor in TPCORE
-    REAL*8 , INTENT(IN)  :: geofac(JU1_GL:J2_GL)
-
-    ! Horizontal mass flux in E/W and N/S directions [hPa]
-    REAL*8 , INTENT(IN)  :: xmass(ILO:IHI, JULO:JHI)
-    REAL*8 , INTENT(IN)  :: ymass(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Divergence at a grid point; used to calculate vertical motion [hPa]
-    REAL*8,  INTENT(OUT) :: dpi(I1:I2, JU1:J2)
-!      
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER :: il, ij
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-!------------------------------------------------------------------------------
-! Prior to 12/4/08:
-! We need to add an outer IK loop for OpenMP parallelization.  
-! Preserve original code here! (bmy, 12/4/08)
-!   -------------------------
-!   Calculate N-S divergence.
-!!   -------------------------
-!
-!    do ij = j1p, j2p
-!
-!       dpi(:,ij,:) =  &
-!            (ymass(:,ij,:) - ymass(:,ij+1,:)) *  &
-!            geofac(ij)
-!
-!    end do
-!
-!
-!!     -------------------------
-!!     Calculate E-W divergence.
-!!     -------------------------
-!
-!    do ij = j1p, j2p
-!       do il = i1, i2-1
-!          
-!          dpi(il,ij,:) =  &
-!               dpi(il,ij,:) +  &
-!               xmass(il,ij,:) - xmass(il+1,ij,:)
-!
-!       end do
-!       dpi(i2,ij,:) =  &
-!            dpi(i2,ij,:) +  &
-!            xmass(i2,ij,:) - xmass(1,ij,:)
-!    end do
-! IK loop was moved outside the subroutine (ccc, 4/1/09)
-!------------------------------------------------------------------------------
-
-!      -------------------------
-!      Calculate N-S divergence.
-!      -------------------------
-       
-       do ij = j1p, j2p-1
-
-          dpi(:,ij) =  &
-               (ymass(:,ij) - ymass(:,ij+1)) *  &
-               geofac(ij)
-
-!      -------------------------
-!      Calculate E-W divergence.
-!      -------------------------
-
-          do il = i1, i2-1
-          
-             dpi(il,ij) =  &
-                  dpi(il,ij) +  &
-                  xmass(il,ij) - xmass(il+1,ij)
-
-          end do
-
-! No periodicity. (ccc, 8/3/10)
-!          dpi(i2,ij) =  &
-!               dpi(i2,ij) +  &
-!               xmass(i2,ij) - xmass(1,ij)
-       end do
-
-
-  END SUBROUTINE Calc_Divergence
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Xadv_Dao2
-!
-! !DESCRIPTION: Subroutine Xadv\_Dao2 is the advective form E-W operator for 
-!  computing the adx (E-W) cross term.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Xadv_Dao2( iad,    jn,    js,  adx,  qqv, &
-                        ua,     ILO,   IHI, JULO, JHI, &
-                        JU1_GL, J2_GL, J1P, J2P,  I1,  &
-                        I2,     JU1,   J2)
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max latitude (J) indices
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! if iad = 1, use 1st order accurate scheme;
-    ! if iad = 2, use 2nd order accurate scheme
-    INTEGER, INTENT(IN)  :: iad
-
-    ! Northward of latitude index = jn, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: jn
-
-    ! southward of latitude index = js, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)  :: js
  
-    ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqv(ILO:IHI, JULO:JHI)
+#if defined(SPMD)
+! No buffer version (km calls to mpi_sendrecv)
+#if defined(PILGRIM)
+  call parbegintransfer(pattern2dng, km, cx, cx)
+  call parendtransfer(pattern2dng, km, cx, cx)
+#else
+  call mp_send3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, cx, 3)
+  call mp_barrier()
+  call mp_recv3d_ns(im, jm, jfirst, jlast, 1, km, ng, ng, cx, 3)
+  call mp_barrier()
+#endif
+#endif
 
-    ! Average of Courant numbers from il and il+1
-    REAL*8,  INTENT(IN)  :: ua(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Cross term due to E-W advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: adx(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij, iu
-    INTEGER :: imp, iue, iuw
-    REAL*8  :: a1, b1, c1
-    REAL*8  :: rdiff
-    REAL*8  :: ril, riu
-    real*8  :: ru
-    
-    ! Arrays
-! No ghost zones. (ccc, 8/3/10)
-!    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
-    REAL*8  :: qtmp(i1:i2, julo:jhi)
-      
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-    
-    ! Zero output array
-    adx = 0d0
+!---------------------------------------------------
+! Compute background mass-flux (fx, fy) and (cx, cy) 
+!---------------------------------------------------
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add outer IJ and IK loops for OpenMP parallelization.
-    ! Preserve original code here. (bmy, 12/5/08)
-    !do il=1,i2
-    !   qtmp(il,:,:) = qqv(il,:,:)
-    !enddo
-    !  
-    !do il=-i2/3,0
-    !   qtmp(il,:,:) = qqv(i2+il,:,:)
-    !enddo
-    !
-    !do il=i2+1,i2+i2/3
-    !   qtmp(il,:,:) = qqv(il-i2,:,:)
-    !enddo
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
+!$omp parallel do                             &
+!$omp shared(im,jm,iord,jord,mg,jfirst,jlast) &
+!$omp private(i, j, k, dak, dbk)
 
-       do ij = julo, jhi
-  
-          do il=1,i2
-             qtmp(il,ij) = qqv(il,ij)
+  do k=1,km
+
+     do j=js2gd,jn2gd                ! ffsl needed on N*ng S*ng
+        ffsl(j,k) = .false.
+        do i=1,im
+           if( abs(cx(i,j,k)) > 1. ) then
+               ffsl(j,k) = .true.
+               go to 2222
+           endif
+        enddo
+2222  continue
+     enddo
+
+     dak = ak(k+1) - ak(k)
+     dbk = bk(k+1) - bk(k)
+
+     do j=max(1,jfirst-mg),min(jm,jlast+mg)
+        do i=1,im
+           delp1(i,j,k) = dak + dbk*psg(i,j,1)
+        enddo
+     enddo 
+
+     call tp2d(va(1,jfirst,k), delp1(1,jfirst-mg,k), cx(1,jfirst-mg,k), &
+               cy(1,jfirst,k), im, jm, iord, jord, mg,  mg,             &
+               fx(1,jfirst,k), fy(1,jfirst,k),  ffsl(jfirst-mg,k),      &
+               cx(1,jfirst,k), yms(1,jfirst,k), 0, jfirst, jlast)
+
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%
+ !%%% Fix mass fluxes in regions not over the courant limit (bdf, bmy, 5/7/03)
+ !%%%
+     DO J = 4, JM-4
+        FX(:,J,K) = XMASS(:,J,K)
+        FY(:,J,K) = YMASS(:,J,K) * DLAT(J)
+     ENDDO
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      do j=js2g0,jn2g0
+      do i=1,im-1
+         delp(i,j,k) = delp1(i,j,k) + fx(i,j,k) - fx(i+1,j,k) +          &
+                                     (fy(i,j,k)-fy(i,j+1,k))*rgw(j)
+      enddo
+         delp(im,j,k) = delp1(im,j,k) + fx(im,j,k) - fx(1,j,k) +         &
+                                       (fy(im,j,k)-fy(im,j+1,k))*rgw(j)
+      enddo
+
+      if ( jfirst ==  1 ) then
+          do i=1,im
+             delp(i,1,k) = delp1(i,1,k) - fy(i,2,k)*rgw(1)
           enddo
+             call xpavg(delp(1,1,k), im)
+      endif
 
-! No ghost zones. (ccc, 8/3/10)          
-!          do il=-i2/3,0
-!             qtmp(il,ij) =  qqv(i2+il,ij)  
-!          enddo
-!          
-!          do il=i2+1,i2+i2/3
-!             qtmp(il,ij) =  qqv(il-i2,ij)
-!          enddo
-       enddo
+      if ( jlast == jm ) then
+          do i=1,im
+             delp(i,jm,k) = delp1(i,jm,k) + fy(i,jm,k)*rgw(jm)
+          enddo
+             call xpavg(delp(1,jm,k), im)
+      endif
 
-!   =============
-    if (iad == 1) then
-!   =============
-         
-       !       ----------
-       !       1st order.
-       !       ----------
+     if ( n_adj == 0 ) then
+     do j=js2g0,jn2g0
+        if( ffsl(j,k) ) then
+          do i=1,im
+             fx(i,j,k) = fx(i,j,k)/sign(max(abs(cx(i,j,k)),tiny),cx(i,j,k))
+          enddo
+        endif
+     enddo
+     endif
 
-          do ij = j1p, j2p
-               
+  enddo
 
-             if ((ij <= js) .or. (ij >= jn)) then 
-                  
-                !             --------------
-                !             In Polar area.
-                !             --------------
-                  
-                do il = i1, i2
-                     
-                   iu  = ua(il,ij)
-                   riu = iu
-                   ru  = ua(il,ij) - riu
-                   iu  = il - iu
-                     
-                   if (ua(il,ij) >= 0.0d0) then
+!--------------
+! Compute ps:
+!--------------
 
-                      ! Restrain iu into the domain. (ccc, 8/3/10)
-                      iu = Max(i1+1, iu)
-                      iu = Min(iu, i2)
+!$omp parallel do private(i, j, k)
 
-                      rdiff = qtmp(iu-1,ij) - qtmp(iu,ij)
-                   else
+  do j=jfirst,jlast
+     do i=1,im
+        pe(i,1,j) = ak(1)
+     enddo
 
-                      ! Restrain iu into the domain. (ccc, 8/3/10)
-                      iu = Max(i1, iu)
-                      iu = Min(iu, i2-1)
+     do k=1,km
+        do i=1,im
+           pe(i,k+1,j) = pe(i,k,j) + delp(i,j,k)
+        enddo
+     enddo
 
-                      rdiff = qtmp(iu,ij)   - qtmp(iu+1,ij)
-                   end if
-                     
-                   adx(il,ij) = (qtmp(iu,ij) - qtmp(il,ij)) +  &
-                                   (ru * rdiff)
-                     
-                end do
-                  
-             else  ! js < ij < jn
-                  
-                !             ----------------
-                !             Eulerian upwind.
-                !             ----------------
-                  
-                do il = i1, i2
-                     
-                   ril = il
-                   iu  = ril - ua(il,ij)
-                     
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Max(i1, iu)
-                   iu = Min(iu, i2-1)
+     do i=1,im
+        ps(i,j) = pe(i,km+1,j)
+     enddo
+  enddo
 
-                   adx(il,ij) = ua(il,ij) *  &
-                        (qtmp(iu,ij) - qtmp(iu+1,ij))
-                     
-                end do
-                  
-             end if
-               
-          end do
-         
-!   ==================
-    else if (iad == 2) then
-!   ==================
-         
+!--------------------------------------------------------------
+! Apply mass_flux adjuster to nudge predicted ps towards "data"
+!--------------------------------------------------------------
 
-          do ij = j1p, j2p
-               
+  if ( n_adj > 0 ) then
+    call adj_fx(im, jm, km, jfirst, jlast, ak, bk, ffsl,  &
+                ps, psg(:,:,2), pe, delp, fx, cx, fy, ng, mg,    &
+                tiny, n_adj) 
+  endif
 
-             if ((ij <= js) .or. (ij >= jn)) then
-                  
-                !             --------------
-                !             In Polar area.
-                !             --------------
-                  
-                do il = i1, i2
-                     
-                   iu  = Nint (ua(il,ij))
-                   riu = iu
-                   ru  = riu - ua(il,ij)
-                   iu  = il - iu
-                     
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Max(i1+1, iu)
-                   iu = Min(iu, i2-1)
+ end subroutine air_mass_flux
 
-                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
-                                 qtmp(iu,ij)
-                     
-                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
-                     
-                   c1 = qtmp(iu,ij) - qtmp(il,ij)
-                     
-                   adx(il,ij) = (ru * ((a1 * ru) + b1)) + c1
-                     
-                end do
-                  
-             else  ! js < ij < jn
-                  
-                !             ----------------
-                !             Eulerian upwind.
-                !             ----------------
-                  
-                do il = i1, i2
-                   
-                   iu  = Nint (ua(il,ij))
-                   riu = iu
-                   ru  = riu - ua(il,ij)
-                   iu  = il - iu
-                     
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Max(i1+1, iu)
-                   iu = Min(iu, i2-1)
+ subroutine tp2g(h,  va, crx, cry, im, jm, iv,         &
+                iord, jord, ng, mg, xfx, yfx, ffsl,    &
+                jfirst, jlast, dp, dpp,                & 
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%% 
+ !%%% Add MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT as arguments
+ !%%% to subroutine TP2G for mass-flux diagnostics (bmy, 9/28/04)
+ !%%%
+                MFLEW, MFLNS, AREA_M2,                 & 
+                TCV,   ND24,  ND25,   DT )
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ implicit none
 
-                   a1 = 0.5d0 * (qtmp(iu+1,ij) + qtmp(iu-1,ij)) -  &
-                                 qtmp(iu,ij)
-                   
-                   b1 = 0.5d0 * (qtmp(iu+1,ij) - qtmp(iu-1,ij))
-                     
-                   c1 = qtmp(iu,ij) - qtmp(il,ij)
-                     
-                   adx(il,ij) = (ru * ((a1 * ru) + b1)) + c1
-                     
-                end do
-                  
-             end if
-               
-          end do
-!   ======
-    end if
-!   ======
-      
-      
-! No poles. (ccc, 8/3/10)
-!    if (ju1 == ju1_gl) then
-!       
-!       !---------------------------------------------------------------
-!       ! Prior to 12/4/08:
-!       ! We need to rewrite the DO loop below for OpenMP.  
-!       ! Preserve original code here! (bmy, 12/4/08)
-!       !adx(i1:i2,ju1,:) = 0.0d0
-!       !  
-!       !if (j1p /= ju1_gl+1) then
-!       !     
-!       !   adx(i1:i2,ju1+1,:) = 0.0d0
-!       !     
-!       !end if
-!       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-!       !---------------------------------------------------------------
-!
-!          adx(i1:i2,ju1) = 0.0d0
-!         
-!          if (j1p /= ju1_gl+1) then
-!            
-!             adx(i1:i2,ju1+1) = 0.0d0
-!            
-!          end if
-!          
-!    end if
-!      
-!      
-!    if (j2 == j2_gl) then
-!
-!       !---------------------------------------------------------------
-!       ! Prior to 12/4/08:
-!       ! We need to rewrite the DO loop below for OpenMP.  
-!       ! Preserve original code here! (bmy, 12/4/08)
-!       !adx(i1:i2,j2,:) = 0.0d0
-!       !  
-!       !if (j1p /= ju1_gl+1) then
-!       !     
-!       !   adx(i1:i2,j2-1,:) = 0.0d0
-!       !     
-!       !end if
-!       ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-!       !---------------------------------------------------------------
-!
-!          adx(i1:i2,j2) = 0.0d0
-!         
-!          if (j1p /= ju1_gl+1) then
-!            
-!             adx(i1:i2,j2-1) = 0.0d0
-!            
-!          end if
-!
-!    end if
-      
-  
-  END SUBROUTINE Xadv_Dao2
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Yadv_Dao2
-!
-! !DESCRIPTION: Subroutine Yadv\_Dao2 is the advective form N-S operator 
-!  for computing the ady (N-S) cross term.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Yadv_Dao2( iad,   ady,    qqu,   va,  I1_GL, &
-                        I2_GL, JU1_GL, J2_GL, J1P, J2P,   &
-                        ILO,   IHI,    JULO,  JHI, I1,    &
-                        I2,    JU1,    J2)
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
+! !INPUT PARAMETERS:
+   integer, intent(in):: im, jm             ! Dimensions
+   integer, intent(in):: jfirst, jlast      ! Latitude strip
+   integer, intent(in):: iv                 ! iv=-1 --> vector
+   integer, intent(in):: iord, jord         ! Interpolation order in x,y
+   integer, intent(in):: ng                 ! Max. NS dependencies
+   integer, intent(in):: mg                 ! Secondary ghosting zones
+   logical, intent(in):: ffsl(jfirst-ng:jlast+ng)  ! Use flux-form semi-Lagrangian trans.?
+   real, intent(in):: va(im,jfirst:jlast)   ! CFL in y at cell center 
+   real, intent(in):: dp(im,jfirst-mg:jlast+mg)
+   real, intent(in):: dpp(im,jfirst:jlast)
 
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
+   real, intent(in):: crx(im,jfirst-ng:jlast+ng) ! ( N*NG S*NG )
+   real, intent(in):: cry(im,jfirst:jlast+mg)    ! ( N like FY )
 
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
+   real, intent(in):: xfx(im,jfirst:jlast)       ! x-mass flux
+   real, intent(in):: yfx(im,jfirst:jlast+mg)     ! y-mass flux
 
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
+   real, intent(inout) :: h(im,jfirst-ng:jlast+ng)
 
-    ! If iad = 1, use 1st order accurate scheme;
-    ! If iad = 2, use 2nd order accurate scheme
-    INTEGER, INTENT(IN)  :: iad
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Declare MFLEW, MFLNS, AREA_M2, TCV, ND24, ND25, DT for the
+ !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
+ !%%% 
+   REAL,    INTENT(INOUT) :: MFLEW(IM,JM)  ! E/W mass flux array
+   REAL,    INTENT(INOUT) :: MFLNS(IM,JM)  ! N/S mass flux array
+   REAL,    INTENT(IN)    :: AREA_M2(JM)   ! Grid bos surface area [m2]
+   REAL,    INTENT(IN)    :: TCV           ! Mass ratio
+   INTEGER, INTENT(IN)    :: ND24          ! flux diag
+   INTEGER, INTENT(IN)    :: ND25          ! flux diag
+   REAL,    INTENT(IN)    :: DT            ! time step for flux diagnostic
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
+! Local
+   real fx(im,jfirst:jlast)        ! tracer flux in x ( unghosted )
+   real fy(im,jfirst:jlast+mg)     ! tracer flux in y ( N, see tp2c )
 
-    ! Average of Courant numbers from ij and ij+1
-    REAL*8,  INTENT(IN)  :: va(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Cross term due to N-S advection (mixing ratio)
-    REAL*8,  INTENT(OUT) :: ady(ILO:IHI, JULO:JHI)
+   integer i, j, js2g0, jn2g0
+   real sum1, DTC
 
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij
-    INTEGER :: jv
-    REAL*8  :: a1, b1, c1
-    REAL*8  :: rij, rjv
-    REAL*8  :: rv
+   js2g0  = max(2,jfirst)          !  No ghosting
+   jn2g0  = min(jm-1,jlast)        !  No ghosting
 
-    ! Arrays 
-    ! We may need a small ghost zone depending 
-    ! on the polar cap used
-    REAL*8  :: qquwk(ilo:ihi, julo-2:jhi+2)   
-                                                       
-!     ----------------
-!     Begin execution.
-!     ----------------
-
-    ! Zero output array
-    ady = 0d0
-
-    ! Make work array
-    do ij = julo, jhi
-       qquwk(:,ij) = qqu(:,ij)
-    end do
-
-
-!   =============
-    if (iad == 1) then
-!   =============
-         
-       !       ----------
-       !       1st order.
-       !       ----------
-         
-! No polar cap. (ccc, 8/3/10)
-!          do ij = j1p-1, j2p+1
-          do ij = j1p, j2p
-             do il = i1, i2
-!c?
-                rij = ij
-                jv  = rij - va(il,ij)
-                  
-
-                ! Restrain jv into the domain. (ccc, 8/3/10)
-                jv = Max(j1p, jv)
-                jv = Min(jv, j2p-1)
-
-                ady(il,ij) = va(il,ij) *  &
-                     (qquwk(il,jv) - qquwk(il,jv+1))
-                  
-             end do
-          end do
-         
-         
-!   ==================
-    else if (iad == 2) then
-!   ==================
-         
-! No special poles treatment (ccc, 8/3/10)
-!          do ij = j1p-1, j2p+1
-          do ij = j1p, j2p
-             do il = i1, i2
-!c?
-                jv  = Nint (va(il,ij))
-                rjv = jv
-                rv  = rjv - va(il,ij)
-                jv  = ij - jv
-                  
-                ! Restrain jv into the domain. (ccc, 8/3/10)
-                jv = Max(j1p+1, jv)
-                jv = Min(jv, j2p-1)
-
-                a1 = 0.5d0 * (qquwk(il,jv+1) + qquwk(il,jv-1)) -  &
-                              qquwk(il,jv)
-                  
-                b1 = 0.5d0 * (qquwk(il,jv+1) - qquwk(il,jv-1))
-                  
-                c1 = qquwk(il,jv) - qquwk(il,ij)
-                  
-                ady(il,ij) = (rv * ((a1 * rv) + b1)) + c1
-                  
-             end do
-          end do
-         
-    end if
-      
-      
-
-  END SUBROUTINE Yadv_Dao2
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Xtp
-!
-! !DESCRIPTION: Subroutine Xtp does horizontal advection in the E-W direction.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Xtp( ilmt, jn,  js,    pu,     crx,   dq1, qqv, xmass, fx,  &
-                  J1P,  J2P, I2_GL, JU1_GL, J2_GL, ILO, IHI, JULO,  JHI, &
-                  I1,   I2,  JU1,   J2,  iord, y_offset )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    ::         I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
-
-    ! Controls various options in E-W advection
-    INTEGER, INTENT(IN)    :: ilmt
-
-    ! Northward of latitude index = jn, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: jn
-
-    ! Southward of latitude index = js, Courant numbers could be > 1,
-    ! so use the flux-form semi-Lagrangian scheme
-    INTEGER, INTENT(IN)    :: js
-
-    ! Option for E-W transport scheme.  See module header for more info.
-    INTEGER, INTENT(IN)    :: iord
-
-    ! pressure at edges in "u" [hPa]
-    REAL*8,  INTENT(IN)    :: pu(ILO:IHI, JULO:JHI)
-
-    ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(ILO:IHI, JULO:JHI)
-
-    ! Horizontal mass flux in E-W direction [hPa]
-    REAL*8,  INTENT(IN)    :: xmass(ILO:IHI, JULO:JHI)
-
-    ! Offset on the global grid
-    INTEGER, INTENT(IN)    :: y_offset
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
-
-    ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij, ic
-    INTEGER :: iu, ix, iuw, iue, imp
-    INTEGER :: jvan
-    REAL*8  :: rc
-    REAL*8  :: ric, ril
-
-    ! Arrays
-    INTEGER :: isav(i1:i2)
-! No ghost zone. (ccc, 8/3/10)
-!    REAL*8  :: dcx(-i2/3:i2+i2/3, julo:jhi)
-!    REAL*8  :: qtmp(-i2/3:i2+i2/3, julo:jhi)
-    REAL*8  :: dcx(i1:i2, julo:jhi)
-    REAL*8  :: qtmp(i1:i2, julo:jhi)
-
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-
-    dcx(:,:) = 0.0d0
-    fx(:,:) = 0.0d0
  
-! Not used. (ccc, 8/3/10)
-!    imp = i2+1
-    
-    ! NOTE: these loops do not parallelize well (bmy, 12/5/08)
-
-    ! Populate qtmp
-    do il=i1,i2
-       qtmp(il,:) = qqv(il,:)
-    enddo
-    
-! No ghost zones. (ccc, 8/3/10)
-!    do il = -i2/3,0
-!       qtmp(il,:) =  qqv(i2+il,:) 
-!    enddo
-!    
-!    do il = i2+1,i2+i2/3
-!       qtmp(il,:) = qqv(il-i2,:)
-!    enddo
-
-    if (IORD /= 1) then
-! No ghost zones (ccc, 8/3/10)
-!       qtmp(i1-1,:) = qqv(i2,:)
-!       qtmp(i1-2,:) = qqv(i2-1,:)
-!       qtmp(i2+1,:) = qqv(i1,:)
-!       qtmp(i2+2,:) = qqv(i1+1,:)
-
-!      ==========
-       call Xmist &
-!      ==========
-            (dcx, qtmp, &
-             j1p, j2p, i2_gl, ju1_gl, j2_gl, ilo, ihi, julo, jhi, &
-             i1, i2, ju1, j2)
-    end if
-
-
-! Need real global indices. (ccc, 8/3/10)
-!    jvan = Max (1, j2_gl / 18)
-    jvan = Max (1, 360 / 18)
-
-!   ==============
-    do ij = j1p, j2p
-!   =================
-
-!      ======================================
-       if ((ij > js) .and. (ij < jn)) then
-!      ======================================
-
-!         ------------------------------------------------------
-!         Do horizontal Eulerian advection in the E-W direction.
-!         ------------------------------------------------------
-
-! No poles so no special case. (ccc, 8/3/10)
-!          if ((IORD == 1) .or.  &
-!               (ij == j1p) .or. (ij == j2p)) then
-          if ((IORD == 1) ) then
-             
-             do il = i1, i2
-                ril = il
-                iu  = ril - crx(il,ij)
-                
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                iu = Max(i1, iu)
-                iu = Min(iu, i2)
-                
-                fx(il,ij) = qtmp(iu,ij)
-             end do
-             
-          else
-                  
-             if ((IORD == 2) .or.  &
-! The condition is on the global grid. (ccc, 8/3/10)
-!                  (ij <= (j1p+jvan)) .or. (ij >= (j2p-jvan))) then
-
-                  (ij + y_offset <= (1+jvan)) .or. &
-                  (ij + y_offset >= (360-jvan))) then
-                     
-                do il = i1, i2
-                   ril = il
-                   iu  = ril - crx(il,ij)
-                   
-                   ! Restrain iu into the domain. (ccc, 8/3/10)
-                   iu = Max(i1, iu)
-                   iu = Min(iu, i2)
-
-                   fx(il,ij) =  &
-                        qtmp(iu,ij) +  &
-                        (dcx(iu,ij) *  &
-                        (Sign (1.0d0, crx(il,ij)) - crx(il,ij)))
-                end do
-                
-             else
-
-! No ghost zones. (ccc, 8/3/10)
-!!               ==========
-!                call Fxppm  &
-!                     (ij, ilmt, crx, dcx, fx, qtmp, &
-!                     -i2/3, i2+i2/3, julo, jhi, i1, i2)
-!!  qtmp (inout) - can be updated
-!!               ==========
-
-!               ==========
-                call Fxppm  &
-                     (ij, ilmt, crx, dcx, fx, qtmp, &
-                     i1, i2, julo, jhi, i1, i2)
-!  qtmp (inout) - can be updated
-!               ==========
-
-             end if
-
-          end if
-
-          !---------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! We need to write this as an explicit loop over IL
-          ! to facilitate OpenMP parallelization.  Preserve original
-          ! code here. (bmy, 12/5/08)
-          !fx(i1:i2,ij,ik) = fx(i1:i2,ij,ik) * xmass(i1:i2,ij,ik)
-          !---------------------------------------------------------------
-          do il = i1, i2  
-             fx(il,ij) = fx(il,ij) * xmass(il,ij)
-          enddo
-
-!      ====
-       else
-!      ====
-
-!         ------------------------------------------------------------
-!         Do horizontal Conservative (flux-form) Semi-Lagrangian
-!         advection in the E-W direction (van Leer at high latitudes).
-!         ------------------------------------------------------------
-
-! No polar cap, so no special treatment at the borders. (ccc, 8/3/10)
-!          if ((IORD == 1) .or.  &
-!               (ij == j1p) .or. (ij == j2p)) then
-          if (IORD == 1) then
-
-             do il = i1, i2
-                ic       = crx(il,ij)
-                isav(il) = il - ic
-                ril      = il
-                iu       = ril - crx(il,ij)
-                ric      = ic
-                rc       = crx(il,ij) - ric
-                
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                iu = Max(i1, iu)
-                iu = Min(iu, i2)
-
-                fx(il,ij) = rc * qtmp(iu,ij)
-             end do
-                
-          else
-                  
-             do il = i1, i2
-                ic       = crx(il,ij)
-                isav(il) = il - ic
-                ril      = il
-                iu       = ril - crx(il,ij)
-                ric      = ic
-                rc       = crx(il,ij) - ric
-                     
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                iu = Max(i1, iu)
-                iu = Min(iu, i2)
-
-                fx(il,ij) =  &
-                     rc *  &
-                     (qtmp(iu,ij) +  &
-                     (dcx(iu,ij) * (Sign (1.0d0, rc) - rc)))
-             end do
-
-          end if
-               
-          do il = i1, i2
-             
-             if (crx(il,ij) > 1.0d0) then
-                
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                isav(il) = Max(i1, isav(il))
-
-                do ix = isav(il), il - 1
-                   fx(il,ij) = fx(il,ij) + qtmp(ix,ij)
-                end do
-                
-             else if (crx(il,ij) < -1.0d0) then
-                
-                ! Restrain iu into the domain. (ccc, 8/3/10)
-                isav(il) = Min(i2, isav(il))
-
-                do ix = il, isav(il) - 1
-                   fx(il,ij) = fx(il,ij) - qtmp(ix,ij)
-                end do
-                
-             end if
-             
-          end do
-
-          !---------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! We need to write this as an explicit loop over IL
-          ! to facilitate OpenMP parallelization.  Preserve original
-          ! code here. (bmy, 12/5/08)
-          !fx(i1:i2,ij,ik) = pu(i1:i2,ij,ik) * fx(i1:i2,ij,ik)
-          !---------------------------------------------------------------
-          do il = i1, i2
-             fx(il,ij) = pu(il,ij) * fx(il,ij)
-          enddo
-
-!      ======
-       end if
-!      ======
-
-!   ======
-    end do
-!   ======
-
-    ! NOTE: This loop does not parallelize well (bmy, 12/5/08)
-    do ij = j1p, j2p
-       do il = i1, i2-1
-            
-          dq1(il,ij) = dq1(il,ij) +  &
-                         (fx(il,ij) - fx(il+1,ij))
-    
-       end do
-! No periodicity. (ccc, 8/3/10)
-!       dq1(i2,ij) = dq1(i2,ij) +  &
-!                      (fx(i2,ij) - fx(i1,ij))
-    end do
-    
-  END SUBROUTINE Xtp
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Xmist
-!
-! !DESCRIPTION: Subroutine Xmist computes the linear tracer slope in the 
-!  E-W direction. It uses the Lin et. al. 1994 algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Xmist( dcx,  qqv, J1P, J2P, I2_GL, JU1_GL, J2_GL, ILO, IHI, &
-                    JULO, JHI, I1,  I2,  JU1,   J2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  ::         I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! Concentration contribution from N-S advection [mixing ratio]
-!ccc    REAL*8,  INTENT(IN)  :: qqv(-I2/3:I2+I2/3, JULO:JHI)
-    REAL*8,  INTENT(IN)  :: qqv(I1:I2, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Slope of concentration distribution in E-W direction [mixing ratio]
-!ccc    REAL*8,  INTENT(OUT) :: dcx(-I2/3:I2+I2/3, JULO:JHI)
-    REAL*8,  INTENT(OUT) :: dcx(I1:I2, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij
-    REAL*8  :: pmax, pmin
-    REAL*8  :: r24
-    REAL*8  :: tmp
-      
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-    r24 = 1.0d0 / 24.0d0
-
-! No ghost zones. (ccc, 8/3/10)
-!       do ij = j1p+1, j2p-1
-!          do il = i1, i2
-       do ij = j1p, j2p
-          do il = i1+2, i2-2
-
-             tmp =  &
-                  ((8.0d0 * (qqv(il+1,ij) - qqv(il-1,ij))) +  &
-                  qqv(il-2,ij) - qqv(il+2,ij)) *  &
-                  r24
-
-             pmax =  &
-                  Max (qqv(il-1,ij), qqv(il,ij), qqv(il+1,ij)) -  &
-                  qqv(il,ij)
-
-             pmin =  &
-                  qqv(il,ij) -  &
-                  Min (qqv(il-1,ij), qqv(il,ij), qqv(il+1,ij))
-
-             dcx(il,ij) = Sign (Min (Abs (tmp), pmax, pmin), tmp)
-
-          end do
-       end do
-
-    !--------------------------------------------------------------------
-    ! Prior to 12/4/08:
-    ! We need to add outer IK and IJ loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/4/08)
-    !! Populate ghost zones of dcx (ccc, 11/20/08)
-    !do il = -i2/3, 0
-    !   dcx(il,:,:) = dcx(i2+il,:,:)
-    !enddo
-    !  
-    !do il = i2+1, i2+i2/3
-    !   dcx(il,:,:) = dcx(il-i2,:,:)
-    !enddo
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !--------------------------------------------------------------------
-
-  END SUBROUTINE Xmist
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Fxppm
-!
-! !DESCRIPTION: Subroutine Fxppm is the 1D "outer" flux form operator based 
-!  on the Piecewise Parabolic Method (PPM; see also Lin and Rood 1996) for 
-!  computing the fluxes in the E-W direction.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Fxppm( ij,  ilmt, crx, dcx, fx, qqv,     &
-                    ILO, IHI, JULO, JHI, I1,  I2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Local min & max longitude (I) and altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
-
-    ! Latitude (IJ) and altitude (IK) indices
-    INTEGER, INTENT(IN)    :: ij
-
-    ! Controls various options in E-W advection
-    INTEGER, INTENT(IN)    :: ilmt
-
-    ! Courant number in E-W direction
-    REAL*8,  INTENT(IN)    :: crx(I1:I2, JULO:JHI)
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Slope of concentration distribution in E-W direction (mixing ratio)
-    REAL*8,  INTENT(OUT)   :: dcx(ILO:IHI, JULO:JHI)
-
-    ! E-W flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fx(I1:I2, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-!
-! !REMARKS:
-!   This routine is called from w/in a OpenMP parallel loop fro
-
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!                               Also remove the allocatable arrays, which
-!                               interfere w/ OpenMP parallelization.
-!   01 Apr 2009 - C. Carouge  - The input arrays are now 2D only.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    !-------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! Remove this (explanation below).
-    !LOGICAL,             SAVE :: first = .true.
-    !-------------------------------------------------------------------------
-
-    INTEGER                   :: il
-    INTEGER                   :: ilm1
-    INTEGER                   :: lenx
-    REAL*8                    :: r13, r23
-    REAL*8                    :: rval
- 
-    !------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! NOTE: It is a bad idea to make these arrays allocatable.  The way this
-    ! was implemented, it tried to create these arrays once for each thread.
-    ! This led to a segmentation fault.  Better to just define these arrays
-    ! with the appropriate dimensions.  Also note, we don't really need to
-    ! use SAVE since these arrays are being reset to zero on each call
-    ! to Fxppm. (bmy, 12/5/08)
-    !
-    !! Arrays
-    !REAL*8, ALLOCATABLE, SAVE :: a6(:)
-    !REAL*8, ALLOCATABLE, SAVE :: al(:)
-    !REAL*8, ALLOCATABLE, SAVE :: ar(:)
-    !REAL*8, ALLOCATABLE, SAVE :: a61(:)
-    !REAL*8, ALLOCATABLE, SAVE :: al1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: ar1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: dcxi1(:)
-    !REAL*8, ALLOCATABLE, SAVE :: qqvi1(:)
-    !------------------------------------------------------------------------
-
-    ! Arrays
-    REAL*8                    :: a6( ILO:IHI )
-    REAL*8                    :: al( ILO:IHI )
-    REAL*8                    :: ar( ILO:IHI )
-    REAL*8                    :: a61(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: al1(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: ar1(   (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: dcxi1( (IHI-1) - (ILO+1) + 1 )
-    REAL*8                    :: qqvi1( (IHI-1) - (ILO+1) + 1 )
-
-    !     ----------------
-    !     Begin execution.
-    !     ----------------
-
-!------------------------------------------------------------------------------
-! Prior to 12/5/08:
-! Remove the ALLOCATE command, since we are now declaring these as regular
-! subroutine arrays and not making them allocatable. (bmy, 12/5/08)
-!!   ==========
-!    if (first) then
-!!   ==========
-!         
-!       first = .false.
-!         
-!       Allocate (a6(ilo:ihi))
-!       Allocate (al(ilo:ihi))
-!       Allocate (ar(ilo:ihi))
-!       a6 = 0.0d0; al = 0.0d0; ar = 0.0d0
-!         
-!       Allocate (a61((ihi-1)-(ilo+1)+1))
-!       Allocate (al1((ihi-1)-(ilo+1)+1))
-!       Allocate (ar1((ihi-1)-(ilo+1)+1))
-!       a61 = 0.0d0; al1 = 0.0d0; ar1 = 0.0d0
-!         
-!       Allocate (dcxi1((ihi-1)-(ilo+1)+1))
-!       Allocate (qqvi1((ihi-1)-(ilo+1)+1))
-!       dcxi1 = 0.0d0; qqvi1 = 0.0d0
-!       
-!    end if 
-!------------------------------------------------------------------------------
-     
-    ! Zero arrays (bmy, 12/5/08)
-    a6    = 0.0d0
-    al    = 0.0d0
-    ar    = 0.0d0
-    a61   = 0.0d0
-    al1   = 0.0d0
-    ar1   = 0.0d0
-    dcxi1 = 0.0d0
-    qqvi1 = 0.0d0
-
-    r13 = 1.0d0 / 3.0d0
-    r23 = 2.0d0 / 3.0d0
-
-
-    do il = ilo + 1, ihi
-       
-       rval = 0.5d0 * (qqv(il-1,ij) + qqv(il,ij)) +  &
-                      (dcx(il-1,ij) - dcx(il,ij)) * r13
-
-       al(il)   = rval
-       ar(il-1) = rval
-
-    end do
-      
-
-    do il = ilo + 1, ihi - 1
-       a6(il) = 3.0d0 *  &
-                (qqv(il,ij) + qqv(il,ij) - (al(il) + ar(il)))
-    end do
-
-
-!   ==============
-    if (ilmt <= 2) then
-!   ==============
-
-       a61(:) = 0.0d0
-       al1(:) = 0.0d0
-       ar1(:) = 0.0d0
-         
-       dcxi1(:) = 0.0d0
-       qqvi1(:) = 0.0d0
-         
-       lenx = 0
-         
-       do il = ilo + 1, ihi - 1
-            
-          lenx = lenx + 1
-            
-          a61(lenx)   = a6(il)
-          al1(lenx)   = al(il)
-          ar1(lenx)   = ar(il)
-            
-          dcxi1(lenx) = dcx(il,ij)
-          qqvi1(lenx) = qqv(il,ij)
-            
-       end do
-         
-!      ===========
-       call Lmtppm  &
-            (lenx, ilmt, a61, al1, ar1, dcxi1, qqvi1)
-!      ===========
-         
-       lenx = 0
-         
-       do il = ilo + 1, ihi - 1
-            
-          lenx = lenx + 1
-            
-          a6(il)   = a61(lenx)
-          al(il)   = al1(lenx)
-          ar(il)   = ar1(lenx)
-            
-          dcx(il,ij) = dcxi1(lenx)
-          qqv(il,ij) = qqvi1(lenx)
-            
-       end do
-
-! No ghost zones. (ccc, 8/3/10)
-!       ! Populate ghost zones of qqv and dcx with new values (ccc, 11/20/08)
-!       do il = -i2/3,0
-!          dcx(il,ij) = dcx(i2+il,ij)
-!          qqv(il,ij) = qqv(i2+il,ij)
-!       enddo
-!
-!       do il = i2+1, i2+i2/3
-!          dcx(il,ij) = dcx(il-i2,ij)
-!          qqv(il,ij) = qqv(il-i2,ij)            
-!       enddo
-         
-    end if
-      
-      
-    do il = i1+1, i2
-         
-       if (crx(il,ij) > 0.0d0) then
-          
-          ilm1 = il - 1
-            
-          fx(il,ij) =  &
-               ar(ilm1) +  &
-               0.5d0 * crx(il,ij) *  &
-               (al(ilm1) - ar(ilm1) +  &
-               (a6(ilm1) * (1.0d0 - (r23 * crx(il,ij)))))
-            
-       else
-            
-          fx(il,ij) =  &
-               al(il) -  &
-               0.5d0 * crx(il,ij) *  &
-               (ar(il) - al(il) +  &
-               (a6(il) * (1.0d0 + (r23 * crx(il,ij)))))
-            
-       end if
-         
-    end do
-
-    ! First box case (ccc, 11/20/08)
-    if (crx(i1,ij) > 0.0d0) then
-         
-       ilm1 = i2
-       
-       fx(i1,ij) =  &
-            ar(ilm1) +  &
-            0.5d0 * crx(i1,ij) *  &
-            (al(ilm1) - ar(ilm1) +  &
-            (a6(ilm1) * (1.0d0 - (r23 * crx(i1,ij)))))
-         
-    else
-         
-       fx(i1,ij) =  &
-            al(i1) -  &
-            0.5d0 * crx(i1,ij) *  &
-            (ar(i1) - al(i1) +  &
-            (a6(i1) * (1.0d0 + (r23 * crx(i1,ij)))))
-         
-    end if
-      
-      
-      
-  END SUBROUTINE Fxppm
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Lmtppm
-!
-! !DESCRIPTION: Subroutine Lmtppm enforces the full monotonic, semi-monotonic, 
-!  or the positive-definite constraint to the sub-grid parabolic distribution
-!  of the Piecewise Parabolic Method (PPM).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Lmtppm( lenx, lmt, a6, al, ar, dc, qa )
-!
-! !INPUT PARAMETERS: 
-
-    ! If 0 => full monotonicity;
-    ! If 1 => semi-monotonic constraint (no undershoots);
-    ! If 2 => positive-definite constraint
-    INTEGER, INTENT(IN)    :: lmt
-
-    ! Vector length
-    INTEGER, INTENT(IN)    :: lenx
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! Curvature of the test parabola
-    REAL*8,  INTENT(INOUT) :: a6(lenx)
-
-    ! Left edge value of the test parabola
-    REAL*8,  INTENT(INOUT) :: al(lenx)
-
-    ! Right edge value of the test parabola
-    REAL*8,  INTENT(INOUT) :: ar(lenx)
-
-    ! 0.5 * mismatch
-    REAL*8,  INTENT(INOUT) :: dc(lenx)
-
-    ! Cell-averaged value
-    REAL*8,  INTENT(INOUT) :: qa(lenx)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il
-    REAL*8  :: a6da
-    REAL*8  :: da1, da2
-    REAL*8  :: fmin, ftmp
-    REAL*8  :: r12
-
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-    r12 = 1.0d0 / 12.0d0
-
-
-!   =============
-    if (lmt == 0) then
-!   =============
-
-!      ----------------
-!      Full constraint.
-!      ----------------
-
-       do il = 1, lenx
-          
-          if (dc(il) == 0.0d0) then
-               
-             a6(il) = 0.0d0
-             al(il) = qa(il)
-             ar(il) = qa(il)
-               
-          else
-
-             da1  = ar(il) - al(il)
-             da2  = da1    * da1
-             a6da = a6(il) * da1
-               
-             if (a6da < -da2) then
-                
-                a6(il) = 3.0d0 * (al(il) - qa(il))
-                ar(il) = al(il) - a6(il)
-                  
-             else if (a6da > da2) then
-                  
-                a6(il) = 3.0d0 * (ar(il) - qa(il))
-                al(il) = ar(il) - a6(il)
-                  
-             end if
-               
-          end if
-            
-       end do
-         
-         
-!   ==================
-    else if (lmt == 1) then
-!   ==================
-
-!      --------------------------
-!      Semi-monotonic constraint.
-!      --------------------------
-
-       do il = 1, lenx
-            
-          if (Abs (ar(il) - al(il)) < -a6(il)) then
-               
-             if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
-                
-                a6(il) = 0.0d0
-                al(il) = qa(il)
-                ar(il) = qa(il)
-                  
-             else if (ar(il) > al(il)) then
-                
-                a6(il) = 3.0d0 * (al(il) - qa(il))
-                ar(il) = al(il) - a6(il)
-                  
-             else
-                  
-                a6(il) = 3.0d0 * (ar(il) - qa(il))
-                al(il) = ar(il) - a6(il)
-                  
-             end if
-               
-          end if
-            
-       end do
-
-
-!   ==================
-    else if (lmt == 2) then
-!   ==================
-
-       do il = 1, lenx
-            
-          if (Abs (ar(il) - al(il)) < -a6(il)) then
-               
-             ftmp = ar(il) - al(il)
-               
-             fmin = qa(il) +  &
-                    0.25d0 * (ftmp * ftmp) / a6(il) +  &
-                    a6(il) * r12
-               
-             if (fmin < 0.0d0) then
-                  
-                if ((qa(il) < ar(il)) .and. (qa(il) < al(il))) then
-                     
-                   a6(il) = 0.0d0
-                   al(il) = qa(il)
-                   ar(il) = qa(il)
-                     
-                else if (ar(il) > al(il)) then
-                     
-                   a6(il) = 3.0d0 * (al(il) - qa(il))
-                   ar(il) = al(il) - a6(il)
-                     
-                else
-                     
-                   a6(il) = 3.0d0 * (ar(il) - qa(il))
-                   al(il) = ar(il) - a6(il)
-                     
-                end if
-                  
-             end if
-
-          end if
-
-       end do
-
-    end if
-
-
-  END SUBROUTINE Lmtppm
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE:  Ytp
-!
-! !DESCRIPTION: Subroutine Ytp does horizontal advection in the N-S direction.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Ytp( jlmt,  geofac_pc, geofac, cry,  dq1,   qqu,    qqv,    &
-                  ymass, fy,        J1P,    J2P,  I1_GL, I2_GL,  JU1_GL, &
-                  J2_GL, ilong,     ILO,    IHI,  JULO,  JHI,    I1,     &
-                  I2,    JU1,       J2,    jord )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
-
-    ! ???
-    INTEGER, INTENT(IN)    :: ilong
-
-    ! Controls various options in N-S advection
-    INTEGER, INTENT(IN)    :: jlmt
-
-    ! N-S transport scheme (see module header for more info)
-    INTEGER, INTENT(IN)    :: jord       
-
-    ! special geometrical factor (geofac) for Polar cap
-    REAL*8,  INTENT(IN)    :: geofac_pc
-
-    ! geometrical factor for meridional advection; geofac uses correct 
-    ! spherical geometry, and replaces acosp as the  meridional geometrical 
-    ! factor in tpcore
-    REAL*8,  INTENT(IN)    :: geofac(JU1_GL:J2_GL)
-
-    ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)    :: cry(ILO:IHI, JULO:JHI)
-    
-    ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qqu(ILO:IHI, JULO:JHI)
-
-    ! Horizontal mass flux in N-S direction [hPa]
-    REAL*8,  INTENT(IN)    :: ymass(ILO:IHI, JULO:JHI)
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI)
-
-    ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(INOUT) :: qqv(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! N-S flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fy(ILO:IHI, JULO:JHI+1)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij
-    INTEGER :: jv
-    REAL*8  :: rj1p
-
-    ! Arrays
-    REAL*8  :: dcy(ilo:ihi, julo:jhi)
-
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-    dcy(:,:) = 0.0d0
-    fy(:,:) = 0.0d0
-
-    rj1p = j1p
-      
-
-!   ==============
-    if (JORD == 1) then
-!   ==============
-
-! No polar cap. (ccc, 8/3/10)
-!          do ij = j1p, j2p+1
-          do ij = j1p, j2p
-             do il = i1, i2
-!c?
-                jv = rj1p - cry(il,ij)
-                  
-                ! Restrain jv into the domain. (ccc, 8/3/10)
-                jv = Min(j2p, jv)
-                jv = Max(j1p, jv)
-
-                qqv(il,ij) = qqu(il,jv)
-                  
-             end do
-          end do
-
-!   ====
-    else
-!   ====
-
-!      ==========
-       call Ymist  &
-!     ==========
-            (4, dcy, qqu, &
-             i1_gl, i2_gl, ju1_gl, j2_gl, j1p, &
-             ilo, ihi, julo, jhi, i1, i2, ju1, j2)
-
-
-       if ((JORD <= 0) .or. (JORD >= 3)) then
-            
-!         ==========
-          call Fyppm  &
-!         ==========
-               (jlmt, cry, dcy, qqu, qqv, &
-                j1p, j2p, i1_gl, i2_gl, ju1_gl, j2_gl, ilong, &
-                ilo, ihi, julo, jhi, i1, i2, ju1, j2)
-            
-       else
-
-! No polar cap. (ccc, 8/3/10)
-!             do ij = j1p, j2p+1
-             do ij = j1p, j2p
-                do il = i1, i2
-!c?
-                   jv = rj1p - cry(il,ij)
-                     
-                ! Restrain jv into the domain. (ccc, 8/3/10)
-                jv = Min(j2p, jv)
-                jv = Max(j1p, jv)
-
-                   qqv(il,ij) =  &
-                        qqu(il,jv) +  &
-                        ((Sign (1.0d0, cry(il,ij)) - cry(il,ij)) *  &
-                        dcy(il,jv))
-
-                end do
-             end do
-       end if
-         
-    end if
-
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add an outer IK loop for OpenMP parallelization.  
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = j1p, j2p+1
-    !   qqv(i1:i2,ij,:) = qqv(i1:i2,ij,:) * ymass(i1:i2,ij,:)
-    !end do
-    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
-
-! No polar cap (ccc, 8/3/10)
-!    do ij = j1p, j2p+1
-    do ij = j1p, j2p
-       qqv(i1:i2,ij) = qqv(i1:i2,ij) * ymass(i1:i2,ij)
-    end do
-
-    !.sds.. save N-S species flux as diagnostic
-       do ij = i1,i2
-! No polar cap. (ccc, 8/3/10)
-!          fy(ij,j1p:j2p+1) = qqv(ij,j1p:j2p+1) * geofac(j1p:j2p+1)
-          fy(ij,j1p:j2p) = qqv(ij,j1p:j2p) * geofac(j1p:j2p)
-       enddo
-
-    !--------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add an outer IK loop for OpenMP parallelization.  
-    ! Preserve original code here (bmy, 12/5/08)
-    !!... meridional flux update
-    !do ij = j1p, j2p
-    !     
-    !   dq1(i1:i2,ij,:) =  &
-    !        dq1(i1:i2,ij,:) +  &
-    !        (qqv(i1:i2,ij,:) - qqv(i1:i2,ij+1,:)) * geofac(ij)
-    !     
-    !end do
-    ! The IK loop is moved outside the subroutine (ccc, 4/1/09)
-    !--------------------------------------------------------------------
-
-    !... meridional flux update
-! No ghost zone. (ccc, 8/3/10)
-!    do ij = j1p, j2p
-    do ij = j1p, j2p-1
-         
-       dq1(i1:i2,ij) =  &
-            dq1(i1:i2,ij) +  &
-            (qqv(i1:i2,ij) - qqv(i1:i2,ij+1)) * geofac(ij)
-         
-    end do
-
-  END SUBROUTINE Ytp
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Ymist
-!
-! !DESCRIPTION: Subroutine Ymist computes the linear tracer slope in the N-S 
-!  direction.  It uses the Lin et. al. 1994 algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Ymist( id,    dcy, qqu, I1_GL, I2_GL, JU1_GL, &
-                    J2_GL, J1P, ILO, IHI,   JULO,  JHI,    &
-                    I1,    I2,  JU1, J2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude index at the edge of the South polar cap
-    ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-
-    ! The "order" of the accuracy in the computed linear "slope"
-    ! (or mismatch, Lin et al. 1994); it is either 2 or 4.
-    INTEGER, INTENT(IN)  :: id
-
-    ! Concentration contribution from E-W advection (mixing ratio)
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(OUT) :: dcy(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops.
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij
-    REAL*8  :: pmax, pmin
-    REAL*8  :: r24
-    REAL*8  :: tmp
-
-    ! Arrays
-    ! I suppose the values for these indexes are 0. 
-    ! It should work as the pole values are re-calculated in the 
-    ! pole functions. (ccc)
-! No ghost zones. (ccc, 8/3/10)
-!    REAL*8 :: qtmp(ilo:ihi, julo-2:jhi+2)
-    REAL*8 :: qtmp(ilo:ihi, julo:jhi)
-
-!   ----------------
-!   Begin execution.
-!   ----------------
-
-    r24  = 1.0d0 / 24.0d0
-
-    ! Populate qtmp
-    qtmp = 0.
-    do ij=ju1,j2
-       qtmp(:,ij) = qqu(:,ij)
-    enddo
-
-!   ============
-    if (id == 2) then
-!   ============
-
-! No ghost zones. (ccc, 8/3/10)
-!          do ij = ju1 - 1, j2 - 1
-       do ij = ju1, j2 - 2
-          do il = i1, i2
-             
-             tmp  = 0.25d0 * (qtmp(il,ij+2) - qtmp(il,ij))
-             
-             pmax =  &
-                  Max (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2)) -  &
-                  qtmp(il,ij+1)
-             
-             pmin =  &
-                  qtmp(il,ij+1) -  &
-                  Min (qtmp(il,ij), qtmp(il,ij+1), qtmp(il,ij+2))
-             
-             dcy(il,ij+1) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
-             
-          end do
-       end do
-
-!   ====
-    else
-!   ====
-
-! No ghost zones. (ccc, 8/3/10)
-!       do ij = ju1 - 2, j2 - 2
-       do ij = ju1, j2 - 4
-          do il = i1, i2
-             
-             tmp  = ((8.0d0 * (qtmp(il,ij+3) - qtmp(il,ij+1))) +  &
-                  qtmp(il,ij) - qtmp(il,ij+4)) *  &
-                  r24
-             
-             pmax =  &
-                  Max (qtmp(il,ij+1), qtmp(il,ij+2), qtmp(il,ij+3))  &
-                  - qtmp(il,ij+2)
-             
-             pmin =  &
-                  qtmp(il,ij+2) -  &
-                  Min (qtmp(il,ij+1), qtmp(il,ij+2), qtmp(il,ij+3))
-             
-             dcy(il,ij+2) = Sign (Min (Abs (tmp), pmin, pmax), tmp)
-             
-          end do
-       end do
-
-    end if
-
-
-  END SUBROUTINE Ymist
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Fyppm
-!
-! !DESCRIPTION: Subroutine Fyppm is the 1D "outer" flux form operator based 
-!  on the Piecewise Parabolic Method (PPM; see also Lin and Rood 1996) for 
-!  computing the fluxes in the N-S direction.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Fyppm( jlmt,  cry,   dcy,    qqu,   qqv,   j1p, j2p,    &
-                    i1_gl, i2_gl, ju1_gl, j2_gl, ilong, ilo, ihi,    &
-                    julo,  jhi,   i1,     i2,    ju1,   j2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude indices at the edges of the S/N polar caps
-    ! J1P=JU1_GL+1; J2P=J2_GL-1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2; J2P=J2_GL-2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)  :: J1P,    J2P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: I1_GL,  I2_GL
-    INTEGER, INTENT(IN)  :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)  :: I1,     I2
-    INTEGER, INTENT(IN)  :: JU1,    J2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)  :: ILO,    IHI
-    INTEGER, INTENT(IN)  :: JULO,   JHI
-    
-    ! ILONG ??
-    INTEGER, INTENT(IN)  :: ilong
-
-    ! Controls various options in N-S advection
-    INTEGER, INTENT(IN)  :: jlmt
-
-    ! Courant number in N-S direction
-    REAL*8,  INTENT(IN)  :: cry(ILO:IHI, JULO:JHI)
-
-    ! Slope of concentration distribution in N-S direction [mixing ratio]
-    REAL*8,  INTENT(IN)  :: dcy(ILO:IHI, JULO:JHI)
-
-    ! Concentration contribution from E-W advection [mixing ratio]
-    REAL*8,  INTENT(IN)  :: qqu(ILO:IHI, JULO:JHI)
-!
-! !OUTPUT PARAMETERS:
-!
-    ! Concentration contribution from N-S advection [mixing ratio]
-    REAL*8,  INTENT(OUT) :: qqv(ILO:IHI, JULO:JHI)
-!
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.  Added
-!                               OpenMP parallel DO loops
-!   01 Apr 2009 - C. Carouge  - Moved the IK loop outside the subroutine.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: ijm1
-    INTEGER :: il, ij
-    INTEGER :: lenx
-    REAL*8  :: r13, r23
-
-    ! Arrays
-    REAL*8  :: a61 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: al1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: ar1 (ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: dcy1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: qqu1(ilong*((JHI-1)-(JULO+1)+1))
-    REAL*8  :: a6(ILO:IHI, JULO:JHI)
-    REAL*8  :: al(ILO:IHI, JULO:JHI)
-    REAL*8  :: ar(ILO:IHI, JULO:JHI)
+   call tp2d(va, h(1,jfirst-ng), crx(1,jfirst-ng), cry, im, jm,      &
+             iord, jord, ng, mg, fx, fy, ffsl(jfirst-ng),          &
+             xfx, yfx, 1, jfirst, jlast)
+
+   do j=js2g0,jn2g0
+      do i=1,im-1
+         h(i,j) = h(i,j)*dp(i,j) + fx(i,j)-fx(i+1,j)+(fy(i,j)-fy(i,j+1))*rgw(j)
+      enddo
+   enddo
+
+   do j=js2g0,jn2g0
+      h(im,j) = h(im,j)*dp(im,j) + fx(im,j)-fx(1,j)+(fy(im,j)-fy(im,j+1))*rgw(j)
+   enddo
+
+! Poles
+   if ( jfirst == 1 ) then
+        do i=1,im
+           h(i,1) = h(i,1)*dp(i,1) - fy(i,2)*rgw(1)
+        enddo
+        call xpavg(h(1, 1), im)
+   endif
    
-    ! NOTE: The code was writtein with I1:I2 as the first dimension of AL,
-    ! AR, A6, AL1, A61, AR1.  However, the limits should really should be 
-    ! ILO:IHI.  In practice, however, for a global grid (and OpenMP 
-    ! parallelization) ILO=I1 and IHI=I2.  Nevertheless, we will change the 
-    ! limits to ILO:IHI to be consistent and to avoid future problems. 
-    ! (bmy, 12/5/08)
+   if ( jlast == jm ) then
+        do i=1,im
+           h(i,jm) = h(i,jm)*dp(i,jm) + fy(i,jm)*rgw(jm)
+        enddo
+        call xpavg(h(1,jm), im)
+   endif
 
-!   ----------------
-!   Begin execution.
-!   ----------------
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND24 diag: E/W flux of tracer [kg/s] (bmy, bdf, 9/28/04)
+ !%%%
+ !%%% (1) H is in units of mixing ratio (input as Q)
+ !%%% (2) Unit conversion needs multiply from mixing 
+ !%%%      (airmass/tracer mass)/timestep to get into kg/s
+ !%%% (3) DP is current pressure thickness
+ !%%%
+   IF ( ND24 > 0 ) THEN
+      DO J = JS2G0, JN2G0
 
-    a6(:,:) = 0.0d0; al(:,:) = 0.0d0; ar(:,:) = 0.0d0
+         DO I = 1, IM-1
+            DTC        = FX(I,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+            MFLEW(I,J) = MFLEW(I,J) + DTC
+         ENDDO
 
+         DTC         = FX(IM,J)*AREA_M2(J)*100.d0 / (TCV*DT*9.8d0)
+         MFLEW(IM,J) = MFLEW(I,J) + DTC
+      ENDDO
+   ENDIF
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    r13 = 1.0d0 / 3.0d0
-    r23 = 2.0d0 / 3.0d0
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ !%%% MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
+ !%%%  
+ !%%% Implement ND25 diag: N/S flux of tracer [kg/s] (bdf, bmy, 9/28/04)
+ !%%% Now multiply fluxes by latitude factor RGW_25 (bdf, bmy, 10/29/04)
+ !%%%
+   IF ( ND25 > 0 ) THEN
+      DO J = JS2G0, JN2G0
+      DO I = 1,     IM
+         DTC        = FY(I,J)*RGW_25(J)*AREA_M2(J)*100./ (TCV*DT*9.8)
+         MFLNS(I,J) = MFLNS(I,J) + DTC
+      ENDDO
+      ENDDO
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = julo + 1, jhi
-    !   al(i1:i2,ij,:) =  &
-    !        0.5d0 * (qqu(i1:i2,ij-1,:) + qqu(i1:i2,ij,:)) +  &
-    !        (dcy(i1:i2,ij-1,:) - dcy(i1:i2,ij,:)) * r13
-    !end do
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
+      ! South Pole
+      IF ( JFIRST == 1 ) THEN
+         DO I = 1, IM
+            DTC        = -FY(I,2)*RGW_25(1)*AREA_M2(1)*100./(TCV*DT*9.8)
+            MFLNS(I,1) = MFLNS(I,1) + DTC
+         ENDDO
+      ENDIF
 
-    do ij = julo+1, jhi
-    do il = ilo,    ihi
-       al(il,ij) =  &
-            0.5d0 * (qqu(il,ij-1) + qqu(il,ij)) +  &
-            (dcy(il,ij-1) - dcy(il,ij)) * r13
-       ar(il,ij-1) = al(il,ij)
-    end do
-    end do
+      ! North Pole
+      IF ( JLAST == JM ) THEN
+         DO I = 1, IM
+            DTC     = FY(I,JM)*RGW_25(JM)*AREA_M2(JM)*100./(TCV*DT*9.8)
+            MFLNS(I,JM) = MFLNS(I,JM) + DTC
+         ENDDO
+      ENDIF
+   ENDIF
+ !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    !-------------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    ! NOTE: This DO loop doesn't parallelize, so leave it alone (bmy, 12/5/08)
-    !do ij = julo, jhi - 1
-    !   ar(i1:i2,ij,:) = al(i1:i2,ij+1,:)
-    !end do
-    !-------------------------------------------------------------------------
+!-------------------------------------------------------------------
+! Apply a simple nearest neighbor flux correction to reduce negatives
+!-------------------------------------------------------------------
+   if ( iv /= -1 ) then
+      call fct_x(h, im, jm, jfirst, jlast, ng, i)
+   endif
 
-    !-----------------------------------------------------------------------
-    ! Prior to 12/5/08:
-    ! We need to add IK and IL loops for OpenMP parallelization.
-    ! Preserve original code here (bmy, 12/5/08)
-    !do ij = julo + 1, jhi - 1
-    !
-    !   a6(i1:i2,ij,:) =  &
-    !        3.0d0 *  &
-    !        (qqu(i1:i2,ij,:) + qqu(i1:i2,ij,:) -  &
-    !        (al(i1:i2,ij,:) + ar(i1:i2,ij,:)))
-    !   
-    !end do
-    ! The IK loop was moved outside the subroutine (ccc, 4/1/09)
-    !-----------------------------------------------------------------------
+   do j=jfirst,jlast
+      do i=1,im
+         h(i,j) = h(i,j) / dpp(i,j)
+      enddo
+   enddo
 
-    do ij = julo+1, jhi-1
-    do il = ilo,    ihi
+ end subroutine tp2g
 
-       a6(il,ij) =  &
-            3.0d0 *  &
-            (qqu(il,ij) + qqu(il,ij) -  &
-            (al(il,ij) + ar(il,ij)))
-       
-    end do
-    end do
+ subroutine tp2d(va, q, crx, cry, im, jm, iord, jord, ng, mg, fx, fy,      &
+                 ffsl, xfx, yfx, id, jfirst, jlast)
 
-!   ==============
-    if (jlmt <= 2) then
-!   ==============
-       
+ implicit none
 
-          lenx = 0
+! !INPUT PARAMETERS:
+ integer, intent(in):: im, jm         ! Dimensions
+ integer, intent(in):: jfirst, jlast  ! Latitude strip
+ integer iord, jord                ! Interpolation order in x,y
+ integer ng                        ! Max. NS dependencies
+ integer mg                        !
+ integer id                        ! density (0)  (mfx = C)
+                                   ! mixing ratio (1) (mfx = mass flux)
+ logical ffsl(jfirst-ng:jlast+ng)  ! Use flux-form semi-Lagrangian trans.?
+                                   ! ghosted N*ng S*ng
+ real va(im,jfirst:jlast)          ! Courant  (unghosted)
+ real q(im,jfirst-ng:jlast+ng)     ! transported scalar ( N*NG S*NG )
+ real crx(im,jfirst-ng:jlast+ng)   ! Ask S.-J. ( N*NG S*NG )
+ real cry(im,jfirst:jlast+mg)       ! Ask S.-J. ( N like FY )
+ real xfx(im,jfirst:jlast)         ! Ask S.-J. ( unghosted like FX )
+ real yfx(im,jfirst:jlast+mg)       ! Ask S.-J. ( N like FY )
 
-          do ij = julo + 1, jhi - 1
-             !=== Prior to 12/5/08
-             !do il = i1, i2
-             do il = ilo, ihi
-
-                lenx = lenx + 1
-
-                a61 (lenx) = a6 (il,ij)
-                al1 (lenx) = al (il,ij)
-                ar1 (lenx) = ar (il,ij)
-                dcy1(lenx) = dcy(il,ij)
-                qqu1(lenx) = qqu(il,ij)
-
-             end do
-          end do
-
-!         ===========
-          call Lmtppm  &
-               (lenx, jlmt, a61, al1, ar1, dcy1, qqu1)
-!         ===========
-
-          lenx = 0
-
-          do ij = julo + 1, jhi - 1
-             !=== Prior to 12/5/08
-             !do il = i1, i2
-             do il = ilo, ihi
-
-                lenx = lenx + 1
-                  
-                a6(il,ij) = a61(lenx)
-                al(il,ij) = al1(lenx)
-                ar(il,ij) = ar1(lenx)
-
-             end do
-          end do
-
-
-    end if
-
-
-! No polar cap. (ccc, 8/3/10)
-!       do ij = j1p, j2p+1
-       do ij = j1p, j2p
-
-          ijm1 = ij - 1
-
-          !=== Prior to 12/5/08
-          !do il = i1, i2
-          do il = ilo, ihi
-
-             if (cry(il,ij) > 0.0d0) then
-
-                qqv(il,ij) =  &
-                     ar(il,ijm1) +  &
-                     0.5d0 * cry(il,ij) *  &
-                     (al(il,ijm1) - ar(il,ijm1) +  &
-                     (a6(il,ijm1) * (1.0d0 - (r23 * cry(il,ij)))))
-
-             else
-
-                qqv(il,ij) =  &
-                     al(il,ij) -  &
-                     0.5d0 * cry(il,ij) *  &
-                     (ar(il,ij) - al(il,ij) +  &
-                     (a6(il,ij) * (1.0d0 + (r23 * cry(il,ij)))))
-
-             end if
-
-          end do
-
-       end do
-
-
-  END SUBROUTINE Fyppm
-!EOC 
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Fzppm
-!
-! !DESCRIPTION: Subroutine Fzppm is the 1D "outer" flux form operator based 
-!  on the Piecewise Parabolic Method (PPM; see also Lin and Rood 1996) for 
-!  computing the fluxes in the vertical direction.
-!\\
-!\\
-!  Fzppm was modified by S.-J. Lin, 12/14/98, to allow the use of the KORD=7
-!  (klmt=4) option.  KORD=7 enforces the 2nd monotonicity constraint of
-!  Huynh (1996).  Note that in Huynh's original scheme, two constraints are
-!  necessary for the preservation of monotonicity.  To use Huynh's
-!  algorithm, it was modified as follows.  The original PPM is still used to
-!  obtain the first guesses for the cell edges, and as such Huynh's 1st
-!  constraint is no longer needed.  Huynh's median function is also replaced
-!  by a simpler yet functionally equivalent in-line algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Fzppm( klmt,  delp1,  wz,  dq1, qq1,  fz,      &
-                    J1P,   JU1_GL, J2_GL, ILO, IHI, JULO, JHI,     &
-                    ILONG, IVERT,  I1,    I2,  JU1, J2,   K1,  K2 )
-!
-! !INPUT PARAMETERS: 
-!
-    ! Global latitude index at the edges of the South polar cap
-    ! J1P=JU1_GL+1 for a polar cap of 1 latitude band
-    ! J1P=JU1_GL+2 for a polar cap of 2 latitude bands
-    INTEGER, INTENT(IN)    :: J1P
-
-    ! Global min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: JU1_GL, J2_GL
-
-    ! Local min & max longitude (I), latitude (J), altitude (K) indices
-    INTEGER, INTENT(IN)    :: I1,     I2
-    INTEGER, INTENT(IN)    :: JU1,    J2
-    INTEGER, INTENT(IN)    :: K1,     K2
-
-    ! Local min & max longitude (I) and latitude (J) indices
-    INTEGER, INTENT(IN)    :: ILO,    IHI
-    INTEGER, INTENT(IN)    :: JULO,   JHI
-
-    ! Dimensions in longitude & altitude ???
-    INTEGER, INTENT(IN)    :: ilong,  ivert
-
-    ! Controls various options in vertical advection
-    INTEGER, INTENT(IN)    :: klmt
-
-    ! Pressure thickness, the pseudo-density in a 
-    ! hydrostatic system at t1 [hPa]
-    REAL*8,  INTENT(IN)    :: delp1(ILO:IHI, JULO:JHI, K1:K2)
-
-    ! Large scale mass flux (per time step tdt) in the vertical
-    ! direction as diagnosed from the hydrostatic relationship [hPa]
-    REAL*8,  INTENT(IN)    :: wz(I1:I2, JU1:J2, K1:K2)
-
-    ! Species concentration [mixing ratio]
-    REAL*8,  INTENT(IN)    :: qq1(ILO:IHI, JULO:JHI, K1:K2)
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    ! Species density [hPa]
-    REAL*8,  INTENT(INOUT) :: dq1(ILO:IHI, JULO:JHI, K1:K2)
-!
 ! !OUTPUT PARAMETERS:
-!
-    ! Vertical flux [mixing ratio]
-    REAL*8,  INTENT(OUT)   :: fz(ILO:IHI, JULO:JHI,  K1:K2)
+ real fx(im,jfirst:jlast)          ! Flux in x ( unghosted )
+ real fy(im,jfirst:jlast+mg)        ! Flux in y ( N, see tp2c )
 
-! !AUTHOR:
-!   Original code from Shian-Jiann Lin, DAO 
-!   John Tannahill, LLNL (jrt@llnl.gov)
-! 
-! !REVISION HISTORY: 
-!   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
-!                               Yeh with the TPCORE routines from GMI model.
-!                               This eliminates the polar overshoot in the
-!                               stratosphere.
-!   05 Dec 2008 - R. Yantosca - Updated documentation and added ProTeX headers.
-!                               Declare all REAL variables as REAL*8.  Also 
-!                               make sure all numerical constants are declared
-!                               with the "D" double-precision exponent.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
+! Local:
+ integer i, j, iad, jp, js2g0, js2gng, jn2g0, jn2gng
+ real adx(im,jfirst-ng:jlast+ng)
+ real wk1(im)
+ real dm(-im/3:im+im/3)
+ real qtmp(-im/3:im+im/3)
+ real al(-im/3:im+im/3)
+ real ar(-im/3:im+im/3)
+ real a6(-im/3:im+im/3)
+
+! Number of ghost latitudes
+  js2g0  = max(2,jfirst)          !  No ghosting
+  jn2g0  = min(jm-1,jlast)        !  No ghosting
+  js2gng = max(2,jfirst-ng)       !  Number needed on S
+  jn2gng = min(jm-1,jlast+ng)     !  Number needed on N
+
+  iad = 1
+
+
+  do j=js2gng,jn2gng               !  adx needed on N*ng S*ng
+
+     call xtp(im,  ffsl(j), wk1, q(1,j),                &
+              crx(1,j), iad, crx(1,j), cosp(j), 0,      &
+              dm, qtmp, al, ar, a6)
+
+     do i=1,im-1
+        adx(i,j) = q(i,j) + 0.5 *                       &
+                   (wk1(i)-wk1(i+1) + q(i,j)*(crx(i+1,j)-crx(i,j)))
+     enddo
+        adx(im,j) = q(im,j) + 0.5 *                     &
+                   (wk1(im)-wk1(1) + q(im,j)*(crx(1,j)-crx(im,j)))
+  enddo
+
+    if ( jfirst == 1 ) then
+        do i=1,im 
+          adx(i, 1) = q(i,1)
+        enddo
+    endif 
+    if ( jlast == jm ) then
+        do i=1,im 
+          adx(i,jm) = q(i,jm)
+        enddo
+    endif
+
+    call ytp(im,jm,fy, adx,cry,yfx,ng,mg,jord,0,jfirst,jlast)
+
+      do j=js2g0,jn2g0
+        do i=1,im
+           jp = j-va(i,j)
+           wk1(i) = q(i,j) +0.5*va(i,j)*(q(i,jp)-q(i,jp+1))
+        enddo
+
+        call xtp(im,  ffsl(j), fx(1,j), wk1,                  &
+                 crx(1,j), iord, xfx(1,j), cosp(j), id,       &
+                 dm, qtmp, al, ar, a6)
+      enddo
+ end subroutine tp2d
+
+
+ subroutine xtp(im, ffsl,  fx,  q,  c,  iord,  mfx,            &
+                cosa, id, dm, qtmp, al, ar, a6)
+
+ implicit none
+ 
+! !INPUT PARAMETERS:
+   integer id               ! ID = 0: density (mfx = C)
+                            ! ID = 1: mixing ratio (mfx is mass flux)
+
+   integer im               ! Total longitudes
+   real c(im)          ! Courant numbers
+   real q(im)
+   real mfx(im)
+   logical ffsl
+   integer iord
+   real cosa
+
+! !INPUT/OUTPUT PARAMETERS:
+   real qtmp(-im/3:im+im/3)   ! Input work arrays:
+   real dm(-im/3:im+im/3)
+   real al(-im/3:im+im/3)
+   real ar(-im/3:im+im/3)
+   real a6(-im/3:im+im/3)
+
+! !OUTPUT PARAMETERS:
+   real fx(im)
+
+! Local:
+   real cos_upw               !critical cosine for upwind
+   real cos_van               !critical cosine for van Leer
+   real cos_ppm               !critical cosine for ppm
+
+   parameter (cos_upw = 0.05)       !roughly at 87 deg.
+   parameter (cos_van = 0.25)       !roughly at 75 deg.
+   parameter (cos_ppm = 0.25)
+
+   integer i, imp
+   real qmax, qmin
+   real rut, tmp
+   integer iu, itmp, ist
+   integer isave(im)
+   integer iuw, iue
+
+   imp = im + 1
+
+   do i=1,im
+      qtmp(i) = q(i)
+   enddo
+
+   if( ffsl ) then
+
+! Figure out ghost zone for the western edge:
+      iuw =  -c(1)
+      iuw = min(0, iuw)
+ 
+      do i=iuw, 0
+         qtmp(i) = q(im+i)
+      enddo 
+
+! Figure out ghost zone for the eastern edge:
+      iue = im - c(im)
+      iue = max(imp, iue)
+
+      do i=imp, iue
+         qtmp(i) = q(i-im)
+      enddo
+
+      if( iord == 1 .or. cosa < cos_upw) then
+      do i=1,im
+        iu = c(i)
+      if(c(i) <= 0.) then
+        itmp = i - iu
+        isave(i) = itmp - 1
+      else
+        itmp = i - iu - 1
+        isave(i) = itmp + 1
+      endif
+        fx(i) = (c(i)-iu) * qtmp(itmp)
+      enddo
+      else
+
+      do i=1,im
+! 2nd order slope
+         tmp = 0.25*(qtmp(i+1) - qtmp(i-1))
+         qmax = max(qtmp(i-1), qtmp(i), qtmp(i+1)) - qtmp(i)
+         qmin = qtmp(i) - min(qtmp(i-1), qtmp(i), qtmp(i+1))
+         dm(i) = sign(min(abs(tmp),qmax,qmin), tmp)
+      enddo
+ 
+      do i=iuw, 0
+         dm(i) = dm(im+i)
+      enddo 
+
+      do i=imp, iue
+         dm(i) = dm(i-im)
+      enddo
+
+      if(iord >= 3 .and. cosa > cos_ppm) then
+         call fxppm(im, c, mfx, qtmp, dm, fx, iord, al, ar, a6,         &
+                    iuw, iue, ffsl, isave)
+      else
+      do i=1,im
+            iu  = c(i)
+            rut = c(i) - iu
+         if(c(i) .le. 0.) then
+            itmp = i - iu
+            isave(i) = itmp - 1
+            fx(i) = rut*(qtmp(itmp)-dm(itmp)*(1.+rut))
+         else
+            itmp = i - iu - 1
+            isave(i) = itmp + 1
+            fx(i) = rut*(qtmp(itmp)+dm(itmp)*(1.-rut))
+         endif
+      enddo
+      endif
+
+      endif
+
+      do i=1,im
+      if(c(i) >= 1.) then
+        do ist = isave(i),i-1
+           fx(i) = fx(i) + qtmp(ist)
+        enddo
+      elseif(c(i) <= -1.) then
+        do ist = i,isave(i)
+           fx(i) = fx(i) - qtmp(ist)
+        enddo
+      endif
+      enddo
+
+      if(id .ne. 0) then
+         do i=1,im
+            fx(i) =  fx(i)*mfx(i)
+         enddo
+      endif
+
+   else
+! Regular PPM (Eulerian without FFSL extension)
+
+      qtmp(imp) = q(1)
+      qtmp(  0) = q(im)
+
+      if(iord == 1 .or. cosa < cos_upw) then
+         do i=1,im
+            iu = float(i) - c(i)
+            fx(i) = mfx(i)*qtmp(iu)
+         enddo
+      else
+
+         qtmp(-1)    = q(im-1)
+         qtmp(imp+1) = q(2)
+
+         if(iord > 0 .or. cosa < cos_van) then
+            call xmist(im, qtmp, dm, 2)
+         else
+            call xmist(im, qtmp, dm, iord)
+         endif
+
+         dm(0) = dm(im)
+
+         if( abs(iord) ==2 .or. cosa < cos_van ) then
+            do i=1,im
+               iu = float(i) - c(i)
+               fx(i) =  mfx(i)*(qtmp(iu)+dm(iu)*(sign(1.,c(i))-c(i)))
+            enddo
+         else
+            call fxppm(im, c, mfx, qtmp, dm, fx, iord, al, ar, a6,    &
+                       iuw, iue, ffsl, isave)
+         endif
+      endif
+
+   endif
+ end subroutine xtp
+
+ subroutine xmist(im,  q,  dm,  id)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer, intent(in):: im       ! Total number of longitudes
+ integer, intent(in):: id       ! ID = 0: density (mfx = C)
+                                ! ID = 1: mixing ratio (mfx is mass flux)
+ real, intent(in):: q(-im/3:im+im/3)   ! scalar field
+
+! !OUTPUT PARAMETERS:
+ real, intent(out):: dm(-im/3:im+im/3)   ! 
+
+! Local
+ real r24
+ parameter( r24 = 1./24.)
+ integer i
+ real qmin, qmax
+
+    if(id <= 2) then
+       do i=1,im
+          dm(i) = r24*(8.*(q(i+1) - q(i-1)) + q(i-2) - q(i+2))
+       enddo
+    else
+       do i=1,im
+          dm(i) = 0.25*(q(i+1) - q(i-1))
+       enddo
+    endif
+
+    if( id < 0 ) return
+
+! Apply monotonicity constraint (Lin et al. 1994, MWR)
+      do i=1,im
+         qmax = max( q(i-1), q(i), q(i+1) ) - q(i)
+         qmin = q(i) - min( q(i-1), q(i), q(i+1) )
+         dm(i) = sign( min(abs(dm(i)), qmax, qmin), dm(i) )
+      enddo
+ end subroutine xmist
+
+ subroutine fxppm(im, c, mfx,  p, dm, fx, iord, al, ar, a6,        &
+                  iuw, iue, ffsl, isave)
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer, intent(in):: im, iord
+ integer, intent(in):: iuw, iue
+ logical, intent(in):: ffsl
+ real, intent(in):: c(im)
+ real, intent(in):: p(-im/3:im+im/3)
+ real, intent(in):: dm(-im/3:im+im/3)
+ real, intent(in):: mfx(im)
+
+! !INPUT/OUTPUT PARAMETERS:
+ integer, intent(inout):: isave(im)
+
+ real, intent(out):: fx(im)
+ real, intent(out):: al(-im/3:im+im/3)
+ real, intent(out):: ar(-im/3:im+im/3)
+ real, intent(out):: a6(-im/3:im+im/3)
+
+! LOCAL VARIABLES:
+ real r3, r23
+ parameter ( r3 = 1./3., r23 = 2./3. )
+
+ integer i, lmt
+ integer iu, itmp
+ real ru
+
+  do i=1,im
+     al(i) = 0.5*(p(i-1)+p(i)) + (dm(i-1) - dm(i))*r3
+  enddo
+
+  do i=1,im-1
+     ar(i) = al(i+1)
+  enddo
+     ar(im) = al(1)
+
+  if(iord == 7) then
+     call huynh(im, ar(1), al(1), p(1), a6(1), dm(1))
+  else
+     if(iord == 3 .or. iord == 5) then
+         do i=1,im
+            a6(i) = 3.*(p(i)+p(i)  - (al(i)+ar(i)))
+         enddo
+     endif
+     lmt = iord - 3
+     call lmppm( dm(1), a6(1), ar(1), al(1), p(1), im, lmt )
+  endif
+
+  if( ffsl ) then
+
+      do i=iuw, 0
+         al(i) = al(im+i)
+         ar(i) = ar(im+i)
+         a6(i) = a6(im+i)
+      enddo
+
+      do i=im+1, iue
+         al(i) = al(i-im)
+         ar(i) = ar(i-im)
+         a6(i) = a6(i-im)
+      enddo
+
+      do i=1,im
+            iu = c(i)
+            ru = c(i) - iu
+         if(c(i) > 0.) then
+            itmp = i - iu - 1
+            isave(i) = itmp + 1
+            fx(i) = ru*(ar(itmp)+0.5*ru*(al(itmp)-ar(itmp) +     &
+                        a6(itmp)*(1.-r23*ru)) )
+         else
+            itmp = i - iu
+            isave(i) = itmp - 1
+            fx(i) = ru*(al(itmp)-0.5*ru*(ar(itmp)-al(itmp) +     &
+                        a6(itmp)*(1.+r23*ru)) )
+         endif
+      enddo
+
+  else
+         al(0) = al(im)
+         ar(0) = ar(im)
+         a6(0) = a6(im)
+      do i=1,im
+         if(c(i) > 0.) then
+            fx(i) = ar(i-1) + 0.5*c(i)*(al(i-1) - ar(i-1) +   &
+                    a6(i-1)*(1.-r23*c(i)) )
+      else
+            fx(i) = al(i) - 0.5*c(i)*(ar(i) - al(i) +         &
+                    a6(i)*(1.+r23*c(i)))
+      endif
+            fx(i) = mfx(i) * fx(i)
+      enddo
+  endif
+ end subroutine fxppm
+
+ subroutine lmppm(dm, a6, ar, al, p, im, lmt)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer, intent(in):: im   ! Total longitudes
+ integer, intent(in):: lmt  ! LMT = 0: full monotonicity
+              ! LMT = 1: Improved and simplified full monotonic constraint
+              ! LMT = 2: positive-definite constraint
+              ! LMT = 3: Quasi-monotone constraint
+ real, intent(in):: p(im)
+ real, intent(in):: dm(im)
+
+ real, intent(inout):: a6(im)
+ real, intent(inout):: ar(im)
+ real, intent(inout):: al(im)
+
 ! !LOCAL VARIABLES:
-! 
-    ! Scalars
-    INTEGER :: il, ij, ik
-    INTEGER :: k1p1, k1p2
-    INTEGER :: k2m1, k2m2
-    INTEGER :: lenx
-    REAL*8  :: a1, a2
-    REAL*8  :: aa, bb
-    REAL*8  :: c0, c1, c2
-    REAL*8  :: cm, cp
-    REAL*8  :: fac1, fac2
-    REAL*8  :: lac
-    REAL*8  :: qmax, qmin
-    REAL*8  :: qmp
-    REAL*8  :: r13, r23
-    REAL*8  :: tmp
+ real r12
+ parameter ( r12 = 1./12. )
 
-    ! Arrays
-    REAL*8  :: a61  (ilong*(ivert-4))
-    REAL*8  :: al1  (ilong*(ivert-4))
-    REAL*8  :: ar1  (ilong*(ivert-4))
-    REAL*8  :: dca1 (ilong*(ivert-4))
-    REAL*8  :: qq1a1(ilong*(ivert-4))
-    REAL*8  :: a6   (i1:i2, k1:k2)
-    REAL*8  :: al   (i1:i2, k1:k2)
-    REAL*8  :: ar   (i1:i2, k1:k2)
-    REAL*8  :: dca  (i1:i2, k1:k2)
-    REAL*8  :: dlp1a(i1:i2, k1:k2)
-    REAL*8  :: qq1a (i1:i2, k1:k2)
-    REAL*8  :: wza  (i1:i2, k1:k2)
-    REAL*8  :: dc   (i1:i2, ju1:j2, k1:k2)
-    ! Work array 
-    REAL*8  :: dpi(I1:I2, JU1:J2, K1:K2)
+ real da1, da2, fmin, a6da
+ real dr, dl
 
+ integer i
 
+! LMT = 0: full monotonicity
+! LMT = 1: Improved and simplified full monotonic constraint
+! LMT = 2: positive-definite constraint
+! LMT = 3: Quasi-monotone constraint
 
-!     ----------------
-!     Begin execution.
-!     ----------------
+  if( lmt == 0 ) then
 
-    a6(:,:) = 0.0d0
-    al(:,:) = 0.0d0
-    ar(:,:) = 0.0d0
-    dc(:,:,:) = 0.0d0
-!.sds... diagnostic vertical flux for species - set top to 0.0
-    fz(:,:,:) = 0.0
+! Full constraint
+  do i=1,im
+     if(dm(i) == 0.) then
+         ar(i) = p(i)
+         al(i) = p(i)
+         a6(i) = 0.
+     else
+         da1  = ar(i) - al(i)
+         da2  = da1**2
+         a6da = a6(i)*da1
+         if(a6da < -da2) then
+            a6(i) = 3.*(al(i)-p(i))
+            ar(i) = al(i) - a6(i)
+         elseif(a6da > da2) then
+            a6(i) = 3.*(ar(i)-p(i))
+            al(i) = ar(i) - a6(i)
+         endif
+     endif
+  enddo
 
+  elseif( lmt == 1 ) then
 
-    k1p1 = k1 + 1
-    k1p2 = k1 + 2
-      
-    k2m1 = k2 - 1
-    k2m2 = k2 - 2
+! Improved (Lin 200?) full constraint
+      do i=1,im
+           da1 = dm(i) + dm(i)
+            dl = sign(min(abs(da1),abs(al(i)-p(i))), da1)
+            dr = sign(min(abs(da1),abs(ar(i)-p(i))), da1)
+         ar(i) = p(i) + dr
+         al(i) = p(i) - dl
+         a6(i) = 3.*(dl-dr)
+      enddo
 
-    r13  = 1.0d0 / 3.0d0
-    r23  = 2.0d0 / 3.0d0
+  elseif( lmt == 2 ) then
+! Positive definite only constraint
+      do 250 i=1,im
+      if(abs(ar(i)-al(i)) .ge. -a6(i)) go to 250
+      fmin = p(i) + 0.25*(ar(i)-al(i))**2/a6(i) + a6(i)*r12
+      if(fmin.ge.0.) go to 250
+      if(p(i) < ar(i) .and. p(i) < al(i)) then
+            ar(i) = p(i)
+            al(i) = p(i)
+            a6(i) = 0.
+      elseif(ar(i) > al(i)) then
+            a6(i) = 3.*(al(i)-p(i))
+            ar(i) = al(i) - a6(i)
+      else
+            a6(i) = 3.*(ar(i)-p(i))
+            al(i) = ar(i) - a6(i)
+      endif
+250   continue
 
-
-!   -------------------
-!   Compute dc for PPM.
-!   -------------------
-
-    do ik = k1, k2m1
-       dpi(:,:,ik) = qq1(i1:i2,ju1:j2,ik+1) - qq1(i1:i2,ju1:j2,ik)
-    end do
-
-
-    do ik = k1p1, k2m1
-
-       do ij = ju1, j2
-          do il = i1, i2
-
-             c0 = delp1(il,ij,ik) /  &
-                  (delp1(il,ij,ik-1) + delp1(il,ij,ik) +  &
-                  delp1(il,ij,ik+1))
-
-             c1 = (delp1(il,ij,ik-1) + (0.5d0 * delp1(il,ij,ik))) /  &
-                  (delp1(il,ij,ik+1) + delp1(il,ij,ik))
-               
-             c2 = (delp1(il,ij,ik+1) + (0.5d0 * delp1(il,ij,ik))) /  &
-                  (delp1(il,ij,ik-1) + delp1(il,ij,ik))
-               
-             tmp = c0 *  &
-                   ((c1 * dpi(il,ij,ik)) +  &
-                   (c2 * dpi(il,ij,ik-1)))
-               
-             qmax =  &
-                  Max (qq1(il,ij,ik-1),  &
-                  qq1(il,ij,ik),  &
-                  qq1(il,ij,ik+1)) -  &
-                  qq1(il,ij,ik)
-             
-             qmin =  &
-                  qq1(il,ij,ik) -  &
-                  Min (qq1(il,ij,ik-1),  &
-                       qq1(il,ij,ik),  &
-                       qq1(il,ij,ik+1))
-
-             dc(il,ij,ik) = Sign (Min (Abs (tmp), qmax, qmin), tmp)
-
-          end do
-       end do
-
-    end do
+  elseif(lmt == 3) then
+! Quasi-monotone constraint
+      do i=1,im
+         da1 = 4.*dm(i)
+          dl = sign(min(abs(da1),abs(al(i)-p(i))), da1)
+          dr = sign(min(abs(da1),abs(ar(i)-p(i))), da1)
+         ar(i) = p(i) + dr
+         al(i) = p(i) - dl
+         a6(i) = 3.*(dl-dr)
+      enddo
+  endif
+ end subroutine lmppm
 
 
-!c?
-!   -------------------------------------
-!   Loop over latitudes (to save memory).
-!   -------------------------------------
+ subroutine huynh(im, ar, al, p, d2, d1)
 
-!   =======================
-    ijloop: do ij = ju1, j2
-!   =======================
+ implicit none
 
-       !----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !dca(:,:) = dc(:,ij,:)  ! the monotone slope
-       !wza(:,:) = wz(:,ij,:)
-       !
-       !dlp1a(:,:) = delp1(i1:i2,ij,:)
-       !qq1a (:,:) = qq1  (i1:i2,ij,:)
-       !----------------------------------------------------------------
+! !INPUT PARAMETERS:
+ integer im
+ real p(im)
 
-       do ik = k1, k2
-       do il = i1, i2
-          dca  (il,ik) = dc   (il,ij,ik)  ! the monotone slope
-          wza  (il,ik) = wz   (il,ij,ik)
-          dlp1a(il,ik) = delp1(il,ij,ik)
-          qq1a (il,ik) = qq1  (il,ij,ik)
-       enddo
-       enddo
+! !OUTPUT PARAMETERS:
+ real ar(im)
+ real al(im)
+ real d2(im)
+ real d1(im)
 
-!     ----------------------------------------------------------------
-!     Compute first guesses at cell interfaces.  First guesses are
-!     required to be continuous.  Three-cell parabolic subgrid
-!     distribution at model top; two-cell parabolic with zero gradient
-!     subgrid distribution at the surface.
-!     ----------------------------------------------------------------
+! !LOCAL VARIABLES:
+ integer  i
+ real pmp
+ real lac
+ real pmin
+ real pmax
 
-!     ---------------------------
-!     First guess top edge value.
-!     ---------------------------
+! Compute d1 and d2
+      d1(1) = p(1) - p(im)
+      do i=2,im
+         d1(i) = p(i) - p(i-1)
+      enddo
 
-       do il = i1, i2
+      do i=1,im-1
+         d2(i) = d1(i+1) - d1(i)
+      enddo
+      d2(im) = d1(1) - d1(im)
 
-!         ------------------------------------------------------------
-!         Three-cell PPM; compute a, b, & c of q = aP^2 + bP + c using
-!         cell averages and dlp1a.
-!         ------------------------------------------------------------
+! Constraint for AR
+!            i = 1
+         pmp   = p(1) + 2.0 * d1(1)
+         lac   = p(1) + 0.5 * (d1(1)+d2(im)) + d2(im) 
+         pmin  = min(p(1), pmp, lac)
+         pmax  = max(p(1), pmp, lac)
+         ar(1) = min(pmax, max(ar(1), pmin))
 
-          fac1 = dpi(il,ij,k1p1) -  &
-                 dpi(il,ij,k1) * (dlp1a(il,k1p1) + dlp1a(il,k1p2)) /  &
-                 (dlp1a(il,k1) + dlp1a(il,k1p1))
+      do i=2, im
+         pmp   = p(i) + 2.0*d1(i)
+         lac   = p(i) + 0.5*(d1(i)+d2(i-1)) + d2(i-1)
+         pmin  = min(p(i), pmp, lac)
+         pmax  = max(p(i), pmp, lac)
+         ar(i) = min(pmax, max(ar(i), pmin))
+      enddo
 
-          fac2 = (dlp1a(il,k1p1) + dlp1a(il,k1p2)) *  &
-                 (dlp1a(il,k1) + dlp1a(il,k1p1) + dlp1a(il,k1p2))
-            
-          aa = 3.0d0 * fac1 / fac2
+! Constraint for AL
+      do i=1, im-1
+         pmp   = p(i) - 2.0*d1(i+1)
+         lac   = p(i) + 0.5*(d2(i+1)-d1(i+1)) + d2(i+1)
+         pmin  = min(p(i), pmp, lac)
+         pmax  = max(p(i), pmp, lac)
+         al(i) = min(pmax, max(al(i), pmin))
+      enddo
 
-          bb =  &
-               2.0d0 * dpi(il,ij,k1) / (dlp1a(il,k1) + dlp1a(il,k1p1)) -  &
-               r23 * aa * (2.0d0 * dlp1a(il,k1) + dlp1a(il,k1p1))
-            
-          al(il,k1) = qq1a(il,k1) -  &
-               dlp1a(il,k1) *  &
-               (r13 * aa * dlp1a(il,k1) +  &
-               0.5d0 * bb)
-            
-          al(il,k1p1) = dlp1a(il,k1) * (aa * dlp1a(il,k1) + bb) +  &
-               al(il,k1)
+! i=im
+         i = im
+         pmp    = p(im) - 2.0*d1(1)
+         lac    = p(im) + 0.5*(d2(1)-d1(1)) + d2(1)
+         pmin   = min(p(im), pmp, lac)
+         pmax   = max(p(im), pmp, lac)
+         al(im) = min(pmax, max(al(im), pmin))
 
-!         ---------------------
-!         Check if change sign.
-!         ---------------------
+! compute A6 (d2)
+      do i=1, im
+         d2(i) = 3.*(p(i)+p(i)  - (al(i)+ar(i)))
+      enddo
+ end subroutine huynh
 
-          if ((qq1a(il,k1) * al(il,k1)) <= 0.0d0) then
-             
-             al (il,k1) = 0.0d0
-             dca(il,k1) = 0.0d0
-               
+
+ subroutine ytp(im, jm, fy, q, c, yfx, ng, mg, jord, iv, jfirst, jlast)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer im, jm                      !  Dimensions
+ integer jfirst, jlast               !  Latitude strip
+ integer ng                          !  Max. NS dependencies
+ integer mg                          ! 
+ integer jord                        !  order of subgrid dist
+ integer iv                          !  Scalar=0, Vector=1
+ real q(im,jfirst-ng:jlast+ng)       !  advected scalar N*jord S*jord
+ real c(im,jfirst:jlast+mg)           !  Courant   N (like FY)
+ real yfx(im,jfirst:jlast+mg)         !  Backgrond mass flux
+
+! !OUTPUT PARAMETERS:
+ real fy(im,jfirst:jlast+mg)          !  Flux      N (see tp2c)
+
+! !LOCAL VARIABLES:
+ integer i, j, jt
+ integer js2g0, jn1g1
+
+! work arrays (should pass in eventually for performance enhancement):
+ real dm(im,jfirst-ng:jlast+ng)
+
+!     real ar(im,jfirst-1:jlast+1)  ! AR needs to be ghosted on NS
+!     real al(im,jfirst-1:jlast+2)  ! AL needs to be ghosted on N2S
+!     real a6(im,jfirst-1:jlast+1)  ! A6 needs to be ghosted on NS
+
+
+   js2g0  = max(2,jfirst)       ! No ghosting
+   jn1g1  = min(jm,jlast+1)     ! Ghost N*1
+     
+   if(jord == 1) then
+        do j=js2g0,jn1g1
+          do i=1,im
+            jt = float(j) - c(i,j)
+            fy(i,j) = q(i,jt)
+          enddo
+        enddo
+   else
+
+!
+! YMIST requires q on NS;  Only call to YMIST here
+!
+        call ymist(im, jm, q, dm, ng, jord, iv, jfirst, jlast)
+
+        if( abs(jord) .ge. 3 ) then
+ 
+          call fyppm(c,q,dm,fy,im,jm,ng,mg,jord,iv,jfirst,jlast)
+
+        else
+!
+! JORD can either have the value 2 or -2 at this point
+!
+          do j=js2g0,jn1g1
+            do i=1,im
+              jt = float(j) - c(i,j)
+              fy(i,j) = q(i,jt) + (sign(1.,c(i,j))-c(i,j))*dm(i,jt)
+            enddo
+          enddo
+        endif
+   endif
+
+      do j=js2g0,jn1g1
+        do i=1,im
+          fy(i,j) = fy(i,j)*yfx(i,j)
+        enddo
+      enddo
+ end subroutine ytp
+
+ subroutine ymist(im, jm, q, dm, ng, jord, iv, jfirst, jlast)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer im, jm                      !  Dimensions
+ integer jfirst, jlast               !  Latitude strip
+ integer ng                          !  NS dependencies
+ integer jord                        !  order of subgrid distribution
+ integer iv                          !  Scalar (==0) Vector (==1)
+ real q(im,jfirst-ng:jlast+ng)  !  transported scalar  N*ng S*ng
+
+! !OUTPUT PARAMETERS:
+ real dm(im,jfirst-ng:jlast+ng)      !  Slope only N*(ng-1) S*(ng-1) used
+
+! Local variables
+
+ integer i, j, jm1, im2, js2gng1, jn2gng1
+ real qmax, qmin, tmp
+
+    js2gng1 = max(2,   jfirst-ng+1)     !  Number needed on S
+    jn2gng1 = min(jm-1,jlast+ng-1)      !  Number needed on N
+
+    jm1 = jm - 1
+    im2 = im / 2
+
+      do j=js2gng1,jn2gng1
+        do i=1,im
+           dm(i,j) = 0.25*(q(i,j+1) - q(i,j-1))
+        enddo
+      enddo
+
+   if( iv == 0 ) then
+
+        if ( jfirst == 1 ) then
+! S pole
+          do i=1,im2
+            tmp = 0.25*(q(i,2)-q(i+im2,2))
+            qmax = max(q(i,2),q(i,1), q(i+im2,2)) - q(i,1)
+            qmin = q(i,1) - min(q(i,2),q(i,1), q(i+im2,2))
+            dm(i,1) = sign(min(abs(tmp),qmax,qmin),tmp)
+          enddo
+
+          do i=im2+1,im
+            dm(i, 1) =  - dm(i-im2, 1)
+          enddo
+        endif
+
+        if ( jlast == jm ) then
+! N pole
+          do i=1,im2
+            tmp = 0.25*(q(i+im2,jm1)-q(i,jm1))
+            qmax = max(q(i+im2,jm1),q(i,jm), q(i,jm1)) - q(i,jm)
+            qmin = q(i,jm) - min(q(i+im2,jm1),q(i,jm), q(i,jm1))
+            dm(i,jm) = sign(min(abs(tmp),qmax,qmin),tmp)
+          enddo
+
+          do i=im2+1,im
+            dm(i,jm) =  - dm(i-im2,jm)
+          enddo
+        endif
+
+   else
+
+        if ( jfirst == 1 ) then
+! South
+          do i=1,im2
+            tmp  = 0.25*(q(i,2)+q(i+im2,2))
+            qmax = max(q(i,2),q(i,1), -q(i+im2,2)) - q(i,1)
+            qmin = q(i,1) - min(q(i,2),q(i,1),-q(i+im2,2))
+            dm(i,1) = sign(min(abs(tmp),qmax,qmin),tmp)
+          enddo
+
+          do i=im2+1,im
+            dm(i, 1) = dm(i-im2, 1)
+          enddo
+        endif
+
+        if ( jlast == jm ) then
+! North
+          do i=1,im2
+            tmp  = -0.25*(q(i+im2,jm1)+q(i,jm1))
+            qmax = max(-q(i+im2,jm1),q(i,jm), q(i,jm1)) - q(i,jm)
+            qmin = q(i,jm) - min(-q(i+im2,jm1),q(i,jm), q(i,jm1))
+            dm(i,jm) = sign(min(abs(tmp),qmax,qmin),tmp)
+          enddo
+
+          do i=im2+1,im
+            dm(i,jm) = dm(i-im2,jm)
+          enddo
+        endif
+
+   endif
+
+   if( jord > 0 ) then
+!
+! Applies monotonic slope constraint (off if jord less than zero)
+!
+        do j=js2gng1,jn2gng1
+          do i=1,im
+            qmax = max(q(i,j-1),q(i,j),q(i,j+1)) - q(i,j)
+            qmin = q(i,j) - min(q(i,j-1),q(i,j),q(i,j+1))
+            dm(i,j) = sign(min(abs(dm(i,j)),qmin,qmax),dm(i,j))
+          enddo
+        enddo
+   endif
+ end subroutine ymist
+
+ subroutine fyppm(c,  q,  dm, flux, im, jm, ng,mg, jord, iv, jfirst, jlast)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer im, jm                      !  Dimensions
+ integer jfirst, jlast               !  Latitude strip
+ integer ng                          !  Max. NS dependencies
+ integer mg                          !
+ integer jord                        !  Approximation order
+ integer iv                          !  Scalar=0, Vector=1
+ real q(im,jfirst-ng:jlast+ng) !  mean value needed only N*2 S*2
+ real dm(im,jfirst-ng:jlast+ng) !  Slope     needed only N*2 S*2
+ real c(im,jfirst:jlast+mg)     !  Courant   N (like FLUX)
+
+! !INPUT/OUTPUT PARAMETERS:
+ real ar(im,jfirst-1:jlast+1)   ! AR needs to be ghosted on NS
+ real al(im,jfirst-1:jlast+2)   ! AL needs to be ghosted on N2S
+ real a6(im,jfirst-1:jlast+1)   ! A6 needs to be ghosted on NS
+
+! !OUTPUT PARAMETERS:
+ real flux(im,jfirst:jlast+mg)   !  Flux      N (see tp2c)
+
+! Local
+ real r3, r23
+ parameter ( r3 = 1./3., r23 = 2./3. )
+ integer i, j, imh, jm1, lmt
+ integer js1g1, js2g0, js2g1, jn1g2, jn1g1, jn2g1
+
+      imh = im / 2
+      jm1 = jm - 1
+
+      js1g1  = max(1,jfirst-1)         ! Ghost S*1
+      js2g0  = max(2,jfirst)           ! No ghosting
+      js2g1  = max(2,jfirst-1)         ! Ghost S*1
+      jn1g1  = min(jm,jlast+1)         ! Ghost N*1
+      jn1g2  = min(jm,jlast+2)         ! Ghost N*2
+      jn2g1  = min(jm-1,jlast+1)       ! Ghost N*1
+
+      do j=js2g1,jn1g2                 ! AL needed N2S
+        do i=1,im                      ! P, dm ghosted N2S2 (at least)
+          al(i,j) = 0.5*(q(i,j-1)+q(i,j)) + r3*(dm(i,j-1) - dm(i,j))
+        enddo
+      enddo
+
+      do j=js1g1,jn2g1                 ! AR needed NS
+        do i=1,im
+          ar(i,j) = al(i,j+1)          ! AL ghosted N2S
+        enddo
+      enddo
+
+! Poles:
+
+   if( iv == 0 ) then
+
+        if ( jfirst .eq. 1 ) then
+          do i=1,imh
+            al(i,    1) = al(i+imh,2)
+            al(i+imh,1) = al(i,    2)
+          enddo
+        endif
+
+        if ( jlast .eq. jm ) then
+          do i=1,imh
+            ar(i,    jm) = ar(i+imh,jm1)
+            ar(i+imh,jm) = ar(i,    jm1)
+          enddo
+        endif
+
+   else
+
+        if ( jfirst .eq. 1 ) then
+          do i=1,imh
+            al(i,    1) = -al(i+imh,2)
+            al(i+imh,1) = -al(i,    2)
+          enddo
+        endif
+
+        if ( jlast .eq. jm ) then
+          do i=1,imh
+            ar(i,    jm) = -ar(i+imh,jm1)
+            ar(i+imh,jm) = -ar(i,    jm1)
+          enddo
+        endif
+
+   endif
+
+   if( jord == 3 .or. jord == 5 ) then
+      do j=js1g1,jn1g1               ! A6 needed NS
+        do i=1,im
+          a6(i,j) = 3.*(q(i,j)+q(i,j) - (al(i,j)+ar(i,j)))
+        enddo
+      enddo
+   endif
+
+      lmt = jord - 3
+
+      call lmppm(dm(1,js1g1), a6(1,js1g1), ar(1,js1g1),               &
+                 al(1,js1g1),  q(1,js1g1), im*(jn1g1-js1g1+1), lmt)
+
+      do j=js2g0,jn1g1                 ! flux needed N
+        do i=1,im
+          if(c(i,j) > 0.) then
+            flux(i,j) = ar(i,j-1) + 0.5*c(i,j)*(al(i,j-1) - ar(i,j-1) +  &
+                        a6(i,j-1)*(1.-r23*c(i,j)) )
           else
-               
-             dca(il,k1) = qq1a(il,k1) - al(il,k1)
-               
-          end if
+            flux(i,j) = al(i,j) - 0.5*c(i,j)*(ar(i,j) - al(i,j) +        &
+                        a6(i,j)*(1.+r23*c(i,j)))
+          endif
+        enddo
+      enddo
+ end subroutine fyppm 
 
-       end do
+ subroutine xpavg(p, im)
 
-!      -------
-!      Bottom.
-!      -------
+      implicit none
 
-       do il = i1, i2
+! !INPUT PARAMETERS:
+      integer im
 
-!         ---------------------------------------------------
-!         2-cell PPM with zero gradient right at the surface.
-!         ---------------------------------------------------
+! !INPUT/OUTPUT PARAMETERS:
+      real p(im)
 
-          fac1 = dpi(il,ij,k2m1) * (dlp1a(il,k2) * dlp1a(il,k2)) /  &
-                 ((dlp1a(il,k2) + dlp1a(il,k2m1)) *  &
-                 (2.0d0 * dlp1a(il,k2) + dlp1a(il,k2m1)))
-            
-          ar(il,k2) = qq1a(il,k2) + fac1
-          al(il,k2) = qq1a(il,k2) - (fac1 + fac1)
-            
-          if ((qq1a(il,k2) * ar(il,k2)) <= 0.0d0) then
-             ar(il,k2) = 0.0d0
-          end if
-            
-          dca(il,k2) = ar(il,k2) - qq1a(il,k2)
-            
-       end do
+      integer i
+      real sum1
 
+      sum1 = 0.
+      do i=1,im
+         sum1 = sum1 + p(i)
+      enddo
+      sum1 = sum1 / im
 
-!     ----------------------------------------
-!     4th order interpolation in the interior.
-!     ----------------------------------------
+      do i=1,im
+         p(i) = sum1
+      enddo
+ end subroutine xpavg
 
-       do ik = k1p2, k2m1
-          do il = i1, i2
-               
-             c1 = (dpi(il,ij,ik-1) * dlp1a(il,ik-1)) /  &
-                  (dlp1a(il,ik-1) + dlp1a(il,ik))
-               
-             c2 = 2.0d0 /  &
-                  (dlp1a(il,ik-2) + dlp1a(il,ik-1) +  &
-                  dlp1a(il,ik)   + dlp1a(il,ik+1))
-               
-             a1 = (dlp1a(il,ik-2) + dlp1a(il,ik-1)) /  &
-                  (2.0d0 * dlp1a(il,ik-1) + dlp1a(il,ik))
-               
-             a2 = (dlp1a(il,ik) + dlp1a(il,ik+1)) /  &
-                  (2.0d0 * dlp1a(il,ik) + dlp1a(il,ik-1))
-               
-             al(il,ik) =  &
-                  qq1a(il,ik-1) + c1 +  &
-                  c2 *  &
-                  (dlp1a(il,ik) * (c1 * (a1 - a2) + a2 * dca(il,ik-1)) -  &
-                  dlp1a(il,ik-1) * a1 * dca(il,ik))
-               
-          end do
-       end do
+ subroutine qmap(pe,  q, im, jm, km, nx, jfirst, jlast, ng, nq,       &
+                 ps,  ak, bk, kord, iv)
 
-       !-----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       !  Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !do ik = k1, k2m1
-       !   ar(:,ik) = al(:,ik+1)
-       !end do         
-       !-----------------------------------------------------------------
+ implicit none
 
-       do ik = k1, k2m1
-       do il = i1, i2
-          ar(il,ik) = al(il,ik+1)
-       end do
-       end do
+!INPUT
+   integer im, jm, km            ! x, y, z dimensions
+   integer nq                    ! number of tracers 
+   integer nx                    ! number of SMP "decomposition" in x
+   integer iv                    ! monotonicity at top and bottom
+                                 ! iv=0 : weak constraint
+                                 ! iv=1 : strong constraint
+                                 ! iv=-1: for vector
+   integer jfirst, jlast         ! starting & ending latitude index
+   integer ng                    ! width of ghost regions
+   real, intent(in):: ak(km+1)
+   real, intent(in):: bk(km+1)
+   real, intent(in):: pe(im,km+1,jfirst:jlast)
+ 
+! INPUT/OUTPUT 
+   real q(im,jfirst-ng:jlast+ng,km,nq) ! tracers including specific humidity
+   real ps(im,jfirst:jlast)      ! surface pressure
+ 
+! Local arrays:
+  real pe2(im,km+1)
 
-!      ---------------------------------------
-!      Top & Bottom 2 layers always monotonic.
-!      ---------------------------------------
-
-       lenx = i2 - i1 + 1
-         
-       do ik = k1, k1p1
-            
-          do il = i1, i2
-             
-             a6(il,ik) =  &
-                  3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
-                  (al(il,ik)  + ar(il,ik)))
-          end do
-            
-!         ===========
-          call Lmtppm  &
-               (lenx, 0, a6(i1,ik), al(i1,ik), ar(i1,ik),  &
-               dca(i1,ik), qq1a(i1,ik))
-!         ===========
-
-       end do
+  real temp
+  integer i, j, k, iq
+  integer ixj, jp, it, i1, i2
+  integer kord
 
 
-       do ik = k2m1, k2
-            
-          do il = i1, i2
-             
-             a6(il,ik) =  &
-                  3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
-                  (al(il,ik)  + ar(il,ik)))
-          end do
-            
-!         ===========
-          call Lmtppm  &
-               (lenx, 0, a6(i1,ik), al(i1,ik), ar(i1,ik),  &
-                dca(i1,ik), qq1a(i1,ik))
-!         ===========
-
-       end do
+  it = im / nx
+  jp = nx * ( jlast - jfirst + 1 )
 
 
-!      ---------------------------
-!      Interior depending on klmt.
-!      ---------------------------
 
-!      ==============
-       if (klmt == 4) then
-!       ==============
+!$omp parallel do                           &
+!$omp shared(im,km,jfirst,jlast,ng,iv,kord) &
+!$omp private(i, j, k, iq, i1, i2, ixj, pe2)
 
-!         -------------------------------
-!         KORD=7, Huynh's 2nd constraint.
-!         -------------------------------
+! do 2000 j=jfirst,jlast
+  do 2000 ixj=1,jp
 
-          !-----------------------------------------------------------------
-          ! Prior to 12/5/08:
-          ! Replace these with explicit loops below to facilitate
-          ! OpenMP parallelization.  Preserve original code here.
-          ! (bmy, 12/5/08)
-          !
-          !do ik = k1p1, k2m1
-          !   dca(:,ik) = dpi(:,ij,ik) - dpi(:,ij,ik-1)
-          !end do
-          !-----------------------------------------------------------------
-
-          do ik = k1p1, k2m1
-          do il = i1,   i2
-             dca(il,ik) = dpi(il,ij,ik) - dpi(il,ij,ik-1)
-          end do
-          end do
+     j  = jfirst + (ixj-1) / nx
+     i1 = 1 + it * mod(ixj-1, nx)
+     i2 = i1 + it - 1
 
 
-          do ik = k1p2, k2m2
-             do il = i1, i2
+! k=1
+     do i=i1,i2
+        pe2(i,1) = ak(1)
+     enddo
 
-!             ------------
-!             Right edges.
-!             ------------
+     do k=2,km
+        do i=i1,i2
+           pe2(i,k) = ak(k) + bk(k)*ps(i,j)
+        enddo
+     enddo
 
-                qmp   = qq1a(il,ik) + (2.0d0 * dpi(il,ij,ik-1))
-                lac   = qq1a(il,ik) +  &
-                     (1.5d0 * dca(il,ik-1)) + (0.5d0 * dpi(il,ij,ik-1))
-                qmin  = Min (qq1a(il,ik), qmp, lac)
-                qmax  = Max (qq1a(il,ik), qmp, lac)
-                
-                ar(il,ik) = Min (Max (ar(il,ik), qmin), qmax)
+! k=km+1
+     do i=i1,i2
+        pe2(i,km+1) = ps(i,j)
+     enddo
 
-!             -----------
-!             Left edges.
-!             -----------
-                
-                qmp   = qq1a(il,ik) - (2.0d0 * dpi(il,ij,ik))
-                lac   = qq1a(il,ik) +  &
-                        (1.5d0 * dca(il,ik+1)) - (0.5d0 * dpi(il,ij,ik))
-                qmin  = Min (qq1a(il,ik), qmp, lac)
-                qmax  = Max (qq1a(il,ik), qmp, lac)
-                
-                al(il,ik) = Min (Max (al(il,ik), qmin), qmax)
+     temp = sum(q)
+     do iq=1,nq
+        call map1_ppm ( km,   pe(1,1,j),   q(1,jfirst-ng,1,iq),   &
+                        km,   pe2,         q(1,jfirst-ng,1,iq),   &
+                        im, i1, i2,  j, jfirst, jlast, ng, iv, kord)
+     enddo
+2000  continue
 
-!             -------------
-!             Recompute a6.
-!             -------------
+ end subroutine qmap
 
-                a6(il,ik) =  &
-                     3.0d0 * (qq1a(il,ik) + qq1a(il,ik) -  &
-                     (ar(il,ik)  + al(il,ik)))
-             end do
-          end do
+ subroutine map1_ppm( km,   pe1,   q1,                         &
+                      kn,   pe2,   q2,                         &
+                      im, i1, i2, j, jfirst, jlast, ng, iv, kord)
 
+ implicit none
 
-!      ===================
-       else if (klmt <= 2) then
-!      ===================
+!INPUT PARAMETERS:
+ integer i1                             ! Starting longitude
+ integer i2                             ! Finishing longitude
+ integer im                             ! E-W dimension
+ integer iv                             ! Mode: 0 ==  constituents  1 == ???
+ integer kord                           ! Method order
+ integer j                              ! Current latitude
+ integer jfirst                         ! Starting latitude
+ integer jlast                          ! Finishing latitude
+ integer ng                             ! Width of ghost regions
+ integer km                             ! Original vertical dimension
+ integer kn                             ! Target vertical dimension
 
-          lenx = 0
-            
-          do ik = k1p2, k2m2
-             do il = i1, i2
-                  
-                lenx = lenx + 1
-                
-                al1  (lenx) = al  (il,ik)
-                ar1  (lenx) = ar  (il,ik)
-                dca1 (lenx) = dca (il,ik)
-                qq1a1(lenx) = qq1a(il,ik)
-                  
-                a61  (lenx) = 3.0d0 * (qq1a1(lenx) + qq1a1(lenx) -  &
-                             (al1(lenx)  + ar1(lenx)))
-             end do
-          end do
+ real pe1(im,km+1)                ! pressure at layer edges 
+                                        ! (from model top to bottom surface)
+                                        ! in the original vertical coordinate
+ real pe2(im,kn+1)                ! pressure at layer edges 
+                                        ! (from model top to bottom surface)
+                                        ! in the new vertical coordinate
+ real q1(im,jfirst-ng:jlast+ng,km)     ! Field input
 
-!         ===========
-          call Lmtppm  &
-               (lenx, klmt, a61, al1, ar1, dca1, qq1a1)
-!         ===========
+!OUTPUT PARAMETERS:
+ real q2(im,jfirst-ng:jlast+ng,kn)     ! Field output
 
-          lenx = 0
-            
-          do ik = k1p2, k2m2
-             do il = i1, i2
-                  
-                lenx = lenx + 1
-                
-                a6  (il,ik) = a61  (lenx)
-                al  (il,ik) = al1  (lenx)
-                ar  (il,ik) = ar1  (lenx)
-                dca (il,ik) = dca1 (lenx)
-                qq1a(il,ik) = qq1a1(lenx)
-                
-             end do
-          end do
+! LOCAL VARIABLES:
 
+ real dp1(i1:i2,km)
+ real q4(4,i1:i2,km)
+ integer i, k, l, ll, k0
+ real  pl, pr, qsum, delp, esl
+ real       r3, r23
+ real temp
+ parameter (r3 = 1./3., r23 = 2./3.)
 
-       end if
+      do k=1,km
+         do i=i1,i2
+             dp1(i,k) = pe1(i,k+1) - pe1(i,k)
+            q4(1,i,k) = q1(i,j,k)
+         enddo
+      enddo
 
-       
-       do ik = k1, k2m1
-          do il = i1, i2
-               
-             if (wza(il,ik) > 0.0d0) then
-                
-                cm = wza(il,ik) / dlp1a(il,ik)
-                
-                dca(il,ik+1) =  &
-                     ar(il,ik) +  &
-                     0.5d0 * cm *  &
-                     (al(il,ik) - ar(il,ik) +  &
-                     a6(il,ik) * (1.0d0 - r23 * cm))
+      temp = sum(q4)
+! Compute vertical subgrid distribution
+      call ppm2m( q4, dp1, km, i1, i2, iv, kord )
 
-             else
+      temp = sum(q2)
+! Mapping
+      do 1000 i=i1,i2
+         k0 = 1
+      do 555 k=1,kn
+      do 100 l=k0,km
+! locate the top edge: pe2(i,k)
+      if(pe2(i,k) .ge. pe1(i,l) .and. pe2(i,k) .le. pe1(i,l+1)) then
+         pl = (pe2(i,k)-pe1(i,l)) / dp1(i,l)
+         if(pe2(i,k+1) .le. pe1(i,l+1)) then
+! entire new grid is within the original grid
+            pr = (pe2(i,k+1)-pe1(i,l)) / dp1(i,l)
+            q2(i,j,k) = q4(2,i,l) + 0.5*(q4(4,i,l)+q4(3,i,l)-q4(2,i,l)) &
+                          *(pr+pl)-q4(4,i,l)*r3*(pr*(pr+pl)+pl**2)
+               k0 = l
+               goto 555
+          else
+! Fractional area...
+            qsum = (pe1(i,l+1)-pe2(i,k))*(q4(2,i,l)+0.5*(q4(4,i,l)+     &
+                    q4(3,i,l)-q4(2,i,l))*(1.+pl)-q4(4,i,l)*             &
+                     (r3*(1.+pl*(1.+pl))))
+              do ll=l+1,km
+! locate the bottom edge: pe2(i,k+1)
+                 if(pe2(i,k+1) > pe1(i,ll+1) ) then
+! Whole layer..
+                 qsum = qsum + dp1(i,ll)*q4(1,i,ll)
+                 else
+                 delp = pe2(i,k+1)-pe1(i,ll)
+                  esl = delp / dp1(i,ll)
+                 qsum = qsum + delp*(q4(2,i,ll)+0.5*esl*               &
+                       (q4(3,i,ll)-q4(2,i,ll)+q4(4,i,ll)*(1.-r23*esl)))
+                 k0 = ll
+                 goto 123
+                 endif
+              enddo
+              goto 123
+           endif
+      endif
+100   continue
+123   q2(i,j,k) = qsum / ( pe2(i,k+1) - pe2(i,k) )
+555   continue
+1000  continue
 
-                cp = wza(il,ik) / dlp1a(il,ik+1)
+ end subroutine map1_ppm
 
-                dca(il,ik+1) =  &
-                     al(il,ik+1) +  &
-                     0.5d0 * cp *  &
-                     (al(il,ik+1) - ar(il,ik+1) -  &
-                     a6(il,ik+1) * (1.0d0 + r23 * cp))
-                  
-             end if
-               
-          end do
-       end do
-         
-         
-       !-----------------------------------------------------------------
-       ! Prior to 12/5/08:
-       ! Replace these with explicit loops below to facilitate
-       ! OpenMP parallelization.  Preserve original code here.
-       ! (bmy, 12/5/08)
-       !
-       !do ik = k1, k2m1
-       !   dca(:,ik+1) = wza(:,ik) * dca(:,ik+1)
-       !   !.sds.. save vertical flux for species as diagnostic
-       !   fz(i1:i2,ij,ik+1) = dca(:,ik+1)
-       !end do
-       !
-       !dq1(i1:i2,ij,k1) = dq1(i1:i2,ij,k1) - dca(:,k1p1)
-       !dq1(i1:i2,ij,k2) = dq1(i1:i2,ij,k2) + dca(:,k2)
-       !
-       !do ik = k1p1, k2m1
-       !     
-       !   dq1(i1:i2,ij,ik) =  &
-       !        dq1(i1:i2,ij,ik) + dca(:,ik) - dca(:,ik+1)
-       !     
-       !end do
-       !-----------------------------------------------------------------
-       do ik = k1, k2m1
-       do il = i1, i2
-          dca(il,ik+1) = wza(il,ik) * dca(il,ik+1)
-          !.sds.. save vertical flux for species as diagnostic
-          fz(il,ij,ik+1) = dca(il,ik+1)
-       end do
-       end do
+ subroutine ppm2m(a4, delp, km, i1, i2, iv, kord)
 
-       do il = i1, i2 
-          dq1(il,ij,k1) = dq1(il,ij,k1) - dca(il,k1p1)
-          dq1(il,ij,k2) = dq1(il,ij,k2) + dca(il,k2)
+ implicit none
+
+! INPUT PARAMETERS:
+ integer, intent(in):: iv      ! iv =-1: winds
+                               ! iv = 0: positive definite scalars
+                               ! iv = 1: others
+ integer, intent(in):: i1      ! Starting longitude
+ integer, intent(in):: i2      ! Finishing longitude
+ integer, intent(in):: km      ! vertical dimension
+ integer, intent(in):: kord    ! Order (or more accurately method no.):
+                               ! 
+ real, intent(in):: delp(i1:i2,km)     ! layer pressure thickness
+
+ real, intent(inout):: a4(4,i1:i2,km)  ! Interpolated values
+
+! local arrays.
+ real dc(i1:i2,km)
+ real h2(i1:i2,km)
+ real delq(i1:i2,km)
+ real df2(i1:i2,km)
+ real d4(i1:i2,km)
+
+ real fac
+ real a1, a2, c1, c2, c3, d1, d2
+ real qmax, qmin, cmax, cmin
+ real qm, dq, tmp
+ real qmp, pmp
+ real lac
+ integer lmt
+ integer i, k, km1
+ integer it
+
+   km1 = km - 1
+   it = i2 - i1 + 1
+
+    do k=2,km
+       do i=i1,i2
+          delq(i,k-1) =   a4(1,i,k) - a4(1,i,k-1)
+            d4(i,k  ) = delp(i,k-1) + delp(i,k)
        enddo
+    enddo
 
-       do ik = k1p1, k2m1
-       do il = i1,   i2
+    do k=2,km1
+       do i=i1,i2
+          c1  = (delp(i,k-1)+0.5*delp(i,k))/d4(i,k+1)
+          c2  = (delp(i,k+1)+0.5*delp(i,k))/d4(i,k)
+          tmp = delp(i,k)*(c1*delq(i,k) + c2*delq(i,k-1)) /       &
+                                  (d4(i,k)+delp(i,k+1))
+          qmax = max(a4(1,i,k-1),a4(1,i,k),a4(1,i,k+1)) - a4(1,i,k)
+          qmin = a4(1,i,k) - min(a4(1,i,k-1),a4(1,i,k),a4(1,i,k+1))
+           dc(i,k) = sign(min(abs(tmp),qmax,qmin), tmp)
+          df2(i,k) = tmp
+       enddo
+    enddo
 
-          dq1(il,ij,ik) =  &
-               dq1(il,ij,ik) + dca(il,ik) - dca(il,ik+1)
-            
-       end do
-       end do
-!   =============
-    end do ijloop
-!   =============
+!------------------------------------------------------------
+! 4th order interpolation of the provisional cell edge value
+!------------------------------------------------------------
+
+    do k=3,km1
+      do i=i1,i2
+      c1 = delq(i,k-1)*delp(i,k-1) / d4(i,k)
+      a1 = d4(i,k-1) / (d4(i,k) + delp(i,k-1))
+      a2 = d4(i,k+1) / (d4(i,k) + delp(i,k))
+      a4(2,i,k) = a4(1,i,k-1) + c1 + 2./(d4(i,k-1)+d4(i,k+1)) *      &
+                ( delp(i,k)*(c1*(a1 - a2)+a2*dc(i,k-1)) -            &
+                                delp(i,k-1)*a1*dc(i,k  ) )
+      enddo
+    enddo
+
+    if(kord>3) call steepz(i1, i2, km, a4, df2, dc, delq, delp, d4)
+
+! Area preserving cubic with 2nd deriv. = 0 at the boundaries
+! Top
+    do i=i1,i2
+      d1 = delp(i,1)
+      d2 = delp(i,2)
+      qm = (d2*a4(1,i,1)+d1*a4(1,i,2)) / (d1+d2)
+      dq = 2.*(a4(1,i,2)-a4(1,i,1)) / (d1+d2)
+      c1 = (a4(2,i,3)-qm-d2*dq) / ( d2*(2.*d2*d2+d1*(d2+3.*d1)) )
+      c3 = dq - 2.0*c1*(d2*(5.*d1+d2)-3.*d1**2)
+      a4(2,i,2) = qm - c1*d1*d2*(d2+3.*d1)
+      a4(2,i,1) = d1*(8.*c1*d1**2-c3) + a4(2,i,2)
+      dc(i,1) =  a4(1,i,1) - a4(2,i,1)
+! No over- and undershoot condition
+      cmax = max(a4(1,i,1), a4(1,i,2))
+      cmin = min(a4(1,i,1), a4(1,i,2))
+      a4(2,i,2) = max(cmin,a4(2,i,2))
+      a4(2,i,2) = min(cmax,a4(2,i,2))
+    enddo
+
+    if( iv == 0 ) then
+        do i=i1,i2
+            a4(2,i,1) = max(0.,a4(2,i,1))
+        enddo
+    elseif ( iv ==  1 ) then
+! Monotone tracers:
+        do i=i1,i2
+           dc(i,1) = 0.
+           a4(2,i,1) = a4(1,i,1)
+           a4(2,i,2) = a4(1,i,1)
+        enddo
+    elseif ( iv == -1 ) then
+! Winds:
+        do i=i1,i2
+            if( a4(1,i,1)*a4(2,i,1) <=  0. ) then
+                a4(2,i,1) = 0.
+            else
+                a4(2,i,1) = sign(min(abs(a4(1,i,1)),      &
+                                     abs(a4(2,i,1))),     &
+                                         a4(1,i,1)  )
+            endif
+        enddo
+    endif
+
+! Bottom
+! Area preserving cubic with 2nd deriv. = 0 at the surface
+    do i=i1,i2
+       d1 = delp(i,km)
+       d2 = delp(i,km1)
+       qm = (d2*a4(1,i,km)+d1*a4(1,i,km1)) / (d1+d2)
+       dq = 2.*(a4(1,i,km1)-a4(1,i,km)) / (d1+d2)
+       c1 = (a4(2,i,km1)-qm-d2*dq) / (d2*(2.*d2*d2+d1*(d2+3.*d1)))
+       c3 = dq - 2.0*c1*(d2*(5.*d1+d2)-3.*d1**2)
+       a4(2,i,km) = qm - c1*d1*d2*(d2+3.*d1)
+       a4(3,i,km) = d1*(8.*c1*d1**2-c3) + a4(2,i,km)
+       dc(i,km) = a4(3,i,km) -  a4(1,i,km)
+! No over- and under-shoot condition
+       cmax = max(a4(1,i,km), a4(1,i,km1))
+       cmin = min(a4(1,i,km), a4(1,i,km1))
+       a4(2,i,km) = max(cmin,a4(2,i,km))
+       a4(2,i,km) = min(cmax,a4(2,i,km))
+    enddo
+
+! Enforce constraint at the surface
+
+    if ( iv == 0 ) then
+! Positive definite scalars:
+         do i=i1,i2
+            a4(3,i,km) = max(0., a4(3,i,km))
+         enddo
+    elseif ( iv ==  1 ) then
+! Monotone tracers:
+         do i=i1,i2
+            dc(i,km) = 0.
+            a4(2,i,km) = a4(1,i,km)
+            a4(3,i,km) = a4(1,i,km)
+         enddo
+    elseif ( iv == -1 ) then
+! Winds:
+         do i=i1,i2
+            if( a4(1,i,km)*a4(3,i,km) <=  0. ) then
+                a4(3,i,km) = 0.
+            else
+                a4(3,i,km) = sign( min(abs(a4(1,i,km)),      &
+                                       abs(a4(3,i,km))),     &
+                                           a4(1,i,km)  )
+            endif
+         enddo
+    endif
+
+    do k=1,km1
+       do i=i1,i2
+          a4(3,i,k) = a4(2,i,k+1)
+       enddo
+    enddo
+ 
+! f(s) = AL + s*[(AR-AL) + A6*(1-s)]         ( 0 <= s  <= 1 )
+ 
+! Top 2 and bottom 2 layers always use monotonic mapping
+    do k=1,2
+       do i=i1,i2
+          a4(4,i,k) = 3.*(2.*a4(1,i,k) - (a4(2,i,k)+a4(3,i,k)))
+       enddo
+       call kmppm(dc(i1,k), a4(1,i1,k), it, 0)
+    enddo
+
+ if(kord .ge. 7) then
+
+!----------------------------------------
+! Huynh's 2nd constraint
+!----------------------------------------
+
+      do k=2, km1
+         do i=i1,i2
+! Method#1
+!           h2(i,k) = delq(i,k) - delq(i,k-1)
+! Method#2
+!           h2(i,k) = 2.*(dc(i,k+1)/delp(i,k+1) - dc(i,k-1)/delp(i,k-1))
+!    &               / ( delp(i,k)+0.5*(delp(i,k-1)+delp(i,k+1)) )
+!    &               * delp(i,k)**2
+! Method#3
+            h2(i,k) = dc(i,k+1) - dc(i,k-1)
+         enddo
+      enddo
+
+      if( kord == 7 ) then
+         fac = 1.5           ! original quasi-monotone
+      else
+         fac = 0.125         ! full monotone
+      endif
+
+      do k=3, km-2
+        do i=i1,i2
+! Right edges
+!        qmp   = a4(1,i,k) + 2.0*delq(i,k-1)
+!        lac   = a4(1,i,k) + fac*h2(i,k-1) + 0.5*delq(i,k-1)
+!
+         pmp   = 2.*dc(i,k)
+         qmp   = a4(1,i,k) + pmp
+         lac   = a4(1,i,k) + fac*h2(i,k-1) + dc(i,k)
+         qmin  = min(a4(1,i,k), qmp, lac)
+         qmax  = max(a4(1,i,k), qmp, lac)
+         a4(3,i,k) = min(max(a4(3,i,k), qmin), qmax)
+! Left  edges
+!        qmp   = a4(1,i,k) - 2.0*delq(i,k)
+!        lac   = a4(1,i,k) + fac*h2(i,k+1) - 0.5*delq(i,k)
+!
+         qmp   = a4(1,i,k) - pmp
+         lac   = a4(1,i,k) + fac*h2(i,k+1) - dc(i,k)
+         qmin  = min(a4(1,i,k), qmp, lac)
+         qmax  = max(a4(1,i,k), qmp, lac)
+         a4(2,i,k) = min(max(a4(2,i,k), qmin), qmax)
+! Recompute A6
+         a4(4,i,k) = 3.*(2.*a4(1,i,k) - (a4(2,i,k)+a4(3,i,k)))
+        enddo
+! Additional constraint to prevent negatives when kord=7
+         if (iv /= -1 .and. kord == 7) then
+             call kmppm(dc(i1,k), a4(1,i1,k), it, 2)
+         endif
+      enddo
+
+ else
+ 
+         lmt = kord - 3
+         lmt = max(0, lmt)
+         if (iv == 0) lmt = min(2, lmt)
+
+      do k=3, km-2
+      if( kord .ne. 4) then
+         do i=i1,i2
+            a4(4,i,k) = 3.*(2.*a4(1,i,k) - (a4(2,i,k)+a4(3,i,k)))
+         enddo
+      endif
+         call kmppm(dc(i1,k), a4(1,i1,k), it, lmt)
+      enddo
+ endif
+
+    do k=km1,km
+       do i=i1,i2
+          a4(4,i,k) = 3.*(2.*a4(1,i,k) - (a4(2,i,k)+a4(3,i,k)))
+       enddo
+       call kmppm(dc(i1,k), a4(1,i1,k), it, 0)
+    enddo
+ end subroutine ppm2m
 
 
-  END SUBROUTINE Fzppm
+ subroutine steepz(i1, i2, km, a4, df2, dm, dq, dp, d4)
+ implicit none
 
-END MODULE Tpcore_GEOS5_WINDOW_MOD
-!EOC
+!INPUT PARAMETERS:
+ integer km                        ! Total levels
+ integer i1                        ! Starting longitude
+ integer i2                        ! Finishing longitude
+ real dp(i1:i2,km)            ! grid size
+ real dq(i1:i2,km)            ! backward diff of q
+ real d4(i1:i2,km)            ! backward sum:  dp(k)+ dp(k-1) 
+ real df2(i1:i2,km)            ! first guess mismatch
+ real dm(i1:i2,km)            ! monotonic mismatch
+
+! !INPUT/OUTPUT PARAMETERS:
+ real a4(4,i1:i2,km)          ! first guess/steepened
+
+! !LOCAL VARIABLES:
+ integer i, k
+ real alfa(i1:i2,km)
+ real f(i1:i2,km)
+ real rat(i1:i2,km)
+ real dg2
+
+! Compute ratio of dq/dp
+ do k=2,km
+    do i=i1,i2
+       rat(i,k) = dq(i,k-1) / d4(i,k)
+    enddo
+ enddo
+
+! Compute F
+      do k=2,km-1
+         do i=i1,i2
+            f(i,k) = (rat(i,k+1) - rat(i,k))                       &
+                     / ( dp(i,k-1)+dp(i,k)+dp(i,k+1) )
+         enddo
+      enddo
+
+      do k=3,km-2
+         do i=i1,i2
+         if(f(i,k+1)*f(i,k-1) < 0. .and. df2(i,k).ne.0.) then
+            dg2 = (f(i,k+1)-f(i,k-1))*((dp(i,k+1)-dp(i,k-1))**2      &
+                   + d4(i,k)*d4(i,k+1) )
+            alfa(i,k) = max(0., min(0.5, -0.1875*dg2/df2(i,k))) 
+         else
+            alfa(i,k) = 0.
+         endif
+         enddo
+      enddo
+
+      do k=4,km-2
+         do i=i1,i2
+            a4(2,i,k) = (1.-alfa(i,k-1)-alfa(i,k)) * a4(2,i,k) +      &
+                        alfa(i,k-1)*(a4(1,i,k)-dm(i,k))    +          &
+                        alfa(i,k)*(a4(1,i,k-1)+dm(i,k-1))
+         enddo
+      enddo
+
+ end subroutine steepz
+
+ subroutine kmppm(dm, a4, itot, lmt)
+
+      implicit none
+
+! !INPUT PARAMETERS:
+      real    dm(*)     ! ??????
+      integer itot      ! Total Longitudes
+      integer lmt           ! 0: Standard PPM constraint
+                            ! 1: Improved full monotonicity constraint (Lin)
+                            ! 2: Positive definite constraint
+                            ! 3: do nothing (return immediately)
+
+! !INPUT/OUTPUT PARAMETERS:
+      real   a4(4,*)
+                            ! AA <-- a4(1,i)
+                            ! AL <-- a4(2,i)
+                            ! AR <-- a4(3,i)
+                            ! A6 <-- a4(4,i)
+
+! !LOCAL VARIABLES:
+      real       r12
+      parameter (r12 = 1./12.)
+
+      real qmp
+
+      integer i
+      real da1, da2, a6da
+      real fmin
+
+      if ( lmt == 3 ) return
+
+      if(lmt == 0) then
+! Standard PPM constraint
+      do i=1,itot
+      if(dm(i) .eq. 0.) then
+         a4(2,i) = a4(1,i)
+         a4(3,i) = a4(1,i)
+         a4(4,i) = 0.
+      else
+         da1  = a4(3,i) - a4(2,i)
+         da2  = da1**2
+         a6da = a4(4,i)*da1
+         if(a6da < -da2) then
+            a4(4,i) = 3.*(a4(2,i)-a4(1,i))
+            a4(3,i) = a4(2,i) - a4(4,i)
+         elseif(a6da > da2) then
+            a4(4,i) = 3.*(a4(3,i)-a4(1,i))
+            a4(2,i) = a4(3,i) - a4(4,i)
+         endif
+      endif
+      enddo
+
+      elseif (lmt == 1) then
+
+! Improved full monotonicity constraint (Lin)
+! Note: no need to provide first guess of A6 <-- a4(4,i)
+      do i=1, itot
+           qmp = 2.*dm(i)
+         a4(2,i) = a4(1,i)-sign(min(abs(qmp),abs(a4(2,i)-a4(1,i))), qmp)
+         a4(3,i) = a4(1,i)+sign(min(abs(qmp),abs(a4(3,i)-a4(1,i))), qmp)
+         a4(4,i) = 3.*( 2.*a4(1,i) - (a4(2,i)+a4(3,i)) )
+      enddo
+
+      elseif (lmt == 2) then
+
+! Positive definite constraint
+      do i=1,itot
+      if( abs(a4(3,i)-a4(2,i)) < -a4(4,i) ) then
+      fmin = a4(1,i)+0.25*(a4(3,i)-a4(2,i))**2/a4(4,i)+a4(4,i)*r12
+         if( fmin < 0. ) then
+         if(a4(1,i) < a4(3,i) .and. a4(1,i) < a4(2,i)) then
+            a4(3,i) = a4(1,i)
+            a4(2,i) = a4(1,i)
+            a4(4,i) = 0.
+         elseif(a4(3,i) > a4(2,i)) then
+            a4(4,i) = 3.*(a4(2,i)-a4(1,i))
+            a4(3,i) = a4(2,i) - a4(4,i)
+         else
+            a4(4,i) = 3.*(a4(3,i)-a4(1,i))
+            a4(2,i) = a4(3,i) - a4(4,i)
+         endif
+         endif
+      endif
+      enddo
+
+      endif
+
+ end subroutine kmppm
+
+ subroutine fct_x(q, im, jm, jfirst, jlast, ng, ipx)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer im                  ! Longitudes
+ integer jm                  ! Total latitudes
+ integer jfirst              ! Starting latitude
+ integer jlast               ! Finishing latitude
+ integer ng
+
+ real tiny               ! A small number to pump up value
+ parameter (tiny = 1.e-40)
+
+! !INPUT/OUTPUT PARAMETERS:
+ real q(im,jfirst-ng:jlast+ng) ! Field to adjust
+
+! !OUTPUT PARAMETERS:
+ integer ipx                 ! Flag:  0 if Q not change, 1 if changed
+
+! !LOCAL VARIABLES:
+ real d0, d1, d2
+ real qtmp(jfirst:jlast,im)
+
+ integer i, j, jm1, ip2
+ integer j1, j2
+
+      j1 = max( jfirst,   2 )
+      j2 = min( jlast, jm-1 )
+      jm1 = jm-1
+      ipx = 0
+
+! Copy & swap direction for vectorization.
+      do i=1,im
+         do j=j1,j2
+            qtmp(j,i) = q(i,j)
+         enddo
+      enddo
+ 
+      do i=2,im-1
+         do j=j1,j2
+           if(qtmp(j,i) < 0.) then
+              ipx =  1
+! west
+              d0 = max(0.,qtmp(j,i-1))
+              d1 = min(-qtmp(j,i),d0)
+              qtmp(j,i-1) = qtmp(j,i-1) - d1
+              qtmp(j,i) = qtmp(j,i) + d1
+! east
+              d0 = max(0.,qtmp(j,i+1))
+              d2 = min(-qtmp(j,i),d0)
+              qtmp(j,i+1) = qtmp(j,i+1) - d2
+              qtmp(j,i) = qtmp(j,i) + d2 + tiny
+            endif
+         enddo
+      enddo
+ 
+      i=1
+      do j=j1,j2
+        if(qtmp(j,i) < 0.) then
+           ipx =  1
+! west
+           d0 = max(0.,qtmp(j,im))
+           d1 = min(-qtmp(j,i),d0)
+           qtmp(j,im) = qtmp(j,im) - d1
+           qtmp(j,i) = qtmp(j,i) + d1
+! east
+           d0 = max(0.,qtmp(j,i+1))
+           d2 = min(-qtmp(j,i),d0)
+           qtmp(j,i+1) = qtmp(j,i+1) - d2
+           qtmp(j,i) = qtmp(j,i) + d2 + tiny
+         endif
+      enddo
+
+      i=im
+    do j=j1,j2
+      if(qtmp(j,i) < 0.) then
+         ipx =  1
+! west
+         d0 = max(0.,qtmp(j,i-1))
+         d1 = min(-qtmp(j,i),d0)
+         qtmp(j,i-1) = qtmp(j,i-1) - d1
+         qtmp(j,i) = qtmp(j,i) + d1
+! east
+         d0 = max(0.,qtmp(j,1))
+         d2 = min(-qtmp(j,i),d0)
+         qtmp(j,1) = qtmp(j,1) - d2
+ 
+         qtmp(j,i) = qtmp(j,i) + d2 + tiny
+      endif
+    enddo
+
+ 
+    if(ipx .ne. 0) then
+!-----------
+! Final pass
+!-----------
+    do i=1,im-1
+    do j=j1,j2
+       if (qtmp(j,i) < 0. ) then
+! Take mass from east (essentially adjusting fx(i+1,j))
+           qtmp(j,i+1) = qtmp(j,i+1) + qtmp(j,i)
+           qtmp(j,i) = 0.
+       endif
+    enddo
+    enddo
+
+! Final sweep
+    do i=im,2,-1
+       do j=j1,j2
+          if (qtmp(j,i) < 0. ) then
+! Take mass from west (essentially adjusting fx(i,j))
+              qtmp(j,i-1) = qtmp(j,i-1) + qtmp(j,i)
+              qtmp(j,i) = 0.
+          endif
+       enddo
+! Note: qtmp(j,1) could still be negative
+    enddo
+
+    do j=j1,j2
+       do i=1,im
+          q(i,j) = qtmp(j,i)
+         q(i,j) = max(0., qtmp(j,i))       !(dan 0803)
+       enddo
+    enddo
+
+    endif
+ 
+! Check Poles.
+      if ( jfirst == 1 ) then
+       ip2 = 0
+! SP
+      if(q(1,1) < 0.) then
+         call pfix(q(1,2),q(1,1),im,ipx)
+      else
+! Check j=2
+      do i=1,im
+      if(q(i,2) < 0.) then
+            ip2 = 1
+            go to 322
+      endif
+      enddo
+322   continue
+        if(ip2.ne.0) call pfix(q(1,2),q(1,1),im,ipx)
+      endif
+      endif
+ 
+      if ( jlast == jm ) then
+      ip2 = 0
+! NP
+      if(q(1,jm) < 0.) then
+       call pfix(q(1,jm1),q(1,jm),im,ipx)
+      else
+
+! Check j=jm1
+      do i=1,im
+      if(q(i,jm1) < 0.) then
+            ip2 = 1
+            go to 323
+      endif
+      enddo
+323   continue
+
+        if(ip2.ne.0) call pfix(q(1,jm1),q(1,jm),im,ipx)
+      endif
+      endif
+ end subroutine fct_x
+
+ subroutine fillz(im, i1, i2, km, nq, q, dp)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+   integer, intent(in) :: im                ! No. of longitudes
+   integer, intent(in) :: km                ! No. of levels
+   integer, intent(in) :: i1                ! Starting longitude
+   integer, intent(in) :: i2                ! Finishing longitude
+   integer, intent(in) :: nq                ! Total number of tracers
+   real, intent(in) ::  dp(im,km)       ! pressure thickness
+
+! !INPUT/OUTPUT PARAMETERS:
+   real, intent(inout) :: q(im,km,nq)   ! tracer mixing ratio
+
+! !LOCAL VARIABLES:
+   integer i, k, ic
+   real qup, qly, dup
+
+   do ic=1,nq
+! Top layer
+      do i=i1,i2
+         if( q(i,1,ic) < 0.) then
+             q(i,2,ic) = q(i,2,ic) + q(i,1,ic)*dp(i,1)/dp(i,2)
+             q(i,1,ic) = 0.
+          endif
+      enddo
+
+! Interior
+      do k=2,km-1
+         do i=i1,i2
+         if( q(i,k,ic) < 0. ) then
+! Borrow from above
+             qup =  q(i,k-1,ic)*dp(i,k-1)
+             qly = -q(i,k  ,ic)*dp(i,k  )
+             dup =  min( 0.5*qly, qup )        !borrow no more than 50%
+             q(i,k-1,ic) = q(i,k-1,ic) - dup/dp(i,k-1) 
+! Borrow from below: q(i,k,ic) is still negative at this stage
+             q(i,k+1,ic) = q(i,k+1,ic) + (dup-qly)/dp(i,k+1) 
+             q(i,k  ,ic) = 0.
+          endif
+          enddo
+      enddo
+ 
+! Bottom layer
+      k = km
+      do i=i1,i2
+         if( q(i,k,ic) < 0.) then
+! Borrow from above
+             qup =  q(i,k-1,ic)*dp(i,k-1)
+             qly = -q(i,k  ,ic)*dp(i,k  )
+             dup =  min( qly, qup )
+             q(i,k-1,ic) = q(i,k-1,ic) - dup/dp(i,k-1) 
+             q(i,k,ic) = 0.
+          endif
+      enddo
+   enddo
+ end subroutine fillz
+
+ subroutine pfix(q, qp, im, ipx)
+
+ implicit none
+
+! !INPUT PARAMETERS:
+ integer im                  ! Longitudes
+
+! !INPUT/OUTPUT PARAMETERS:
+ real q(im)              ! Latitude-level field to adjust
+ real qp(im)             ! Second latitude-level field to adjust (usually pole)
+
+! !OUTPUT PARAMETERS:
+ integer ipx                 ! Flag:  0 if Q not change, 1 if changed
+
+
+! !LOCAL VARIABLES:
+ integer i
+ real summ, sump, pmean
+ 
+   summ = 0.
+   sump = 0.
+   do i=1,im
+     summ = summ + q(i)
+     sump = sump + qp(i)
+   enddo
+ 
+   pmean = (sump*gw(1) + summ*gw(2)) / (im*(gw(1)+gw(2)))
+ 
+   do i=1,im
+       q(i) = pmean
+      qp(i) = pmean
+   enddo
+ 
+   if( qp(1) < 0. )  ipx = 1
+
+ end subroutine pfix
+
+ subroutine gmean(im,  jm,  jfirst,  jlast,  q, qmean)
+
+#if defined(SPMD)
+#if defined(PILGRIM)
+  use parutilitiesmodule, only : parcollective, commglobal, sumop
+#else
+  use mod_comm, only: mp_allgather1d, gid
+#endif
+#endif
+
+  implicit none
+
+#if defined(SPMD)
+  real gsum(jm)
+#endif
+
+  integer im, jm                       ! Horizontal dimensions
+  integer jfirst, jlast                ! Latitude strip
+  real, intent(in):: q(im,jfirst:jlast)              ! 2D field    
+
+  real qmean
+  real xsum(jfirst:jlast)
+  integer i, j
+  integer ierror
+
+  do j=jfirst,jlast
+        xsum(j) = 0.
+     do i=1,im
+        xsum(j) = xsum(j) + q(i,j)
+     enddo
+        xsum(j) = xsum(j)*gw(j)
+  enddo
+
+#if defined(SPMD)
+    gsum = 0.
+#if defined(PILGRIM)
+    do j=jfirst,jlast
+      gsum(j) = xsum(j)
+    enddo
+    call parcollective(commglobal, sumop, jm, gsum)
+#else
+    call mp_allgather1d(jm, jfirst, jlast, xsum(jfirst), gsum)
+#endif
+    if (gid == 0 ) then
+      qmean = 0.0
+      do j=1,jm
+         qmean = qmean + gsum(j)
+      enddo
+      qmean = qmean / (2*im)
+    endif
+#else
+      qmean = 0.0
+      do j=1,jm
+         qmean = qmean + xsum(j)
+      enddo
+      qmean = qmean / (2*im)
+#endif
+
+ end subroutine gmean
+
+ subroutine adj_fx(im, jm, km, jfirst, jlast, ak, bk, ffsl,  &
+                   ps0, ps2, pe, delp, fx3, cx, fy3, ng,     &
+                   mg, tiny, n_adj)
+ implicit none
+
+ integer, intent(in):: im
+ integer, intent(in):: jm
+ integer, intent(in):: km
+ integer, intent(in):: ng, mg
+ integer, intent(in):: jfirst, jlast
+ integer, intent(in):: n_adj
+ real, intent(in):: tiny
+ real, intent(in)::  ak(km+1)
+ real, intent(in)::  bk(km+1)
+ real, intent(in)::  ps2(im,jfirst-mg:jlast+mg)
+ real, intent(in)::   cx(im,jfirst-ng:jlast+ng,km) 
+ real, intent(inout)::   pe(im,km+1,jfirst:jlast) 
+ logical, intent(in):: ffsl(jfirst-ng:jlast+ng,km)
+
+ real, intent(inout):: ps0(im,jfirst:jlast)
+ real, intent(inout):: fx3(im,jfirst:jlast,km)
+ real, intent(inout):: fy3(im,jfirst:jlast+mg,km)
+ real, intent(inout):: delp(im,jfirst:jlast,km)
+
+! Local
+ real ps(im,jfirst-mg:jlast+mg)
+ real fy(im,jfirst:jlast+mg)
+ real fx(im+1)
+ real dps(0:im)
+ real dpy(im,jfirst-mg:jlast+mg)
+ real er0, er1
+ integer i,j,k, it
+ real tmpf, dh
+ real dbk
+ integer js2g0, jn2g0
+ real fac
+ parameter ( fac = 0.25 )
+
+ js2g0  = max(2,jfirst)        ! No ghosting
+ jn2g0  = min(jm-1,jlast)      ! No ghosting
+
+  do j=jfirst,jlast
+     do i=1,im
+        ps(i,j) = ps0(i,j)
+     enddo
+  enddo
+
+ fx_iteration: do it=1,n_adj
+
+#if defined(SPMD)
+#if defined(PILGRIM)
+  call parbegintransfer(pattern2dmg, ps, ps)
+  call parendtransfer(pattern2dmg, ps, ps)
+#else
+  call mp_send3d_ns(im, jm, jfirst, jlast, 1, 1, mg, mg, ps, 2)
+  call mp_barrier()
+  call mp_recv3d_ns(im, jm, jfirst, jlast, 1, 1, mg, mg, ps, 2)
+  call mp_barrier()
+#endif
+#endif
+
+!$omp parallel do &
+!$omp shared(im)  &
+!$omp private(i, j, k, dbk, dps, dpy, tmpf, fx, fy)
+
+!--- adjust fx ----
+   do k=3,km
+        dbk = bk(k+1) - bk(k)
+    if( dbk > 0.001 ) then
+      do j=js2g0,jn2g0
+         do i=1,im
+            dps(i) = (ps(i,j) - ps2(i,j))*dbk
+         enddo
+            dps(0) = dps(im)
+         do i=1,im
+            fx(i) = fac*(dps(i-1)-dps(i))
+            tmpf = fx3(i,j,k) + fx(i)
+            if ( tmpf*fx3(i,j,k) > 0. ) then
+               fx3(i,j,k) = tmpf
+            else
+               fx(i)  =  fx3(i,j,k)
+               fx3(i,j,k) =  sign(min(abs(tmpf), abs(fx3(i,j,k))), fx3(i,j,k)) 
+               fx(i) = fx3(i,j,k) - fx(i)
+            endif
+        enddo
+            fx(im+1) = fx(1)
+
+! update delp
+         do i=1,im
+            delp(i,j,k) = delp(i,j,k) + fx(i) - fx(i+1)
+        enddo
+    enddo     ! j-loop
+
+!--- adjust fy ----
+
+      do j=max(jfirst-1,1) ,min(jm,jlast+1)     ! Need ps at jlast+1
+         do i=1,im
+            dpy(i,j) = (ps(i,j) - ps2(i,j))*dbk*gw(j)
+         enddo
+      enddo
+
+      do j=js2g0,min(jm,jlast+1)
+         do i=1,im
+            fy(i,j) = fac*(dpy(i,j-1)-dpy(i,j))
+            tmpf = fy3(i,j,k) + fy(i,j)
+            if ( tmpf*fy3(i,j,k) > 0. ) then
+               fy3(i,j,k) = tmpf
+            else
+               fy(i,j)  =  fy3(i,j,k)
+               fy3(i,j,k) =  sign(min(abs(tmpf), abs(fy3(i,j,k))), fy3(i,j,k)) 
+               fy(i,j) = fy3(i,j,k) - fy(i,j)
+            endif
+        enddo
+      enddo  
+
+! update delp
+    do j=js2g0,jn2g0
+       do i=1,im
+          delp(i,j,k) = delp(i,j,k) + (fy(i,j) - fy(i,j+1)) * rgw(j)
+       enddo
+    enddo  
+
+! Poles:
+    if ( jfirst == 1 ) then
+       do i=1,im
+          delp(i,1,k) = delp(i,1,k) - fy(i,2)*rgw(1)
+       enddo
+       call xpavg(delp(1,1,k), im)
+    endif
+    if ( jlast == jm ) then
+       do i=1,im
+          delp(i,jm,k) = delp(i,jm,k) + fy(i,jm)*rgw(jm)
+       enddo
+       call xpavg(delp(1,jm,k), im)
+    endif
+
+    endif
+ enddo            ! k-loop
+ 
+! Update pe and ps
+
+!$omp parallel do private(i, j, k)
+
+  do j=jfirst,jlast
+     do i=1,im
+        pe(i,1,j) = ak(1)
+     enddo
+
+     do k=1,km
+        do i=1,im
+           pe(i,k+1,j) = pe(i,k,j) + delp(i,j,k)
+        enddo
+     enddo
+
+     do i=1,im
+        ps(i,j) = pe(i,km+1,j)
+     enddo
+  enddo
+
+ enddo fx_iteration
+
+!$omp parallel do private(i, j, k, dbk, dps, tmpf, fx, er0, er1, dh)
+
+ do 2000 j=js2g0,jn2g0
+ do k=km,3,-1
+       dbk = bk(k+1) - bk(k)
+   if( dbk > 0.001 ) then
+       do i=1,im
+          dps(i) = (ps(i,j) - ps2(i,j))*dbk
+       enddo
+          dps(0) = dps(im)
+!
+      i=1
+          er0 =  dps(i-1)
+          er1 =  dps(i)
+      if( er0*er1 < 0. ) then
+          if( er1 > 0. ) then
+              dh = min(-er0, er1)
+              fx3(i,j,k) = fx3(i,j,k) - dh
+              delp(im,j,k) = delp(im,j,k) + dh
+              delp(i,j,k) = delp(i,j,k) - dh
+          else
+              dh = min(er0, -er1)
+              fx3(i,j,k) = fx3(i,j,k) + dh
+              delp(im,j,k) = delp(im,j,k) - dh
+              delp(i,j,k) = delp(i,j,k) + dh
+          endif
+      endif
+
+     do i=2,im
+          er0 =  dps(i-1)
+          er1 =  dps(i)
+      if( er0*er1 < 0. ) then
+          if( er1 > 0. ) then
+              dh = min(-er0, er1)
+              fx3(i,j,k) = fx3(i,j,k) - dh
+              delp(i-1,j,k) = delp(i-1,j,k) + dh
+              delp(i,j,k) = delp(i,j,k) - dh
+          else
+              dh = min(er0, -er1)
+              fx3(i,j,k) = fx3(i,j,k) + dh
+              delp(i-1,j,k) = delp(i-1,j,k) - dh
+              delp(i,j,k) = delp(i,j,k) + dh
+          endif
+      endif
+     enddo
+   endif
+   enddo      ! k-loop
+
+   do i=1,im
+      pe(i,1,j) = ak(1)
+   enddo
+
+   do k=1,km
+      do i=1,im
+         pe(i,k+1,j) = pe(i,k,j) + delp(i,j,k)
+      enddo
+   enddo
+
+   do i=1,im
+      ps(i,j) = pe(i,km+1,j)
+   enddo
+
+   do k=1,km
+   if( ffsl(j,k) ) then
+       do i=1,im
+          fx3(i,j,k) = fx3(i,j,k)/sign(max(abs(cx(i,j,k)),tiny),cx(i,j,k))
+       enddo
+    endif
+   enddo
+2000  continue
+
+!* Copy adjusted surface pressure 
+!* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+   do j = jfirst, jlast
+   do i = 1, im
+      ps0(i,j) = ps(i,j)
+   enddo
+   enddo
+
+ end subroutine adj_fx
+
+end module TPCORE_GEOS5_WINDOW_MOD
