@@ -63,6 +63,7 @@
 !  (24) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (25) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !      
       IMPLICIT NONE
@@ -237,6 +238,7 @@
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -330,7 +332,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -826,6 +828,7 @@
 !        Added parallel DO loops. (phs, 9/18/07)
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !******************************************************************************
 !      
       ! References to F90 modules
@@ -908,7 +911,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)

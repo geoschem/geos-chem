@@ -1,13 +1,47 @@
-! $Id: schem.f,v 1.1 2009/09/16 14:06:11 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: schem
+!
+! !DESCRIPTION: Subroutine SCHEM performs simplified stratospheric chemistry, 
+!  which means only reactions with OH and photolysis are considered.  The 
+!  production and loss of CO and NOy in the stratosphere are taken from Dylan 
+!  Jones' 2-D model. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SCHEM
 !
-!******************************************************************************
-!  Subroutine SCHEM performs simplified stratospheric chemistry, which means
-!  only reactions with OH and photolysis are considered. The production and
-!  loss of CO and NOy in the stratosphere are taken from Dylan Jones' 2-D 
-!  model. (qli, bmy, 11/20/1999, 10/25/05) 
+! !USES:
 !
-!  NOTES:
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT,     GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
+      USE DAO_MOD,        ONLY : AD, T
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR 
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE TIME_MOD,       ONLY : GET_MONTH,        GET_TAU
+      USE TIME_MOD,       ONLY : GET_TS_CHEM,      TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : N_TRACERS,        STT
+      USE TRACER_MOD,     ONLY : TRACER_MW_KG,     XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTACET, IDTALD2, IDTALK4, IDTC2H6
+      USE TRACERID_MOD,   ONLY : IDTC3H8, IDTCH2O, IDTH2O2, IDTHNO4
+      USE TRACERID_MOD,   ONLY : IDTISOP, IDTMACR, IDTMEK,  IDTMP  
+      USE TRACERID_MOD,   ONLY : IDTMVK,  IDTPMN,  IDTPRPE, IDTR4N2
+      USE TRACERID_MOD,   ONLY : IDTRCHO
+      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
+      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"        ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  01 Oct 1995 - M. Prather  - Initial version
+!  20 Nov 1999 - Q. Li - Initial version
+
 !  (1 ) Now read all inputs (stratospheric OH, monthly mean J-values,  
 !        P(CO) rates, and L(CO) rates) from binary punch file format. 
 !        (bmy, 12/10/99) 
@@ -60,31 +94,14 @@
 !        (bmy, 8/22/05)
 !  (20) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (21) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT,     GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,        ONLY : AD, T
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR 
-      USE ERROR_MOD,      ONLY : ALLOC_ERR
-      USE TIME_MOD,       ONLY : GET_MONTH,        GET_TAU
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,      TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : N_TRACERS,        STT
-      USE TRACER_MOD,     ONLY : TRACER_MW_KG,     XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTACET, IDTALD2, IDTALK4, IDTC2H6
-      USE TRACERID_MOD,   ONLY : IDTC3H8, IDTCH2O, IDTH2O2, IDTHNO4
-      USE TRACERID_MOD,   ONLY : IDTISOP, IDTMACR, IDTMEK,  IDTMP  
-      USE TRACERID_MOD,   ONLY : IDTMVK,  IDTPMN,  IDTPRPE, IDTR4N2
-      USE TRACERID_MOD,   ONLY : IDTRCHO
-      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
-      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"        ! Size parameters
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE             :: FIRST = .TRUE.
 
       INTEGER                   :: I, IOS, J, L, N, NN, LMIN
@@ -199,7 +216,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), STRATOH )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) 
+#if   defined( GEOS_5 )  || defined( MERRA )
          ! Cast from REAL*4 to REAL*8
          STRATOH = ARRAY(1,:,:)
 #else
@@ -232,7 +249,7 @@
 !%%%            ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%            CALL TRANSFER_ZONAL( ARRAY(1,:,:), SJVALUE(:,:,NN) )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 ) 
+#if   defined( GEOS_5 ) || defined( MERRA )
             ! Cast from REAL*4 to REAL*8
             SJVALUE(:,:,NN) = ARRAY(1,:,:)
 #else
@@ -263,7 +280,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COPROD )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! Cast from REAL*4 to REAL*8
          COPROD = ARRAY(1,:,:)
 #else
@@ -293,7 +310,7 @@
 !%%%         ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR) 
 !%%%         CALL TRANSFER_ZONAL( ARRAY(1,:,:), COLOSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! Cast from REAL*4 to REAL*8
          COLOSS = ARRAY(1,:,:)
 #else
@@ -456,5 +473,5 @@
       ! Set FIRST = .FALSE. -- we have been thru SCHEM at least once now
       FIRST = .FALSE.
 
-      ! Return to calling program
       END SUBROUTINE SCHEM
+!EOC

@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: FJX_ACET_MOD
+! !MODULE: fjx_acet_mod
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  This module contains functions used for the new acetone pressure
@@ -19,7 +19,8 @@
 !\\
 !\\
 !
-! !INTERFACE
+! !INTERFACE:
+!
       MODULE FJX_ACET_MOD
 !
 ! !USES:
@@ -51,7 +52,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IFUNCTION: TFACA_F
+! !IROUTINE: tfaca_f
 !
 ! !DESCRIPTION: Calculates temperature interpolation factors for acetone
 !\\
@@ -93,7 +94,8 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !IFUNCTION: TFAC0_F
+!
+! !IROUTINE: tfac0_f
 !
 ! !DESCRIPTION: Calculates temperature interpolation factors for acetone
 !\\
@@ -137,7 +139,8 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !IFUNCTION: TFAC_F
+!
+! !IROUTINE: tfac_f
 !
 ! !DESCRIPTION: Calculates temperature interpolation factors for acetone
 !\\
@@ -183,9 +186,10 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !IFUNCTION: QQ2_F
 !
-! !DESCRIPTION: Xsect for acetone
+! !IROUTINE: qq2_f
+!
+! !DESCRIPTION: This routine computes the cross-section for acetone.
 !\\
 !\\
 ! !INTERFACE:
@@ -236,9 +240,10 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !IFUNCTION: QQ1_F
 !
-! !DESCRIPTION: Xsect for acetone
+! !IROUTINE: qq1_f
+!
+! !DESCRIPTION: This routine computes the cross-section for acetone.
 !\\
 !\\
 ! !INTERFACE:
@@ -278,7 +283,6 @@
       RETURN
 
       END FUNCTION QQ1_F
-
-      END MODULE FJX_ACET_MOD
-!EOC 
+!EOC
+      END MODULE FJX_ACET_MOD 
 

@@ -1,29 +1,39 @@
-! $Id: global_o3_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_o3_mod
+!
+! !DESCRIPTION: Module GLOBAL\_O3\_MOD contains variables and routines for 
+!  reading the global monthly mean O3 concentration from disk.  These are 
+!  needed for the offline sulfate/aerosol simulation.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_O3_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_O3_MOD contains variables and routines for reading the
-!  global monthly mean O3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (rjp, bmy, 3/27/03, 1/14/09)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1 ) O3 (REAL*8)       : Stores global monthly mean O3 field
-!  
-!  Module Routines:
-!  =========================================================================== 
-!  (1 ) GET_GLOBAL_O3     : Reads global monthly mean HO3 from disk
-!  (2 ) INIT_GLOBAL_O3    : Allocates & initializes the HO3 array
-!  (3 ) CLEANUP_GLOBAL_O3 : Deallocates the HO3 array
+      IMPLICIT NONE
+      PRIVATE
 !
-!  GEOS-CHEM modules referenced by global_O3_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs 
-!  (2 ) error_mod.f     : Module containing NaN and other error check routines
-!  (3 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PUBLIC              :: CLEANUP_GLOBAL_O3
+      PUBLIC              :: GET_GLOBAL_O3
+!
+! !PUBLIC DATA MEMBERS:
+!            
+      PUBLIC              :: O3
+      REAL*8, ALLOCATABLE :: O3(:,:,:)        ! Global monthly mean OH field
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE             :: INIT_GLOBAL_O3
+!
+! !REVISION HISTORY:
 !  (1 ) Now references "directory_mod.f" (bmy, 7/20/04)
 !  (2 ) Now reads O3 data from "sulfate_sim_200508/offline" dir (bmy, 8/30/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -31,44 +41,45 @@
 !  (5 ) Now reads O3 from MERGE files, which include stratospheric O3 from
 !        COMBO, for GEOS-3 and GEOS-4 met fields (phs, 1/19/07)
 !  (6 ) Bug fix in GET_GLOBAL_O3 (bmy, 1/14/09)
-!******************************************************************************
-!     
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "global_o3_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE :: INIT_GLOBAL_O3
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Array to store global monthly mean OH field
-      REAL*8, ALLOCATABLE :: O3(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_o3
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_O3 reads monthly mean O3 data fields.  
+!  These are needed for simulations such as offline sulfate/aerosol. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_GLOBAL_O3( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_O3 reads monthly mean O3 data fields.  
-!  These are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 3/23/03, 1/14/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"                      ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THISMONTH       ! Current month
+!
+! !REVISION HISTORY: 
+!  23 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -80,22 +91,16 @@
 !        MERGE.O3* files. (phs, 1/19/07)
 !  (8 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 2/7/07)
 !  (9 ) Bug fix: don't call TRANSFER_3D if you use GRIDREDUCED (bmy, 1/14/09)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Rewrote logic more cleanly
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5 
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  19 Aug 2010 - R. Yantosca - Removed hardwiring of data directory
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*4               :: ARRAY2(IGLOB,JGLOB,LLPAR)
       REAL*8               :: XTAU
@@ -114,40 +119,92 @@
          FIRST = .FALSE.
       ENDIF
 
-!-----------------------------------
-! Prior to 5/20/10
-!#if   defined( GRIDREDUCED )
-!-----------------------------------
-! CDH added extra cases for GEOS5
-! Also changed default file location
-#if   defined( GRIDREDUCED ) && defined( GEOS_5 )
+!------------------------------------------------------------------------------
+! Prior to 8/13/10:
+! Rewrite logic more cleanly, treat MERRA like GEOS-5 (bmy, 8/13/10)
+!!-----------------------------------
+!! Prior to 5/20/10
+!!#if   defined( GRIDREDUCED )
+!!-----------------------------------
+!! CDH added extra cases for GEOS5
+!! Also changed default file location
+!#if   defined( GRIDREDUCED ) && defined( GEOS_5 )
+!
+!      ! Filename for 47-level GEOS5 model
+!      FILENAME = 
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#elif defined( GEOS_5 )
+!
+!      ! Filename for full level GEOS5 model
+!      FILENAME = 
+!     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#elif   defined( GRIDREDUCED )
+!
+!      ! Filename for 30-level model
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#else
+!      ! Filename for full vertical grid
+!      FILENAME = TRIM( DATA_DIR )                           // 
+!     &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
+!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
+!
+!#endif
+!------------------------------------------------------------------------------
 
-      ! Filename for 47-level GEOS5 model
-      FILENAME = 
-     &           '/home/cdh/GC/Archived-Br/MERGE.O3.47L.' // 
+
+#if   defined( GEOS_5 ) || defined( MERRA )
+
+      !----------------------------------------------------------------
+      ! GEOS-5 or MERRA
+      !----------------------------------------------------------------
+#if   defined( GRIDREDUCED )
+
+      ! Filename for 47-level model
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.47L.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
-#elif defined( GEOS_5 )
+#else
 
-      ! Filename for full level GEOS5 model
-      FILENAME = 
-     &           '/home/cdh/GC/Archived-Br/MERGE.O3.' // 
+      ! Filename for 72-level model
+      FILENAME = TRIM( DATA_DIR )                           // 
+     &           'sulfate_sim_200508/offline/MERGE.O3.'     //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
-#elif   defined( GRIDREDUCED )
+#endif
+
+
+#else
+
+      !----------------------------------------------------------------
+      ! GEOS-4 or GEOS-3
+      !----------------------------------------------------------------
+#if   defined( GRIDREDUCED )
 
       ! Filename for 30-level model
       FILENAME = TRIM( DATA_DIR )                           // 
      &           'sulfate_sim_200508/offline/MERGE.O3.30L.' // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
+
 #else
+
       ! Filename for full vertical grid
       FILENAME = TRIM( DATA_DIR )                           // 
      &           'sulfate_sim_200508/offline/MERGE.O3.'     // 
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
 
 #endif
+
+#endif
+
 
       ! Echo some information to the standard output
       WRITE( 6, 110 ) TRIM( FILENAME )
@@ -183,26 +240,39 @@
 
       ! Return to calling program
       END SUBROUTINE GET_GLOBAL_O3
-
+!EOC      
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_o3
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_O3 allocates the O3 module array.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_O3
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_O3 allocates the O3 module array.
-!  (bmy, 7/13/04, 1/19/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 7/13/04)
-!  (2 ) Now dimension O3 with LLTROP (bmy, 12/1/05)
-!  (3 ) Now dimension O3 with LLPAR (phs, 1/19/07)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"  ! Size parameters
-
+! 
+! !REVISION HISTORY: 
+!  13 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 7/13/04)
+!  (2 ) Now dimension O3 with LLTROP (bmy, 12/1/05)
+!  (3 ) Now dimension O3 with LLPAR (phs, 1/19/07)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       INTEGER             :: AS
 
@@ -213,25 +283,33 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'O3' )
       O3 = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_O3
-      
+!EOC      
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_global_o3
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_O3 deallocates the O3 array.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GLOBAL_O3
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_O3 deallocates the O3 array. (bmy, 7/13/04)
-!******************************************************************************
-!                               
+! !REVISION HISTORY: 
+!  13 Jul 2004 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_GLOBAL_O3 begins here!
       !=================================================================
       IF ( ALLOCATED( O3 ) ) DEALLOCATE( O3 ) 
      
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_O3
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GLOBAL_O3_MOD

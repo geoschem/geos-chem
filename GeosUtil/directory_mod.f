@@ -1,4 +1,3 @@
-! $Id: directory_mod.f,v 1.2 2010/02/02 16:57:47 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -29,6 +28,7 @@
       CHARACTER(LEN=255) :: GEOS_3_DIR    ! Subdir for GEOS-3 met data
       CHARACTER(LEN=255) :: GEOS_4_DIR    ! Subdir for GEOS-4 met data
       CHARACTER(LEN=255) :: GEOS_5_DIR    ! Subdir for GEOS-5 met data
+      CHARACTER(LEN=255) :: MERRA_DIR     ! Subdir for MERRA  met data
       CHARACTER(LEN=255) :: TEMP_DIR      ! Temp dir for unzipping met data
       CHARACTER(LEN=255) :: RUN_DIR       ! Run directory for GEOS-Chem
       CHARACTER(LEN=255) :: OH_DIR        ! Dir w/ mean OH files
@@ -44,7 +44,7 @@
 !  24 Oct 2005 - R. Yantosca - Added DATA_DIR_1x1
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Added TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH
-
+!  13 Aug 2010 - R. Yantosca - Added MERRA_DIR for MERRA met fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC

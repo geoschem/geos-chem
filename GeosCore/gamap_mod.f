@@ -73,6 +73,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,15 +90,6 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      !--------------------------------------------------------------------
-      ! Prior to 8/3/10:
-      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
-      ! when these parameters are extended to add more tracers.
-      ! (psk, bmy, 8/3/10)
-      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
-      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
-      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
       INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
       INTEGER,           ALLOCATABLE :: NTRAC(:)
@@ -125,7 +117,6 @@
 !
 ! !DESCRIPTION: Subroutine DO\_GAMAP is the driver program for creating 
 !  the customized GAMAP files "diaginfo.dat" and "tracerinfo.dat". 
-
 !\\
 !\\
 ! !INTERFACE:
@@ -649,8 +640,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: IOS
-      CHARACTER(LEN=79)   :: SEPARATOR
+      INTEGER           :: IOS
+      CHARACTER(LEN=79) :: SEPARATOR
 
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
@@ -1340,7 +1331,6 @@
       ! Number of categories
       NCATS = N
       
-      ! Return to calling program
       END SUBROUTINE INIT_DIAGINFO
 !EOC
 !------------------------------------------------------------------------------
@@ -1424,6 +1414,8 @@
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1434,7 +1426,7 @@
       LOGICAL :: DO_TIMESERIES
 
       ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER               :: PD03_PL
+      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -2534,7 +2526,15 @@
 
             ! Number of tracers
             ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            NTRAC(28) = 23
+            !-----------------------------------------------------------------
+            ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
+            !NTRAC(28) = 23
+            !-----------------------------------------------------------------
+            IF ( LSOA ) THEN
+               NTRAC(28) = 23    ! SOA simulation
+            ELSE
+               NTRAC(28) = 14    ! Standard simulation
+            ENDIF
 
             ! Loop over tracers
             DO T = 1, NTRAC(28)
@@ -2548,154 +2548,154 @@
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
                   
-               ELSEIF( T == IDBCO ) THEN
+               ELSE IF ( T == IDBCO ) THEN
                   NAME (T,28) = 'CO'
                   INDEX(T,28) = IDTCO + ( SPACING * 45 )
                   MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBALK4 ) THEN
+               ELSE IF ( T == IDBALK4 ) THEN
                   NAME (T,28) = 'ALK4'
                   INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 4
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBACET ) THEN
+               ELSE IF ( T == IDBACET ) THEN
                   NAME (T,28) = 'ACET'
                   INDEX(T,28) = IDTACET + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBMEK ) THEN
+               ELSE IF ( T == IDBMEK ) THEN
                   NAME (T,28) = 'MEK'
                   INDEX(T,28) = IDTMEK + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 4
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBALD2 ) THEN
+               ELSE IF ( T == IDBALD2 ) THEN
                   NAME (T,28) = 'ALD2'
                   INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBPRPE ) THEN
+               ELSE IF ( T == IDBPRPE ) THEN
                   NAME (T,28) = 'PRPE'
                   INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC3H8 ) THEN
+               ELSE IF ( T == IDBC3H8 ) THEN
                   NAME (T,28) = 'C3H8'
                   INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBCH2O ) THEN
+               ELSE IF ( T == IDBCH2O ) THEN
                   NAME (T,28) = 'CH2O'
                   INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
                   MWT  (T,28) = 30e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBC2H6 ) THEN
+               ELSE IF ( T == IDBC2H6 ) THEN
                   NAME (T,28) = 'C2H6'
                   INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBSO2 ) THEN
+               ELSE IF ( T == IDBSO2 ) THEN
                   NAME (T,28) = 'SO2'
                   INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
                   MWT  (T,28) = 32e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms S/cm2/s'
 
-               ELSEIF( T == IDBNH3 ) THEN
+               ELSE IF ( T == IDBNH3 ) THEN
                   NAME (T,28) = 'NH3'
                   INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
                   MWT  (T,28) = 17e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBBC ) THEN
+               ELSE IF ( T == IDBBC ) THEN
                   NAME (T,28) = 'BC'
                   INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBOC ) THEN
+               ELSE IF ( T == IDBOC ) THEN
                   NAME (T,28) = 'OC'
                   INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBGLYX ) THEN
+               ELSE IF ( T == IDBGLYX ) THEN
                   NAME (T,28) = 'GLYX'
                   INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
                   MWT  (T,28) = 58e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBMGLY ) THEN
+               ELSE IF ( T == IDBMGLY ) THEN
                   NAME (T,28) = 'MGLY'
                   INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
                   MWT  (T,28) = 72e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBBENZ ) THEN
+               ELSE IF ( T == IDBBENZ ) THEN
                   NAME (T,28) = 'BENZ'
                   INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 6
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBTOLU ) THEN
+               ELSE IF ( T == IDBTOLU ) THEN
                   NAME (T,28) = 'TOLU'
                   INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 7
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBXYLE ) THEN
+               ELSE IF ( T == IDBXYLE ) THEN
                   NAME (T,28) = 'XYLE'
                   INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 8
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC2H4 ) THEN
+               ELSE IF ( T == IDBC2H4 ) THEN
                   NAME (T,28) = 'C2H4'
                   INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC2H2 ) THEN
+               ELSE IF ( T == IDBC2H2 ) THEN
                   NAME (T,28) = 'C2H2'
                   INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBGLYC ) THEN
+               ELSE IF ( T == IDBGLYC ) THEN
                   NAME (T,28) = 'GLYC'
                   INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
                   MWT  (T,28) = 60e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBHAC ) THEN
+               ELSE IF ( T == IDBHAC ) THEN
                   NAME (T,28) = 'HAC'
                   INDEX(T,28) = IDTHAC + ( SPACING * 45 )
                   MWT  (T,28) = 74e-3
@@ -3655,7 +3655,7 @@
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else
@@ -3835,7 +3835,6 @@
          SCALE(T,69) = 1e0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRACERINFO
 !EOC
 !------------------------------------------------------------------------------

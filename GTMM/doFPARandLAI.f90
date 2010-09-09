@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doFPARandLAI
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doFPARandLAI(FIRST)
@@ -24,8 +25,7 @@ SUBROUTINE doFPARandLAI(FIRST)
   LOGICAL, INTENT(IN) :: FIRST
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Adapted to restart simulations. Parallelization
+!  09 July 2010 - C. Carouge  - Adapted to restart simulations. Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,6 +172,5 @@ SUBROUTINE doFPARandLAI(FIRST)
   
 END SUBROUTINE doFPARandLAI
 !EOC
-!------------------------------------------------------------------------------
                  
               

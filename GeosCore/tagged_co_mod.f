@@ -3,7 +3,7 @@
 !
 !******************************************************************************
 !  Module TAGGED_CO_MOD contains variables and routines used for the 
-!  geographically tagged CO simulation. (bmy, 7/28/00, 2/14/08)
+!  geographically tagged CO simulation. (bmy, 7/28/00, 8/13/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -124,6 +124,7 @@
 !  (29) Routines GET_ALPHA_ISOP, GET_PCO_LCO_STRAT, READ_PCO_LCO_STRAT,
 !        READ_ACETONE and INIT_TAGGED_CO are public now. Variable
 !        EMACET is public now.  (phs, 9/18/07)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
       IMPLICIT NONE 
@@ -1480,7 +1481,7 @@
 !
 !******************************************************************************
 !  Subroutine READ_PCO_LCO_STRAT reads production and destruction
-!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 10/3/05)
+!  rates for CO in the stratosphere. (bnd, bmy, 9/13/00, 8/13/10)
 !
 !  NOTES:
 !  (1 ) Now use IOS /= 0 to trap both I/O errors and EOF. (bmy, 9/13/00)
@@ -1496,6 +1497,7 @@
 !        of DATA_DIR. (bnd, bmy, 6/30/03)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1549,7 +1551,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_PRODS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       ! Cast from REAL*4 to REAL*8
       CO_PRODS = ARRAY(1,:,:)
 #else
@@ -1580,7 +1582,7 @@
 !%%%      ! Cast from REAL*4 to REAL*8 and resize to (JJPAR,LLPAR)
 !%%%      CALL TRANSFER_ZONAL( ARRAY(1,:,:), CO_LOSSS )
 !%%%---------------------------------------------------------------------
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       ! Cast from REAL*4 to REAL*8
       CO_LOSSS = ARRAY(1,:,:)
 #else

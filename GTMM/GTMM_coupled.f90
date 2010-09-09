@@ -6,8 +6,9 @@
 ! !IROUTINE: GTMM_coupled
 !
 ! !DESCRIPTION: Main subroutine for GTMM when coupled to GEOS-Chem. Replace
-!  GTMM.f90. (ccc, 9/7/10)
-! 
+!  GTMM.f90.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
@@ -47,9 +48,7 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
                                                         ! output to GEOS-Chem
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - First version. Adapted from GTMM.f90
-!
+!  09 July 2010 - C. Carouge  - First version. Adapted from GTMM.f90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,4 +147,3 @@ SUBROUTINE GTMM_coupled(year, month,  DD_Hg0, DD_HgII, WD_HgII, &
 
 END SUBROUTINE GTMM_coupled
 !EOC
-!------------------------------------------------------------------------------

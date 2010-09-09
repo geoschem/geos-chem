@@ -304,7 +304,7 @@
 !
 ! !IROUTINE: cleanup_diag04
 !
-! !DESCRIPTION: Subroutine CLEANUP_DIAG04 deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG04 deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:

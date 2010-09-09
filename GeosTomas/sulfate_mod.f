@@ -5,7 +5,7 @@
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 3/5/10)
+!  (rjp, bdf, bmy, 6/22/00, 8/26/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -220,6 +220,7 @@
 !        excluding that from heterogeous reaction on sea-salt. (win, 1/25/10)
 !  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (53) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -1360,7 +1361,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 1/4/10) 
+!  (rjp, bmy, 11/26/02, 8/26/10) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1418,6 +1419,7 @@
 !        (win, 1/25/10)
 !  (15) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !  (16) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
+!  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1610,12 +1612,12 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 )
+#if   defined ( GEOS_5 ) || defined( MERRA )
 
-         !----------------------------------------
-         ! GEOS-5: Get LWC, FC from met fields
+         !---------------------------------------------
+         ! GEOS-5/MERRA Get LWC, FC from met fields
          ! (jaf, bmy, 6/30/10)
-         !----------------------------------------
+         !---------------------------------------------
 
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
@@ -1625,9 +1627,9 @@
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
 #else
-         !----------------------------------------
+         !---------------------------------------------
          ! Otherwise, compute FC, LWC as before
-         !----------------------------------------
+         !---------------------------------------------
 
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)

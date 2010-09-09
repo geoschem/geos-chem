@@ -5,8 +5,10 @@
 !
 ! !IROUTINE: assignAgeClassToRunningPool
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!  running pool.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE assignAgeClassToRunningPool
@@ -20,9 +22,7 @@ SUBROUTINE assignAgeClassToRunningPool
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Add parallelization.
-!
+!  09 July 2010 - C. Carouge  - Add parallelization.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -60,4 +60,3 @@ SUBROUTINE assignAgeClassToRunningPool
 
 END SUBROUTINE assignAgeClassToRunningPool
 !EOC
-!------------------------------------------------------------------------------

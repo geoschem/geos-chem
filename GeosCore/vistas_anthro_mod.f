@@ -1,13 +1,12 @@
-! $Id: vistas_anthro_mod.f,v 1.1 2009/09/16 14:05:58 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: VISTAS_ANTHRO_MOD
+! !MODULE: vistas_anthro_mod
 !
 ! !DESCRIPTION: Module VISTAS\_ANTHRO\_MOD contains variables and routines 
-!  to read the  VISTAS anthropogenic emissions. (amv, 11/24/2008)
+!  to read the VISTAS anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE: 
@@ -34,12 +33,14 @@
       PRIVATE :: TOTAL_ANTHRO_Tg
 !
 ! !REVISION HISTORY:
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  24 Nov 2008 - A. v. Donkelaar - Initial version  
+!  28 Jan 2009 - P. Le Sager     - Initial Version in GEOS-Chem
 !EOP
 !------------------------------------------------------------------------------
+!BOC
 !
-! !PRIVATE DATA MEMBERS:
-
+! !PRIVATE TYPES:
+!
       ! Arrays for weekday & weekend emissions
       REAL*8,  ALLOCATABLE :: VISTAS_WD_NOx(:,:)
       REAL*8,  ALLOCATABLE :: VISTAS_WE_NOx(:,:)
@@ -48,17 +49,17 @@
       REAL*8,  ALLOCATABLE :: A_CM2(:)
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_VISTAS_ANTHRO
+! !IROUTINE: get_vistas_anthro
 !
 ! !DESCRIPTION: Function GET\_VISTAS\_ANTHRO returns the VISTAS emission for 
 !  GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in
-!  units of [kg/s] or [molec/cm2/s]. (amv, phs, 1/28/09) 
+!  units of [kg/s] or [molec/cm2/s].
 !\\
 !\\
 ! !INTERFACE:
@@ -92,7 +93,7 @@
       REAL*8                        :: VALUE    
 !
 ! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,7 +140,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_VISTAS_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -147,11 +147,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_VISTAS_ANTHRO
+! !IROUTINE: emiss_vistas_anthro
 !
 ! !DESCRIPTION: Subroutine EMISS\_VISTAS\_ANTHRO reads the VISTAS emission 
 !  fields at 1x1 resolution and regrids them to the current model resolution.
-!  (amv, phs, 1/28/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -171,7 +170,7 @@
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +323,6 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR, MN )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_VISTAS_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -332,10 +330,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VISTAS_SCALE_FUTURE
+! !IROUTINE: vistas_scale_future
 !
 ! !DESCRIPTION: Subroutine VISTAS\_SCALE\_FUTURE applies the IPCC future scale 
-!  factors to  the VISTAS anthropogenic emissions. (amv, phs, 1/28/09)
+!  factors to  the VISTAS anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -349,7 +347,7 @@
 #     include "CMN_SIZE"             ! Size parameters
 !
 ! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -378,7 +376,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE VISTAS_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
@@ -386,10 +383,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ANTHRO_TG
+! !IROUTINE: total_anthro_Tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the totals for the 
-!  anthropogenic emissions of NOx. (phs, 1/28/09)
+!  anthropogenic emissions of NOx.
 !\\
 !\\
 ! !INTERFACE:
@@ -411,8 +408,6 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
-!
-! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -471,7 +466,6 @@
  120  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/',
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-      ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_Tg
 !EOC
 !------------------------------------------------------------------------------
@@ -479,7 +473,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_VISTAS_ANTHRO 
+! !IROUTINE: init_vistas_anthro 
 !
 ! !DESCRIPTION: Subroutine INIT\_VISTAS\_ANTHRO allocates and zeroes all 
 !  module arrays. (phs, 1/28/09)
@@ -491,7 +485,6 @@
 !
 ! !USES:
 ! 
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
@@ -500,8 +493,6 @@
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
-!
-! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,7 +533,6 @@
          A_CM2(J) = GET_AREA_CM2( J )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE INIT_VISTAS_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -550,10 +540,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_VISTAS_ANTHRO
+! !IROUTINE: cleanup_vistas_anthro
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_VISTAS\_ANTHRO deallocates all module 
-!  arrays. (phs, 1/28/09)
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -566,17 +556,12 @@
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
-      ! CLEANUP_STREETS begins here!
+      ! CLEANUP_VISTAS_ANTHRO begins here!
       !=================================================================
       IF ( ALLOCATED( A_CM2          ) ) DEALLOCATE( A_CM2          )
       IF ( ALLOCATED( VISTAS_WD_NOx  ) ) DEALLOCATE( VISTAS_WD_NOx  )
       IF ( ALLOCATED( VISTAS_WE_NOx  ) ) DEALLOCATE( VISTAS_WE_NOx  )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_VISTAS_ANTHRO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE VISTAS_ANTHRO_MOD
 !EOC
+      END MODULE VISTAS_ANTHRO_MOD

@@ -7,9 +7,9 @@
 !
 ! !DESCRIPTION: Subroutine load\_GC\_data is only used with GTMM coupled to
 !  GEOS-Chem. The subroutine regrid the temperature, precipation and
-!  radiation fields to 1x1. The met fields are read in GTMM_DR in GEOS_Chem.
-!  (ccc, 7/9/10)
-!
+!  radiation fields to 1x1. The met fields are read in GTMM\_DR in GEOS\_Chem.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
@@ -29,8 +29,7 @@ SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
        PREACC, RADSWG
 !
 ! !REVISION HISTORY:
-! 
-! 9 July 2010 - C. Carouge  - Initial version
+!  09 July 2010 - C. Carouge  - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -55,4 +54,3 @@ SUBROUTINE load_GC_data(month, TS, PREACC, RADSWG)
   
 END SUBROUTINE load_GC_data
 !EOC
-!------------------------------------------------------------------------------

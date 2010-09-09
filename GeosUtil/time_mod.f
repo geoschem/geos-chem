@@ -1,4 +1,3 @@
-! $Id: time_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,6 +32,7 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_A1
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
       PUBLIC  :: SET_CT_I6
@@ -76,14 +76,17 @@
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
       PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
       PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
+      PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_A6_TIME
       PUBLIC  :: GET_I6_TIME
+      PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
@@ -92,6 +95,7 @@
       PUBLIC  :: ITS_TIME_FOR_EMIS
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
       PUBLIC  :: ITS_TIME_FOR_I6
@@ -167,6 +171,8 @@
 !  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
 !                              for computing SUNCOS.
 !  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
+!  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
+!  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,14 +188,15 @@
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
       ! Timesteps
-      INTEGER           :: TS_CHEM,   TS_CONV,     TS_DIAG
-      INTEGER           :: TS_DYN,    TS_EMIS,     TS_UNIT
+      INTEGER           :: TS_CHEM,    TS_CONV,     TS_DIAG
+      INTEGER           :: TS_DYN,     TS_EMIS,     TS_UNIT
       INTEGER           :: TS_SUN_2
 
       ! Timestep counters
-      INTEGER           :: CT_CHEM,   CT_CONV,     CT_DYN    
-      INTEGER           :: CT_EMIS,   CT_A3,       CT_A6
-      INTEGER           :: CT_I6,     CT_XTRA,     CT_DIAG
+      INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
+      INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
+      INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
+      INTEGER           :: CT_A1
 
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
@@ -782,6 +789,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_a1
+!
+! !DESCRIPTION: Subroutine SET\_CT\_A1 increments CT\_A1, the counter of the 
+!  number of times we have read in A1 fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_A1( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_A1 = CT_A1 + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_A1 = 0
+      ENDIF
+
+      END SUBROUTINE SET_CT_A1
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2048,7 +2088,7 @@
 !
 ! !IROUTINE: get_ts_sun_2
 !
-! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS_SUN_2, which is 1/2 of
+! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
 !  the interval at which we are computing the cosine of the solar zenith
 !  angle, aka SUNCOS.  This is required to move the time at which we compute
 !  SUNCOS to the middle of the chemistry timestep interval.
@@ -2193,9 +2233,38 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ct_a1
+!
+! !DESCRIPTION: Function GET\_CT\_A1 returns the A1 fields timestep 
+!  counter to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_A1() RESULT( THIS_CT_A1 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_A1   ! # of A-3 timesteps
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      THIS_CT_A1 = CT_A1
+
+      END FUNCTION GET_CT_A1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ct_a3
 !
-! !DESCRIPTION: Function GET\_CT\_CHEM returns the A-3 fields timestep 
+! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep 
 !  counter to the calling program.
 !\\
 !\\
@@ -2339,6 +2408,50 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_a1_time
+!
+! !DESCRIPTION: Function GET\_A1\_TIME returns the correct YYYYMMDD and HHMMSS 
+!  values that are needed to read in the next average 1-hour (A-1) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_A1_TIME() RESULT( DATE )
+!
+! !USES:
+!
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+#if   defined( MERRA )
+
+      ! MERRA met fields are 1-hour time-averages, timestamped at the
+      ! center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+      DATE = GET_TIME_AHEAD( 30 )
+
+#else
+      
+      ! Otherwise return the current time
+      DATE = GET_TIME_AHEAD( 0 )
+
+#endif
+
+      END FUNCTION GET_A1_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_a3_time
 !
 ! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS 
@@ -2470,6 +2583,43 @@
       DATE = GET_TIME_AHEAD( 360 )
 
       END FUNCTION GET_I6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_a1_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_A1\_TIME returns the correct YYYYMMDD
+!  and HHMMSS values the first time that A-3 fields are read in from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
+!
+! !USES:
+!
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  26 Jun 2003 - R. Yantosca - Initial Version
+!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      ! Return the first A-1 time
+      DATE = GET_A1_TIME()
+  
+      END FUNCTION GET_FIRST_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2752,10 +2902,39 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: its_time_for_a1
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read 
+!  in A1 (average 1-hr fields) and FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_A1() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  20 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! We read A1 fields every 3 hours
+      FLAG = ( MOD( NHMS, 010000 ) == 0 )
+
+      END FUNCTION ITS_TIME_FOR_A1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: its_time_for_a3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
-!  in A-3 (average 3-h fields) and FALSE otherwise. 
+!  in A3 (average 3-hr fields) and FALSE otherwise. 
 !\\
 !\\
 ! !INTERFACE:
@@ -2772,7 +2951,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read A-3 fields every 3 hours
+      ! We read A3 fields every 3 hours
       FLAG = ( MOD( NHMS, 030000 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_A3
@@ -2785,7 +2964,7 @@
 ! !IROUTINE: its_time_for_a6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
-!  in A-6 (average 6-h fields) and FALSE otherwise.
+!  in A6 (average 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -2842,7 +3021,7 @@
 ! !IROUTINE: its_time_for_i6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
-!  in I-6 (instantaneous 6-h fields) and FALSE otherwise.
+!  in I6 (instantaneous 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -2859,7 +3038,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read in I-6 fields at 00, 06, 12, 18 GMT
+      ! We read in I6 fields at 00, 06, 12, 18 GMT
       FLAG = ( MOD( NHMS, 060000 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_I6
@@ -3772,8 +3951,6 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-
-
       END MODULE TIME_MOD
 
 

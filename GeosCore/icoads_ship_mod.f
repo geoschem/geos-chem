@@ -1,4 +1,3 @@
-! $Id: icoads_ship_mod.f,v 1.2 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !     Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -8,16 +7,7 @@
 !     
 ! !DESCRIPTION: Module ICOADS\_SHIP\_MOD contains variables and routines to 
 !  read the International Comprehensive Ocean-Atmosphere Data Set (ICOADS)
-!  ship emissions. Base year is 2002.
-!\\
-!\\     
-!  Source: ICOADS Emissions data for NOx, SOx, and CO were downloaded from 
-!  http://coast.cms.udel.edu/GlobalShipEmissions/Inventories/
-!\\
-!\\
-!  Reference: Wang, C., J. J. Corbett, and J. Firestone, \emph{Improving
-!  Spatial representation of Global Ship Emissions Inventories},
-!  \underline{Environ. Sci. Technol.}, \textbf{42}, (1), 193-199, 2008.
+!  ship emissions.  Base year is 2002.
 !\\   
 !\\   
 ! !INTERFACE: 
@@ -31,9 +21,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CLEANUP_ICOADS_SHIP
-      PUBLIC :: EMISS_ICOADS_SHIP
-      PUBLIC :: GET_ICOADS_SHIP
+      PUBLIC  :: CLEANUP_ICOADS_SHIP
+      PUBLIC  :: EMISS_ICOADS_SHIP
+      PUBLIC  :: GET_ICOADS_SHIP
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -41,10 +31,19 @@
       PRIVATE :: INIT_ICOADS_SHIP
       PRIVATE :: TOTAL_ICOADS_SHIP_TG
 !
+! !REMARKS:
+!  Source: ICOADS Emissions data for NOx, SOx, and CO were downloaded from 
+!  http://coast.cms.udel.edu/GlobalShipEmissions/Inventories/
+!
+!  Reference: Wang, C., J. J. Corbett, and J. Firestone, \emph{Improving
+!  Spatial representation of Global Ship Emissions Inventories},
+!  Environ. Sci. Technol., 42, (1), 193-199, 2008.
+!
 ! !REVISION HISTORY:
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
+!BOC
 !
 ! !PRIVATE DATA MEMBERS:
 !
@@ -57,17 +56,17 @@
       REAL*8,  ALLOCATABLE :: SO2(:,:)
 
       CONTAINS
-!
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_ICOADS_SHIP
+! !IROUTINE: get_icoads_ship
 !
-! !DESCRIPTION: Function GET\_ICOADS\_SHIP returns the ICOADS ship emissions for
-!  GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in units 
-!  of [kg/s] or [molec/cm2/s].  (cklee, 7/09/09)
+! !DESCRIPTION: Function GET\_ICOADS\_SHIP returns the ICOADS ship emissions 
+!  for GEOS-Chem grid box (I,J) and tracer N.  Emissions can be returned in 
+!  units of [kg/s] or [molec/cm2/s].
 !\\
 !\\
 ! !INTERFACE:
@@ -98,7 +97,7 @@
       REAL*8                        :: VALUE     
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,7 +185,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_ICOADS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -194,11 +192,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_ICOADS_SHIP
+! !IROUTINE: emiss_icoads_ship
 !
 ! !DESCRIPTION: Subroutine EMISS\_ICOADS\_SHIP reads the ICOADS emission fields
 !  at 1x1 resolution and regrids them to the current model resolution. 
-!  (cklee, 7/09/2009)
 !\\
 !\\
 ! !INTERFACE:
@@ -218,7 +215,7 @@
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -235,7 +232,6 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
       CHARACTER (LEN=2)          :: SMONTH
-
 
       !=================================================================
       ! EMISS_ICOADS_SHIP begins here!
@@ -342,7 +338,6 @@
       !--------------------------
       CALL TOTAL_ICOADS_SHIP_TG( THISYEAR )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_ICOADS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -350,7 +345,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ICOADS_SCALE_FUTURE
+! !IROUTINE: icoads_scale_future
 !
 ! !DESCRIPTION: applies the IPCC future scale factors
 !\\
@@ -368,7 +363,7 @@
 #     include "CMN_SIZE"             ! Size parameters
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -400,7 +395,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE ICOADS_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
@@ -408,7 +402,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ICOADS_SHIP_TG
+! !IROUTINE: total_icoads_ship_Tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ICOADS\_SHIP\_TG prints the totals for  
 !   ship emissions of NOx, CO, and SO2.
@@ -429,7 +423,7 @@
       INTEGER, INTENT(IN) :: MONTH   ! Month of data to compute totals
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -471,7 +465,6 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       
-      ! Return to calling program
       END SUBROUTINE TOTAL_ICOADS_SHIP_TG
 !EOC
 !------------------------------------------------------------------------------
@@ -479,10 +472,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_ICOADS_SHIP
+! !IROUTINE: init_icoads_ship
 !
 ! !DESCRIPTION: Subroutine INIT\_ICOADS\_SHIP allocates and zeroes all 
-!  module arrays. (cklee, 7/09/09)
+!  module arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -498,7 +491,7 @@
 #     include "CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -543,7 +536,6 @@
          A_CM2(J) = GET_AREA_CM2( J )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE INIT_ICOADS_SHIP
 !EOC
 !------------------------------------------------------------------------------
@@ -551,10 +543,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_ICOADS_SHIP
+! !IROUTINE: cleanup_icoads_ship
 !
-! !DESCRIPTION:  Subroutine CLEANUP\_ICOADS\_SHIP deallocates all module arrays. 
-!  (cklee, 7/09/09)
+! !DESCRIPTION:  Subroutine CLEANUP\_ICOADS\_SHIP deallocates all module 
+!  arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -562,7 +554,7 @@
       SUBROUTINE CLEANUP_ICOADS_SHIP
 !
 ! !REVISION HISTORY: 
-!   21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
+!  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -572,10 +564,6 @@
       IF ( ALLOCATED( CO             ) ) DEALLOCATE( CO             )
       IF ( ALLOCATED( SO2            ) ) DEALLOCATE( SO2            )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_ICOADS_SHIP
 !EOC
-!------------------------------------------------------------------------------
-
-      ! End of module
       END MODULE ICOADS_SHIP_MOD

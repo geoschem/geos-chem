@@ -1,4 +1,3 @@
-! $Id: megan_mod.f,v 1.4 2010/03/09 21:44:17 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -11,6 +10,7 @@
 !\\
 !\\
 !  References:
+!
 !  \begin{itemize}
 !  \item Guenther, A., et al., \emph{A global model of natural volatile 
 !        organic compound emissions}, \underline{J.Geophys. Res.}, 
@@ -43,11 +43,17 @@
 
       IMPLICIT NONE
       PRIVATE
+
+#     include "CMN_SIZE"                               ! Size parameters
 !
 ! !DEFINED PARAMETERS:
 ! 
-      ! Scalar
+      ! Scalars
+#if   defined( MERRA ) 
+      INTEGER, PARAMETER  :: DAY_DIM        = 24       ! # of 1-hr periods/day
+#else
       INTEGER, PARAMETER  :: DAY_DIM        = 8        ! # of 3-hr periods/day
+#endif
       INTEGER, PARAMETER  :: NUM_DAYS       = 10       ! # of days to avg 
       REAL*8,  PARAMETER  :: WM2_TO_UMOLM2S = 4.766d0  ! W/m2 -> umol/m2/s
 
@@ -137,6 +143,11 @@
 !  09 Mar 2010 - R. Yantosca - Minor bug fix in GET_EMMONOT_MEGAN
 !  17 Mar 2010 - H. Pye      - AEF_SPARE must be a scalar local variable
 !                              in GET_EMMONOT_MEGAN for parallelization.
+!  20 Aug 2010 - R. Yantosca - Move CMN_SIZE to top of module
+!  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
+!                              surface temperature is now an hourly field.
+!  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 
+!                              NUM_DAYS (instead of 15) days of sfc temp data 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -163,8 +174,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -293,7 +302,6 @@
 
       ENDIF
 
-      ! return to calling program
       END FUNCTION GET_EMISOP_MEGAN
 !EOC
 !------------------------------------------------------------------------------
@@ -301,7 +309,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_emmbo_megan
 !
 ! !DESCRIPTION: Subroutine GET\_EMMBO\_MEGAN computes methylbutenol emissions
 !  in units of [atoms C/box] using the MEGAN inventory.
@@ -317,8 +325,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -439,7 +445,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_EMMBO_MEGAN
 !EOC
 !------------------------------------------------------------------------------
@@ -464,8 +469,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -641,7 +644,6 @@
       ! Convert from [kg/box] to [atoms C/box]
       EMMONOT  = EMMONOT * XNUMOL
 
-      ! return to calling program
       END FUNCTION GET_EMMONOG_MEGAN
 !EOC
 !------------------------------------------------------------------------------
@@ -665,8 +667,6 @@
 ! !USES:
 !
       USE LAI_MOD,    ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -719,7 +719,6 @@
          EMMONOT = EMMONOT + MONO
       ENDDO
 
-      ! Return to calling program
       END FUNCTION GET_EMMONOT_MEGAN
 !EOC
 !------------------------------------------------------------------------------
@@ -730,7 +729,7 @@
 ! !IROUTINE: activity_factors
 !
 ! !DESCRIPTION: Subroutine ACTIVITY\_FACTORS computes the gamma activity 
-!  factors which adjust the emission factors to the current weather & 
+!  factors which adjust the emission factors to the current weather and 
 !  vegetation conditions.  Here they are calculated by (default) for isoprene. 
 !\\
 !\\
@@ -746,8 +745,6 @@
 !
       USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
       USE LOGICAL_MOD, ONLY : LPECCA 
-
-#     include "CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -854,8 +851,7 @@
 
       ENDIF
 
-      ! return to calling program
-      END SUBROUTINE  ACTIVITY_FACTORS
+      END SUBROUTINE ACTIVITY_FACTORS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -977,7 +973,6 @@
       ! Prevent negative values
       GAMMA_P_PECCA = MAX( GAMMA_P_PECCA , 0d0 )
 
-      ! return to calling program
       END FUNCTION GET_GAMMA_P_PECCA
 !EOC
 !------------------------------------------------------------------------------
@@ -985,7 +980,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: solar_angle
 !
 ! !DESCRIPTION: Function SOLAR\_ANGLE computes the local solar angle for a 
 !  given day of year, latitude and longitude (or local time).  Called from  
@@ -1126,7 +1121,6 @@
       ! Prevent negative values
       GAMMA_T = MAX( C_T * NORM , 0d0 )
 
-      ! Return to calling program
       END FUNCTION GET_GAMMA_T_ISOP
 !EOC
 !------------------------------------------------------------------------------
@@ -1137,8 +1131,8 @@
 ! !IROUTINE: get_gamma_t_nisop
 !
 ! !DESCRIPTION: Function GET\_GAMMA\_T\_NISOP computes the temperature 
-!  activity factor (GAMMA_T) for BVOCs OTHER than isoprene.  Called from 
-!  routines GET_EMMONOG_MEGAN and GET_EMMBO_MEGAN.
+!  activity factor (GAMMA\_T) for BVOCs OTHER than isoprene.  Called from 
+!  routines GET\_EMMONOG\_MEGAN and GET\_EMMBO\_MEGAN.
 !\\
 !\\
 ! !INTERFACE:
@@ -1190,7 +1184,6 @@
 
       GAMMA_T = EXP( BETA * ( T - Ts ) )
 
-      ! Return to calling program
       END FUNCTION GET_GAMMA_T_NISOP
 !EOC
 !------------------------------------------------------------------------------
@@ -1201,8 +1194,8 @@
 ! !IROUTINE: get_gamma_p
 !
 ! !DESCRIPTION: Function GET\_GAMMA\_P computes the gamma activity factor with
-!  sensitivity to LIGHT (aka 'PAR').  Called by the functions GET_EMISOP_MEGAN,
-!  GET_EMMBO_MEGAN, and GET_EMMONOG_MEGAN.
+!  sensitivity to LIGHT (aka 'PAR').  Called by the functions !
+!  GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
 !\\
 !\\
 ! !INTERFACE:
@@ -1406,7 +1399,6 @@
       ! Prevent negative values.
       GAMMA_P = MAX( C_PPFD / NORMAL_FACTOR, 0d0 )
 
-      ! return to calling program
       END FUNCTION GET_GAMMA_P
 !EOC
 !------------------------------------------------------------------------------
@@ -1414,7 +1406,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_gamma_leaf_age
 !
 ! !DESCRIPTION: Function GET\_GAMMA\_LEAF\_AGE computes the gamma exchange 
 !  activity factor which is sensitive to leaf age (= GAMMA\_LEAF\_AGE).
@@ -1603,7 +1595,6 @@
       ! Normalize & prevent negative values
       GAMMA_LEAF_AGE = MAX( M_AGE * NORM_V(AINDX) , 0d0 )
 
-      ! return to calling program
       END FUNCTION GET_GAMMA_LEAF_AGE
 !EOC
 !------------------------------------------------------------------------------
@@ -1611,11 +1602,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_gamma_lai
 !
 ! !DESCRIPTION: Function GET\_GAMMA\_LAI computes the gamma exchange activity 
-!  factor which is sensitive to leaf area (= GAMMA_LAI).  Called from
-!  GET_EMISOP_MEGAN, GET_EMMBO_MEGAN, and GET_EMMONOG_MEGAN.
+!  factor which is sensitive to leaf area (= GAMMA\_LAI).  Called from
+!  GET\_EMISOP\_MEGAN, GET\_EMMBO\_MEGAN, and GET\_EMMONOG\_MEGAN.
 !\\
 !\\
 ! !INTERFACE:
@@ -1678,8 +1669,6 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
-
-#     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 
@@ -2140,7 +2129,6 @@
          ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE GET_AEF
 !EOC
 !------------------------------------------------------------------------------
@@ -2148,9 +2136,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: get_aef_05x0666
 !
-! !DESCRIPTION: Subroutine GET_AEF_05x0666 reads Annual Emission Factor for 
+! !DESCRIPTION: Subroutine GET\_AEF\_05x0666 reads Annual Emission Factor for 
 !  all biogenic VOC species from disk.  Called from "main.f".  Specially
 !  constructed to read 0.5 x 0.666 nested grid data for the GEOS-5 nested
 !  grid simulations.
@@ -2169,8 +2157,6 @@
       USE TIME_MOD,       ONLY : GET_TS_EMIS
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
-
-#     include "CMN_SIZE"       ! Size parameters
 !
 ! !REMARKS:
 !  Reference: (5 ) Guenther et al, 2004 
@@ -2360,7 +2346,6 @@
          ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE GET_AEF_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -2382,8 +2367,6 @@
 ! !USES:
 !
       USE MEGANUT_MOD     ! We use all functions from the module
-
-#     include "CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) All MEGAN biogenic emission are currently calculated using TS from DAO 
@@ -2432,7 +2415,6 @@
       ENDDO
 !$OMP END PARALLEL DO
           
-      ! return to calling program
       END SUBROUTINE UPDATE_T_DAY
 !EOC
 !------------------------------------------------------------------------------
@@ -2440,19 +2422,18 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: update_t_15_avg
 !
 ! !DESCRIPTION: Subroutine UPDATE\_T\_15\_AVG should be called at the 
-!  beginningof each day. It loops through the gridboxes doing the following:
+!  beginning of each day. It loops through the gridboxes doing the following:
 !
 !  \begin{enumerate}
 !  \item Average T\_DAY over the 8 TS values during the day.  
-!  \item Push the daily average TS values through T_15, throwing out the 
+!  \item Push the daily average TS values through T\_15, throwing out the 
 !        oldest and putting the newest (the T\_DAY average) in the last spot 
 !  \item Get T\_15\_AVG by averaging T\_15 over the 15 day period. 
 !  \end{enumerate}
-!\\
-!\\
+!
 ! !INTERFACE:
 !
       SUBROUTINE UPDATE_T_15_AVG
@@ -2460,8 +2441,6 @@
 ! !USES:
 !
       IMPLICIT NONE
-
-#     include "CMN_SIZE" ! MAXIJ
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -2535,7 +2514,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE UPDATE_T_15_AVG
 !EOC
 !------------------------------------------------------------------------------
@@ -2556,6 +2534,7 @@
 ! !USES:
 !
       USE A3_READ_MOD
+      USE MERRA_A1_MOD
       USE FILE_MOD,    ONLY : IU_A3
       USE JULDAY_MOD,  ONLY : CALDATE
       USE ERROR_MOD,   ONLY : ALLOC_ERR
@@ -2563,14 +2542,15 @@
       USE LOGICAL_MOD, ONLY : LUNZIP
       USE TIME_MOD,    ONLY : GET_FIRST_A3_TIME, GET_JD
       USE TIME_MOD,    ONLY : ITS_A_LEAPYEAR,    YMD_EXTRACT
-      
-#     include "CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  (1 ) Change the logic in the #if block for G4AHEAD. (bmy, 12/6/05)
 !  (2 ) Bug fix: skip Feb 29th if GCAP (phs, 9/18/07)
 !  (3 ) Now call GET_AEF_05x0666 for GEOS-5 nested grids (yxw,dan,bmy, 11/6/08)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  26 Aug 2010 - R. Yantosca - Now reference merra_a1_mod.f
+!  01 Sep 2010 - R. Yantosca - Now read in NUM_DAYS of sfc temp data (this had
+!                              been hardwired to 15 days previously)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2726,12 +2706,18 @@
       ! by ending time: 00Z, 03Z, 06Z, 09Z, 12Z, 15Z, 18Z, 21Z.  
       G4AHEAD   = 0
 
+#elif defined( MERRA )
+
+      ! For MERRA, the A1 fields are timestamped on the half-hours:
+      ! 00:30, 01:30, 02:30, ... 23:30
+      G4AHEAD   = 003000
+
 #else
 
       ! For GEOS4, the A-3 fields are timestamped by the center of 
       ! the 3-hr period: 01:30Z, 04:30Z, 07:30Z, 10:30Z, 
       ! 13:30Z, 16:30Z, 19:30Z, 22:30Z
-      G4AHEAD   = 13000
+      G4AHEAD   = 013000
 
 #endif
       
@@ -2765,7 +2751,13 @@
       ENDIF
 
       ! Loop over 15 days
-      DO I = 15+BACK_ONE, 1, -1
+      !------------------------------------------------------------------
+      ! Prior to 9/1/10:
+      ! We now average over NUM_DAYS=10 days of data instead of 15
+      ! days, so rewrite the DO loop accordingly (bmy, 9/1/10)
+      !DO I = 15+BACK_ONE, 1, -1
+      !------------------------------------------------------------------
+      DO I = NUM_DAYS+BACK_ONE, 1, -1
 
          ! Skip February 29th for GCAP (phs, 9/18/07)
          IF ( GCAP_LEAP .AND. I == THISDAY ) CYCLE
@@ -2782,17 +2774,43 @@
          ENDIF
 
          ! Loop over 3h periods during day
-         DO J = 0, 7
+         !---------------------------------------------------------
+         ! Prior to 8/20/10:
+         ! Eliminate hardwiring; now use DAY_DIM (bmy, 8/20/10)
+         !DO J = 0, 7
+         !---------------------------------------------------------
+         DO J = 0, DAY_DIM-1  
 
-            ! Open A-3 fields
-            CALL OPEN_A3_FIELDS( NYMD_T15, 30000*J + G4AHEAD )
+#if   defined( MERRA )
 
-            ! Read A-3 fields from disk
-            CALL GET_A3_FIELDS(  NYMD_T15, 30000*J + G4AHEAD ) 
+            !-----------------------------
+            ! MERRA met fields
+            ! Sfc temp is hourly data
+            !-----------------------------
+
+            ! Open A1 fields
+            CALL OPEN_MERRA_A1_FIELDS( NYMD_T15, 010000*J + G4AHEAD )
+
+            ! Read A1 fields from disk
+            CALL GET_MERRA_A1_FIELDS(  NYMD_T15, 010000*J + G4AHEAD ) 
+
+#else
+            !-----------------------------
+            ! All other met field types!
+            ! Sfc temp is 3-hourly data
+            !-----------------------------
+
+            ! Open A3 fields
+            CALL OPEN_A3_FIELDS( NYMD_T15, 030000*J + G4AHEAD )
+
+            ! Read A3 fields from disk
+            CALL GET_A3_FIELDS(  NYMD_T15, 030000*J + G4AHEAD ) 
+
+#endif
 
             ! Update hourly temperatures
             CALL UPDATE_T_DAY
-         ENDDO       
+         ENDDO     
 
          ! Compute 15-day average temperatures
          CALL UPDATE_T_15_AVG
@@ -2812,7 +2830,6 @@
          CALL UNZIP_A3_FIELDS(  'remove all' )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_MEGAN
 !EOC
 !------------------------------------------------------------------------------
@@ -2820,7 +2837,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: cleanup_megan
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_MEGAN deallocates all allocated arrays 
 !  at the end of a GEOS-Chem model run.
@@ -2866,7 +2883,6 @@
       ! bug fix (hotp 3/10/10)
       !IF ( ALLOCATED( AEF_SPARE ) ) DEALLOCATE( AEF_SPARE )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_MEGAN
 !EOC
       END MODULE MEGAN_MOD

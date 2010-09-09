@@ -65,6 +65,7 @@
 !  (18) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (19) Updates for nested EU and NA grids (amv, bmy, 12/18/09)
 !  (20) Updates for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -336,6 +337,7 @@
 !  (15) Additional scale factors for NESTED_NA and NESTED_EU calculated and 
 !        included (amv, bmy, 12/18/09)
 !  (16) Added scale factor for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -466,6 +468,19 @@
  
 #endif
  
+#elif defined( MERRA )
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: Treat MERRA in the same way as GEOS-5, although    %%%
+      !%%% we may want to rescale this in the future (bmy, 8/13/10) %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+#if defined( GRID4x5 )
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.9551d0   ! MERRA 4x5
+#elif defined( GRID2x25 )
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0   ! MERRA 2x25
+#endif
+
 #else
       
       ! Otherwise set to 1

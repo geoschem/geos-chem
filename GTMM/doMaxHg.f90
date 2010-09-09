@@ -7,7 +7,8 @@
 !
 ! !DESCRIPTION: Calculates the maximum mercury storage (gHg/m2) for each soil
 !  pool
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doMAXHg
@@ -21,8 +22,7 @@ SUBROUTINE doMAXHg
   implicit none
 !
 ! !REVISION HISTORY:
-! 
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -55,7 +55,6 @@ SUBROUTINE doMAXHg
       
 END SUBROUTINE doMAXHg
 !EOC
-!------------------------------------------------------------------------------
 
 
       
