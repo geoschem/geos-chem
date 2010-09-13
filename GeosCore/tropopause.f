@@ -1,11 +1,45 @@
-! $Id: tropopause.f,v 1.1 2009/09/16 14:05:59 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: tropopause
+!
+! !DESCRIPTION: Subroutine TROPOPAUSE archives the ND55 tropopause diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TROPOPAUSE
 !
-!******************************************************************************
-!  Subroutine TROPOPAUSE defines the tropopause layer in terms of temperature 
-!  lapse rates. (hyl, bmy, 11/30/99, 10/17/06)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD,        ONLY : BXHEIGHT
+      USE DAO_MOD,        ONLY : TROPP
+      USE DIAG_MOD,       ONLY : AD55
+      USE LOGICAL_MOD,    ONLY : LVARTROP
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! Diagnostic switches
+!
+! !REMARKS:
+!  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
+!  field archive to determine if we are in the tropopause or not.  Therefore, 
+!  the 3rd slot of AD55 should be archived with the tropopause pressure from 
+!  the met fields.
+!                                                                             .
+!  For other met fields, we have to estimate the tropopause pressure from the
+!  tropopause level.  Archive the pressure at the midpoint of the level in 
+!  which the tropopause occurs.  NOTE: this may result in lower minimum 
+!  tropopause pressure than reality. 
+!
+! !REVISION HISTORY:
+!  30 Nov 1999 - H. Liu, R. Yantosca - Initial version
 !  (1 ) Make sure the DO-loops go in the order L-J-I, wherever possible.
 !  (2 ) Now archive ND55 diagnostic here rather than in DIAG1.F.  Also,
 !        use an allocatable array (AD55) to archive tropopause heights.
@@ -28,32 +62,100 @@
 !  (12) Add proper polar tropopause level for GEOS-4 (bmy, 6/18/03)
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (14) Get tropopause level from TROPOPAUSE_MOD.F routines (phs, 10/17/06)
-!******************************************************************************
+!  10 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  10 Sep 2010 - R. Yantosca - For GEOS-4, GEOS-5, MERRA met fields, take the
+!                              the tropopause pressure directly from the
+!                              met fields rather than computing it here.
+!  10 Sep 2010 - R. Yantosca - Remove reference to LPAUSE, it's obsolete
+!  10 Sep 2010 - R. Yantosca - Reorganize #if blocks for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 !
-      ! References to F90 modules.
-      USE DAO_MOD,        ONLY : BXHEIGHT  !, T
-      USE DIAG_MOD,       ONLY : AD55
-      USE LOGICAL_MOD,    ONLY : LVARTROP
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+! !LOCAL VARIABLES:
+! 
+      ! Scalars
+      INTEGER :: I, J,    L,  L_TP
+      REAL*8  :: H, FRAC, Pb, Pt
 
-      IMPLICIT NONE
+      !=================================================================
+      ! %%%%% GEOS-4, GEOS-5, MERRA met fields %%%%%
+      !
+      ! We get tropopause pressure directly from the met field archive
+      ! Compute tropopause height to be consistent w/ the pressure
+      !=================================================================
+      IF ( ND55 > 0 ) THEN
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! LPAUSE
-#     include "CMN_DIAG"  ! Diagnostic switches
-      
-      ! Local variables
-      INTEGER :: I, J, L 
+         ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L_TP, H, Pb, Pt, FRAC )
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            !---------------------------
+            ! Compute quantities
+            !---------------------------
+    
+            ! For this (I,J) column, get the level where the t'pause occurs
+            L_TP = GET_TPAUSE_LEVEL( I, J )
+
+            ! Get height (from surface to top edge) of all boxes that lie
+            ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
+            ! is the highest purely tropospheric grid box in the column.
+            H    = SUM( BXHEIGHT( I, J, 1:L_TP-1 ) )
+
+            ! Get the pressures [hPa] at the bottom and top edges
+            ! of the grid box in which the tropopause occurs
+            Pb   = GET_PEDGE( I, J, L_TP   )  
+            Pt   = GET_PEDGE( I, J, L_TP+1 )
+
+            ! FRAC is the fraction of the grid box (I,J,L_TP) 
+            ! that lies totally within the troposphere
+            FRAC = ( Pb - TROPP(I,J) ) / ( Pb - Pt ) 
+
+            ! Add to H the height [m] of the purely tropospheric 
+            ! fraction of grid box (I,J,L_TP)
+            H    = H + ( FRAC * BXHEIGHT(I,J,L_TP) )
+
+            !---------------------------
+            ! Archive into ND55 array
+            !---------------------------
+            AD55(I,J,1) = AD55(I,J,1) + L_TP        ! T'pause level
+            AD55(I,J,2) = AD55(I,J,2) + H/1.0d3     ! T'pause height [km]
+            AD55(I,J,3) = AD55(I,J,3) + TROPP(I,J)  ! T'pause pressure [hPa]
+
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+
+      ENDIF
+
+#else
+
+!
+! !LOCAL VARIABLES:
+! 
+      ! Scalars
+      INTEGER :: I, J, L
+
+      ! Arrays
       REAL*8  :: H(IIPAR,JJPAR,LLPAR)
 
       !=================================================================
-      ! TROPOPAUSE begins here! 
+      ! %%%%% ALL OTHER MET FIELDS %%%%%
       !
-      ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99) 
+      ! We compute tropopause pressure from the tropopause level (which 
+      ! is taken from the thermally-derived annual mean tropopause data 
+      ! read from disk).
+      !
+      ! NOTE: Keep the existing algorithm for backwards compatibility.
       !=================================================================
 
       ! Find height of the midpoint of the first level
+      ! H (in m) is the height of the midpoint of layer L (hyl, 03/28/99)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          H(I,J,1) = BXHEIGHT(I,J,1) / 2.d0
@@ -72,19 +174,36 @@
 
       !=================================================================
       ! ND55: Tropopause level, height [ km ], and pressure [ mb ]
-      !       Recall that PW(I,J) = PS(I,J) - PTOP
       !=================================================================
       IF ( ND55 > 0 ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            ! Get the tropopause level
             L           = GET_TPAUSE_LEVEL( I, J )
-            IF ( LVARTROP ) L = L+1
+
+            ! If we are using the variable tropopause, then (I,J,L) is the
+            ! highest purely tropospheric grid box.  The grid box in which
+            ! the tropopause actually occurs is then (I,J,L+1).
+            IF ( LVARTROP ) L = L + 1
+
+            ! Archive level at which tropopause occurs
             AD55(I,J,1) = AD55(I,J,1) + L
+
+            ! Archive tropopause height [km]
             AD55(I,J,2) = AD55(I,J,2) + H(I,J,L) / 1.0d3 ! m --> km
+
+            ! We have to estimate the tropopause pressure from the 
+            ! tropopause level.  Archive the pressure at the midpoint
+            ! of the level in which the tropopause occurs.  NOTE: this may
+            ! result in lower minimum tropopause pressure than reality.
             AD55(I,J,3) = AD55(I,J,3) + GET_PCENTER(I,J,L)
+
          ENDDO
          ENDDO
       ENDIF
 
-      ! Return to calling program
+#endif
+
       END SUBROUTINE TROPOPAUSE
+!EOC

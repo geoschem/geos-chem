@@ -97,20 +97,20 @@
 #BOC
 
 # Define variables
-ROOTDIR = ..
-BIN     = $(ROOTDIR)/bin
-BPCH    = $(ROOTDIR)/GeosBpch
-DOC     = $(ROOTDIR)/doc
-EXE     = geos
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-ISO     = $(ROOTDIR)/ISOROPIA
-LIB     = $(ROOTDIR)/lib
-KPP     = $(ROOTDIR)/KPP
-MOD     = $(ROOTDIR)/mod
-TOM     = $(ROOTDIR)/GeosTomas
-GTMM    = $(ROOTDIR)/GTMM
-UTIL    = $(ROOTDIR)/GeosUtil
+ROOTDIR := ..
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+DOC     := $(ROOTDIR)/doc
+EXE     := geos
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+LIB     := $(ROOTDIR)/lib
+KPP     := $(ROOTDIR)/KPP
+MOD     := $(ROOTDIR)/mod
+TOM     := $(ROOTDIR)/GeosTomas
+GTMM    := $(ROOTDIR)/GTMM
+UTIL    := $(ROOTDIR)/GeosUtil
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -124,6 +124,9 @@ include $(ROOTDIR)/Makefile_header.mk
 
 # List of source files
 SRC := $(wildcard *.f) $(wildcard *.f90)
+
+# Skip certain files (uncomment if necessary)
+SRC := $(filter-out tropopause.f, $(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.f=.o)

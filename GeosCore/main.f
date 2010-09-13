@@ -127,6 +127,7 @@
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
+      USE TROPOPAUSE_MOD,    ONLY : DIAG_TROPOPAUSE
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
@@ -932,7 +933,13 @@
          CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
          ! Compute tropopause height for ND55 diagnostic
-         IF ( ND55 > 0 ) CALL TROPOPAUSE
+         !---------------------------------------------------------------
+         ! Prior to 9/10/10:
+         ! Moved "tropopause.f" into "tropopause_mod.f" and renamed
+         ! to DIAG_TROPOPAUSE (bmy, 9/10/10)
+         !IF ( ND55 > 0 ) CALL TROPOPAUSE
+         !---------------------------------------------------------------
+         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
 
 #if   defined( GEOS_3 )
 
