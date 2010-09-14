@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.1 2010/02/02 16:57:46 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -94,4 +93,5 @@ help:
 
 isoropiaIIcode.o:  isoropiaIIcode.f  isrpia.inc
 	$(F90) $(R8) -c $<
+#EOC
 
