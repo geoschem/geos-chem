@@ -4054,14 +4054,6 @@
             F_WASHOUT   = 0d0 !CDH
             F_RAINOUT   = 0d0 !CDH
 
-!------------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!            ! Rainout criteria
-!            IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) > 0d0 ) THEN
-!
-!               ! Q is the new precip that is forming within grid box (I,J,L)
-!               Q = QQ(L,I,J)
-!------------------------------------------------------------------------------
             !CDH
             ! Calculate the fractional area which is subjected to rainout
             IF ( QQ(L,I,J) > 0d0 ) THEN
@@ -4162,16 +4154,6 @@
                   ! (I,J,L) that is lost to rainout.
                   WETLOSS = STT(I,J,L,N) * RAINFRAC
 
-!---------------------------------------------------------------------------
-! Prior to updates from (cdh, ccc, 5/26/10)
-!                     ! For the mercury simulation, we need to archive the
-!                     ! amt of Hg2 [kg] that is scavenged out of the column.
-!                     ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
-!                     IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
-!                        CALL ADD_Hg2_WD( I, J, N, WETLOSS )
-!                     ENDIF
-!----------------------------------------------------------------------------
-
                   ! Subtract the rainout loss in grid box (I,J,L) from STT
                   STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS
 
@@ -4210,12 +4192,6 @@
                   ENDIF
                ENDDO
             ENDIF
-
-!------------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!               ! Save FTOP for next level
-!               FTOP = F 
-!------------------------------------------------------------------------------
 
             !==============================================================
             ! (5)  W a s h o u t   i n   t h e   m i d d l e   l e v e l s
@@ -4277,33 +4253,12 @@
             ! positive values, otherwise, QQ would be equal to 
             ! PDOWN(L+1)-PDOWN(L).           
             !==============================================================
-!------------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!            ELSE IF ( PDOWN(L,I,J) > 0d0 .and. QQ(L,I,J) <= 0d0 ) THEN
-!------------------------------------------------------------------------------
             IF ( F_WASHOUT > 0d0 ) THEN
 
                ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
                ! Q     is the new precip that is forming within box (I,J,L)
                QDOWN = PDOWN(L,I,J)
                Q     = QQ(L,I,J)
-
-!------------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!               ! Since no precipitation is forming within grid box (I,J,L),
-!               ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
-!               F = FTOP
-! 
-!               ! Only compute washout if F > 0.
-!               ! This helps to eliminate needless CPU cycles.
-!               IF ( F > 0d0 ) THEN
-!
-!                  ! ND16 diagnostic...save F (fraction of grid box raining)
-!                  IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
-!                     AD16(I,J,L,IDX) = AD16(I,J,L,IDX) + F
-!                     CT16(I,J,L,IDX) = CT16(I,J,L,IDX) + 1
-!                  ENDIF
-!------------------------------------------------------------------------------
 
                ! CDH 
                IF ( F_RAINOUT > 0d0 ) THEN
@@ -4416,7 +4371,7 @@
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000).
                      MASS_WASH = ( F_WASHOUT*STT(I,J,L,N) ) +
-     &                       DSTT(NN,L+1,I,J)
+     &                            DSTT(NN,L+1,I,J)
 
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
@@ -4430,16 +4385,6 @@
                   
                      ! Add washout losses in grid box (I,J,L) to DSTT 
                      DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-
-!-----------------------------------------------------------------------------
-! Prior to updates from (cdh, ccc, 5/26/10)
-!                        ! For the mercury simulation, we need to archive the
-!                        ! amt of Hg2 [kg] that is scavenged out of the column.
-!                        ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
-!                        IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
-!                           CALL ADD_Hg2_WD( I, J, N, WETLOSS )
-!                        ENDIF
-!-----------------------------------------------------------------------------
 
                      ! ND18 diagnostic...we don't have to divide the
                      ! washout fraction by F since this is accounted for.
@@ -4471,12 +4416,6 @@
                ENDDO  
             ENDIF
 
-!-----------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!               ! Save FTOP for next level
-!               FTOP = F   
-!-----------------------------------------------------------------------------
-
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
             !
@@ -4502,16 +4441,6 @@
                   ! WETLOSS is the amount of tracer in grid box (I,J,L) 
                   ! that is lost to rainout. (qli, bmy, 10/29/02)
                   WETLOSS = -DSTT(NN,L+1,I,J)
-
-!-----------------------------------------------------------------------
-! Prior to updates to mercury simulation, (ccc, 5/17/10)
-!                  ! For the mercury simulation, we need to archive the
-!                  ! amt of Hg2 [kg] that is scavenged out of the column.
-!                  ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
-!                  IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
-!                     CALL ADD_Hg2_WD( I, J, N, WETLOSS )
-!                  ENDIF
-!-----------------------------------------------------------------------
 
                   ! All of the rained-out tracer coming from grid box
                   ! (I,J,L+1) goes back into the gas phase at (I,J,L)
@@ -4546,13 +4475,7 @@
      &                            DSTT(NN,:,I,J), STT(I,J,:,N) )
                   ENDIF
                ENDDO
-
-!-----------------------------------------------------------------------------
-!--- Prior to (wqq, 7/13/10)
-!               ! Save FTOP for next level
-!               FTOP = F
-!-----------------------------------------------------------------------------
-            ENDIF 
+            ENDIF
 
             ! Save FTOP for next level
             FTOP = F_RAINOUT + F_WASHOUT
@@ -4634,16 +4557,6 @@
                   ! Add washout losses in grid box (I,J,L=1) to DSTT 
                   ! (added cdh, 4/14/2009)
                   DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-
-!-----------------------------------------------------------------------
-! Prior to updates to the mercury simulation, (ccc, 5/17/10)
-!                  ! For the mercury simulation, we need to archive the
-!                  ! amt of Hg2 [kg] that is scavenged out of the column.
-!                  ! Also for tagged Hg2. (sas, cdh, bmy, 1/6/06)
-!                  IF ( IS_Hg .and. IS_Hg2( N ) ) THEN
-!                     CALL ADD_Hg2_WD( I, J, N, WETLOSS )
-!                  ENDIF
-!-----------------------------------------------------------------------
 
                   ! ND18 diagnostic...LS and conv washout fractions [unitless]
                   IF ( ND18 > 0 .and. L <= LD18 ) THEN

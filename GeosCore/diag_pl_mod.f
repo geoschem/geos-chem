@@ -22,7 +22,7 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Scalars
-      LOGICAL, PUBLIC,             :: DO_SAVE_PL
+      LOGICAL, PUBLIC              :: DO_SAVE_PL
       INTEGER, PUBLIC              :: TAGO3_PL_YEAR
 
       ! Arrays
