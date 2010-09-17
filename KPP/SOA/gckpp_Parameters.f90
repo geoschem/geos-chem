@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Fri Apr  9 17:24:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme_2
+! Time                 : Wed Sep 15 16:00:44 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/SOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -38,21 +38,21 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 16 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 325 
+  INTEGER, PARAMETER :: NREACT = 324 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 104 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 951 
+  INTEGER, PARAMETER :: NONZERO = 950 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 1093 
+  INTEGER, PARAMETER :: LU_NONZERO = 1092 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 104 
 ! CNEQN - (NREACT+1) Number stoicm elements in compressed col format
-  INTEGER, PARAMETER :: CNEQN = 326 
+  INTEGER, PARAMETER :: CNEQN = 325 
 ! NHESS - Length of Sparse Hessian
-  INTEGER, PARAMETER :: NHESS = 882 
+  INTEGER, PARAMETER :: NHESS = 881 
 ! NLOOKAT - Number of species to look at
   INTEGER, PARAMETER :: NLOOKAT = 119 
 ! NMONITOR - Number of species to monitor
@@ -129,9 +129,9 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_MVN2 = 64 
   INTEGER, PARAMETER :: ind_A3O2 = 65 
   INTEGER, PARAMETER :: ind_B3O2 = 66 
-  INTEGER, PARAMETER :: ind_R4N1 = 67 
-  INTEGER, PARAMETER :: ind_MAN2 = 68 
-  INTEGER, PARAMETER :: ind_HNO3 = 69 
+  INTEGER, PARAMETER :: ind_HNO3 = 67 
+  INTEGER, PARAMETER :: ind_R4N1 = 68 
+  INTEGER, PARAMETER :: ind_MAN2 = 69 
   INTEGER, PARAMETER :: ind_RIO1 = 70 
   INTEGER, PARAMETER :: ind_IALD = 71 
   INTEGER, PARAMETER :: ind_MRO2 = 72 
@@ -152,19 +152,19 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: ind_ETO2 = 87 
   INTEGER, PARAMETER :: ind_MGLY = 88 
   INTEGER, PARAMETER :: ind_MEK = 89 
-  INTEGER, PARAMETER :: ind_MACR = 90 
-  INTEGER, PARAMETER :: ind_GCO3 = 91 
+  INTEGER, PARAMETER :: ind_RCO3 = 90 
+  INTEGER, PARAMETER :: ind_MACR = 91 
   INTEGER, PARAMETER :: ind_RIO2 = 92 
   INTEGER, PARAMETER :: ind_MVK = 93 
-  INTEGER, PARAMETER :: ind_MAO3 = 94 
-  INTEGER, PARAMETER :: ind_OH = 95 
+  INTEGER, PARAMETER :: ind_GCO3 = 94 
+  INTEGER, PARAMETER :: ind_MO2 = 95 
   INTEGER, PARAMETER :: ind_HO2 = 96 
-  INTEGER, PARAMETER :: ind_MO2 = 97 
+  INTEGER, PARAMETER :: ind_MAO3 = 97 
   INTEGER, PARAMETER :: ind_O3 = 98 
   INTEGER, PARAMETER :: ind_NO2 = 99 
   INTEGER, PARAMETER :: ind_NO3 = 100 
   INTEGER, PARAMETER :: ind_MCO3 = 101 
-  INTEGER, PARAMETER :: ind_RCO3 = 102 
+  INTEGER, PARAMETER :: ind_OH = 102 
   INTEGER, PARAMETER :: ind_NO = 103 
 
 ! Index declaration for fixed species in C
@@ -208,10 +208,10 @@ MODULE gckpp_Parameters
   INTEGER, PARAMETER :: indf_ROH = 16 
 
 ! NJVRP - Length of sparse Jacobian JVRP
-  INTEGER, PARAMETER :: NJVRP = 510 
+  INTEGER, PARAMETER :: NJVRP = 508 
 
 ! NSTOICM - Length of Sparse Stoichiometric Matrix
-  INTEGER, PARAMETER :: NSTOICM = 1291 
+  INTEGER, PARAMETER :: NSTOICM = 1288 
 
 END MODULE gckpp_Parameters
 

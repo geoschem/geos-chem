@@ -13,14 +13,13 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri May 29 16:36:46 2009
-! Working directory    : /home/phs/KPP/v8-02-01_43t
+! Time                 : Wed Sep 15 15:20:39 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!   16 Sep 2009 - P. Le Sager - Replaced COMODE_MOD by GCKPP_COMODE_MOD
-!   10 Dec 2009 - C. Carouge  - Add R_KPP as input argument
+
 
 
 MODULE gckpp_Rates
@@ -31,147 +30,147 @@ MODULE gckpp_Rates
 
 CONTAINS
 
-!phs
-!phs
-!phs! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
-!phs
-!phs!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs!  User-defined Rate Law functions
-!phs!  Note: the default argument type for rate laws, as read from the equations file, is single precision
-!phs!        but all the internal calculations are performed in double precision
-!phs!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs
-!phs!~~~>  Arrhenius
-!phs   REAL(kind=dp) FUNCTION ARR( A0,B0,C0 )
-!phs      REAL A0,B0,C0      
-!phs      ARR =  DBLE(A0) * EXP(-DBLE(B0)/TEMP) * (TEMP/300.0_dp)**DBLE(C0)
-!phs   END FUNCTION ARR        
-!phs
-!phs!~~~> Simplified Arrhenius, with two arguments
-!phs!~~~> Note: The argument B0 has a changed sign when compared to ARR
-!phs   REAL(kind=dp) FUNCTION ARR2( A0,B0 )
-!phs      REAL A0,B0           
-!phs      ARR2 =  DBLE(A0) * EXP( DBLE(B0)/TEMP )              
-!phs   END FUNCTION ARR2          
-!phs
-!phs   REAL(kind=dp) FUNCTION EP2(A0,C0,A2,C2,A3,C3)
-!phs      REAL A0,C0,A2,C2,A3,C3
-!phs      REAL(kind=dp) K0,K2,K3            
-!phs      K0 = DBLE(A0) * EXP(-DBLE(C0)/TEMP)
-!phs      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-!phs      K3 = DBLE(A3) * EXP(-DBLE(C3)/TEMP)
-!phs      K3 = K3*CFACTOR*1.0E6_dp
-!phs      EP2 = K0 + K3/(1.0_dp+K3/K2 )
-!phs   END FUNCTION EP2
-!phs
-!phs   REAL(kind=dp) FUNCTION EP3(A1,C1,A2,C2) 
-!phs      REAL A1, C1, A2, C2
-!phs      REAL(kind=dp) K1, K2      
-!phs      K1 = DBLE(A1) * EXP(-DBLE(C1)/TEMP)
-!phs      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
-!phs      EP3 = K1 + K2*(1.0E6_dp*CFACTOR)
-!phs   END FUNCTION EP3 
-!phs
-!phs   REAL(kind=dp) FUNCTION FALL ( A0,B0,C0,A1,B1,C1,CF)
-!phs      REAL A0,B0,C0,A1,B1,C1,CF
-!phs      REAL(kind=dp) K0, K1     
-!phs      K0 = DBLE(A0) * EXP(-DBLE(B0)/TEMP)* (TEMP/300.0_dp)**DBLE(C0)
-!phs      K1 = DBLE(A1) * EXP(-DBLE(B1)/TEMP)* (TEMP/300.0_dp)**DBLE(C1)
-!phs      K0 = K0*CFACTOR*1.0E6_dp
-!phs      K1 = K0/K1
-!phs      FALL = (K0/(1.0_dp+K1))*   &
-!phs           DBLE(CF)**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
-!phs   END FUNCTION FALL
-!phs
-!phs  !---------------------------------------------------------------------------
-!phs
-!phs  ELEMENTAL REAL(kind=dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
-!phs
-!phs    INTRINSIC LOG10
-!phs
-!phs    REAL(kind=dp), INTENT(IN) :: temp      ! temperature [K]
-!phs    REAL(kind=dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
-!phs    REAL, INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
-!phs    REAL, INTENT(IN) :: n         ! exponent for low pressure limit
-!phs    REAL, INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
-!phs    REAL, INTENT(IN) :: m         ! exponent for high pressure limit
-!phs    REAL, INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
-!phs    REAL(kind=dp) :: zt_help, k0_T, kinf_T, k_ratio
-!phs
-!phs    zt_help = 300._dp/temp
-!phs    k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
-!phs    kinf_T  = kinf_300K * zt_help**(m)        ! k_inf at current T
-!phs    k_ratio = k0_T/kinf_T
-!phs    k_3rd   = k0_T/(1._dp+k_ratio)*fc**(1._dp/(1._dp+LOG10(k_ratio)**2))
-!phs
-!phs  END FUNCTION k_3rd
-!phs
-!phs  !---------------------------------------------------------------------------
-!phs
-!phs  ELEMENTAL REAL(kind=dp) FUNCTION k_arr (k_298,tdep,temp)
-!phs    ! Arrhenius function
-!phs
-!phs    REAL,     INTENT(IN) :: k_298 ! k at T = 298.15K
-!phs    REAL,     INTENT(IN) :: tdep  ! temperature dependence
-!phs    REAL(kind=dp), INTENT(IN) :: temp  ! temperature
-!phs
-!phs    INTRINSIC EXP
-!phs
-!phs    k_arr = k_298 * EXP(tdep*(1._dp/temp-3.3540E-3_dp)) ! 1/298.15=3.3540e-3
-!phs
-!phs  END FUNCTION k_arr
-!phs
-!phs!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs!  End of User-defined Rate Law functions
-!phs!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs
-!phs! End Rate Law Functions from KPP_HOME/util/UserRateLaws
-!phs
-!phs
-!phs! Begin INLINED Rate Law Functions
-!phs
-!phs
-!phs! End INLINED Rate Law Functions
-!phs
-!phs! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs! 
-!phs! Update_SUN - update SUN light using TIME
-!phs!   Arguments :
-!phs! 
-!phs! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-!phs
-!phs  SUBROUTINE Update_SUN()
-!phs      !USE gckpp_Parameters
-!phs      !USE gckpp_Global
-!phs
-!phs    IMPLICIT NONE
-!phs
-!phs    REAL(kind=dp) :: SunRise, SunSet
-!phs    REAL(kind=dp) :: Thour, Tlocal, Ttmp 
-!phs    ! PI - Value of pi
-!phs    REAL(kind=dp), PARAMETER :: PI = 3.14159265358979d0
-!phs    
-!phs    SunRise = 4.5_dp 
-!phs    SunSet  = 19.5_dp 
-!phs    Thour = TIME/3600.0_dp 
-!phs    Tlocal = Thour - (INT(Thour)/24)*24
-!phs
-!phs    IF ((Tlocal>=SunRise).AND.(Tlocal<=SunSet)) THEN
-!phs       Ttmp = (2.0*Tlocal-SunRise-SunSet)/(SunSet-SunRise)
-!phs       IF (Ttmp.GT.0) THEN
-!phs          Ttmp =  Ttmp*Ttmp
-!phs       ELSE
-!phs          Ttmp = -Ttmp*Ttmp
-!phs       END IF
-!phs       SUN = ( 1.0_dp + COS(PI*Ttmp) )/2.0_dp 
-!phs    ELSE
-!phs       SUN = 0.0_dp 
-!phs    END IF
-!phs
-!phs END SUBROUTINE Update_SUN
-!phs
-!phs! End of Update_SUN function
-!phs! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+!! Begin Rate Law Functions from KPP_HOME/util/UserRateLaws
+!
+!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!  User-defined Rate Law functions
+!!  Note: the default argument type for rate laws, as read from the equations file, is single precision
+!!        but all the internal calculations are performed in double precision
+!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!
+!!~~~>  Arrhenius
+!   REAL(kind=dp) FUNCTION ARR( A0,B0,C0 )
+!      REAL A0,B0,C0      
+!      ARR =  DBLE(A0) * EXP(-DBLE(B0)/TEMP) * (TEMP/300.0_dp)**DBLE(C0)
+!   END FUNCTION ARR        
+!
+!!~~~> Simplified Arrhenius, with two arguments
+!!~~~> Note: The argument B0 has a changed sign when compared to ARR
+!   REAL(kind=dp) FUNCTION ARR2( A0,B0 )
+!      REAL A0,B0           
+!      ARR2 =  DBLE(A0) * EXP( DBLE(B0)/TEMP )              
+!   END FUNCTION ARR2          
+!
+!   REAL(kind=dp) FUNCTION EP2(A0,C0,A2,C2,A3,C3)
+!      REAL A0,C0,A2,C2,A3,C3
+!      REAL(kind=dp) K0,K2,K3            
+!      K0 = DBLE(A0) * EXP(-DBLE(C0)/TEMP)
+!      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
+!      K3 = DBLE(A3) * EXP(-DBLE(C3)/TEMP)
+!      K3 = K3*CFACTOR*1.0E6_dp
+!      EP2 = K0 + K3/(1.0_dp+K3/K2 )
+!   END FUNCTION EP2
+!
+!   REAL(kind=dp) FUNCTION EP3(A1,C1,A2,C2) 
+!      REAL A1, C1, A2, C2
+!      REAL(kind=dp) K1, K2      
+!      K1 = DBLE(A1) * EXP(-DBLE(C1)/TEMP)
+!      K2 = DBLE(A2) * EXP(-DBLE(C2)/TEMP)
+!      EP3 = K1 + K2*(1.0E6_dp*CFACTOR)
+!   END FUNCTION EP3 
+!
+!   REAL(kind=dp) FUNCTION FALL ( A0,B0,C0,A1,B1,C1,CF)
+!      REAL A0,B0,C0,A1,B1,C1,CF
+!      REAL(kind=dp) K0, K1     
+!      K0 = DBLE(A0) * EXP(-DBLE(B0)/TEMP)* (TEMP/300.0_dp)**DBLE(C0)
+!      K1 = DBLE(A1) * EXP(-DBLE(B1)/TEMP)* (TEMP/300.0_dp)**DBLE(C1)
+!      K0 = K0*CFACTOR*1.0E6_dp
+!      K1 = K0/K1
+!      FALL = (K0/(1.0_dp+K1))*   &
+!           DBLE(CF)**(1.0_dp/(1.0_dp+(LOG10(K1))**2))
+!   END FUNCTION FALL
+!
+!  !---------------------------------------------------------------------------
+!
+!  ELEMENTAL REAL(kind=dp) FUNCTION k_3rd(temp,cair,k0_300K,n,kinf_300K,m,fc)
+!
+!    INTRINSIC LOG10
+!
+!    REAL(kind=dp), INTENT(IN) :: temp      ! temperature [K]
+!    REAL(kind=dp), INTENT(IN) :: cair      ! air concentration [molecules/cm3]
+!    REAL, INTENT(IN) :: k0_300K   ! low pressure limit at 300 K
+!    REAL, INTENT(IN) :: n         ! exponent for low pressure limit
+!    REAL, INTENT(IN) :: kinf_300K ! high pressure limit at 300 K
+!    REAL, INTENT(IN) :: m         ! exponent for high pressure limit
+!    REAL, INTENT(IN) :: fc        ! broadening factor (usually fc=0.6)
+!    REAL(kind=dp) :: zt_help, k0_T, kinf_T, k_ratio
+!
+!    zt_help = 300._dp/temp
+!    k0_T    = k0_300K   * zt_help**(n) * cair ! k_0   at current T
+!    kinf_T  = kinf_300K * zt_help**(m)        ! k_inf at current T
+!    k_ratio = k0_T/kinf_T
+!    k_3rd   = k0_T/(1._dp+k_ratio)*fc**(1._dp/(1._dp+LOG10(k_ratio)**2))
+!
+!  END FUNCTION k_3rd
+!
+!  !---------------------------------------------------------------------------
+!
+!  ELEMENTAL REAL(kind=dp) FUNCTION k_arr (k_298,tdep,temp)
+!    ! Arrhenius function
+!
+!    REAL,     INTENT(IN) :: k_298 ! k at T = 298.15K
+!    REAL,     INTENT(IN) :: tdep  ! temperature dependence
+!    REAL(kind=dp), INTENT(IN) :: temp  ! temperature
+!
+!    INTRINSIC EXP
+!
+!    k_arr = k_298 * EXP(tdep*(1._dp/temp-3.3540E-3_dp)) ! 1/298.15=3.3540e-3
+!
+!  END FUNCTION k_arr
+!
+!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!!  End of User-defined Rate Law functions
+!!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!
+!! End Rate Law Functions from KPP_HOME/util/UserRateLaws
+!
+!
+!! Begin INLINED Rate Law Functions
+!
+!
+!! End INLINED Rate Law Functions
+!
+!! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!! 
+!! Update_SUN - update SUN light using TIME
+!!   Arguments :
+!! 
+!! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!
+!  SUBROUTINE Update_SUN()
+!      !USE gckpp_Parameters
+!      !USE gckpp_Global
+!
+!    IMPLICIT NONE
+!
+!    REAL(kind=dp) :: SunRise, SunSet
+!    REAL(kind=dp) :: Thour, Tlocal, Ttmp 
+!    ! PI - Value of pi
+!    REAL(kind=dp), PARAMETER :: PI = 3.14159265358979d0
+!    
+!    SunRise = 4.5_dp 
+!    SunSet  = 19.5_dp 
+!    Thour = TIME/3600.0_dp 
+!    Tlocal = Thour - (INT(Thour)/24)*24
+!
+!    IF ((Tlocal>=SunRise).AND.(Tlocal<=SunSet)) THEN
+!       Ttmp = (2.0*Tlocal-SunRise-SunSet)/(SunSet-SunRise)
+!       IF (Ttmp.GT.0) THEN
+!          Ttmp =  Ttmp*Ttmp
+!       ELSE
+!          Ttmp = -Ttmp*Ttmp
+!       END IF
+!       SUN = ( 1.0_dp + COS(PI*Ttmp) )/2.0_dp 
+!    ELSE
+!       SUN = 0.0_dp 
+!    END IF
+!
+! END SUBROUTINE Update_SUN
+!
+!! End of Update_SUN function
+!! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -181,30 +180,19 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-!--- Previous to (ccc, 12/9/09)
-!SUBROUTINE Update_RCONST ()
-SUBROUTINE Update_RCONST (R_KPP)
+SUBROUTINE Update_RCONST ( R_KPP )
 
-
-!--- Previous to (ccc, 12/9/09)
-!  USE gckpp_COMODE_MOD,        ONLY : R_KPP
   USE gckpp_Monitor
-
-! Begin INLINED RCONST
-
-
-! End INLINED RCONST
-
+          
   ! INPUT ARGUMENT:
-  REAL*8, INTENT(IN) :: R_KPP(:,:) 
-
-
+  REAL*8, INTENT(IN) :: R_KPP(:,:)
+          
   INTEGER :: N
-
+          
   DO N = 1, NREACT
-    RCONST(N) = R_KPP(JLOOP,IND(N))
+     RCONST(N) = R_KPP(JLOOP,IND(N))
   END DO
-      
+
 END SUBROUTINE Update_RCONST
 
 ! End of Update_RCONST function
