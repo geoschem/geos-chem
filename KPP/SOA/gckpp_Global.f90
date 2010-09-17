@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Fri Apr  9 17:24:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme_2
+! Time                 : Wed Sep 15 16:00:44 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/SOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -99,6 +99,7 @@ MODULE gckpp_Global
 ! Move stack_ptr here and make THREADPRIVATE for OMP parallelization (dkh, 07/28/09) 
   INTEGER :: stack_ptr = 0 ! last written entry
 !$OMP THREADPRIVATE( stack_ptr )
+
 
 ! INLINED global variable declarations
 

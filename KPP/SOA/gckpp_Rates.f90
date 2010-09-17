@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Fri Apr  9 17:24:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme_2
+! Time                 : Wed Sep 15 16:00:44 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/SOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -180,20 +180,21 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-SUBROUTINE Update_RCONST ( R_KPP )
-
+SUBROUTINE Update_RCONST (R_KPP)
+    
   USE gckpp_Monitor
-        
+  
   ! INPUT ARGUMENT:
   REAL*8, INTENT(IN) :: R_KPP(:,:)
- 
+  
   INTEGER :: N
- 
+  
   DO N = 1, NREACT
      RCONST(N) = R_KPP(JLOOP,IND(N))
   END DO
-      
+  
 END SUBROUTINE Update_RCONST
+   
 
 ! End of Update_RCONST function
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -211,6 +212,7 @@ SUBROUTINE Update_PHOTO ( )
 
    USE gckpp_Global
 
+      
 END SUBROUTINE Update_PHOTO
 
 ! End of Update_PHOTO function

@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Fri Apr  9 17:24:39 2010
-! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-01/SOA_scheme_2
+! Time                 : Wed Sep 15 16:00:44 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/SOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,27 +39,28 @@ CONTAINS
 
 SUBROUTINE Initialize ( )
 
+
   USE gckpp_Global
   USE gckpp_Util,     ONLY : Shuffle_user2kpp
   USE gckpp_Monitor
-     
+  
   INTEGER :: i
- 
+  
   CALL Shuffle_user2kpp(V_CSPEC,VAR)
- 
+  
   DO i = 1, NFIX
      FIX(i) = 1.d0
   END DO
- 
+  
   ! these two loops are for the adjoint only
   DO I =1, NVAR
      C(I)=VAR(I)
   ENDDO
- 
+  
   DO I = 1, NFIX
      C(NVAR+I) = FIX(I)
   END DO
-           
+
 END SUBROUTINE Initialize
 
 ! End of Initialize function

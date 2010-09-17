@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Fri May 29 16:36:46 2009
-! Working directory    : /home/phs/KPP/v8-02-01_43t
+! Time                 : Wed Sep 15 15:20:39 2010
+! Working directory    : /mnt/lstr04/srv/home/c/ccarouge/KPP/geoschem_kppfiles/v8-03-02/standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -35,17 +35,11 @@ MODULE gckpp_Global
   REAL(kind=dp) :: C(NSPEC)
 ! VAR - Concentrations of variable species (global)
   REAL(kind=dp) :: VAR(NVAR)
-! VAR_ADJ - Concentrations of variable species (global)
-  REAL(kind=dp) :: VAR_ADJ(NVAR)
-! V_CSPEC - Concentrations of variable species (global)
-  REAL(kind=dp) :: V_CSPEC(NVAR)
-! V_CSPEC_ADJ - Concentrations of variable species (global)
-  REAL(kind=dp) :: V_CSPEC_ADJ(NVAR)
 ! FIX - Concentrations of fixed species (global)
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
-!      EQUIVALENCE( C(1),VAR(1) )   !== Commented for GC
-!      EQUIVALENCE( C(91),FIX(1) )  !== Commented for GC
+!      EQUIVALENCE( C(1),VAR(1) )
+!      EQUIVALENCE( C(91),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time
@@ -75,40 +69,40 @@ MODULE gckpp_Global
 ! DDMTYPE - DDM sensitivity w.r.t.: 0=init.val., 1=params
   INTEGER :: DDMTYPE
 
-!== Added for GEOS-Chem ==
-! NJ - Number of cost function being evaluated
+! VAR_ADJ - Concentrations of variable species (global) [**]
+  REAL(kind=dp) :: VAR_ADJ(NVAR)
+! V_CSPEC - Concentrations of variable species (global)
+  REAL(kind=dp) :: V_CSPEC(NVAR)
+! V_CSPEC_ADJ - Concentrations of variable species (global) [**]
+  REAL(kind=dp) :: V_CSPEC_ADJ(NVAR)
+   
+! NJ - Number of cost function being evaluated [**]
   INTEGER, PARAMETER :: NJ = 1 
 ! NTT - Total number of tropospheric grid cells
   INTEGER :: NTT
-! JLOOP - 1D index of tropospheric grid cells
+! JLOOP - Total number of tropospheric grid cells
   INTEGER :: JLOOP
 ! SMAL2 - Parameter for insuring positive tracer values, same as in reader.f
   REAL(kind=dp), PARAMETER :: SMAL2 = 1.0d-99 
-! NCOEFF - Number of reaction rate coeff adjoints
+! NCOEFF - Number of reaction rate coeff adjoints [**]
   INTEGER, PARAMETER :: NCOEFF = 24
-! VAR_R_ADJ - Concentrations of reaction rate adjoint (global)
+! VAR_R_ADJ - Concentrations of reaction rate adjoint (global) [**]
   REAL(kind=dp) :: VAR_R_ADJ(NCOEFF)
-! JCOEFF - Reaction numbers for each (define in INIT_KPP)
+! JCOEFF - Reaction numbers for each (define in INIT_KPP) [**]
   INTEGER :: JCOEFF(NCOEFF)
 ! IND - Reaction numbers for each (define in INIT_KPP)
   INTEGER :: IND(NREACT)
 
-  !REAL(kind=dp) :: startstep, stopstep, steptime
-  !REAL(kind=dp) :: startchem, stopchem, chemtime
+! INLINED global variable declarations
+
+! INLINED global variable declarations
 
 !$OMP THREADPRIVATE(VAR,VAR_ADJ,VAR_R_ADJ,V_CSPEC,V_CSPEC_ADJ, C )
 !$OMP THREADPRIVATE(FIX,JLOOP,RCONST,TIME)
 
-
 ! Move stack_ptr here and make THREADPRIVATE for OMP parallelization (dkh, 07/28/09) 
   INTEGER :: stack_ptr = 0 ! last written entry
 !$OMP THREADPRIVATE( stack_ptr )
-
-  
-! INLINED global variable declarations
-
-! INLINED global variable declarations
-
 
 END MODULE gckpp_Global
 
