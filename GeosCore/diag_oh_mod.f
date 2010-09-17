@@ -1,58 +1,41 @@
-! $Id: diag_oh_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag_oh_mod
+!
+! !DESCRIPTION: Module DIAG\_OH\_MOD contains routines and variables to 
+!  archive OH mass and air mass concentrations.  These are then used to print 
+!  out the mass-weighted mean OH concentration in 1e5 molec/cm3.  This is a 
+!  metric of how certain chemisry simulations are performing.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE DIAG_OH_MOD
 !
-!******************************************************************************
-!  Module DIAG_OH_MOD contains routines and variables to archive OH mass
-!  and air mass concentrations.  These are then used to print out the mass-
-!  weighted mean OH concentration in 1e5 molec/cm3.  This is a metric of
-!  how certain chemisry simulations are performing. (bmy, 7/20/04, 6/24/05)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AIR_MASS (REAL*8) : Array used to sum mean air mass [molec/cm3]
-!  (2 ) OH_MASS  (REAL*8) : Array used to sum mean OH mass  [molec/cm3]
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_DIAG_OH        : Driver routine for mean OH diagnostic (fullchem)
-!  (2 ) DO_DIAG_OH_CH4    : Driver routine for mean OH diagnostic (CH4 sim)
-!  (3 ) PRINT_DIAG_OH     : Prints the mean OH concentration [1e5 molec/cm3]
-!  (4 ) INIT_DIAG_OH      : Allocates and zeroes module arrays
-!  (5 ) CLEANUP_DIAG_OH   : Deallocates module arrays
-!
-!  GEOS-CHEM modules referenced by "diag_oh_mod.f":
-!  ============================================================================
-!  (1 ) comode_mod.f      : Module w/ SMVGEAR allocatable arrays
-!  (2 ) error_mod.f       : Module w/ I/O error and NaN check routines 
-!  (3 ) logical_mod.f     : Module w/ GEOS-CHEM logical switches
-!  (4 ) tracer_mod.f      : Module w/ GEOS-CHEM tracer array STT etc.  
-!  (5 ) tracerid_mod.f    : Module w/ pointers to tracers & emissions 
-!
-!  NOTES:
-!  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
-!******************************************************************************
-! 
       IMPLICIT NONE
-      
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag_oh_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
       PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CLEANUP_DIAG_OH
-      PUBLIC :: DO_DIAG_OH
-      PUBLIC :: DO_DIAG_OH_CH4
-      PUBLIC :: INIT_DIAG_OH
-      PUBLIC :: PRINT_DIAG_OH
-      
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-      
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: CLEANUP_DIAG_OH
+      PUBLIC  :: DO_DIAG_OH
+      PUBLIC  :: DO_DIAG_OH_CH4
+      PUBLIC  :: INIT_DIAG_OH
+      PUBLIC  :: PRINT_DIAG_OH
+!
+! !REVISION HISTORY:
+!  (1 ) Remove code for obsolete CO-OH simulation (bmy, 6/24/05)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+! 
       ! Scalars
       LOGICAL             :: DO_SAVE_OH
 
@@ -61,30 +44,40 @@
       REAL*8, ALLOCATABLE :: AIR_MASS(:,:,:)
       REAL*8, ALLOCATABLE :: OH_LOSS(:,:,:)
       
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_diag_oh
+!
+! !DESCRIPTION: Subroutine DO\_DIAG\_OH sums the OH and air mass (from 
+!  SMVGEAR arrays) for the mean OH concentration diagnostic. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_DIAG_OH
 !
-!******************************************************************************
-!  Subroutine DO_DIAG_OH sums the OH and air mass (from SMVGEAR arrays) for
-!  the mean OH concentration diagnostic. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Reference to F90 modules
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE TRACERID_MOD, ONLY : IDOH
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "comode.h"   ! NPVERT, NLAT, NLONG
-
-      ! Local variables
+#     include "CMN_SIZE"     ! Size parameters
+#     include "comode.h"     ! NPVERT, NLAT, NLONG
+! 
+! !REVISION HISTORY:
+!  07 Jul 2004 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I,     J,       L,       JLOOP
       REAL*8        :: XLOSS, XOHMASS, XAIRMASS
@@ -125,30 +118,42 @@
       ENDDO
 !$OMP END PARALLEL DO
          
-      ! Return to calling program
       END SUBROUTINE DO_DIAG_OH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_diag_oh_ch4
+!
+! !DESCRIPTION: Subroutine DO\_DIAG\_OH\_CH4 passes the OH loss, OH mass, 
+!  and air mass terms from "global_ch4_mod.f" to "diag_oh_mod.f" 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS, XLOSS )
-! 
-!******************************************************************************
-!  Subroutine DO_DIAG_OH_CH4 passes the OH loss, OH mass, and air mass terms
-!  from "global_ch4_mod.f" to "diag_oh_mod.f" (bmy, 7/20/04)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I, J, L  (INTEGER) : GEOS-CHEM lon, lat, & altitude indices
-!  (4  ) XOHMASS  (REAL*8 ) : OH mass term from "global_ch4_mod.f"
-!  (5  ) XAIRMASS (REAL*8 ) : air mass term from "global_ch4_mod.f"
 !
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-      REAL*8,  INTENT(IN) :: XOHMASS, XAIRMASS, XLOSS
 
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I          ! Longitude index
+      INTEGER, INTENT(IN) :: J          ! Latitude index
+      INTEGER, INTENT(IN) :: L          ! Level index
+      REAL*8,  INTENT(IN) :: XOHMASS    ! OH Mass  (from global_ch4_mod.f)
+      REAL*8,  INTENT(IN) :: XAIRMASS   ! Air mass (from global_ch4_mod.f)
+      REAL*8,  INTENT(IN) :: XLOSS      ! OH loss  (from global_ch4_mod.f)
+! 
+! !REVISION HISTORY:
+!  07 Jul 2004 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! DO_DIAG_OH_CH4 begins here!
       !=================================================================
@@ -157,23 +162,37 @@
       AIR_MASS(I,J,L) = AIR_MASS(I,J,L) + XAIRMASS
       OH_MASS(I,J,L)  = OH_MASS(I,J,L)  + XOHMASS
       OH_LOSS(I,J,L)  = OH_LOSS(I,J,L)  + XLOSS
-      ! Return to calling program
+
       END SUBROUTINE DO_DIAG_OH_CH4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: print_diag_oh
+!
+! !DESCRIPTION: Subroutine PRINT\_DIAG\_OH prints the mass-weighted OH 
+!  concentration at the end of a simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE PRINT_DIAG_OH
 !
-!******************************************************************************
-!  Subroutine PRINT_DIAG_OH prints the mass-weighted OH concentration at
-!  the end of a simulation. (bmy, 10/21/03, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
+      USE TRACER_MOD, ONLY : ITS_A_CH4_SIM
+! 
+! !REVISION HISTORY: 
+!  21 Oct 2003 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE TRACER_MOD,      ONLY : ITS_A_CH4_SIM
-
-      ! Local variables 
+! !LOCAL VARIABLES:
+!
       REAL*8 :: SUM_OHMASS, SUM_MASS, SUM_OHLOSS, OHCONC, LIFETIME
      
       !=================================================================
@@ -235,29 +254,40 @@
             
       ENDIF
 
-      ! Return to MAIN program
       END SUBROUTINE PRINT_DIAG_OH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag_oh
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG\_OH initializes all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG_OH
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG_OH initializes all module arrays. 
-!  (bmy, 7/20/04, 6/24/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LCHEM
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS, LMAX
 
       !=================================================================
@@ -311,17 +341,28 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
       OH_LOSS = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG_OH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag_oh
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG\_OH deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG_OH
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG_OH deallocates all module arrays. (bmy, 7/20/04)
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  07 Jul 2004 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG_OH begins here!
       !=================================================================
@@ -329,10 +370,6 @@
       IF ( ALLOCATED( AIR_MASS ) ) DEALLOCATE( AIR_MASS )
       IF ( ALLOCATED( OH_LOSS  ) ) DEALLOCATE( OH_LOSS  )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG_OH
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG_OH_MOD

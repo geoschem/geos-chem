@@ -1,11 +1,30 @@
-! $Id: diagoh.f,v 1.1 2009/09/16 14:06:34 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: diagoh
+!
+! !DESCRIPTION: Subroutine DIAGOH saves chemical diagnostic quantities for 
+!  the ND43 chemical diagnostics.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAGOH
 !
-!******************************************************************************
-!  Subroutine DIAGOH saves chemical diagnostic quantities for 
-!  the ND43 chemical diagnostics.  (bmy, 5/1/98, 8/10/09)
+! !USES:
 !
-!  NOTES:
+      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! Diagnostic switches & arrays
+#     include "CMN_O3"    ! SAVEOH, SAVENO
+! 
+! !REVISION HISTORY: 
+!  01 May 1998 - R. Yantosca - Initial version
 !  (1 ) Now use F90 syntax for declarations (bmy, 3/29/99)
 !  (2 ) Cosmetic changes (bmy, 3/29/99)
 !  (3 ) AD43 and DIAGCHLORO are now declared allocatable in "diag_mod.f". 
@@ -20,18 +39,13 @@
 !  (7 ) Removed obsolete reference to DIAGCHLORO (bmy, 8/2/02)
 !  (8 ) Now save NO3 [molec/cm3] as AD43(:,:,:,5) (bmy, 1/13/03)
 !  (9 ) Corrected typo in comments (bmy, 8/10/09)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_O3"    ! SAVEOH, SAVENO
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER  :: I,  J,  L 
       REAL*8   :: OH, NO, HO2, NO2, NO3
 
@@ -83,5 +97,5 @@
 
       ENDIF  
 
-      ! Return to calling program
       END SUBROUTINE DIAGOH
+!EOC

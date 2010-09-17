@@ -22,6 +22,9 @@
 #
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
+#  14 Sep 2010 - R. Yantosca - Added optdepth_mod.f to list
+#  15 Sep 2010 - R. Yantosca - Added diag_2pm, diag_56, diagoh, ohsave
+#  16 Sep 2010 - R. Yantosca - Added diag_pl_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -42,6 +45,9 @@ $(CORE)/convection_mod.f             \
 $(CORE)/dao_mod.f                    \
 $(CORE)/depo_mercury_mod.f           \
 $(CORE)/diag04_mod.f                 \
+$(CORE)/diag56_mod.f                 \
+$(CORE)/diag_pl_mod.f                \
+$(CORE)/diag_oh_mod.f                \
 $(CORE)/diag_mod.f                   \
 $(CORE)/dust_mod.f                   \
 $(CORE)/emep_mod.f                   \
@@ -62,6 +68,7 @@ $(CORE)/merra_a3_mod.f               \
 $(CORE)/merra_cn_mod.f               \
 $(CORE)/merra_i6_mod.f               \
 $(CORE)/nei2005_anthro_mod.f         \
+$(CORE)/optdepth_mod.f               \
 $(CORE)/pjc_pfix_mod.f               \
 $(CORE)/scale_anthro_mod.f           \
 $(CORE)/tropopause_mod.f             \
@@ -74,9 +81,12 @@ $(CORE)/vistas_anthro_mod.f          \
 ./subs.geos-chem                     \
 $(CORE)/diag1.f                      \
 $(CORE)/diag3.f                      \
+$(CORE)/diag_2pm.f                   \
+$(CORE)/diagoh.f                     \
 $(CORE)/fast_j.f                     \
 $(CORE)/initialize.f                 \
 $(CORE)/ndxx_setup.f                 \
+$(CORE)/ohsave.f                     \
 $(CORE)/rdlai.f                      \
 $(CORE)/readlai.f                    \
 $(CORE)/ruralbox.f                   \

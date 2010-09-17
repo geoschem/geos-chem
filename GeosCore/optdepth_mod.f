@@ -1,23 +1,37 @@
-! $Id: optdepth_mod.f,v 1.1 2009/09/16 14:06:17 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: optdepth_mod
+!
+! !DESCRIPTION: Module OPTDEPTH\_MOD contains routines to return optical
+!  depths and update the ND21 diagnostic.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE OPTDEPTH_MOD
 !
-!******************************************************************************
-!  Module OPTDEPTH_MOD contains routines to compute optical depths for GEOS-3
-!  GEOS-4, and GCAP met data sets. (bmy, 8/15/01, 8/4/06)
+! !USES:
+!
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      INTERFACE OPTDEPTH
+         MODULE PROCEDURE OD_GEOS3_GEOS4
+      END INTERFACE
+
+      PUBLIC  :: OPTDEPTH
+!
+! !PRIVATE MEMBER FUNCTIONS:
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) OD_GEOS3_GEOS4 : Computes optical depths for GEOS-2 or GEOS-3 
+      PRIVATE :: OD_GEOS3_GEOS4
 !
-!  Module Interfaces:
-!  ============================================================================
-!  (1 ) OPTDEPTH       : Connects routines OD_GEOS1_GEOSS, OD_GEOS2_GEOS3
-!
-!  GEOS-CHEM modules referenced by optdepth_mod.f
-!  ============================================================================
-!  (1 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
-!
-!  NOTES: 
+! !REVISION HISTORY:
+!  15 Aug 2001 - R. Yantosca - Initial version
 !  (1 ) Now add parallel DO-loops (bmy, 8/15/01)
 !  (2 ) Removed obsolete code from 9/01 (bmy, 10/24/01)
 !  (3 ) Now divide module header into MODULE PRIVATE, MODULE VARIABLES, and
@@ -25,70 +39,76 @@
 !        since we have an interface here. (bmy, 5/28/02)
 !  (4 ) Renamed OD_GEOS2_GEOS_3 to OD_GEOS3_GEOS4.  (bmy, 4/20/05)
 !  (5 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "optdepth_mod.f"
-      !=================================================================
-
-      ! PRIVATE module routines
-      PRIVATE OD_GEOS3_GEOS4
-
-      !=================================================================
-      ! MODULE INTERFACES -- "bind" two or more routines with different
-      ! argument types or # of arguments under one unique name
-      !================================================================= 
-      INTERFACE OPTDEPTH
-         MODULE PROCEDURE OD_GEOS3_GEOS4
-      END INTERFACE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  14 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: od_geos3_geos4
+!
+! !DESCRIPTION: Subroutine OD\_GEOS3\_GEOS4 copies the DAO grid box optical 
+!  depth from the OPTDEP met field array into the OPTD array.  Diagnostics 
+!  are also archived. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OD_GEOS3_GEOS4( NVERT, CLDF, OPTDEP, OPTD )
 !
-!******************************************************************************
-!  Subroutine OD_GEOS3_GEOS4 copies the DAO grid box optical depth from
-!  the OPTDEP met field array into the OPTD array.  Diagnostics are also
-!  archived. (bmy, 8/15/01, 4/20/05)
-!   
-!  Arguments as input: 
-!  ===========================================================================
-!  (1 ) NVERT  (INTEGER) : Number of levels to compute Optical Depth fo
-!  (2 ) CLDF   (REAL*8 ) : GEOS-3/GEOS-4 3/D cloud fraction [unitless]
-!  (3 ) OPTDEP (REAL*8 ) : GEOS-3/GEOS-4 grid box optical depths [unitless]
+! !USES:
 !
-!  Arguments as output:
-!  ===========================================================================
-!  (4 ) OPTD   (REAL*8 ) : DAO optical depth at grid box (I,J,L) [unitless]
-!
-!  NOTES:
-!  (1 ) Now parallelize I-J DO loops (bmy, 8/15/01)
-!  (2 ) Renamed to OD_GEOS3_GEOS4.  Also now saves CLDF in AD21(I,J,L,2)
-!        for the ND21 diagnostic (bmy, 4/20/05)
-!******************************************************************************
-! 
-      ! References to F90 modules
       USE DIAG_MOD, ONLY: AD21
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DIAG"   ! ND21
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
+      ! Number of levels for which optical depth is desired
       INTEGER, INTENT(IN)  :: NVERT
+
+      ! 3/D cloud fraction from met fields  [unitless]
       REAL*8,  INTENT(IN)  :: CLDF  (LLPAR,IIPAR,JJPAR)
+
+      ! Optical depths from met fields [unitless]
       REAL*8,  INTENT(IN)  :: OPTDEP(LLPAR,IIPAR,JJPAR)  
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Optical depth output array [unitless]
       REAL*8,  INTENT(OUT) :: OPTD  (LLPAR,IIPAR,JJPAR)  
-      
-      ! Local Variables
-      INTEGER              :: I, J, L
+! 
+! !REMARKS:
+!  The optical depths in the GEOS-5 met field archives are in-cloud optical
+!  depths instead of grid-box optical depths (as was reported in the file
+!  specification documents erroneously).
+!                                                                             .
+!  Also, the name "OD_GEOS3_GEOS4" is historical.  Once upon a time this was
+!  used to denote the difference between the optical depths in GEOS-3 and
+!  GEOS-4 (which come directly from the met fields) and GEOS-1 and GEOS-STRAT
+!  (which were computed as functions of temperature).  The GEOS-5 and MERRA
+!  optical depths are also provided in the met field archive, so the
+!  algorithms in this routine are also equally applicable.
+!
+! !REVISION HISTORY: 
+!  15 Aug 2001 - R. Yantosca - Initial version
+!  (1 ) Now parallelize I-J DO loops (bmy, 8/15/01)
+!  (2 ) Renamed to OD_GEOS3_GEOS4.  Also now saves CLDF in AD21(I,J,L,2)
+!        for the ND21 diagnostic (bmy, 4/20/05)
+!  14 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L
       
       !=================================================================
       ! OD_GEOS3_GEOS4 begins here!
@@ -127,12 +147,8 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE OD_GEOS3_GEOS4
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE OPTDEPTH_MOD
 
 
