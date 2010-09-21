@@ -58,19 +58,22 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION DO_OPEN_A1( NYMD, NHMS ) RESULT( DO_OPEN )
+      FUNCTION DO_OPEN_A1( NYMD, NHMS, RESET ) RESULT( DO_OPEN )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD      ! YYYYMMDD and hhmmss to be tested
-      INTEGER, INTENT(IN) :: NHMS      !  to see if it's time to open A1 file
+      INTEGER, INTENT(IN)           :: NYMD     ! YYYYMMDD and hhmmss to test
+      INTEGER, INTENT(IN)           :: NHMS     !  if it's time to open file
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET    ! Reset the 
 !
 ! !RETURN VALUE:
 !
-      LOGICAL             :: DO_OPEN   ! = T if it is time to open the file
+      LOGICAL                       :: DO_OPEN  ! =T if it's time to open file
 !
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
+!  21 Sep 2010 - R. Yantosca - Add RESET via the argument list to reset
+!                              the FIRST flag if so desired.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -84,6 +87,14 @@
       !=================================================================
       ! DO_OPEN_A1 begins here!
       !=================================================================
+
+      ! Reset the FIRST flag if necessary (i.e. if we have been
+      ! reading A1 fields for MEGAN, then FIRST=.FALSE.).  This will
+      ! allow us to start a simulation at hours other than 0 GMT
+      ! (bmy, 9/21/10)
+      IF ( PRESENT( RESET ) ) THEN
+         IF ( RESET ) FIRST = .TRUE.
+      ENDIF
 
       ! Initialize
       DO_OPEN = .FALSE.
@@ -123,7 +134,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS )
+      SUBROUTINE OPEN_MERRA_A1_FIELDS( NYMD, NHMS, RESET )
 !
 ! !USES:
 !
@@ -138,8 +149,9 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: NYMD   ! YYYYMMDD date
-      INTEGER, INTENT(IN) :: NHMS   ! hhmmss time
+      INTEGER, INTENT(IN)           :: NYMD    ! YYYYMMDD date
+      INTEGER, INTENT(IN)           :: NHMS    ! hhmmss time
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time A1 flag?
 ! 
 ! !REVISION HISTORY:
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
@@ -149,6 +161,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+      LOGICAL            :: DO_RESET
       LOGICAL            :: IT_EXISTS
       INTEGER            :: IOS
       CHARACTER(LEN=2)   :: DUM
@@ -160,9 +173,16 @@
       !=================================================================
       ! OPEN_MERRA_A1_FIELDS begins here!
       !=================================================================
-
+      
+      ! Define shadow variable for optional RESET switch
+      IF ( PRESENT( RESET ) ) THEN
+         DO_RESET = RESET
+      ELSE
+         DO_RESET = .FALSE.
+      ENDIF
+            
       ! Check if it's time to open file
-      IF ( DO_OPEN_A1( NYMD, NHMS ) ) THEN
+      IF ( DO_OPEN_A1( NYMD, NHMS, DO_RESET ) ) THEN
 
          !---------------------------
          ! Initialization

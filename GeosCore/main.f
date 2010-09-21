@@ -318,7 +318,7 @@
 
       ! Open and read A-1 fields
       DATE = GET_FIRST_A1_TIME()
-      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
 
