@@ -338,7 +338,7 @@
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
+      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
