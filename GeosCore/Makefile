@@ -126,7 +126,7 @@ include $(ROOTDIR)/Makefile_header.mk
 SRC := $(wildcard *.f) $(wildcard *.f90)
 
 # Skip certain files (uncomment if necessary)
-SRC := $(filter-out tropopause.f, $(SRC))
+#SRC := $(filter-out , $(SRC))
 
 # Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.f=.o)
@@ -1008,7 +1008,7 @@ tropopause.o                : tropopause.f                                   \
 
 tropopause_mod.o            : tropopause_mod.f                               \
                               comode_mod.o            dao_mod.o              \
-                              logical_mod.o
+                              diag_mod.o              logical_mod.o
 
 upbdflx_mod.o               : upbdflx_mod.f                                  \
                               dao_mod.o               linoz_mod.o            \

@@ -444,10 +444,13 @@
          !==============================================================
          ! %%%%% FOR MERRA MET FIELDS ONLY %%%%%  
          !==============================================================
-         
-         ! Rate of precipitation formation [cm3 H2O/cm3 air/s]
-         QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
-     &                * ( AIRDEN(L,I,J)  / 1000d0          )
+
+         ! Loop over vertical levels
+         DO L = 1, LLPAR
+
+            ! Rate of precipitation formation [cm3 H2O/cm3 air/s]
+            QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
+     &                   * ( AIRDEN(L,I,J)  / 1000d0          )
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE: There has been debate about whether QQ should be computed as 
@@ -462,15 +465,17 @@
 !%%%
 !%%%   --- Helen Amos, 9/10/2010
 !%%%
-!%%%         ! Rate of precipitation formation [cm3 H2O/cm2/s]
-!%%%         QQ(L,I,J)    = ( DQRLSAN(I,J,L) - REEVAPLS(I,J,L) ) 
-!%%%                      * ( AIRDEN(L,I,J)  / 1000d0          )
+!%%%            ! Rate of precipitation formation [cm3 H2O/cm2/s]
+!%%%            QQ(L,I,J)    = ( DQRLSAN(I,J,L) - REEVAPLS(I,J,L) ) 
+!%%%                         * ( AIRDEN(L,I,J)  / 1000d0          )
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-         ! Column precipitation [cm3 H2O/cm2 air/s]
-         PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
-     &                +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
+            ! Column precipitation [cm3 H2O/cm2 air/s]
+            PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
+     &                   +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
      &
+
+         ENDDO
 
 #else 
 
@@ -4663,338 +4668,338 @@
             FTOP = F
          ENDIF
 
-         !==============================================================
-         ! (4)  R a i n o u t   a n d   W a s h o u t 
-         !      i n   t h e   M i d d l e   L e v e l s
-         !==============================================================
-         DO L = LLPAR-1, 2, -1
-
-            ! Zero variables for each level
-            F         = 0d0
-            F_PRIME   = 0d0
-            F_RAINOUT = 0d0 
-            F_WASHOUT = 0d0 
-            K_RAIN    = 0d0
-            Q         = 0d0
-            QDOWN     = 0d0
-
-            ! If there is new precip forming w/in the grid box ...
-            IF ( QQ(L,I,J) > 0d0 ) THEN
-
-               ! Compute K_RAIN and F' for either large-scale or convective
-               ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
-               IF ( LS ) THEN
-                  K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
-                  F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
-               ELSE
-                  K_RAIN  = 1.5d-3
-                  F_PRIME = CONV_F_PRIME( QQ(L,I,J), K_RAIN, DT )
-               ENDIF
-               
-            ELSE
-               
-               F_PRIME = 0d0
- 
-            ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE from Chris Holmes (8/21/10)
-!%%%
-!%%% Qiaoqiao Wang implemented several changes to wet scavenging that I 
-!%%% know of:
-!%%% 1. Scavenging by snow has different collection efficiency to rain
-!%%% 2. Allow both washout and rainout when QQ>0 and FTOP >F_PRIME.
-!%%%    Previously only rainout occurred when QQ>0. Qiaoqiao reasoned that if
-!%%%    QQ>0 is very small and there is a lot of rain from above, then most of
-!%%%    the box should experience washout and only some of the box should
-!%%%    experience rainout.
-!%%% 3. Specific improvements for BC and OC.
-!%%%
-!%%% TO ENABLE QIAOQIAO'S "ITEM #2" MODIFICATION, UNCOMMENT THESE LINES:
-!%%%
-!            ! The following block implements Qiaoqiao's changes
-!            ! Calculate the fractional areas subjected to rainout and
-!            ! washout. If PDOWN = 0, then all dissolved tracer returns
-!            ! to the atmosphere. (cdh, 7/13/10)
-!            IF ( PDOWN(L,I,J) > 0d0 ) THEN
-!               F_RAINOUT = F_PRIME
-!               ! Washout occurs where there is no rainout
-!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!         !==============================================================
+!         ! (4)  R a i n o u t   a n d   W a s h o u t 
+!         !      i n   t h e   M i d d l e   L e v e l s
+!         !==============================================================
+!         DO L = LLPAR-1, 2, -1
+!
+!            ! Zero variables for each level
+!            F         = 0d0
+!            F_PRIME   = 0d0
+!            F_RAINOUT = 0d0 
+!            F_WASHOUT = 0d0 
+!            K_RAIN    = 0d0
+!            Q         = 0d0
+!            QDOWN     = 0d0
+!
+!            ! If there is new precip forming w/in the grid box ...
+!            IF ( QQ(L,I,J) > 0d0 ) THEN
+!
+!               ! Compute K_RAIN and F' for either large-scale or convective
+!               ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
+!               IF ( LS ) THEN
+!                  K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
+!                  F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
+!               ELSE
+!                  K_RAIN  = 1.5d-3
+!                  F_PRIME = CONV_F_PRIME( QQ(L,I,J), K_RAIN, DT )
+!               ENDIF
+!               
 !            ELSE
-!               F_RAINOUT = 0d0
-!               F_WASHOUT = 0d0
+!               
+!               F_PRIME = 0d0
+! 
 !            ENDIF
 !
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE from Chris Holmes (8/21/10)
-!%%% 
-!%%% I reorganized the code so that Qiaoqiao's changes for Item 2 could be 
-!%%% enabled or disabled by commenting just a few lines that Bob has 
-!%%% highlighted:
-!%%%
-!%%% TO DISABLE QIAOQIAO'S MODIFICATION "ITEM #2" AND RESTORE THE
-!%%% SAME ALGORITHM USED IN v8-03-01, UNCOMMENT THESE LINES:
-!%%%
-            ! Zero
-            F_RAINOUT = 0d0
-            F_WASHOUT = 0d0
-
-            ! If there is downward-falling precip from the level above ...
-            IF ( PDOWN(L,I,J) > 0d0 ) THEN
-               
-               ! ... and if there is new precip forming in this level,
-               ! then we have a rainout condition.  F_RAINOUT is the
-               ! fraction of the grid box that where rainout occurs
-               IF ( QQ(L,I,J) > 0d0 ) THEN
-                  F_RAINOUT = MAX( FTOP, F_PRIME )
-               ENDIF 
-
-               ! The rest of the precipitating part of the box is
-               ! undergoing washout.  Store this fraction in F_WASHOUT.
-               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
-
-            ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-            ! F is the effective area of precip seen by grid box (I,J,L) 
-            F = MAX( F_PRIME, FTOP )
-
-            ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
-            ! Q     is the new precip that is forming within box (I,J,L)
-            QDOWN = PDOWN(L,I,J)
-            Q     = QQ(L,I,J)
-
-            !  Define PDOWN and p
-            IF ( F_RAINOUT > 0d0 ) THEN
-
-               ! The precipitation causing washout is the precip entering
-               ! the top
-               QDOWN = PDOWN(L+1,I,J)
-
-               ! The amount of precipitating water entering from above 
-               ! which evaporates. If there is rainout (new precip
-               ! forming) then we have no way to estimate this, so assume
-               ! zero for now. Consequently there will be no resuspended
-               ! aerosol.
-               Q = 0d0
-            ELSE
-               Q = QQ(L,I,J)                  
-            ENDIF
-
-            !-----------------------------------------------------------
-            ! Determine if we have one of the following conditions:
-            !
-            ! (a) Rainout only
-            ! (b) Washout only
-            ! (c) Rainout and Washout
-            !-----------------------------------------------------------
-
-            ! There is ONLY rainout if there is new precip formation in 
-            ! the grid box (i.e. DQRLSAN(I,J,L) > 0) and the fraction 
-            ! of the grid box experiencing rainout (i.e. F_RAINOUT) 
-            ! is greater than or equal to the fraction of the grid box 
-            ! directly overhead experiencing precip (i.e. FTOP).
-            ! (hma, 9/10/10)
-            IS_RAINOUT = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
-     &                     ( ( FTOP - F_RAINOUT ) <= 0d0 )        )
-
-            ! There is ONLY washout if there is no new precipitation
-            ! formation in grid box (I,J,L) but there is precipitation
-            ! entering grid box (I,J,L) from the grid box directly 
-            ! overhead (I,J,L+1).  (hma, 9/10/10)
-            IS_WASHOUT = ( ( DQRLSAN(I,J,L)       == 0d0 ) .and.
-     &                     ( PDOWN(L+1,I,J)       >  0d0 )        )
-
-
-            ! There is BOTH rainout AND washout if you have new precip
-            ! production in grid box (I,J,L) and you have some fraction
-            ! of the grid box (I,J,L) experiencing washout (as described
-            ! above).  (hma, 9/10/10)
-            IS_BOTH    = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
-     &                     ( ( FTOP - F_RAINOUT ) >  0d0 )        )
-
-            IF ( IS_RAINOUT ) THEN
-
-               !--------------------------------------------------------
-               ! RAINOUT ONLY
-               !--------------------------------------------------------
-
-               ! Error msg for stdout
-               ERRMSG = 'RAINOUT: Rainout ONLY'
-
-               ! Do rainout if we meet the above criteria
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT               )
-
-            ELSE IF ( IS_WASHOUT ) THEN
-
-               !--------------------------------------------------------
-               ! WASHOUT ONLY
-               !--------------------------------------------------------
-
-               ! Error msg for stdout
-               ERRMSG = 'WASHOUT: Washout ONLY'
-
-               ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
-     &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
-
-               ! After washout, check for re-evaporation is occurring
-               ! in the grid box.  Either complete or partial re-evap
-               ! can occur, depending on PDOWN. (hma, 9/10/10)
-               IF ( REEVAPLS(I,J,L) > 0d0 ) THEN
-
-                  IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
-
-                     !--------------------------
-                     ! Partial re-evaporation
-                     !--------------------------
-
-                     ! Error msg for stdout
-                     ERRMSG = 'WASHOUT: Partial re-evaporation'
-
-                     ! Call the DO_WASHOUT_ONLY washout routine to 
-                     ! do the partial evaporation.
-                     CALL DO_WASHOUT_ONLY( LS,    I,     J,     
-     &                                     L,     IDX,   ERRMSG, 
-     &                                     QDOWN, Q,     F_WASHOUT, 
-     &                                     DT,    PDOWN, STT, 
-     &                                     DSTT,  REEVAP=.TRUE.     )
-
-                  ELSE IF ( PDOWN(L+1,I,J) >  0d0  .and.
-     &                      PDOWN(L,  I,J) == 0d0 ) THEN
-
-                     !--------------------------
-                     ! Complete re-evaporation
-                     !--------------------------
-
-                     ! Error msg for stdout
-                     ERRMSG = 'WASHOUT: Complete re-evaporation'  
-
-                     ! Call the DO_COMPLETE_REEVAP routine to
-                     ! do the complete re-evaporation
-                     CALL DO_COMPLETE_REEVAP( LS, I,   J,  
-     &                                        L,  IDX, ERRMSG, 
-     &                                        DT, STT, DSTT    )
-
-                  ENDIF
-
-               ENDIF
-
-            ELSE IF ( IS_BOTH ) THEN
-
-               !--------------------------------------------------------
-               ! BOTH RAINOUT AND WASHOUT
-               !--------------------------------------------------------
-
-               ! Apply rainout to the fraction of the box F_RAINOUT
-               ERRMSG = 'RAINOUT & WASHOUT: Rainout'
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT               )
-
-               ! Apply washout to the fraction of the box F_WASHOUT
-               ERRMSG = 'RAINOUT & WASHOUT: Washout'
-               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
-     &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
-
-               
-               ! After washout, check if partial re-evaporation 
-               ! is occurring (hma, 9/10/10)
-               IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
-
-                  ! Call the DO_WASHOUT_ONLY washout routine to 
-                  ! do the partial evaporation.
-                  ERRMSG = 'RAINOUT & WASHOUT: Partial re-evaporation'
-                  CALL DO_WASHOUT_ONLY( LS,    I,     J,     
-     &                                  L,     IDX,   ERRMSG, 
-     &                                  QDOWN, Q,     F_WASHOUT, 
-     &                                  DT,    PDOWN, STT, 
-     &                                  DSTT,  REEVAP=.TRUE.     )
-               ENDIF
-
-            ENDIF
-
-            ! Save FTOP for next level
-            FTOP = F_RAINOUT + F_WASHOUT
-         ENDDO               
-
-         !==============================================================
-         ! (7)  W a s h o u t   i n   L e v e l   1
-         !==============================================================
-
-         ! Zero variables for this level
-         ERRMSG  = 'WASHOUT: at surface'
-         F       = 0d0
-         F_PRIME = 0d0
-         K_RAIN  = 0d0
-         Q       = 0d0
-         QDOWN   = 0d0
-         
-         ! We are at the surface, set L = 1
-         L = 1
-
-         ! Washout at level 1 criteria
-         IF ( PDOWN(L+1,I,J) > 0d0 ) THEN
-
-            ! QDOWN is the precip leaving thru the bottom of box (I,J,L+1)
-            QDOWN = PDOWN(L+1,I,J)
-
-            ! Since no precipitation is forming within grid box (I,J,L),
-            ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
-            F = FTOP
-
-            ! Only compute washout if F > 0.
-            IF ( F > 0d0 ) THEN
-               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
-     &                                 IDX, ERRMSG, QDOWN, F,   
-     &                                 DT,  STT,    DSTT      )
-            ENDIF    
-         ENDIF
-
-         !==============================================================
-         ! (8)  M e r c u r y   S i m u l a t i o n   O n l y 
-         !
-         ! For the mercury simulation, we need to archive the amt of 
-         ! Hg2 [kg] that is scavenged out of the column.  Also applies
-         ! to the tagged Hg simulation.
-         !
-         ! NOTES:
-         ! (a) Now moved outside the loop above for clarity and to 
-         !      fix a bug where HgP scavenging was not recorded. 
-         ! (b) The values of DSTT in the first layer accumulates all 
-         !      scavenging and washout in the column
-         ! (c) Updates from cdh. (ccc, 5/17/10)
-         !==============================================================
-         IF ( IS_Hg ) THEN
-
-            ! Loop over soluble tracers and/or aerosol tracers
-            DO NN = 1, NSOL
-               N = IDWETD(NN)
-
-               ! Check if it is a gaseous Hg2 tag
-               IF ( IS_Hg2( N ) ) THEN
-
-                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-
-               ! Check if it is a HgP tag
-               ELSE IF ( IS_HgP( N ) ) THEN
-                  
-                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
-                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
-                  
-               ENDIF
-
-            ENDDO
-            
-         ENDIF
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE from Chris Holmes (8/21/10)
+!!%%%
+!!%%% Qiaoqiao Wang implemented several changes to wet scavenging that I 
+!!%%% know of:
+!!%%% 1. Scavenging by snow has different collection efficiency to rain
+!!%%% 2. Allow both washout and rainout when QQ>0 and FTOP >F_PRIME.
+!!%%%    Previously only rainout occurred when QQ>0. Qiaoqiao reasoned that if
+!!%%%    QQ>0 is very small and there is a lot of rain from above, then most of
+!!%%%    the box should experience washout and only some of the box should
+!!%%%    experience rainout.
+!!%%% 3. Specific improvements for BC and OC.
+!!%%%
+!!%%% TO ENABLE QIAOQIAO'S "ITEM #2" MODIFICATION, UNCOMMENT THESE LINES:
+!!%%%
+!!            ! The following block implements Qiaoqiao's changes
+!!            ! Calculate the fractional areas subjected to rainout and
+!!            ! washout. If PDOWN = 0, then all dissolved tracer returns
+!!            ! to the atmosphere. (cdh, 7/13/10)
+!!            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+!!               F_RAINOUT = F_PRIME
+!!               ! Washout occurs where there is no rainout
+!!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!!            ELSE
+!!               F_RAINOUT = 0d0
+!!               F_WASHOUT = 0d0
+!!            ENDIF
+!!
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!!%%% NOTE from Chris Holmes (8/21/10)
+!!%%% 
+!!%%% I reorganized the code so that Qiaoqiao's changes for Item 2 could be 
+!!%%% enabled or disabled by commenting just a few lines that Bob has 
+!!%%% highlighted:
+!!%%%
+!!%%% TO DISABLE QIAOQIAO'S MODIFICATION "ITEM #2" AND RESTORE THE
+!!%%% SAME ALGORITHM USED IN v8-03-01, UNCOMMENT THESE LINES:
+!!%%%
+!            ! Zero
+!            F_RAINOUT = 0d0
+!            F_WASHOUT = 0d0
+!
+!            ! If there is downward-falling precip from the level above ...
+!            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+!               
+!               ! ... and if there is new precip forming in this level,
+!               ! then we have a rainout condition.  F_RAINOUT is the
+!               ! fraction of the grid box that where rainout occurs
+!               IF ( QQ(L,I,J) > 0d0 ) THEN
+!                  F_RAINOUT = MAX( FTOP, F_PRIME )
+!               ENDIF 
+!
+!               ! The rest of the precipitating part of the box is
+!               ! undergoing washout.  Store this fraction in F_WASHOUT.
+!               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+!
+!            ENDIF
+!
+!!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!            ! F is the effective area of precip seen by grid box (I,J,L) 
+!            F = MAX( F_PRIME, FTOP )
+!
+!            ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
+!            ! Q     is the new precip that is forming within box (I,J,L)
+!            QDOWN = PDOWN(L,I,J)
+!            Q     = QQ(L,I,J)
+!
+!            !  Define PDOWN and p
+!            IF ( F_RAINOUT > 0d0 ) THEN
+!
+!               ! The precipitation causing washout is the precip entering
+!               ! the top
+!               QDOWN = PDOWN(L+1,I,J)
+!
+!               ! The amount of precipitating water entering from above 
+!               ! which evaporates. If there is rainout (new precip
+!               ! forming) then we have no way to estimate this, so assume
+!               ! zero for now. Consequently there will be no resuspended
+!               ! aerosol.
+!               Q = 0d0
+!            ELSE
+!               Q = QQ(L,I,J)                  
+!            ENDIF
+!
+!            !-----------------------------------------------------------
+!            ! Determine if we have one of the following conditions:
+!            !
+!            ! (a) Rainout only
+!            ! (b) Washout only
+!            ! (c) Rainout and Washout
+!            !-----------------------------------------------------------
+!
+!            ! There is ONLY rainout if there is new precip formation in 
+!            ! the grid box (i.e. DQRLSAN(I,J,L) > 0) and the fraction 
+!            ! of the grid box experiencing rainout (i.e. F_RAINOUT) 
+!            ! is greater than or equal to the fraction of the grid box 
+!            ! directly overhead experiencing precip (i.e. FTOP).
+!            ! (hma, 9/10/10)
+!            IS_RAINOUT = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
+!     &                     ( ( FTOP - F_RAINOUT ) <= 0d0 )        )
+!
+!            ! There is ONLY washout if there is no new precipitation
+!            ! formation in grid box (I,J,L) but there is precipitation
+!            ! entering grid box (I,J,L) from the grid box directly 
+!            ! overhead (I,J,L+1).  (hma, 9/10/10)
+!            IS_WASHOUT = ( ( DQRLSAN(I,J,L)       == 0d0 ) .and.
+!     &                     ( PDOWN(L+1,I,J)       >  0d0 )        )
+!
+!
+!            ! There is BOTH rainout AND washout if you have new precip
+!            ! production in grid box (I,J,L) and you have some fraction
+!            ! of the grid box (I,J,L) experiencing washout (as described
+!            ! above).  (hma, 9/10/10)
+!            IS_BOTH    = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
+!     &                     ( ( FTOP - F_RAINOUT ) >  0d0 )        )
+!
+!            IF ( IS_RAINOUT ) THEN
+!
+!               !--------------------------------------------------------
+!               ! RAINOUT ONLY
+!               !--------------------------------------------------------
+!
+!               ! Error msg for stdout
+!               ERRMSG = 'RAINOUT: Rainout ONLY'
+!
+!               ! Do rainout if we meet the above criteria
+!               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
+!     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
+!     &                               DT,  STT,    DSTT               )
+!
+!            ELSE IF ( IS_WASHOUT ) THEN
+!
+!               !--------------------------------------------------------
+!               ! WASHOUT ONLY
+!               !--------------------------------------------------------
+!
+!               ! Error msg for stdout
+!               ERRMSG = 'WASHOUT: Washout ONLY'
+!
+!               ! Do the washout
+!               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
+!     &                               IDX,       ERRMSG, QDOWN, Q,   
+!     &                               F_WASHOUT, DT,     PDOWN, STT, 
+!     &                               DSTT                           )
+!
+!               ! After washout, check for re-evaporation is occurring
+!               ! in the grid box.  Either complete or partial re-evap
+!               ! can occur, depending on PDOWN. (hma, 9/10/10)
+!               IF ( REEVAPLS(I,J,L) > 0d0 ) THEN
+!
+!                  IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
+!
+!                     !--------------------------
+!                     ! Partial re-evaporation
+!                     !--------------------------
+!
+!                     ! Error msg for stdout
+!                     ERRMSG = 'WASHOUT: Partial re-evaporation'
+!
+!                     ! Call the DO_WASHOUT_ONLY washout routine to 
+!                     ! do the partial evaporation.
+!                     CALL DO_WASHOUT_ONLY( LS,    I,     J,     
+!     &                                     L,     IDX,   ERRMSG, 
+!     &                                     QDOWN, Q,     F_WASHOUT, 
+!     &                                     DT,    PDOWN, STT, 
+!     &                                     DSTT,  REEVAP=.TRUE.     )
+!
+!                  ELSE IF ( PDOWN(L+1,I,J) >  0d0  .and.
+!     &                      PDOWN(L,  I,J) == 0d0 ) THEN
+!
+!                     !--------------------------
+!                     ! Complete re-evaporation
+!                     !--------------------------
+!
+!                     ! Error msg for stdout
+!                     ERRMSG = 'WASHOUT: Complete re-evaporation'  
+!
+!                     ! Call the DO_COMPLETE_REEVAP routine to
+!                     ! do the complete re-evaporation
+!                     CALL DO_COMPLETE_REEVAP( LS, I,   J,  
+!     &                                        L,  IDX, ERRMSG, 
+!     &                                        DT, STT, DSTT    )
+!
+!                  ENDIF
+!
+!               ENDIF
+!
+!            ELSE IF ( IS_BOTH ) THEN
+!
+!               !--------------------------------------------------------
+!               ! BOTH RAINOUT AND WASHOUT
+!               !--------------------------------------------------------
+!
+!               ! Apply rainout to the fraction of the box F_RAINOUT
+!               ERRMSG = 'RAINOUT & WASHOUT: Rainout'
+!               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
+!     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
+!     &                               DT,  STT,    DSTT               )
+!
+!               ! Apply washout to the fraction of the box F_WASHOUT
+!               ERRMSG = 'RAINOUT & WASHOUT: Washout'
+!               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
+!     &                               IDX,       ERRMSG, QDOWN, Q,   
+!     &                               F_WASHOUT, DT,     PDOWN, STT, 
+!     &                               DSTT                           )
+!
+!               
+!               ! After washout, check if partial re-evaporation 
+!               ! is occurring (hma, 9/10/10)
+!               IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
+!
+!                  ! Call the DO_WASHOUT_ONLY washout routine to 
+!                  ! do the partial evaporation.
+!                  ERRMSG = 'RAINOUT & WASHOUT: Partial re-evaporation'
+!                  CALL DO_WASHOUT_ONLY( LS,    I,     J,     
+!     &                                  L,     IDX,   ERRMSG, 
+!     &                                  QDOWN, Q,     F_WASHOUT, 
+!     &                                  DT,    PDOWN, STT, 
+!     &                                  DSTT,  REEVAP=.TRUE.     )
+!               ENDIF
+!
+!            ENDIF
+!
+!            ! Save FTOP for next level
+!            FTOP = F_RAINOUT + F_WASHOUT
+!         ENDDO               
+!
+!         !==============================================================
+!         ! (7)  W a s h o u t   i n   L e v e l   1
+!         !==============================================================
+!
+!         ! Zero variables for this level
+!         ERRMSG  = 'WASHOUT: at surface'
+!         F       = 0d0
+!         F_PRIME = 0d0
+!         K_RAIN  = 0d0
+!         Q       = 0d0
+!         QDOWN   = 0d0
+!         
+!         ! We are at the surface, set L = 1
+!         L = 1
+!
+!         ! Washout at level 1 criteria
+!         IF ( PDOWN(L+1,I,J) > 0d0 ) THEN
+!
+!            ! QDOWN is the precip leaving thru the bottom of box (I,J,L+1)
+!            QDOWN = PDOWN(L+1,I,J)
+!
+!            ! Since no precipitation is forming within grid box (I,J,L),
+!            ! F' = 0, and F = MAX( F', FTOP ) reduces to F = FTOP.
+!            F = FTOP
+!
+!            ! Only compute washout if F > 0.
+!            IF ( F > 0d0 ) THEN
+!               CALL DO_WASHOUT_AT_SFC( LS,  I,      J,     L,         
+!     &                                 IDX, ERRMSG, QDOWN, F,   
+!     &                                 DT,  STT,    DSTT      )
+!            ENDIF    
+!         ENDIF
+!
+!         !==============================================================
+!         ! (8)  M e r c u r y   S i m u l a t i o n   O n l y 
+!         !
+!         ! For the mercury simulation, we need to archive the amt of 
+!         ! Hg2 [kg] that is scavenged out of the column.  Also applies
+!         ! to the tagged Hg simulation.
+!         !
+!         ! NOTES:
+!         ! (a) Now moved outside the loop above for clarity and to 
+!         !      fix a bug where HgP scavenging was not recorded. 
+!         ! (b) The values of DSTT in the first layer accumulates all 
+!         !      scavenging and washout in the column
+!         ! (c) Updates from cdh. (ccc, 5/17/10)
+!         !==============================================================
+!         IF ( IS_Hg ) THEN
+!
+!            ! Loop over soluble tracers and/or aerosol tracers
+!            DO NN = 1, NSOL
+!               N = IDWETD(NN)
+!
+!               ! Check if it is a gaseous Hg2 tag
+!               IF ( IS_Hg2( N ) ) THEN
+!
+!                  CALL ADD_Hg2_WD      ( I, J, N, DSTT(NN,1,I,J) )
+!                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+!
+!               ! Check if it is a HgP tag
+!               ELSE IF ( IS_HgP( N ) ) THEN
+!                  
+!                  CALL ADD_HgP_WD      ( I, J, N, DSTT(NN,1,I,J) )
+!                  CALL ADD_Hg2_SNOWPACK( I, J, N, DSTT(NN,1,I,J) )
+!                  
+!               ENDIF
+!
+!            ENDDO
+!            
+!         ENDIF
 
       ENDDO	
       ENDDO	
