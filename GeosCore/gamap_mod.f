@@ -74,6 +74,7 @@
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -724,6 +725,8 @@
 !  (6 ) Add potential temperature category. (fp, 2/26/10)
 !  21 May 2010 - C. Carouge  - Add diagnostic for mercury simulation
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  21 Sep 2010 - R. Yantosca - Remove duplicate definitions of CV-FLX-$,
+!                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -783,7 +786,7 @@
 
       N           = N + 1
       CATEGORY(N) = 'NOX-LI-$'
-      DESCRIPT(N) = 'Lightning NOx'
+      DESCRIPT(N) = 'Lightning NOx'      
       OFFSET(N)   = SPACING * 1
 
       N           = N + 1
@@ -951,43 +954,36 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-      N           = N + 1
-      CATEGORY(N) = 'CV-FLX-$'
-      DESCRIPT(N) = 'Upward flux from wet conv'
-      OFFSET(N)   = SPACING * 4
+      !------------------------------------------------------------------------
+      ! Prior to 9/21/10:
+      ! Remove duplicate definitions of diagnostics.  These should be in kg/s
+      ! so they need to have a diagnostic offset of 3000. (bmy, ccc, 9/27/10)
+      !N           = N + 1
+      !CATEGORY(N) = 'CV-FLX-$'
+      !DESCRIPT(N) = 'Upward flux from wet conv'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'TURBMC-$'
+      !DESCRIPT(N) = 'Upward flux from PBL mixing'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'EW-FLX-$'
+      !DESCRIPT(N) = 'E/W transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'NS-FLX-$'
+      !DESCRIPT(N) = 'N/S transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'UP-FLX-$'
+      !DESCRIPT(N) = 'Up/down transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !------------------------------------------------------------------------
 
-      N           = N + 1
-      CATEGORY(N) = 'TURBMC-$'
-      DESCRIPT(N) = 'Upward flux from PBL mixing'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'EW-FLX-$'
-      DESCRIPT(N) = 'E/W transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'NS-FLX-$'
-      DESCRIPT(N) = 'N/S transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'UP-FLX-$'
-      DESCRIPT(N) = 'Up/down transport flux'
-      OFFSET(N)   = SPACING * 4
-
-!--- Previous to (ccc, 3/17/10)------------------
-! Category names for GPROD and APROD have changed
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-GPROD'
-!      DESCRIPT(N) = 'SOA GPROD restart'
-!      OFFSET(N)   = SPACING * 6
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-APROD'
-!      DESCRIPT(N) = 'SOA APROD restart'
-!      OFFSET(N)   = SPACING * 6
-!-------------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
