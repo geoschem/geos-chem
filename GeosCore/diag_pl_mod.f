@@ -193,7 +193,7 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
@@ -870,17 +870,17 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, J, L, N, IOS
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER             :: HALFPOLAR 
-      INTEGER, PARAMETER  :: CENTER180 = 1 
-      REAL*4              :: LONRES, LATRES
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LLTROP)
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT
-      CHARACTER(LEN=40)   :: RESERVED
-      CHARACTER(LEN=80)   :: TITLE
+      INTEGER            :: I, J, L, N, IOS
+      INTEGER            :: IFIRST, JFIRST, LFIRST
+      INTEGER            :: HALFPOLAR 
+      INTEGER, PARAMETER :: CENTER180 = 1 
+      REAL*4             :: LONRES, LATRES
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+      CHARACTER(LEN=20)  :: MODELNAME
+      CHARACTER(LEN=40)  :: CATEGORY
+      CHARACTER(LEN=40)  :: UNIT
+      CHARACTER(LEN=40)  :: RESERVED
+      CHARACTER(LEN=80)  :: TITLE
 
       !=================================================================
       ! WRITE20 begins here!

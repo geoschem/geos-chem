@@ -62,6 +62,8 @@
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  26 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
+#  23 Sep 2010 - R. Yantosca - Removed "tropopause.f" from compile list
+#  23 Sep 2010 - R. Yantosca - Updated dependencies for v9-01-01
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -156,7 +158,7 @@ diag41_mod.o             linoz_mod.o             tpcore_window_mod.o         \
 diag42_mod.o             logical_mod.o           tracer_mod.o                \
 diag48_mod.o             lump.o                  tracerid_mod.o              \
 diag49_mod.o             main.o                  transport_mod.o             \
-diag50_mod.o             megan_mod.o             tropopause.o                \
+diag50_mod.o             megan_mod.o                                         \
 diag51_mod.o             meganut_mod.o           tropopause_mod.o            \
 diag51b_mod.o            mercury_mod.o           upbdflx_mod.o               \
 diag56_mod.o             mmran_16.o              update.o                    \
@@ -1033,7 +1035,7 @@ tropopause.o                : tropopause.f                                   \
 
 tropopause_mod.o            : tropopause_mod.f                               \
                               comode_mod.o            dao_mod.o              \
-                              logical_mod.o
+                              diag_mod.o              logical_mod.o
 
 upbdflx_mod.o               : upbdflx_mod.f                                  \
                               dao_mod.o               linoz_mod.o            \
