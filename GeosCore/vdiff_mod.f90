@@ -99,6 +99,8 @@ MODULE VDIFF_MOD
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
+!  24 Sep 2010 - J. Lin      - Modified ND15 to account for all mixing
+!                              processes but not dry deposition and emissions.
 !EOP
 !------------------------------------------------------------------------------
 
@@ -187,6 +189,11 @@ contains
 !
 ! !USES:
 !
+    USE DIAG_MOD,     ONLY : TURBFLUP
+    USE VDIFF_PRE_MOD, ONLY : ND15
+    USE TRACER_MOD,   ONLY : TCVV
+    USE DAO_MOD,      ONLY : AD
+
     implicit none
 !
 ! !INPUT PARAMETERS: 
@@ -235,7 +242,9 @@ contains
 ! !REVISION HISTORY:
 !
 ! (1 ) All arguments are full arrays now. Latitude slices are copied in local
-!      variables. (ccc, 11/19/09) 
+!      variables. (ccc, 11/19/09)
+! 24 Sep 2010 - J. Lin     - Moved call to ND15 at the end of vdiff.
+!                            Modified to account for all mixing processes.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,7 +253,7 @@ contains
 !
     integer :: &
          i, &                   ! longitude index
-         k, &                   ! vertical index
+         k, l, &                ! vertical index
          m                      ! constituent index
     integer :: &
          indx(plonl), &         ! array of indices of potential q<0
@@ -314,11 +323,14 @@ contains
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
 
     real*8 :: &
-        taux(plonl), &            ! x surface stress (n)
-        tauy(plonl), &            ! y surface stress (n)
-        ustar(plonl)              ! surface friction velocity
+        taux(plonl), &             ! x surface stress (n)
+        tauy(plonl), &             ! y surface stress (n)
+        ustar(plonl)               ! surface friction velocity
 
-    real*8 :: pblh(plonl) ! boundary-layer height [m]
+    real*8 :: pblh(plonl)          ! boundary-layer height [m]
+
+    real*8 :: qp0(plonl,plev,pcnst) ! To store initial concentration values
+                                    ! (as2)
 
     !=================================================================
     ! vdiff begins here!
@@ -341,6 +353,7 @@ contains
     cflx   = sflx(:,lat,:)
     wvflx  = wvflx_arg(:,lat)
     qp1    = as2(:,lat,:,:)
+    qp0    = as2(:,lat,:,:)
     shp1   = shp(:,lat,:)
     thp    = thp_arg(:,lat,:)
     kvh    = kvh_arg(:,lat,:)
@@ -556,6 +569,7 @@ contains
           end do
        end if
     end do
+
 !-----------------------------------------------------------------------
 ! 	... repeat above for sh
 !-----------------------------------------------------------------------
@@ -681,6 +695,37 @@ contains
     IF (PRESENT(taux_arg )) taux_arg(:,lat)  = taux   
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
+
+    !=======================================================
+    ! ND15 Diagnostic: 
+    ! mass change due to mixing in the boundary layer
+    ! ND15 diagnostic moved here to not count the emissions
+    ! and dry deposition in the Turbulent Flux.
+    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
+    ! account for all mixing. (ccc, 9/24/10)
+    !=======================================================
+    IF ( ND15 > 0 ) THEN
+
+       dqbot = 0d0
+       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+            termh, qp1, plonl )
+
+!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, L, M, K )
+       DO M = 1, pcnst
+       DO L = 1, plev 
+       do I = 1, plonl
+          ! Arrays in vdiff are upside-down
+          K = plev - L + 1
+          ! qp1 and qp0 are volume mixing ratio
+          TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
+                              + (qp1(I,L,M) - qp0(I,L,M)) * AD(I,lat,k) &
+                              / ( TCVV(M) * ztodt )
+       enddo
+       enddo
+       ENDDO
+!$OMP END PARALLEL DO
+
+    ENDIF
 
   end subroutine vdiff
 !EOC
@@ -1714,10 +1759,14 @@ contains
     USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                              GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
 
-    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND15, ND44, &
+!    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND15, ND44, &
+!                              NDRYDEP, emis_save
+!
+!    USE DIAG_MOD,     ONLY : TURBFLUP, AD44
+    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                               NDRYDEP, emis_save
 
-    USE DIAG_MOD,     ONLY : TURBFLUP, AD44
+    USE DIAG_MOD,     ONLY : AD44
     USE GRID_MOD,     ONLY : GET_AREA_M2
 
     USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
@@ -1744,7 +1793,8 @@ contains
 !
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
-! 4 June 2010  - C. Carouge  - Updates for mercury simulations with GTMM 
+! 4 June 2010 - C. Carouge  - Updates for mercury simulations with GTMM
+! 24 Sep 2010 - J. Lin      - Move ND15 to vdiff.  
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2277,28 +2327,32 @@ contains
 
     end if
 
-    !=======================================================
-    ! ND15 Diagnostic: 
-    ! mass change due to mixing in the boundary layer
-    !=======================================================
-    IF ( ND15 > 0 ) THEN
-
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L, N )
-       DO N = 1, N_TRACERS
-       DO L = 1, LLPAR 
-       do J = 1, JJPAR
-       do I = 1, IIPAR
-          ! as and as2 are volume mixing ratio
-          TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) &
-                              + (as2(I,J,L,N) - as(I,J,L,N)) * AD(I,J,L) &
-                              / ( TCVV(N) * dtime )
-       enddo
-       enddo
-       ENDDO
-       ENDDO
-!$OMP END PARALLEL DO
-
-    ENDIF
+!-- Prior to 09/24/10.
+!
+! Diagnostic moved to vdiff. (lin, ccc, 09/24/10)
+!
+!    !=======================================================
+!    ! ND15 Diagnostic: 
+!    ! mass change due to mixing in the boundary layer
+!    !=======================================================
+!    IF ( ND15 > 0 ) THEN
+!
+!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L, N )
+!       DO N = 1, N_TRACERS
+!       DO L = 1, LLPAR 
+!       do J = 1, JJPAR
+!       do I = 1, IIPAR
+!          ! as and as2 are volume mixing ratio
+!          TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) &
+!                              + (as2(I,J,L,N) - as(I,J,L,N)) * AD(I,J,L) &
+!                              / ( TCVV(N) * dtime )
+!       enddo
+!       enddo
+!       ENDDO
+!       ENDDO
+!!$OMP END PARALLEL DO
+!
+!    ENDIF
 
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
