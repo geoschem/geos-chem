@@ -4808,9 +4808,9 @@
             ! formation in grid box (I,J,L) but there is precipitation
             ! entering grid box (I,J,L) from the grid box directly 
             ! overhead (I,J,L+1).  (hma, 9/10/10)
-!            IS_WASHOUT = ( ( DQRLSAN(I,J,L)       == 0d0 ) .and.
             IS_WASHOUT = ( ( DQRLSAN(I,J,L)       <  EPSILON ) .and.
-     &                     ( PDOWN(L+1,I,J)       >  0d0     )       )
+     &                     ( PDOWN(L+1,I,J)       >  0d0     ) .and.
+     &                     ( F_WASHOUT            >  0d0     )       )
 
 
             ! There is BOTH rainout AND washout if you have new precip
@@ -4855,24 +4855,23 @@
                IF ( REEVAPLS(I,J,L) > 0d0 ) THEN
 
                   IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
-
-                     !--------------------------
-                     ! Partial re-evaporation
-                     !--------------------------
-
-                     ! Error msg for stdout
-                     ERRMSG = 'WASHOUT: Partial re-evaporation'
-
-                     ! Call the DO_WASHOUT_ONLY washout routine to 
-                     ! do the partial evaporation.
-                     CALL DO_WASHOUT_ONLY( LS,    I,     J,     
-     &                                     L,     IDX,   ERRMSG, 
-     &                                     QDOWN, Q,     F_WASHOUT, 
-     &                                     DT,    PDOWN, STT, 
-     &                                     DSTT,  REEVAP=.TRUE.     )
-
-                  ELSE IF ( PDOWN(L+1,I,J) > 0d0  .and.
-!     &                      PDOWN(L,  I,J) == 0d0 ) THEN
+!
+!                     !--------------------------
+!                     ! Partial re-evaporation
+!                     !--------------------------
+!
+!                     ! Error msg for stdout
+!                     ERRMSG = 'WASHOUT: Partial re-evaporation'
+!
+!                     ! Call the DO_WASHOUT_ONLY washout routine to 
+!                     ! do the partial evaporation.
+!                     CALL DO_WASHOUT_ONLY( LS,    I,     J,     
+!     &                                     L,     IDX,   ERRMSG, 
+!     &                                     QDOWN, Q,     F_WASHOUT, 
+!     &                                     DT,    PDOWN, STT, 
+!     &                                     DSTT,  REEVAP=.TRUE.     )
+!
+                  ELSE IF ( PDOWN(L+1,I,J) > 0d0      .and.
      &                      PDOWN(L,  I,J) < EPSILON ) THEN
 
                      !--------------------------
@@ -4912,19 +4911,19 @@
      &                               DSTT                           )
 
                
-               ! After washout, check if partial re-evaporation 
-               ! is occurring (hma, 9/10/10)
-               IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
-
-                  ! Call the DO_WASHOUT_ONLY washout routine to 
-                  ! do the partial evaporation.
-                  ERRMSG = 'RAINOUT & WASHOUT: Partial re-evaporation'
-                  CALL DO_WASHOUT_ONLY( LS,    I,     J,     
-     &                                  L,     IDX,   ERRMSG, 
-     &                                  QDOWN, Q,     F_WASHOUT, 
-     &                                  DT,    PDOWN, STT, 
-     &                                  DSTT,  REEVAP=.TRUE.     )
-               ENDIF
+!               ! After washout, check if partial re-evaporation 
+!               ! is occurring (hma, 9/10/10)
+!               IF ( PDOWN(L+1,I,J) > PDOWN(L,I,J) ) THEN
+!
+!                  ! Call the DO_WASHOUT_ONLY washout routine to 
+!                  ! do the partial evaporation.
+!                  ERRMSG = 'RAINOUT & WASHOUT: Partial re-evaporation'
+!                  CALL DO_WASHOUT_ONLY( LS,    I,     J,     
+!     &                                  L,     IDX,   ERRMSG, 
+!     &                                  QDOWN, Q,     F_WASHOUT, 
+!     &                                  DT,    PDOWN, STT, 
+!     &                                  DSTT,  REEVAP=.TRUE.     )
+!               ENDIF
 
             ENDIF
 
@@ -5551,7 +5550,7 @@
 
             ! Amount of aerosol lost to washout in grid box
             ! (qli, bmy, 10/29/02)
-            WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
+            WETLOSS = ( STT(I,J,L,N) * WASHFRAC ) - GAINED
 
             ! Remove washout losses in grid box (I,J,L) from STT.
             ! Add the aerosol that was reevaporated in (I,J,L).
