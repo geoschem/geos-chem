@@ -1,4 +1,3 @@
-! $Id: time_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -86,6 +85,7 @@
       PUBLIC  :: GET_I6_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
@@ -167,6 +167,7 @@
 !  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
 !                              for computing SUNCOS.
 !  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
+!  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2440,19 +2441,29 @@
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !  
+! !REMARKS:
+!  Modified for start times other than 0 GMT.  However someone should check
+!  to make sure it works properly for the GCAP simulation. (bmy, 9/27/10)
+!
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for GCAP: skip over Feb 29th (no leapyears). (bmy, 4/24/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Now works for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, MINS, OFFSET
 
 #if   defined( GCAP ) 
 
-      !-------------------------------
-      ! GCAP met fields: no leapyears
-      !-------------------------------
+      !=================================================================
+      ! GCAP MET FIELDS: There are no leapyears; adjust accordingly
+      !=================================================================
 
       ! If 18 GMT on Feb 28th, the next I-6 time is 0 GMT on Mar 1st
       IF ( MONTH == 2 .and. DAY == 28 .and. HOUR == 18 ) THEN
@@ -2462,12 +2473,42 @@
 
 #endif
 
-      !-------------------------------
-      ! GEOS met fields: w/ leapyears
-      !-------------------------------
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+ 
+      IF ( FIRST ) THEN
 
-      ! We need to read in the I-6 fields 6h (360 mins) ahead of time
-      DATE = GET_TIME_AHEAD( 360 )
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! I6 time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute minutes elapsed in the 6-hour interval
+         MINS   = MOD( HH, 6 )*60 + MM
+
+         ! Compute offset to next I-6 time
+         OFFSET = 360 - MINS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 360 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-6 fields 6h (360 mins) ahead of time
+         DATE = GET_TIME_AHEAD( 360 )
+
+      ENDIF
 
       END FUNCTION GET_I6_TIME
 !EOC
@@ -2499,21 +2540,50 @@
 !  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
 #if   defined( GEOS_3 )
+
+      !==================================================================
+      ! GEOS-3: A3 fields indexed by start time
+      !==================================================================
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
       DATE = (/ NYMD, NHMS /)
 
 #else
-  
+
+      !==================================================================
+      ! GEOS-4, GEOS-5, MERRA, GCAP: 
+      ! A3 fields are indexed at the midpoint of the 3-hr interval
+      !==================================================================
+
+      !--------------------------------------------------------------------
+      ! Prior to 9/27/10:
       ! For GEOS-4, GEOS-5, and GCAP: Call GET_A3_TIME to return 
       ! the date/time under which the A-3 fields are timestamped
-      DATE = GET_A3_TIME()
-    
+      !DATE = GET_A3_TIME()
+      !--------------------------------------------------------------------
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+      ! Compute minutes elapsed in the 3-hour interval
+      MINS   = MOD( HH, 3 )*60 + MM
+      
+      ! Compute offset to midpoint of 3hr interval
+      OFFSET = 180 - ( MINS + 90 )
+
+      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
+      DATE   = GET_TIME_AHEAD( OFFSET )
+
 #endif
 
       END FUNCTION GET_FIRST_A3_TIME
@@ -2546,24 +2616,105 @@
 !  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
 
 #if   defined( GCAP )
 
-      ! For GCAP data: Call GET_A6_TIME to return date/time
+      !==================================================================
+      ! GCAP MET FIELDS
+      !==================================================================
+
+      ! Call GET_A6_TIME to return date/time
       ! under which the A-6 fields are timestamped
       DATE = GET_A6_TIME()      
 
 #else
 
-      ! For GEOS data: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
+      !==================================================================
+      ! GEOS-3, GEOS-4, GEOS-5, MERRA MET FIELDS
+      !==================================================================
+
+      !---------------------------------------------------------
+      ! Prior to 9/27/10:
+      !! For GEOS data: Return the current date/time
+      !DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 6-hour interval
+      MINS   = MOD( HH, 6 )*60 + MM
+
+      ! Compute offset to midpoint of 6-hour interval
+      OFFSET = 360 - ( MINS + 180 )
+
+      IF ( MINS < 180 ) THEN
+         OFFSET = -MINS
+      ELSE
+         OFFSET = 360 - MINS
+      ENDIF
+
+      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
 
 #endif
 
       END FUNCTION GET_FIRST_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_i6_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I6\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-6 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_I6_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  27 Sep 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
+      !==================================================================
+      ! Compute first I-6 time for all met field types
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 6-hour interval
+      MINS   = MOD( HH, 6 )*60 + MM
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -MINS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+      END FUNCTION GET_FIRST_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2859,8 +3010,12 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
       ! We read in I-6 fields at 00, 06, 12, 18 GMT
-      FLAG = ( MOD( NHMS, 060000 ) == 0 )
+      FLAG = ( ( MOD( NHMS, 060000 ) == 0 ) .or. FIRST )
+      
+      FIRST = .FALSE.
 
       END FUNCTION ITS_TIME_FOR_I6
 !EOC
