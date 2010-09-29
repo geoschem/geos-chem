@@ -347,7 +347,7 @@
      &              SWGNT    = RADSWG,
      &              TROPPT   = TROPP,
      &              T2M      = TS,
-     &              TS       = TSKIN,
+     &              TS       = TSKIN, 
      &              U10M     = U10M,
      &              USTAR    = USTAR,
      &              V10M     = V10M,
