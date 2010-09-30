@@ -228,6 +228,7 @@
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
       INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
       INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
+      INTEGER            :: IDTPOPG, IDTPOPP
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
       INTEGER            :: IDTBENZ,  IDTTOLU,   IDTXYLE,  IDTMONX
@@ -343,6 +344,7 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
+!  (23) Added IDTPOPG, IDTPOPP for POPs simulation (eck, 9/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -350,6 +352,7 @@
       USE LOGICAL_MOD, ONLY : LSPLIT
       USE TRACER_MOD,  ONLY : ITS_A_C2H6_SIM,  ITS_A_FULLCHEM_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGCO_SIM, ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE TRACER_MOD,  ONLY : N_TRACERS,       TRACER_NAME
       ! Error check for array dimensions (hotp 8/1/09)
@@ -1044,6 +1047,19 @@
             CASE ( 'HGP_NT' )
                COUNT_HgP         = COUNT_HgP + 1
                ID_HgP(COUNT_HgP) = N
+
+            !--------------------------------
+            ! POPs
+            ! (eck, 9/20/10)
+            !--------------------------------
+            CASE ( 'POPG' )
+               COUNT     = COUNT + 1              
+               IDTPOPG         = 1
+               
+            CASE ( 'POPP' )
+               COUNT     = COUNT+1
+               IDTPOPP         = 2
+
 
             CASE DEFAULT
                ! Nothing

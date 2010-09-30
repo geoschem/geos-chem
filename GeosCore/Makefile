@@ -325,7 +325,8 @@ chemistry_mod.o             : chemistry_mod.f                                \
                               rpmares_mod.o           RnPbBe_mod.o           \
                               seasalt_mod.o           sulfate_mod.o          \
                               tagged_co_mod.o         tagged_ox_mod.o        \
-                              tracerid_mod.o          tracer_mod.o
+                              tracerid_mod.o          tracer_mod.o	     \
+			      pops_mod.o
 
 cleanup.o                   : cleanup.f                                      \
                               acetone_mod.o           aerosol_mod.o          \
@@ -440,6 +441,9 @@ diag51b_mod.o               : diag51b_mod.f                                  \
                               logical_mod.o           pbl_mix_mod.o          \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o  
+
+diag53_mod.o                : diag53_mod.f				     \
+			      tracerid_mod.o               
 
 diag56_mod.o                : diag56_mod.f
 
@@ -803,6 +807,12 @@ pjc_pfix_mod.o              : pjc_pfix_mod.f
 planeflight_mod.o           : planeflight_mod.f                              \
                               comode_mod.o            dao_mod.o              \
                               tracer_mod.o            tropopause_mod.o  
+
+pops_mod.o           	    : pops_mod.f    	                             \
+			      drydep_mod.o 	      vdiff_pre_mod.o	     \
+	        	      global_oh_mod.o         pbl_mix_mod.o	     \
+			      logical_mod.o	      diag53_mod.o	     \
+			      tracer_mod.o            tracerid_mod.o	 
 
 precipfrac.o                : precipfrac.f            dao_mod.o
 

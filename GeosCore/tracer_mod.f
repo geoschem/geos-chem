@@ -39,6 +39,7 @@
 !  (8 ) ITS_A_CH4_SIM          : Returns TRUE if it's a  CH4       simulation
 !  (9 ) ITS_AN_AEROSOL_SIM     : Returns TRUE if it's an aerosol   simulation
 !  (10) ITS_A_MERCURY_SIM      : Returns TRUE if it's a  mercury   simulation
+!  (10bis) ITS_A_POPS_SIM      : Returns TRUE if it's a POPs simulation
 !  (11) ITS_A_CO2_SIM          : Returns TRUE if it's a  CO2       simulation
 !  (12) ITS_A_H2HD_SIM         : Returns TRUE if it's a  CO2       simulation
 !  (13) ITS_NOT_COPARAM_OR_CH4 : Returns TRUE if it's not CO param or CH4 
@@ -58,6 +59,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
 !  (6 ) Added public routine ITS_A_H2HD_SIM (phs, 9/18/07)
+!  (7 ) Added public routine ITS_A_POPS_SIM (eck, 9/20/10)
 !******************************************************************************
 !
       !=================================================================
@@ -316,6 +318,29 @@
       END FUNCTION ITS_A_MERCURY_SIM
 
 !------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
+
+      FUNCTION ITS_A_POPS_SIM() RESULT( VALUE )
+!
+!******************************************************************************
+!  Function ITS_A_POPS_SIM returns TRUE if we are doing a GEOS-CHEM
+!  offline POPS simulation. (eck, 9/20/10)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! Local variables
+      LOGICAL :: VALUE
+      
+      !=================================================================
+      ! ITS_A_POPS_SIM begins here!
+      !=================================================================
+      VALUE = ( SIM_TYPE == 14 )
+
+      ! Return to calling program
+      END FUNCTION ITS_A_POPS_SIM
+
+!------------------------------------------------------------------------------
 
       FUNCTION ITS_A_CO2_SIM() RESULT( VALUE )
 !
@@ -431,6 +456,8 @@
             NAME = 'CO2'
          CASE( 13 )
             NAME = 'H2 and HD'
+         CASE( 14 )
+            NAME = 'POPs'
          CASE DEFAULT
             NAME = 'UNKNOWN'
        END SELECT

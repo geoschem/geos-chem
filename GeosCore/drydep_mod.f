@@ -164,6 +164,7 @@
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
+!  (32) Add POPs (eck, 9/20/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -184,6 +185,7 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP !CDH
+      PUBLIC :: DRYPOPG, DRYPOPP
       
       ! ... and these routines
       PUBLIC :: CLEANUP_DRYDEP     
@@ -237,6 +239,9 @@
 
       ! Additional variables for mercury sim (cdh, 9/1/09)
       INTEGER              :: DRYHg0, DRYHg2, DryHgP
+
+      ! Additional variables for POPs sim (eck, 9/20/10)
+      INTEGER              :: DRYPOPP, DRYPOPG
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -3329,6 +3334,7 @@ C** Load array DVEL
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE LOGICAL_MOD,  ONLY : LDRYD
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACER_MOD,   ONLY : N_TRACERS, SALA_REDGE_um, SALC_REDGE_um
       USE TRACERID_MOD, ONLY : IDTPB,     IDTBE7,        IDTNOX
       USE TRACERID_MOD, ONLY : IDTOX,     IDTPAN,        IDTHNO3 
@@ -3350,6 +3356,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
       USE TRACERID_MOD, ONLY : ID_Hg0 !eck added 19jul06
+      USE TRACERID_MOD, ONLY : IDTPOPG, IDTPOPP
       USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
@@ -3367,6 +3374,7 @@ C** Load array DVEL
 
       ! Local variables
       LOGICAL :: IS_Hg
+      LOGICAL :: IS_POPS
       INTEGER :: AS, N
 
       !=================================================================
@@ -3375,7 +3383,8 @@ C** Load array DVEL
 
       ! Is this a mercury simulation?
       IS_Hg      = ITS_A_MERCURY_SIM()
-
+      ! Is this a pops simulation?
+      IS_POPS     = ITS_A_POPS_SIM()
       ! Zero variables
       DRYDNO2    = 0
       DRYDPAN    = 0
@@ -4275,9 +4284,73 @@ C** Load array DVEL
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
-         ENDIF
+         
+         
+         !----------------------------------
+         ! POPS tracers
+         !----------------------------------
+
+          ELSE IF ( IS_POPS ) THEN
+             !dry dep of pops gas (like Hg(0) for now)
+             IF ( N == IDTPOPG) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPG
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPG'
+               HSTAR(NUMDEP)   = 0.11
+               ! F0 consistent with Lin et al (2006)
+               F0(NUMDEP)      = 1.0d-5
+               XMW(NUMDEP)     = 201d-3
+               AIROSOL(NUMDEP) = .FALSE. 
+            ENDIF
+             ! POPs PARTICLES (copy Hg(P) for now)
+            IF ( N == IDTPOPP ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPP
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPP'
+               HSTAR(NUMDEP)   = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               XMW(NUMDEP)     = 201d-3
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+          ENDIF
+
+         
       ENDDO
       
+      !=================================================================
+      ! Additional variables required for pops simultion (following hg)
+      ! Locate the drydep species w/in the DEPSAV array
+      !=================================================================
+      IF ( IS_POPS ) THEN
+
+         ! Initialize flags
+         ! add dry dep of Hg0
+         DRYPOPG = 0
+         DRYPOPP = 0
+         
+         ! If drydep is turned on ...
+         IF ( LDRYD ) THEN
+         
+            ! Loop over drydep species
+            DO N = 1, NUMDEP
+
+               ! Locate by DEPNAME
+               SELECT CASE ( TRIM( DEPNAME(N) ) )
+                  CASE( 'POPG' )
+                     DRYPOPG = N
+                  CASE( 'POPP' )
+                     DRYPOPP = N
+                  CASE DEFAULT
+                     ! nothing
+                END SELECT
+             ENDDO
+
+          ENDIF
+
+       ENDIF
+       
       !=================================================================
       ! Additional variables required for mercury simultion
       ! Locate the drydep species w/in the DEPSAV array
@@ -4312,7 +4385,9 @@ C** Load array DVEL
 
           ENDIF
 
-       ENDIF
+      ENDIF
+
+
 
       !=================================================================
       ! Allocate arrays

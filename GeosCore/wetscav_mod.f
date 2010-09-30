@@ -649,6 +649,8 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
+      !(eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPP
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 !CDH
 
@@ -1547,6 +1549,15 @@
          CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N )
 
+      !-------------------------------
+      ! POPP (treat like aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPP ) THEN
+
+         CALL F_AEROSOL( KC, F ) 
+         ISOL = GET_ISOL( N )
+
+
       ! Additional tracers for isoprene
       ! (fp, 06/09)
       !Use temperature of limonene
@@ -2134,7 +2145,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
-
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPP
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -2989,9 +3001,15 @@
       !------------------------------
       ELSE IF ( IS_HgP( N ) ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
-         ! CDH 9/28/2009
+        ! CDH 9/28/2009
 !         IF ( TK < 248d0 ) RAINFRAC = 0d0
+      !------------------------------
+      ! POPP (treat like aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPP ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
+ 
 
       !------------------------------
       ! ERROR: insoluble tracer!
@@ -3124,6 +3142,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      !POPs (eck, 9/21/10)
+      USE TRACERID_MOD, ONLY : IDTPOPP
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3482,6 +3502,14 @@
       ELSE IF ( IS_HgP( N ) ) THEN 
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      !------------------------------
+      ! POPP (treat like aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPP ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
 
       !------------------------------
       ! ERROR: Insoluble tracer
@@ -4984,6 +5012,8 @@
       USE TRACERID_MOD, ONLY : IDTMOBA,  IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
+      ! POPS (10/2010)
+      USE TRACERID_MOD, ONLY : IDTPOPP
 
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -5253,7 +5283,14 @@
          ELSE IF ( IS_HgP( N ) ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = N
-
+         !-----------------------------
+         ! POPs: PARTICULATE ONLY 
+         !-----------------------------
+            
+         ELSE IF (N == IDTPOPP) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPP
+        
          ENDIF
       ENDDO
 

@@ -219,6 +219,8 @@
       USE DIAG_MOD,    ONLY : AD68,        AD69
       USE DIAG_MOD,    ONLY : AD10,        AD10em
       USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
+      ! add pops (eck, 9/20/10)
+      USE DIAG53_MOD,  ONLY : ND53,        ZERO_DIAG53
       USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
       USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
       USE DIAG42_MOD,  ONLY : ND42,        ZERO_DIAG42
@@ -300,6 +302,12 @@
          ! For ND03 - mercury simulations (eck, sas, bmy, 1/20/05)
          IF ( ND03 > 0 ) THEN
             CALL ZERO_DIAG03
+         ENDIF
+
+         ! For ND53: POPS simulations (eck, 9/20/10)
+         
+         IF ( ND53 > 0 ) THEN
+            CALL ZERO_DIAG53
          ENDIF
 
          ! For ND04 - CO2 simulation (pns, bmy, 7/26/05)
