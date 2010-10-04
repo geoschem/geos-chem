@@ -1526,23 +1526,24 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! TINY = a very small number
       REAL*8, PARAMETER :: TINY = 1d-14 
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER :: K,       KTOP,    L,     N,    NDT    
-      INTEGER :: IC,      ISTEP,   NS,    NLAY, NC 
-      REAL*8  :: SDT,     CMOUT,   ENTRN, DQ,   DNS
-      REAL*8  :: T0,      T1,      T2,    T3,   T4
-      REAL*8  :: QC_PRES, QC_SCAV, TSUM,  DELQ, QB 
-      REAL*8  :: CLDBASE, T0_SUM,  MB,    QC
-      REAL*8  :: ALPHA,   ALPHA2
+      INTEGER           :: IC,      ISTEP,  K,       KTOP
+      INTEGER           :: N,       NC,     NDT,     NLAY
+      INTEGER           :: NS    
+      REAL*8            :: ALPHA,   ALPHA2, CLDBASE, CMFMC_BELOW
+      REAL*8            :: CMOUT,   DELQ,   DQ,      DNS
+      REAL*8            :: ENTRN,   MB,     QC,      QC_PRES
+      REAL*8            :: QC_SCAV, SDT,    T0,      T0_SUM
+      REAL*8            :: T1,      T2,     T3,      T4
+      REAL*8            :: TSUM
 
       ! Arrays
-      REAL*8  :: BMASS( DIMINFO%L_COLUMN ) 
-      REAL*8  :: PDOWN( DIMINFO%L_COLUMN ) 
+      REAL*8            :: BMASS( DIMINFO%L_COLUMN ) 
+      REAL*8            :: PDOWN( DIMINFO%L_COLUMN ) 
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
@@ -1600,9 +1601,9 @@
       ! Determine location of the cloud base, which is the level where
       ! we start to have non-zero convective precipitation formation
       CLDBASE = 1
-      DO L = 1, NLAY
-         IF ( DQRCU(L) > 0d0 ) THEN
-            CLDBASE = L
+      DO K = 1, NLAY
+         IF ( DQRCU(K) > 0d0 ) THEN
+            CLDBASE = K
             EXIT
          ENDIF
       ENDDO
@@ -1633,8 +1634,8 @@
       !
       !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
       !------------------------------------------------------------------------
-      DO L = 1, NLAY
-         PDOWN(L) = ( ( PFLCU(L)/1000d0 ) + ( PFICU(L)/917d0 ) ) * 100d0
+      DO K = 1, NLAY
+         PDOWN(K) = ( ( PFLCU(K)/1000d0 ) + ( PFICU(K)/917d0 ) ) * 100d0
       ENDDO
 
       !========================================================================
@@ -1642,24 +1643,31 @@
       !========================================================================
       DO IC = 1, NC
 
-         T0_SUM = 0
-
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
          !=====================================================================
          DO ISTEP = 1, NS
 
-            ! Initialize QC
-            QC = 0
+            ! Zero variables
+            QC     = 0d0
+            T0_SUM = 0d0
 
             !==================================================================
             ! (3)  A b o v e   C l o u d   B a s e
             !==================================================================
             DO K = 1, KTOP
 
+               ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
+               ! grid box (K) from the box immediately below (K-1).
+               IF ( K == 1 ) THEN
+                  CMFMC_BELOW = 0d0
+               ELSE
+                  CMFMC_BELOW = CMFMC(K-1)
+               ENDIF
+
                ! If we have a nonzero air mass flux coming from 
                ! grid box (K-1) into (K) ...
-!               IF ( CMFMC(K-1) > TINY ) THEN
+               IF ( CMFMC_BELOW > TINY .or. K == 1 ) THEN
 
                   !------------------------------------------------------------
                   ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
@@ -1683,41 +1691,41 @@
                   ! enough to ensure that CMOUT > 0 and will prevent floating-
                   ! point exception.
                   !------------------------------------------------------------
-!
-!                  ! Air mass flowing out of cloud at grid box (K)
-!                  CMOUT   = CMFMC(K) + DTRAIN(K)
-!
-!                  ! Air mass flowing into cloud at grid box (K)
-!                  ENTRN   = CMOUT - CMFMC(K-1)
-!
-!                  ! Amount of QC preserved against scavenging
-!                  QC_PRES = QC * ( 1d0 - F(K,IC) )
-!
-!                  ! Amount of QC lost to scavenging
-!                  QC_SCAV = QC * F(K,IC)
-!
-!                  ! The fraction ALPHA is the fraction of raindrops that
-!                  ! will re-evaporate soluble tracer while falling from
-!                  ! grid box K+1 down to grid box K.
-!                  ALPHA   = ( REEVAPCN(K) * AD(K) / AREA_M2 )
-!     &                    / ( PDOWN(K+1)                    )
-!
-!                  ! We assume that 1/2 of the soluble tracer w/in the
-!                  ! raindrops actually gets resuspended into the atmosphere
-!                  ALPHA2  = ALPHA * 0.5d0
-!                  
-!                  ! The resuspension takes 1/2 the amount of the scavenged
-!                  ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
-!                  QC_PRES = QC_PRES + ( ALPHA2 * QC_SCAV )
-!
-!                  ! ... then we decrement QC_SCAV accordingly
-!                  QC_SCAV = QC_SCAV * ( 1d0    - ALPHA2     )
-!
-!                  ! Update QC taking entrainment into account
-!                  IF ( ENTRN >= 0d0 ) THEN
-!                     QC   = ( CMFMC(K-1) * QC_PRES   + 
-!     &                        ENTRN      * Q(K,IC) ) / CMOUT
-!                  ENDIF
+
+                  ! Air mass flowing out of cloud at grid box (K)
+                  CMOUT   = CMFMC(K) + DTRAIN(K)
+
+                  ! Air mass flowing into cloud at grid box (K)
+                  ENTRN   = CMOUT - CMFMC_BELOW
+
+                  ! Amount of QC preserved against scavenging
+                  QC_PRES = QC * ( 1d0 - F(K,IC) )
+
+                  ! Amount of QC lost to scavenging
+                  QC_SCAV = QC * F(K,IC)
+
+                  ! The fraction ALPHA is the fraction of raindrops that
+                  ! will re-evaporate soluble tracer while falling from
+                  ! grid box K+1 down to grid box K.
+                  ALPHA   = ( REEVAPCN(K) * AD(K) / AREA_M2 )
+     &                    / ( PDOWN(K+1)                    )
+
+                  ! We assume that 1/2 of the soluble tracer w/in the
+                  ! raindrops actually gets resuspended into the atmosphere
+                  ALPHA2  = ALPHA * 0.5d0
+                  
+                  ! The resuspension takes 1/2 the amount of the scavenged
+                  ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+                  QC_PRES = QC_PRES + ( ALPHA2 * QC_SCAV )
+
+                  ! ... then we decrement QC_SCAV accordingly
+                  QC_SCAV = QC_SCAV * ( 1d0    - ALPHA2     )
+
+                  ! Update QC taking entrainment into account
+                  IF ( ENTRN >= 0d0 ) THEN
+                     QC   = ( CMFMC_BELOW * QC_PRES   + 
+     &                        ENTRN      * Q(K,IC) ) / CMOUT
+                  ENDIF
 
                   !------------------------------------------------------------
                   ! (4.2)  M a s s   B a l a n c e   i n   L e v e l  ==> Q
@@ -1785,25 +1793,25 @@
                   ! The term T0 is the amount of tracer that is scavenged 
                   ! out of the box.
                   !------------------------------------------------------------
-!                  T0      =  CMFMC(K-1) * QC_SCAV   
-!                  T1      =  CMFMC(K-1) * QC_PRES
-!                  T2      = -CMFMC(K  ) * QC
-!                  T3      =  CMFMC(K  ) * Q(K+1,IC)
-!                  T4      = -CMFMC(K-1) * Q(K,  IC)
-!
-!                  TSUM    = T1 + T2 + T3 + T4 
-!
-!                  DELQ    = ( SDT / BMASS(K) ) * TSUM
-!
-!                  ! If DELQ > Q then do not make Q negative!!!
-!                  IF ( Q(K,IC) + DELQ < 0 ) THEN
-!                     DELQ = -Q(K,IC)
-!                  ENDIF
-!
-!                  Q(K,IC) = Q(K,IC) + DELQ
-!
-!                  ! As
-!                  T0_SUM  = T0_SUM + T0
+                  T0      =  CMFMC_BELOW * QC_SCAV   
+                  T1      =  CMFMC_BELOW * QC_PRES
+                  T2      = -CMFMC(K  )  * QC
+                  T3      =  CMFMC(K  )  * Q(K+1,IC)
+                  T4      = -CMFMC_BELOW * Q(K,  IC)
+
+                  TSUM    = T1 + T2 + T3 + T4 
+
+                  DELQ    = ( SDT / BMASS(K) ) * TSUM
+
+                  ! If DELQ > Q then do not make Q negative!!!
+                  IF ( Q(K,IC) + DELQ < 0 ) THEN
+                     DELQ = -Q(K,IC)
+                  ENDIF
+
+                  Q(K,IC) = Q(K,IC) + DELQ
+
+                  ! Archive T0 for use in the next section
+                  T0_SUM  = T0_SUM + T0
 ! 
 !               ELSE                     
 !
@@ -1846,20 +1854,20 @@
 !                     Q(K,IC) = Q(K,IC) + DELQ
 !
 !                  ENDIF
-!               ENDIF
+               ENDIF
             ENDDO     !K
 
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
             !==================================================================
-!            DO K = CLDBASE-1, 1, -1
-!
-!               IF ( REEVAPCN(K) > 0 .and. T0_SUM > 0 ) THEN
-!                  
-!                  ! ... do reevaporation ...
-!
-!               ENDIF
-!            ENDDO
+            DO K = CLDBASE-1, 1, -1
+
+               IF ( REEVAPCN(K) > 0 .and. T0_SUM > 0 ) THEN
+                  
+                  ! ... do reevaporation ...
+
+               ENDIF
+            ENDDO
 
          ENDDO        !NSTEP
       ENDDO           !IC
