@@ -22,6 +22,7 @@
       PRIVATE
 
 #     include "smv_errcode.h"
+#     include "smv_physconst.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -86,16 +87,21 @@
       USE DAO_MOD,      ONLY : PFICU
       USE DAO_MOD,      ONLY : PFLCU
       USE DAO_MOD,      ONLY : REEVAPCN
+      USE DIAG_MOD,     ONLY : CONVFLUP
+      USE DIAG_MOD,     ONLY : AD38
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE MERCURY_MOD,  ONLY : PARTITIONHG
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : TCVV
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACER_MOD,   ONLY : STT
       USE TIME_MOD,     ONLY : GET_TS_DYN
       USE WETSCAV_MOD,  ONLY : COMPUTE_F
 
 #     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! Diagnostic flags
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -152,18 +158,24 @@
       !=================================================================
       
       ! Objects
-      TYPE(GC_IDENT) :: IDENT
-      TYPE(GC_DIMS ) :: DIMINFO
-
-      ! Scalars
-      INTEGER        :: I,       J,  L,     N 
-      INTEGER        :: ISOL,    RC, TS_DYN
-      REAL*8         :: AREA_M2, DT
-
-      ! Arrays
-      REAL*8         :: FSOL(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8         :: PEDGE(LLPAR+1)
+      TYPE(GC_IDENT)     :: IDENT
+      TYPE(GC_DIMS )     :: DIMINFO
+      TYPE(SPEC_2_TRAC)  :: COEF
+                         
+      ! Scalars          
+      INTEGER            :: I, J, L, N, NN, RC, TS_DYN
+      REAL*8             :: AREA_M2, DT
+                         
+      ! Arrays           
+      REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
+      REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
+      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      INTEGER            :: ISOL  (                        N_TRACERS )
+      REAL*8             :: PEDGE (               LLPAR+1            )
       
+      ! Parameters
+      LOGICAL, PARAMETER :: FIRST = .TRUE.
+
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
@@ -176,9 +188,20 @@
       DIMINFO%L_COLUMN  = LLPAR
       DIMINFO%N_TRACERS = N_TRACERS
 
-      ! Fraction of soluble tracer
+      ! Allocate the pointer array
+      ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
+      IF ( RC /= SMV_SUCCESS ) RETURN
+      COEF%MOLWT_KG = 0d0
+
+      ! Loop over advected tracers
       DO N = 1, N_TRACERS
-         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL ) 
+
+         ! Molecular weight [kg]
+         COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
+
+         ! Fraction of soluble tracer
+         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
+
       ENDDO
 
       !-----------------------------------------------------------------
@@ -192,39 +215,80 @@
       DO I = 1, IIPAR
 
          ! Initialize the IDENT object for error I/O
-         IDENT%STDOUT_FILE = ''                    ! Write to
-         IDENT%STDOUT_LUN  = 6                     !  stdout
-         IDENT%PET         = 0                     ! CPU #
-         IDENT%I_AM(1)     = 'MAIN'                ! Main routine
-         IDENT%I_AM(2)     = 'DO_CONVECTION'       ! This routine
-         IDENT%LEV         = 2                     ! This level
-         IDENT%ERRMSG      = ''                    ! Error msg
-         IDENT%VERBOSE     = .FALSE.
+         IDENT%STDOUT_FILE = ''                     ! Write to
+         IDENT%STDOUT_LUN  = 6                      !  stdout
+         IDENT%PET         = 0                      ! CPU #
+         IDENT%I_AM(1)     = 'MAIN'                 ! Main routine
+         IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
+         IDENT%LEV         = 2                      ! This level
+         IDENT%ERRMSG      = ''                     ! Error msg
+         IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
             PEDGE(L)       = GET_PEDGE( I, J, L )
          ENDDO
 
+         !--------------------------
          ! Do the cloud convection
+         !--------------------------
          CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
      &                             DIMINFO  = DIMINFO,
-     &                             AD       = AD      (I,J,:  ),
+     &                             COEF     = COEF,
      &                             AREA_M2  = AREA_M2,
-     &                             CMFMC    = CMFMC   (I,J,2: ),
-     &                             DQRCU    = DQRCU   (I,J,:  ),
-     &                             DTRAIN   = DTRAIN  (I,J,:  ), 
-     &                             F        = FSOL    (I,J,:,:),      
-     &                             PEDGE    = PEDGE   (    :  ),
-     &                             PFICU    = PFICU   (I,J,:  ),
-     &                             PFLCU    = PFLCU   (I,J,:  ),
-     &                             REEVAPCN = REEVAPCN(I,J,:  ),
+     &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
-     &                             Q        = STT     (I,J,:,:), 
+     &                             AD       = AD      (I,J, :        ),
+     &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
+     &                             DQRCU    = DQRCU   (I,J, :        ),
+     &                             DTRAIN   = DTRAIN  (I,J, :        ), 
+     &                             PFICU    = PFICU   (I,J, :        ),
+     &                             PFLCU    = PFLCU   (I,J, :        ),
+     &                             REEVAPCN = REEVAPCN(I,J, :        ),
+     &                             F        = FSOL    (I,J, :,      :), 
+     &                             Q        = STT     (I,J, :,      :), 
+     &                             DIAG14   = DIAG14,
+     &                             DIAG38   = DIAG38,
      &                             RC       = RC )
 
+         ! Stop if error is encountered
+         IF ( RC /= SMV_SUCCESS ) THEN
+            CALL GEOS_CHEM_STOP
+         ENDIF
+
+         !--------------------------
+         ! ND14 diagnostic [kg/s]
+         !--------------------------
+         IF ( ND14 > 0 ) THEN
+            DO N = 1, N_TRACERS
+            DO L = 1, LD14
+               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
+            ENDDO
+            ENDDO
+         ENDIF
+
+         !--------------------------
+         ! ND38 diagnostic [kg/s]
+         !--------------------------
+         IF ( ND38 > 0 ) THEN
+            DO N = 1, N_TRACERS
+
+               ! Wetdep species for each tracer N
+               NN = ISOL(N)
+
+               ! Only archive wet-deposited species
+               IF ( NN > 0 ) THEN
+                  DO L = 1, LD38
+                     AD38(I,J,L,NN) = AD38(I,J,L,NN) + DIAG38(L,N)
+                  ENDDO
+               ENDIF
+            ENDDO
+         ENDIF
       ENDDO
       ENDDO
+
+      ! Free the memory
+      DEALLOCATE( COEF%MOLWT_KG )
 
 #endif
 
@@ -1374,14 +1438,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( IDENT,  DIMINFO, AD,     AREA_M2, 
-     &                                CMFMC,  DQRCU,   DTRAIN, F,       
-     &                                PEDGE,  PFICU,   PFLCU,  REEVAPCN, 
-     &                                TS_DYN, Q,       RC )
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,  DIMINFO,  COEF, 
+     &                                AD,     AREA_M2,  CMFMC,   
+     &                                DIAG14, DIAG38,   DQRCU,
+     &                                DTRAIN, F,        PEDGE,    
+     &                                PFICU,  PFLCU,    REEVAPCN, 
+     &                                TS_DYN, Q,        RC )
+!
+! !USES:
+!
+      USE ERROR_MOD, ONLY : IT_IS_NAN
 !
 ! !INPUT PARAMETERS:
 !
       
+      TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
       TYPE(GC_DIMS),  INTENT(IN)    :: DIMINFO     ! Obj w/ array dimensions
       REAL*8,         INTENT(IN)    :: AD(:)       ! Air mass [kg]    
       REAL*8,         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
@@ -1409,7 +1480,9 @@
       REAL*8,         INTENT(INOUT) :: Q(:,:)      ! Tracer conc. [mol/mol]  
 !                                                  
 ! !OUTPUT PARAMETERS:                              
-!                                                  
+!                     
+      REAL*8,         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL*8,         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
       INTEGER,        INTENT(OUT)   :: RC          ! Return code
 !
 ! !REMARKS:
@@ -1498,7 +1571,7 @@
 !                     11 November 1999
 !                     Added mass-flux diagnostics
 !                                                                             .
-!                     04 January 2000
+!                      04 January 2000
 !                     Updated scavenging constant AS2
 !                                                                             .
 !                     14 March 2000
@@ -1507,6 +1580,12 @@
 !                                                                             .
 !                     02 May 2000
 !                     Added parallel loop over tracers
+!                                                                             .
+!  Unit conversion for BMASS:
+!
+!      Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
+!     -------------+---------+--------+-------+----+--------  =  -----
+!                  | Ps - Pt |   mb   | 9.8 m | Pa | m^2 s^2      m^2
 !
 ! !REVISION HISTORY:
 !  15 Jul 2009 - R. Yantosca - Columnized and cleaned up.
@@ -1539,7 +1618,7 @@
       REAL*8            :: ENTRN,   MB,     QC,      QC_PRES
       REAL*8            :: QC_SCAV, SDT,    T0,      T0_SUM
       REAL*8            :: T1,      T2,     T3,      T4
-      REAL*8            :: TSUM
+      REAL*8            :: TCVV,    TSUM
 
       ! Arrays
       REAL*8            :: BMASS( DIMINFO%L_COLUMN ) 
@@ -1608,34 +1687,17 @@
          ENDIF
       ENDDO
 
-      !------------------------------------------------------------------------
-      ! BMASS has units of kg/m^2 and is equivalent to AD(L) / AREA_M2
-      !
-      !   Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
-      !  -------------+---------+--------+-------+----+--------  =  -----
-      !               | Ps - Pt |   mb   | 9.8 m | Pa | m^2 s^2      m^2
-      !
-      ! This is done to keep BMASS in the same units as CMFMC * SDT
-      !------------------------------------------------------------------------
+      ! Loop over levels
       DO K = 1, NLAY
-         BMASS(K) = AD(K) / AREA_M2
-      ENDDO
 
-      !------------------------------------------------------------------------
-      ! PDOWN is the convective precipitation leaving each box:
-      !
-      !      kg H2O |   m^3 H2O   | 1e6 cm^3 |  m^2       
-      !   ----------+-------------+----------+--------- +
-      !     m^2 * s | 1000 kg H2O |   m^3    | 1e4 cm2 
-      !
-      !      kg ice |   m^3 ice   | 1e6 cm^3 |  m^2
-      !   ----------+-------------+----------+---------
-      !     m^2 * s |  917 kg ice |   m^3    | 1e4 cm2 
-      !
-      !  = [ (PFILSAN/1000) * 100 ] + [ (PFILSAN/1000) * 100]
-      !------------------------------------------------------------------------
-      DO K = 1, NLAY
-         PDOWN(K) = ( ( PFLCU(K)/1000d0 ) + ( PFICU(K)/917d0 ) ) * 100d0
+         ! PDOWN is the convective precipitation leaving each box [kg/m2/s]
+         ! This accounts for the contribution from both liquid & ice precip
+         PDOWN(K) = PFLCU(K) + PFICU(K)
+
+         ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
+         ! This is done to keep BMASS in the same units as CMFMC * SDT
+         BMASS(K) = AD(K)    / AREA_M2
+
       ENDDO
 
       !========================================================================
@@ -1643,12 +1705,17 @@
       !========================================================================
       DO IC = 1, NC
 
+         ! Initialize
+         DIAG14(:,IC) = 0d0                          ! ND14 diagnostics
+         DIAG38(:,IC) = 0d0                          ! ND38 diagnostics
+         TCVV         = MW_AIR / COEF%MOLWT_KG(IC)   ! Air MW / tracer MW
+
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
          !=====================================================================
          DO ISTEP = 1, NS
 
-            ! Zero variables
+            ! Initialize
             QC     = 0d0
             T0_SUM = 0d0
 
@@ -1656,7 +1723,15 @@
             ! (3)  A b o v e   C l o u d   B a s e
             !==================================================================
             DO K = 1, KTOP
-
+               
+               ! Initialize
+               ALPHA   = 0d0
+               ALPHA2  = 0d0
+               CMOUT   = 0d0
+               ENTRN   = 0d0
+               QC_PRES = 0d0
+               QC_SCAV = 0d0
+              
                ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
                ! grid box (K) from the box immediately below (K-1).
                IF ( K == 1 ) THEN
@@ -1702,29 +1777,41 @@
                   QC_PRES = QC * ( 1d0 - F(K,IC) )
 
                   ! Amount of QC lost to scavenging
+                  ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
-                  ! The fraction ALPHA is the fraction of raindrops that
-                  ! will re-evaporate soluble tracer while falling from
-                  ! grid box K+1 down to grid box K.
-                  ALPHA   = ( REEVAPCN(K) * AD(K) / AREA_M2 )
-     &                    / ( PDOWN(K+1)                    )
+                  ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
+                  IF ( QC_SCAV > 0d0 ) THEN 
 
-                  ! We assume that 1/2 of the soluble tracer w/in the
-                  ! raindrops actually gets resuspended into the atmosphere
-                  ALPHA2  = ALPHA * 0.5d0
+                     ! The fraction ALPHA is the fraction of raindrops that 
+                     ! will re-evaporate soluble tracer while falling from 
+                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
+                     IF ( PDOWN(K+1) > 0d0 ) THEN 
+                        ALPHA = ( REEVAPCN(K) * AD(K) / AREA_M2 )
+     &                        / ( PDOWN(K+1)                    )
+                     ELSE
+                        ALPHA = 0d0
+                     ENDIF
+                     
+                     ! We assume that 1/2 of the soluble tracer w/in the
+                     ! raindrops actually gets resuspended into the atmosphere
+                     ALPHA2   = ALPHA * 0.5d0
                   
-                  ! The resuspension takes 1/2 the amount of the scavenged
-                  ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
-                  QC_PRES = QC_PRES + ( ALPHA2 * QC_SCAV )
+                     ! The resuspension takes 1/2 the amount of the scavenged
+                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+                     QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
 
-                  ! ... then we decrement QC_SCAV accordingly
-                  QC_SCAV = QC_SCAV * ( 1d0    - ALPHA2     )
+                     ! ... then we decrement QC_SCAV accordingly
+                     QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
+
+                  ENDIF
+                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
                   ! Update QC taking entrainment into account
-                  IF ( ENTRN >= 0d0 ) THEN
+                  ! Prevent div by zero condition
+                  IF ( ENTRN >= 0d0 .and. CMOUT > 0d0 ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
-     &                        ENTRN      * Q(K,IC) ) / CMOUT
+     &                        ENTRN       * Q(K,IC) ) / CMOUT
                   ENDIF
 
                   !------------------------------------------------------------
@@ -1808,54 +1895,47 @@
                      DELQ = -Q(K,IC)
                   ENDIF
 
+                  ! Increment the tracer array [v/v]
                   Q(K,IC) = Q(K,IC) + DELQ
+
+                  ! Return if we encounter NaN
+                  IF ( IT_IS_NAN( Q(K,IC) ) ) THEN 
+                     WRITE( 6, 250 )
+                     WRITE( 6, 255 ) K, IC, Q(K,IC) 
+ 250                 FORMAT( 'NaN encountered in DO_MERRA_CONVECTION!' )
+ 255                 FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
+                     RC = SMV_FAILURE
+                     RETURN
+                  ENDIF
 
                   ! Archive T0 for use in the next section
                   T0_SUM  = T0_SUM + T0
-! 
-!               ELSE                     
-!
-!                  !-----------------------------------------------------------
-!                  ! (4.3)  No cloud transport if cloud mass flux < TINY; 
-!                  !        Change Qc to q
-!                  !-----------------------------------------------------------
-!                  QC = Q(K,IC)
-!
-!                  !-----------------------------------------------------------
-!                  ! (4.4) FIX FOR GEOS-5 MET FIELDS!
-!                  !
-!                  ! Bug fix for the cloud base layer, which is not necessarily 
-!                  ! in the boundary layer, and for GEOS-5, there could be 
-!                  ! "secondary convection plumes - one in the PBL and another 
-!                  ! one not.
-!                  !
-!                  ! NOTE: T2 and T3 are the same terms as described in 
-!                  ! the above section (4.2).
-!                  !
-!                  ! (swu, 08/13/2007)
-!                  !-----------------------------------------------------------
-!                  IF ( CMFMC(K) > TINY ) THEN 
-!
-!                     ! Tracer convected from K -> K+1 
-!                     T2   = -CMFMC(K) * QC
-!
-!                     ! Tracer subsiding from K+1 -> K 
-!                     T3   =  CMFMC(K) * Q (K+1,IC)
-!
-!                     ! Change in tracer concentration
-!                     DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
-!
-!                     ! If DELQ > Q then do not make Q negative!!!
-!                     IF ( Q(K,IC) + DELQ < 0.0d0 ) THEN 
-!                        DELQ = -Q(K,IC)
-!                     ENDIF
-!  
-!                     ! Add change in tracer to Q array
-!                     Q(K,IC) = Q(K,IC) + DELQ
-!
-!                  ENDIF
+ 
+                  !------------------------------------------------------------
+                  ! (4.3)  N D 1 4   D i a g n o s t i c
+                  !
+                  ! Archive upward mass flux due to wet convection.  
+                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
+                  ! for the tracer IC going out of the top of the layer K 
+                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !------------------------------------------------------------
+                  DIAG14(K,IC) = DIAG14(K,IC) 
+     &                         + ( ( -T2-T3 ) * AREA_M2 / TCVV ) / DNS
+
+                  !------------------------------------------------------------
+                  ! (4.4)  N D 3 8   D i a g n o s t i c
+                  !
+                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
+                  ! internal timesteps.
+                  !------------------------------------------------------------
+                  IF ( F(K,IC) > 0d0 ) THEN
+                     DIAG38(K,IC) = DIAG38(K,IC)
+     &                            + ( ( T0*AREA_M2 ) / ( TCVV*DNS ) )
+                  ENDIF
+
                ENDIF
-            ENDDO     !K
+            ENDDO 
 
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
@@ -1869,8 +1949,8 @@
                ENDIF
             ENDDO
 
-         ENDDO        !NSTEP
-      ENDDO           !IC
+         ENDDO
+      ENDDO  
 
       !================================================================
       ! Succesful return!

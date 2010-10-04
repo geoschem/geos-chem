@@ -79,20 +79,24 @@
 !         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
 !         INTEGER          :: DST3,    DST4,    SALA,    SALC
 !      END TYPE ID_TRAC
-!
-!      !-----------------------------------------------------------------
-!      ! Coefficients & arrays that link species & tracers
-!      !-----------------------------------------------------------------
-!      TYPE :: SPEC_2_TRAC
-!         REAL*8,  POINTER :: SPEC_COEF(:,:)
-!         INTEGER, POINTER :: SPEC_ID(:,:)
-!         INTEGER, POINTER :: SPEC_EMITTED(:)
-!         INTEGER, POINTER :: SPEC_PER_TRAC(:)
-!         REAL*8,  POINTER :: TRAC_COEF(:)
-!         REAL*8,  POINTER :: MOLWT_KG(:)
-!         REAL*8,  POINTER :: XNUMOL(:)
-!      END TYPE SPEC_2_TRAC
-!
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      !-----------------------------------------------------------------
+      ! Coefficients & arrays that link species & tracers
+      !-----------------------------------------------------------------
+      TYPE :: SPEC_2_TRAC
+         REAL*8,  POINTER :: SPEC_COEF(:,:)
+         INTEGER, POINTER :: SPEC_ID(:,:)
+         INTEGER, POINTER :: SPEC_EMITTED(:)
+         INTEGER, POINTER :: SPEC_PER_TRAC(:)
+         REAL*8,  POINTER :: TRAC_COEF(:)
+         REAL*8,  POINTER :: MOLWT_KG(:)
+         REAL*8,  POINTER :: XNUMOL(:)
+      END TYPE SPEC_2_TRAC
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Leave these types commented out for now ... activate them later
+!%%% (bmy, 9/29/10)
 !      !-----------------------------------------------------------------
 !      ! ID flags for advected tracers that dry deposit
 !      !-----------------------------------------------------------------
