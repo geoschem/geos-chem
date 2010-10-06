@@ -57,6 +57,8 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
 !  29 Sep 2010 - R. Yantosca - Added modifications for MERRA
+!  05 Oct 2010 - R. Yantosca - Added ND14 and ND38 diagnostics to 
+!                              DO_MERRA_CONVECTION routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,7 +113,9 @@
 !                              to NFCLDMX. 
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
-!  29 Sep 2010 - R. Yantosca - Now call NFCLDMX_MERRA for MERRA met fields
+!  29 Sep 2010 - R. Yantosca - Now call DO_MERRA_CONVECTION for MERRA met
+!  05 Oct 2010 - R. Yantosca - Now attach diagnostics to MERRA conv routine
+!  06 Oct 2010 - R. Yantosca - Parallelized call to DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -169,10 +173,11 @@
       ! Arrays           
       REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
       REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
-      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      REAL*8,  TARGET    :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
       INTEGER            :: ISOL  (                        N_TRACERS )
       REAL*8             :: PEDGE (               LLPAR+1            )
-      
+      REAL*8             :: F     (               LLPAR,   N_TRACERS )
+
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
 
@@ -182,7 +187,7 @@
 
       ! Dynamic timestep [s]
       TS_DYN            = GET_TS_DYN()
-      DT                = TS_DYN * 60d0
+      DT                = DBLE( TS_DYN )
 
       ! Define DIMINFO
       DIMINFO%L_COLUMN  = LLPAR
@@ -203,10 +208,14 @@
          CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
 
       ENDDO
-
+      
       !-----------------------------------------------------------------
       ! Do convection column by column
       !-----------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, AREA_M2, I,      IDENT,  L,  PEDGE )
+!$OMP+PRIVATE( N, F,       DIAG14, DIAG38, RC, NN    ) 
       DO J = 1, JJPAR
 
          ! Grid box surface area [m2]
@@ -229,6 +238,15 @@
             PEDGE(L)       = GET_PEDGE( I, J, L )
          ENDDO
 
+         ! For some reason, the parallelization chokes if we pass an array 
+         ! slice of FSOL to DO_MERRA_CONVECTION.  It works if we manually 
+         ! copy the data into a local array and then pass that to the routine.
+         DO N = 1, N_TRACERS
+         DO L = 1, LLPAR
+            F(L,N)         = FSOL(I,J,L,N)
+         ENDDO
+         ENDDO
+
          !--------------------------
          ! Do the cloud convection
          !--------------------------
@@ -238,6 +256,7 @@
      &                             AREA_M2  = AREA_M2,
      &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
+     &                             F        = F,
      &                             AD       = AD      (I,J, :        ),
      &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
      &                             DQRCU    = DQRCU   (I,J, :        ),
@@ -245,11 +264,10 @@
      &                             PFICU    = PFICU   (I,J, :        ),
      &                             PFLCU    = PFLCU   (I,J, :        ),
      &                             REEVAPCN = REEVAPCN(I,J, :        ),
-     &                             F        = FSOL    (I,J, :,      :), 
      &                             Q        = STT     (I,J, :,      :), 
      &                             DIAG14   = DIAG14,
      &                             DIAG38   = DIAG38,
-     &                             RC       = RC )
+     &                             RC       = RC,  i=i, j=j )
 
          ! Stop if error is encountered
          IF ( RC /= SMV_SUCCESS ) THEN
@@ -286,6 +304,7 @@
          ENDIF
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Free the memory
       DEALLOCATE( COEF%MOLWT_KG )
@@ -1438,12 +1457,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( IDENT,  DIMINFO,  COEF, 
-     &                                AD,     AREA_M2,  CMFMC,   
-     &                                DIAG14, DIAG38,   DQRCU,
-     &                                DTRAIN, F,        PEDGE,    
-     &                                PFICU,  PFLCU,    REEVAPCN, 
-     &                                TS_DYN, Q,        RC )
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,  DIMINFO, COEF, 
+     &                                AD,     AREA_M2, CMFMC,   
+     &                                DIAG14, DIAG38,  DQRCU,
+     &                                DTRAIN, F,       PEDGE,    
+     &                                PFICU,  PFLCU,   REEVAPCN, 
+     &                                TS_DYN, Q,       RC, i,j )
 !
 ! !USES:
 !
@@ -1473,6 +1492,7 @@
       REAL*8,         INTENT(IN)    :: REEVAPCN(:) ! Evap of precip'ing conv.
                                                    !  condensate [kg/kg/s]
       REAL*8,         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
+      integer,        intent(in)    :: i,j
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !                                                  
@@ -1599,38 +1619,39 @@
 !  14 Dec 2009 - R. Yantosca - Remove COEF from the argument list
 !  06 May 2010 - R. Yantosca - Now add IDENT via the argument list
 !  29 Sep 2010 - R. Yantosca - Modified for MERRA met fields
+!  05 Oct 2010 - R. Yantosca - Now pass COEF via the argument list
+!  05 Oct 2010 - R. Yantosca - Attach ND14 and ND38 diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL*8, PARAMETER :: TINY = 1d-14 
+      REAL*8, PARAMETER :: TINYNUM = 1d-14 
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: IC,      ISTEP,  K,       KTOP
-      INTEGER           :: N,       NC,     NDT,     NLAY
-      INTEGER           :: NS    
-      REAL*8            :: ALPHA,   ALPHA2, CLDBASE, CMFMC_BELOW
-      REAL*8            :: CMOUT,   DELQ,   DQ,      DNS
-      REAL*8            :: ENTRN,   MB,     QC,      QC_PRES
-      REAL*8            :: QC_SCAV, SDT,    T0,      T0_SUM
-      REAL*8            :: T1,      T2,     T3,      T4
-      REAL*8            :: TCVV,    TSUM
+      INTEGER           :: IC,       ISTEP,  K,       KTOP
+      INTEGER           :: NC,       NDT,    NLAY,    NS    
+      REAL*8            :: ALPHA,    ALPHA2, CLDBASE, CMFMC_BELOW
+      REAL*8            :: CMOUT,    DELQ,   DQ,      DNS
+      REAL*8            :: ENTRN,    QC,     QC_PRES, QC_SCAV 
+      REAL*8            :: SDT,      T0,     T0_SUM,  T1,      
+      REAL*8            :: T2,       T3,     T4,      TCVV   
+      REAL*8            :: TCVV_DNS, TSUM
 
       ! Arrays
-      REAL*8            :: BMASS( DIMINFO%L_COLUMN ) 
-      REAL*8            :: PDOWN( DIMINFO%L_COLUMN ) 
+      REAL*8            :: BMASS( DIMINFO%L_COLUMN )  
+      REAL*8            :: PDOWN( DIMINFO%L_COLUMN )
 
       !========================================================================
       ! (0)  I n i t i a l i z a t i o n
       !========================================================================
-
+      
       ! Put this routine name on error trace stack
       IDENT%LEV               = IDENT%LEV + 1
-      IDENT%I_AM( IDENT%LEV ) = 'DO_GEOS5_CONVECTION'
+      IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'
 
       ! # of levels and # of tracers
       NLAY = DIMINFO%L_COLUMN
@@ -1706,9 +1727,10 @@
       DO IC = 1, NC
 
          ! Initialize
-         DIAG14(:,IC) = 0d0                          ! ND14 diagnostics
-         DIAG38(:,IC) = 0d0                          ! ND38 diagnostics
-         TCVV         = MW_AIR / COEF%MOLWT_KG(IC)   ! Air MW / tracer MW
+         DIAG14(:,IC) = 0d0                          
+         DIAG38(:,IC) = 0d0  
+         TCVV         = MW_AIR / COEF%MOLWT_KG(IC)     ! Air MW/tracer MW
+         TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
 
          !=====================================================================
          ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
@@ -1716,8 +1738,8 @@
          DO ISTEP = 1, NS
 
             ! Initialize
-            QC     = 0d0
-            T0_SUM = 0d0
+            QC     = 0d0                             
+            T0_SUM = 0d0                             
 
             !==================================================================
             ! (3)  A b o v e   C l o u d   B a s e
@@ -1742,7 +1764,7 @@
 
                ! If we have a nonzero air mass flux coming from 
                ! grid box (K-1) into (K) ...
-               IF ( CMFMC_BELOW > TINY .or. K == 1 ) THEN
+               IF ( CMFMC_BELOW > TINYNUM ) THEN
 
                   !------------------------------------------------------------
                   ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
@@ -1815,7 +1837,7 @@
                   ENDIF
 
                   !------------------------------------------------------------
-                  ! (4.2)  M a s s   B a l a n c e   i n   L e v e l  ==> Q
+                  ! (3.2)  M a s s   B a l a n c e   i n   L e v e l  ==> Q
                   !
                   ! Terminology:
                   !
@@ -1912,7 +1934,7 @@
                   T0_SUM  = T0_SUM + T0
  
                   !------------------------------------------------------------
-                  ! (4.3)  N D 1 4   D i a g n o s t i c
+                  ! (3.3)  N D 1 4   D i a g n o s t i c
                   !
                   ! Archive upward mass flux due to wet convection.  
                   ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
@@ -1920,10 +1942,10 @@
                   ! to the layer above (K+1)  (bey, 11/10/99). 
                   !------------------------------------------------------------
                   DIAG14(K,IC) = DIAG14(K,IC) 
-     &                         + ( ( -T2-T3 ) * AREA_M2 / TCVV ) / DNS
+     &                         + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
 
                   !------------------------------------------------------------
-                  ! (4.4)  N D 3 8   D i a g n o s t i c
+                  ! (3.4)  N D 3 8   D i a g n o s t i c
                   !
                   ! Archive the loss of soluble tracer to wet scavenging in 
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
@@ -1931,9 +1953,44 @@
                   !------------------------------------------------------------
                   IF ( F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( ( T0*AREA_M2 ) / ( TCVV*DNS ) )
+     &                            + ( T0 * AREA_M2 / TCVV_DNS )
                   ENDIF
 
+              ELSE
+
+                  !------------------------------------------------------------
+                  ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
+                  !------------------------------------------------------------
+
+                  ! If there is no cloud mass flux coming from below
+                  ! just set QC to the tracer concentration at this levle
+                  QC = Q(K,IC)
+                  
+                  ! Bug fix for the cloud base layer, which is not necessarily
+                  ! in the boundary layer, and for MERRA, there could be 
+                  ! "secondary convection" plumes - one in the PBL and another 
+                  ! one not.  NOTE: T2 and T3 are the same terms as described 
+                  ! in the above section.  (swu, 08/13/2007)
+                  IF ( CMFMC(K) > TINYNUM ) THEN 
+
+                     ! Tracer convected from K -> K+1 
+                     T2   = -CMFMC(K) * QC
+
+                     ! Tracer subsiding from K+1 -> K 
+                     T3   =  CMFMC(K) * Q(K+1,IC)
+
+                     ! Change in tracer concentration
+                     DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
+
+                     ! If DELQ > Q then do not make Q negative!!!
+                     IF ( Q(K,IC) + DELQ < 0.0d0 ) THEN 
+                        DELQ = -Q(K,IC)
+                     ENDIF
+  
+                     ! Add change in tracer to Q array
+                     Q(K,IC) = Q(K,IC) + DELQ
+
+                  ENDIF
                ENDIF
             ENDDO 
 
@@ -1949,8 +2006,8 @@
                ENDIF
             ENDDO
 
-         ENDDO
-      ENDDO  
+         ENDDO 
+      ENDDO      
 
       !================================================================
       ! Succesful return!

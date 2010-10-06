@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !     
-! !MODULE: wetdep_mod
+! !MODULE: wetscav_mod
 !     
 ! !DESCRIPTION: Module WETSCAV\_MOD contains routines and variables used in 
 !  the wet scavenging of tracer in cloud updrafts, rainout, and washout. 
@@ -5998,32 +5998,29 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "CMN_SIZE"
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP         ! Stops run w/ error
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Arguments
-      LOGICAL,          INTENT(IN) :: LS            !
-      INTEGER,          INTENT(IN) :: I             !
-      INTEGER,          INTENT(IN) :: J             !
-      INTEGER,          INTENT(IN) :: L             !
-      INTEGER,          INTENT(IN) :: N             !
-      CHARACTER(LEN=*), INTENT(IN) :: A             !
-      REAL*8,           INTENT(IN) :: PDOWN         !
-      REAL*8,           INTENT(IN) :: QQ            !
-      REAL*8,           INTENT(IN) :: ALPHA         !
-      REAL*8,           INTENT(IN) :: ALPHA2        !
-      REAL*8,           INTENT(IN) :: RAINFRAC      !
-      REAL*8,           INTENT(IN) :: WASHFRAC      ! 
-      REAL*8,           INTENT(IN) :: MASS_WASH     !
-      REAL*8,           INTENT(IN) :: MASS_NOWASH   !
-      REAL*8,           INTENT(IN) :: WETLOSS       !
-      REAL*8,           INTENT(IN) :: GAINED        !
-      REAL*8,           INTENT(IN) :: LOST          !
-      REAL*8,           INTENT(IN) :: DSTT(LLPAR)   !
-      REAL*8,           INTENT(IN) :: STT(LLPAR)    !
+      LOGICAL,          INTENT(IN) :: LS           ! =T denotes LS precip
+      INTEGER,          INTENT(IN) :: I            ! Longitude index
+      INTEGER,          INTENT(IN) :: J            ! Latitude index
+      INTEGER,          INTENT(IN) :: L            ! Level index
+      INTEGER,          INTENT(IN) :: N            ! Tracer index
+      CHARACTER(LEN=*), INTENT(IN) :: A            ! Error message
+      REAL*8,           INTENT(IN) :: PDOWN        ! Precip leaving grid box
+      REAL*8,           INTENT(IN) :: QQ           ! Precip forming in grid box
+      REAL*8,           INTENT(IN) :: ALPHA        ! Frac of raindrops reevap'd
+      REAL*8,           INTENT(IN) :: ALPHA2       ! = 0.5 * ALPHA
+      REAL*8,           INTENT(IN) :: RAINFRAC     ! Frac of box raining out
+      REAL*8,           INTENT(IN) :: WASHFRAC     ! Frac of box washing out
+      REAL*8,           INTENT(IN) :: MASS_WASH    ! Mass washed out
+      REAL*8,           INTENT(IN) :: MASS_NOWASH  ! Mass not washed out
+      REAL*8,           INTENT(IN) :: WETLOSS      ! Wet scavenging loss
+      REAL*8,           INTENT(IN) :: GAINED       ! Amt of tracer gained
+      REAL*8,           INTENT(IN) :: LOST         ! Amt of mass lost
+      REAL*8,           INTENT(IN) :: DSTT(:)      ! Accumulator array
+      REAL*8,           INTENT(IN) :: STT(:)       ! Tracer array
 ! 
 ! !REVISION HISTORY: 
 !  18 Mar 2004 - R. Yantosca - Initial version
