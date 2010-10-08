@@ -165,6 +165,7 @@
       TYPE(GC_IDENT)     :: IDENT
       TYPE(GC_DIMS )     :: DIMINFO
       TYPE(SPEC_2_TRAC)  :: COEF
+      TYPE(GC_OPTIONS)   :: OPTIONS
                          
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, RC, TS_DYN
@@ -173,10 +174,10 @@
       ! Arrays           
       REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
       REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
-      REAL*8,  TARGET    :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      REAL*8             :: F     (               LLPAR,   N_TRACERS )
+      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
       INTEGER            :: ISOL  (                        N_TRACERS )
       REAL*8             :: PEDGE (               LLPAR+1            )
-      REAL*8             :: F     (               LLPAR,   N_TRACERS )
 
       ! Parameters
       LOGICAL, PARAMETER :: FIRST = .TRUE.
@@ -185,14 +186,14 @@
       ! Initialization
       !-----------------------------------------------------------------
 
-      ! Dynamic timestep [s]
-      TS_DYN            = GET_TS_DYN()
-      DT                = DBLE( TS_DYN )
-
-      ! Define DIMINFO
-      DIMINFO%L_COLUMN  = LLPAR
-      DIMINFO%N_TRACERS = N_TRACERS
-
+      ! Define variables
+      TS_DYN             = GET_TS_DYN()       ! Dynamic timestep [min]
+      DT                 = DBLE( TS_DYN )     ! Dynamic timestep [min]
+      DIMINFO%L_COLUMN   = LLPAR              ! # of vertical levels
+      DIMINFO%N_TRACERS  = N_TRACERS          ! # of tracers
+      OPTIONS%USE_DIAG14 = ( ND14 > 0 )       ! Use ND14 diagnostic?
+      OPTIONS%USE_DIAG38 = ( ND38 > 0 )       ! Use ND38 diagnostic?
+      
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
       IF ( RC /= SMV_SUCCESS ) RETURN
@@ -231,7 +232,8 @@
          IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
          IDENT%LEV         = 2                      ! This level
          IDENT%ERRMSG      = ''                     ! Error msg
-         IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
+        !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
+         IDENT%VERBOSE     = ( I==67 .and. J==32 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
@@ -253,6 +255,7 @@
          CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
      &                             DIMINFO  = DIMINFO,
      &                             COEF     = COEF,
+     &                             OPTIONS  = OPTIONS,
      &                             AREA_M2  = AREA_M2,
      &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
@@ -267,7 +270,7 @@
      &                             Q        = STT     (I,J, :,      :), 
      &                             DIAG14   = DIAG14,
      &                             DIAG38   = DIAG38,
-     &                             RC       = RC,  i=i, j=j )
+     &                             RC       = RC )
 
          ! Stop if error is encountered
          IF ( RC /= SMV_SUCCESS ) THEN
@@ -1457,12 +1460,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( IDENT,  DIMINFO, COEF, 
-     &                                AD,     AREA_M2, CMFMC,   
-     &                                DIAG14, DIAG38,  DQRCU,
-     &                                DTRAIN, F,       PEDGE,    
-     &                                PFICU,  PFLCU,   REEVAPCN, 
-     &                                TS_DYN, Q,       RC, i,j )
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,   DIMINFO,  COEF, 
+     &                                OPTIONS, AD,       AREA_M2, 
+     &                                CMFMC,   DQRCU,    DTRAIN, 
+     &                                F,       PEDGE,    PFICU,  
+     &                                PFLCU,   REEVAPCN, TS_DYN, 
+     &                                Q,       DIAG14,   DIAG38,  
+     &                                RC )
 !
 ! !USES:
 !
@@ -1472,27 +1476,27 @@
 !
       
       TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
-      TYPE(GC_DIMS),  INTENT(IN)    :: DIMINFO     ! Obj w/ array dimensions
-      REAL*8,         INTENT(IN)    :: AD(:)       ! Air mass [kg]    
-      REAL*8,         INTENT(IN)    :: AREA_M2     ! Surface area [m2]
-      REAL*8,         INTENT(IN)    :: CMFMC(:)    ! Cloud mass flux [kg/m2/s] 
-      REAL*8,         INTENT(IN)    :: DQRCU(:)    ! Precip production rate:
+      TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
+      TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
+      REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
+      REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
+      REAL*8,            INTENT(IN) :: CMFMC(:)    ! Cloud mass flux [kg/m2/s] 
+      REAL*8,            INTENT(IN) :: DQRCU(:)    ! Precip production rate:
                                                    !  convective [kg/kg/s]
-      REAL*8,         INTENT(IN)    :: DTRAIN(:)   ! Detrainment flux [kg/m2/s]
-      REAL*8,         INTENT(IN)    :: F(:,:)      ! Fraction of soluble tracer
+      REAL*8,            INTENT(IN) :: DTRAIN(:)   ! Detrainment flux [kg/m2/s]
+      REAL*8,            INTENT(IN) :: F(:,:)      ! Fraction of soluble tracer
                                                    !  for updraft scavenging 
                                                    !  [unitless].  ! This is 
                                                    !  computed by routine 
                                                    !  COMPUTE_UPDRAFT_FSOL
-      REAL*8,         INTENT(IN)    :: PEDGE(:)    ! P @ level box edges [hPa]
-      REAL*8,         INTENT(IN)    :: PFICU(:)    ! Dwnwd flux of convective
+      REAL*8,            INTENT(IN) :: PEDGE(:)    ! P @ level box edges [hPa]
+      REAL*8,            INTENT(IN) :: PFICU(:)    ! Dwnwd flux of convective
                                                    !  ice precip [kg/m2/s]
-      REAL*8,         INTENT(IN)    :: PFLCU(:)    ! Dwnwd flux of convective
+      REAL*8,            INTENT(IN) :: PFLCU(:)    ! Dwnwd flux of convective
                                                    !  liquid precip [kg/m2/s]
-      REAL*8,         INTENT(IN)    :: REEVAPCN(:) ! Evap of precip'ing conv.
+      REAL*8,            INTENT(IN) :: REEVAPCN(:) ! Evap of precip'ing conv.
                                                    !  condensate [kg/kg/s]
-      REAL*8,         INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
-      integer,        intent(in)    :: i,j
+      REAL*8,            INTENT(IN) :: TS_DYN      ! Dynamic timestep [min]
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !                                                  
@@ -1501,106 +1505,16 @@
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
-      REAL*8,         INTENT(OUT)   :: DIAG14(:,:) ! Array for ND14 diagnostic
-      REAL*8,         INTENT(OUT)   :: DIAG38(:,:) ! Array for ND38 diagnostic
-      INTEGER,        INTENT(OUT)   :: RC          ! Return code
+      REAL*8,           INTENT(OUT) :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL*8,           INTENT(OUT) :: DIAG38(:,:) ! Array for ND38 diagnostic
+      INTEGER,          INTENT(OUT) :: RC          ! Return code
 !
 ! !REMARKS:
-!  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
-!  flip the tracer array Q in the main program before passing it to NFCLDMX.
-!  (bmy, 2/12/97, 1/31/08)
-!
-!  (2) This version has been customized to work with GEOS-5 met fields.
-!
 !  Reference:
 !  ============================================================================
 !  Lin, SJ.  "Description of the parameterization of cumulus transport
 !     in the 3D Goddard Chemistry Transport Model, NASA/GSFC, 1996.
 !
-!  Vertical indexing:
-!  ============================================================================
-!  The indexing of the vertical sigma levels has been changed from 
-!  SJ-Lin's original code:
-!
-!                 Old Method          New Method
-!                  (SJ Lin)    
-!
-!               ------------------------------------- Top of Atm.
-!                  k = 1               k = NLAY
-!               ===================================== Max Extent 
-!                  k = 2               k = NLAY-1      of Clouds
-!               -------------------------------------
-!              
-!                   ...                 ...             
-!
-!               -------------------------------------
-!                  k = NLAY-3          k = 4
-!               -------------------------------------
-!                  k = NLAY-2          k = 3
-!               ------------------------------------- Cloud base
-!                  k = NLAY-1          k = 2
-!               -    -    -    -    -    -    -    - 
-!                  k = NLAY            k = 1
-!               ===================================== Ground
-!
-!      which means that:
-!
-!                 Old Method                      New Method
-!                  (SJ Lin)
-!
-!            k-1      ^                      k+1      ^
-!            ---------|---------             ---------|---------
-!                     |                               |
-!                  CMFMC(k)                       CMFMC(k)
-!             
-!                                 becomes
-!            k     DTRAIN(k),                k     DTRAIN(k),       
-!                 QC(k), Q(k)                     QC(k), Q(k)   
-!          
-!                     ^                               ^
-!            ---------|---------             ---------|---------
-!                     |                               |   
-!            k+1   CMFMC(k+1)                k-1   CMFMC(k-1)
-!
-!
-!      i.e., the lowest level    used to be  NLAY  but is now  1
-!            the level below k   used to be  k+1   but is now  k-1.
-!            the level above k   used to be  k-1   but is now  k+1
-!            the top of the atm. used to be  1     but is now  NLAY.
-!
-!  The old method required that the vertical dimensions of the CMFMC, DTRAIN, 
-!  and Q arrays had to be flipped before and after calling CLDMX.  Also, 
-!  diagnostic arrays generated within CLDMX also had to be flipped.  The new 
-!  indexing eliminates this requirement (and also saves on array operations).  
-!
-!  Major Modifications:
-!  ============================================================================
-!  Original Author:   Shian-Jiann Lin, Code 910.3, NASA/GSFC
-!  Original Release:  12 February 1997
-!                     Version 3, Detrainment and Entrainment are considered.
-!                     The algorithm reduces to that of version 2 if Dtrn = 0.
-!                                                                             .
-!  Modified By:       Bob Yantosca, for Harvard Atmospheric Sciences
-!  Modified Release:  27 January 1998
-!                     Version 3.11, contains features of V.3 but also 
-!                     scavenges soluble tracer in wet convective updrafts.
-!                                                                             .
-!                     28 April 1998
-!                     Version 3.12, now includes mass flux diagnostic
-!                                                                             .
-!                     11 November 1999
-!                     Added mass-flux diagnostics
-!                                                                             .
-!                      04 January 2000
-!                     Updated scavenging constant AS2
-!                                                                             .
-!                     14 March 2000
-!                     Added new wet scavenging code and diagnostics
-!                     based on the GMI algorithm
-!                                                                             .
-!                     02 May 2000
-!                     Added parallel loop over tracers
-!                                                                             .
 !  Unit conversion for BMASS:
 !
 !      Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
@@ -1637,7 +1551,7 @@
       REAL*8            :: ALPHA,    ALPHA2, CLDBASE, CMFMC_BELOW
       REAL*8            :: CMOUT,    DELQ,   DQ,      DNS
       REAL*8            :: ENTRN,    QC,     QC_PRES, QC_SCAV 
-      REAL*8            :: SDT,      T0,     T0_SUM,  T1,      
+      REAL*8            :: SDT,      T0,     T0_SUM,  T1    
       REAL*8            :: T2,       T3,     T4,      TCVV   
       REAL*8            :: TCVV_DNS, TSUM
 
@@ -1727,8 +1641,8 @@
       DO IC = 1, NC
 
          ! Initialize
-         DIAG14(:,IC) = 0d0                          
-         DIAG38(:,IC) = 0d0  
+         DIAG14(:,IC) = 0d0                            ! ND14 diag array      
+         DIAG38(:,IC) = 0d0                            ! ND38 diag array
          TCVV         = MW_AIR / COEF%MOLWT_KG(IC)     ! Air MW/tracer MW
          TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
 
@@ -1818,7 +1732,7 @@
                      ! We assume that 1/2 of the soluble tracer w/in the
                      ! raindrops actually gets resuspended into the atmosphere
                      ALPHA2   = ALPHA * 0.5d0
-                  
+
                      ! The resuspension takes 1/2 the amount of the scavenged
                      ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
@@ -1941,8 +1855,10 @@
                   ! for the tracer IC going out of the top of the layer K 
                   ! to the layer above (K+1)  (bey, 11/10/99). 
                   !------------------------------------------------------------
-                  DIAG14(K,IC) = DIAG14(K,IC) 
-     &                         + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                     DIAG14(K,IC) = DIAG14(K,IC) 
+     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                  ENDIF
 
                   !------------------------------------------------------------
                   ! (3.4)  N D 3 8   D i a g n o s t i c
@@ -1951,7 +1867,7 @@
                   ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
                   ! internal timesteps.
                   !------------------------------------------------------------
-                  IF ( F(K,IC) > 0d0 ) THEN
+                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
                   ENDIF
@@ -2000,8 +1916,8 @@
             DO K = CLDBASE-1, 1, -1
 
                IF ( REEVAPCN(K) > 0 .and. T0_SUM > 0 ) THEN
-                  
-                  ! ... do reevaporation ...
+
+                  ! ... do re-evaporation
 
                ENDIF
             ENDDO

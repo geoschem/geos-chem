@@ -123,40 +123,46 @@
 !         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
 !         INTEGER          :: DST3,    DST4,    SALA,    SALC
 !      END TYPE ID_WETD
-!
-!      !-----------------------------------------------------------------
-!      ! Logical flags that turn various options on/off
-!      !-----------------------------------------------------------------
-!      TYPE :: GC_OPTIONS
-!         LOGICAL          :: USE_ANTHRO
-!         LOGICAL          :: USE_ANTHRO_BRAVO  
-!         LOGICAL          :: USE_ANTHRO_CAC       
-!         LOGICAL          :: USE_ANTHRO_EDGAR     
-!         LOGICAL          :: USE_ANTHRO_EPA 
-!         LOGICAL          :: USE_ANTHRO_VISTAS    
-!         LOGICAL          :: USE_ANTHRO_EMEP      
-!         LOGICAL          :: USE_BIOGENIC
-!         LOGICAL          :: USE_BIOMASS   
-!         LOGICAL          :: USE_BIOMASS_GFED2
-!         LOGICAL          :: USE_CARBON_AEROSOLS
-!         LOGICAL          :: USE_CHEMISTRY
-!         LOGICAL          :: USE_CONVECTION
-!         LOGICAL          :: USE_DEAD_DUST
-!         LOGICAL          :: USE_DEBUG_PRINT
-!         LOGICAL          :: USE_DRYDEP
-!         LOGICAL          :: USE_DUST_AEROSOLS
-!         LOGICAL          :: USE_EMISSIONS
-!         LOGICAL          :: USE_NOx_AIRCRAFT
-!         LOGICAL          :: USE_NOx_LIGHTNING
-!         LOGICAL          :: USE_NOx_SOIL
-!         LOGICAL          :: USE_PBL_MIXING
-!         LOGICAL          :: USE_SEC_ORG_AEROSOLS
-!         LOGICAL          :: USE_SHIP_ARCTAS   
-!         LOGICAL          :: USE_SEASALT_AEROSOLS
-!         LOGICAL          :: USE_SULFATE_AEROSOLS
-!         LOGICAL          :: USE_WETDEP
-!      END TYPE GC_OPTIONS
-!
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      !-----------------------------------------------------------------
+      ! Logical flags that turn various options on/off
+      !-----------------------------------------------------------------
+      TYPE :: GC_OPTIONS
+         LOGICAL          :: USE_ANTHRO
+         LOGICAL          :: USE_ANTHRO_BRAVO  
+         LOGICAL          :: USE_ANTHRO_CAC       
+         LOGICAL          :: USE_ANTHRO_EDGAR     
+         LOGICAL          :: USE_ANTHRO_EPA 
+         LOGICAL          :: USE_ANTHRO_VISTAS    
+         LOGICAL          :: USE_ANTHRO_EMEP      
+         LOGICAL          :: USE_BIOGENIC
+         LOGICAL          :: USE_BIOMASS   
+         LOGICAL          :: USE_BIOMASS_GFED2
+         LOGICAL          :: USE_CARBON_AEROSOLS
+         LOGICAL          :: USE_CHEMISTRY
+         LOGICAL          :: USE_CONVECTION
+         LOGICAL          :: USE_DEAD_DUST
+         LOGICAL          :: USE_DEBUG_PRINT
+         LOGICAL          :: USE_DRYDEP
+         LOGICAL          :: USE_DUST_AEROSOLS
+         LOGICAL          :: USE_EMISSIONS
+         LOGICAL          :: USE_NOx_AIRCRAFT
+         LOGICAL          :: USE_NOx_LIGHTNING
+         LOGICAL          :: USE_NOx_SOIL
+         LOGICAL          :: USE_PBL_MIXING
+         LOGICAL          :: USE_SEC_ORG_AEROSOLS
+         LOGICAL          :: USE_SHIP_ARCTAS   
+         LOGICAL          :: USE_SEASALT_AEROSOLS
+         LOGICAL          :: USE_SULFATE_AEROSOLS
+         LOGICAL          :: USE_WETDEP
+         LOGICAL          :: USE_DIAG14
+         LOGICAL          :: USE_DIAG38
+      END TYPE GC_OPTIONS
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Leave these types commented out for now ... activate them later
+!%%% (bmy, 9/29/10)
 !      !-----------------------------------------------------------------
 !      ! Time & date values
 !      !-----------------------------------------------------------------
