@@ -164,6 +164,7 @@
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
+!  (32) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -199,7 +200,9 @@
       !=================================================================
 
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 50
+! Increase MAXDEP to 51 for dicarbonyls. (ccc, 10/8/10)
+!      INTEGER, PARAMETER   :: MAXDEP    = 50
+      INTEGER, PARAMETER   :: MAXDEP    = 51
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
