@@ -33,18 +33,21 @@
       PUBLIC  :: GET_WETDEP_NSOL
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: WETDEPID
+      PUBLIC  :: WASHOUT    ! hma 20101011, for convection_mod
+      PUBLIC  :: LS_K_RAIN  ! hma 20101014, for convection_mod
+      PUBLIC  :: LS_F_PRIME ! hma 20101014, for convection_mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: COMPUTE_L2G
       PRIVATE :: CONV_F_PRIME
       PRIVATE :: E_ICE
-      PRIVATE :: LS_K_RAIN
-      PRIVATE :: LS_F_PRIME
+C      PRIVATE :: LS_K_RAIN   ! now public for convection_mod, hma 20101014
+C      PRIVATE :: LS_F_PRIME  ! now public for convection_mod, hma 20101014
       PRIVATE :: RAINOUT
       PRIVATE :: GET_RAINFRAC
       PRIVATE :: SAFETY
-      PRIVATE :: WASHOUT
+C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
       PRIVATE :: WASHFRAC_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
 !
@@ -3213,12 +3216,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( I, J, L, N, PP, DT, F, WASHFRAC, AER )
+      SUBROUTINE WASHOUT( L,  N, BXHEIGHT, TK,   PP, 
+     &                    DT, F, H2O2s,    SO2s, WASHFRAC, AER )
 !
 ! !USES:
 !
       ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT, T
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE TRACERID_MOD, ONLY : IDTPB,    IDTBE7,   IDTHNO3, IDTH2O2 
       USE TRACERID_MOD, ONLY : IDTCH2O,  IDTMP,    IDTSO2,  IDTSO4  
@@ -3245,22 +3248,29 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: I          ! Longitude index
-      INTEGER, INTENT(IN)  :: J          ! Latitude index
-      INTEGER, INTENT(IN)  :: L          ! Level index
-      INTEGER, INTENT(IN)  :: N          ! Tracer number
-      REAL*8,  INTENT(IN)  :: PP         ! Precip rate thru  bottom of grid
-                                         !  box (I,J,L)  [cm3 H2O/cm2 air/s]
-      REAL*8,  INTENT(IN)  :: DT         ! Timestep for rainout event [s]
-      REAL*8,  INTENT(IN)  :: F          ! Fraction of grid box that is 
-                                         !   precipitating [unitless]
+      INTEGER, INTENT(IN)    :: L          ! Level index
+      INTEGER, INTENT(IN)    :: N          ! Tracer number
+      REAL*8,  INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
+      REAL*8,  INTENT(IN)    :: TK         ! Temperature [K]
+      REAL*8,  INTENT(IN)    :: PP         ! Precip rate thru  bottom of grid
+                                           !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+      REAL*8,  INTENT(IN)    :: DT         ! Timestep for rainout event [s]
+      REAL*8,  INTENT(IN)    :: F          ! Fraction of grid box that is 
+                                           !   precipitating [unitless]
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(INOUT) :: H2O2s      ! H2O2 [v/v] and SO2 [v/v] 
+      REAL*8,  INTENT(INOUT) :: SO2s       ! concentrations after aqueous rxns 
+                                           ! are applied.  These are computed 
+                                           ! in the sulfate chemistry module
+                                           ! and passed here as arguments. 
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to 
-                                         !  washout [unitless]
-      LOGICAL, INTENT(OUT) :: AER        ! =T if the tracer is an aerosol
-                                         ! =F otherwise
+      REAL*8,  INTENT(OUT)   :: WASHFRAC   ! Fraction of tracer lost to 
+                                           !  washout [unitless]
+      LOGICAL, INTENT(OUT)   :: AER        ! =T if the tracer is an aerosol
+                                           ! =F otherwise
 !
 ! !REMARKS:
 ! 
@@ -3303,13 +3313,16 @@
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
 !  30 Sep 2010 - H. Amos     - WASHFRAC_LIQ_GAS now a subroutine (was an 
 !                              external function)
+!  14 Oct 2010 - H. Amos     - Remove dependence on I, J. That means removing
+!                              I, J as input arguments and adding T, BXHEIGHT,
+!                              H2O2s, and SO4s and input arguments.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8            :: L2G, DZ, TK, SO2LOSS
+      REAL*8            :: L2G, DZ, SO2LOSS
 !
 ! !DEFINED PARAMETERS:
 !
@@ -3323,11 +3336,8 @@
       ! fraction of tracer lost to washout according to Jacob et al 2000
       !=================================================================
 
-      ! TK is Kelvin temperature 
-      TK = T(I,J,L)
-
       ! DZ is the height of the grid box in cm
-      DZ = BXHEIGHT(I,J,L) * 1d2
+      DZ = BXHEIGHT * 1d2
 
       !------------------------------
       ! 210Pb or 7Be (aerosol)
@@ -3349,7 +3359,7 @@
       ELSE IF ( N == IDTH2O2 ) THEN
          CALL WASHFRAC_LIQ_GAS( 8.3d4,   -7.4d3, PP, DT, 
      &                          F,        DZ,    TK, K_WASH, 
-     &                          WASHFRAC, AER                )
+     &                          WASHFRAC, AER                    )
 
 
       !------------------------------
@@ -3359,7 +3369,6 @@
          CALL WASHFRAC_LIQ_GAS( 3.0d3,   -7.2d3, PP, DT, 
      &                          F,        DZ,    TK, K_WASH, 
      &                          WASHFRAC, AER                )
-
 
       !------------------------------
       ! GLYX (liquid & gas phases)
@@ -3375,7 +3384,6 @@
      &                          F,        DZ,    TK, K_WASH, 
      &                          WASHFRAC, AER                )
 
-
       !------------------------------
       ! MGLY (liquid & gas phases)
       !------------------------------
@@ -3387,7 +3395,6 @@
          CALL WASHFRAC_LIQ_GAS( 3.7d3,   -7.5d3, PP, DT, 
      &                          F,        DZ,    TK, K_WASH,
      &                          WASHFRAC, AER                )
-
 
       !------------------------------
       ! GLYC (liquid & gas phases)
@@ -3486,16 +3493,16 @@
          ! of H2O2 in the precipitating grid box.  Then scavenge the 
          ! soluble SO2 at the same rate as sulfate.
          !==============================================================
-         IF ( TK >= 268d0 .AND. SO2s(I,J,L) > EPSILON ) THEN
+         IF ( TK >= 268d0 .AND. SO2s  > EPSILON ) THEN
          
             ! Adjust WASHFRAC
-            SO2LOSS  = MIN( SO2s(I,J,L), H2O2s(I,J,L) )
-            WASHFRAC = SO2LOSS * WASHFRAC / SO2s(I,J,L)
+            SO2LOSS  = MIN( SO2s, H2O2s )
+            WASHFRAC = SO2LOSS * WASHFRAC / SO2s
             WASHFRAC = MAX( WASHFRAC, 0d0 )
                   
             ! Deplete H2O2s the same as SO2s (dkh, rjp, bmy, 11/17/05)
-            H2O2s(I,J,L) = H2O2s(I,J,L) - ( SO2s(I,J,L) * WASHFRAC )
-            H2O2s(I,J,L) = MAX( H2O2s(I,J,L), EPSILON )
+            H2O2s = H2O2s - ( SO2s * WASHFRAC )
+            H2O2s = MAX( H2O2s, EPSILON )
 
          ELSE
             WASHFRAC = 0d0
@@ -3503,9 +3510,9 @@
          ENDIF
          
          ! Update saved SO2 concentration 
-         SO2s(I,J,L) = SO2s(I,J,L) * ( 1d0 - WASHFRAC )
-         SO2s(I,J,L) = MAX( SO2s(I,J,L), EPSILON )
-           
+         SO2s = SO2s * ( 1d0 - WASHFRAC )
+         SO2s = MAX( SO2s, EPSILON ) 
+          
       !------------------------------
       ! SO4 and SO4aq (aerosol)
       !------------------------------
@@ -4041,7 +4048,6 @@
       LOGICAL, SAVE      :: FIRST = .TRUE.
       LOGICAL            :: IS_Hg
       LOGICAL            :: AER
-      !LOGICAL            :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
                          
       INTEGER            :: I, IDX, J, L, N, NN
                          
@@ -5428,6 +5434,7 @@
       INTEGER :: N,         NN
       REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
+      REAL*8  :: TK ! added by hma 20101014
 
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
@@ -5476,8 +5483,10 @@
 
          ! Call WASHOUT to compute the fraction of 
          ! tracer lost to washout in grid box (I,J,L)
-         CALL WASHOUT( I,     J,  L,         N, 
-     &                 QDOWN, DT, F_WASHOUT, WASHFRAC, AER )
+         CALL WASHOUT( L,         N,            BXHEIGHT(I,J,L), 
+     &                 TK,        QDOWN,        DT,   
+     &                 F_WASHOUT, H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 WASHFRAC,  AER )
 
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
@@ -5798,6 +5807,7 @@
 !
 ! !USES:
 !
+      USE DAO_MOD,      ONLY : T                       ! air temperature [K]
       USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
       USE DIAG_MOD,     ONLY : AD16                    ! ND16 diag array
       USE DIAG_MOD,     ONLY : AD17                    ! ND17 diag array
@@ -5852,6 +5862,7 @@
       LOGICAL :: AER
       INTEGER :: N,        NN
       REAL*8  :: WASHFRAC, WETLOSS, TMP
+      REAL*8  :: TK   ! added by hma 20101014
 
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
@@ -5868,6 +5879,9 @@
          CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
       ENDIF
 
+      ! air temperature [K]
+      TK = T(I,J,L)   ! added by hma, 20101014
+
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
       !-----------------------------------------------------------------
@@ -5878,8 +5892,15 @@
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
-         CALL WASHOUT( I,     J,  L, N, 
-     &                 QDOWN, DT, F, WASHFRAC, AER )
+C hma 20101014 --------------------------------------------------------C
+C         CALL WASHOUT( I,     J,  L, N, 
+C     &                 QDOWN, DT, F, WASHFRAC, AER )
+         CALL WASHOUT( L,       N,     BXHEIGHT(I,J,L), 
+     &                 TK ,   QDOWN,    DT,   
+     &                 F,       H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 WASHFRAC, AER )
+C----------------------------------------------------------------------C
+                  
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

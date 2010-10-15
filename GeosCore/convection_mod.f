@@ -82,6 +82,8 @@
 ! !USES:
 !
       USE DAO_MOD,      ONLY : AD
+      USE DAO_MOD,      ONLY : BXHEIGHT 
+      USE DAO_MOD,      ONLY : T        
       USE DAO_MOD,      ONLY : CLDMAS
       USE DAO_MOD,      ONLY : CMFMC
       USE DAO_MOD,      ONLY : DQRCU
@@ -93,14 +95,19 @@
       USE DIAG_MOD,     ONLY : AD38
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE MERCURY_MOD,  ONLY : PARTITIONHG
+      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
       USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACER_MOD,   ONLY : N_TRACERS
       USE TRACER_MOD,   ONLY : TCVV
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTHg2
+      USE TRACERID_MOD, ONLY : IDTHgP
       USE TIME_MOD,     ONLY : GET_TS_DYN
       USE WETSCAV_MOD,  ONLY : COMPUTE_F
+      USE WETSCAV_MOD,  ONLY : H2O2s
+      USE WETSCAV_MOD,  ONLY : SO2s
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! Diagnostic flags
@@ -116,6 +123,13 @@
 !  29 Sep 2010 - R. Yantosca - Now call DO_MERRA_CONVECTION for MERRA met
 !  05 Oct 2010 - R. Yantosca - Now attach diagnostics to MERRA conv routine
 !  06 Oct 2010 - R. Yantosca - Parallelized call to DO_MERRA_CONVECTION
+!  15 Oct 2010 - H. Amos     - Now get BXHEIGHT, T from dao_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get LDYNOCEAN from logical_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get ITS_A_MERCURY_SIM from tracer_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get IDTHg2, IDTHgP from tracerid_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get H2O2s, SO2s from wetscav_mod.f
+!  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
+!  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,6 +180,7 @@
       TYPE(GC_DIMS )     :: DIMINFO
       TYPE(SPEC_2_TRAC)  :: COEF
       TYPE(GC_OPTIONS)   :: OPTIONS
+      TYPE(ID_TRAC)      :: IDT
                          
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, RC, TS_DYN
@@ -186,13 +201,17 @@
       ! Initialization
       !-----------------------------------------------------------------
 
-      ! Define variables
-      TS_DYN             = GET_TS_DYN()       ! Dynamic timestep [min]
-      DT                 = DBLE( TS_DYN )     ! Dynamic timestep [min]
-      DIMINFO%L_COLUMN   = LLPAR              ! # of vertical levels
-      DIMINFO%N_TRACERS  = N_TRACERS          ! # of tracers
-      OPTIONS%USE_DIAG14 = ( ND14 > 0 )       ! Use ND14 diagnostic?
-      OPTIONS%USE_DIAG38 = ( ND38 > 0 )       ! Use ND38 diagnostic?
+      ! Define variables and object fields
+      TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
+      DT                      = DBLE( TS_DYN )       ! Dynamic timestep [min]
+      DIMINFO%L_COLUMN        = LLPAR                ! # of vertical levels
+      DIMINFO%N_TRACERS       = N_TRACERS            ! # of tracers
+      IDT%Hg2                 = IDTHg2               ! Tracer ID flag for Hg2
+      IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
+      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM()  ! Mercury simulation?
+      OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
+      OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
+      OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
       
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
@@ -255,21 +274,28 @@
          CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
      &                             DIMINFO  = DIMINFO,
      &                             COEF     = COEF,
+     &                             IDT      = IDT,
      &                             OPTIONS  = OPTIONS,
      &                             AREA_M2  = AREA_M2,
      &                             PEDGE    = PEDGE,
      &                             TS_DYN   = DT, 
      &                             F        = F,
      &                             AD       = AD      (I,J, :        ),
+     &                             BXHEIGHT = BXHEIGHT(I,J, :        ),
      &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
      &                             DQRCU    = DQRCU   (I,J, :        ),
      &                             DTRAIN   = DTRAIN  (I,J, :        ), 
+     &                             H2O2s    = H2O2s   (I,J, :        ),
      &                             PFICU    = PFICU   (I,J, :        ),
      &                             PFLCU    = PFLCU   (I,J, :        ),
      &                             REEVAPCN = REEVAPCN(I,J, :        ),
+     &                             SO2s     = SO2s    (I,J, :        ),
+     &                             T        = T       (I,J, :        ),
      &                             Q        = STT     (I,J, :,      :), 
      &                             DIAG14   = DIAG14,
      &                             DIAG38   = DIAG38,
+     &                             I        = I,
+     &                             J        = J,
      &                             RC       = RC )
 
          ! Stop if error is encountered
@@ -1460,26 +1486,37 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_MERRA_CONVECTION( IDENT,   DIMINFO,  COEF, 
-     &                                OPTIONS, AD,       AREA_M2, 
-     &                                CMFMC,   DQRCU,    DTRAIN, 
-     &                                F,       PEDGE,    PFICU,  
-     &                                PFLCU,   REEVAPCN, TS_DYN, 
-     &                                Q,       DIAG14,   DIAG38,  
-     &                                RC )
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
+     &                                IDT,      OPTIONS,  AD,      
+     &                                AREA_M2,  BXHEIGHT, CMFMC,   
+     &                                DQRCU,    DTRAIN,   F,       
+     &                                PEDGE,    PFICU,    PFLCU,   
+     &                                REEVAPCN, T,        TS_DYN,   
+     &                                Q,        DIAG14,   DIAG38,   
+     &                                H2O2s,    SO2s,     I,        
+     &                                J,        RC )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE ERROR_MOD,        ONLY : IT_IS_NAN
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
+      USE MERCURY_MOD,      ONLY : PARTITIONHg
+      USE WETSCAV_MOD,      ONLY : WASHOUT
+      USE WETSCAV_MOD,      ONLY : LS_K_RAIN
+      USE WETSCAV_MOD,      ONLY : LS_F_PRIME
 !
 ! !INPUT PARAMETERS:
 !
       
       TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
       TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
+      TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
       TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
       REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
       REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
+      REAL*8,            INTENT(IN) :: BXHEIGHT(:) ! Box height [m]
       REAL*8,            INTENT(IN) :: CMFMC(:)    ! Cloud mass flux [kg/m2/s] 
       REAL*8,            INTENT(IN) :: DQRCU(:)    ! Precip production rate:
                                                    !  convective [kg/kg/s]
@@ -1495,12 +1532,17 @@
       REAL*8,            INTENT(IN) :: PFLCU(:)    ! Dwnwd flux of convective
                                                    !  liquid precip [kg/m2/s]
       REAL*8,            INTENT(IN) :: REEVAPCN(:) ! Evap of precip'ing conv.
+      REAL*8,            INTENT(IN) :: T(:)        ! air temperature [K]
+
                                                    !  condensate [kg/kg/s]
       REAL*8,            INTENT(IN) :: TS_DYN      ! Dynamic timestep [min]
+      INTEGER,           INTENT(IN) :: I, J        ! Lon & lat indices
 !                                                  
 ! !INPUT/OUTPUT PARAMETERS:                        
 !                                                  
       TYPE(GC_IDENT), INTENT(INOUT) :: IDENT       ! Obj w/ info from ESMF etc.
+      REAL*8,         INTENT(INOUT) :: H2O2s(:)
+      REAL*8,         INTENT(INOUT) :: SO2s(:)  
       REAL*8,         INTENT(INOUT) :: Q(:,:)      ! Tracer conc. [mol/mol]  
 !                                                  
 ! !OUTPUT PARAMETERS:                              
@@ -1514,12 +1556,18 @@
 !  ============================================================================
 !  Lin, SJ.  "Description of the parameterization of cumulus transport
 !     in the 3D Goddard Chemistry Transport Model, NASA/GSFC, 1996.
-!
+!                                                                             .
 !  Unit conversion for BMASS:
 !
 !      Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
 !     -------------+---------+--------+-------+----+--------  =  -----
 !                  | Ps - Pt |   mb   | 9.8 m | Pa | m^2 s^2      m^2
+!
+!                                                                             .
+!  NOTE: We are passing I & J down to this routine so that it can call the
+!  proper code from "mercury_mod.f".  Normally, we wouldn't pass I & J as
+!  arguments to columnized code.  This prevents rewriting the mercury_mod.f
+!  routines ADD_Hg2_
 !
 ! !REVISION HISTORY:
 !  15 Jul 2009 - R. Yantosca - Columnized and cleaned up.
@@ -1535,6 +1583,9 @@
 !  29 Sep 2010 - R. Yantosca - Modified for MERRA met fields
 !  05 Oct 2010 - R. Yantosca - Now pass COEF via the argument list
 !  05 Oct 2010 - R. Yantosca - Attach ND14 and ND38 diagnostics
+!  15 Oct 2010 - H. Amos     - Added BXHEIGHT and T as arguments
+!  15 Oct 2010 - R. Yantosca - Added I, J, H2O2s and SO2s as arguments
+!  15 Oct 2010 - H. Amos     - Added scavenging below cloud base
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1546,14 +1597,18 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER           :: IC,       ISTEP,  K,       KTOP
-      INTEGER           :: NC,       NDT,    NLAY,    NS    
-      REAL*8            :: ALPHA,    ALPHA2, CLDBASE, CMFMC_BELOW
-      REAL*8            :: CMOUT,    DELQ,   DQ,      DNS
-      REAL*8            :: ENTRN,    QC,     QC_PRES, QC_SCAV 
-      REAL*8            :: SDT,      T0,     T0_SUM,  T1    
-      REAL*8            :: T2,       T3,     T4,      TCVV   
-      REAL*8            :: TCVV_DNS, TSUM
+      LOGICAL           :: AER,         IS_Hg 
+      INTEGER           :: IC,          ISTEP,    K,       KTOP
+      INTEGER           :: NC,          NDT,      NLAY,    NS    
+      REAL*8            :: ALPHA,       ALPHA2,   CLDBASE, CMFMC_BELOW
+      REAL*8            :: CMOUT,       DELQ,     DQ,      DNS
+      REAL*8            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
+      REAL*8            :: SDT,         T0,       T0_SUM,  T1    
+      REAL*8            :: T2,          T3,       T4,      TCVV   
+      REAL*8            :: TCVV_DNS,    TSUM
+      REAL*8            :: LOST,        GAINED,   WETLOSS, MASS_WASH
+      REAL*8            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
+      REAL*8            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
 
       ! Arrays
       REAL*8            :: BMASS( DIMINFO%L_COLUMN )  
@@ -1625,15 +1680,20 @@
       ! Loop over levels
       DO K = 1, NLAY
 
-         ! PDOWN is the convective precipitation leaving each box [kg/m2/s]
-         ! This accounts for the contribution from both liquid & ice precip
-         PDOWN(K) = PFLCU(K) + PFICU(K)
+         ! PDOWN is the convective precipitation leaving each
+         ! box [cm3 H2O/cm2 air/s].This accounts for the 
+         ! contribution from both liquid & ice precip
+         PDOWN(K) = ( ( PFLCU(K) / 1000d0 ) 
+     &            +   ( PFICU(K) /  917d0 ) ) * 100d0
 
          ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
          ! This is done to keep BMASS in the same units as CMFMC * SDT
          BMASS(K) = AD(K)    / AREA_M2
 
       ENDDO
+
+      ! Is this a Hg simulation?
+      IS_Hg = ( OPTIONS%USE_Hg .and. OPTIONS%USE_Hg_DYNOCEAN )
 
       !========================================================================
       ! (1)  T r a c e r   L o o p 
@@ -1723,8 +1783,9 @@
                      ! will re-evaporate soluble tracer while falling from 
                      ! grid box K+1 down to grid box K.  Avoid div-by-zero.
                      IF ( PDOWN(K+1) > 0d0 ) THEN 
-                        ALPHA = ( REEVAPCN(K) * AD(K) / AREA_M2 )
-     &                        / ( PDOWN(K+1)                    )
+                        ALPHA = ( REEVAPCN(K) * BXHEIGHT(K) * 100d0 )
+     &                        / ( PDOWN(K+1)                        ) 
+                        
                      ELSE
                         ALPHA = 0d0
                      ENDIF
@@ -1821,9 +1882,9 @@
                   T2      = -CMFMC(K  )  * QC
                   T3      =  CMFMC(K  )  * Q(K+1,IC)
                   T4      = -CMFMC_BELOW * Q(K,  IC)
-
+                  
                   TSUM    = T1 + T2 + T3 + T4 
-
+                  
                   DELQ    = ( SDT / BMASS(K) ) * TSUM
 
                   ! If DELQ > Q then do not make Q negative!!!
@@ -1871,8 +1932,8 @@
                      DIAG38(K,IC) = DIAG38(K,IC)
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
                   ENDIF
-
-              ELSE
+                  
+               ELSE
 
                   !------------------------------------------------------------
                   ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
@@ -1909,18 +1970,238 @@
                   ENDIF
                ENDIF
             ENDDO 
-
+            
             !==================================================================
             ! (4)  B e l o w   C l o u d   B a s e
             !==================================================================
             DO K = CLDBASE-1, 1, -1
 
-               IF ( REEVAPCN(K) > 0 .and. T0_SUM > 0 ) THEN
+               ! Initialize
+               QDOWN       = 0d0
+               F_WASHOUT   = 0d0
+               WASHFRAC    = 0d0
+               ALPHA       = 0d0
+               ALPHA2      = 0d0
+               GAINED      = 0d0
+               WETLOSS     = 0d0
+               LOST        = 0d0
+               MASS_WASH   = 0d0
+               MASS_NOWASH = 0d0
+               K_RAIN      = 0d0
 
-                  ! ... do re-evaporation
+               ! Check if...
+               ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
+               ! (2) there is re-evaporation happening in grid box (I,J,K)
+               ! (3) there is tracer to re-evaporate
+               IF ( PDOWN(K+1)  > 0 .and.   
+     &              REEVAPCN(K) > 0 .and. 
+     &              T0_SUM      > 0        ) THEN
 
+                  ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
+                  ! experiencing washout 
+                  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                  !%%% Is the QDOWN defined here the QDOWN I want to be 
+                  !%%% passing to WASHOUT?   May want to rename QDOWN something
+                  !%%% else, since Q denotes tracer mixing ratio in 
+                  !%%% convection_mod.f (Helen Amos 20101014)
+                  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+               
+                  ! Convert PDOWN the downward flux of precip leaving grid
+                  ! box (K+1) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100d0  )
+
+                  ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
+                  ! leaving grid box (K+1). 
+                  K_RAIN   = LS_K_RAIN( QDOWN )
+                  F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
+                  
+                  ! Call WASHOUT to compute the fraction of tracer lost
+                  ! to washout in grid box (I,J,K)
+                  CALL WASHOUT( K,         IC,       BXHEIGHT(K), 
+     &                          T(K),      QDOWN,    DT,   
+     &                          F_WASHOUT, H2O2s(K), SO2s(K), 
+     &                          WASHFRAC,  AER )
+
+                  !%%% We need this in wetscav_mod, but do we need it here too?
+
+                  ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
+                  ! 
+                  ! If WASHFRAC = NaN, then DSTT = NaN and SAFETY 
+                  ! trips because tracer concentrations must be finite.
+                  ! WASHFRAC = NaN when F = 0. When less than 0.1% of
+                  ! a soluble tracer is available for washout
+                  ! DSTT < 0 and SAFETY trips.  (Helen Amos, 20100928)
+                  IF ( IT_IS_NAN( WASHFRAC ) ) THEN
+                     CYCLE
+                  ELSE IF ( WASHFRAC < 1D-3 ) THEN
+                     CYCLE
+                  ENDIF
+                  
+                  ! Check if washout is a kinetic (aerosol) or equilibrium
+                  ! (non-aerosol) process...
+                  IF ( AER == .TRUE. ) THEN
+
+                     ! Define ALPHA, the fraction of raindrops that 
+                     ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+                     ALPHA = ( REEVAPCN(K) * BXHEIGHT(K) * 100d0 )
+     &                     / ( PDOWN(K+1)                        )
+
+                     ! ALPHA2 is the fraction of the rained-out aerosols
+                     ! that gets resuspended in grid box (I,J,L)
+                     ALPHA2 = 0.5d0 * ALPHA
+
+                     ! GAINED is the rained out aerosol coming down from 
+                     ! grid box (I,J,L+1) that will evaporate and re-enter 
+                     ! the atmosphere in the gas phase in grid box (I,J,L).
+                     GAINED = T0_SUM * ALPHA2
+
+                     ! Amount of aerosol lost to washout in grid box
+                     ! (qli, bmy, 10/29/02)
+                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%---- Does this need to be included in convection_mod? It's in wetscav.
+!%%%
+!%%%                 ! Remove washout losses in grid box (I,J,L) from STT.
+!%%%                 ! Add the aerosol that was reevaporated in (I,J,L).
+!%%%                 ! SO2 in sulfate chemistry is wet-scavenged on the
+!%%%                 ! raindrop and converted to SO4 by aqeuous chem.
+!%%%                 ! If evaporation occurs then SO2 comes back as SO4
+!%%%                 ! (rjp, bmy, 3/23/03)
+!%%%                 IF ( N == IDTSO2 ) THEN
+!%%%                    STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
+!%%%     &                           + GAINED * 96D0 / 64D0
+!%%%
+!%%%                    STT(I,J,L,N)      = STT(I,J,L,N) *
+!%%%     &                                          ( 1d0 - WASHFRAC )
+!%%%                 ELSE
+!%%%                    STT(I,J,L,N)      = STT(I,J,L,N) - WETLOSS
+!%%%                 ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                     ! LOST is the rained out aerosol coming down from
+                     ! grid box (I,J,L+1) that will remain in the liquid
+                     ! phase in grid box (I,J,L) and will NOT re-evaporate.
+                     LOST = T0_SUM - GAINED
+
+                     ! Update T0_SUM, the total amount of scavenged
+                     ! tracer that will be passed to the grid box below
+                     T0_SUM = LOST + WETLOSS
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%  What's the ND18 equivalent in convection_mod.f!!!!
+!%%% 
+!%%%                  ! ND18 diagnostic...divide washout fraction by F
+!%%%                  IF ( ND18 > 0 .and. L <= LD18 ) THEN
+!%%%                    AD18(I,J,L,NN,IDX) = 
+!%%%      &             AD18(I,J,L,NN,IDX) + ( WASHFRAC / F_WASHOUT )
+!%%%                  ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                  !------------------------------------------------------------
+                  ! Washout of non-aerosol tracers
+                  ! This is modeled as an equilibrium process
+                  !------------------------------------------------------------
+                  ELSE
+                  
+                     ! MASS_NOWASH is the amount of non-aerosol tracer in 
+                     ! grid box (I,J,L) that is NOT available for washout.
+                     MASS_NOWASH = ( 1d0 - F_WASHOUT ) * Q(K,IC)
+               
+                     ! MASS_WASH is the total amount of non-aerosol tracer
+                     ! that is available for washout in grid box (I,J,L).
+                     ! It consists of the mass in the precipitating
+                     ! part of box (I,J,L), plus the previously rained-out
+                     ! tracer coming down from grid box (I,J,L+1).
+                     ! (Eq. 15, Jacob et al, 2000).
+                     MASS_WASH = ( F_WASHOUT*Q(K,IC) ) + T0_SUM
+    
+                     ! WETLOSS is the amount of tracer mass in 
+                     ! grid box (I,J,L) that is lost to washout.
+                     ! (Eq. 16, Jacob et al, 2000)
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                     !%%% Check wetloss computation!
+                     !%%% Should it be WETLOSS = MASS_WASH * WASHFRAC ?
+                     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                     WETLOSS = MASS_WASH * WASHFRAC -T0_SUM
+
+                     ! The tracer left in grid box (I,J,L) is what was
+                     ! in originally in the non-precipitating fraction 
+                     ! of the box, plus MASS_WASH, less WETLOSS. 
+                     Q(K,IC) = Q(K,IC) - WETLOSS
+            
+                     ! Updated T0_SUM, the total scavenged tracer
+                     ! that will be passed to the grid box below
+                     T0_SUM = WETLOSS
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%  What's the ND18 equivalent for convection_mod.f ???
+!%%% 
+!%%%             ! ND18 diagnostic...we don't have to divide the
+!%%%             ! washout fraction by F since this is accounted for.
+!%%%             IF ( ND18 > 0 .and. L <= LD18 ) THEN
+!%%%                AD18(I,J,L,NN,IDX) = 
+!%%%      &         AD18(I,J,L,NN,IDX) + WASHFRAC
+!%%%             ENDIF
+!%%%            ENDIF
+!%%%
+!%%%  What's the equivalent to ND39 in convection_mod.f?
+!%%% 
+!%%%          ! ND39 diag -- save rainout losses in [kg/s]
+!%%%          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
+!%%%          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
+!%%%             AD39(I,J,L,NN) = AD39(I,J,L,NN) + WETLOSS / DT
+!%%%          ENDIF                  
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+                  ENDIF
                ENDIF
             ENDDO
+
+            !==================================================================
+            ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
+            !
+            ! Pass the amount of Hg2 and HgP lost in wet  scavenging [kg] to 
+            ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
+            ! also divide  by DNS, the # of internal timesteps. 
+            ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+            !==================================================================
+
+            !%%% Is this the correct place for this? T0_SUM needs to 
+            !%%% reflect above and below cloud scavenging. 
+
+            !--------------------------------------
+            ! Hg2 
+            !--------------------------------------
+            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
+
+               ! Wet scavenged Hg(II) in [kg/s]
+               WET_Hg2 = ( T0_SUM * AREA_M2 ) / ( TCVV * DNS )
+               
+               ! Convert [kg/s] to [kg]
+               WET_Hg2 = WET_Hg2 * NDT 
+
+               ! Pass to "ocean_mercury_mod.f"
+               CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+            ENDIF
+
+            !--------------------------------------
+            ! HgP
+            !--------------------------------------
+            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
+
+               ! Wet scavenged Hg(P) in [kg/s]
+               WET_HgP = ( T0_SUM * AREA_M2 ) / ( TCVV * DNS )
+
+               ! Convert [kg/s] to [kg]
+               WET_HgP = WET_HgP * NDT 
+
+               ! Pass to "ocean_mercury_mod.f"
+               CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+            ENDIF
 
          ENDDO 
       ENDDO      

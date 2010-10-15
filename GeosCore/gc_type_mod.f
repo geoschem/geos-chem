@@ -62,24 +62,25 @@
 !         INTEGER          :: ROH,     RP,      SO2,     SO4,     VRO2
 !         INTEGER          :: VRP
 !      END TYPE ID_SPEC
-!
-!      !-----------------------------------------------------------------
-!      ! ID flags for advected tracers
-!      !-----------------------------------------------------------------
-!      TYPE :: ID_TRAC
-!         INTEGER          :: NOx,     Ox,      PAN,     CO,      ALK4  
-!         INTEGER          :: ISOP,    HNO3,    H2O2,    ACET,    MEK   
-!         INTEGER          :: ALD2,    RCHO,    MVK,     MACR,    PMN
-!         INTEGER          :: PPN,     R4N2,    PRPE,    C3H8,    CH2O
-!         INTEGER          :: C2H6,    N2O5,    HNO4,    MP,      DMS
-!         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
-!         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    BCPO
-!         INTEGER          :: OCPI,    OCPO,    ALPH,    LIMO,    ALCO
-!         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
-!         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
-!         INTEGER          :: DST3,    DST4,    SALA,    SALC
-!      END TYPE ID_TRAC
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      !-----------------------------------------------------------------
+      ! ID flags for advected tracers
+      !-----------------------------------------------------------------
+      TYPE :: ID_TRAC
+         INTEGER          :: NOx,     Ox,      PAN,     CO,      ALK4  
+         INTEGER          :: ISOP,    HNO3,    H2O2,    ACET,    MEK   
+         INTEGER          :: ALD2,    RCHO,    MVK,     MACR,    PMN
+         INTEGER          :: PPN,     R4N2,    PRPE,    C3H8,    CH2O
+         INTEGER          :: C2H6,    N2O5,    HNO4,    MP,      DMS
+         INTEGER          :: SO2,     SO4,     SO4s,    MSA,     NH3
+         INTEGER          :: NH4,     NIT,     NITs,    BCPI,    BCPO
+         INTEGER          :: OCPI,    OCPO,    ALPH,    LIMO,    ALCO
+         INTEGER          :: SOG1,    SOG2,    SOG3,    SOG4,    SOA1
+         INTEGER          :: SOA2,    SOA3,    SOA4,    DST1,    DST2
+         INTEGER          :: DST3,    DST4,    SALA,    SALC
+         INTEGER          :: Hg0,     Hg2,     HgP
+      END TYPE ID_TRAC
 
       !-----------------------------------------------------------------
       ! Coefficients & arrays that link species & tracers
@@ -156,6 +157,8 @@
          LOGICAL          :: USE_SEASALT_AEROSOLS
          LOGICAL          :: USE_SULFATE_AEROSOLS
          LOGICAL          :: USE_WETDEP
+         LOGICAL          :: USE_Hg
+         LOGICAL          :: USE_Hg_DYNOCEAN
          LOGICAL          :: USE_DIAG14
          LOGICAL          :: USE_DIAG38
       END TYPE GC_OPTIONS
