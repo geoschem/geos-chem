@@ -212,7 +212,7 @@
       OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
       OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
       OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
-      
+
       ! Allocate the pointer array
       ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
       IF ( RC /= SMV_SUCCESS ) RETURN
@@ -1655,18 +1655,19 @@
      &        '  or NC = ',      i5, ' but SIZE( F,2 ) = ', i5 )
 
       ! Top level for convection
-      KTOP = NLAY - 1
+      KTOP   = NLAY - 1
 
       ! Convection timestep [s]
-      NDT  = TS_DYN * 60d0
+      NDT    = TS_DYN * 60d0
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       
-      NS   = NDT / 300
-      NS   = MAX( NS, 1 )
-      SDT  = DBLE( NDT ) / DBLE( NS )
-      DNS  = DBLE( NS )
-
+      NS     = NDT / 300
+      NS     = MAX( NS, 1 )
+      SDT    = DBLE( NDT ) / DBLE( NS )
+      DNS    = DBLE( NS )
+      DT_DNS = NDT * DNS
+      
       ! Determine location of the cloud base, which is the level where
       ! we start to have non-zero convective precipitation formation
       CLDBASE = 1
@@ -2144,7 +2145,7 @@
 !%%%      &         AD18(I,J,L,NN,IDX) + WASHFRAC
 !%%%             ENDIF
 !%%%            ENDIF
-!%%%
+!%%%,
 !%%%  What's the equivalent to ND39 in convection_mod.f?
 !%%% 
 !%%%          ! ND39 diag -- save rainout losses in [kg/s]
@@ -2154,7 +2155,10 @@
 !%%%          ENDIF                  
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+                     IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                        DIAG38(K,IC) = DIAG38(K,IC)
+     &                               + ( WETLOSS / DT_DNS )
+                     ENDIF
                   ENDIF
                ENDIF
             ENDDO
@@ -2177,7 +2181,7 @@
             IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
-               WET_Hg2 = ( T0_SUM * AREA_M2 ) / ( TCVV * DNS )
+               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
                
                ! Convert [kg/s] to [kg]
                WET_Hg2 = WET_Hg2 * NDT 
@@ -2193,7 +2197,7 @@
             IF ( IS_Hg .and. IC == IDT%HgP ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]
-               WET_HgP = ( T0_SUM * AREA_M2 ) / ( TCVV * DNS )
+               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
 
                ! Convert [kg/s] to [kg]
                WET_HgP = WET_HgP * NDT 

@@ -75,6 +75,7 @@
 !                              #include "CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
+!  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -727,6 +728,8 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Remove duplicate definitions of CV-FLX-$,
 !                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
+!  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
+!                              SPACING*3 since it has units of kg/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -857,6 +860,11 @@
       N           = N + 1
       CATEGORY(N) = 'WETDLS-$'
       DESCRIPT(N) = 'Wet deposition'
+      OFFSET(N)   = SPACING * 3
+
+      N           = N + 1
+      CATEGORY(N) = 'MC-FRC-$'
+      DESCRIPT(N) = 'Moist conv fraction'
       OFFSET(N)   = SPACING * 3
 
       N           = N + 1
@@ -1109,10 +1117,14 @@
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
 
-      N           = N + 1
-      CATEGORY(N) = 'MC-FRC-$'
-      DESCRIPT(N) = 'Moist conv fraction'
-      OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
+      ! Prior to 10/21/10:
+      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
+      !N           = N + 1
+      !CATEGORY(N) = 'MC-FRC-$'
+      !DESCRIPT(N) = 'Moist conv fraction'
+      !OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
