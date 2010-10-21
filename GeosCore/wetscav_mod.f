@@ -3547,7 +3547,7 @@
 !******************************************************************************
 !   
       USE TRACER_MOD, ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
-
+      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (eck, 10/15/10)
       ! Arguments
       REAL*8, INTENT(IN) :: DT, F, K_WASH, PP, TK
 
@@ -3561,7 +3561,9 @@
       ! Washout only happens at or above 268 K
       !
       ! Now allow washout of Hg aerosols (cdh, 4/16/09)
-      IF ( ( TK >= 268d0 ) .OR. ITS_A_MERCURY_SIM() ) THEN
+      IF ( ( TK >= 268d0 ) .OR. ITS_A_MERCURY_SIM() 
+     & .OR. ITS_A_POPS_SIM()) THEN
+
          WASHFRAC = F * ( 1d0 - EXP( -K_WASH * ( PP / F ) * DT ) )
       ELSE
          WASHFRAC = 0d0
@@ -5295,9 +5297,9 @@
       ENDDO
 
       ! Error check: Make sure that NSOL is less than NSOLMAX
-      IF ( NSOL > NSOLMAX ) THEN
+       IF ( NSOL > NSOLMAX ) THEN
          CALL ERROR_STOP( 'NSOL > NSOLMAX!', 'WETDEPID (wetscav_mod.f)')
-      ENDIF
+       ENDIF
       
       ! Also check to see if NSOL is larger than the maximum
       ! number of soluble tracers for a particular simulation
@@ -5318,6 +5320,7 @@
          WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )
      &        NN, TRIM( TRACER_NAME(N) ), N, TRACER_MW_G(N)
       ENDDO
+    
       
       ! Return to calling program
       END SUBROUTINE WETDEPID
@@ -5349,6 +5352,7 @@
       USE LOGICAL_MOD, ONLY : LSSALT, LSULF, LSPLIT, LCRYST
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACER_MOD,  ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
 #     include "CMN_SIZE"   ! Size Parameters
@@ -5422,7 +5426,13 @@
          NMAX = 2                               ! Hg2, HgP
          IF ( LSPLIT ) NMAX = NMAX + 14         ! Tagged tracers
 
-      ELSE 
+      ELSE IF (ITS_A_POPS_SIM()) THEN
+         ! ------------------
+         ! POPs simulation
+         ! -----------------
+         NMAX=1
+
+      ELSE
 
          !-----------------------
          ! Everything else

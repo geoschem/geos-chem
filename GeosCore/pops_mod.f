@@ -103,6 +103,11 @@
 
       REAL*8                 :: K_DRYD2(IIPAR,JJPAR)
 
+      IF (FIRST) THEN 
+          CALL INIT_POPS
+          FIRST = .FALSE.
+      END IF
+
       !=================================================================
       ! CHEMPOPS begins here!
       !
@@ -118,7 +123,7 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMPOPS: a GET_GLOBAL_OH' )
 
       ENDIF
-      
+         
       !=================================================================
       ! Perform chemistry on POPS TRACERS
       !=================================================================
@@ -221,7 +226,7 @@
 
 
 !Here, put some code that reacts popg into popp and deposits both
-! save out dry dep tracers
+
 ! save into stt
 
       END SUBROUTINE CHEM_POPGP 
