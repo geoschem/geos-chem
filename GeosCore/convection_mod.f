@@ -1605,7 +1605,7 @@
       REAL*8            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL*8            :: SDT,         T0,       T0_SUM,  T1    
       REAL*8            :: T2,          T3,       T4,      TCVV   
-      REAL*8            :: TCVV_DNS,    TSUM
+      REAL*8            :: TCVV_DNS,    TSUM,     DT_DNS
       REAL*8            :: LOST,        GAINED,   WETLOSS, MASS_WASH
       REAL*8            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
       REAL*8            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
