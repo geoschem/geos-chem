@@ -252,7 +252,7 @@
          IDENT%LEV         = 2                      ! This level
          IDENT%ERRMSG      = ''                     ! Error msg
         !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
-         IDENT%VERBOSE     = ( I==67 .and. J==32 )  ! Debug box
+         IDENT%VERBOSE     = ( I==67 .and. J==31 )  ! Debug box
 
          ! Pressure edges
          DO L = 1, LLPAR+1
@@ -750,20 +750,18 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
-      USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
-      USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
-!     USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DAO_MOD,          ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
+      USE DIAG_MOD,         ONLY : AD37, AD38,   CONVFLUP
+      USE GRID_MOD,         ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,      ONLY : LDYNOCEAN, LGTMM
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
-      USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
-      USE TIME_MOD,          ONLY : GET_TS_CONV
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP 
-      USE WETSCAV_MOD,       ONLY : COMPUTE_F
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
+      USE PRESSURE_MOD,     ONLY : GET_BP, GET_PEDGE
+      USE TIME_MOD,         ONLY : GET_TS_CONV
+      USE TRACER_MOD,       ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,     ONLY : IS_Hg2, IS_HgP 
+      USE WETSCAV_MOD,      ONLY : COMPUTE_F
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
       IMPLICIT NONE
 
@@ -1508,8 +1506,7 @@
       USE WETSCAV_MOD,      ONLY : LS_F_PRIME
 !
 ! !INPUT PARAMETERS:
-!
-      
+!  
       TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
       TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
       TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
@@ -1777,33 +1774,46 @@
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
-                  ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
-                  IF ( QC_SCAV > 0d0 ) THEN 
-
-                     ! The fraction ALPHA is the fraction of raindrops that 
-                     ! will re-evaporate soluble tracer while falling from 
-                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
-                     IF ( PDOWN(K+1) > 0d0 ) THEN 
-                        ALPHA = ( REEVAPCN(K) * BXHEIGHT(K) * 100d0 )
-     &                        / ( PDOWN(K+1)                        ) 
-                        
-                     ELSE
-                        ALPHA = 0d0
-                     ENDIF
-                     
-                     ! We assume that 1/2 of the soluble tracer w/in the
-                     ! raindrops actually gets resuspended into the atmosphere
-                     ALPHA2   = ALPHA * 0.5d0
-
-                     ! The resuspension takes 1/2 the amount of the scavenged
-                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
-                     QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
-
-                     ! ... then we decrement QC_SCAV accordingly
-                     QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
-
-                  ENDIF
-                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+!------------------------------------------------------------------------------
+! NOTE: Leave this section commented out for now (bmy, 11/8/10)
+!                  ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - -
+!                  IF ( QC_SCAV > 0d0 ) THEN 
+!
+!                     ! The fraction ALPHA is the fraction of raindrops that 
+!                     ! will re-evaporate soluble tracer while falling from 
+!                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
+!                     IF ( PDOWN(K+1) > 0d0 ) THEN 
+!                        ALPHA = ( REEVAPCN(K) * BXHEIGHT(K) * 100d0 )
+!     &                        / ( PDOWN(K+1)                        ) 
+!                        
+!                     ELSE
+!                        ALPHA = 0d0
+!                     ENDIF
+!                     
+!                     ! We assume that 1/2 of the soluble tracer w/in the
+!                     ! raindrops actually gets resuspended into the atmosphere
+!                     ALPHA2   = ALPHA * 0.5d0
+!
+!                     if ( ident%verbose .and. K==10 .and. IC==7 ) then
+!                        print*, '###---------------------------------'
+!                        print*, '### ISTEP, K  : ', istep, k
+!                        print*, '### REEVAPCN  : ', reevapcn(k)
+!                        print*, '### BXHEIGHT  : ', bxheight(k)
+!                        print*, '### pdown(k)  : ', pdown(k)
+!                        print*, '### pdown(k+1): ', pdown(k+1)
+!                        print*, '### alpha     : ', alpha
+!                     endif
+!                        
+!                     ! The resuspension takes 1/2 the amount of the scavenged
+!                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+!                     QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
+!
+!                     ! ... then we decrement QC_SCAV accordingly
+!                     QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
+!
+!                  ENDIF
+!                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+!------------------------------------------------------------------------------
 
                   ! Update QC taking entrainment into account
                   ! Prevent div by zero condition

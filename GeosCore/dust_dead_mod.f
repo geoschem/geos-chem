@@ -364,9 +364,9 @@
       !
       !   (GEOS-5 - MERRA)/GEOS-5 * 100  is 26.9% in each size bin.
       !
-      ! We need scale the parameter FLX_MSS_FDG_FCT to make the dust 
-      ! emissions consistent.  Consequently, to bring MERRA 4x5 dust 
-      ! emissions up to GEOS-5 levels, we need to DIVIDE the 
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the 
+      ! dust emissions consistent.  Consequently, to bring MERRA 4x5 
+      ! dust emissions up to GEOS-5 levels, we need to DIVIDE the 
       ! FLX_MSS_FDG_FCT used for GEOS-5 by (1. - 0.269) = 0.731.
       !
       !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
