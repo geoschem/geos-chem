@@ -98,7 +98,8 @@
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_DIAGb,  GET_DIAGe
+      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_A3
+      USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX
@@ -149,8 +150,12 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
+#if defined( MERRA ) 
+      SCALE     = DBLE( GET_CT_A3() ) + 1d-32
+#else
       SCALE     = DBLE( GET_CT_A6() ) + 1d-32
-        
+#endif     
+  
       !=================================================================
       ! Write data to the bpch file
       !=================================================================

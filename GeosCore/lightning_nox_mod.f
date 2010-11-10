@@ -816,8 +816,11 @@
 
                ! Store total, IC, and CG flash rates in AD56
                AD56(I,J,1) = AD56(I,J,1) +   RATE_SAVE
-               AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
+               !AD56(I,J,2) = AD56(I,J,2) + ( RATE_SAVE * ( 1d0 - X ) )
                AD56(I,J,3) = AD56(I,J,3) + ( RATE_SAVE *         X   )
+
+
+               AD56(I,J,2) = AD56(I,J,2) + H0 * 1d-3
 
             ENDIF
 
@@ -1610,8 +1613,11 @@
          ! OTD-LIS Local file for CTH parameterization
          FILENAME = 
      &        'lightning_NOx_200907/OTD-LIS-Local-Redist.CTH.v4.' // 
+#if defined( MERRA )
+     &        'merra.' // GET_RES_EXT()
+#else
      &        GET_NAME_EXT() // '.' // GET_RES_EXT()
-
+#endif
       ELSE IF ( LMFLUX ) THEN
 
          ! OTD-LIS Local file for MFLUX parameterization
@@ -1777,6 +1783,25 @@
       WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GCAP'
       SCALE = 1.0d0
 
+#elif defined( MERRA ) && defined( GRID4x5 )
+
+      !-------------------------------------
+      ! MERRA: 4 x 5 global simulation
+      !-------------------------------------
+      ! Note: Begin to depreciate anything except CTH
+
+      IF ( LCTH ) THEN
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE / 24.766724d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE / 21.839849d0
+         ENDIF
+      ELSE
+         WRITE( 6, '(a)' )
+     &        'Warning: Use CTH with MERRA, and OTD/LIS is recommended'
+         SCALE = 1.0d0
+      ENDIF
+      
 #elif defined( GEOS_5 ) && defined( GRID4x5 )
 
       !-------------------------------------
@@ -1848,58 +1873,6 @@
       WRITE(6,*) 'OTD/LIS not yet available for GEOS5 Nested NA sim.'
       CALL FLUSH(6)
       SCALE = 1.0d0
-
-#elif defined( MERRA ) && defined( GRID4x5 )
-
-      !-------------------------------------
-      ! MERRA: 4 x 5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%  NOTE: For now, treat MERRA like GEOS-5, but we may  %%%
-         !%%%  need to rescale this in the future (bmy, 8/13/10)   %%%
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
-         !       and compared against OTD/LIS May 1995-Dec 2005
-         !       (ltm, bmy, 7/10/09)
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 21.4694d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 18.3875d0
-         ENDIF
-
-      ELSE
-         WRITE( 6, '(a)' ) 'Warning: OTD-LIS MERRA scaling only for CTH'   
-         SCALE = 1.0d0
-      ENDIF
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !-------------------------------------
-      ! GEOS-5: 2 x 2.5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
-
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         !%%%  NOTE: For now, treat MERRA like GEOS-5, but we may  %%%
-         !%%%  need to rescale this in the future (bmy, 8/13/10)   %%%
-         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
-         !       and compared against OTD/LIS May 1995-Dec 2005
-         !       (ltm, bmy, 7/10/09)
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 64.0538d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 52.0135d0
-         ENDIF
-      ELSE
-         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
-         SCALE = 1.0d0
-      ENDIF
-
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
