@@ -1,64 +1,50 @@
-! $Id: lightning_nox_mod.f,v 1.3 2010/02/02 16:57:52 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: lightning_nox_mod
+!
+! !DESCRIPTION: Module LIGHTNING_NOX_MOD contains variables and routines for 
+!  emitting NOx from lightning into the atmosphere.  Original code comes from 
+!  the old GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE LIGHTNING_NOX_MOD
 !
-!******************************************************************************
-!  Module LIGHTNING_NOX_MOD contains variables and routines for emitting NOx
-!  from lightning into the atmosphere.  Original code comes from the old 
-!  GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  Overhauled 
-!  for updated parameterization schemes: CTH, MFLUX and PRECON.  Now also
-!  uses the near-land formulation (i.e. offshore boxes also get treated as
-!  if they were land boxes).  (ltm, rch, bmy, 4/14/04, 1/13/10)  
+! !USES:
 !
-!  !%%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+      IMPLICIT NONE
+      PRIVATE
 !
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) NNLIGHT        (INTEGER) : # of vertical points in lightning CDF's
-!  (2 ) NLTYPE         (INTEGER) : Types of lightning to consider
-!  (3 ) PROFILE        (REAL*8 ) : Array to hold lightning CDF's read from disk
-!  (4 ) SLBASE         (REAL*8 ) : Array to hold NOx lightning emissions
-!  (5 ) OTD_LOC_REDIST (REAL*8 ) : Array to hold OTD/LIS local redist values
-!  (6 ) OTD_REG_REDIST (REAL*8 ) : Array to hold OTD/LIS regional redist values
-!  (7 ) RFLASH_MIDLAT  (REAL*8 ) : MidLat NOx molec/flash ( 500 mol/flash )
-!  (8 ) RFLASH_TROPIC  (REAL*8 ) : Tropic NOx molec/flash ( 260 mol/flash )
-!  (9 ) EAST_WEST_DIV  (REAL*8 ) : Longitude between "AMERICAS" & "EURASIA"
-!  (10) WEST_NS_DIV    (REAL*8 ) : Latitude boundary of AMERICAN TROPICS
-!  (11) EAST_NS_DIV    (REAL*8 ) : Latitude boundary of EURASIAN TROPICS
-!  (12) T_NEG_BOT      (REAL*8 ) : Temp at bottom of neg. charge layer = 273 K
-!  (13) T_NEG_CTR      (REAL*8 ) : Temp at center of neg. charge layer = 258 K
-!  (14) T_NEG_TOP      (REAL*8 ) : Temp at top    of neg. charge layer = 233 K
-!  (15) AREA_30N       (REAL*8 ) : Grid box surface area at 30 N [m2]
-!  (16) OTD_LIS_SCALE  (REAL*8 ) : Global scaling factor to avg ann flash rate
+      PUBLIC  :: LIGHTNING
+      PUBLIC  :: EMLIGHTNING
+      PUBLIC  :: CLEANUP_LIGHTNING_NOX
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) LIGHTNING                : Driver routine for lightning emissions
-!  (2 ) LIGHTDIST                : Partitions NOx vertically w/ Pickering CDF's
-!  (3 ) FLASHES_CTH              : Computes flash rate via CTH scheme
-!  (4 ) FLASHES_MFLUX            : Computes flash rate via MFLUX scheme
-!  (5 ) FLASHES_PRECON           : Computes flash rate via PRECON scheme
-!  (6 ) GET_IC_CG_RATIO          : Gets inter-cloud/cloud-ground flash ratio 
-!  (7 ) READ_REGIONAL_REDIST     : Reads OTD-LIS regional redistrib. factors
-!  (8 ) READ_LOCAL_REDIST        : Reads OTD-LIS local redistrib. factors
-!  (9 ) EMLIGHTNING              : Saves lightning NOx into GEMISNOX array
-!  (10) GET_OTD_LIS_SCALE        : Returns avg ann flash rate scaling factor
-!  (11) INIT_LIGHTNING_NOX       : Zeroes module arrays and reads CDF data
-!  (12) CLEANUP_LIGHTNING_NOX    : Deallocates all module arrays
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  GEOS-Chem modules referenced by "lightning_nox_mod.f"
-!  ============================================================================
-!  (1 ) bpch2_mod.f              : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f                : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f               : Module w/ GEOS-Chem diagnostic arrays
-!  (4 ) directory_mod.f          : Module w/ GEOS-Chem data & metfld dirs
-!  (5 ) error_mod.f              : Module w/ I/O error and NaN check routines
-!  (6 ) file_mod.f               : Module w/ file unit numbers and error checks
-!  (7 ) grid_mod.f               : Module w/ horizontal grid information
-!  (8 ) logical_mod.f            : Module w/ GEOS-Chem logical switches
-!  (9 ) pressure_mod.f           : Module w/ routines to compute P(I,J,L)
-!  (10) transfer_mod.f           : Module w/ routines to cast & resize arrays
+      PRIVATE :: LIGHTDIST                
+      PRIVATE :: FLASHES_CTH              
+      PRIVATE :: FLASHES_MFLUX            
+      PRIVATE :: FLASHES_PRECON           
+      PRIVATE :: GET_IC_CG_RATIO          
+      PRIVATE :: READ_REGIONAL_REDIST     
+      PRIVATE :: READ_LOCAL_REDIST        
+      PRIVATE :: GET_OTD_LIS_SCALE        
+      PRIVATE :: INIT_LIGHTNING_NOX       
 !
+! !PUBLIC DATA MEMBERS:
+!
+      ! Lightning NOx emissions [molec/cm3/s]
+      REAL*8, ALLOCATABLE, PUBLIC :: EMIS_LI_NOx(:,:,:)
+!
+! !REMARKS:
+!  %%% NOTE: MFLUX and PRECON methods are now deprecated (ltm, bmy, 7/9/09)
+!                                                                             .
 !  References:
 !  ============================================================================
 !  (1 ) Price & Rind (1992), JGR, vol. 97, 9919-9933.
@@ -68,7 +54,8 @@
 !  (5 ) Sauvage et al, 2007, ACP, 
 !        http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  14 Apr 2004 - L. Murray, R. Hudman - Initial version
 !  (1 ) Based on "lightning_nox_mod.f", but updated for near-land formulation
 !        and for CTH, MFLUX, PRECON parameterizations (ltm, bmy, 5/10/06)
 !  (2 ) Now move computation of IC/CG flash ratio out of routines FLASHES_CTH, 
@@ -104,28 +91,14 @@
 !  (10) Updated OTD/LIS scaling for GEOS-5 reprocessed data (ltm, bmy, 7/10/09)
 !  (11) Updated for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
-!******************************************************************************
+!  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "lightning_nox_f_nl_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: LIGHTNING
-      PUBLIC :: EMLIGHTNING
-      PUBLIC :: CLEANUP_LIGHTNING_NOX
-      PUBLIC :: EMIS_LI_NOx
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! Scalars
       INTEGER              :: NNLIGHT
       REAL*8               :: AREA_30N
@@ -143,7 +116,6 @@
       REAL*8,  PARAMETER   :: T_NEG_TOP     = 233.0d0    ! -40 C
 
       ! Arrays
-      REAL*8,  ALLOCATABLE :: EMIS_LI_NOx(:,:,:)
       REAL*8,  ALLOCATABLE :: PROFILE(:,:)
       REAL*8,  ALLOCATABLE :: SLBASE(:,:,:)
       REAL*8,  ALLOCATABLE :: OTD_REG_REDIST(:,:)
@@ -153,20 +125,44 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lightning
+!
+! !DESCRIPTION: Subroutine LIGHTNING uses Price & Rind's formulation for 
+!  computing NOx emission from lightning (with various updates).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE LIGHTNING
 !
-!******************************************************************************
-!  Subroutine LIGHTNING_NL uses Price & Rind's formulation for computing
-!  NOx emission from lightning.  This has been modified to use the near-land
-!  formulation (i.e. offshore boxes get treated as if they were land boxes).
-!  (ltm, bmy, 5/10/06, 9/24/07)
+! !USES:
 !
+      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
+      USE DIAG56_MOD,   ONLY : AD56,      ND56
+      USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
+      USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
+      USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
+      USE LOGICAL_MOD,  ONLY : LOTDSCALE
+      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_GCTM"     ! Physical constants
+!
+! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
-!
-!  NOTES:
+!                                                                             .
+!  NOTE: all options other than CTH are now deprecated and will be removed
+!  in a future version. (L. Murray, R. Yantosca, 10 Nov 2010)
+! 
+! !REVISION HISTORY: 
+!  10 May 2006 - L. Murray - Initial version  
 !  (1 ) Now recompute the cold cloud thickness according to updated formula 
 !        from Lee Murray.  Rearranged argument lists to routines FLASHES_CTH, 
 !        FLASHES_MFLUX, FLASHES_PRECON.  Now call READ_REGIONAL_REDIST and
@@ -180,37 +176,28 @@
 !        midlatitudes (rch, ltm, bmy, 3/27/07)
 !  (3 ) Remove path-length algorithm.  Renamed from LIGHTNING_NL to LIGHTNING.
 !        Other improvements. (ltm, bmy, 9/24/07)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
-      USE DIAG56_MOD,   ONLY : AD56,      ND56
-      USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
-      USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
-      USE LOGICAL_MOD,  ONLY : LOTDSCALE
-      USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Physical constants
-
-      ! Local variables
-      LOGICAL, SAVE         :: FIRST      = .TRUE.
-      INTEGER, SAVE         :: LASTMONTH  = -1
-      INTEGER, SAVE         :: LASTSEASON = -1
-      INTEGER               :: I,         J,           L,        LCHARGE
-      INTEGER               :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
-      INTEGER               :: MONTH,     YEAR
-      REAL*8                :: A_KM2,     A_M2,        CC,       DLNP     
-      REAL*8                :: DZ,        FLASHRATE,   H0,       HBOTTOM
-      REAL*8                :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
-      REAL*8                :: P2,        P3,          RAIN,     RATE
-      REAL*8                :: RATE_SAVE, REDIST,      T1,       T2
-      REAL*8                :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
-      REAL*8                :: YMID,      Z_IC,        Z_CG,     ZUP
-      REAL*8                :: XMID
-      REAL*8                :: VERTPROF(LLPAR)
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST      = .TRUE.
+      INTEGER, SAVE :: LASTMONTH  = -1
+      INTEGER, SAVE :: LASTSEASON = -1
+      INTEGER       :: I,         J,           L,        LCHARGE
+      INTEGER       :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
+      INTEGER       :: MONTH,     YEAR
+      REAL*8        :: A_KM2,     A_M2,        CC,       DLNP     
+      REAL*8        :: DZ,        FLASHRATE,   H0,       HBOTTOM
+      REAL*8        :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
+      REAL*8        :: P2,        P3,          RAIN,     RATE
+      REAL*8        :: RATE_SAVE, REDIST,      T1,       T2
+      REAL*8        :: TOTAL,     TOTAL_CG,    TOTAL_IC, X       
+      REAL*8        :: YMID,      Z_IC,        Z_CG,     ZUP
+      REAL*8        :: XMID
+      REAL*8        :: VERTPROF(LLPAR)
 
       !=================================================================
       ! LIGHTNING begins here!
@@ -848,32 +835,53 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE LIGHTNING
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lightdist
+!
+! !DESCRIPTION: Subroutine LIGHTDIST reads in the CDF used to partition the 
+!  column lightning NOx into the GEOS-Chem vertical layers. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE LIGHTDIST( I, J, LTOP, H0, XLAT, TOTAL, VERTPROF )
 !
-!******************************************************************************
-!  Subroutine LIGHTDIST reads in the CDF used to partition the 
-!  column lightning NOx into the GEOS-CHEM vertical layers. 
-!  (yhw, 1997; mje, ltm, bmy, 9/18/02, 9/24/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J     (INTEGER) : (Lon,Lat) indices of the surface grid box
-!  (3  ) LTOP     (INTEGER) : Level where convective cloud top is found
-!  (4  ) H0       (REAL*8 ) : Convective cloud top height [m]
-!  (5  ) XLAT     (REAL*8 ) : Latitude of surface grid box (I,J) [degrees]
-!  (6  ) TOTAL    (REAL*8 ) : Total # of NOx molec. released from lightning
-!  (7  ) VERTPROF (REAL*8 ) : Vertical profile of lightning emissions
+      USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
+      USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
+      USE LOGICAL_MOD,   ONLY : LPRECON
+
+#     include "CMN_SIZE"                        ! Size parameters
 !
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I                 ! Longitude index
+      INTEGER, INTENT(IN)  :: J                 ! Latitude index 
+      INTEGER, INTENT(IN)  :: LTOP              ! Level of conv cloud top
+      REAL*8,  INTENT(IN)  :: H0                ! Conv cloud top height [m]
+      REAL*8,  INTENT(IN)  :: XLAT              ! Latitude value [degrees]
+      REAL*8,  INTENT(IN)  :: TOTAL             ! Column Total # of LNOx molec 
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: VERTPROF(LLPAR)   ! Vertical profile of LNOx
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  (1 ) Pickering et al., JGR 103, 31,203 - 31,316, 1998.
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2002 - M. Evans - Initial version (based on Yuhang Wang's code)
 !  (1 ) Use functions IS_LAND and IS_WATER to determine if the given grid
 !        box is over land or water.  These functions work for all DAO met
 !        field data sets. (bmy, 4/2/02)
@@ -896,28 +904,18 @@
 !  (8 ) Now uses near-land formulation (ltm, bmy, 5/10/06)
 !  (9 ) Added extra safety check for pathological boxes (bmy, 12/11/06)
 !  (10) Remove the near-land formulation, except for PRECON (ltm, bmy, 9/24/07)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
-      USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
-      USE LOGICAL_MOD,   ONLY : LPRECON
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I,  J,    LTOP
-      REAL*8,  INTENT(IN)  :: H0, XLAT, TOTAL
-      REAL*8,  INTENT(OUT) :: VERTPROF(LLPAR)
-
-      ! Local variables
-      LOGICAL              :: ITS_LAND
-      INTEGER              :: M, MTYPE, L, III, IOS, IUNIT, JJJ
-      REAL*8               :: ZHEIGHT
-      REAL*8               :: FRAC(LLPAR)
-      CHARACTER(LEN=255)   :: FILENAME
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: ITS_LAND
+      INTEGER            :: M, MTYPE, L, III, IOS, IUNIT, JJJ
+      REAL*8             :: ZHEIGHT
+      REAL*8             :: FRAC(LLPAR)
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! LIGHTDIST begins here!
@@ -1023,45 +1021,53 @@
          VERTPROF(L) = ( FRAC(L) * TOTAL )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE LIGHTDIST
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: flashes_cth
+!
+! !DESCRIPTION: Subroutine FLASHES\_CTH determines the rate of lightning 
+!  flashes per minute based on the height of convective cloud tops, and the 
+!  intra-cloud to cloud-ground strike ratio.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE FLASHES_CTH( I, J, HEIGHT, FLASHRATE )
 !
-!******************************************************************************
-!  Subroutine FLASHES_CTH determines the rate of lightning flashes per minute
-!  based on the height of convective cloud tops, and the intra-cloud to 
-!  cloud-ground strike ratio.  (ltm, bmy, 5/10/06, 9/24/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J        : GEOS-Chem longitude & latitude indices
-!  (3  ) HEIGHT      : Height of convective cloud tops [m]
-! 
-!  Arguments as Output:
-!  ============================================================================
-!  (4  ) FLASHRATE   : Lightning flash rate [flashes/minute]
+#     include "define.h"
+
+      USE DAO_MOD, ONLY : IS_ICE
+      USE DAO_MOD, ONLY : IS_LAND
+      USE DAO_MOD, ONLY : IS_WATER
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I           ! Longitude index
+      INTEGER, INTENT(IN)  :: J           ! Latitude index
+      REAL*8,  INTENT(IN)  :: HEIGHT      ! Height of conv cloud top [m]
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: FLASHRATE   ! Lightning flash rate [flashes/min]
+!
+! !REVISION HISTORY: 
+!  10 May 2006 - L. Murray - Initial version
 !  (1  ) Subroutine renamed from FLASHES (ltm, bmy, 5/10/06)
 !  (2  ) Remove CCTHICK, IC_CG_RATIO as arguments.  Remove computation of
 !         IC_CG_RATIO and move that to GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
 !  (3  ) Remove the near-land formulation (i.e. use function IS_LAND 
 !         instead of IS_NEAR).(ltm, bmy, 9/24/07)
-!******************************************************************************
-! 
-#     include "define.h"
-
-      ! References to F90 Modules
-      USE DAO_MOD, ONLY     : IS_ICE, IS_LAND, IS_WATER
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-      REAL*8,  INTENT(IN)  :: HEIGHT
-      REAL*8,  INTENT(OUT) :: FLASHRATE
-
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !================================================================
       ! FLASHES_CTH begins here!
       !
@@ -1101,47 +1107,57 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE FLASHES_CTH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FLASHES_MFLUX
+!
+! !DESCRIPTION: Subroutine FLASHES\_MFLUX determines the rate of lightning 
+!  flashes per minute, based on the upward cloud mass flux [kg m^-2 min^-1] 
+!  at 0.44 sigma, and the intra-cloud to cloud-ground strike ratio. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
 !
-!******************************************************************************
-!  Subroutine FLASHES_MFLUX determines the rate of lightning flashes per
-!  minute, based on the upward cloud mass flux [kg m^-2 min^-1] at 0.44 sigma,
-!  and the intra-cloud to cloud-ground strike ratio. 
-!  (ltm, bmy, 5/10/06, 12/11/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
-!  (3  ) HEIGHT      : Height of convective cloud tops [m]
-!  (4  ) IC_CG_RATIO : Intra-cloud / cloud-ground flash ratio [unitless]
+      USE DAO_MOD,  ONLY : IS_ICE
+      USE GRID_MOD, ONLY : GET_AREA_M2
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I             ! Longitude index
+      INTEGER, INTENT(IN)  :: J             ! Latitude index
+      REAL*8,  INTENT(IN)  :: MFLUX         ! Cloud mass flux [kg/m2/min]
+      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Inter-cloud/cloud-ground ratio
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
+!
+! !REMARKS:
+!  %%%%% NOTE: This routine is deprecated %%%%%
 ! 
-!  Arguments as Output:
-!  ============================================================================
-!  (5  ) FLASHRATE   : Total lightning flash rate [flashes/minute]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  10 May 2006 - L. Murray - Initial version
 !  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
 !        argument.  Remove computation of IC_CG_RATIO and move that to 
 !        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 Modules
-      USE DAO_MOD,     ONLY : IS_ICE
-      USE GRID_MOD,    ONLY : GET_AREA_M2
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-      REAL*8,  INTENT(IN)  :: MFLUX
-      REAL*8,  INTENT(IN)  :: IC_CG_RATIO
-      REAL*8,  INTENT(OUT) :: FLASHRATE
-
-      ! Local Variables
-      REAL*8               :: F_CG, LF_CG, MF
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: F_CG, LF_CG, MF
 
       !=================================================================
       ! FLASHES_MFLUX begins here!
@@ -1210,50 +1226,64 @@
          
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE FLASHES_MFLUX
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: flashes_precon
+!
+! !DESCRIPTION: Subroutine FLASHES\_PRECON determines the rate of lightning 
+!  flashes per minute, based on the rate of surface-level convective 
+!  precipitation, and the intra-cloud to cloud-ground strike ratio.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
 !
-!****************************************************************************
-!  Subroutine FLASHES_PRECON determines the rate of lightning flashes per
-!  minute, based on the rate of surface-level convective precipitation, 
-!  and the intra-cloud to cloud-ground strike ratio.  
-!  (ltm, bmy, 5/10/06, 9/24/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J        : GEOS-CHEM longitude & latitude indices
-!  (3  ) HEIGHT      : Height of convective cloud tops [m]
-!  (4  ) IC_CG_RATIO : Inter-Cloud (IC) flashes / Cloud-Ground (CG) flashes
+      USE DAO_MOD,  ONLY : IS_NEAR
+      USE DAO_MOD,  ONLY : IS_ICE
+      USE DAO_MOD,  ONLY : IS_WATER
+      USE GRID_MOD, ONLY : GET_AREA_M2
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I             ! Longitude index
+      INTEGER, INTENT(IN)  :: J             ! Latitude index
+      REAL*8,  INTENT(IN)  :: RAIN          ! Convective precip
+      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Intra-cloud/cloud-ground ratio
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
+!
+! !REMARKS:
+!  %%%%% NOTE: This routine is deprecated %%%%%
 ! 
-!  Arguments as Output:
-!  ============================================================================
-!  (5  ) FLASHRATE   : Total lightning flash rate [flashes/minute]
-!
-!  NOTES:
+! !REVISION HISTORY: 
+!  10 May 2006 - R. Yantosca - Initial version 
 !  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
 !        argument.  Remove computation of IC_CG_RATIO and move that to 
 !        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
 !  (2 ) Do not treat land neighbors as land anymore. (ltm, 09/24/07)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 Modules
-      USE DAO_MOD,     ONLY : IS_NEAR, IS_ICE, IS_WATER
-      USE GRID_MOD,    ONLY : GET_AREA_M2
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-      REAL*8,  INTENT(IN)  :: RAIN
-      REAL*8,  INTENT(IN)  :: IC_CG_RATIO
-      REAL*8,  INTENT(OUT) :: FLASHRATE
-
-      ! Local Variables
-      LOGICAL              :: ITS_LAND
-      REAL*8, PARAMETER    :: THRESH = 0.25      ! Min % of land in box 
-      REAL*8               :: F_CG, LF_CG, PR
+! !LOCAL VARIABLES:
+!
+      LOGICAL           :: ITS_LAND
+      REAL*8            :: F_CG, LF_CG, PR
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: THRESH = 0.25      ! Min % of land in box 
 
       !=================================================================
       ! FLASHES_PRECON begins here!
@@ -1357,41 +1387,46 @@
       ! to get the total flash rate in [flashes/min]
       FLASHRATE   = LF_CG / F_CG
 
-      ! Return to calling program
       END SUBROUTINE FLASHES_PRECON
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_ic_cg_ratio
+!
+! !DESCRIPTION: Function GET\_IC\_CG\_RATIO calculates the Intra-Cloud (IC) 
+!  and Cloud-to-Ground (CG) lightning flash ratio based on the method of 
+!  Price and Rind 1993, which is calculated from the cold-cloud depth 
+!  (CCTHICK).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_IC_CG_RATIO( CCTHICK ) RESULT( IC_CG_RATIO )
 !
-!******************************************************************************
-!  Function GET_IC_CG_RATIO calculates the Intra-Cloud (IC) and Cloud-to-
-!  Ground (CG) lightning flash ratio based on the method of Price and Rind 
-!  1993, which is calculated from the cold-cloud depth (CCTHICK).
-!  (ltm, bmy, 12/11/06, 7/8/09)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) CCTHICK     (REAL*8) : Cold-Cloud Thickness [m]
-! 
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) IC_CG_RATIO (REAL*8) : IC / CG flash ratio  [unitless]
+      REAL*8,  INTENT(IN)  :: CCTHICK       ! Cold cloud thickness [m]
 !
-!  NOTES:
+! !RETURN VALUE:
+!
+      REAL*8               :: IC_CG_RATIO   ! Intra-cloud/cloud-ground ratio
+!
+! !REVISION HISTORY: 
+!  11 Dec 2006 - R. Yantosca - Initial version
 !  (1 ) Split off from FLASHES_CTH, FLASHES_MFLUX, FLASHES_PRECON into this
 !        separate function (ltm, bmy, 12/11/06)
 !  (2 ) Bug fix for XLF compiler (morin, bmy, 7/8/09)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      REAL*8,  INTENT(IN)  :: CCTHICK
-
-      ! Local Variables
-      REAL*8               :: CC, F_CG
-
-      ! Function value
-      REAL*8               :: IC_CG_RATIO
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: CC, F_CG
 
       !=================================================================
       ! GET_IC_CG_RATIO begins here!
@@ -1467,45 +1502,59 @@
       ! Intra-Cloud / Cloud-Ground flash ratio
       IC_CG_RATIO = ( 1d0 - F_CG ) / F_CG
 
-      ! Return to calling program
       END FUNCTION GET_IC_CG_RATIO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_regional_redist
+!
+! !DESCRIPTION: Subroutine READ\_REGIONAL\_REDIST reads in monthly factors 
+!  in order to redistribute GEOS-Chem flash rates according the OTD-LIS 
+!  climatological regional redistribution method.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_REGIONAL_REDIST( MONTH )
 !
-!******************************************************************************
-!  Subroutine READ_REGIONAL_REDIST reads in monthly factors in order to 
-!  redistribute GEOS-Chem flash rates according the OTD-LIS climatological 
-!  regional redistribution method. (ltm, bmy, 5/10/06, 9/24/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MONTH (INTEGER) : Current month (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,   ONLY : LCTH
+      USE LOGICAL_MOD,   ONLY : LMFLUX
+      USE LOGICAL_MOD,   ONLY : LPRECON
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"                ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: MONTH   ! Current month
+! 
+! !REVISION HISTORY:
+!  10 May 2006 - R. Yantosca - Initial version
 !  (1 ) Change CTH filename from "v0" to "v2". Renamed to READ_REGIONAL_REDIST.
 !        (lth, bmy, 2/22/07)
 !  (2 ) Change all filenames from "v2" to "v3".  Also now read from the 
 !        directory lightning_NOx_200709. (ltm, bmy, 9/24/07)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LCTH,         LMFLUX,     LPRECON
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"      ! Size parameters
-
-      INTEGER, INTENT(IN)    :: MONTH
-
-      ! Local variables
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: TAU0
-      CHARACTER(LEN=255)     :: FILENAME
+! !LOCAL VARIABLES:
+!
+      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8             :: TAU0
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READ_OTD_LIS_REDIST begins here!
@@ -1551,25 +1600,47 @@
       ! Cast to REAL*8 and resize if necessary
       CALL TRANSFER_2D( ARRAY(:,:,1), OTD_REG_REDIST )
 
-      ! Return to calling program 
       END SUBROUTINE READ_REGIONAL_REDIST
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_local_redist
+!
+! !DESCRIPTION: Subroutine READ\_LOCAL\_REDIST reads in seasonal factors 
+!  in order to redistribute GEOS-Chem flash rates according the "local 
+!  redistribution" method of Bastien Sauvage.  This helps to make sure 
+!  that the lightning flashes occur according to the distribution of 
+!  observed convection.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_LOCAL_REDIST( MONTH )
 !
-!******************************************************************************
-!  Subroutine READ_LOCAL_REDIST reads in seasonal factors in order to 
-!  redistribute GEOS-Chem flash rates according the "local redistribution"
-!  method of Bastien Sauvage.  This helps to make sure that the lightning
-!  flashes occur according to the distribution of observed convection.
-!  (bastien, bmy, 1/26/07, 7/10/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) MONTH (INTEGER) : Current month (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE LOGICAL_MOD,   ONLY : LCTH
+      USE LOGICAL_MOD,   ONLY : LMFLUX
+      USE LOGICAL_MOD,   ONLY : LPRECON
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"                ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: MONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  26 Jan 2007 - B. Sauvage - Initial version
 !  (1 ) Change from seasonal to monthly.  Rename all filenames from "v2"
 !        to "v3". (ltm, bmy, 9/24/07)
 !  (2 ) Change all filenames from "v2" to "v3".  Also now read from the 
@@ -1579,24 +1650,16 @@
 !  (4 ) Now read from lightning_NOx_200907 directory for GEOS-4 and
 !        GEOS-5 CTH parameterizations.  Updated OTD/LIS for GEOS-5 based on
 !        4+ years of data; removed temporary fixes. (ltm, bmy, 7/10/09)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LCTH,         LMFLUX,     LPRECON
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"      ! Size parameters
-
-      INTEGER, INTENT(IN)    :: MONTH
-
-      ! Local variables
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8                 :: TAU0
-      CHARACTER(LEN=255)     :: FILENAME
+! !LOCAL VARIABLES:
+!
+      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8             :: TAU0
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READ_LOCAL_REDIST begins here!
@@ -1660,19 +1723,39 @@
       ! Cast to REAL*8 and resize if necessary
       CALL TRANSFER_2D( ARRAY(:,:,1), OTD_LOC_REDIST )
 
-      ! Return to calling program 
       END SUBROUTINE READ_LOCAL_REDIST
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emlightning
+!
+! !DESCRIPTION: Subroutine EMLIGHTNING converts lightning emissions to 
+!  [molec/cm3/s] and stores them in the GEMISNOX array, which gets passed 
+!  to SMVGEAR.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMLIGHTNING( I, J )
 !
-!******************************************************************************
-!  Subroutine EMLIGHTNING converts lightning emissions to [molec/cm3/s]
-!  and stores them in the GEMISNOX array, which gets passed to SMVGEAR.
-!  (bmy, 10/9/97, 10/3/07)
-!  
-!  NOTES:
+! !USES:
+!
+      USE DAO_MOD,  ONLY : BXHEIGHT
+      USE DIAG_MOD, ONLY : AD32_li
+
+#     include "CMN_SIZE"         ! Size parameters
+#     include "CMN_DIAG"         ! ND32
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I   ! Longitude index
+      INTEGER, INTENT(IN) :: J   ! Latitude index
+! 
+! !REVISION HISTORY: 
+!  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
 !        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
 !  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
@@ -1682,19 +1765,13 @@
 !        "lightning_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
 !        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,  ONLY : BXHEIGHT
-      USE DIAG_MOD, ONLY : AD32_li
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND32
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!     
       INTEGER             :: L
       REAL*8              :: TMP
 
@@ -1718,21 +1795,44 @@
           ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE EMLIGHTNING
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_otd_lis_scale
+!
+! !DESCRIPTION: Function GET\_OTD\_LIS\_SCALE returns a met-field dependent 
+!  scale factor which is to be applied to the lightning flash rate to bring 
+!  the annual average flash rate to match that of the OTD-LIS climatology 
+!  ( ~ 45.9 flashes/sec ). Computed by running the model over the 11-year 
+!  OTD-LIS campaign window and comparing the average flash rates.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_OTD_LIS_SCALE() RESULT( SCALE )
 !
-!******************************************************************************
-!  Function GET_OTD_LIS_SCALE returns a met-field dependent scale factor which
-!  is to be applied to the lightning flash rate to bring the annual average 
-!  flash rate to match that of the OTD-LIS climatology ( ~ 45.9 flashes/sec ).
-!  Computed by running the model over the 11-year OTD-LIS campaign window and 
-!  comparing the average flash rates. (ltm, 9/24/07, 1/13/10)
+! !USES:
 !
-!  NOTES:
+#     include "define.h"
+
+      USE LOGICAL_MOD, ONLY : LCTH
+      USE LOGICAL_MOD, ONLY : LMFLUX
+      USE LOGICAL_MOD, ONLY : LPRECON
+      USE LOGICAL_MOD, ONLY : LOTDLOC
+!
+! !RETURN VALUE:
+!
+      REAL*8 :: SCALE   ! Scale factor
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  24 Sep 2007 - L. Murray - Initial version
 !  (1 ) Added MFLUX, PRECON scaling for GEOS-4.  Also write messages for met
 !        field types/grids where scaling is not defined. (ltm, bmy, 11/29/07)
 !  (2 ) Now use different divisor for local redist (ltm, bmy, 2/20/08)
@@ -1745,16 +1845,13 @@
 !        temporary fixes. (bmy, 7/10/09)
 !  (7 ) Modification for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
 !  13 Aug 2010 - R. Yantosca - For now, treat MERRA like GEOS-5
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "define.h"
-
-      USE LOGICAL_MOD,   ONLY : LCTH, LMFLUX, LPRECON
-      USE LOGICAL_MOD,   ONLY : LOTDLOC
-
-      ! Local variables
-      REAL*8 :: SCALE
-
+! !LOCAL VARIABLES:
+!
       !=================================================================
       ! Define the average annual flash rate (flashes per second), as
       ! calculated from the OTD-LIS HR Monthly Climatology observations
@@ -1949,19 +2046,43 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_OTD_LIS_SCALE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_lightning_nox
+!
+! !DESCRIPTION: Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  
+!  It also reads the lightning CDF data from disk before the first lightning 
+!  timestep. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_LIGHTNING_NOX
 !
-!******************************************************************************
-!  Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  It also 
-!  reads the lightning CDF data from disk before the first lightning timestep. 
-!  (bmy, 4/14/04, 1/24/08)
+! !USES:
 !
-!  NOTES:
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE FILE_MOD,      ONLY : IOERROR
+      USE FILE_MOD,      ONLY : IU_FILE
+      USE GRID_MOD,      ONLY : GET_YEDGE
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,   ONLY : LCTH
+      USE LOGICAL_MOD,   ONLY : LMFLUX
+      USE LOGICAL_MOD,   ONLY : LPRECON
+      USE LOGICAL_MOD,   ONLY : LOTDLOC
+      USE LOGICAL_MOD,   ONLY : LOTDREG
+      USE LOGICAL_MOD,   ONLY : LOTDSCALE
+
+#     include "CMN_SIZE"      ! Size parameters
+! 
+! !REVISION HISTORY:
+!  14 Apr 2004 - R. Yantosca - Initial version
 !  (1 ) Now reference DATA_DIR from "directory_mod.f"
 !  (2 ) Now call GET_MET_FIELD_SCALE to initialize the scale factor for
 !        each met field type and grid resolution (bmy, 8/25/05)
@@ -1975,23 +2096,16 @@
 !        INIT_LIGHTNING_NOX.  Now allocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  (7 ) Also update location of PDF file to lightning_NOx_200709 directory. 
 !        (bmy, 1/24/08)
-!******************************************************************************
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR,   IU_FILE
-      USE GRID_MOD,      ONLY : GET_YEDGE, GET_AREA_M2
-      USE LOGICAL_MOD,   ONLY : LCTH,      LMFLUX
-      USE LOGICAL_MOD,   ONLY : LPRECON,   LOTDLOC,   LOTDREG
-      USE LOGICAL_MOD,   ONLY : LOTDSCALE
-
-#     include "CMN_SIZE"      ! Size parameters
-  
-      ! Local variables
-      INTEGER                :: AS, III, IOS, JJJ
-      REAL*8                 :: Y0, Y1
-      CHARACTER(LEN=255)     :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: AS, III, IOS, JJJ
+      REAL*8              :: Y0, Y1
+      CHARACTER(LEN=255)  :: FILENAME
 
       !=================================================================
       ! INIT_LIGHTNING_NOX begins here!
@@ -2103,23 +2217,44 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE INIT_LIGHTNING_NOX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_lightning_nox
+!
+! !DESCRIPTION: Subroutine CLEANUP_LIGHTNING_NOX deallocates all module 
+!  arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_LIGHTNING_NOX
-!
-!******************************************************************************
-!  Subroutine CLEANUP_LIGHTNING_NOX deallocates all module arrays. 
-!  (bmy, 4/14/04, 10/3/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  14 Apr 2004 - R. Yantosca - Initial version
 !  (1 ) Now deallocates OTDSCALE (ltm, bmy, 5/10/06)
 !  (2 ) Rename OTDSCALE to OTD_REG_REDIST.  Now deallocate OTD_LOC_REDIST.
 !        (bmy, 1/31/07)
 !  (3 ) Renamed from CLEANUP_LIGHTNING_NOX_NL to CLEANUP_LIGHTNING_NOX.
 !        Now deallocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+!------------------------------------------------------------------------------
+
+!
+!  Subroutine CLEANUP_LIGHTNING_NOX deallocates all module arrays. 
+!  (bmy, 4/14/04, 10/3/07)
+!
+!  NOTES:
 !******************************************************************************
 !
       !=================================================================
@@ -2131,10 +2266,6 @@
       IF ( ALLOCATED( OTD_REG_REDIST ) ) DEALLOCATE( OTD_REG_REDIST )
       IF ( ALLOCATED( OTD_LOC_REDIST ) ) DEALLOCATE( OTD_LOC_REDIST )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_LIGHTNING_NOX
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE LIGHTNING_NOX_MOD
