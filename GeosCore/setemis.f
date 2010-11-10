@@ -98,6 +98,7 @@
 !        errors (bmy, 8/6/09)
 !  (32) Check for emissions above PBL -anthro NOx only for now- (phs, 10/27/09)
 !  (33) Modify selection of biomass burning emissions (hotp, 8/3/09)
+!  (34) Moved NOx scaling to improve parallelization. (ccc, 11/10/10)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -382,13 +383,20 @@
                         REMIS(JLOOP,N) = REMIS(JLOOP,N) + EMIS_BL
                      ENDIF
 
+                     ! NOx scaling moved here for optimisation. (ccc, 11/10/10)
+                     ! Add possible scaling of NOx emissions
+
+                     REMIS(JLOOP,N)=NOx_SCALING*REMIS(JLOOP,N)             
+
                   ENDIF
                ENDDO
 
-               !FP 15/12/2009
-               ! Add possible scaling of NOx emissions
-
-               REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
+!--- Prior to (ccc, 11/10/10). Moved to previous loop over grid cells
+!               !FP 15/12/2009
+!               ! Add possible scaling of NOx emissions
+!
+!               REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
+!-----------
 
             ELSE
 
