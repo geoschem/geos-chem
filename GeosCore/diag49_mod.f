@@ -112,6 +112,7 @@
 !  (13) Bug fix DIAG49 for diagnostic output of SLP (tai, bmy, 10/13/09)
 !  (14) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
+!  (15) Bug fix in ITS_TIME_TO_CLOSE: compare HR1 to 00 not 24. (ccc, 11/11/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1435,6 +1436,8 @@
 !
 !  NOTES:
 !  (1 ) The time is already updated to the next time step (ccc, 8/12/09)
+!  (2 ) The time varies now between 00 and 23:59, so we need to compare HR1 to
+!       00 instead of 24. (ccc, 11/11/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1456,9 +1459,11 @@
 !      HR2      = HR1        + ( ND49_FREQ / 60d0 )
 
       ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 8/12/09)
-!      ITS_TIME = ( INT( HR2 ) == 24 )
-      ITS_TIME = ( INT( HR1 ) == 24 )
+!--- Previous to (ccc, 11/11/10)
+!       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
+!      ITS_TIME = ( INT( HR1 ) == 24 )
+
+      ITS_TIME = ( INT( HR1 ) == 00 )
 
       ! Return to calling program
       END FUNCTION ITS_TIME_TO_CLOSE_FILE
