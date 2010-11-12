@@ -77,7 +77,7 @@
 !  96            : Sea level pressure                       [hPa        ]
 !  97            : Zonal wind (a.k.a. U-wind)               [m/s        ]
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  99            : P(surface) - PTOP                        [hPa        ]
+!  99            : PEDGE-$ (Pressure @ level edges          [hPa        ]
 !  100           : Temperature                              [K          ]
 !  101           : PAR direct                               [hPa        ]
 !  102           : PAR diffuse                              [hPa        ]
@@ -113,6 +113,8 @@
 !  (14) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  (15) Bug fix in ITS_TIME_TO_CLOSE: compare HR1 to 00 not 24. (ccc, 11/11/10)
+!  12 Nov 2010 - R. Yantosca - Changed tracer 99 to be PEDGE-$ (pressure at
+!                              level edges) instead of Psurface-PTOP.
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -192,6 +194,8 @@
 !  (13) Change the timestamp for the filename when closing (ccc, 8/12/09)
 !  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
 !        (mpb, 11/19/09)
+!  12 Nov 2010 - R. Yantosca - Changed tracer 99 to be PEDGE-$ (pressure at
+!                              level edges) instead of Psurface-PTOP.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1018,21 +1022,24 @@
          ELSE IF ( N == 99 ) THEN 
 
             !-----------------------------------
-            ! PSURFACE - PTOP [hPa]
+            ! PEDGE-$ (Prs @ level edges) [hPa]
             !----------------------------------- 
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMNL     = 1
+            GMNL     = ND49_NL
             GMTRC    = 1
                   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,1) = GET_PEDGE(I,J,1) - PTOP
+               Q(X,Y,K) = GET_PEDGE(I,J,K)
+            ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO

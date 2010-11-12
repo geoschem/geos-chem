@@ -1424,6 +1424,8 @@
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
 !  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
+!                              tracerinfo.dat for the timeseries diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2769,8 +2771,16 @@
 
       !-------------------------------------      
       ! Surface pressure (ND31)
-      !-------------------------------------      
-      IF ( ND31 > 0 ) THEN
+      !-------------------------------------   
+      !-------------------------------------------------------------
+      ! Prior to 11/12/10:
+      ! Need to save out surface pressure line to tracerinfo.dat
+      ! for the timeseries diagnostics (bmy, 11/12/10)
+      !IF ( ND31 > 0 ) THEN
+      !-------------------------------------------------------------
+      IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
+     &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
+     &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN
          T           = 1
          NTRAC(31)   = T
          NAME (T,31) = 'PSURF'

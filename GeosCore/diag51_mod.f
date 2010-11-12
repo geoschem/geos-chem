@@ -136,6 +136,8 @@
 !        (amv, bmy, 12/21/09)
 !  (17) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -356,6 +358,8 @@
 !       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
 !  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
 !        bin's individual AOD (amv, bmy, 12/21/09)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -850,12 +854,17 @@
             ELSE IF ( N == 99 ) THEN
 
                !-----------------------------------
-               ! SURFACE PRESSURE - PTOP [hPa]
+               ! PEDGE-$ (prs @ level edges) [hPa]
                !-----------------------------------
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
-               ENDIF
+!----------------------------------------------------------------------------
+! Prior to 11/12/10
+! Now save out PEDGE-$ instead of Psurface - PTOP (bmy, 11/12/10)
+!               IF ( K == 1 ) THEN
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
+!               ENDIF
+!----------------------------------------------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 100 ) THEN 
 
@@ -1176,6 +1185,8 @@
 !  (12) Now have the option of saving out to HDF5 format.  NOTE: we have to
 !        bracket HDF-specific code with an #ifdef statement to avoid problems
 !        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1576,11 +1587,15 @@
          ELSE IF ( N == 99 ) THEN
 
             !---------------------
-            ! Psurface - PTOP 
+            ! PEDGE-$
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMNL     = 1
+            !-------------------------
+            ! Prior to 11/12/10:
+            !GMNL     = 1
+            !-------------------------
+            GMNL     = ND51_NL
             GMTRC    = 1
 
          ELSE IF ( N == 100 ) THEN
