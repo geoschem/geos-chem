@@ -172,6 +172,7 @@
       USE DIAG04_MOD,   ONLY : ND04,        WRITE_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,        WRITE_DIAG41
       USE DIAG42_MOD,   ONLY : ND42,        WRITE_DIAG42
+      USE DIAG53_MOD,   ONLY : ND53,        WRITE_DIAG53
       USE DIAG56_MOD,   ONLY : ND56,        WRITE_DIAG56
       USE DIAG_PL_MOD,  ONLY : AD65
       ! For mercury simulation. (ccc, 6/4/10)
@@ -372,6 +373,8 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) CALL WRITE_DIAG03
+! ADD ND53 (eck, 10/21/10)
+      IF ( ND53 > 0 ) CALL WRITE_DIAG53
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)

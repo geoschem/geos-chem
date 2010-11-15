@@ -3212,7 +3212,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -3339,6 +3339,7 @@
       CALL INIT_DIAG04
       CALL INIT_DIAG41
       CALL INIT_DIAG42
+      CALL INIT_DIAG53
       CALL INIT_DIAG56
 
       ! Enable Mean OH (or CH3CCl3) diag for runs which need it

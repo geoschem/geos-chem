@@ -235,7 +235,7 @@
       SUBROUTINE INIT_DIAG53
 !
 !******************************************************************************
-!  Subroutine INIT_DIAG03 allocates all module arrays (bmy, 1/21/05, 4/6/06)
+!  Subroutine INIT_DIAG53 allocates all module arrays (bmy, 1/21/05, 4/6/06)
 !
 !******************************************************************************
 !
@@ -249,7 +249,7 @@
       INTEGER :: AS
       
       !=================================================================
-      ! INIT_DIAG03 begins here!
+      ! INIT_DIAG53 begins here!
       !=================================================================
 
       ! Exit if ND03 is turned off
