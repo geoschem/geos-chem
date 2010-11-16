@@ -69,6 +69,9 @@
 !  (35) Updated ship treatment (phs, 7/0/09)
 !  (36) Add NEI2005 (amv, phs, 10/20/09)
 !  (37) Bug fix for tagged CO and 0.5 x 0.666 Nested Grid (yxw, bmy, 11/23/09)
+!  (38) Bug fix for array EMISRR, if emissions are already present in this 
+!        array (e.g. ship O3 or HNO3) they no longer get overwritten.
+!        (gvinken, 11/16/10)
 !******************************************************************************
 !          
       ! References to F90 modules
@@ -811,7 +814,10 @@
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------
-         EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
+!--- Prior to (gvinken, 11/16/10). Emissions already present in EMISRR
+!     no longer get overwritten.
+!         EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
+         EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
 
          ! ND29 = CO source diagnostic... 
          ! store as [molec/cm2/s] in AD29(:,:,1)
