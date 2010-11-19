@@ -1,44 +1,38 @@
-! $Id: tagged_ox_mod.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: tagged_ox_mod
+!
+! !DESCRIPTION: Module TAGGED\_OX\_MOD contains variables and routines to 
+!  perform a tagged Ox simulation.  P(Ox) and L(Ox) rates need to be archived 
+!  from a full chemistry simulation before you can run w/ Tagged Ox. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE TAGGED_OX_MOD
 !
-!******************************************************************************
-!  Module TAGGED_OX_MOD contains variables and routines to perform a tagged Ox
-!  simulation.  P(Ox) and L(Ox) rates need to be archived from a full chemistry
-!  simulation before you can run w/ Tagged Ox. (amf,rch,bmy, 8/20/03,10/26/09)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) N_TAGGED (INTEGER) : Total number of tagged tracers
-!  (2 ) N_STRAT  (INTEGER) : Denotes tracer # of stratospheric Ox
-!  (3 ) N_INIT   (INTEGER) : Denotes tracer # of initial condition Ox
-!  (4 ) N_USA    (INTEGER) : Denotes tracer # of USA produced Ox
-!  (5 ) P24H     (REAL*8 ) : 24-hr avg P(Ox) saved from fullchem run [kg/cm3/s]
-!  (6 ) L24H     (REAL*8 ) : 24-hr avg L(Ox) saved from fullchem run [ 1/cm3/s]
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
 ! 
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ADD_STRAT_POX      : Adds strat P(Ox) from UPBDFLX_O3 to tracer array
-!  (2 ) READ_POX_LOX       : Reads previously archived P(Ox), L(Ox) from disk
-!  (3 ) GET_REGIONAL_POX   : Flags tracers by geographic & vertical location
-!  (4 ) CHEM_TAGGED_OX     : Performs Ox chem on geographically tagged tracers
-!  (5 ) INIT_TAGGED_OX     : Allocates and zeroes all module arrays
-!  (6 ) CLEANUP_TAGGED_OX  : Deallocates all module arrays
+      PUBLIC  :: ADD_STRAT_POX 
+      PUBLIC  :: CHEM_TAGGED_OX 
+      PUBLIC  :: CLEANUP_TAGGED_OX 
 !
-!  GEOS-CHEM modules referenced by tagged_ox_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f        : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f          : Module w/ arrays for DAO met fields
-!  (3 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
-!  (4 ) diag_pl_mod.f      : Module w/ routines for ND65 & ND20 diagnostics
-!  (5 ) error_mod.f        : Module w/ I/O error and NaN check routines
-!  (6 ) grid_mod.f         : Module w/ horizontal grid information
-!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing 
-!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (9 ) time_mod.f         : Module w/ routines for computing time & date
-!  (10) transfer_mod.f     : Module w/ routines to cast & resize arrays
-!  (11) tracerid_mod.f     : Module w/ pointers to tracers & emissions
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: GET_REGIONAL_POX
+      PRIVATE :: INIT_TAGGED_OX
+      PRIVATE :: READ_POX_LOX
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  20 Aug 2003 - A. Fiore    - Initial version  
 !  (1 ) Now accounts for GEOS-4 PBL being in meters (bmy, 1/15/04)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !  (3 ) Now bracket AD44 with an !$OMP CRITICAL block (bmy, 3/24/04)
@@ -52,93 +46,115 @@
 !  (11) Now use LLTROP instead of LLTROP_FIX everywhere (bmy, 12/4/07)
 !  (12) Now use LD65 instead of LLTROP everywhere (phs, 11/17/08)
 !  (13) Updates for LINOZ (dbj, jliu, bmy, 10/26/09)
-!******************************************************************************
+!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "tagged_ox_mod.f"
-      !=================================================================
-
-      ! PRIVATE module routines  
-      PRIVATE :: GET_REGIONAL_POX
-      PRIVATE :: INIT_TAGGED_OX
-      PRIVATE :: READ_POX_LOX
-
-      ! PRIVATE module variables
-      PRIVATE :: N_TAGGED, N_INIT, N_STRAT
-      PRIVATE :: N_USA,    P24H,   L24H
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !PRIVATE TYPES:
+!
+      REAL*8,  ALLOCATABLE, PRIVATE :: P24H(:,:,:)
+      REAL*8,  ALLOCATABLE, PRIVATE :: L24H(:,:,:)
+!
+! !DEFINED PARAMETERS:
+! 
       !------------------------------------------------------
       !%%% Modification for quick Ox spinup (bmy, 5/31/07) 
-      !%%%INTEGER, PARAMETER   :: N_TAGGED = 13
-      !%%%INTEGER, PARAMETER   :: N_STRAT  = 11
-      !%%%INTEGER, PARAMETER   :: N_INIT   = 12
-      !%%%INTEGER, PARAMETER   :: N_USA    = 13
+      !%%%INTEGER, PARAMETER, PRIVATE :: N_TAGGED = 13
+      !%%%INTEGER, PARAMETER, PRIVATE :: N_STRAT  = 11
+      !%%%INTEGER, PARAMETER, PRIVATE :: N_INIT   = 12
+      !%%%INTEGER, PARAMETER, PRIVATE :: N_USA    = 13
       !------------------------------------------------------
       ! dbj: stratospheric tracers must be tracer 2
       !------------------------------------------------------
-      INTEGER, PARAMETER   :: N_TAGGED = 2
-      INTEGER, PARAMETER   :: N_STRAT  = 2
-      INTEGER, PARAMETER   :: N_INIT   = 3
-      INTEGER, PARAMETER   :: N_USA    = -1
-      REAL*8,  ALLOCATABLE :: P24H(:,:,:)
-      REAL*8,  ALLOCATABLE :: L24H(:,:,:)
+      INTEGER, PARAMETER,   PRIVATE :: N_TAGGED = 2
+      INTEGER, PARAMETER,   PRIVATE :: N_STRAT  = 2
+      INTEGER, PARAMETER,   PRIVATE :: N_INIT   = 3
+      INTEGER, PARAMETER,   PRIVATE :: N_USA    = -1
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: add_strat_pox
+!
+! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
+!  Ox to the stratospheric Ox tracer.  This is called from routine UPBDFLX_O3, 
+!  which is applied when the tracer array has units of [v/v].  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ADD_STRAT_POX( I, J, L, POx )
 !
-!******************************************************************************
-!  Subroutine ADD_STRAT_POX adds the stratospheric influx of Ox to the
-!  stratospheric Ox tracer.  This is called from routine UPBDFLX_O3, 
-!  which is applied when the tracer array has units of [v/v].  
-!  (bmy, 8/19/03, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I,J,L (INTEGER) : GEOS-CHEM grid box indices for lon, lat, alt
-!  (4  ) POx   (REAL*8 ) : P(Ox) in the stratosphere [v/v]
-!
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TRACER_MOD, ONLY : STT
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, L
-      REAL*8,  INTENT(IN) :: POx
-
+#     include "CMN_SIZE"           ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I     ! GEOS-Chem grid box lon index
+      INTEGER, INTENT(IN) :: J     ! GEOS-Chem grid box lat index
+      INTEGER, INTENT(IN) :: L     ! GEOS-Chem grid box level index
+      REAL*8,  INTENT(IN) :: POx   ! P(Ox) in the stratosphere [v/v]
+! 
+! !REVISION HISTORY:
+!  19 Aug 2003 - R. Yantosca - Initial version
+!  (1 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_STRAT_POX begins here!
       !=================================================================
       !STT(I,J,L,N_STRAT) = STT(I,J,L,N_STRAT) + POx
 
-      ! Return to calling program
       END SUBROUTINE ADD_STRAT_POX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_pox_lox
+!
+! !DESCRIPTION: Subroutine READ\_POX\_LOX reads previously-archived Ox 
+!  production & loss rates from binary punch file format. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_POX_LOX
 !
-!******************************************************************************
-!  Subroutine READ_POX_LOX reads previously-archived Ox production & loss 
-!  rates from binary punch file format. (bmy, 8/20/03, 12/4/07)
+! !USES:
+!
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : O3PL_DIR 
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE TIME_MOD,      ONLY : GET_NYMD
+      USE TIME_MOD,      ONLY : GET_TAU
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+      ! JLIU,2008/10/01
+      USE CHARPAK_MOD,   ONLY : STRREPL
+      USE TIME_MOD,      ONLY : YMD_EXTRACT
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+      USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR
+      USE TIME_MOD,      ONLY : GET_YEAR
+      USE TIME_MOD,      ONLY : GET_HOUR
+      USE DIAG_PL_MOD                                      !dbj
+      USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
+           
+#     include "CMN_SIZE" ! Size parameters
+#     include "CMN_DIAG" ! LD65
 ! 
-!  NOTES:
+! !REVISION HISTORY:
+!  20 Aug 2003 - R. Yantosca - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Now references O3PL_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -148,32 +164,20 @@
 !  (6 ) Now use LD65, since this is the number of levels use to 
 !        save diag20 (phs, 11/17/08)
 !  (7 ) Updates for LINOZ (dbj, jliu, bmy, 10/16/09)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR 
-      USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, GET_TAU
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-      ! JLIU,2008/10/01
-      USE CHARPAK_MOD, ONLY : STRREPL
-      USE TIME_MOD,    ONLY : YMD_EXTRACT, ITS_A_LEAPYEAR
-      USE TIME_MOD,    ONLY : GET_DAY_OF_YEAR, GET_YEAR, GET_HOUR
-      USE DIAG_PL_MOD     !dbj
-      USE JULDAY_MOD,  ONLY : JULDAY    !dbj
-
-           
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! LD65
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*4             :: ARRAY(IGLOB,JGLOB,LD65)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
       !JLIU, 2008/10/01
-      INTEGER             :: YYYY, MM, DD, FIRST_DATE
-      INTEGER             :: DAY_OF_YEAR
-      CHARACTER(LEN=2)    :: MM_STR, DD_STR
+      INTEGER            :: YYYY, MM, DD, FIRST_DATE
+      INTEGER            :: DAY_OF_YEAR
+      CHARACTER(LEN=2)   :: MM_STR, DD_STR
 
       !=================================================================
       ! READ_POX_LOX begins here!
@@ -276,27 +280,47 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )
 
-      ! Return to calling program
       END SUBROUTINE READ_POX_LOX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_regional_pox
+!
+! !DESCRIPTION: Subroutine GET\_REGIONAL\_POX returns the P(Ox) for each of 
+!  the tagged Ox tracers. Tagged Ox tracers are defined by both geographic 
+!  location and altitude. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_REGIONAL_POX( I, J, L, PP )
 !
-!******************************************************************************
-!  Subroutine GET_REGIONAL_POX returns the P(Ox) for each of the tagged Ox 
-!  tracers. Tagged Ox tracers are defined by both geographic location and 
-!  altitude. (amf, rch, bmy, 8/19/03, 12/4/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-3) I,J,L (INTEGER) : GEOS-CHEM grid box indices for lon, lat, alt
+      USE DAO_MOD,        ONLY : PBL
+      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_GCTM"       ! SCALE_HEIGHT
+#     include "CMN_DIAG"       ! ND44, ND65, LD65
 !
-!  Return Value
-!  ============================================================================
-!  (4  ) PP    (REAL*8)  : Array containing P(Ox) for each tagged tracer
+! !INPUT PARAMETERS: 
+!
+      ! GEOS-Chem grid box indices for lon, lat, alt
+      INTEGER, INTENT(IN)  :: I, J, L
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Array containing P(Ox) for each tagged tracer
+      REAL*8,  INTENT(OUT) :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
 ! 
-!  NOTES:
+! !REVISION HISTORY:
+!  19 Aug 2003 - A. Fiore - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
 !        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
@@ -308,32 +332,22 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 !  (6 ) Resize the PP array from LLTROP to LLTROP_FIX (phs, 1/19/07)
 !  (7 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (8 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : PBL
-      USE GRID_MOD,       ONLY : GET_XMID,  GET_YMID
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_GCTM"       ! SCALE_HEIGHT
-#     include "CMN_DIAG"       ! ND44, ND65, LD65
-
-      ! Arguments
-      INTEGER, INTENT(IN)     :: I, J, L
-      REAL*8,  INTENT(OUT)    :: PP(IIPAR,JJPAR,LD65,N_TAGGED)
-
-      ! Local variables
-      LOGICAL                 :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
-      LOGICAL                 :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
-      LOGICAL                 :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
-      LOGICAL                 :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
-      INTEGER                 :: PBLTOP,      MTTOP
-      REAL*8                  :: PPROD,       X,          Y
+! !LOCAL VARIABLES:
+!
+      LOGICAL          :: ITS_IN_TROP, ITS_IN_PBL, ITS_IN_MT
+      LOGICAL          :: ITS_IN_UT,   ITS_IN_NH,  ITS_IN_ATL
+      LOGICAL          :: ITS_IN_PAC,  ITS_IN_AS,  ITS_IN_EUR
+      LOGICAL          :: ITS_IN_NAM,  ITS_IN_NAF, ITS_IN_USA
+      INTEGER          :: PBLTOP,      MTTOP
+      REAL*8           :: PPROD,       X,          Y
       
       ! External functions
-      REAL*8, EXTERNAL        :: BOXVL
+      REAL*8, EXTERNAL :: BOXVL
 
       !=================================================================
       ! GET_REGIONAL_POX begins here!
@@ -463,18 +477,50 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 !         PP(I,J,L,N_USA) = PPROD               
 !      ENDIF
 
-      ! Return to calling program
       END SUBROUTINE GET_REGIONAL_POX
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CHEM_TAGGED_OX
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CHEM_TAGGED_OX performs chemistry for several Ox tracers which
-!  are tagged by geographic and altitude regions. (rch, bmy, 8/20/03, 10/26/09)
+! !IROUTINE: chem_tagged_ox 
+!
+! !DESCRIPTION: Subroutine CHEM\_TAGGED\_OX performs chemistry for several 
+!  Ox tracers which are tagged by geographic and altitude regions. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_TAGGED_OX 
+!
+! !USES:
+!
+      USE DIAG_MOD,       ONLY : AD44
+      USE DIAG_PL_MOD,    ONLY : AD65
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE DRYDEP_MOD,     ONLY : DEPSAV      
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,    ONLY : LDRYD
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
+      USE PBL_MIX_MOD,    ONLY : GET_PBL_MAX_L
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY 
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : STT
+      USE TRACER_MOD,     ONLY : N_TRACERS
+      USE TRACER_MOD,     ONLY : XNUMOL
+      USE TRACERID_MOD,   ONLY : IDTOX
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE LOGICAL_MOD,    ONLY : LNLPBL
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! ND44, ND65, LD65
 ! 
-!  NOTES:
+! !REVISION HISTORY:
+!  20 Aug 2003 - R. Hudman   - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) Bug fix: don't put function call in WRITE statement (bmy, 2/20/04)
 !  (3 ) Now use ND44_TMP array to store vertical levels of drydep flux, then
@@ -494,29 +540,13 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
 !  (8 ) Now use LLTROP instead of LLTROP_FIX (bmy, 12/4/07)
 !  (9 ) Now use LD65 instead of LLTROP (phs, 11/17/08)
 !  (10) Now only compute loss rate in troposphere (dbj, bmy, 10/26/09)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,       ONLY : AD44
-      USE DIAG_PL_MOD,    ONLY : AD65
-      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
-      USE DRYDEP_MOD,     ONLY : DEPSAV      
-      USE GRID_MOD,       ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,    ONLY : LDRYD
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,       ONLY : GET_TS_CHEM,           ITS_A_NEW_DAY 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT,                 N_TRACERS, XNUMOL
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      USE LOGICAL_MOD,    ONLY : LNLPBL
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44, ND65, LD65
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE     :: FIRST   = .TRUE.
       INTEGER, SAVE     :: LASTDAY = -1
       INTEGER           :: I, J, L, N
@@ -705,30 +735,43 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
          ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE CHEM_TAGGED_OX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tagged_ox
+!
+! !DESCRIPTION: Subroutine INIT\_TAGGED\_OX allocates and zeroes all module
+!  arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TAGGED_OX
 !
-!******************************************************************************
-!  Subroutine INIT_TAGGED_OX allocates and zeroes all module arrays.
-!  (bmy, 8/20/03, 11/18/08) 
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR, ERROR_STOP
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ERROR_STOP
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44, ND65, LD65
-
-      ! Local variables
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! ND44, ND65, LD65
+! 
+! !REVISION HISTORY:
+!  20 Aug 2003 - R. Yantosca - Initial version
+!  (1 ) Now reference N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now use LD65 instead of LLTROP to dimension P24H, L24H (phs, 11/18/08)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -751,26 +794,32 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'L24H' ) 
       L24H = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_TAGGED_OX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_tagged_ox
+!
+! !DESCRIPTION:Subroutine CLEANUP\_TAGGED\_OX deallocates all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_TAGGED_OX
-!
-!******************************************************************************
-!  Subroutine CLEANUP_TAGGED_OX deallocates all module arrays (bmy, 8/20/03)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY:
+!  20 Aug 2003 - R. Yantosca - Initial version
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! Deallocate module arrays
       IF ( ALLOCATED( P24H ) ) DEALLOCATE( P24H )
       IF ( ALLOCATED( L24H ) ) DEALLOCATE( L24H )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_TAGGED_OX
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE TAGGED_OX_MOD

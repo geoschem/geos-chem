@@ -1,37 +1,51 @@
-! $Id: tcorr.f,v 1.1 2009/09/16 14:06:02 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: tcorr
+!
+! !DESCRIPTION: Function TCORR applies the temperature correction for 
+!  isoprene emissions, according to Guenther et al.(92)
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION TCORR( TEMP )
 !
-!******************************************************************************
-!  Function TCORR applies the temperature correction for isoprene emissions, 
-!  according to Guenther et al.(92) (yhw, 11/15/93; bmy, 4/4/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TEMP (REAL*8) : Temperature [K]
+      IMPLICIT NONE
 !
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN) :: TEMP    ! Temperature [K] 
+!
+! !RETURN VALUE:
+!
+      REAL*8             :: TCORR   ! Corrected temp for ISOP emissions [K]
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  Guenther et al, 1992, ... 
 !
-!  NOTES:
+! !REVISION HISTORY: 
+!  15 Nov 1993 - Y. H. Wang  - Initial version
 !  (1 ) Removed DATA statements, replaced w/ F90 syntax.  Updated comments
 !        and made cosmetic changes (bmy, 4/4/03)
-!******************************************************************************
+!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: TEMP
-
-      ! Local variables
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER  :: R   = 8.314
       REAL*8, PARAMETER  :: CT1 = 95000.
       REAL*8, PARAMETER  :: CT2 = 230000.
       REAL*8, PARAMETER  :: T1  = 303.
       REAL*8, PARAMETER  :: T3  = 314.
-      
-      ! Function value
-      REAL*8             :: TCORR
       
       !=================================================================
       ! TCORR begins here!
@@ -40,5 +54,5 @@
      &     EXP( CT1/(R*T1*TEMP) * (TEMP-T1) ) /
      &     ( 1 + EXP( CT2/(R*T1*TEMP) * (TEMP-T3) ) )
 
-      ! Return to calling program
       END FUNCTION TCORR
+!EOC

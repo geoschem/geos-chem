@@ -27,6 +27,8 @@
 #  16 Sep 2010 - R. Yantosca - Added diag_pl_mod
 #  04 Nov 2010 - R. Yantosca - Added acetone_mod
 #  10 Nov 2010 - R. Yantosca - Added lightning_nox_mod
+#  19 Nov 2010 - R. Yantosca - Added anthroems, RnPbBe_mod, tagged_ox_mod
+#  19 Nov 2010 - R. Yantosca - Added tcorr, emfossil, emf_scale
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -74,7 +76,9 @@ $(CORE)/merra_i6_mod.f               \
 $(CORE)/nei2005_anthro_mod.f         \
 $(CORE)/optdepth_mod.f               \
 $(CORE)/pjc_pfix_mod.f               \
+$(CORE)/RnPbBe_mod.f                 \
 $(CORE)/scale_anthro_mod.f           \
+$(CORE)/tagged_ox_mod.f              \
 $(CORE)/tropopause_mod.f             \
 $(CORE)/tpcore_fvdas_mod.f90         \
 $(CORE)/tpcore_geos5_window_mod.f90  \
@@ -83,10 +87,13 @@ $(CORE)/vdiff_mod.f90                \
 $(CORE)/vdiff_pre_mod.f              \
 $(CORE)/vistas_anthro_mod.f          \
 ./subs.geos-chem                     \
+$(CORE)/anthroems.f                  \
 $(CORE)/diag1.f                      \
 $(CORE)/diag3.f                      \
 $(CORE)/diag_2pm.f                   \
 $(CORE)/diagoh.f                     \
+$(CORE)/emfossil.f                   \
+$(CORE)/emf_scale.f                  \
 $(CORE)/fast_j.f                     \
 $(CORE)/initialize.f                 \
 $(CORE)/ndxx_setup.f                 \
@@ -94,7 +101,8 @@ $(CORE)/ohsave.f                     \
 $(CORE)/rdlai.f                      \
 $(CORE)/readlai.f                    \
 $(CORE)/ruralbox.f                   \
-$(CORE)/setemis.f              
+$(CORE)/setemis.f                    \
+$(CORE)/tcorr.f            
 
 
 # Output file names

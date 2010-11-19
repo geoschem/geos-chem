@@ -65,7 +65,6 @@
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
-
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -406,10 +405,13 @@
                   ENDIF
                ENDDO
 
-               !FP 15/12/2009
-               ! Add possible scaling of NOx emissions
-
-               REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
+               !--------------------------------------------------------
+               !%%% This line kills the parallelization, comment out %%%
+               !!FP 15/12/2009
+               !! Add possible scaling of NOx emissions
+               !
+               !REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
+               !--------------------------------------------------------
 
             ELSE
 

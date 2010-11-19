@@ -1,37 +1,35 @@
-! $Id: RnPbBe_mod.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: RnPbBe_mod
+!
+! !DESCRIPTION: Module RnPbBe\_MOD contains variables and routines used 
+!  for the 222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE RnPbBe_MOD
 !
-!******************************************************************************
-!  Module RnPbBe_MOD contains variables and routines used for the 
-!  222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) LATSOU           : Array holding 10 latitudes for 7Be emissions
-!  (2 ) PRESOU           : Array holding 33 pressure levels for 7Be emissions
-!  (3 ) BESOU            : Array holding 7Be emissions for 10 lat x 33 prs levs
-!  (4 ) XNUMOL_Rn        : Atoms 222Rn per kg 222Rn
-!  (5 ) XNUMOL_Pb        : Atoms 210Pb per kg 210Pb
-!  (6 ) XNUMOL_Be        : Atoms   7Be per kg   7Be
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Procedures:
-!  ============================================================================
-!  (1 ) READ_7BE         : Reads Lal & Peters 7Be emissions from a file
-!  (2 ) CORRECT_STE      : Corrects S-T exchange for 210Pb and 7Be
-!  (3 ) EMISSRnPbBe      : Adds emissions of Rn, 210Pb, 7Be, to tracer array  
-!  (4 ) CHEMRnPbBe       : Performs radioactive decay for Rn, 210Pb, 7Be
-!  (5 ) SLQ              : Interpolation subroutine (cf. Numerical Recpies)
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: EMISSRnPbBe 
+      PUBLIC  :: CHEMRnPbBe
+      PUBLIC  :: SLQ   
 !
-!  GEOS-CHEM modules referenced by RnPbBe_mod.f
-!  ============================================================================
-!  (1 ) dao_mod.f        : Module w/ arrays for DAO met fields
-!  (2 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
-!  (3 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dires
-!  (4 ) file_mod.f       : Module w/ file unit numbers and error checks
-!  (5 ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (6 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (7 ) tropopause_mod.f : Module w/ routines to read in ann mean tropopause
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: READ_7Be
+      PRIVATE :: CORRECT_STE
 !
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  (1 ) Liu,H., D.Jacob, I.Bey, and R.M.Yantosca, Constraints from 210Pb 
@@ -46,7 +44,8 @@
 !        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
 !        Springer-Verlag, New York, 1967. 
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  14 Jun 2001 - H. Liu      - Initial version  
 !  (1 ) Added existing routines to this module (bmy, 6/14/01)
 !  (2 ) Updated comments (bmy, 9/4/01)
 !  (3 ) Eliminate AVGF; redimensioned XTRA2 (bmy, 9/25/01)
@@ -71,57 +70,62 @@
 !  (14) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  (15) Now references "tropopause_mod.f"
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE 
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "RnPbBe_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-       
-      ! ... except these routines
-      PUBLIC :: EMISSRnPbBe 
-      PUBLIC :: CHEMRnPbBe
-      PUBLIC :: SLQ   ! cdh, use in mercury_mod
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !PRIVATE TYPES:
+!
+      ! For Lal & Peters emissions
       REAL*8            :: LATSOU(10), PRESOU(33), BESOU(10,33)
+!
+! !DEFINED PARAMETERS:
+!
+      ! To convert kg to atoms
       REAL*8, PARAMETER :: XNUMOL_Rn = ( 6.0225d23 / 222.0d-3 )    
       REAL*8, PARAMETER :: XNUMOL_Pb = ( 6.0225d23 / 210.0d-3 )    
       REAL*8, PARAMETER :: XNUMOL_Be = ( 6.0225d23 /   7.0d-3 )
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-     
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_7Be
+!
+! !DESCRIPTION: Subroutine READ\_7Be reads the 7Be emissions from Lal & Peters 
+!  on 33 pressure levels.  This only needs to be done on the very first 
+!  timestep.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_7BE
 !
-!******************************************************************************
-!  Subroutine READ_7BE reads the 7Be emissions from Lal & Peters on 33 
-!  pressure levels.  This only needs to be done on the very first timestep.  
-!  (hyl, bmy, 8/7/02, 7/19/04)
+! !USES:
 !
-!  NOTES:
-!  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
-!  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+#     include "CMN_SIZE"      ! Size parameters
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  07 Aug 2002 - H. Liu - Initial version
+!  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)
+!  (2 ) Now reference DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: IOS, J, L
       CHARACTER(LEN=255) :: FILENAME
 
@@ -181,32 +185,43 @@
       ! Close the file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE READ_7BE
-               
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: correct_ste
+!
+! !DESCRIPTION: Subroutine CORRECT\_STE reduces the emission of 210Pb and/or 
+!  7Be in the stratosphere, to correct for too fast STE in the GEOS-CHEM model.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CORRECT_STE( EMISSION )
 !
-!******************************************************************************
-!  Subroutine CORRECT_STE reduces the emission of 210Pb and/or 7Be in the
-!  stratosphere, to correct for too fast STE in the GEOS-CHEM model.
-!  (hyl, bmy, 8/7/02, 8/4/06)
-!
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (1  ) EMISSION (REAL*8)  : Emissions to be corrected [kg]
-!
-!  NOTES:
-!  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
 #     include "define.h"    ! Switches
-
+!
+! !INPUT PARAMETERS: 
+!
       ! Arguments
-      REAL*8, INTENT(INOUT) :: EMISSION
-      
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT) :: EMISSION   ! Emissions to be corrected [kg]
+! 
+! !REVISION HISTORY: 
+!  07 Aug 2002 - H. Liu - Initial version
+!  (1 ) Now updated for GCAP met fields (swu, bmy, 5/24/05)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CORRECT_STE begins here!
       !
@@ -218,7 +233,7 @@
 #elif defined( GEOS_4 )
       !EMISSION = 0d0           ! to be determined later
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
       !EMISSION = 0d0           ! to be determined later
 
 #elif defined( GCAP )
@@ -226,18 +241,42 @@
 
 #endif
       
-      ! Return to calling program
       END SUBROUTINE CORRECT_STE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emissRnPbBe
+!
+! !DESCRIPTION: Subroutine EMISSRnPbBe emits 222Rn and 7Be into the 
+!  tracer array STT.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSRnPbBe
 !
-!******************************************************************************
-!  Subroutine EMISSRnPbBe emits 222Rn and 7Be into the tracer array STT.
-!  (hyl, bey, bmy, 5/28/99, 10/28/03)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD,        ONLY : AD, TS
+      USE DIAG_MOD,       ONLY : AD01 
+      USE GRID_MOD,       ONLY : GET_AREA_CM2
+      USE GRID_MOD,       ONLY : GET_YMID
+      USE GRID_MOD,       ONLY : GET_YEDGE 
+      USE LOGICAL_MOD,    ONLY : LEMIS
+      USE TIME_MOD,       ONLY : GET_TS_EMIS
+      USE TRACER_MOD,     ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_DIAG"       ! ND02 
+#     include "CMN_DEP"        ! FRCLND
+! 
+! !REVISION HISTORY: 
+!  28 May 1999 - I. Bey - Initial version
 !  (1 ) Also added Hongyu's code for emission of Be7 (bmy, 3/22/99)
 !  (2 ) Now trap I/O errors with subroutine IOERROR (bmy, 5/28/99)
 !  (3 ) Eliminate obsolete code and ND63 diagnostic (bmy, 4/12/00)
@@ -274,30 +313,20 @@
 !        N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (18) Remove reference to CMN; it's obsolete.  Now use inquiry functions
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD, TS
-      USE DIAG_MOD,       ONLY : AD01 
-      USE GRID_MOD,       ONLY : GET_AREA_CM2, GET_YMID, GET_YEDGE 
-      USE LOGICAL_MOD,    ONLY : LEMIS
-      USE TIME_MOD,       ONLY : GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! ND02 
-#     include "CMN_DEP"  ! FRCLND
-
-      ! Local variables
-      LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
-      INTEGER            :: I,          J,          L,         N
-      REAL*8             :: A_CM2,      ADD_Be,     ADD_Rn,    Rn_LAND
-      REAL*8             :: Rn_WATER,   DTSRCE,     LAT_TMP,   P_TMP
-      REAL*8             :: Be_TMP,     Rn_TMP,     LAT_S,     LAT_N
-      REAL*8             :: LAT_H,      LAT_L,      F_LAND,    F_WATER
-      REAL*8             :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRSTEMISS = .TRUE.
+      INTEGER       :: I,          J,          L,         N
+      REAL*8        :: A_CM2,      ADD_Be,     ADD_Rn,    Rn_LAND
+      REAL*8        :: Rn_WATER,   DTSRCE,     LAT_TMP,   P_TMP
+      REAL*8        :: Be_TMP,     Rn_TMP,     LAT_S,     LAT_N
+      REAL*8        :: LAT_H,      LAT_L,      F_LAND,    F_WATER
+      REAL*8        :: F_BELOW_70, F_BELOW_60, F_ABOVE_60
 
       !=================================================================
       ! EMISSRnPbBe begins here!
@@ -506,18 +535,35 @@
       ! Reset FIRSTEMISS
       FIRSTEMISS = .FALSE.
 
-      ! Return to calling program
-      END SUBROUTINE EMISSRnPbBe     
-
+      END SUBROUTINE EMISSRnPbBe
+!EOC   
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chemRnPbBe
+!
+! !DESCRIPTION: Subroutine CHEMRnPbBe performs loss chemistry on 222Rn, 
+!  210Pb, and 7Be.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEMRnPbBe
 !
-!******************************************************************************
-!  Subroutine CHEMRnPbBe performs loss chemistry on 222Rn, 210Pb, and 7Be.
-!  (hyl, amf, bey, bmy, 10/13/99, 8/15/05)
+! !USES:
 !
-!  NOTES:
+      USE DIAG_MOD,       ONLY : AD01, AD02
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE TRACER_MOD,     ONLY : STT, N_TRACERS
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_DIAG"       ! ND01, ND02
+! 
+! !REVISION HISTORY:
+!  31 Oct 1999 - H. Liu - Initial version
 !  (1 ) Now use F90 syntax (bmy, hyl, 3/22/99)
 !  (2 ) Add FIRSTCHEM as an argument.  Only compute the exponential terms
 !        when FIRSTCHEM = .TRUE., and save the values for later use
@@ -534,18 +580,13 @@
 !  (10) Now references STT and N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (11) Remove reference to CMN; it's obsolete.  Now use inquiry functions 
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,       ONLY : AD01, AD02
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
-      USE TRACER_MOD,     ONLY : STT, N_TRACERS
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! ND01, ND02
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE     :: FIRSTCHEM = .TRUE.
       INTEGER           :: I, J, L, N            
       REAL*8            :: ADD_Pb, Be_LOST ,DTCHEM, Pb_LOST 
@@ -674,43 +715,53 @@
 !$OMP END PARALLEL DO
       ENDIF
 
-      ! Return to calling program  
       END SUBROUTINE CHEMRnPbBe
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: slq
+!
+! !DESCRIPTION: Subroutine SLQ is an interpolation subroutine from a 
+!  Chinese reference book (says Hongyu Liu).
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SLQ( X, Y, Z, N, M, U, V, W )
 !
-!******************************************************************************
-!  Subroutine SLQ is an interpolation subroutine from a Chinese 
-!  reference book (says Hongyu). (hyl, bmy, 3/17/98, 11/15/01)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X (REAL*8) : X-axis coordinate on original grid
-!  (2 ) Y (REAL*8) : Y-axis coordinate on original grid
-!  (3 ) Z (REAL*8) : Array of data on original grid
-!  (4 ) N (REAL*8) : First dimension of Z
-!  (5 ) M (REAL*8) : Second dimension of Z
-!  (6 ) U (REAL*8) : X-axis coordinate for desired interpolated value
-!  (7 ) V (REAL*8) : Y-axis coordinate for desired interpolated value
+      INTEGER :: N        ! First dimension of Z
+      INTEGER :: M        ! Second dimension of Z
+      REAL*8  :: X(N)     ! X-axis coordinate on original grid
+      REAL*8  :: Y(M)     ! Y-axis coordinate on original grid
+      REAL*8  :: Z(N,M)   ! Array of data on original grid
+      REAL*8  :: U        ! X-axis coordinate for desired interpolated value
+      REAL*8  :: V        ! Y-axis coordinate for desired interpolated value
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (8 ) W (REAL*8) : Interpolated value of Z array, at coordinates (U,V) 
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*8  :: W        ! Interpolated value of Z array, at coords (U,V) 
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  17 Mar 1998 - H. Liu      - Initial version
 !  (1 ) Added to "RnPbBe_mod.f" (bmy, 7/16/01)
 !  (2 ) Removed duplicate definition of IQ.  Added comments. (bmy, 11/15/01)
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER   :: N, M 
-      REAL*8    :: X, Y, Z, U, V, W, B, HH
-      DIMENSION :: X(N), Y(M), Z(N,M), B(3)
-
-      ! Local variables
-      INTEGER   NN, IP, I, J, L, IQ, K, MM
+! !LOCAL VARIABLES:
+!
+      REAL*8  :: B(3), HH
+      INTEGER :: NN,   IP, I, J, L, IQ, K, MM
 
       !=================================================================
       ! SLQ begins here!
@@ -790,11 +841,8 @@
          W=W+HH
  70   CONTINUE
 
-      ! Return to calling program
       END SUBROUTINE SLQ
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE RnPbBe_MOD
 
 

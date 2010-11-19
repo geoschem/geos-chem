@@ -1,34 +1,81 @@
-! $Id: anthroems.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: anthroems
+!
+! !DESCRIPTION: Subroutine ANTHROEMS reads anthropogenic tracers for each 
+!  season.  NOx emissions at levels other than the surface are now accounted 
+!  for.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ANTHROEMS( NSEASON )
 !
-!******************************************************************************
-!  Subroutine ANTHROEMS reads anthropogenic tracers for each season.
-!  NOx emissions at levels other than the surface are now accounted for.
-!  (bmy, 6/4/98, 12/18/09)
+! !USES:
 !
-!  Arguments as input:
-!  ===========================================================================
-!  (1) NSEASON:  is the seasonal index for NOx emissions:
-!        NSEASON=1 --> winter (Dec, Jan, Feb)
-!        NSEASON=2 --> spring (Mar, Apr, May)
-!        NSEASON=3 --> summer (Jun, Jul, Aug)
-!        NSEASON=4 --> autumn (Sep, Oct, Nov)
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_ALK4ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C3H8ff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_COff  
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_NOxff 
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_TONEff
+      USE GEIA_MOD,            ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
+      USE GEIA_MOD,            ONLY : READ_LIQCO2,  READ_TODX
+      USE GEIA_MOD,            ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
+      USE GRID_MOD,            ONLY : GET_AREA_CM2, GET_XOFFSET
+      USE GRID_MOD,            ONLY : GET_YOFFSET
+      USE LOGICAL_MOD,         ONLY : LFUTURE
+      USE TIME_MOD,            ONLY : GET_TS_EMIS,  GET_YEAR
+      USE TIME_MOD,            ONLY : GET_SEASON
+      USE TRACER_MOD,          ONLY : TRACER_MW_KG
+      USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
+      USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
+      USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
+      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
+      USE TRACERID_MOD,        ONLY : NEMANTHRO
+      USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
+      USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
+      USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
+      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
+      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
+      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
+      USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
+      USE EDGAR_MOD,           ONLY : READ_C2H2
+      USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
+      USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
+      USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"               ! Size parameters
+#     include "CMN_O3"                 ! EMIST, EMISR, EMISRR, etc.
+#     include "comode.h"               ! IDEMS
 !
-!  (2) LNAPAPNOX: logical flag to overwrite US emissions with NAPAP NOx
+! !INPUT PARAMETERS: 
 !
-!  Passed Via CMN:
-!  ===========================================================================
-!  (1) JYEAR: 4 digit integer variable for current year (1985, 1998, etc.)
+      INTEGER, INTENT(IN) :: NSEASON   ! Current season (1-4)
 !
+! !REMARKS:
+!  NSEASON:  is the seasonal index for NOx emissions:
+!    NSEASON=1 --> winter (Dec, Jan, Feb)
+!    NSEASON=2 --> spring (Mar, Apr, May)
+!    NSEASON=3 --> summer (Jun, Jul, Aug)
+!    NSEASON=4 --> autumn (Sep, Oct, Nov)
+!                                                                             .
 !  Passed Via CMN_O3:
 !  ===========================================================================
-!  Fossil Fuel arrays:    EMISTNOX,  EMISTCO,   EMISTETHE, EMISTPRPE,
-!                         EMISTC2H6, EMISTC3H8, EMISTALK4, EMISTACET,
-!                         EMISTMEK,  EMISTSOX
-!
-!  Emissions arrays:      EMIST, EMISTN, EMISR, EMISRN, EMISRR, EMISRRN
-!
-!  NOTES:
+!  Fossil Fuel arrays: EMISTNOX,  EMISTCO,   EMISTETHE, EMISTPRPE,
+!                      EMISTC2H6, EMISTC3H8, EMISTALK4, EMISTACET,
+!                      EMISTMEK,  EMISTSOX
+!                                                                             .
+!  Emissions arrays:   EMIST, EMISTN, EMISR, EMISRN, EMISRR, EMISRRN
+! 
+! !REVISION HISTORY: 
+!  04 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) We now read the new merge file, created for SASS. (bey, 2/99)
 !  (2 ) ANTHROEMS should be called each time the season changes, since
 !        the GEIA NOx emissions are seasonal.
@@ -91,52 +138,13 @@
 !        for aromatics, C2H4, and C2H2. (tmf, 6/13/07)
 !  (32) GET_ANNUAL_SCALAR_05x0666_NESTED_CH renamed to 
 !        GET_ANNUAL_SCALAR_05x0666_NESTED (amv, bmy, 12/18/09)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_ALK4ff
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C2H6ff
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_C3H8ff
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_COff  
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_NOxff 
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_PRPEff
-      USE FUTURE_EMISSIONS_MOD,ONLY : GET_FUTURE_SCALE_TONEff
-      USE GEIA_MOD,            ONLY : READ_GEIA,    READ_C3H8_C2H6_NGAS
-      USE GEIA_MOD,            ONLY : READ_LIQCO2,  READ_TODX
-      USE GEIA_MOD,            ONLY : READ_TOTCO2,  TOTAL_FOSSIL_TG
-      USE GRID_MOD,            ONLY : GET_AREA_CM2, GET_XOFFSET
-      USE GRID_MOD,            ONLY : GET_YOFFSET
-      USE LOGICAL_MOD,         ONLY : LFUTURE
-      USE TIME_MOD,            ONLY : GET_TS_EMIS,  GET_YEAR
-      USE TIME_MOD,            ONLY : GET_SEASON
-      USE TRACER_MOD,          ONLY : TRACER_MW_KG
-      USE TRACERID_MOD,        ONLY : IDEACET,      IDEALK4
-      USE TRACERID_MOD,        ONLY : IDEC2H6,      IDEC3H8
-      USE TRACERID_MOD,        ONLY : IDECO,        IDEMEK
-      USE TRACERID_MOD,        ONLY : IDENOX,       IDEPRPE
-      USE TRACERID_MOD,        ONLY : NEMANTHRO
-      USE TRACERID_MOD,        ONLY : IDEBENZ,     IDETOLU,    IDEXYLE
-      USE TRACERID_MOD,        ONLY : IDEC2H4,      IDEC2H2
-      USE TRACERID_MOD,        ONLY : IDTBENZ,     IDTTOLU,    IDTXYLE
-      USE TRACERID_MOD,        ONLY : IDTC2H4,      IDTC2H2
-      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR
-      USE SCALE_ANTHRO_MOD,    ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
-      USE EDGAR_MOD,           ONLY : READ_AROMATICS, READ_C2H4
-      USE EDGAR_MOD,           ONLY : READ_C2H2
-      USE EDGAR_MOD,           ONLY : READ_AROMATICS_05x0666
-      USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
-      USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! EMIST, EMISR, EMISRR, etc.
-#     include "comode.h"             ! IDEMS
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: NSEASON
-      
-      ! Local Variables
+!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       INTEGER                       :: SCALEYEAR
       INTEGER, SAVE                 :: LASTYEAR
@@ -670,6 +678,6 @@
       ! Pretty output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-      ! Return to calling program
       END SUBROUTINE ANTHROEMS
+!EOC
 

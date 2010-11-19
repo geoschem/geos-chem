@@ -1,18 +1,73 @@
-! $Id: emfossil.f,v 1.5 2010/02/02 16:57:53 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: emfossil
+!
+! !DESCRIPTION: Subroutine EMFOSSIL emits fossil fuels into the EMISRR and 
+!  EMISRRN arrays, which are then passed to SMVGEAR. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMFOSSIL( I, J, N, NN, IREF, JREF, JSCEN )
 !
-!******************************************************************************
-!  Subroutine EMFOSSIL emits fossil fuels into the EMISRR and EMISRRN 
-!  arrays, which are then passed to SMVGEAR. (bmy, 4/19/99, 11/23/09)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1-2) I, J       : longitude and latitude indices
-!  (3-4) N, NN      : Emission index and tracer index
-!  (5-6) IREF, JREF : Offset indices I+I0 and J+J0
-!  (7  ) JSCEN      : Day index (Sat=1, Sun=2, Weekday=3)
+      USE BRAVO_MOD,          ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
+      USE CAC_ANTHRO_MOD,     ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
+      USE DAO_MOD,            ONLY : IS_WATER
+      USE DIAG_MOD,           ONLY : AD29,   AD32_an,  AD36
+      USE EDGAR_MOD,          ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
+      USE EDGAR_MOD,          ONLY : GET_EDGAR_TODN
+      USE EMEP_MOD,           ONLY : GET_EMEP_ANTHRO,  GET_EUROPE_MASK
+      USE EPA_NEI_MOD,        ONLY : GET_EPA_ANTHRO,   GET_USA_MASK
+      USE GRID_MOD,           ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD,        ONLY : LBRAVO, LEMEP,    LNEI99
+      USE LOGICAL_MOD,        ONLY : LEDGARNOx,        LEDGARCO
+      USE LOGICAL_MOD,        ONLY : LSTREETS,         LCAC
+      USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
+      USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
+      USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
+      USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
+      USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
+      USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
+                              
+      USE STREETS_ANTHRO_MOD, ONLY : GET_SE_ASIA_MASK
+      USE STREETS_ANTHRO_MOD, ONLY : GET_STREETS_ANTHRO
+      USE TIME_MOD,           ONLY : GET_TS_EMIS,      GET_DAY_OF_WEEK
+      USE TIME_MOD,           ONLY : GET_HOUR
+      USE TRACER_MOD,         ONLY : ITS_A_TAGCO_SIM
+      USE TRACER_MOD,         ONLY : XNUMOL
+      USE TRACERID_MOD,       ONLY : IDENOX, IDEOX,    IDEHNO3
+      USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
+      USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
+      USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"               ! Size parameters
+#     include "CMN_DIAG"               ! Diagnostic switches & arrays
+#     include "CMN_O3"                 ! EMISR, EMISRR, etc...
+#     include "comode.h"               ! IHOUR
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)   :: I       ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN)   :: J       ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN)   :: N       ! GEOS-Chem emission species index
+      INTEGER, INTENT(IN)   :: NN      ! GEOS-Chem advected tracer index
+      INTEGER, INTENT(IN)   :: IREF    ! Offset index I+I0
+      INTEGER, INTENT(IN)   :: JREF    ! Offset index J+J0
+      INTEGER, INTENT(IN)   :: JSCEN   ! Day index (Sat=1, Sun=2, Weekday=3)
+!
+! !REMARKS:
+!  In most cases, I0=J0=0, so IREF=I and JREF=J.  The offsets I0 and J0 are
+!  mostly historical baggage.
+! 
+! !REVISION HISTORY: 
+!  19 Apr 1999 - R. Yantosca - Initial version
 !  (1 ) Uses the correct seasonal NOx and multi-level NOx (anthroems.f)
 !  (2 ) Uses anthro scale factors for years since 1985 (from anthroems.f)
 !  (3 ) Scales emissions based on weekday/weekend (emf_scale.f)
@@ -69,59 +124,21 @@
 !  (35) Updated ship treatment (phs, 7/0/09)
 !  (36) Add NEI2005 (amv, phs, 10/20/09)
 !  (37) Bug fix for tagged CO and 0.5 x 0.666 Nested Grid (yxw, bmy, 11/23/09)
-!******************************************************************************
-!          
-      ! References to F90 modules
-      USE BRAVO_MOD,             ONLY : GET_BRAVO_ANTHRO, GET_BRAVO_MASK
-      USE CAC_ANTHRO_MOD,        ONLY : GET_CANADA_MASK,  GET_CAC_ANTHRO
-      USE DAO_MOD,               ONLY : IS_WATER
-      USE DIAG_MOD,              ONLY : AD29,   AD32_an,  AD36
-      USE EDGAR_MOD,             ONLY : GET_EDGAR_CO,     GET_EDGAR_NOx
-      USE EDGAR_MOD,             ONLY : GET_EDGAR_TODN
-      USE EMEP_MOD,              ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
-      USE EPA_NEI_MOD,           ONLY : GET_EPA_ANTHRO,  GET_USA_MASK
-      USE GRID_MOD,              ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,           ONLY : LBRAVO, LEMEP,    LNEI99
-      USE LOGICAL_MOD,           ONLY : LEDGARNOx,        LEDGARCO
-      USE LOGICAL_MOD,           ONLY : LSTREETS,         LCAC
-      USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
-      USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
-      USE LOGICAL_MOD,           ONLY : LICARTT,          LNEI05
-      USE NEI2005_ANTHRO_MOD,    ONLY : GET_NEI2005_ANTHRO
-      USE NEI2005_ANTHRO_MOD,    ONLY : NEI05_MASK => USA_MASK
-      USE LOGICAL_MOD,           ONLY : LICOADSSHIP !(cklee, 6/30/09)
-
-      USE STREETS_ANTHRO_MOD,    ONLY : GET_SE_ASIA_MASK
-      USE STREETS_ANTHRO_MOD,    ONLY : GET_STREETS_ANTHRO
-      USE TIME_MOD,              ONLY : GET_TS_EMIS,     GET_DAY_OF_WEEK
-      USE TIME_MOD,              ONLY : GET_HOUR
-      USE TRACER_MOD,            ONLY : ITS_A_TAGCO_SIM
-      USE TRACER_MOD,            ONLY : XNUMOL
-      USE TRACERID_MOD,          ONLY : IDENOX, IDEOX,    IDEHNO3
-      USE TRACERID_MOD,          ONLY : IDTOX,  IDTCO,    IDTHNO3
-      USE VISTAS_ANTHRO_MOD,     ONLY : GET_VISTAS_ANTHRO
-
-      USE ICOADS_SHIP_MOD,       ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches & arrays
-#     include "CMN_O3"       ! EMISR, EMISRR, etc...
-#     include "comode.h"     ! IHOUR
-
-      ! Arguments
-      INTEGER, INTENT(IN)   :: I, J, N, NN, IREF, JREF, JSCEN
-
-      ! Local Variables & external functions
-      LOGICAL               :: WEEKDAY
-      INTEGER               :: L, LL, K, DOW, HOUR
-      REAL*8                :: TODX, DTSRCE, AREA_CM2           
-      REAL*8                :: EMX(NOXLEVELS)  
-      REAL*8                :: XEMISR
-      REAL*8                :: XEMISRN(NOXLEVELS)
-      REAL*8                :: BRAVO, EPA_NEI, EMEP, EDGAR, STREETS
-      REAL*8                :: CAC,   SHIP,    VISTAS, NEI05
+!  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: WEEKDAY
+      INTEGER :: L, LL, K, DOW, HOUR
+      REAL*8  :: TODX, DTSRCE, AREA_CM2           
+      REAL*8  :: EMX(NOXLEVELS)  
+      REAL*8  :: XEMISR
+      REAL*8  :: XEMISRN(NOXLEVELS)
+      REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
+      REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -838,5 +855,5 @@
          EMISR(IREF,JREF,N) = XEMISR
       ENDIF  
 
-      ! Return to calling program
       END SUBROUTINE EMFOSSIL
+!EOC
