@@ -31,7 +31,7 @@
 #elif defined( GRID1x1 )
       REAL*8, PARAMETER :: DISIZE = 1.0d0 
       REAL*8, PARAMETER :: DJSIZE = 1.0d0
-#elif defined( GRID05x0666  )
+#elif defined( GRID05x0666 )
       REAL*8, PARAMETER :: DISIZE = 2d0/3d0
       REAL*8, PARAMETER :: DJSIZE = 0.5d0
 #endif
@@ -213,11 +213,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED ) 
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38  
-      INTEGER, PARAMETER :: LLTROP     = 38  
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
@@ -232,11 +234,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38  
-      INTEGER, PARAMETER :: LLTROP     = 38  
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID1x125 )
@@ -251,11 +255,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels    
+      INTEGER, PARAMETER :: LLTROP     = 40
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38 
-      INTEGER, PARAMETER :: LLTROP     = 38
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 )
@@ -280,12 +286,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38
-      INTEGER, PARAMETER :: LLTROP     = 38
-
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( MERRA ) && defined( GRID4x5 )
@@ -300,11 +307,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED ) 
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
 #else
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
+      INTEGER, PARAMETER :: LLTROP     = 40  
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38  
-      INTEGER, PARAMETER :: LLTROP     = 38  
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #elif defined( MERRA ) && defined( GRID2x25 )
@@ -319,11 +328,13 @@
       INTEGER, PARAMETER :: JJPAR      = JGLOB
 #if   defined( GRIDREDUCED )
       INTEGER, PARAMETER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
 #else 
       INTEGER, PARAMETER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
 #endif
-      INTEGER, PARAMETER :: LLTROP_FIX = 38  
-      INTEGER, PARAMETER :: LLTROP     = 38  
       REAL*8,  PARAMETER :: PTOP       = 0.01d0
 
 #endif
@@ -496,5 +507,8 @@
 !  25 Jan 2010 - R. Yantosca - Define TOMASBIN and TOMASSPEC for TOMAS sims
 !  08 Feb 2010 - F. Paulot   - Increase NNPAR, NEMPARA and NEMPARB
 !  08 Feb 2010 - F. Paulot   - Move MAXMEM and MAXPL from diag_pl_mod.
+!  30 Nov 2010 - R. Yantosca - Increase LLTROP (from 38 to 40) for GEOS-5 and 
+!                              MERRA for the full 72-layer grids (i.e. when
+!                              the Cpp switch GRIDREDUCED is not set).
 !EOP
 !------------------------------------------------------------------------------
