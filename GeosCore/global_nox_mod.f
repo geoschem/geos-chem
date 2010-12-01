@@ -1,28 +1,36 @@
-! $Id: global_nox_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_NOx_mod
+!
+! !DESCRIPTION: Module GLOBAL\_NOx\_MOD contains variables and routines for 
+!  reading the global monthly mean NOx concentration from disk.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_NOX_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_NOX_MOD contains variables and routines for reading the
-!  global monthly mean NOX concentration from disk. (bmy, 7/28/00, 10/3/05)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1 ) BNOX (REAL*8)      : stores global monthly mean NOx field [ppbv]
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ===========================================================================
-!  (1 ) GET_GLOBAL_NOX     : reads global monthly mean NOx from disk
-!  (2 ) INIT_GLOBAL_NOX    : allocates & initializes the NOx array
-!  (3 ) CLEANUP_GLOBAL_NOX : deallocates the NOx array
+! !PUBLIC DATA MEMBERS:
 !
-!  GEOS-CHEM modules referenced by global_nox_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (3 ) error_mod.f     : Module containing NaN and other error check routines
-!  (4 ) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
+      ! Array to store global monthly mean BNOX field
+      REAL*8, PUBLIC, ALLOCATABLE :: BNOX(:,:,:)
 !
-!  NOTES:
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CLEANUP_GLOBAL_NOx
+      PUBLIC :: GET_GLOBAL_NOx
+      PUBLIC :: INIT_GLOBAL_NOx
+!
+! !REVISION HISTORY:
+!  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Updated comments, made cosmetic changes (bmy, 6/13/01)
 !  (2 ) Updated comments (bmy, 9/4/01)
 !  (3 ) Now regrid BNOX array from 48L to 30L for GEOS-3 if necessary.
@@ -35,36 +43,50 @@
 !  (8 ) Cosmetic changes to improve output (bmy, 3/27/03)
 !  (9 ) Now references "directory_mod.f" and "unix_cmds_mod.f" (bmy, 7/20/04)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Array to store global monthly mean BNOX field
-      REAL*8, ALLOCATABLE :: BNOX(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      CONTAINS
+!EOC
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_nox
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_NOx reads global NOx from binary 
+!  punch files from a full chemistry run.  This NOx data is needed to 
+!  calculate the CO yield from isoprene oxidation.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_GLOBAL_NOx( THISMONTH )
+!
+! !USES:
+!
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE DIRECTORY_MOD, ONLY : TEMP_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE UNIX_CMDS_MOD, ONLY : REDIRECT
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD
+      USE UNIX_CMDS_MOD, ONLY : ZIP_SUFFIX
 
-      SUBROUTINE GET_GLOBAL_NOX( THISMONTH )
+#     include "CMN_SIZE"                  ! Size parameters
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_NOX reads global NOX from binary punch files from a 
-!  a full chemistry run.  This NOx data is needed to calculate the CO yield
-!  from isoprene oxidation. (bmy, 7/28/00, 10/3/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!
-!  NOTES:
+      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Now use version of GET_TAU0 with 3 arguments.  Now call READ_BPCH2 
 !        with IGLOB,JGLOB,LGLOB.  Call TRANSFER_3D to cast from REAL*4 to 
 !        REAL*8 and to regrid to 30 levels for GEOS-3 (if necessary).  ARRAY 
@@ -76,33 +98,25 @@
 !        references Unix unzipping commands from "unix_cmds_mod.f".
 !        (bmy, 7/20/04)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,     TEMP_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE UNIX_CMDS_MOD, ONLY : REDIRECT,     UNZIP_CMD,   ZIP_SUFFIX
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*8               :: XTAU
-      CHARACTER(LEN=255)   :: FILENAME
-      CHARACTER(LEN=255)   :: FIELD_DIR, RGNAME, TEMPO, CHAROP
-      CHARACTER(LEN=3)     :: BMONTH(12) = (/ 'jan', 'feb', 'mar', 
-     &                                        'apr', 'may', 'jun', 
-     &                                        'jul', 'aug', 'sep', 
-     &                                        'oct', 'nov', 'dec' /)
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=255) :: FIELD_DIR, RGNAME, TEMPO, CHAROP
+      CHARACTER(LEN=3)   :: BMONTH(12) = (/ 'jan', 'feb', 'mar', 
+     &                                      'apr', 'may', 'jun', 
+     &                                      'jul', 'aug', 'sep', 
+     &                                      'oct', 'nov', 'dec' /)
 
       ! First time flag
-      LOGICAL, SAVE        :: FIRST = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_NOX begins here!
@@ -164,54 +178,74 @@
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D( ARRAY, BNOX )
 
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_NOX
-
+      END SUBROUTINE GET_GLOBAL_NOx
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_NOx
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_NOx allocates and zeroes all
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_NOX
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_NOX allocates and zeroes the NOX array, which 
-!  holds global monthly mean NOX concentrations. (bmy, 7/28/00, 10/15/02)
+! !USES:
 !
-!  NOTES:
-!  (1 ) BNOX now needs to be sized (IIPAR,JJPAR,LLPAR) (bmy, 1/14/02)
-!  (2 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
-!  (3 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE" 
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
+!  (1 ) BNOX now needs to be sized (IIPAR,JJPAR,LLPAR) (bmy, 1/14/02)
+!  (2 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
+!  (3 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
-      ! Allocate NOX array
+      ! Allocate BNOX array
       ALLOCATE( BNOX( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BNOX' )
 
       ! Zero BNOX array
       BNOX = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_NOX
-      
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_GLOBAL_NOX
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_NOX deallocates the NOX array.
-!******************************************************************************
-!                               
+! !IROUTINE: cleanup_global_nox
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_NOx deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_GLOBAL_NOX
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       IF ( ALLOCATED( BNOX ) ) DEALLOCATE( BNOX ) 
      
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_NOX
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GLOBAL_NOX_MOD

@@ -59,7 +59,12 @@ $(CORE)/emep_mod.f                   \
 $(CORE)/emissions_mod.f              \
 $(CORE)/fjx_acet_mod.f               \
 $(CORE)/gamap_mod.f                  \
+$(CORE)/global_br_mod.f              \
+$(CORE)/global_no3_mod.f             \
+$(CORE)/global_nox_mod.f             \
+$(CORE)/global_o1d_mod.f             \
 $(CORE)/global_o3_mod.f              \
+$(CORE)/global_oh_mod.f              \
 $(CORE)/icoads_ship_mod.f            \
 $(CORE)/input_mod.f                  \
 $(CORE)/isoropiaII_mod.f             \
@@ -79,6 +84,7 @@ $(CORE)/pjc_pfix_mod.f               \
 $(CORE)/RnPbBe_mod.f                 \
 $(CORE)/scale_anthro_mod.f           \
 $(CORE)/tagged_ox_mod.f              \
+$(CORE)/toms_mod.f                   \
 $(CORE)/tropopause_mod.f             \
 $(CORE)/tpcore_fvdas_mod.f90         \
 $(CORE)/tpcore_geos5_window_mod.f90  \

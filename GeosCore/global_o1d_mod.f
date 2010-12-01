@@ -1,89 +1,96 @@
-! $Id: global_o1d_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_o1d_mod
+!
+! !DESCRIPTION: Module GLOBAL\_O1D\_MOD contains variables and routines for 
+!  reading the global monthly mean O1D stratospheric concentration from disk.  
+!  This is used in the H2/HD simulation.  The O1D fields were obtained from 
+!  Gabriele Curci GEOS-Chem simulation in the stratosphere (v5.03).
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_O1D_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_O1D_MOD contains variables and routines for reading the
-!  global monthly mean O1D stratospheric concentration from disk.  This is 
-!  used in the H2/HD simulation.  The O1D fields were obtained from Gabriele 
-!  Curci GEOS-Chem simulation in the stratosphere (v5.03).
-!  (hup, phs, 9/18/07)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1 ) O1D (REAL*8)       : stores global monthly mean O1D field
-!  
-!  Module Routines:
-!  =========================================================================== 
-!  (1 ) GET_O1D            : Wrapper for GET_GLOBAL_O1D
-!  (2 ) GET_GLOBAL_O1D     : Reads global monthly mean O1D from disk
-!  (3 ) INIT_GLOBAL_O1D    : Allocates & initializes the O1D array
-!  (4 ) CLEANUP_GLOBAL_O1D : Deallocates the OH array
-!
-!  GEOS-Chem modules referenced by global_o1d_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f  : Module containing NaN and other error-check routines
-!
-!  NOTES:
-!  (1 ) Adapted from GLOBAL_OH_MOD module (hup, phs, 9/18/07)
-!******************************************************************************
-!     
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
       ! Array to store global monthly mean O1D field
-      REAL*8, ALLOCATABLE :: O1D(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+      REAL*8, PUBLIC, ALLOCATABLE :: O1D(:,:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CLEANUP_GLOBAL_O1D
+      PUBLIC :: GET_GLOBAL_O1D
+      PUBLIC :: INIT_GLOBAL_O1D
+!
+! !REVISION HISTORY:
+!  18 Sep 2007 - H. U. Price, P. Le Sager - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_O1D 
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_O1D reads global O1D from binary 
+!  punch files stored in the /data/ctm/GEOS_MEAN directory.  This O1D data 
+!  is needed for the H2/HD mechanisms in Tagged H2.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_GLOBAL_O1D( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_O1D reads global O1D from binary punch files stored
-!  in the /data/ctm/GEOS_MEAN directory.  This O1D data is needed for the H2/HD
-!  mechanisms in Tagged H2. (hup, phs, 9/18/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+
+#     include "CMN_SIZE"                  ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - H. U. Price, P. Le Sager - Initial version
 !  (1 ) GET_GLOBAL_O1D assumes that we are reading global O1D data that 
 !        occupies all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) 
 !        for IDL regridding code which will produce the appropriate O1D files.
 !  (2 ) ARRAY should now be of size (IGLOB,JGLOB,LGLOB). (bmy, 1/11/02)
 !  (3 ) Now point to new O1D files in the ??? subdirectory.
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: THISMONTH
-
-      ! Local variables
-      INTEGER                :: I, J, L
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*8                 :: XTAU
-      CHARACTER(LEN=255)     :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
 
       ! First time flag
-      LOGICAL, SAVE          :: FIRST = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_O1D begins here!
@@ -118,24 +125,38 @@
       ! Assign data from ARRAY to the module variable O1D
       CALL TRANSFER_3D( ARRAY, O1D )
 
-      ! Return to calling program
       END SUBROUTINE GET_GLOBAL_O1D
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_o1d
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_O1D allocates and zeroes
+!  all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_O1D
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_O1D allocates and zeroes the O1D array, which holds 
-!  global monthly mean O1D concentrations. 
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE" 
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - H. U. Price, P. Le Sager - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       ! Allocate O1D array
@@ -145,23 +166,30 @@
       ! Zero O1D array
       O1D = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_O1D
-      
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_GLOBAL_O1D
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_O1D deallocates the O1D array.
-!******************************************************************************
-!                               
+! !IROUTINE: cleanup_global_O1D
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_O1D deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_GLOBAL_O1D
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - H. U. Price, P. Le Sager - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       IF ( ALLOCATED( O1D ) ) DEALLOCATE( O1D ) 
      
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_O1D
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE GLOBAL_O1D_MOD

@@ -1,107 +1,111 @@
-
-      MODULE GLOBAL_BR_MOD
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Module GLOBAL_BR_MOD contains variables and routines for reading the
-!  global monthly mean Br concentration from disk. 
-!  (bmy, cdh, 7/28/00, 10/3/05, 7/6/06)
+! !MODULE: global_Br_mod
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) BR (REAL*8)       : stores global monthly mean BR field
-!  
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_BR            : Wrapper for GET_GLOBAL_BR
-!  (2 ) GET_GLOBAL_BR     : Reads global monthly mean BR from disk
-!  (3 ) INIT_GLOBAL_BR    : Allocates & initializes the BR array
-!  (4 ) CLEANUP_GLOBAL_BR : Deallocates the BR array
+! !DESCRIPTION: Module GLOBAL\_Br\_MOD contains variables and routines for 
+!  reading the global monthly mean Br concentration from disk. 
+!\\
+!\\
+! !INTERFACE: 
 !
-!  GEOS-CHEM modules referenced by global_nox_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f  : Module containing NaN and other error-check routines
+      MODULE GLOBAL_Br_MOD
 !
-!  NOTES:
-!  (1 ) Copied from global_oh_mod.f (cdh, 7/5/06)
-!******************************************************************************
-!     
+! !USES:
+!
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
       ! Array to store global monthly mean BR field
-      REAL*8, ALLOCATABLE :: BR_TROP(:,:,:)
-      REAL*8, ALLOCATABLE :: BR_STRAT(:,:,:)
-      REAL*8, ALLOCATABLE :: BR_MERGE(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BR_TROP(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BR_STRAT(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BR_MERGE(:,:,:)
 
       ! Array to store global monthly mean BrO field
-      REAL*8, ALLOCATABLE :: BRO_TROP(:,:,:)
-      REAL*8, ALLOCATABLE :: BRO_STRAT(:,:,:)
-      REAL*8, ALLOCATABLE :: BRO_MERGE(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BRO_TROP(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BRO_STRAT(:,:,:)
+      REAL*8, PUBLIC, ALLOCATABLE :: BRO_MERGE(:,:,:)
 
       ! Array to store global monthly J-BrO field
-      REAL*8, ALLOCATABLE :: J_BRO(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+      REAL*8, PUBLIC, ALLOCATABLE :: J_BRO(:,:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC :: GET_GLOBAL_Br_NEW   
+      PUBLIC :: GET_GLOBAL_Br   
+      PUBLIC :: INIT_GLOBAL_Br
+      PUBLIC :: CLEANUP_GLOBAL_Br
+!
+! !REVISION HISTORY:
+!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_Br_new
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br\_NEW reads global Br from 
+!  binary punch files stored in the /data/ctm/GEOS_MEAN directory.  This Br 
+!  data is needed as oxidant for mercury chemistry.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
+!
+! !USES:
+!
+      ! Comment out
+      !USE LOGICAL_MOD,   ONLY : LVARTROP
 
-      SUBROUTINE GET_GLOBAL_BR_NEW( THISMONTH )
+#     include "CMN_SIZE"                 ! Size parameters
+
 !
-! THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES BR CONCENTRATIONS
-! FROM MULTIPLE DATA SOURCES
+! !INPUT PARAMETERS: 
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_BR reads global BR from binary punch files stored
-!  in the /data/ctm/GEOS_MEAN directory.  This BR data is needed as oxidant
-!  for mercury chemistry  
-!  (bmy, cdh 7/28/00, 10/3/05, 7/5/06)
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!
-!  NOTES:
+! !REMARKS:
+!  THIS IS A NEW VERSION OF THIS SUBROUTINE WHICH COMBINES Br CONCENTRATIONS
+!  FROM MULTIPLE DATA SOURCES
+! 
+! !REVISION HISTORY: 
+!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
 !  (1 ) GET_GLOBAL_BR assumes that we are reading global BR data that occupies
 !        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
 !        regridding code which will produce the appropriate BR files.
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D,  TRANSFER_3D_TROP
-      USE TROPOPAUSE_MOD,ONLY : GET_TPAUSE_LEVEL
-!      USE LOGICAL_MOD,   ONLY : LVARTROP
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*4               :: ARRAY2(IGLOB,JGLOB,LLTROP)
-      REAL*8               :: XTAU
-!      REAL*4               :: TPAUSE(IGLOB,JGLOB)
-      CHARACTER(LEN=255)   :: FILENAME
-      INTEGER              :: TPL
-
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: I, J, L
+      REAL*4                       :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*4                       :: ARRAY2(IGLOB,JGLOB,LLTROP)
+      REAL*8                       :: XTAU
+!      REAL*4                       :: TPAUSE(IGLOB,JGLOB)
+      CHARACTER(LEN=255)           :: FILENAME
+      INTEGER                      :: TPL
+ 
       ! Location of archived Br
       CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
      &                                '/home/cdh/GC/Archived-Br/'
 
       ! First time flag
-      LOGICAL, SAVE        :: FIRST = .TRUE. 
+      LOGICAL, SAVE                :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_BR_NEW begins here!
@@ -285,55 +289,62 @@
       ! Assign data from ARRAY2 to the module variable BR
       CALL TRANSFER_3D_TROP( ARRAY2, J_BrO )
 
-
-
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_BR_NEW
-
+      END SUBROUTINE GET_GLOBAL_Br_NEW
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GET_GLOBAL_Br
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from binary 
+!  punch files stored in the /data/ctm/GEOS_MEAN directory.  This Br data 
+!  is needed as oxidant for mercury chemistry.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
+!
+! !USES:
+!
+      USE BPCH2_MOD,    ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+      USE BPCH2_MOD,    ONLY : GET_TAU0
+      USE BPCH2_MOD,    ONLY : READ_BPCH2
+      USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-      SUBROUTINE GET_GLOBAL_BR( THISMONTH )
+#     include "CMN_SIZE"                 ! Size parameters
+
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_BR reads global BR from binary punch files stored
-!  in the /data/ctm/GEOS_MEAN directory.  This BR data is needed as oxidant
-!  for mercury chemistry  
-!  (bmy, cdh 7/28/00, 10/3/05, 7/5/06)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
-!
-!  NOTES:
-!  (1 ) GET_GLOBAL_BR assumes that we are reading global BR data that occupies
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
+!  (1 ) GET_GLOBAL_BR assumes that we are reading global Br data that occupies
 !        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
-!        regridding code which will produce the appropriate BR files.
-!******************************************************************************
+!        regridding code which will produce the appropriate Br files.
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*8               :: XTAU
-      CHARACTER(LEN=255)   :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER                      :: I, J, L
+      REAL*4                       :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*8                       :: XTAU
+      CHARACTER(LEN=255)           :: FILENAME
 
       ! Location of archived Br
       CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
      &                                '/home/cdh/GC/Archived-Br/'
 
       ! First time flag
-      LOGICAL, SAVE        :: FIRST = .TRUE. 
+      LOGICAL,           SAVE      :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_BR begins here!
@@ -364,27 +375,38 @@
       ! Assign data from ARRAY to the module variable BR
       CALL TRANSFER_3D( ARRAY, BR_MERGE )
 
-
-      ! Return to calling program
-      END SUBROUTINE GET_GLOBAL_BR
-
+      END SUBROUTINE GET_GLOBAL_Br
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE INIT_GLOBAL_BR
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_BR allocates and zeroes the BR array, which holds 
-!  global monthly mean BR concentrations. (bmy, cdh, 7/28/00, 5/4/04, 7/6/06)
+! !IROUTINE: init_global_Br
 !
-!  NOTES:
-!******************************************************************************
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_Br allocates and zeroes all
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
 !
-      ! References to F90 modules
+      SUBROUTINE INIT_GLOBAL_Br
+!
+! !USES:
+!
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE" 
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -435,36 +457,39 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_MERGE' )
       BrO_MERGE = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_BR
-      
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_GLOBAL_BR
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_BR deallocates the BR array. 
-!  (bmy, cdh, 7/28/00, 7/6/06)
+! !IROUTINE: CLEANUP_GLOBAL_Br
 !
-!  NOTES:
-!******************************************************************************
-!        
+! !DESCRIPTION: Subroutine CLEANUP_GLOBAL_Br deallocates module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_GLOBAL_Br
+! 
+! !REVISION HISTORY: 
+!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_GLOBAL_BR begins here!
       !=================================================================
-      IF ( ALLOCATED( BR_TROP  ) ) DEALLOCATE( BR_TROP  ) 
-      IF ( ALLOCATED( BR_STRAT ) ) DEALLOCATE( BR_STRAT ) 
-      IF ( ALLOCATED( BR_MERGE ) ) DEALLOCATE( BR_MERGE ) 
-
-      IF ( ALLOCATED( J_BrO    ) ) DEALLOCATE( J_BrO  ) 
-
+      IF ( ALLOCATED( BR_TROP   ) ) DEALLOCATE( BR_TROP   ) 
+      IF ( ALLOCATED( BR_STRAT  ) ) DEALLOCATE( BR_STRAT  )  
+      IF ( ALLOCATED( BR_MERGE  ) ) DEALLOCATE( BR_MERGE  ) 
+      IF ( ALLOCATED( J_BrO     ) ) DEALLOCATE( J_BrO     ) 
       IF ( ALLOCATED( BrO_TROP  ) ) DEALLOCATE( BrO_TROP  ) 
       IF ( ALLOCATED( BrO_STRAT ) ) DEALLOCATE( BrO_STRAT )      
       IF ( ALLOCATED( BrO_MERGE ) ) DEALLOCATE( BrO_MERGE ) 
 
-      ! Return to calling program
-      END SUBROUTINE CLEANUP_GLOBAL_BR
-
-!------------------------------------------------------------------------------
-
-      END MODULE GLOBAL_BR_MOD
+      END SUBROUTINE CLEANUP_GLOBAL_Br
+!EOC
+      END MODULE GLOBAL_Br_MOD

@@ -1,29 +1,40 @@
-! $Id: global_no3_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_NO3_mod
+!
+! !DESCRIPTION: Module GLOBAL\_NO3\_MOD contains variables and routines for 
+!  reading the global monthly mean NO3 concentration from disk.  These are 
+!  needed for the offline sulfate/aerosol simulation.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_NO3_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_NO3_MOD contains variables and routines for reading the
-!  global monthly mean NO3 concentration from disk.  These are needed for the 
-!  offline sulfate/aerosol simulation. (bmy, 10/15/02, 1/22/07)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1 ) NO3 (REAL*8)       : Stores global monthly mean NO3 field
-!  
-!  Module Routines:
-!  =========================================================================== 
-!  (1 ) GET_GLOBAL_NO3     : Reads global monthly mean HNO3 from disk
-!  (2 ) INIT_GLOBAL_NO3    : Allocates & initializes the HNO3 array
-!  (3 ) CLEANUP_GLOBAL_NO3 : Deallocates the HNO3 array
+      IMPLICIT NONE
+      PRIVATE
 !
-!  GEOS-CHEM modules referenced by global_no3_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) directory_mod.f : Module containing GEOS-CHEM data and met field dirs
-!  (3 ) error_mod.f     : Module containing NaN and other error check routines
-!  (4 ) transfer_mod.f  : Module containing routines to cast & resize arrays
+! !PUBLIC DATA MEMBERS:
 !
-!  NOTES:
+      ! Array to store global monthly mean OH field
+      REAL*8, PUBLIC, ALLOCATABLE :: NO3(:,:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: GET_GLOBAL_NO3
+      PUBLIC  :: CLEANUP_GLOBAL_NO3
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: INIT_GLOBAL_NO3
+!
+! !REVISION HISTORY:
+!  15 Oct 2002 - R. Yantosca - Initial version
 !  (1 ) Adapted from "global_oh_mod.f" (bmy, 10/3/02)
 !  (2 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (3 ) Cosmetic changes (bmy, 3/27/03)
@@ -32,44 +43,44 @@
 !  (6 ) Now read from "sulfate_sim_200508/offline" directory (bmy, 8/1/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Bug fix: now zero ARRAY (phs, 1/22/07)
-!******************************************************************************
-!     
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "global_hno3_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE :: INIT_GLOBAL_NO3
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Array to store global monthly mean OH field
-      REAL*8, ALLOCATABLE :: NO3(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_NO3
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_NO3 reads monthly mean NO3 data fields.
+!  These are needed for simulations such as offline sulfate/aerosol. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_GLOBAL_NO3( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_NO3 reads monthly mean NO3 data fields.  These 
-!  are needed for simulations such as offline sulfate/aerosol. 
-!  (bmy, 10/15/02, 1/22/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
+
+#     include "CMN_SIZE"                  ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2002 - R. Yantosca - Initial version
 !  (1 ) Minor bug fix in FORMAT statements (bmy, 3/23/03)
 !  (2 ) Cosmetic changes (bmy, 3/27/03)
 !  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -80,28 +91,19 @@
 !        "transfer_mod.f". (bmy, 8/1/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now zero local variable ARRAY (phs, 1/22/07)
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LLTROP)
-      REAL*8               :: XTAU
-      CHARACTER(LEN=255)   :: FILENAME
+! !LOCAL VARIABLES:
+!
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LLTROP)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
 
       ! First time flag
-      LOGICAL, SAVE        :: FIRST = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_NO3 begins here!
@@ -143,55 +145,76 @@
       ! Levels between LLTROP_FIX and LLROP are 0
       CALL TRANSFER_3D_TROP( ARRAY, NO3 )
 
-      ! Return to calling program
       END SUBROUTINE GET_GLOBAL_NO3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_NO3
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_NO3 allocates and zeroes
+!  all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_NO3
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_NO3 allocates the NO3 module array (bmy, 10/15/02)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
-!  (2 ) Now allocate NO3 array up to LLTROP levels (bmy, 8/1/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
-      INTEGER             :: AS
+#     include "CMN_SIZE" 
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2002 - R. Yantosca - Initial version
+!  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
+!  (2 ) Now allocate NO3 array up to LLTROP levels (bmy, 8/1/05)
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
 
       !=================================================================
-      ! INIT_GLOBAL_H2O2 begins here!
+      ! INIT_GLOBAL_NO3 begins here!
       !=================================================================
       ALLOCATE( NO3( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NO3' )
       NO3 = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_NO3
-      
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_GLOBAL_NO3
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_H2O2 deallocates the H2O2 array. (bmy, 10/15/02)
-!******************************************************************************
-!                               
+! !IROUTINE: cleanup_global_no3
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_NO3 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_GLOBAL_NO3
+! 
+! !REVISION HISTORY: 
+!  15 Oct 2002 - R. Yantosca - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       !=================================================================
       ! CLEANUP_GLOBAL_H2O2 begins here!
       !=================================================================
       IF ( ALLOCATED( NO3 ) ) DEALLOCATE( NO3 ) 
      
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_NO3
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GLOBAL_NO3_MOD
