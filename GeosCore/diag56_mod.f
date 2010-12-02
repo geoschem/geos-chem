@@ -53,7 +53,6 @@
 ! !IROUTINE: zero_diag56
 !
 ! !DESCRIPTION: Subroutine ZERO\_DIAG03 zeroes the ND03 diagnostic arrays. 
-
 !\\
 !\\
 ! !INTERFACE:

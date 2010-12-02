@@ -1,65 +1,41 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag50_mod 
+!
+! !DESCRIPTION: Module DIAG50\_MOD contains variables and routines to 
+!  generate 24-hour average timeseries data.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG50_MOD
 !
-!******************************************************************************
-!  Module DIAG50_MOD contains variables and routines to generate 24-hour 
-!  average timeseries data. (amf, bey, bdf, pip, bmy, 11/30/00, 12/21/09)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) COUNT            (INTEGER ) : Counter of timesteps per day
-!  (2 ) COUNT_CHEM       (INTEGER ) : Counter of chemistry timesteps per day
-!  (2b) COUNT_CHEM3D     (INTEGER ) : Counter of fullchem steps under T-pause
-!  (3 ) DO_SAVE_DIAG50   (LOGICAL ) : Flag to turn on DIAG50 timseries
-!  (4 ) I0               (INTEGER ) : Lon offset between global & nested grid
-!  (5 ) J0               (INTEGER ) : Lat offset between global & nested grid
-!  (6 ) IOFF             (INTEGER ) : Offset between relative & absolute lon
-!  (7 ) JOFF             (INTEGER ) : Offset between relative & absolute lat
-!  (8 ) LOFF             (INTEGER ) : Offset between relative & absolute alt 
-!  (9 ) ND50_IMIN        (INTEGER ) : Minimum lat index for DIAG50 region
-!  (10) ND50_IMAX        (INTEGER ) : Maximum lat index for DIAG50 region
-!  (11) ND50_JMIN        (INTEGER ) : Minimum lon index for DIAG50 region
-!  (12) ND50_JMAX        (INTEGER ) : Maximum lon index for DIAG50 region
-!  (13) ND50_LMIN        (INTEGER ) : Minimum alt index for DIAG50 region
-!  (14) ND50_LMAX        (INTEGER ) : Minimum alt index for DIAG50 region
-!  (15) ND50_NI          (INTEGER ) : Number of longitudes in DIAG50 region 
-!  (16) ND50_NJ          (INTEGER ) : Number of latitudes  in DIAG50 region
-!  (17) ND50_NL          (INTEGER ) : Number of levels     in DIAG50 region
-!  (18) ND50_N_TRACERS   (INTEGER ) : Number of tracers for DIAG50
-!  (19) ND50_OUTPUT_FILE (CHAR*255) : Name of output file for timeseries data
-!  (20) ND50_TRACERS     (INTEGER ) : Array of DIAG50 tracer numbers
-!  (21) Q                (REAL*8  ) : Accumulator array for various quantities
-!  (22) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
-!  (23) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
-!  (24) HALFPOLAR        (INTEGER ) : Used for bpch file output
-!  (25) CENTER180        (INTEGER ) : Used for bpch file output
-!  (26) LONRES           (REAL*4  ) : Used for bpch file output
-!  (27) LATRES           (REAL*4  ) : Used for bpch file output
-!  (28) MODELNAME        (CHAR*20 ) : Used for bpch file output
-!  (29) RESERVED         (CHAR*40 ) : Used for bpch file output
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Procedures:
-!  ============================================================================
-!  (1 ) DIAG50                      : Driver subroutine for 24hr timeseries 
-!  (2 ) ACCUMULATE_DIAG50           : Accumulates data for later averaging
-!  (3 ) ITS_TIME_FOR_WRITE_DIAG50   : Returns T if it's time to write bpch file
-!  (4 ) WRITE_DIAG50                : Writes 24-hr averaged data to a bpch file
-!  (5 ) GET_I                       : Converts relative lon index to absolute
-!  (5 ) INIT_DIAG50                 : Allocates and zeroes all module arrays 
-!  (6 ) CLEANUP_DIAG50              : Deallocates all module arrays
+! !PUBLIC DATA MEMBERS:
 !
-!  GEOS-CHEM modules referenced by diag50_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
-!  (3 ) error_mod.f    : Module w/ NaN and other error check routines
-!  (4 ) file_mod.f     : Module w/ file unit numbers and error checks
-!  (5 ) grid_mod.f     : Module w/ horizontal grid information
-!  (6 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
-!  (7 ) pressure_mod.f : Module w/ routines to compute P(I,J,L) 
-!  (8 ) time_mod.f     : Module w/ routines to compute date & time
-!  (9 ) tracer_mod.    : Module w/ GEOS-CHEM tracer array STT etc.
-!  (10) tracerid_mod.f : Module w/ pointers to tracers & emissions
+      LOGICAL, PUBLIC :: DO_SAVE_DIAG50    ! On/off flag for ND50 diagnostic
 !
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: CLEANUP_DIAG50
+      PUBLIC  :: DIAG50
+      PUBLIC  :: INIT_DIAG50
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: ACCUMULATE_DIAG50
+      PRIVATE :: ITS_TIME_FOR_WRITE_DIAG50
+      PRIVATE :: WRITE_DIAG50
+      PRIVATE :: GET_I
+!
+! !REMARKS:
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v      ]
@@ -88,9 +64,10 @@
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
 !  99            : P(surface) - PTOP                        [hPa      ]
 !  100           : Temperature                              [K        ]
-!  115-121       : size resolved dust optical depth         [unitless   ]
+!  115-121       : size resolved dust optical depth         [unitless ]
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewritten for clarity and to save extra quantities (bmy, 7/20/04)
 !  (2 ) Added COUNT_CHEM to count the chemistry timesteps per day, since some
 !        quantities are only archived after a fullchem call (bmy, 10/25/04)
@@ -112,32 +89,46 @@
 !        (amv, bmy, 12/21/09)
 !  (17) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag50_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE 
-      
-      ! ... except these variables ...
-      PUBLIC :: DO_SAVE_DIAG50
-
-      ! ... and these routines
-      PUBLIC :: CLEANUP_DIAG50
-      PUBLIC :: DIAG50
-      PUBLIC :: INIT_DIAG50
-      
+! !PRIVATE TYPES:
+!
       !=================================================================
       ! MODULE VARIABLES
+      !
+      ! COUNT            : Counter of timesteps
+      ! I0               : Offset between global & nested grid
+      ! J0               : Offset between global & nested grid
+      ! IOFF             : Longitude offset
+      ! JOFF             : Latitude offset
+      ! LOFF             : Altitude offset
+      ! ND50_IMIN        : Minimum latitude  index for DIAG51 region
+      ! ND50_IMAX        : Maximum latitude  index for DIAG51 region
+      ! ND50_JMIN        : Minimum longitude index for DIAG51 region
+      ! ND50_JMAX        : Maximum longitude index for DIAG51 region
+      ! ND50_LMIN        : Minimum altitude  index for DIAG51 region
+      ! ND50_LMAX        : Minimum latitude  index for DIAG51 region
+      ! ND50_NI          : Number of longitudes in DIAG51 region 
+      ! ND50_NJ          : Number of latitudes  in DIAG51 region
+      ! ND50_NL          : Number of levels     in DIAG51 region
+      ! ND50_N_TRACERS   : Number of tracers for DIAG51
+      ! ND50_OUTPUT_FILE : Name of bpch file w  timeseries data
+      ! ND50_TRACERS     : Array of DIAG51 tracer numbers
+      ! Q                : Accumulator array for various quantities
+      ! TAU0             : Starting TAU used to index the bpch file
+      ! TAU1             : Ending TAU used to index the bpch file
+      ! HALFPOLAR        : Used for bpch file output
+      ! CENTER180        : Used for bpch file output
+      ! LONRES           : Used for bpch file output
+      ! LATRES           : Used for bpch file output
+      ! MODELNAME        : Used for bpch file output
+      ! RESERVED         : Used for bpch file output
       !=================================================================
-      
+
       ! Scalars
-      LOGICAL              :: DO_SAVE_DIAG50
       INTEGER              :: COUNT
       INTEGER              :: IOFF,           JOFF   
       INTEGER              :: LOFF,           I0
@@ -160,23 +151,29 @@
       REAL*8,  ALLOCATABLE :: Q(:,:,:,:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DIAG50
+!
+! !DESCRIPTION: Subroutine DIAG50 generates 24hr average time series.  
+!  Output is to binary punch file format or HDF5 file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAG50
-!
-!******************************************************************************
-!  Subroutine DIAG50 generates 24hr average time series.  Output is to 
-!  binary punch file format. (amf, bey, bdf, pip, bmy, 11/15/99, 7/20/04)
-!
-!  NOTES:
-!  (1 ) Rewritten for clarity (bmy, 7/20/04)
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! DIAG50 begins here!
       !=================================================================
@@ -187,18 +184,49 @@
       ! Write data to disk at the end of the day
       IF ( ITS_TIME_FOR_WRITE_DIAG50() ) CALL WRITE_DIAG50
 
-      ! Return to calling program
       END SUBROUTINE DIAG50
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accumulate_diag50
+!
+! !DESCRIPTION: Subroutine ACCUMULATE\_DIAG50 accumulates tracers into the Q 
+!  array. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ACCUMULATE_DIAG50
 !
-!******************************************************************************
-!  Subroutine ACCUMULATE_DIAG50 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 12/21/09)
+! !USES:
 !
-!  NOTES:
+      USE COMODE_MOD,     ONLY : JLOP
+      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
+      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
+      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
+      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,     ONLY : N_TRACERS
+      USE TRACER_MOD,     ONLY : XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+
+#     include "cmn_fj.h"  ! includes CMN_SIZE
+#     include "jv_cmn.h"  ! ODAER, QAA, QAA_OUT
+#     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
+#     include "CMN_GCTM"  ! SCALE_HEIGHT
+#     include "comode.h"  ! NPVERT
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme.  Now scale aerosol & dust
 !        optical depths to 400 nm. (rvm, aad, bmy, 7/20/04) 
@@ -223,32 +251,13 @@
 !       species known in troposphere only (ccc, 8/12/09)
 !  (12) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
 !        bin's individual AOD (amv, bmy, 12/21/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Reference to F90 modules
-      USE COMODE_MOD,     ONLY : JLOP
-      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF
-      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
-      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
-      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : N_TRACERS
-      USE TRACER_MOD,     ONLY : XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
-#     include "cmn_fj.h"  ! includes CMN_SIZE
-#     include "jv_cmn.h"  ! ODAER, QAA, QAA_OUT
-#     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "CMN_GCTM"  ! SCALE_HEIGHT
-#     include "comode.h"  ! NPVERT
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_NOx, IS_Ox,   IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy, IS_OPTD, IS_SLP
@@ -677,30 +686,47 @@
       ENDDO 
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE ACCUMULATE_DIAG50
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_write_diag50
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG50 returns TRUE if it's 
+!  time to write the ND50 bpch file to disk.  We test the time at the next 
+!  dynamic timestep, so that we can close the file before the end of the 
+!  run properly.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_WRITE_DIAG50() RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_WRITE_DIAG51 returns TRUE if it's time to write
-!  the ND51 bpch file to disk.  We test the time at the next dynamic timestep,
-!  so that we can close the file before the end of the run properly.
-!  (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
+      USE TIME_MOD, ONLY : GET_HOUR
+      USE TIME_MOD, ONLY : GET_MINUTE
+      USE TIME_MOD, ONLY : GET_TS_DYN
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: ITS_TIME
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The time is already updated to the next time step in main.f 
 !        (ccc, 8/12/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TS_DYN
-
-      ! Local variables
-      LOGICAL :: ITS_TIME
-      REAL*8  :: HR1
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: HR1
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG50 begins here!
@@ -714,18 +740,55 @@
       ! If the next dyn step is the start of a new day, return TRUE
       ITS_TIME = ( INT( HR1 ) == 0 )
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_WRITE_DIAG50
-
+!EOC
 !------------------------------------------------------------------------------
- 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag50
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG50 computes the 24-hr time-average of 
+!  quantities and saves to bpch file format.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG50
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG50 computes the 24-hr time-average of quantities
-!  and saves to bpch file format. (bmy, 12/1/00, 12/21/09)  
+! !USES:
 !
-!  NOTES:
+      USE BPCH2_MOD,  ONLY : BPCH2
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,  ONLY : OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE FILE_MOD,   ONLY : IU_ND50
+      USE GRID_MOD,   ONLY : GET_XOFFSET
+      USE GRID_MOD,   ONLY : GET_YOFFSET
+      USE LOGICAL_MOD,ONLY : LND50_HDF
+      USE TIME_MOD,   ONLY : EXPAND_DATE
+      USE TIME_MOD,   ONLY : GET_NYMD_DIAG
+      USE TIME_MOD,   ONLY : GET_NHMS
+      USE TIME_MOD,   ONLY : GET_TAU
+      USE TIME_MOD,   ONLY : GET_TS_DYN
+      USE TIME_MOD,   ONLY : TIMESTAMP_STRING
+      USE TRACER_MOD, ONLY : N_TRACERS
+
+#if   defined( USE_HDF5 )
+      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+      USE HDF_MOD,    ONLY : OPEN_HDF
+      USE HDF_MOD,    ONLY : CLOSE_HDF
+      USE HDF_MOD,    ONLY : WRITE_HDF
+      USE HDF5,       ONLY : HID_T
+      INTEGER(HID_T)      :: IU_ND50_HDF
+#endif
+
+#     include "CMN_SIZE"  ! Size Parameters
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme. (bmy, 7/20/04)
 !  (2 ) Now only archive NO, NO2, OH, O3 on every chemistry timestep (i.e. 
@@ -747,36 +810,20 @@
 !  (11) Now have the option of saving out to HDF5 format.  NOTE: we have to
 !        bracket HDF-specific code with an #ifdef statement to avoid problems
 !        if the HDF5 libraries are not installed. (amv, bmy, 12/21/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Reference to F90 modules
-      USE BPCH2_MOD,  ONLY : BPCH2,         GET_MODELNAME
-      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE FILE_MOD,   ONLY : IU_ND50
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD,ONLY : LND50_HDF
-      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_NYMD_DIAG,   GET_NHMS
-      USE TIME_MOD,   ONLY : GET_TAU,     GET_TS_DYN, TIMESTAMP_STRING
-      USE TRACER_MOD, ONLY : N_TRACERS
-
-#if   defined( USE_HDF5 )
-      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,    ONLY : OPEN_HDF, CLOSE_HDF, WRITE_HDF
-      USE HDF5,       ONLY : HID_T
-      INTEGER(HID_T)      :: IU_ND50_HDF
-#endif
-
-#     include "CMN_SIZE"  ! Size Parameters
-
-      ! Local variables
-      INTEGER             :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
-      INTEGER             :: I,    J,     L,   W, N  
-      INTEGER             :: GMNL, GMTRC, IOS, X, Y, K, NHMS
-      CHARACTER(LEN=16)   :: STAMP
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT
-      CHARACTER(LEN=255)  :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
+      INTEGER            :: I,    J,     L,   W, N  
+      INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
+      CHARACTER(LEN=16)  :: STAMP
+      CHARACTER(LEN=40)  :: CATEGORY
+      CHARACTER(LEN=40)  :: UNIT
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! WRITE_DIAG50 begins here!
@@ -1195,32 +1242,44 @@
       ! Zero accumulating array
       Q            = 0d0
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG50
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i
+!
+! !DESCRIPTION: Function GET\_I returns the absolute longitude index (I), 
+!  given the relative longitude index (X).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_I( X ) RESULT( I )
 !
-!******************************************************************************
-!  Function GET_I returns the absolute longitude index (I), given the 
-!  relative longitude index (X).  (bmy, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X (INTEGER) : Relative longitude index (used by Q)
+#     include "CMN_SIZE"         ! Size parameters
 !
-!  NOTES:
-!******************************************************************************
-!      
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: X
-
-      ! Local variables
-      INTEGER             :: I
-      
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: X   ! Relative longitude index
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: I   ! Absolute longitude index
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_I begins here!
       !=================================================================
@@ -1231,33 +1290,62 @@
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
 
-      ! Return to calling program
       END FUNCTION GET_I
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag50
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG50 allocates and zeroes all module arrays.
+!  It also gets values for module variables from "input\_mod.f". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX,    
      &                        JMIN,    JMAX,   LMIN,    LMAX, FILE )
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG50 allocates and zeroes all module arrays.  
-!  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 1/24/07)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_ND50 (LOGICAL ) : Switch to turn on ND50 timeseries diagnostic
-!  (2 ) N_ND50  (INTEGER ) : Number of ND50 read by "input_mod.f"
-!  (3 ) TRACERS (INTEGER ) : Array w/ ND50 tracer #'s read by "input_mod.f"
-!  (4 ) IMIN    (INTEGER ) : Min longitude index read by "input_mod.f"
-!  (5 ) IMAX    (INTEGER ) : Max longitude index read by "input_mod.f" 
-!  (6 ) JMIN    (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (7 ) JMAX    (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (8 ) LMIN    (INTEGER ) : Min level index read by "input_mod.f" 
-!  (9 ) LMAX    (INTEGER ) : Min level index read by "input_mod.f" 
-!  (11) FILE    (CHAR*255) : ND50 output file name read by "input_mod.f"
+! !USES:
 !
-!  NOTES:
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE GRID_MOD,   ONLY : GET_XOFFSET
+      USE GRID_MOD,   ONLY : GET_YOFFSET
+      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,   ONLY : GET_TAUb
+      USE TRACER_MOD, ONLY : N_TRACERS
+  
+#     include "CMN_SIZE"
+!
+! !INPUT PARAMETERS: 
+!
+      ! DO_ND50 : Switch to turn on ND50 timeseries diagnostic
+      ! N_ND50  : Number of ND50 read by "input_mod.f"
+      ! TRACERS : Array w/ ND50 tracer #'s read by "input_mod.f"
+      ! IMIN    : Min longitude index read by "input_mod.f"
+      ! IMAX    : Max longitude index read by "input_mod.f" 
+      ! JMIN    : Min latitude index read by "input_mod.f" 
+      ! JMAX    : Min latitude index read by "input_mod.f" 
+      ! LMIN    : Min level index read by "input_mod.f" 
+      ! LMAX    : Min level index read by "input_mod.f" 
+      ! FILE    : ND50 output file name read by "input_mod.f"
+      LOGICAL,            INTENT(IN) :: DO_ND50
+      INTEGER,            INTENT(IN) :: N_ND50, TRACERS(100)
+      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
+      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
+      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
+      CHARACTER(LEN=255), INTENT(IN) :: FILE
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !  (2 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
@@ -1265,28 +1353,15 @@
 !        equal to ND50_JMAX.  This will allow us to save out longitude
 !        or latitude transects.  Now allocate COUNT_CHEM3D array.
 !        (cdh, phs, 1/24/07)
-!******************************************************************************
-!    
-      ! References to F90 modules
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME, GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
-      USE TRACER_MOD, ONLY : N_TRACERS
-  
-#     include "CMN_SIZE"
-
-      ! Arguments
-      LOGICAL,            INTENT(IN) :: DO_ND50
-      INTEGER,            INTENT(IN) :: N_ND50, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
-
-      ! Local variables
-      INTEGER                        :: AS
-      CHARACTER(LEN=255)             :: LOCATION
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: AS
+      CHARACTER(LEN=255) :: LOCATION
 
       !=================================================================
       ! INIT_DIAG50 begins here!
@@ -1429,31 +1504,35 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG50
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag50
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG50 deallocates all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG50
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG50 deallocates all module arrays. 
-!  (bmy, 11/29/00, 1/24/07)
-!
-!  NOTES:
-!  (1 ) Now deallocate COUNT_CHEM3D (phs, 1/24/07)
-!******************************************************************************
 ! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now deallocate COUNT_CHEM3D (phs, 1/24/07)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG50
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG50_MOD

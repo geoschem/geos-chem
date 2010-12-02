@@ -497,10 +497,10 @@
 !
 ! !IROUTINE: get_tpause_level
 !
-! !DESCRIPTION: Function GET\_TPAUSE\_LEVEL returns the tropopause level L_TP
-!  at surface location (I,J).  Therefore, grid box (I,J,L_TP) is partially
+! !DESCRIPTION: Function GET\_TPAUSE\_LEVEL returns the tropopause level L\_TP
+!  at surface location (I,J).  Therefore, grid box (I,J,L\_TP) is partially
 !  in the troposphere and partially in the stratosphere.  The grid box below
-!  this, (I,J,L_TP-1), is the last totally tropospheric box in the column.
+!  this, (I,J,L\_TP-1), is the last totally tropospheric box in the column.
 !\\
 !\\
 ! !INTERFACE:
@@ -921,7 +921,7 @@
 !
 ! !IROUTINE: init_tropopause
 !
-! !DESCRIPTION: Subroutine INIT\_TROPOPAUSE allocates & zeroes module arrays.
+! !DESCRIPTION: Subroutine INIT\_TROPOPAUSE allocates and zeroes module arrays.
 !\\
 !\\
 ! !INTERFACE:

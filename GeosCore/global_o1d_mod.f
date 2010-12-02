@@ -46,8 +46,8 @@
 !
 ! !IROUTINE: get_global_O1D 
 !
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_O1D reads global O1D from binary 
-!  punch files stored in the /data/ctm/GEOS_MEAN directory.  This O1D data 
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_O1D reads global O1D from binary
+!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This O1D data 
 !  is needed for the H2/HD mechanisms in Tagged H2.
 !\\
 !\\

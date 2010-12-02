@@ -5,7 +5,7 @@
 !
 ! !ROUTINE: diag_2pm
 !
-! !DESCRIPTION: Subroutine DIAG_2PM constructs the diagnostic flag arrays:
+! !DESCRIPTION: Subroutine DIAG\_2PM constructs the diagnostic flag arrays:
 !
 ! \begin{itemize}
 ! \item LTJV: J-values (ND22)

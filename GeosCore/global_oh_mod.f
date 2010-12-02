@@ -57,7 +57,7 @@
 ! !IROUTINE: get_global_oh
 !
 ! !DESCRIPTION: Subroutine GET\_GLOBAL\_OH reads global OH from binary 
-!  punch files stored in the /data/ctm/GEOS_MEAN directory.  This OH data 
+!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This OH data 
 !  is needed as oxidant for various offline chemistry mechanisms.
 !\\
 !\\

@@ -96,9 +96,9 @@
 !
 ! !IROUTINE: read_7Be
 !
-! !DESCRIPTION: Subroutine READ\_7Be reads the 7Be emissions from Lal & Peters 
-!  on 33 pressure levels.  This only needs to be done on the very first 
-!  timestep.  
+! !DESCRIPTION: Subroutine READ\_7Be reads the 7Be emissions from Lal \& 
+!  Peters on 33 pressure levels.  This only needs to be done on the very 
+!  first timestep.  
 !\\
 !\\
 ! !INTERFACE:
@@ -112,9 +112,6 @@
 
 #     include "CMN_SIZE"      ! Size parameters
 !
-! !REMARKS:
-! 
-! 
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
 !  (1 ) This code was split off from routine EMISSRnPbBe below. (bmy, 8/7/02)

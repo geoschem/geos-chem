@@ -56,7 +56,7 @@
 ! !IROUTINE: get_global_Br_new
 !
 ! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br\_NEW reads global Br from 
-!  binary punch files stored in the /data/ctm/GEOS_MEAN directory.  This Br 
+!  binary punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br 
 !  data is needed as oxidant for mercury chemistry.
 !\\
 !\\
@@ -66,8 +66,14 @@
 !
 ! !USES:
 !
-      ! Comment out
-      !USE LOGICAL_MOD,   ONLY : LVARTROP
+      !USE LOGICAL_MOD,    ONLY : LVARTROP     ! Comment this out for now
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,      ONLY : GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D
+      USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
+      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
 
 #     include "CMN_SIZE"                 ! Size parameters
 
@@ -296,10 +302,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_GLOBAL_Br
+! !IROUTINE: get_global_Br
 !
 ! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from binary 
-!  punch files stored in the /data/ctm/GEOS_MEAN directory.  This Br data 
+!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br data 
 !  is needed as oxidant for mercury chemistry.
 !\\
 !\\
@@ -464,9 +470,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_GLOBAL_Br
+! !IROUTINE: cleanup_global_Br
 !
-! !DESCRIPTION: Subroutine CLEANUP_GLOBAL_Br deallocates module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_Br deallocates module arrays.
 !\\
 !\\
 ! !INTERFACE:

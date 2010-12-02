@@ -82,8 +82,8 @@
 ! !IROUTINE: add_strat_pox
 !
 ! !DESCRIPTION: Subroutine ADD\_STRAT\_POX adds the stratospheric influx of 
-!  Ox to the stratospheric Ox tracer.  This is called from routine UPBDFLX_O3, 
-!  which is applied when the tracer array has units of [v/v].  
+!  Ox to the stratospheric Ox tracer.  This is called from routine 
+!  UPBDFLX\_O3, which is applied when the tracer array has units of [v/v].  
 !\\
 !\\
 ! !INTERFACE:
@@ -125,7 +125,7 @@
 ! !IROUTINE: read_pox_lox
 !
 ! !DESCRIPTION: Subroutine READ\_POX\_LOX reads previously-archived Ox 
-!  production & loss rates from binary punch file format. 
+!  production and loss rates from binary punch file format. 
 !\\
 !\\
 ! !INTERFACE:

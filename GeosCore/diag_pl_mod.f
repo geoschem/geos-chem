@@ -548,7 +548,7 @@
 ! !IROUTINE: do_diag_pl 
 !
 ! !DESCRIPTION: Subroutine DO\_DIAG\_PL saves info on production and loss of 
-!  families into the FAM_PL diagnostic array.
+!  families into the FAM\_PL diagnostic array.
 !\\
 !\\
 ! !INTERFACE:
@@ -1214,7 +1214,7 @@
 ! !IROUTINE: init_diag_pl 
 !
 ! !DESCRIPTION: Subroutine INIT\_DIAG\_PL takes values read from the GEOS-Chem
-!  input file and saves to module variables w/in "diag65_mod.f" 
+!  input file and saves to module variables w/in "diag\_pl\_mod.f" 
 !\\
 !\\
 ! !INTERFACE:

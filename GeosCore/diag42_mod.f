@@ -1,85 +1,79 @@
-! $Id: diag42_mod.f,v 1.3 2010/03/15 19:33:24 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag42_mod
+!
+! !DESCRIPTION: Module DIAG42\_MOD contains arrays and routines for archiving 
+!  the ND42 diagnostic -- secondary organic aerosols [ug/m3]. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG42_MOD
 !
-!******************************************************************************
-!  Module DIAG42_MOD contains arrays and routines for archiving the ND42
-!  diagnostic -- secondary organic aerosols [ug/m3]. (dkh,bmy,5/22/06,3/29/07)
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD42 (REAL*4)  : Array for SOA concentrations [ug/m3]
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DIAG42         : Archives quantities for diagnostic
-!  (2 ) ZERO_DIAG42    : Sets all module arrays to zero
-!  (3 ) WRITE_DIAG42   : Writes data in module arrays to bpch file
-!  (4 ) INIT_DIAG42    : Allocates all module arrays
-!  (5 ) CLEANUP_DIAG42 : Deallocates all module arrays
-!
-!  GEOS-CHEM modules referenced by diag03_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f    : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f    : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f     : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f     : Module w/ horizontal grid information
-!  (5 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
-!  (6 ) time_mod.f     : Module w/ routines to compute date & time
-!
-!  NOTES:
-!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
-!        (bmy, 9/5/06)
-!  (2 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
-!  (3 ) Add diagnostics for SOAG and SOAM (tmf, 1/7/09)
-!  (4 ) Increase PD42 to 24. (fp, hotp, 2/3/10)
-!******************************************************************************
+! !USES:
 !
       IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag42_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC
-      PUBLIC 
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Scalars
-      INTEGER              :: ND42, LD42
-
-      ! Parameters
+      PRIVATE
+!
+! !DEFINED PARAMETERS:
+!
       ! Maximum number of output:
       ! SOA1, SOA2, SOA3, SOA4, SOA5, SUM(SOA1-3), SUM(SOA1-4), SUM(SOA1-5),
       ! SUM(SOA1-5+OC), SUM(SOA1-5+OC), SUM(SOA1-5+OC), OC, BC, SOA4, NH4, NIT,
       ! SSALT, SUM(aerosols), SOAG, SOAM, SUM(SOA1-5+SOAG+SOAM),
       ! SUM(SOA1-5+SOAG+SOAM+OC), SUM(SOA1-5+SOAG+SOAM), 
       ! SUM(SOA1-5+SOAG+SOAM+OC)
-      !INTEGER, PARAMETER   :: PD42 = 14
-      INTEGER, PARAMETER   :: PD42 = 24
+      INTEGER, PUBLIC, PARAMETER   :: PD42 = 24
+!
+! !PUBLIC DATA MEMBERS:
+!
+      INTEGER, PUBLIC              :: ND42            ! ND42 on/off flag
+      INTEGER, PUBLIC              :: LD42            ! # of levels for ND42
 
       ! Arrays
-      REAL*4,  ALLOCATABLE :: AD42(:,:,:,:)
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD42(:,:,:,:)   ! Array for SOA [ug/m3]
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC :: DIAG42
+      PUBLIC :: ZERO_DIAG42
+      PUBLIC :: WRITE_DIAG42
+      PUBLIC :: INIT_DIAG42
+      PUBLIC :: CLEANUP_DIAG42
+!
+! !REVISION HISTORY:
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
+!  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
+!        (bmy, 9/5/06)
+!  (2 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
+!  (3 ) Add diagnostics for SOAG and SOAM (tmf, 1/7/09)
+!  (4 ) Increase PD42 to 24. (fp, hotp, 2/3/10)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-     
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diag42
+!
+! !DESCRIPTION: Subroutine DIAG42 archives SOA concentrations [ug/m3] 
+!  for the ND42 diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAG42
 !
-!******************************************************************************
-!  Subroutine DIAG42 archives SOA concentrations [ug/m3] for the ND42
-!  diagnostic. (dkh, bmy, 5/22/06, 3/29/07)
-!
-!  NOTES:
-!  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AIRVOL, T
@@ -94,16 +88,26 @@
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
 
-
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
-
-      ! Local variables
-      INTEGER               :: I,      J,    L
-      REAL*8                :: FACTOR, PRES
-
+! 
+! !REVISION HISTORY: 
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
+!  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I,      J,    L
+      REAL*8            :: FACTOR, PRES
+!
+! !DEFINED PARAMETERS:
+!
       ! Factor for computing standard volume
-      REAL*8, PARAMETER     :: STD_VOL_FAC = 1013.25d0 / 273.15d0
+      REAL*8, PARAMETER :: STD_VOL_FAC = 1013.25d0 / 273.15d0
      
       !================================================================= 
       ! DIAG42 begins here! 
@@ -301,20 +305,28 @@
       ENDDO
 !$OMP END PARALLEL DO 
 
-      ! Return to calling program
       END SUBROUTINE DIAG42
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag42
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG42 zeroes all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG42
-!
-!******************************************************************************
-!  Subroutine ZERO_DIAG42 zeroes the ND03 diagnostic arrays. 
-!  (dkh, bmy, 5/22/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! ZERO_DIAG42 begins here!
       !=================================================================
@@ -325,17 +337,40 @@
       ! Zero arrays
       AD42(:,:,:,:) = 0e0
 
-      ! Return to calling program
       END SUBROUTINE ZERO_DIAG42
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag42
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG42 writes the ND42 diagnostic arrays 
+!  to the binary punch file at the proper time.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG42
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 5/22/06, 9/5/06)
+! !USES:
 !
+      USE BPCH2_MOD,    ONLY : BPCH2
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      !USE DIAG_MOD,     ONLY : CTOTH
+      USE FILE_MOD,     ONLY : IU_BPCH
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE TIME_MOD,     ONLY : GET_CT_DIAG
+      USE TIME_MOD,     ONLY : GET_DIAGb
+      USE TIME_MOD,     ONLY : GET_DIAGe
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! TINDEX
+!
+! !REMARKS:
 !   # : Field    : Description                 : Units    : Scale factor
 !  -----------------------------------------------------------------------
 !  (1 ) IJ-SOA-$ : SOA1                        : ug/m3    : SCALE_OTH
@@ -346,36 +381,31 @@
 !  (6 ) IJ-SOA-$ : SOA1 + SOA2 + SOA3 + SOA4   : ug/m3    : SCALE_OTH
 !  (7 ) IJ-SOA-$ : Sum of all Org Carbon       : ug C/m3  : SCALE_OTH
 !  (8 ) IJ-SOA-$ : Sum of all Org Carbon @ STP : ug C/sm3 : SCALE_OTH
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems  on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Use TS_DIAG for scaling instead of TS_DYN. (ccc, 8/18/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      !USE DIAG_MOD,     ONLY : CTOTH
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_DIAG,  GET_DIAGb,  GET_DIAGe
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
-
-      ! Local variables
-      INTEGER               :: CENTER180, HALFPOLAR
-      INTEGER               :: L,         M,         N
-      INTEGER               :: IFIRST,    JFIRST,    LFIRST        
-      REAL*4                :: LONRES,    LATRES
-      REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
-      !REAL*8                :: SCALE(IIPAR,JJPAR)
-      REAL*8                :: SCALE
-      REAL*8                :: DIAGb,     DIAGe
-      CHARACTER(LEN=20)     :: MODELNAME 
-      CHARACTER(LEN=40)     :: CATEGORY
-      CHARACTER(LEN=40)     :: RESERVED
-      CHARACTER(LEN=40)     :: UNIT
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: CENTER180, HALFPOLAR
+      INTEGER           :: L,         M,         N
+      INTEGER           :: IFIRST,    JFIRST,    LFIRST        
+      REAL*4            :: LONRES,    LATRES
+      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      !REAL*8            :: SCALE(IIPAR,JJPAR)
+      REAL*8            :: SCALE
+      REAL*8            :: DIAGb,     DIAGe
+      CHARACTER(LEN=20) :: MODELNAME 
+      CHARACTER(LEN=40) :: CATEGORY
+      CHARACTER(LEN=40) :: RESERVED
+      CHARACTER(LEN=40) :: UNIT
 
       !=================================================================
       ! WRITE_DIAG42 begins here!
@@ -435,27 +465,39 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD42) )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG42
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag42
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG42 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG42
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG42 allocates all module arrays (bmy, 5/22/06)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LSOA
 
 #     include "CMN_SIZE"    ! Size parameters 
-
-      ! Local variables
-      INTEGER              :: AS
+! 
+! !REVISION HISTORY: 
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
       
       !=================================================================
       ! INIT_DIAG42 begins here!
@@ -480,28 +522,33 @@
       ! Zero arrays
       CALL ZERO_DIAG42
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG42
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag42
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG42 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG42
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG42 deallocates all module arrays (bmy, 5/22/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  22 May 2006 - D. Henze, R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG42 begins here!
       !=================================================================
       IF ( ALLOCATED( AD42 ) ) DEALLOCATE( AD42 ) 
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG42
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG42_MOD

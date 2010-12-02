@@ -5,7 +5,7 @@
 !
 ! !ROUTINE: emf_scale
 !
-! !DESCRIPTION: Subroutine EMF_SCALE does the following:
+! !DESCRIPTION: Subroutine EMF\_SCALE does the following:
 !
 !  \begin{itemize}
 !  \item Saves original values of EMISR, EMISRN, EMISPN so that they can be 
