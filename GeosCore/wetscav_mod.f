@@ -33,21 +33,18 @@
       PUBLIC  :: GET_WETDEP_NSOL
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: WETDEPID
-      PUBLIC  :: WASHOUT    ! hma 20101011, for convection_mod
-      PUBLIC  :: LS_K_RAIN  ! hma 20101014, for convection_mod
-      PUBLIC  :: LS_F_PRIME ! hma 20101014, for convection_mod
+      PUBLIC  :: WASHOUT
+      PUBLIC  :: LS_K_RAIN
+      PUBLIC  :: LS_F_PRIME
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: COMPUTE_L2G
       PRIVATE :: CONV_F_PRIME
       PRIVATE :: E_ICE
-C      PRIVATE :: LS_K_RAIN   ! now public for convection_mod, hma 20101014
-C      PRIVATE :: LS_F_PRIME  ! now public for convection_mod, hma 20101014
       PRIVATE :: RAINOUT
       PRIVATE :: GET_RAINFRAC
       PRIVATE :: SAFETY
-C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
       PRIVATE :: WASHFRAC_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
 !
@@ -4897,7 +4894,13 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
             ENDIF 
 
             ! Save FTOP for next level
-            FTOP = 0
+            !------------------------------------------------------------
+            ! Prior to 12/3/10:
+            ! Don't set FTOP = 0, because this will cause the section
+            ! "Washout in level 1" not to execute. (hma, bmy, 12/3/10)
+            !FTOP = 0
+            !------------------------------------------------------------
+            FTOP = F_RAINOUT + F_WASHOUT
 
          ENDDO               
 
@@ -5796,7 +5799,8 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 !
 ! !IROUTINE: do_washout_at_sfc
 !
-! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC
+! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC washes out the tracer 
+!  at the surface.
 !\\
 !\\
 ! !INTERFACE:
@@ -5895,9 +5899,9 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 C hma 20101014 --------------------------------------------------------C
 C         CALL WASHOUT( I,     J,  L, N, 
 C     &                 QDOWN, DT, F, WASHFRAC, AER )
-         CALL WASHOUT( L,       N,     BXHEIGHT(I,J,L), 
-     &                 TK ,   QDOWN,    DT,   
-     &                 F,       H2O2s(I,J,L), SO2s(I,J,L), 
+         CALL WASHOUT( L,        N,            BXHEIGHT(I,J,L), 
+     &                 TK ,      QDOWN,        DT,   
+     &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC, AER )
 C----------------------------------------------------------------------C
                   

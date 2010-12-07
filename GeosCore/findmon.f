@@ -15,7 +15,7 @@
 !
 ! !USES:
 !
-     IMPLICIT NONE
+      IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -29,9 +29,6 @@
       INTEGER, INTENT(OUT) :: MM             ! Output month for LAI
       INTEGER, INTENT(OUT) :: YYYY           ! Output year for LAI
 !
-! !REMARKS:
-! 
-! 
 ! !REVISION HISTORY: 
 !  05 Jan 1994 - Y. H. Wang, G.M. Gardner, D. Jacob - Initial version
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/4/03)
