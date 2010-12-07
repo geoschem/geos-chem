@@ -73,6 +73,8 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
 !                              #include "CMN_DIAG" to the top of module
+!  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!                              all types of diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -98,8 +100,16 @@
       !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
       !INTEGER,           PARAMETER   :: MAXTRACER = 120  
       !--------------------------------------------------------------------
-      INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
-      INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
+      !--------------------------------------------------------------------
+      ! Prior to 12/7/10:
+      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
+      ! AD44 holds the data for deposition velocity and deposition flux)
+      ! So MAXTRACER must be defined as 2*MAX_TRACER
+      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
+      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
+      !--------------------------------------------------------------------
+      INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
+      INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
       INTEGER,           ALLOCATABLE :: INDEX(:,:)
       INTEGER,           ALLOCATABLE :: MOLC(:,:)
