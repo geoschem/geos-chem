@@ -217,6 +217,9 @@
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
 !  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  (52) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
+!       and last year with data for volcanic emissions. (ccc, 9/30/10)
+!  (53) Use updated volcanic emissions from 1979 to 2009
 !  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
 !******************************************************************************
@@ -284,8 +287,11 @@
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
 
-      ! Volcano levels (jaf, 8/7/09)
-      INTEGER, PARAMETER   :: LVOLC=20
+      ! Volcanic emissions parameters (ccc, 9/30/10)
+      INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
+      INTEGER, PARAMETER   :: MNYEAR_VOLC = 1979  ! Min year of data
+      INTEGER, PARAMETER   :: MXYEAR_VOLC = 2009  ! Max year of data
+
 
       ! Eruptive volcanoes
       REAL*8,  ALLOCATABLE :: EEV(:,:,:)
@@ -5799,6 +5805,9 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -5828,8 +5837,11 @@
 
       ! Set year based on availability of volcanic emission files
       THISYEAR = INYEAR
-      IF ( INYEAR < 1985 ) THISYEAR = 1985
-      IF ( INYEAR > 2007 ) THISYEAR = 2007
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years.
+!      IF ( INYEAR < 1985 ) THISYEAR = 1985
+!      IF ( INYEAR > 2007 ) THISYEAR = 2007
+      THISYEAR = MAX( INYEAR, MNYEAR_VOLC )
+      THISYEAR = MIN( INYEAR, MXYEAR_VOLC )
 
       ! Need to deal with leap years for which there is no data (i.e.
       ! 2008). Assume emissions on Feb. 29th are identical to emissions
@@ -5841,8 +5853,13 @@
       YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
 
       ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!      FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &           'volcano_SO2_200909/' //
+!     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
+
       FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &           'volcano_SO2_200909/' //
+     &           'volcano_SO2_201010/' //
      &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
 
       ! Replace YYYY/MM in the file name
@@ -5903,6 +5920,9 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -5932,14 +5952,22 @@
 
       ! If the current year falls within the range of available data,
       ! get eruptive volcanic emissions (jaf, 10/15/09)
-      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+      IF ( ( INYEAR .GE. MNYEAR_VOLC )  .AND. 
+     &     ( INYEAR .LE. MXYEAR_VOLC ) ) THEN
 
          ! Set date
          YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
 
          ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!         FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &              'volcano_SO2_200909/' //
+!     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
+
          FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &              'volcano_SO2_200909/' //
+     &              'volcano_SO2_201010/' //
      &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
 
          ! Replace YYYY/MM in the file name
@@ -5978,12 +6006,23 @@
 
       ! If no data are available for current year, set eruptive
       ! emissions to zero and print a warning message.
-      ! Current data range is 1985-2007 (jaf, 10/15/09)
+      ! Current data range is MNYEAR_VOLC - MXYEAR_VOLC (jaf, 10/15/09)
+      ! Year parameters are defined at the beginning of the module.
+      ! (ccc, 9/30/10)
       ELSE
 
-         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
-     &               ' for 1985-2007. You are outside the window.'
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
+!     &               ' for 1985-2007. You are outside the window.'
+!         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+
+         WRITE(6, 110) MNYEAR_VOLC, MXYEAR_VOLC
          WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+ 110     FORMAT( 'WARNING: Eruptive SO2 emissions only available for ', 
+     &        i4,'-',i4,'. You are outside the window.')
+
 
          EEV = 0d0
 
