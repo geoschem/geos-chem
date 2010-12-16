@@ -30,20 +30,10 @@
       USE COMODE_MOD,        ONLY : IYSAVE
       USE DIAG_MOD,          ONLY : AD12
       USE GRID_MOD,          ONLY : GET_AREA_CM2
-      !------------------------------------------------------------------------
-      ! Prior to 9/10/10:
-      ! Remove LVARTROP, now use ITS_IN_THE_STRAT (bmy, 9/10/10)
-      !USE LOGICAL_MOD,       ONLY : LVARTROP
-      !------------------------------------------------------------------------
       USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
       USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
-      !------------------------------------------------------------------------
-      ! Prior to 9/10/10:
-      ! Remove GET_TPAUSE_LEVEL, now use ITS_IN_THE_STRAT (bmy, 9/10/10)
-      !USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
-      !------------------------------------------------------------------------
       USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
       USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
       USE LOGICAL_MOD, ONLY : LPRT
@@ -65,7 +55,6 @@
 
       ! Multi-level NOx emissions  [molec NOx/box/s]
       REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
-
 !
 ! !REMARKS:
 !  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
@@ -142,6 +131,8 @@
 !  (32) Check for emissions above PBL -anthro NOx only for now- (phs, 10/27/09)
 !  (33) Modify selection of biomass burning emissions (hotp, 8/3/09)
 !  (34) Moved NOx scaling to improve parallelization. (ccc, 11/10/10)
+!  16 Dec 2010 - R. Yantosca - Removed obsolete, commented-out code
+!  16 Dec 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -350,20 +341,6 @@
                ! Aircraft and Lightning NOx [molec/cm3/s]
                ! Distribute emissions in the troposphere
                !========================================================
-
-               !-------------------------------------------------------------
-               ! Prior to 9/10/10:
-               ! Simplify the test for the trop vs. strat (bmy, 9/10/10)
-               !! bdf - variable tropopause is a tropospheric box
-               !IF ( LVARTROP ) THEN 
-               !   LTROP = GET_TPAUSE_LEVEL( I, J ) 
-               !ELSE
-               !   LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
-               !ENDIF
-               !
-               !
-               !DO L = 1, LTROP 
-               !-------------------------------------------------------------
                DO L = 1, LLTROP
 
                   ! Now use ITS_IN_THE_STRAT to test if we have passed from
@@ -406,18 +383,10 @@
 
                      ! NOx scaling moved here for optimisation. (ccc, 11/10/10)
                      ! Add possible scaling of NOx emissions
-
-                     REMIS(JLOOP,N)=NOx_SCALING*REMIS(JLOOP,N)             
+                     REMIS(JLOOP,N) = NOx_SCALING * REMIS(JLOOP,N)             
 
                   ENDIF
                ENDDO
-
-!--- Prior to (ccc, 11/10/10). Moved to previous loop over grid cells
-!               !FP 15/12/2009
-!               ! Add possible scaling of NOx emissions
-!
-!               REMIS(:,N)=NOx_SCALING*REMIS(:,N)             
-!-----------
 
             ELSE
 

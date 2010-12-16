@@ -204,7 +204,7 @@
 ! !IROUTINE: read_resp
 !
 ! !DESCRIPTION: Subroutine READ\_RESP reads in the monthly heterotrophic 
-!  respiration measured in g of plant matter/m^2 flowing out of the biosphere. 
+!  respiration measured in g of plant matter/m\^2 flowing out of the biosphere. 
 !  This is needed for the biogenic acetone fluxes.
 !\\
 !\\
@@ -309,7 +309,7 @@
 !
 ! !IROUTINE: ocean_source_acet
 !
-! !DESCRIPTION: Subroutine OCEAN_SOURCE_ACET specifies the ocean source of 
+! !DESCRIPTION: Subroutine OCEAN\_SOURCE\_ACET specifies the ocean source of 
 !  acetone.
 !\\
 !\\

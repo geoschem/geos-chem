@@ -1,11 +1,31 @@
-! $Id: sfcwindsqr.f,v 1.1 2009/09/16 14:06:08 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sfcwindsqr 
+!
+! !DESCRIPTION: Function SFCWINDSQR computes the surface wind squared 
+!  from the U and V winds at 10 m above the surface.
+!\\
+!\\
+! !INTERFACE:
+!
       REAL*8 FUNCTION SFCWINDSQR( I, J ) 
 !
-!******************************************************************************
-!  Function SFCWINDSQR computes the surface wind squared from the DAO 
-!  U and V winds at 10 m above the surface.  (bmy, 12/21/98, 8/4/06)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD, ONLY : U10M, V10M
+
+      IMPLICIT NONE
+!  
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I   ! Longitude index
+      INTEGER, INTENT(IN) :: J   ! Latitude index
+! 
+! !REVISION HISTORY: 
+!  21 Dec 1998 - R. Yantosca - Initial version
 !  (1 ) The old SFCWINDSQR computed the surface wind squared (m/s)^2 from the
 !        the Harvard CTM winds (kg/s).  But since the DAO winds are already
 !        in units of (m/s) then the previous unit conversion is unnecessary
@@ -29,18 +49,10 @@
 !  (9 ) Removed obsolete, commented-out code from 7/01 (bmy, 11/26/01)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also remove
 !        call to CHECK_VALUE. (bmy, 8/4/06)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DAO_MOD,   ONLY : U10M, V10M
-
-      IMPLICIT NONE
-        
-#     include "CMN_SIZE"
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! SFCWINDSQR begins here!!
       !=================================================================
@@ -48,5 +60,5 @@
       ! Take the 10m wind speed squared as sfc wind speed squared
       SFCWINDSQR = U10M(I,J)**2 + V10M(I,J)**2
 
-      ! Return to calling program
       END FUNCTION SFCWINDSQR
+!EOC

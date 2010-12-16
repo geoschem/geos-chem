@@ -1,39 +1,61 @@
-! $Id: diag03_mod.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag03_mod
+!
+! !DESCRIPTION:  Module DIAG03\_MOD contains arrays and routines for archiving 
+!  the ND03 diagnostic -- Hg emissions, mass, and production.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG03_MOD
 !
-!******************************************************************************
-!  Module DIAG03_MOD contains arrays and routines for archiving the ND03
-!  diagnostic -- Hg emissions, mass, and production. (bmy, 1/21/05, 9/5/06) 
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD03         (REAL*4) : Array for Hg emissions & ocean masses 
-!  (2 ) AD03_Hg2_Hg0 (REAL*4) : Array for Hg(II) produced from Hg(0)
-!  (3 ) AD03_Hg2_OH  (REAL*4) : Array for Hg(II) produced from OH
-!  (4 ) AD03_Hg2_O3  (REAL*4) : Array for Hg(II) produced from O3
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ZERO_DIAG03           : Sets all module arrays to zero
-!  (2 ) WRITE_DIAG03          : Writes data in module arrays to bpch file
-!  (3 ) INIT_DIAG03           : Allocates all module arrays
-!  (4 ) CLEANUP_DIAG03        : Deallocates all module arrays
+! !DEFINED PARAMETERS:
 !
-!  GEOS-CHEM modules referenced by diag03_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f           : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f           : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f            : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f            : Module w/ horizontal grid information
-!  (5 ) time_mod.f            : Module w/ routines to compute date & time
+      INTEGER, PUBLIC, PARAMETER   :: PD03 = 18            ! Dim of AD03 array
+
 !
+! !PUBLIC DATA MEMBERS:
+!
+      ! Scalars
+      INTEGER, PUBLIC              :: ND03                 ! NDO3 on/off flag
+      INTEGER, PUBLIC              :: LD03                 ! # of levels
+
+      ! Arrays
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:)          ! Diagnostic arrays
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)  !  for the prod/loss
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:)   !  and mass of 
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_OH(:,:,:)   !  various Hg
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_O3(:,:,:)   !  species
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SS(:,:,:)   !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_nat(:,:,:)      !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_SSR(:,:)    !
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Br(:,:,:,:)     !
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC :: ZERO_DIAG03
+      PUBLIC :: WRITE_DIAG03
+      PUBLIC :: INIT_DIAG03
+      PUBLIC :: CLEANUP_DIAG03
+!
+! !REMARKS:
 !  Nomenclature: 
 !  ============================================================================
 !  (1 ) Hg(0)  a.k.a. Hg0     : Elemental   mercury
 !  (2 ) Hg(II) a.k.a. Hg2     : Divalent    mercury
 !  (3 ) HgP                   : Particulate mercury
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Add 2 extra diagnostics to ND03. Set PD03=15.  (cdh, bmy, 12/15/05)
@@ -41,63 +63,46 @@
 !  (5 ) Replace TINY(1d0) w/ 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (6 ) Updates to mercury simulation (ccc, 5/17/10)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag03_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC
-      PUBLIC 
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Scalars
-      INTEGER              :: ND03, LD03
-      INTEGER, PARAMETER   :: PD03 = 18
-
-      ! Arrays
-      REAL*4,  ALLOCATABLE :: AD03(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_Br(:,:,:) !cdh added diagnostic
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_OH(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_O3(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_SS(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_nat(:,:,:)
-      REAL*4,  ALLOCATABLE :: AD03_Hg2_SSR(:,:) !CDH for sea salt loss rate
-      REAL*4,  ALLOCATABLE :: AD03_Br(:,:,:,:) !CDH for bromine
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-     
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag03
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG03 zeroes all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG03
 !
-!******************************************************************************
-!  Subroutine ZERO_DIAG03 zeroes the ND03 diagnostic arrays. 
-!  (bmy, 1/21/05, 4/6/06)
-!
-!  NOTES:
-!  (1 ) Now references N_Hg_CATS from "tracerid_mod.f".  Now zero AD03_Hg2_SS
-!        array. (bmy, 4/6/06)
-!  (2 ) Now use broadcast assignment and double precision 0D0 to zero arrays,
-!        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2005 - R. Yantosca - Initial version
+!  (1 ) Now references N_Hg_CATS from "tracerid_mod.f".  Now zero AD03_Hg2_SS
+!        array. (bmy, 4/6/06)
+!  (2 ) Now use broadcast assignment and double precision 0D0 to zero arrays,
+!        rather than nested DO loops and single precision 0E0. (cdh, 8/14/08)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L, N
 
       !=================================================================
@@ -118,17 +123,41 @@
       AD03_nat     = 0D0 !cdh moved here from mercury_mod
       AD03_Br      = 0D0 !cdh for bromine
 
-      ! Return to calling program
       END SUBROUTINE ZERO_DIAG03
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag03
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG03 writes the ND03 diagnostic arrays to 
+!  the binary punch file at the proper time.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG03
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG03 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 1/21/05, 2/24/06)
+! !USES:
 !
+      USE BPCH2_MOD,    ONLY : BPCH2
+      USE BPCH2_MOD,    ONLY : GET_MODELNAME
+      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      USE FILE_MOD,     ONLY : IU_BPCH
+      USE GRID_MOD,     ONLY : GET_XOFFSET
+      USE GRID_MOD,     ONLY : GET_YOFFSET
+      USE TIME_MOD,     ONLY : GET_CT_EMIS
+      USE TIME_MOD,     ONLY : GET_DIAGb
+      USE TIME_MOD,     ONLY : GET_DIAGe
+      USE TIME_MOD,     ONLY : GET_CT_CHEM  ! CDH for sea salt loss rate
+      USE TRACERID_MOD, ONLY : N_Hg_CATS
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! TINDEX
+!
+! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) HG-SRCE  : Anthropogenic HG0 emission      : kg       : 1
@@ -152,8 +181,9 @@
 !  (19) PL-HG2-$ : Production of Hg2 from rxn w/OH : kg       : 1
 !  (20) PL-HG2-$ : Production of Hg2 from rxn w/O3 : kg       : 1
 !  (21) PL-HG2-$ : Loss of Hg2 from rxn w/ seasalt : kg       : 1 
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -164,29 +194,22 @@
 !        (bmy, 9/5/06)
 !  (5 ) Fixed tracer numbers (NN) for 'PL-HG2-$' diagnostic quantities.
 !        (cdh, 8/13/08)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-      USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
-
-      ! Local variables
-      INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
-      INTEGER               :: JFIRST,    LFIRST,      LMAX
-      INTEGER               :: M,         N,           NN
-      REAL*4                :: ARRAY(IIPAR,JJPAR,LLPAR)
-      REAL*4                :: LONRES,    LATRES
-      REAL*8                :: DIAGb,     DIAGe,       SCALE
-      CHARACTER(LEN=20)     :: MODELNAME 
-      CHARACTER(LEN=40)     :: CATEGORY,  RESERVED,    UNIT
-      REAL*8                :: NCHEMSTEP !CDH for sea salt loss rate
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: CENTER180, HALFPOLAR,   IFIRST
+      INTEGER           :: JFIRST,    LFIRST,      LMAX
+      INTEGER           :: M,         N,           NN
+      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL*4            :: LONRES,    LATRES
+      REAL*8            :: DIAGb,     DIAGe,       SCALE
+      CHARACTER(LEN=20) :: MODELNAME 
+      CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
+      REAL*8            :: NCHEMSTEP !CDH for sea salt loss rate
 
       !=================================================================
       ! WRITE_DIAG03 begins here!
@@ -424,27 +447,39 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG03
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag03
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG03 allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG03
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG03 allocates all module arrays (bmy, 1/21/05, 4/6/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now allocates AD03_Hg2_SS (eck, bmy, 4/6/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE TRACERID_MOD, ONLY : N_Hg_CATS
    
 #     include "CMN_SIZE" 
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2005 - R. Yantosca - Initial version
+!  (1 ) Now allocates AD03_Hg2_SS (eck, bmy, 4/6/06)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       
       !=================================================================
@@ -497,21 +532,29 @@
       ! Zero arrays
       CALL ZERO_DIAG03
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG03
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag03
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG03 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG03
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG03 deallocates all module arrays 
-!  (bmy, 1/21/05, 4/6/06)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  21 Jan 2005 - R. Yantosca - Initial version
 !  (1 ) Now deallocates AD03_Hg2_SS (eck, bmy, 4/6/06)
-!******************************************************************************
-!
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG03 begins here!
       !=================================================================
@@ -525,10 +568,6 @@
       IF ( ALLOCATED( AD03_Hg2_SSR ) ) DEALLOCATE( AD03_Hg2_SSR ) !CDH sea salt rate
       IF ( ALLOCATED( AD03_Br      ) ) DEALLOCATE( AD03_Br ) !CDH Bromine
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG03
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG03_MOD

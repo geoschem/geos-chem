@@ -128,7 +128,7 @@
 ! !IROUTINE: do_diag_oh_ch4
 !
 ! !DESCRIPTION: Subroutine DO\_DIAG\_OH\_CH4 passes the OH loss, OH mass, 
-!  and air mass terms from "global_ch4_mod.f" to "diag_oh_mod.f" 
+!  and air mass terms from "global\_ch4\_mod.f" to "diag\_oh\_mod.f" 
 !\\
 !\\
 ! !INTERFACE:

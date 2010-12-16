@@ -1,16 +1,37 @@
-C $Id: emmonot.f,v 1.1 2009/09/16 14:06:31 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emmonot
+!
+! !DESCRIPTION: Subroutine EMMONOT computes the BIOGENIC MONOTERPENE 
+!  EMISSIONS for each grid box in units of [atoms C/box/step].
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION EMMONOT( IJLOOP, TMMP, XNUMOL )
 !
-!******************************************************************************
-!  Subroutine EMMONOT computes the BIOGENIC MONOTERPENE EMISSIONS for each 
-!  grid box in units of [atoms C/box/step]. (yhw, bdf, bmy, 9/4/01, 11/26/01)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IJLOOP    (INTEGER ) : 1-D grid box index
-!  (2 ) TMMP      (REAL*8  ) : Local air temperature (K)
-!  (3 ) XNUMOL    (REAL*8  ) : Number of atoms C / kg C 
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"              ! Size parameters
+#     include "CMN_VEL"               ! XYLAI, IJREG, IJLAND, IJUSE
+#     include "CMN_MONOT"             ! BASEMONOT
 !
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: IJLOOP   ! 1-D grid box index
+      REAL*8,  INTENT(IN) :: TMMP     ! Local air temperature (K)
+      REAL*8,  INTENT(IN) :: XNUMOL   ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMMONOT 
+!
+! !REMARKS:
 !  Important Common Block Variables:
 !  ============================================================================
 !  (1 ) XYLAI     (CMN_VEL ) : Leaf Area Index of land type for current MONTH
@@ -18,26 +39,23 @@ C $Id: emmonot.f,v 1.1 2009/09/16 14:06:31 bmy Exp $
 !  (3 ) IJLAND+1  (CMN_VEL ) : Olson land type index
 !  (4 ) IJUSE     (CMN_VEL ) : Olson land type fraction per box (in mils)
 !  (5 ) BASEMONOT (CMN_ISOP) : Baseline MONOTERPENE emissions [kg C/box/step]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  04 Sep 2001 - Y. H. Wang, B. Field, R. Yantosca  - Initial version
 !  (1 ) Now use F90 syntax.  Use "D" exponents to force double precision.
 !        Updated comments, and mad cosmetic changes (bmy, 9/4/01) 
 !  (2 ) Removed obsolete, commented-out code from 8/01 (bmy, 11/26/01)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_VEL"   ! XYLAI, IJREG, IJLAND, IJUSE
-#     include "CMN_MONOT" ! BASEMONOT
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: IJLOOP
-      REAL*8,  INTENT(IN) :: TMMP, XNUMOL
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: INVEG
-      REAL*8              :: EMMONOT 
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8,  PARAMETER  :: TS=303d0, BETA=0.09d0
 
       !=================================================================
@@ -73,5 +91,5 @@ C $Id: emmonot.f,v 1.1 2009/09/16 14:06:31 bmy Exp $
       ! Convert MONOTERPENE emissions to [atoms C/box/step]
       EMMONOT = EMMONOT * XNUMOL
 
-      ! Return to calling program
       END FUNCTION EMMONOT
+!EOC

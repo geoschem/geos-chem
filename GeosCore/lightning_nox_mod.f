@@ -5,14 +5,14 @@
 !
 ! !MODULE: lightning_nox_mod
 !
-! !DESCRIPTION: Module LIGHTNING_NOX_MOD contains variables and routines for 
+! !DESCRIPTION: Module LIGHTNING\_NOx\_MOD contains variables and routines for 
 !  emitting NOx from lightning into the atmosphere.  Original code comes from 
-!  the old GISS-II CTM's of Yuhang Wang, Gerry Gardner, & Larry Horowitz.  
+!  the old GISS-II CTM's of Yuhang Wang, Gerry Gardner, \& Larry Horowitz.  
 !\\
 !\\
 ! !INTERFACE:
 !
-      MODULE LIGHTNING_NOX_MOD
+      MODULE LIGHTNING_NOx_MOD
 !
 ! !USES:
 !
@@ -133,7 +133,7 @@
 !
 ! !IROUTINE: lightning
 !
-! !DESCRIPTION: Subroutine LIGHTNING uses Price & Rind's formulation for 
+! !DESCRIPTION: Subroutine LIGHTNING uses Price \& Rind's formulation for 
 !  computing NOx emission from lightning (with various updates).
 !\\
 !\\
@@ -1117,7 +1117,7 @@
 ! !IROUTINE: FLASHES_MFLUX
 !
 ! !DESCRIPTION: Subroutine FLASHES\_MFLUX determines the rate of lightning 
-!  flashes per minute, based on the upward cloud mass flux [kg m^-2 min^-1] 
+!  flashes per minute, based on the upward cloud mass flux [kg/m2/min] 
 !  at 0.44 sigma, and the intra-cloud to cloud-ground strike ratio. 
 !\\
 !\\
@@ -2053,16 +2053,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_lightning_nox
+! !IROUTINE: init_lightning_NOx
 !
-! !DESCRIPTION: Subroutine INIT_LIGHTNING_NOX allocates all module arrays.  
+! !DESCRIPTION: Subroutine INIT\_LIGHTNING\_NOx allocates all module arrays.  
 !  It also reads the lightning CDF data from disk before the first lightning 
 !  timestep. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_LIGHTNING_NOX
+      SUBROUTINE INIT_LIGHTNING_NOx
 !
 ! !USES:
 !
@@ -2217,22 +2217,22 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      END SUBROUTINE INIT_LIGHTNING_NOX
+      END SUBROUTINE INIT_LIGHTNING_NOx
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_lightning_nox
+! !IROUTINE: cleanup_lightning_NOx
 !
-! !DESCRIPTION: Subroutine CLEANUP_LIGHTNING_NOX deallocates all module 
+! !DESCRIPTION: Subroutine CLEANUP\_LIGHTNING\_NOx deallocates all module 
 !  arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_LIGHTNING_NOX
+      SUBROUTINE CLEANUP_LIGHTNING_NOx
 ! 
 ! !REVISION HISTORY: 
 !  14 Apr 2004 - R. Yantosca - Initial version
@@ -2245,18 +2245,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-!------------------------------------------------------------------------------
-
-!
-!  Subroutine CLEANUP_LIGHTNING_NOX deallocates all module arrays. 
-!  (bmy, 4/14/04, 10/3/07)
-!
-!  NOTES:
-!******************************************************************************
-!
       !=================================================================
       ! CLEANUP_LIGHTNING_NOX begins here!
       !=================================================================
@@ -2266,6 +2254,6 @@
       IF ( ALLOCATED( OTD_REG_REDIST ) ) DEALLOCATE( OTD_REG_REDIST )
       IF ( ALLOCATED( OTD_LOC_REDIST ) ) DEALLOCATE( OTD_LOC_REDIST )
 
-      END SUBROUTINE CLEANUP_LIGHTNING_NOX
+      END SUBROUTINE CLEANUP_LIGHTNING_NOx
 !EOC
-      END MODULE LIGHTNING_NOX_MOD
+      END MODULE LIGHTNING_NOx_MOD

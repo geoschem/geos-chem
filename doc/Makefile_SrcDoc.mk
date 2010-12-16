@@ -27,6 +27,15 @@
 #  16 Sep 2010 - R. Yantosca - Added diag_pl_mod
 #  04 Nov 2010 - R. Yantosca - Added acetone_mod
 #  10 Nov 2010 - R. Yantosca - Added lightning_nox_mod
+#  19 Nov 2010 - R. Yantosca - Added anthroems, RnPbBe_mod, tagged_ox_mod
+#  19 Nov 2010 - R. Yantosca - Added tcorr, emfossil, emf_scale
+#  01 Dec 2010 - R. Yantosca - Added global_br_mod, global_no3_mod
+#  01 Dec 2010 - R. Yantosca - Added global_nox_mod, global_o1d_mod
+#  01 Dec 2010 - R. Yantosca - Added global_oh_mod,  toms_mod
+#  02 Dec 2010 - R. Yantosca - Added upbdflx_mod, diag41_mod, diag42_mod
+#  02 Dec 2010 - R. Yantosca - Added diag03_mod, diag49_mod, diag50_mod
+#  02 Dec 2010 - R. Yantosca - Added diag51_mod, diag51b_mod, boxvl, rdmonot
+#  02 Dec 2010 - R. Yantosca - Added rdlight, rdland, rdsoil, emmonot
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -47,7 +56,13 @@ $(CORE)/co2_mod.f                    \
 $(CORE)/convection_mod.f             \
 $(CORE)/dao_mod.f                    \
 $(CORE)/depo_mercury_mod.f           \
+$(CORE)/diag03_mod.f                 \
 $(CORE)/diag04_mod.f                 \
+$(CORE)/diag41_mod.f                 \
+$(CORE)/diag42_mod.f                 \
+$(CORE)/diag49_mod.f                 \
+$(CORE)/diag50_mod.f                 \
+$(CORE)/diag51b_mod.f                \
 $(CORE)/diag56_mod.f                 \
 $(CORE)/diag_pl_mod.f                \
 $(CORE)/diag_oh_mod.f                \
@@ -57,7 +72,13 @@ $(CORE)/emep_mod.f                   \
 $(CORE)/emissions_mod.f              \
 $(CORE)/fjx_acet_mod.f               \
 $(CORE)/gamap_mod.f                  \
+$(CORE)/global_br_mod.f              \
+$(CORE)/global_no3_mod.f             \
+$(CORE)/global_nox_mod.f             \
+$(CORE)/global_o1d_mod.f             \
 $(CORE)/global_o3_mod.f              \
+$(CORE)/global_oh_mod.f              \
+$(CORE)/h2_hd_mod.f                  \
 $(CORE)/icoads_ship_mod.f            \
 $(CORE)/input_mod.f                  \
 $(CORE)/isoropiaII_mod.f             \
@@ -74,27 +95,43 @@ $(CORE)/merra_i6_mod.f               \
 $(CORE)/nei2005_anthro_mod.f         \
 $(CORE)/optdepth_mod.f               \
 $(CORE)/pjc_pfix_mod.f               \
+$(CORE)/RnPbBe_mod.f                 \
 $(CORE)/scale_anthro_mod.f           \
+$(CORE)/tagged_ox_mod.f              \
+$(CORE)/toms_mod.f                   \
 $(CORE)/tropopause_mod.f             \
 $(CORE)/tpcore_fvdas_mod.f90         \
 $(CORE)/tpcore_geos5_window_mod.f90  \
 $(CORE)/transport_mod.f              \
+$(CORE)/upbdflx_mod.f                \
 $(CORE)/vdiff_mod.f90                \
 $(CORE)/vdiff_pre_mod.f              \
 $(CORE)/vistas_anthro_mod.f          \
 ./subs.geos-chem                     \
+$(CORE)/anthroems.f                  \
+$(CORE)/boxvl.f                      \
 $(CORE)/diag1.f                      \
 $(CORE)/diag3.f                      \
 $(CORE)/diag_2pm.f                   \
 $(CORE)/diagoh.f                     \
+$(CORE)/emfossil.f                   \
+$(CORE)/emf_scale.f                  \
+$(CORE)/emmonot.f                    \
 $(CORE)/fast_j.f                     \
+$(CORE)/findmon.f                    \
 $(CORE)/initialize.f                 \
 $(CORE)/ndxx_setup.f                 \
 $(CORE)/ohsave.f                     \
 $(CORE)/rdlai.f                      \
+$(CORE)/rdland.f                     \
+$(CORE)/rdsoil.f                     \
+$(CORE)/rdlight.f                    \
+$(CORE)/rdmonot.f                    \
 $(CORE)/readlai.f                    \
 $(CORE)/ruralbox.f                   \
-$(CORE)/setemis.f              
+$(CORE)/setemis.f                    \
+$(CORE)/sfcwindsqr.f                 \
+$(CORE)/tcorr.f            
 
 
 # Output file names

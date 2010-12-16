@@ -33,21 +33,18 @@
       PUBLIC  :: GET_WETDEP_NSOL
       PUBLIC  :: INIT_WETSCAV
       PUBLIC  :: WETDEPID
-      PUBLIC  :: WASHOUT    ! hma 20101011, for convection_mod
-      PUBLIC  :: LS_K_RAIN  ! hma 20101014, for convection_mod
-      PUBLIC  :: LS_F_PRIME ! hma 20101014, for convection_mod
+      PUBLIC  :: WASHOUT
+      PUBLIC  :: LS_K_RAIN
+      PUBLIC  :: LS_F_PRIME
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: COMPUTE_L2G
       PRIVATE :: CONV_F_PRIME
       PRIVATE :: E_ICE
-C      PRIVATE :: LS_K_RAIN   ! now public for convection_mod, hma 20101014
-C      PRIVATE :: LS_F_PRIME  ! now public for convection_mod, hma 20101014
       PRIVATE :: RAINOUT
       PRIVATE :: GET_RAINFRAC
       PRIVATE :: SAFETY
-C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
       PRIVATE :: WASHFRAC_AEROSOL
       PRIVATE :: WASHFRAC_LIQ_GAS
 !
@@ -4579,6 +4576,8 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 !  20 Sep 2010 - R. Yantosca - Initial version, based on WETDEP
 !  28 Sep 2010 - H. Amos     - Now define Q, QDOWN directly from MERRA met
 !  08 Oct 2010 - R. Yantosca - Adjusted OpenMP do loop
+!  09-Dec-2010 - H. Amos     - Added PDOWN(L+1) > 0 to criterion for IS_WASHOUT
+!  09-Dec-2010 - H. Amos     - SAFETY now prints PDOWN(L+1) instead of PDOWN(L)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4753,16 +4752,51 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
             ! Fraction of grid box (I,J,L) experiencing washout
             F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
 
+!------------------------------------------------------------------------------
+! Prior to 12/15/10:
+! Leave this commented out.  Helen Amos wrote this as an "improvement" to the 
+! existing code, but then decided that the existing code was better.  This
+! section should stay inactive until further notice. (hamos, bmy, 12/15/10)
+!            !-----------------------------------------------------------
+!            ! Define Q and QDOWN for washout directly from MERRA met
+!            !-----------------------------------------------------------
+!
+!C            ! Net precipitation rate in grid box (I,J,L) 
+!C            Q = QQ(L,I,J)
+! 
+!            ! Re-evaporation of precipitating condensate
+!            Q = REEVAPLS(I,J,L) * ( AIRDEN(L,I,J) / 1000d0 )
+!
+!            ! The precipitation causing washout is the precip
+!            ! entering the top of grid box (I,J,L)
+!            QDOWN = PDOWN(L+1,I,J)
+!*************************************************************************
+
             !-----------------------------------------------------------
-            ! Define Q and QDOWN for washout directly from MERRA met
+            ! Define Q and QDOWN for washout
             !-----------------------------------------------------------
 
-            ! Re-evaporation of precipitating condensate
-            Q     = REEVAPLS(I,J,L) * ( AIRDEN(L,I,J) / 1000d0 )
+            ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
+            ! Q     is the new precip that is forming within box (I,J,L)
+            QDOWN = PDOWN(L,I,J)
+            Q     = QQ(L,I,J)
 
-            ! The precipitation causing washout is the precip
-            ! entering the top of grid box (I,J,L)
-            QDOWN = PDOWN(L+1,I,J)
+            ! If there is rainout occurring ...
+            IF ( F_RAINOUT > 0d0 ) THEN
+
+               ! The precipitation causing washout is the precip entering
+               ! the top. 
+               QDOWN = PDOWN(L+1,I,J)
+
+               ! The amount of precipitating water entering from above 
+               ! which evaporates. If there is rainout (new precip
+               ! forming) then we have no way to estimate this, so assume
+               ! zero for now. Consequently there will be no resuspended
+               ! aerosol.
+               Q = 0d0
+            ELSE
+               Q = QQ(L,I,J)                  
+            ENDIF
 
             !-----------------------------------------------------------
             ! Determine if we have one of the following conditions:
@@ -4786,7 +4820,8 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
             ! entering grid box (I,J,L) from the grid box directly 
             ! overhead (I,J,L+1).  (hma, 9/10/10)
             IS_WASHOUT = ( ( DQRLSAN(I,J,L)       == 0d0 ) .and.
-     &                     ( F_WASHOUT            > 0    )        )
+     &                     ( F_WASHOUT            > 0    ) .and.
+     &                     ( PDOWN(L+1,I,J)       > 0    )       )
 
             ! There is BOTH rainout AND washout if you have new precip
             ! production in grid box (I,J,L) and you have some fraction
@@ -4897,7 +4932,13 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
             ENDIF 
 
             ! Save FTOP for next level
-            FTOP = 0
+            !------------------------------------------------------------
+            ! Prior to 12/3/10:
+            ! Don't set FTOP = 0, because this will cause the section
+            ! "Washout in level 1" not to execute. (hma, bmy, 12/3/10)
+            !FTOP = 0
+            !------------------------------------------------------------
+            FTOP = F_RAINOUT + F_WASHOUT
 
          ENDDO               
 
@@ -5289,7 +5330,7 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
      &                   WASHFRAC    = 0d0, 
      &                   MASS_WASH   = 0d0,
      &                   MASS_NOWASH = 0d0,
-     &                   WETLOSS     = 0d0,
+     &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0d0,         
      &                   LOST        = 0d0,         
      &                   DSTT        = DSTT(NN,:,I,J), 
@@ -5323,6 +5364,7 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 !
 ! !USES:
 !
+      USE DAO_MOD,      ONLY : T                       ! air temperature [K]
       USE DAO_MOD,      ONLY : BXHEIGHT                ! Grid box height [m]  
       USE DAO_MOD,      ONLY : REEVAPLS                ! Evap of precip'ing
                                                        !  LS+anvil cloud
@@ -5463,6 +5505,9 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
          CT18(I,J,L,IDX) = CT18(I,J,L,IDX) + 1
       ENDIF
 
+      ! air temperature [K]
+      TK  = T(I,J,L)   ! added by hma, 20101014
+
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
       !-----------------------------------------------------------------
@@ -5509,39 +5554,20 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 
              ! Define ALPHA, the fraction of the raindrops that 
              ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-!------------------------------------------------------------------------------
-! Prior to 9/28/10:
-! The new definition of ALPHA doesn't work, so we don't need to check DO_REEVAP
-! Leave code here for potential future use.
-! (Helen Amos, 20100928)
-!             IF ( DO_REEVAP ) THEN
-!
-!                ! If we are doing the partial re-evaporation, then
-!                ! define ALPHA directly from the MERRA REEVAPLSAN field
-!                !
-!                ! NOTE: This definition of ALPHA is only approximate if
-!                ! QQ = DQRLSAN.  If QQ = DQRLSAN - REEVAPLSAN, then ALPHA
-!                ! should not be changed.               !
-!                !   -- Helen Amos (9/10/10)
-!                ALPHA = ( REEVAPLS(I,J,L) * BXHEIGHT(I,J,L) * 100d0 )
-!     &               / ( PDOWN(L+1,I,J)                            )
-!             ELSE
-!
-!                ! Otherwise, define ALPHA from Q, the amount of
-!                ! new precipitation forming within the grid box
-!                ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
-!     &               / ( PDOWN(L+1,I,J)                     )
-!             ENDIF
-!------------------------------------------------------------------------------
+                ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
+     &               / ( PDOWN(L+1,I,J)                     )
 
-            ! Define ALPHA from Q, the amount of new precipitation 
-            ! forming within the grid box
-            ALPHA   = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
-     &              / ( PDOWN(L+1,I,J)                     )
 
             ! ALPHA2 is the fraction of the rained-out aerosols
             ! that gets resuspended in grid box (I,J,L)
-            ALPHA2  = 0.5d0 * ALPHA
+            ALPHA2 = 0.5d0 * ALPHA
+
+C There isn't anything to keep ALPHA2 =< 1, which doesn't make
+C much physical sense. Put in this statement to debug. 
+C (hma, 06-Dec-2010)
+            IF (ALPHA2 > 1) THEN 
+               ALPHA2 = 1
+            ENDIF
 
             ! GAINED is the rained out aerosol coming down from 
             ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -5638,8 +5664,8 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 
             ! Print error message and stop simulaton
             CALL SAFETY( I, J, L, N, ERRMSG,
-     &                   LS          = LS,             
-     &                   PDOWN       = PDOWN(L,I,J),  
+     &                   LS          = LS,           
+     &                   PDOWN       = PDOWN(L+1,I,J),  
      &                   QQ          = QQ(L,I,J),      
      &                   ALPHA       = ALPHA,       
      &                   ALPHA2      = ALPHA2,         
@@ -5796,7 +5822,8 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 !
 ! !IROUTINE: do_washout_at_sfc
 !
-! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC
+! !DESCRIPTION: Subroutine DO\_WASHOUT_AT\_SFC washes out the tracer 
+!  at the surface.
 !\\
 !\\
 ! !INTERFACE:
@@ -5892,15 +5919,10 @@ C      PRIVATE :: WASHOUT   ! now public for convection_mod, hma 20101011
 
          ! Call WASHOUT to compute the fraction of tracer 
          ! in grid box (I,J,L) that is lost to washout.  
-C hma 20101014 --------------------------------------------------------C
-C         CALL WASHOUT( I,     J,  L, N, 
-C     &                 QDOWN, DT, F, WASHFRAC, AER )
-         CALL WASHOUT( L,       N,     BXHEIGHT(I,J,L), 
-     &                 TK ,   QDOWN,    DT,   
-     &                 F,       H2O2s(I,J,L), SO2s(I,J,L), 
+         CALL WASHOUT( L,        N,            BXHEIGHT(I,J,L), 
+     &                 TK ,      QDOWN,        DT,   
+     &                 F,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC, AER )
-C----------------------------------------------------------------------C
-                  
 
          ! NOTE: for HNO3 and aerosols, there is an F factor
          ! already present in WASHFRAC.  For other soluble

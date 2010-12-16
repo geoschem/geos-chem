@@ -1,16 +1,34 @@
-! $Id: rdmonot.f,v 1.1 2009/09/16 14:06:13 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdmonot
+!
+! !DESCRIPTION: Subroutine RDMONOT reads baseline monoterpene emission 
+!  values from Guenther et al. (1995), as a function of Olson landtype area.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDMONOT( GMONOT )
 !
-!******************************************************************************
-!  Subroutine RDMONOT reads baseline monoterpene emission values from 
-!  Guenther et al. (1995), as a function of Olson landtype area.
-!  (bdf, bmy, 7/6/01, 7/20/04) 
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) GMONOT: Monoterpene emissions for each landtype [atoms C/cm2 leaf/s]
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      ! Monoterpene emissions for each landtype [atoms C/cm2 leaf/s]
+      REAL*8, INTENT(OUT) :: GMONOT(NVEGTYPE)
+! 
+! !REVISION HISTORY: 
+!  06 Jul 2001 - B. Field    - Initial version
 !  (1 ) Now read updated file "monotemis.v4-13.table" (bdf, bmy, 6/6/01)
 !  (2 ) Now reference DATA_DIR from "CMN_SETUP. (bmy, 6/6/01)
 !  (3 ) Now use IOERROR to trap I/O errors (bmy, 6/6/01)
@@ -21,22 +39,15 @@
 !        IOERROR from "file_mod.f".  Now use IU_FILE as the file unit number
 !        instead of IUNIT. (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      REAL*8, INTENT(OUT) :: GMONOT(NVEGTYPE)
-
-      ! Local variables
-      INTEGER             :: N, T, IOS
-      CHARACTER(LEN=255)  :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N, T, IOS
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! RDMONOT begins here!
@@ -68,5 +79,5 @@
       ! Close IU_FILE
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE RDMONOT
+!EOC

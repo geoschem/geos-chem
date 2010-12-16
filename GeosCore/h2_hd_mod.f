@@ -1,86 +1,66 @@
-! $Id: h2_hd_mod.f,v 1.4 2010/03/15 19:33:23 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: 
+!
+! !DESCRIPTION: Module H2\_HD\_MOD contains variables and routines used 
+!  for the geographically tagged H2-HD simulation.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE H2_HD_MOD
 !
-!******************************************************************************
-!  Module H2_HD_MOD contains variables and routines used for the 
-!  geographically tagged H2-HD simulation. (lyj, hup, phs, bmy, 9/18/07)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) SUMISOPCO   : Array for production of CO from Isoprene
-!  (2 ) SUMMONOCO   : Array for production of CO from Monoterpenes
-!  (3 ) SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
-!  (4 ) SUMACETCO   : Array for production of CO from Acetone
-!* (5 ) EMACET      : Array for hold monthly mean acetone emissions
-!  (8 ) FMOL_H2     : molecular weight of H2
-!  (9 ) XNUMOL_H2   : molec H2 / kg H2
-!  (10) FMOL_ISOP   : molecular weight of ISOP
-!  (11) XNUMOL_ISOP : molec ISOP / kg ISOP
-!  (12) FMOL_MONO   : molecular weight of MONOTERPENES
-!  (13) XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
-!  (14) EMOCEAN     : Array for hold monthly mean ocean H2 emissions
-!  (15) H2CO_YIELD  : Array for photochemical yield of H2 vs CO
+      IMPLICIT NONE
+      PRIVATE
 !
-! * = shared w/ tagged_co_mod.f where it belongs.
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) EMISS_H2_HD      : Emissions of H2 and HD
-!  (2 ) CHEM_H2_HD       : Does chemistry for H2 and HD tracers
-!  (3 ) INIT_H2_HD       : Allocates and initializes module arrays
-!  (4 ) CLEANUP_H2_HD    : Deallocates module arrays
-!
-!  GEOS-CHEM modules referenced by h2_hd_mod.f
-!  ============================================================================
-!  (1 ) biofuel_mod.f    : Module w/ routines to read biofuel emissions
-!  (2 ) biomass_mod.f    : Module w/ routines to read biomass emissions
-!  (3 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
-!  (4 ) dao_mod.f        : Module w/ arrays for DAO met fields
-!  (5 ) diag_mod.f       : Module w/ GEOS-CHEM diagnostic arrays
-!  (6 ) directory_mod.f  : Module w/ GEOS-CHEM data & met field dirs
-!  (7 ) error_mod.f      : Module w/ I/O error and NaN check routines
-!  (8 ) geia_mod         : Module w/ routines to read anthro emissions
-!  (9 ) global_oh_mod.f  : Module w/ routines to read 3-D OH field
-!  (10) global_nox_mod.f : Module w/ routines to read 3-D NOx field
-!  (11) global_ch4_mod.f : Module containing routines to read 3-D CH4 field
-!  (12) global_o1d_mod.f : Module containing routines to read 3-D O1D field
-!  (13) grid_mod.f       : Module w/ horizontal grid information
-!  (14) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (15) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
-!  (16) tagged_co_mod.f  : Module w/ CO arrays and routines
-!  (16) time_mod.f       : Module w/ routines for computing time & date
-!  (17) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (18) tropopause_mod.f : Module w/ routines to read ann mean tropopause
+! !PUBLIC MEMBER FUNCTIONS:
 ! 
-!  Tracers 
-!  ============================================================================
-!  (1 ) Total H2
-!  (2)  Total HD
+      PUBLIC  :: CHEM_H2_HD
+      PUBLIC  :: CLEANUP_H2_HD
+      PUBLIC  :: EMISS_H2_HD
 !
-!  NOTES:
-!  (1 ) Based on "tagged_co_mod.f" (lyj, bmy, phs, 5/10/07)
-!******************************************************************************
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: INIT_H2_HD
+      PRIVATE :: READ_OCEAN_H2
+      PRIVATE :: READ_H2YIELD
 !
-      IMPLICIT NONE 
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
-      ! and routines from being seen outside "h2_hd_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
+! !REVISION HISTORY:
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
       PRIVATE SUMCH3OHCO
       PRIVATE SUMISOPCO, SUMMONOCO,   SUMACETCO
       PRIVATE FMOL_H2,   XNUMOL_H2
       PRIVATE FMOL_HD,   XNUMOL_HD,   EMOCEAN,   H2CO_YIELD
       PRIVATE FMOL_ISOP, XNUMOL_ISOP, FMOL_MONO, XNUMOL_MONO
       
-      ! PRIVATE module routines
-      PRIVATE INIT_H2_HD,       READ_OCEAN_H2
-      PRIVATE READ_H2YIELD
-
       !=================================================================
       ! MODULE VARIABLES
+      ! 
+      ! SUMISOPCO   : Array for production of CO from Isoprene
+      ! SUMMONOCO   : Array for production of CO from Monoterpenes
+      ! SUMCH3OHCO  : Array for production of CO from CH3OH (methanol)
+      ! SUMACETCO   : Array for production of CO from Acetone
+      ! EMACET      : Array for hold monthly mean acetone emissions
+      ! FMOL_H2     : molecular weight of H2
+      ! XNUMOL_H2   : molec H2 / kg H2
+      ! FMOL_ISOP   : molecular weight of ISOP
+      ! XNUMOL_ISOP : molec ISOP / kg ISOP
+      ! FMOL_MONO   : molecular weight of MONOTERPENES
+      ! XNUMOL_MONO : molec MONOTERPENES / kg MONOTERPENES
+      ! EMOCEAN     : Array for hold monthly mean ocean H2 emissions
+      ! H2CO_YIELD  : Array for photochemical yield of H2 vs CO
       !=================================================================
       REAL*8,  ALLOCATABLE :: SUMCH3OHCO(:,:)
       REAL*8,  ALLOCATABLE :: SUMISOPCO(:,:)
@@ -113,22 +93,24 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-     
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_h2_hd
+!
+! !DESCRIPTION: Subroutine EMISS\_H2\_HD reads in emissions for the H2/HD 
+!  simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_H2_HD
 !
-!******************************************************************************
-!  Subroutine EMISS_H2_HD reads in emissions for the H2/HD simulation.
-!  (lyj, phs, bmy, 9/18/07)
+! !USES:
 !
-!  NOTES:
-!    (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
-!    (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
-!    (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BIOFUEL_MOD,   ONLY : BIOFUEL,     BIOFUEL_BURN
       ! IDBCO moved to tracerid_mod by FP (hotp 7/31/09)
       USE BIOMASS_MOD,   ONLY : BIOMASS!,     IDBCO
@@ -149,13 +131,22 @@
       USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
-      IMPLICIT NONE
-
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
 #     include "CMN_DIAG"     ! Diagnostic arrays & switches
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  (1 ) Now references GET_ANNUAL_SCALAR (phs, 3/11/08)
+!  (2 ) Move XLTMMP to module MEGANUT_MOD (ccc, 11/20/09)
+!  (3 ) IDBCO is in TRACERID_MOD now (hotp 7/31/09)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I, J, L, N, I0, J0
       INTEGER                :: AS, IREF, JREF, IJLOOP
       INTEGER                :: SCALEYEAR, IHOUR, NTAU, MONTH
@@ -645,24 +636,28 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE EMISS_H2_HD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_h2_hd
+!
+! !DESCRIPTION: Subroutine CHEM\_H2\_HD performs H2 and HD chemistry.  
+!  Chemical production is by oxidation of BVOC and CH4.  Loss is via 
+!  reaction with OH and uptake by soils. In the stratosphere, H2 is also 
+!  lost by reaction with O(1D).  For HD, we include the fractionation 
+!  from photochemical oxidation (162 permil), and loss by OH and soil uptake.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEM_H2_HD
 !
-!******************************************************************************
-!  Subroutine CHEM_H2_HD performs H2 and HD chemistry.  Chemical production is
-!  by oxidation of BVOC and CH4.  Loss is via reaction with OH and uptake by 
-!  soils. In the stratosphere, H2 is also lost by reaction with O(1D).  For 
-!  HD, we include the fractionation from photochemical oxidation (162 permil),
-!  and loss by OH and soil uptake. (lyj, hup, phs, 9/18/07)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,        ONLY : AD, AIRVOL, T
       USE DIAG_MOD,       ONLY : AD10
       USE ERROR_MOD,      ONLY : CHECK_VALUE
@@ -683,8 +678,16 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DEP"      ! FRCLND
 #     include "CMN_DIAG"     ! ND65
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
       INTEGER                :: I, J, L, N, MONTH
       REAL*8                 :: ALPHA_CH4, ALPHA_ISOP, ALPHA_MONO
@@ -707,7 +710,9 @@
 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
-
+!
+! !DEFINED PARAMETERS:
+!
       ! WTAIR = molecular weight of air (g/mole)
       REAL*8,  PARAMETER     :: WTAIR = 28.966d0
       
@@ -1256,46 +1261,56 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE CHEM_H2_HD
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_ocean_h2
+!
+! !DESCRIPTION: Subroutine READ\_OCEAN\_H2 reads in oceanic H2 emissions 
+!  from nitrogen fixation.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_OCEAN_H2( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine READ_OCEAN_H2 reads in oceanic H2 emissions from nitrogen 
-!  fixation. (hup, lyj, phs, bmy, 9/18/07)
+! !USES:
 !
-!  Ocean H2 emissions are based on the N2 oceanic fixation rates
-!  determined by Curtis Deutsch (University of Washington) by
-!  assimilating observed nutrient distributions in the oceans:
-!  "Spatial coupling of nitrogen inputs and losses in the ocean",
-!  Deutsch et al., Nature 445, 163-167 (2007).
-!  
-!  The oceanic N2 fixation rates are read in and then scaled to
-!  obtain a total ocean H2 source of 6 TgH2/yr. This source is
-!  assumed to be constant and does not vary annually.
-!
-!  Arguments as Input
-!  =========================================================================== 
-!  (1 ) THISMONTH (INTEGER) : Current month (1-12)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+!
+! !REMARKS:
+!  Ocean H2 emissions are based on the N2 oceanic fixation rates
+!  determined by Curtis Deutsch (University of Washington) by
+!  assimilating observed nutrient distributions in the oceans:
+!  "Spatial coupling of nitrogen inputs and losses in the ocean",
+!  Deutsch et al., Nature 445, 163-167 (2007).
+!                                                                             .
+!  The oceanic N2 fixation rates are read in and then scaled to
+!  obtain a total ocean H2 source of 6 TgH2/yr. This source is
+!  assumed to be constant and does not vary annually.
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J
       REAL*4              :: ARRAY(IGLOB,JGLOB,1)
       REAL*8              :: TEMP(IIPAR,JJPAR)
@@ -1335,40 +1350,49 @@
       ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
       CALL TRANSFER_2D( ARRAY(:,:,1), EMOCEAN )
       
-      ! Return to calling program
       END SUBROUTINE READ_OCEAN_H2
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_h2yield
+!
+! !DESCRIPTION: Subroutine READ\_H2YIELD reads in the relative H2/CO yield 
+!  from photochemical production. This has been archived monthly (PH2/PCO 
+!  using the PRODLOSS diagnostic and turning H2 on as an active species) 
+!  from a full chemistry simulation at 4x5, v7-03-03, year 2001, GEOS-3 
+!  met fields.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_H2YIELD( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine READ_H2YIELD reads in the relative H2/CO yield from photochemical
-!  production. This has been archived monthly (PH2/PCO using the PRODLOSS
-!  diagnostic and turning H2 on as an active species) from a full chemistry
-!  simulation at 4x5, v7-03-03, year 2001, GEOS-3 met fields.
-!  (lyj, hup, phs, bmy, 9/18/07)
+! !USES:
 !
-!  Arguments as Input
-!  =========================================================================== 
-!  (1 ) THISMONTH (INTEGER) : Current month (1-12)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 !      USE GRID_MOD,      ONLY : GET_YMID
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments 
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
+#     include "CMN_SIZE"                 ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J
       REAL*4              :: ARRAY(IGLOB,JGLOB,LGLOB)
       REAL*8              :: TEMP(IIPAR,JJPAR,LLPAR)
@@ -1405,26 +1429,37 @@
       ! Cast from REAL*4 to REAL*8 and resize to (IIPAR,JJPAR)
       CALL TRANSFER_3D( ARRAY, H2CO_YIELD )
       
-      ! Return to calling program
       END SUBROUTINE READ_H2YIELD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_h2_hd
+!
+! !DESCRIPTION: Subroutine INIT\_H2\_HD allocates memory to module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_H2_HD
 !
-!******************************************************************************
-!  Subroutine INIT_H2_HD allocates memory to module arrays.
-!  (lyj, hyp, phs, bmy, 9/18/07)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
 #     include "CMN_SIZE"
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS, I, J, IJLOOP
       
       !=================================================================
@@ -1461,30 +1496,35 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2CO_YIELD' )         
       H2CO_YIELD = 0d0 
       
-      ! Return to calling program
       END SUBROUTINE INIT_H2_HD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_h2_hd
+!
+! !DESCRIPTION: Subroutine CLEANUP\_H2\_HD deallocates memory from previously
+!  allocated module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_H2_HD
-!
-!******************************************************************************
-!  Subroutine CLEANUP_H2_HD deallocates memory from previously
-!  allocated module arrays. (lyj, hup, phs, bmy, 9/18/07)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
       IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
       IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )
       IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
       IF ( ALLOCATED( EMOCEAN    ) ) DEALLOCATE( EMOCEAN    )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_H2_HD
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE H2_HD_MOD
