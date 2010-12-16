@@ -218,6 +218,7 @@
 !  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
+!  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -1398,6 +1399,7 @@
 !  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
+!  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1718,7 +1720,15 @@
             XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            ! Prior to 11/12/10:
+            ! If SO2_ss = H2O20 (i.e. if they are both zero), then prevent
+            ! a division by zero, because SO2_ss*L2 - H2O20 will be zero.
+            ! Only execute the "IF" part of the block if XX is nonzero.  
+            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
+            !IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
                L2  = EXP( XX )
@@ -1752,7 +1762,15 @@
             XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            ! Prior to 11/12/10:
+            ! If SO2_ss = O3 (i.e. if they are both zero), then prevent
+            ! a division by zero, because SO2_ss*L3 - O3 will be zero.
+            ! Only execute the "IF" part of the block if XX is nonzero.  
+            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
+            !IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
                L3  = EXP( XX )

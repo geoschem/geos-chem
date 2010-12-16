@@ -295,6 +295,7 @@
 !        NESTED_EU.  Redefined FLX_MSS_FDG_FCT for NESTED_CH, based upon above
 !        changes. (amv, bmy, 12/18/09)
 !  (6 ) For now treat MERRA like GEOS-5 (bmy, 8/13/10)
+!  29 Oct 2010 - T. D. Fairlie, R. Yantosca - Retune dust for MERRA 4x5
 !******************************************************************************
 !
       ! References to F90 modules
@@ -345,18 +346,32 @@
 
       
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
+
       ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
 
 #elif defined( MERRA ) && defined( GRID2x25 )
       
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: We may have to retune for MERRA eventually    %%%
-      !%%% but for now, treat MERRA like GEOS-5 (bmy, 8/13/10) %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% NOTE: RETUNING FOR MERRA 1x25 IS NEEDED ONCE MET IS AVAILABLE %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 4.9d-4
+
+#elif defined( MERRA ) && defined( GRID4x5 )
+
+      !----------------------------------------------------------------
+      ! Based on results from MERRA 4x5 for years 2004-2005:
+      !
+      !   (GEOS-5 - MERRA)/GEOS-5 * 100  is 26.9% in each size bin.
+      !
+      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the 
+      ! dust emissions consistent.  Consequently, to bring MERRA 4x5 
+      ! dust emissions up to GEOS-5 levels, we need to DIVIDE the 
+      ! FLX_MSS_FDG_FCT used for GEOS-5 by (1. - 0.269) = 0.731.
+      !
+      !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
+      !----------------------------------------------------------------
+      REAL*8,  PARAMETER     :: FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
 
 #elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA )
 

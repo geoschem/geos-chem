@@ -25,6 +25,8 @@
 #  14 Sep 2010 - R. Yantosca - Added optdepth_mod.f to list
 #  15 Sep 2010 - R. Yantosca - Added diag_2pm, diag_56, diagoh, ohsave
 #  16 Sep 2010 - R. Yantosca - Added diag_pl_mod
+#  04 Nov 2010 - R. Yantosca - Added acetone_mod
+#  10 Nov 2010 - R. Yantosca - Added lightning_nox_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -36,6 +38,7 @@ SRC1 :=                              \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE                      \
 $(HDR)/CMN_DIAG                      \
+$(CORE)/acetone_mod.f                \
 $(CORE)/arctas_ship_emiss_mod.f	     \
 $(CORE)/bravo_mod.f                  \
 $(CORE)/cac_anthro_mod.f             \
@@ -59,6 +62,7 @@ $(CORE)/icoads_ship_mod.f            \
 $(CORE)/input_mod.f                  \
 $(CORE)/isoropiaII_mod.f             \
 $(CORE)/land_mercury_mod.f           \
+$(CORE)/lightning_nox_mod.f          \
 $(CORE)/linoz_mod.f                  \
 $(CORE)/logical_mod.f                \
 $(CORE)/megan_mod.f                  \
