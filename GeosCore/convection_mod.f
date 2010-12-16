@@ -2249,7 +2249,7 @@ C                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
                      !---------------------------------------------------------
                      IF ( OPTIONS%USE_DIAG14 ) THEN
                         DIAG14(K,IC) = DIAG14(K,IC) 
-     &                               + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+     &                               + ( ( -T2-T3 ) * AREA_M2/TCVV_DNS )
                      ENDIF
 
                      !---------------------------------------------------------
