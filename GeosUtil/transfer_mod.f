@@ -1,54 +1,123 @@
-! $Id: transfer_mod.f,v 1.1 2009/11/20 21:43:02 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: transfer_mod.f
+!
+! !DESCRIPTION: Module TRANSFER\_MOD contains routines used to copy data 
+!  from REAL*4 to REAL*8 arrays after being read from disk.  Also, vertical 
+!  levels will be collapsed in the stratosphere if necessary.  This will help 
+!  us to gain computational advantage. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE TRANSFER_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module TRANSFER_MOD contains routines used to copy data from REAL*4 to
-!  REAL*8 arrays after being read from disk.  Also, vertical levels will be
-!  collapsed in the stratosphere if necessary.  This will help us to gain 
-!  computational advantage. (mje, bmy, 9/27/01, 10/3/07)
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+
+      IMPLICIT NONE
+      PRIVATE
+
+#     include "CMN_SIZE"              
 !
-!  NOTE: The level above which we start collapsing layers is ~78 hPa.  
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Variables:
+      PUBLIC  :: TRANSFER_A6
+      PUBLIC  :: TRANSFER_2D
+      PUBLIC  :: TRANSFER_3D
+      PUBLIC  :: TRANSFER_3D_Lp1
+      PUBLIC  :: TRANSFER_3D_TROP
+      PUBLIC  :: TRANSFER_G5_PLE
+      PUBLIC  :: TRANSFER_ZONAL
+      PUBLIC  :: TRANSFER_TO_1D
+      PUBLIC  :: INIT_TRANSFER
+      PUBLIC  :: CLEANUP_TRANSFER
+
+      INTERFACE TRANSFER_2D
+         MODULE PROCEDURE TRANSFER_2D_INT
+         MODULE PROCEDURE TRANSFER_2D_R4
+         MODULE PROCEDURE TRANSFER_2D_R8
+      END INTERFACE
+
+      INTERFACE TRANSFER_ZONAL
+         MODULE PROCEDURE TRANSFER_ZONAL_R4
+         MODULE PROCEDURE TRANSFER_ZONAL_R8
+      END INTERFACE
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: LUMP_2
+      PRIVATE :: LUMP_2_R4
+      PRIVATE :: LUMP_2_R8
+      PRIVATE :: LUMP_4
+      PRIVATE :: LUMP_4_R4
+      PRIVATE :: LUMP_4_R8
+      PRIVATE :: TRANSFER_2D_INT
+      PRIVATE :: TRANSFER_2D_R4
+      PRIVATE :: TRANSFER_2D_R8
+      PRIVATE :: TRANSFER_ZONAL_R4
+      PRIVATE :: TRANSFER_ZONAL_R8
+
+      INTERFACE LUMP_2
+         MODULE PROCEDURE LUMP_2_R4
+         MODULE PROCEDURE LUMP_2_R8
+      END INTERFACE
+
+      INTERFACE LUMP_4
+         MODULE PROCEDURE LUMP_4_R4
+         MODULE PROCEDURE LUMP_4_R8
+      END INTERFACE
+!
+! !REMARKS:
+!
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
 !  ============================================================================
-!  (1 ) EDGE_IN           : Input sigma edges (for pure sigma models)
-!  (2 ) I0                : Global longitude offset (%%% NOTE: usually=0 %%%)
-!  (3 ) J0                : Global latitude  offset (%%% NOTE: usually=0 %%%)
-!  (4 ) L_COPY            : # of levels to copy (before stratosphere lumping)
+!                                                                             .
+!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
+!  ----------------------------------------------------------------------------
+!  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
+!  is defined as follows:
+!                                                                             .
+!     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
+!                                                                             .
+!  where
+!                                                                             .
+!     Psurface(I,J) is  the "true" surface pressure at lon,lat (I,J)
+!     Ap(L)         has the same units as surface pressure [hPa]
+!     Bp(L)         is  a unitless constant given at level edges
+!                                                                             .
+!  Ap(L) and Bp(L) are given to us by GMAO.
+!                                                                             .
+!                                                                             .
+!  GEOS-3 (pure-sigma) and GCAP (hybrid grid):
+!  ----------------------------------------------------------------------------
+!  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
+!  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
+!  sigma edges at higher levels).  For these grids, can stil use the same
+!  formula as for GEOS-4, with one modification:
+!                                                                             .
+!     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
+!                                                                             .
+!  where
+!                                                                             .
+!     Psurface(I,J) = the "true" surface pressure at lon,lat (I,J)
+!     Ap(L)         = PTOP    = model top pressure
+!     Bp(L)         = SIGE(L) = bottom sigma edge of level L
+!                                                                             .
+!                                                                             .
+!  The following are true for GCAP, GEOS-3, GEOS-4:
+!  ----------------------------------------------------------------------------
+!  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
+!  (2) Bp(1)       = 1.0          (L=1       is the surface       )
+!  (3) PTOP        = Ap(LLPAR+1)  (L=LLPAR+1 is the atmosphere top) 
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) TRANSFER_A6       : Transfers GEOS A-6   fields, regrids if necessary
-!  (2 ) TRANSFER_3D       : Transfers GEOS 3-D   fields, regrids if necessary
-!  (3 ) TRANSFER_3D_TROP  : Transfers GEOS 3-D   fields up to tropopause level
-!  (4 ) TRANSFER_G5_PLE   : Transfers GEOS-5 3-D pressure edges, regrids
-!  (5 ) TRANSFER_3D_Lp1   : Transfers GEOS-5 3-D fields defined on level edges
-!  (6 ) TRANSFER_ZONAL_R4 : Transfers GEOS zonal fields, regrids (REAL*4)
-!  (7 ) TRANSFER_ZONAL_R8 : Transfers GEOS zonal fields, regrids (REAL*8) 
-!  (8 ) TRANSFER_ZONAL    : Transfers GEOS zonal fields, regrids if necessary 
-!  (9 ) TRANSFER_2D_INT   : Transfers GEOS 2-D   fields (INTEGER argument)
-!  (10) TRANSFER_2D_R4    : Transfers GEOS 2-D   fields (REAL*4 argument)
-!  (11) TRANSFER_2D_R8    : Transfers GEOS 2-D   fields (REAL*8 argument)
-!  (12) TRANSFER_TO_1D    : Transfers GEOS 2-D   fields to a 1-D array
-!  (13) LUMP_2_R4         : Combines 2 levels into 1 thick level (REAL*4) 
-!  (14) LUMP_2_R8         : Combines 2 levels into 1 thick level (REAL*8) 
-!  (15) LUMP_4_R4         : Combines 4 levels into 1 thick level (REAL*4)
-!  (16) LUMP_4_R8         : Combines 4 levels into 1 thick level (REAL*8)
-!  (17) INIT_TRANSFER     : Allocates and initializes the EDGE_IN array
-!  (18) CLEANUP_TRANSFER  : Deallocates the EDGE_IN array
-!
-!  Module Interfaces:
-!  ============================================================================
-!  (1 ) LUMP_2            : Overloads LUMP_2_*         module routines
-!  (2 ) LUMP_4            : Overloads LUMP_4_*         module routines
-!  (3 ) TRANSFER_2D       : Overloads TRANSFER_2D_*    module routines
-!  (4 ) TRANSFER_ZONAL    : Overloads TRANSFER_ZONAL_* module routines
-!
-!  GEOS-Chem modules referenced by "transfer_mod.f"
-!  ============================================================================
-!  (1 ) error_mod.f      : Module w/ NaN and other error check routines
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  21 Sep 2010 - M. Evans    - Initial version
 !  (1 ) GEOS-3 Output levels were determined by Mat Evans.  Groups of 2 levels
 !        and groups of 4 levels on the original grid are merged together into
 !        thick levels for the output grid. (mje, bmy, 9/26/01)
@@ -77,34 +146,14 @@
 !  (14) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/24/05)
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (16) Modified for GEOS-5.  Rewritten for clarity. (bmy, 10/30/07)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "transfer_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: TRANSFER_A6
-      PUBLIC :: TRANSFER_2D
-      PUBLIC :: TRANSFER_3D
-      PUBLIC :: TRANSFER_3D_Lp1
-      PUBLIC :: TRANSFER_3D_TROP
-      PUBLIC :: TRANSFER_G5_PLE
-      PUBLIC :: TRANSFER_ZONAL
-      PUBLIC :: TRANSFER_TO_1D
-      PUBLIC :: INIT_TRANSFER
-      PUBLIC :: CLEANUP_TRANSFER
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! Scalars
       INTEGER             :: I0
       INTEGER             :: J0
@@ -113,59 +162,37 @@
       ! Arrays
       REAL*8, ALLOCATABLE :: EDGE_IN(:)
 
-      !=================================================================
-      ! MODULE INTERFACES -- "bind" two or more routines with different
-      ! argument types or # of arguments under one unique name
-      !================================================================= 
-
-      ! Interface for routines to lump 2 levels together
-      INTERFACE LUMP_2
-         MODULE PROCEDURE LUMP_2_R4
-         MODULE PROCEDURE LUMP_2_R8
-      END INTERFACE
-
-      ! Interface for routines to lump 4 levels together
-      INTERFACE LUMP_4
-         MODULE PROCEDURE LUMP_4_R4
-         MODULE PROCEDURE LUMP_4_R8
-      END INTERFACE
-
-      ! Interface for routines which copy 2-D data 
-      INTERFACE TRANSFER_2D
-         MODULE PROCEDURE TRANSFER_2D_INT
-         MODULE PROCEDURE TRANSFER_2D_R4
-         MODULE PROCEDURE TRANSFER_2D_R8
-      END INTERFACE
-
-      ! Interface for routines which copy zonal data 
-      INTERFACE TRANSFER_ZONAL
-         MODULE PROCEDURE TRANSFER_ZONAL_R4
-         MODULE PROCEDURE TRANSFER_ZONAL_R8
-      END INTERFACE
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_a6
+!
+! !DESCRIPTION: Subroutine TRANSFER\_A6 transfers A-6 data from a REAL*4 
+!  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB to 
+!  LLPAR) if necessary.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_A6( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_A6 transfers A-6 data from a REAL*4 array to a REAL*8
-!  array.  Vertical layers are collapsed (from LGLOB to LLPAR) if necessary.
-!  (mje, bmy, 9/21/01, 11/6/08)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  dimensioned (IGLOB,JGLOB,LGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LGLOB)     ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*4) : Output field, dimensioned (LLPAR,IIPAR,JJPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*8,  INTENT(OUT) :: OUT(LLPAR,IIPAR,JJPAR)    ! Output data
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) A-6 fields are dimensioned (LLPAR,IIPAR,JJPAR) since for Fortran
 !        efficiency, since the code loops over vertical layers L in a column
 !        located above a certain surface location (I,J). (bmy, 9/21/01)
@@ -176,17 +203,17 @@
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !  (6 ) Rewritten for clarity (bmy, 2/8/07)
 !  (7 ) Now get nested-grid offsets (dan, bmy, 11/6/08)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LGLOB)
-      REAL*8,  INTENT(OUT) :: OUT(LLPAR,IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: INCOL(LGLOB)
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L
+      REAL*4  :: INCOL(LGLOB)
       
       !================================================================
       ! TRANSFER_A6 begins here!
@@ -262,11 +289,11 @@
          OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
          !--------------------------------------------------------------
-         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
-         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
+         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -290,27 +317,34 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_A6
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
+!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  to LLPAR) if necessary.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_3D( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_3D transfers A-6 data from a REAL*4 array to a REAL*8
-!  array.  Vertical layers are collapsed (from LGLOB to LLPAR) if necessary.
-!  (mje, bmy, 9/21/01, 2/8/07)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR,LLPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
@@ -319,17 +353,17 @@
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
 !  (6 ) Rewritten for clarity (bmy, 2/8/07)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER              :: I, J
-      REAL*4               :: INCOL(LGLOB)
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
+      REAL*4  :: INCOL(LGLOB)
      
       !================================================================
       ! TRANSFER_3D begins here!
@@ -396,11 +430,11 @@
          OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
          !--------------------------------------------------------------
-         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
-         ! Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
+         ! GEOS-5/MERRA Lump 72 levels into 47 levels, starting above 
+         ! L=36.  Lump levels in groups of 2, then 4. (cf. Bob Yantosca)
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -424,36 +458,43 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_3D
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_g5_ple
+!
+! !DESCRIPTION: Subroutine TRANSFER\_G5\_PLE transfers GEOS-5/MERRA pressure 
+!  edge data from the native 72-level grid to the reduced 47-level grid.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_G5_PLE( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_G5_PLE transfers GEOS-5 pressure edge data from the
-!  native 72-level grid to the reduced 47-level grid.  (bmy, 2/8/07)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR,LLPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
-!******************************************************************************
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)
-
-      ! Local variables
-      INTEGER              :: I, J
+! !REVISION HISTORY: 
+!  08 Feb 2007 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
      
       !================================================================
       ! TRANSFER_PLE begins here!
@@ -469,7 +510,7 @@
       ! Return GEOS-5 pressure edges for reduced grid
       !================================================================
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -499,40 +540,46 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_G5_PLE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_3d_lp1
+!
+! !DESCRIPTION: Subroutine TRANSFER\_3D\_Lp1 transfers 3-D data from a REAL*4 
+!  array of dimension (IGLOB,JGLOB,LGLOB+1) to a REAL*8 array of dimension 
+!  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_3D_Lp1( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_3D_Lp1 transfers 3-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB,LGLOB+1) to a REAL*8 array of dimension 
-!  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
-!  (bmy, 9/21/01, 2/8/07)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LGLOB+1)
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR,LLPAR+1)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
-!******************************************************************************
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  08 Feb 2007 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LGLOB+1)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR+1)
-
-      ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.  
-      INTEGER              :: I, J
-      REAL*4               :: INCOL(LGLOB)
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.  
+      INTEGER       :: I, J
+      REAL*4        :: INCOL(LGLOB)
      
       !=================================================================
       ! TRANSFER_3D_Lp1 begins here!
@@ -554,7 +601,7 @@
       ! %%% above about 120 hPa. (bmy, 2/8/07)
       !=================================================================
       
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -584,69 +631,82 @@
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_3D_Lp1
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_3d_trop
+!
+! !DESCRIPTION: Subroutine TRANSFER\_3D\_TROP transfers tropospheric 3-D 
+!  data from a REAL*4  array to a REAL*8 array. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_3D_TROP( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_3D_TROP transfers tropospheric 3-D data from a REAL*4 
-!  array to a REAL*8 array. (mje, bmy, 9/21/01, 2/8/07)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB,LLTROP)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LLTROP_FIX)     ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,LLPAR,LLTROP)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
-!  (1 ) Now use LLTROP_FIX instead of LLTROP, since most of the offline
-!        simulations use the annual mean tropopause (bmy, 2/8/07)
-!******************************************************************************
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLTROP_FIX)    ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - M. Evans    - Initial version
+!  08 Feb 2007 - R. Yantosca - Now use LLTROP_FIX instead of LLTROP, since 
+!                              most of the offline simulations use the annual 
+!                              mean tropopause
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB,LLTROP_FIX)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLTROP_FIX)
-
-      ! Local variables
-      INTEGER              :: L
+! !LOCAL VARIABLES:
+!
+      INTEGER :: L
      
       !=================================================================
-      ! TRANSFER_3D_TROP
+      ! TRANSFER_3D_TROP begins here!
       !=================================================================
 
-      ! Cast to REAL*8 abd resize up to LLTROP
+      ! Cast to REAL*8 and resize up to LLTROP
       DO L = 1, LLTROP_FIX
          CALL TRANSFER_2D( IN(:,:,L), OUT(:,:,L) )
       ENDDO
       
-      ! Return to calling program
       END SUBROUTINE TRANSFER_3D_TROP 
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_zonal_r4
+!
+! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R4 transfers zonal-mean data from 
+!  a REAL*4 array to a REAL*8 array.  Vertical levels are collapsed (from 
+!  LGLOB to LLPAR) if necessary. (mje, bmy, 9/21/01, 2/8/07)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_ZONAL_R4( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_ZOJAL_R4 transfers zonal-mean data from a REAL*4 array 
-!  to a REAL*8 array.  Vertical levels are collapsed (from LGLOB to LLPAR) if 
-!  necessary. (mje, bmy, 9/21/01, 2/8/07)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input  field, of dimension (JGLOB,LGLOB)
+      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)     ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (JJPAR,LLPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*4,  INTENT(OUT) :: OUT(JJPAR,LLPAR)    ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - M. Evans    - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
@@ -654,17 +714,17 @@
 !        local variables (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Rewritten for clarity (bmy, 2/8/07)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)
-      REAL*4,  INTENT(OUT) :: OUT(JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER              :: J
-      REAL*4               :: INCOL(LGLOB)
+! !LOCAL VARIABLES:
+!
+      INTEGER :: J
+      REAL*4  :: INCOL(LGLOB)
      
       !================================================================
       ! TRANSFER_ZONAL_R4 begins here!
@@ -730,11 +790,11 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
          !--------------------------------------------------------------
-         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
-         ! Lump levels in groups of 2, then 4.  
+         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
+         ! L=36.  Lump levels in groups of 2, then 4.  
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -757,28 +817,35 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_ZONAL_R4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_zonal_r8
+!
+! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R8 transfers zonal mean or lat-alt 
+!  data from a REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of 
+!  dimension (JJPAR,LLPAR).   Regrid data in the vertical if necessary by
+!  lumping levels.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_ZONAL_R8( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_ZONAL_R4 transfers zonal mean or lat-alt data from a 
-!  REAL*4 array of dimension (JGLOB,LGLOB) to a REAL*8 array of dimension 
-!  (JJPAR,LLPAR).   Regrid GEOS-3 data from 48 --> 30 levels or GEOS-4 data
-!  from 55 --> 30 levels if necessary. (bmy, 9/21/01, 5/24/05)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input  field, of dimension (JGLOB,LGLOB)
+      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (JJPAR,LLPAR)
-!
-!  NOTES:
+! !OUTPUT PARAMETERS: 
+! 
+      REAL*8,  INTENT(OUT) :: OUT(JJPAR,LLPAR)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
 !  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
@@ -786,17 +853,17 @@
 !        local variables (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
 !  (5 ) Now modified for GEOS-5 met fields (bmy, 5/24/05)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(JGLOB,LGLOB)
-      REAL*8,  INTENT(OUT) :: OUT(JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER              :: J
-      REAL*4               :: INCOL(LGLOB)
+! !LOCAL VARIABLES:
+!
+      INTEGER :: J
+      REAL*4  :: INCOL(LGLOB)
      
       !================================================================
       ! TRANSFER_ZONAL_R8 begins here!
@@ -862,11 +929,11 @@
          OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
          OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
          !--------------------------------------------------------------
-         ! GEOS-5: Lump 72 levels into 47 levels, starting above L=36
-         ! Lump levels in groups of 2, then 4.  
+         ! GEOS-5/MERRA: Lump 72 levels into 47 levels, starting above 
+         ! L=36.  Lump levels in groups of 2, then 4.  
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
@@ -888,38 +955,41 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_ZONAL_R8
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_2d_int
+!
+! !DESCRIPTION: Subroutine TRANSFER\_2D\_INT transfers 2-D data from a REAL*4 
+!  array of dimension (IGLOB,JGLOB) to an INTEGER array of dimension
+!  (IIPAR,JJPAR). 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_2D_INT( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_2D_INT transfers 2-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB) to an INTEGER array of dimension (IIPAR,JJPAR). 
-!  (bmy, 9/21/01, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4 ) : Input field,  of dimension (IGLOB,JGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (INTEGER) : Output field, of dimension (IIPAR,JJPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      INTEGER, INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)!
 !  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
-      INTEGER, INTENT(OUT) :: OUT(IIPAR,JJPAR)
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! TRANSFER_2D_INT begins here!
       !=================================================================
@@ -927,38 +997,41 @@
       ! Copy and cast array
       OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_2D_INT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_2d_r4
+!
+! !DESCRIPTION: Subroutine TRANSFER\_2D\_R4 transfers 2-D data from a REAL*4 
+!  array of dimension (IGLOB,JGLOB) to a REAL*4 array of dimension 
+!  (IIPAR,JJPAR). 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_2D_R4( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_2D_R4 transfers 2-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB) to a REAL*4 array of dimension (IIPAR,JJPAR). 
-!  (bmy, 1/25/02, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*4) : Output field, of dimension (IIPAR,JJPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
 !  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
 !        Now I0 and J0 are local variables (bmy, 3/11/03)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
-      REAL*4,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! TRANSFER_2D_R4 begins here!
       !=================================================================
@@ -966,38 +1039,41 @@
       ! Copy and cast array
       OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
 
-      ! Return to calling program
       END SUBROUTINE TRANSFER_2D_R4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_2d_r8
+!
+! !DESCRIPTION: Subroutine TRANSFER\_2D\_R8 transfers 2-D data from a REAL*4 
+!  array of dimension (IGLOB,JGLOB) to a REAL*8 array of dimension
+!  (IIPAR,JJPAR). 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_2D_R8( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_2D_R8 transfers 2-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB) to a REAL*8 array of dimension (IIPAR,JJPAR). 
-!  (bmy, 9/21/01, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (IIPAR,JJPAR)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR)   ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Use parallel DO loops to speed things up (bmy, 9/21/01)
 !  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f"
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!******************************************************************************
-!
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR)
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! TRANSFER_2D_R8 begins here!
       !=================================================================
@@ -1005,40 +1081,45 @@
       ! Copy and cast array
       OUT = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0 )
       
-      ! Return to calling program
       END SUBROUTINE TRANSFER_2D_R8
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: transfer_to_1d
+!
+! !DESCRIPTION: Subroutine TRANSFER\_TO\_1D transfers 2-D data from a REAL*4 
+!  array of dimension (IGLOB,JGLOB) to 1-D a REAL*8 array of dimension (MAXIJ),
+!  where MAXIJ = IIPAR * JJPAR.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE TRANSFER_TO_1D( IN, OUT )
 !
-!******************************************************************************
-!  Subroutine TRANSFER_TO_1D transfers 2-D data from a REAL*4 array of 
-!  dimension (IGLOB,JGLOB) to 1-D a REAL*8 array of dimension (MAXIJ),
-!  where MAXIJ = IIPAR * JJPAR. (bmy, 9/21/01, 3/11/03)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN  (REAL*4) : Input field,  of dimension (IGLOB,JGLOB)
+      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)    ! Input data
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) OUT (REAL*8) : Output field, of dimension (MAXIJ)
+! !OUTPUT PARAMETERS:
 !
-!  NOTES:
+      REAL*8,  INTENT(OUT) :: OUT(MAXIJ)         ! Output data
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Use single-processor DO-loops for now (bmy, 9/21/01)
 !  (2 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0 and J0 are local variables. (bmy, 3/11/03)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*4,  INTENT(IN)  :: IN(IGLOB,JGLOB)
-      REAL*8,  INTENT(OUT) :: OUT(MAXIJ)
-
-      ! Local variables
-      INTEGER              :: I, IREF, J, JREF, IJLOOP
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, IREF, J, JREF, IJLOOP
 
       !=================================================================
       ! TRANSFER_TO_1D begins here!
@@ -1058,43 +1139,46 @@
          ENDDO
       ENDDO
       
-      ! Return to calling program
       END SUBROUTINE TRANSFER_TO_1D
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lump_2_r4
+!
+! !DESCRIPTION: Function LUMP\_2\_R4 lumps 2 sigma levels into one thick 
+!  level.  Input arguments must be REAL*4. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION LUMP_2_R4( IN, L_IN, L ) RESULT( OUT )
 !
-!******************************************************************************
-!  Function LUMP_2_R4 lumps 2 sigma levels into one thick level. 
-!  Input arguments must be REAL*4. (bmy, 9/18/01, 10/31/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN   (REAL*4 ) : Column of data on input vertical grid
-!  (2 ) L_IN (INTEGER) : Vertical dimension of the IN array
-!  (3 ) L    (INTEGER) : Level on input grid from which to start regridding
 !
-!  Function Value:
-!  ============================================================================
-!  (4 ) OUT  (REAL*4 ) : Data on output grid -- 2 levels merged together
+! !INPUT PARAMETERS: 
+!
+      REAL*4,  INTENT(IN) :: IN(L_IN)   ! Column of data on input grid
+      INTEGER, INTENT(IN) :: L_IN       ! Vertical dimension of the IN array
+      INTEGER, INTENT(IN) :: L          ! Level on input grid from which 
+                                        !  to start regridding
+!
+! !RETURN VALUE:
+!
+      REAL*4              :: OUT        ! Data on output grid: 4 lumped levels
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
 !        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: L_IN, L
-      REAL*4,  INTENT(IN) :: IN(L_IN)
-
-      ! Function value
-      REAL*4              :: OUT
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! LUMP_2_R4 begins here!
       !=================================================================
@@ -1130,9 +1214,10 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
-      ! above level 14 being pure pressure levels.  Therefore, for 
-      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! all of the levels above level a certain level being pure 
+      ! pressure levels.  Therefore, for these grids, we may just 
+      ! use EQUATION 1 exactly as written above.
       !
       ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
       ! edge of a grid box is given by (EQUATION 2):
@@ -1151,50 +1236,54 @@
       !=================================================================     
 
       ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      ! Otherwise,  EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
       ! Divde by sigma thickness of new thick level
       OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+2) )
        
-      ! Return to calling routine
       END FUNCTION LUMP_2_R4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lump_2_r8
+!
+! !DESCRIPTION: Function LUMP\_2\_R8 lumps 2 sigma levels into one thick 
+!  level.  Input arguments must be REAL*8. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION LUMP_2_R8( IN, L_IN, L ) RESULT( OUT )
 !
-!******************************************************************************
-!  Function LUMP_2_R8 lumps 2 sigma levels into one thick level. 
-!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/31/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN   (REAL*8 ) : Column of data on input vertical grid
-!  (2 ) L_IN (INTEGER) : Vertical dimension of the IN array
-!  (3 ) L    (INTEGER) : Level on input grid from which to start regridding
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
-!  Function Value:
-!  ============================================================================
-!  (4 ) OUT  (REAL*8 ) : Data on output grid -- 2 levels merged together
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      REAL*8,  INTENT(IN) :: IN(L_IN)   ! Column of data on input grid
+      INTEGER, INTENT(IN) :: L_IN       ! Vertical dimension of the IN array
+      INTEGER, INTENT(IN) :: L          ! Level on input grid from which 
+                                        !  to start regridding
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: OUT        ! Data on output grid: 2 lumped levels
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
 !        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: L_IN, L
-      REAL*8,  INTENT(IN) :: IN(L_IN)
-
-      ! Function value
-      REAL*8              :: OUT
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! LUMP_2_R8 begins here!
       !=================================================================      
@@ -1232,9 +1321,10 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
-      ! above level 14 being pure pressure levels.  Therefore, for 
-      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! all of the levels above level a certain level being pure 
+      ! pressure levels.  Therefore, for these grids, we may just 
+      ! use EQUATION 1 exactly as written above.
       !
       ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
       ! edge of a grid box is given by EQUATION 2:
@@ -1253,50 +1343,54 @@
       !=================================================================     
 
       ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      ! Othewise,   EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) )
 
       ! Divde by thickness of new lumped level
       OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+2) )
        
-      ! Return to calling routine
       END FUNCTION LUMP_2_R8
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lump_4_r4
+!
+! !DESCRIPTION: Function LUMP\_4\_R4 lumps 4 sigma levels into one thick 
+!  level.  Input arguments must be REAL*4.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION LUMP_4_R4( IN, L_IN, L ) RESULT( OUT )
 !
-!******************************************************************************
-!  Function LUMP_4_R4 lumps 4 sigma levels into one thick level. 
-!  Input arguments must be REAL*4. (bmy, 9/18/01, 10/31/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN   (REAL*4 ) : Column of data on input vertical grid
-!  (2 ) L_IN (INTEGER) : Vertical dimension of the IN array
-!  (3 ) L    (INTEGER) : Level on input grid from which to start regridding
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
-!  Function Value:
-!  ============================================================================
-!  (4 ) OUT  (REAL*4 ) : Data on output grid -- 4 levels merged together
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      REAL*4,  INTENT(IN) :: IN(L_IN)   ! Column of data on input grid
+      INTEGER, INTENT(IN) :: L_IN       ! Vertical dimension of the IN array
+      INTEGER, INTENT(IN) :: L          ! Level on input grid from which 
+                                        !  to start regridding
+!
+! !RETURN VALUE:
+!
+      REAL*4              :: OUT        ! Data on output grid: 4 lumped levels
+!
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
 !        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: L_IN, L
-      REAL*4,  INTENT(IN) :: IN(L_IN)
-
-      ! Function value
-      REAL*4              :: OUT
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! LUMP_4_R4 begins here!
       !=================================================================      
@@ -1334,9 +1428,10 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
-      ! above level 14 being pure pressure levels.  Therefore, for 
-      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! all of the levels above level a certain level being pure 
+      ! pressure levels.  Therefore, for these grids, we may just 
+      ! use EQUATION 1 exactly as written above.
       !
       ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
       ! edge of a grid box is given by EQUATION 2:
@@ -1357,7 +1452,7 @@
       !=================================================================     
 
       ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      ! Otherwise,  EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
      &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
@@ -1366,45 +1461,47 @@
       ! Divde by thickness of new lumped level
       OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+4) )
        
-      ! Return to calling routine
       END FUNCTION LUMP_4_R4
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: lump_4_r8
+!
+! !DESCRIPTION: Function LUMP\_4\_R8 lumps 4 sigma levels into one thick 
+!  level.  Input arguments must be REAL*8.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION LUMP_4_R8( IN, L_IN, L ) RESULT( OUT )
 !
-!******************************************************************************
-!  Function LUMP_4_R8 lumps 4 sigma levels into one thick level. 
-!  Input arguments must be REAL*8. (bmy, 9/18/01, 10/31/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) IN   (REAL*8 ) : Column of data on input vertical grid
-!  (2 ) L_IN (INTEGER) : Vertical dimension of the IN array
-!  (3 ) L    (INTEGER) : Level on input grid from which to start regridding
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
-!  Function Value:
-!  ============================================================================
-!  (4 ) OUT  (REAL*8 ) : Data on output grid -- 4 levels merged together
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      REAL*8,  INTENT(IN) :: IN(L_IN)   ! Column of data on input grid
+      INTEGER, INTENT(IN) :: L_IN       ! Vertical dimension of the IN array
+      INTEGER, INTENT(IN) :: L          ! Level on input grid from which 
+                                        !  to start regridding
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: OUT        ! Data on output grid: 4 lumped levels
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Now references GEOS_CHEM_STOP from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
 !        coordinate (as for GEOS-4).  Also updated comments (bmy, 10/31/03)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-#     include "CMN_SIZE"
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: L_IN, L
-      REAL*8,  INTENT(IN) :: IN(L_IN)
-
-      ! Function value
-      REAL*8              :: OUT
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! LUMP_4_R8 begins here!
       !=================================================================      
@@ -1442,9 +1539,10 @@
       !
       ! where PEDGE(L) is the pressure at the bottom edge of layer L.
       !
-      ! GEOS-4 is a hybrid sigma-pressure grid, with all of the levels
-      ! above level 14 being pure pressure levels.  Therefore, for 
-      ! GEOS-4, we may just use EQUATION 1 exactly as written above.
+      ! GEOS-4/GEOS-5/MERRA are a hybrid sigma-pressure grid, with 
+      ! all of the levels above level a certain level being pure 
+      ! pressure levels.  Therefore, for these grids, we may just 
+      ! use EQUATION 1 exactly as written above.
       !
       ! However, GEOS-3 is a pure sigma grid.  The pressure at the 
       ! edge of a grid box is given by EQUATION 2:
@@ -1465,7 +1563,7 @@
       !================================================================= 
 
       ! For GEOS-3, EDGE_IN are the sigma values at grid box edges
-      ! For GEOS-4, EDGE_IN are the pressures at grid box edges
+      ! Otherwise,  EDGE_IN are the pressures at grid box edges
       OUT   = ( IN(L  ) * ( EDGE_IN(L  ) - EDGE_IN(L+1) ) ) +
      &        ( IN(L+1) * ( EDGE_IN(L+1) - EDGE_IN(L+2) ) ) +
      &        ( IN(L+2) * ( EDGE_IN(L+2) - EDGE_IN(L+3) ) ) +
@@ -1474,18 +1572,33 @@
       ! Divde by thickness of new lumped level
       OUT   = OUT / ( EDGE_IN(L) - EDGE_IN(L+4) )
        
-      ! Return to calling routine
       END FUNCTION LUMP_4_R8
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_transfer
+!
+! !DESCRIPTION: Subroutine INIT\_TRANSFER initializes and zeroes 
+!  all module variables.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TRANSFER( THIS_I0, THIS_J0 )
 !
-!******************************************************************************
-!  Subroutine INIT_TRANSFER initializes and zeroes the EDGE_IN array.
-!  (bmy, 9/19/01, 2/8/07)
+! !USES:
 !
-!  NOTES:
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THIS_I0    ! Global X (longitude) offset
+      INTEGER, INTENT(IN) :: THIS_J0    ! Global Y (latitude)  offset
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Removed additional "," for GEOS-1 definition of EDGE_IN (bmy, 3/25/02)
 !  (2 ) Now use GET_BP from "pressure_mod.f" to get sigma edges for all
 !        grids except GEOS-3 (dsa, bdf, bmy, 8/22/02)
@@ -1498,19 +1611,17 @@
 !  (6 ) Rewritten for clarity.  Remove references to "grid_mod.f" and 
 !        "pressure_mod.f".  Now pass I0, J0 from "grid_mod.f" via the arg list.
 !         (bmy, 2/8/07)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA the same way as GEOS-5, because
+!                              the vertical grids are identical
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THIS_I0, THIS_J0
-
-      ! Local variables
-      LOGICAL, SAVE       :: IS_INIT = .FALSE.
-      INTEGER             :: AS, L
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: IS_INIT = .FALSE.
+      INTEGER       :: AS, L
        
       !=================================================================
       ! INIT_TRANSFER begins here!
@@ -1541,6 +1652,8 @@
          L_COPY = 19       ! GEOS-4: Copy up to L=19
 #elif defined( GEOS_5 )
          L_COPY = 36       ! GEOS-5: Copy up to L=36
+#elif defined( MERRA  )
+         L_COPY = 36       ! MERRA: Copy up to L=36
 #elif defined( GCAP   )
          L_COPY = LGLOB    ! GCAP: Copy all levels
 #endif
@@ -1556,13 +1669,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA ) 
 
       !-----------------------------------------------------------------
-      ! For GEOS-5, levels 1-31 are "terrain-following" coordinates
-      ! (i.e. vary with location), and levels 32-72 are fixed pressure 
-      ! levels.  The transition pressure is 176.93 hPa, which is the
-      ! edge between L=31 and L=32.
+      ! For GEOS-5/MERRA, levels 1-31 are "terrain-following" 
+      ! coordinates (i.e. vary with location), and levels 32-72 are 
+      ! fixed pressure levels.  The transition pressure is 176.93 hPa, 
+      ! which is the edge between L=31 and L=32.
       !
       ! Initialize EDGE_IN with the original 73 Ap values for GEOS-5.
       !-----------------------------------------------------------------
@@ -1644,31 +1757,35 @@
       ! We have now initialized everything
       IS_INIT = .TRUE.
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRANSFER
-      
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_transfer
+!
+! !DESCRIPTION: Subroutine CLEANUP\_TRANSFER deallocates all module variables.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_TRANSFER 
-!
-!******************************************************************************
-!  Subroutine CLEANUP_TRANSFER deallocates the EDGE_IN array.
-!  (bmy, 9/19/01, 10/31/03)
-!
-!  NOTES:
-!  (1 ) Renamed SIGE_IN to EDGE_IN to denote that it is not always a sigma
-!        coordinate (as for GEOS-4). (bmy, 10/31/03)
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  19 Sep 2001 - R. Yantosca - Initial version
+!  31 Oct 2003 - R. Yantosca - Renamed SIGE_IN to EDGE_IN to denote that it 
+!                              is not always a sigma coordinate (as for GEOS-4)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       !=================================================================
       ! CLEANUP_TRANSFER begins here!
       !=================================================================
       IF ( ALLOCATED( EDGE_IN ) ) DEALLOCATE( EDGE_IN )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_TRANSFER
-      
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE TRANSFER_MOD

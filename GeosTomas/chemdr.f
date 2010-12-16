@@ -1,10 +1,54 @@
-! $Id: chemdr.f,v 1.2 2010/02/26 18:19:59 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: chemdr
+!
+! !DESCRIPTION: Subroutine CHEMDR is the driver subroutine for full chemistry 
+!  with SMVGEAR or KPP.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEMDR
 !
-!******************************************************************************
-!  Subroutine CHEMDR is the driver subroutine for full chemistry w/ SMVGEAR.
-!  Adapted from original code by lwh, jyl, gmg, djj. (bmy, 11/15/01, 1/25/10)
+! !USES:
 !
+      USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
+      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
+      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
+      USE DAO_MOD,              ONLY : T
+      USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
+      USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
+      USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
+      USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
+      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
+      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
+      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
+      USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
+      USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
+      USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
+      USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
+      USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
+      USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
+      USE UVALBEDO_MOD,         ONLY : UVALBEDO
+      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
+      USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
+      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LTOMAS
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"             ! Size parameters
+#     include "CMN_O3"               ! EMISRRN, EMISRR
+#     include "CMN_NOX"              ! SLBASE
+#     include "comode.h"             ! SMVGEAR variables
+#     include "CMN_DEP"              ! FRCLND
+#     include "CMN_DIAG"             ! ND40
+!
+! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
 !  ============================================================================
 !  ALBD        : DAO visible albedo                         [unitless]
@@ -14,7 +58,7 @@
 !  SUNCOS      : Cosine of solar zenith angle               [unitless]
 !  SUNCOSB     : Cosine of solar zenith angle 1 hr from now [unitless]
 !  UVALBEDO    : TOMS UV albedo 340-380 nm (for FAST-J)     [unitless]
-!
+!                                                                             .
 !  Important input variables from "comode.h" or "comode_mod.f":
 !  ============================================================================
 !  NPTS        : Number of points (grid-boxes) to calculate
@@ -24,13 +68,13 @@
 !  TMPK        : Temperature                                [K]
 !  ABSHUM      : Absolute humidity                          [molec/cm3]
 !  CSPEC       : Initial species concentrations             [molec/cm3]
-!
+!                                                                             .
 !  Important output variables in "comode.h" etc.
 !  ============================================================================
 !  NAMESPEC    : Character array of species names
 !  NNSPEC      : # of ACTIVE + INACTIVE (not DEAD) species
 !  CSPEC       : Final species concentrations               [molec/cm3]
-!
+!                                                                             .
 !  Other Important Variables
 !  ============================================================================
 !  MAXPTS      : Maximum number of points or grid-boxes (in "comsol.h")
@@ -39,7 +83,7 @@
 !                depositing species listed in tracer.dat must be <= MAXDEP)
 !  IGAS        : Maximum number of gases, ACTIVE + INACTIVE
 !  IO93        : I/O unit for output for "ctm.chem" file
-!
+!                                                                             .
 !  Input files for SMVGEAR II:
 !  ============================================================================
 !   mglob.dat  : control switches                       (read in "reader.f")
@@ -47,22 +91,15 @@
 !                and depositing species
 ! globchem.dat : species list, reaction list,           (read in "chemset.f")
 !                photolysis reaction list
-!
+!                                                                             .
 !  Input files for FAST-J photolysis:
 !  ============================================================================
 !     ratj.d   : Lists photo species, branching ratios  (read in "rd_js.f")
 ! jv_atms.dat  : Climatology of T and O3                (read in "rd_prof.f")
 ! jv_spec.dat  : Cross-sections for each species        (read in "RD_TJPL.f")
 !
-!  Input files for SLOW-J photolysis:
-!  ============================================================================
-!  jvalue.dat  : Solar flux data, standard T and O3     (read in "jvaluein.f")
-!                profiles, aerosol optical depths 
-!    8col.dat  : SLOW-J cross-section data              (read in "jvaluein.f")
-!  chemga.dat  : Aerosol data
-!    o3du.dat  : O3 in Dobson units, cloud data         (read in "jvaluein.f")
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  15 Nov 2001 - Adapted from original code by lwh, jyl, gmg, djj. 
 !  (1 ) Cleaned up a lot of stuff.  SUNCOS, OPTD, ALBD, and AVGW are now 
 !        referenced from dao_mod.f.  IREF and JREF are obsolete.  Also 
 !        updated comments. (bmy, 9/27/01)
@@ -154,49 +191,17 @@
 !  (36) Now bracket out dust emissions if TOMAS is invoked (bmy, 1/25/10)
 !  (37) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
-!******************************************************************************
+!  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
-      USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
-      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
-      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-      USE DAO_MOD,              ONLY : T
-      USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
-      USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
-      USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
-      USE ERROR_MOD,            ONLY : DEBUG_MSG,    ERROR_STOP
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
-      USE LOGICAL_MOD,          ONLY : LCARB,        LDUST
-      USE LOGICAL_MOD,          ONLY : LPRT,         LSSALT,    LSULF  
-      USE LOGICAL_MOD,          ONLY : LSOA,         LVARTROP,  LFUTURE
-      USE PLANEFLIGHT_MOD,      ONLY : SETUP_PLANEFLIGHT
-      USE TIME_MOD,             ONLY : GET_MONTH,    GET_YEAR
-      USE TIME_MOD,             ONLY : ITS_A_NEW_DAY
-      USE TRACER_MOD,           ONLY : STT,          N_TRACERS, XNUMOL
-      USE TRACERID_MOD,         ONLY : IDTNOX,       IDTOX,     SETTRACE
-      USE TROPOPAUSE_MOD,       ONLY : SAVE_FULL_TROP
-      USE UVALBEDO_MOD,         ONLY : UVALBEDO
-      ! To use CSPEC_FULL restart (dkh, 02/12/09
-      USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
-      USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
-      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LTOMAS
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_O3"          ! EMISRRN, EMISRR
-#     include "CMN_NOX"         ! SLBASE
-#     include "comode.h"        ! SMVGEAR variables
-#     include "CMN_DEP"         ! FRCLND
-#     include "CMN_DIAG"        ! ND40
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
 
-      
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
 
@@ -542,9 +547,8 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### Now exiting CHEMDR!' )
 
-      ! Return to calling program
       END SUBROUTINE CHEMDR
-
+!EOC
 
 
 

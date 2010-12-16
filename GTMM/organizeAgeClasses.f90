@@ -5,10 +5,10 @@
 !
 ! !IROUTINE: organizeAgeClasses
 !
-! !DESCRIPTION: This routine reorganizes the pools
-!  according to the age classes so that the oldest comes
-!  first (and will run and burn first)
-!
+! !DESCRIPTION: This routine reorganizes the pools according to the age 
+!  classes so that the oldest comes first (and will run and burn first)
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE organizeAgeClasses
@@ -19,11 +19,10 @@ SUBROUTINE organizeAgeClasses
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 ! 
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,4 +272,3 @@ SUBROUTINE organizeAgeClasses
 !$OMP END PARALLEL DO
 END SUBROUTINE organizeAgeClasses
 !EOC
-!------------------------------------------------------------------------------

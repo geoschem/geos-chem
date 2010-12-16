@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.3 2010/03/15 19:33:20 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -62,6 +61,9 @@
 #  25 Jan 2010 - R. Yantosca - Initial version for TOMAS microphysics
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
+#  26 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
+#  23 Sep 2010 - R. Yantosca - Removed "tropopause.f" from compile list
+#  23 Sep 2010 - R. Yantosca - Updated dependencies for v9-01-01
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -156,7 +158,7 @@ diag41_mod.o             linoz_mod.o             tpcore_window_mod.o         \
 diag42_mod.o             logical_mod.o           tracer_mod.o                \
 diag48_mod.o             lump.o                  tracerid_mod.o              \
 diag49_mod.o             main.o                  transport_mod.o             \
-diag50_mod.o             megan_mod.o             tropopause.o                \
+diag50_mod.o             megan_mod.o                                         \
 diag51_mod.o             meganut_mod.o           tropopause_mod.o            \
 diag51b_mod.o            mercury_mod.o           upbdflx_mod.o               \
 diag56_mod.o             mmran_16.o              update.o                    \
@@ -167,7 +169,8 @@ diag_pl_mod.o            ohsave.o                vistas_anthro_mod.o         \
 diagoh.o                 optdepth_mod.o          wetscav_mod.o               \
 xtra_read_mod.o          aero_drydep.o           tomas_mod.o                 \
 tomas_tpcore_mod.o       RD_AOD.o                depo_mercury_mod.o          \
-land_mercury_mod.o       global_br_mod.o
+land_mercury_mod.o       global_br_mod.o         merra_a1_mod.o              \
+merra_a3_mod.o           merra_cn_mod.o          merra_i6_mod.o
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -686,10 +689,10 @@ input_mod.o                 : input_mod.f                                    \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o  	      diag48_mod.o           \
-                               diag49_mod.o  	      diag50_mod.o           \
-			      diag51_mod.o  	      diag51b_mod.o          \
-			      diag56_mod.o  	      diag_oh_mod.o          \
-			      diag_pl_mod.o 	      drydep_mod.o           \
+                              diag49_mod.o            diag50_mod.o           \
+                              diag51_mod.o            diag51b_mod.o          \
+                              diag56_mod.o            diag_oh_mod.o          \
+                              diag_pl_mod.o           drydep_mod.o           \
                               emissions_mod.o         future_emissions_mod.o \
                               gamap_mod.o             land_mercury_mod.o     \
                               logical_mod.o 	      mercury_mod.o          \
@@ -758,13 +761,15 @@ main.o                      : main.f                                         \
                               tropopause_mod.o        restart_mod.o          \
                               upbdflx_mod.o           uvalbedo_mod.o         \
                               vdiff_mod.o             wetscav_mod.o          \
-                              xtra_read_mod.o
+                              xtra_read_mod.o         merra_cn_mod.o         \
+                              merra_a1_mod.o          merra_a3_mod.o         \
+                              merra_i6_mod.o
 
 MATIN4.o                    : MATIN4.f
 
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o
+                              meganut_mod.o           merra_a1_mod.o
 
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
@@ -778,6 +783,18 @@ mercury_mod.o               : mercury_mod.f                                  \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o
+
+merra_a1_mod.o              : merra_a1_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_a3_mod.o              : merra_a3_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_cn_mod.o              : merra_cn_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_i6_mod.o              : merra_i6_mod.f                                 \
+                              logical_mod.o           dao_mod.o
 
 MIESCT.o                    : MIESCT.f
 
@@ -1018,7 +1035,7 @@ tropopause.o                : tropopause.f                                   \
 
 tropopause_mod.o            : tropopause_mod.f                               \
                               comode_mod.o            dao_mod.o              \
-                              logical_mod.o
+                              diag_mod.o              logical_mod.o
 
 upbdflx_mod.o               : upbdflx_mod.f                                  \
                               dao_mod.o               linoz_mod.o            \

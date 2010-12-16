@@ -3,11 +3,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: DORESTART\_MOD
+! !MODULE: dorestart_mod
 !
 ! !DESCRIPTION: Module DORESTART\_MOD contains subroutines to save and read 
 !  data created by GTMM and used to restart a stand-alone run or a coupled
-!  run with GEOS-Chem. (ccc, 11/3/09)
+!  run with GEOS-Chem.
 !
 ! !INTERFACE:
 !
@@ -19,22 +19,22 @@ MODULE DORESTART_MOD
 !
 ! !REVISION HISTORY:
 !  16 Dec 2009 - C. Carouge   - Initial version
-!
 !EOP
 !-----------------------------------------------------------------------------
-
-CONTAINS
-
+!BOC
+  CONTAINS
+!EOC
 !-----------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: doSaveHgforGC
+! !IROUTINE: doSaveHgforGC
 !
 ! !DESCRIPTION: Subroutine doSaveHgforGC saves Hg pools at equilibrium to be
-! used when GTMM is coupled to GEOS-Chem. (ccc, 11/3/09)
-!
+! used when GTMM is coupled to GEOS-Chem.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE doSaveHgforGC
@@ -45,7 +45,7 @@ CONTAINS
     USE defineArrays
 !
 ! !REVISION HISTORY:
-!
+!  03 Nov 2009 - C. Carouge   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,8 +120,9 @@ CONTAINS
 ! !ROUTINE: doReadHgforGC
 !
 ! !DESCRIPTION: Subroutine doReadHgforGC reads Hg pools at equilibrium to
-! use them in GTMM when coupled to GEOS-Chem. (ccc, 11/3/09)
-!
+! use them in GTMM when coupled to GEOS-Chem.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE doReadHgforGC
@@ -132,7 +133,7 @@ CONTAINS
     USE defineArrays
 !
 ! !REVISION HISTORY:
-!
+!  03 Nov 2009 - C. Carouge   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -204,8 +205,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine doSaveCASAforRestart saves CASA values at 
 !  equilibrium to be used when an equilibrium run for GTMM is continued. 
-!  (ccc, 12/16/09)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE doSaveCASAforRestart
@@ -217,7 +218,6 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  16 Dec 2009 - C. Carouge   - Initial version
-!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,8 +286,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine doReadCASAfromRestart reads CASA values at 
 !  equilibrium to be used when an equilibrium run for GTMM is continued. 
-!  (ccc, 12/16/09)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE doReadCASAfromRestart
@@ -298,7 +298,7 @@ CONTAINS
     USE defineArrays
 !
 ! !REVISION HISTORY:
-!
+!  16 Dec 2009 - C. Carouge   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -361,8 +361,6 @@ CONTAINS
     CLOSE(20)
 
   END SUBROUTINE doReadCASAfromRestart
-
-END MODULE DORESTART_MOD
 !EOC
-!------------------------------------------------------------------------------
+END MODULE DORESTART_MOD
 

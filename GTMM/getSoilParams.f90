@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: getSoilParams
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE getSoilParams
@@ -17,11 +18,10 @@ SUBROUTINE getSoilParams
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,4 +208,3 @@ SUBROUTINE getSoilParams
 
 END SUBROUTINE getSoilParams
 !EOC
-!------------------------------------------------------------------------------

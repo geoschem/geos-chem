@@ -16,19 +16,21 @@
 !  (2 ) GEOS_3      : Enables code for GEOS-3 met fields & chemistry
 !  (3 ) GEOS_4      : Enables code for GEOS-4 met fields & chemistry
 !  (4 ) GEOS_5      : Enables code for GEOS-5 met fields & chemistry
-!  (5 ) GRIDREDUCED : Enables code for reduced stratosphere grids
-!  (6 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
-!  (7 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
-!  (8 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
-!  (9 ) NESTED_EUR  : Enables code for EUROPE NESTED GRID
-!  (10) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
-!  (11) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
-!  (12) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
-!  (13) IBM_AIX     : Enables code for IBM/AIX compiler
-!  (14) IBM_XLF     : Enables code for IBM/XLF compiler
-!  (15) LINUX_PGI   : Enables code for Linux w/ PGI compiler
-!  (16) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
-!  (17) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  (5 ) MERRA       : Enables code for MERRA  met fields & chemistry
+!  (6 ) GRIDREDUCED : Enables code for reduced stratosphere grids
+!  (7 ) GRID1x1     : Enables code for 1 x 1    GLOBAL        GRID
+!  (8 ) NESTED_CH   : Enables code for CHINA  NESTED GRID
+!  (9 ) NESTED_NA   : Enables code for N. AM. NESTED GRID
+!  (10) NESTED_EUR  : Enables code for EUROPE NESTED GRID
+!  (11) GRID1x125   : Enables code for 1 x 1.25 GLOBAL        GRID
+!  (12) GRID2x25    : Enables code for 2 x 2.5  GLOBAL        GRID
+!  (13) GRID4x5     : Enables code for 4 x 5    GLOBAL        GRID 
+!  (14) IBM_AIX     : Enables code for IBM/AIX compiler
+!  (15) IBM_XLF     : Enables code for IBM/XLF compiler
+!  (16) LINUX_PGI   : Enables code for Linux w/ PGI compiler
+!  (17) LINUX_IFORT : Enables code for Linux v8 or v9 "IFORT" compiler
+!  (18) SPARC       : Enables code for Sun w/ SPARC or Sun Studio compiler
+!  (19) GTMM_Hg     : Enables code for Hg simulation with GTMM
 !                                                                            .
 !  NOTES:
 !  (1 ) "define.h" is #include'd at the top of CMN_SIZE.  All subroutines
@@ -88,6 +90,7 @@
 !  15 Oct 2009 - R. Yantosca - Remove IN_CLOUD_OD.  Added ProTex headers.
 !  18 Dec 2009 - Aaron van D - Added NESTED_EU C-preprocessor switch
 !  20 Jul 2010 - C. Carouge  - Added GTMM_Hg for mercury simulation.
+!  12 Aug 2010 - R. Yantosca - Added MERRA switch for MERRA reanalysis met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -99,6 +102,7 @@
 #undef GEOS_3
 #undef GEOS_4
 #undef GEOS_5
+#undef MERRA
 #undef GRIDREDUCED
 #undef GRID4x5
 #undef GRID2x25  
@@ -125,7 +129,8 @@
 !#define GCAP        'GCAP'
 !#define GEOS_3      'GEOS_3'
 !#define GEOS_4      'GEOS_4'
-#define GEOS_5      'GEOS_5'
+!#define GEOS_5      'GEOS_5'
+#define MERRA       'MERRA'
 
 !----- Grid sizes -----
 !#define NESTED_CH   'NESTED_CH'
@@ -151,7 +156,7 @@
 !==============================================================================
 ! Force a compile error if GEOS_1, GEOS_STRAT, GEOS_3, GEOS_4 are undefined 
 !==============================================================================
-#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(GCAP)
+#if !defined(GEOS_3) && !defined(GEOS_4) && !defined(GEOS_5) && !defined(MERRA) && !defined(GCAP)
 #error "ERROR: GEOS_STRAT, GEOS_3, GEOS_4, GEOS_5, and GCAP"
 #error "are ALL und efined in header file define.h"
 #endif
@@ -178,6 +183,16 @@
 !%%% (ltm, bmy, 6/2/10)
 #if defined( GEOS_5 ) && !defined( GRIDREDUCED )
 #error "Cannot run GEOS-5 with the full vertical 72 level grid!"
+#error "We are working on a patch to fix this soon!"
+#endif 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% SCHEM PATCH: Stop the run if we are running w/ MERRA 72-level grid
+!%%% This prevents dimension mismatch when reading SCHEM data fields!
+!%%% (ltm, bmy, 6/2/10)
+#if defined( MERRA ) && !defined( GRIDREDUCED )
+#error "Cannot run MERRA with the full vertical 72 level grid!"
 #error "We are working on a patch to fix this soon!"
 #endif 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

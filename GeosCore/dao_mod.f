@@ -1,114 +1,179 @@
-! $Id: dao_mod.f,v 1.2 2010/02/02 16:57:54 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: dao_mod
+!
+! !DESCRIPTION: Module DAO\_MOD contains both arrays that hold DAO met fields, 
+!  as well as subroutines that compute, interpolate, or otherwise process 
+!  DAO met field data. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DAO_MOD
 !
-!******************************************************************************
-!  Module DAO_MOD contains both arrays that hold DAO met fields, as well as
-!  subroutines that compute, interpolate, or otherwise process DAO met field 
-!  data. (bmy, 6/27/00, 12/18/09)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) ALBD1    (REAL*8 ) : Sfc albedo at start of 6h step      [unitless]
-!  (2 ) ALBD2    (REAL*8 ) : Sfc albedo at end   of 6h step      [unitless]
-!  (3 ) ALBD     (REAL*8 ) : Interpolated surface albedo         [unitless] 
-!  (4 ) LWI      (REAL*8 ) : Land-Water flags                    [unitless]
-!  (5 ) PS1      (REAL*8 ) : Sfc pressure at start of 6h  step   [hPa]
-!  (6 ) PS2      (REAL*8 ) : Sfc pressure at end   of 6h  step   [hPa] 
-!  (7 ) PSC2     (REAL*8 ) : Sfc pressure at end   of dyn step   [hPa]
-!  (8 ) SLP      (REAL*8 ) : Sea level pressure (GEOS-3)         [hPa]
-!  (9 ) SPHU1    (REAL*8 ) : Spec. Humidity at start of 6h step  [g H2O/kg air]
-!  (10) SPHU2    (REAL*8 ) : Spec. Humidity at end   of 6h step  [g H2O/kg air]
-!  (11) SPHU     (REAL*8 ) : Interpolated specific humidity      [g H2O/kg air]
-!  (12) TMPU1    (REAL*8 ) : Temperature at start of 6h step     [K]
-!  (13) TMPU2    (REAL*8 ) : Temperature at end   of 6h step     [K]
-!  (14) T        (REAL*8 ) : Interpolated temperature            [K]  
-!  (15) TROPP1   (REAL*8 ) : Tropopause pressure at start        [hPa]      
-!  (16) TROPP2   (REAL*8 ) : Tropopause pressure at end of step  [hPa]      
-!  (17) TROPP    (REAL*8 ) : Interpolated tropopause pressure    [hPa]      
-!  (18) UWND1    (REAL*8 ) : Zonal wind at start of 6h step      [m/s]
-!  (19) UWND2    (REAL*8 ) : Zonal wind at end   of 6h step      [m/s]
-!  (20) UWND     (REAL*8 ) : Interpolated zonal wind             [m/s]
-!  (21) VWND1    (REAL*8 ) : Meridional wind at start of 6h step [m/s]
-!  (22) VWND2    (REAL*8 ) : Meridional wind at end of 6h step   [m/s]
-!  (23) VWND     (REAL*8 ) : Interpolated meridional wind        [m/s]
-!  (24) CLDTOPS  (INTEGER) : Cloud top height level              [unitless]
-!  (25) CLDMAS   (REAL*8 ) : Cloud mass flux                     [kg/m2/600s]
-!  (26) DTRAIN   (REAL*8 ) : Cloud detrainment                   [kg/m2/600s]
-!  (27) HKBETA   (REAL*8 ) : GEOS-4 Hack overshoot parameter     [unitless]
-!  (28) HKETA    (REAL*8 ) : GEOS-4 Hack convective mass flux    [kg/m2/s]
-!  (29) MOISTQ   (REAL*8 ) : Tendency of SPHU field          [g H2O/kg air/day]
-!  (30) CLMOSW   (REAL*8 ) : GEOS-1 max overlap cloud fraction   [unitless]
-!  (31) CLROSW   (REAL*8 ) : GEOS-1 random overlap cloud frac.   [unitless]
-!  (32) CLDF     (REAL*8 ) : Total 3-D cloud fraction            [unitless]
-!  (33) OPTDEP   (REAL*8 ) : GEOS-3 grid box optical depth       [unitless]
-!  (34) OPTD     (REAL*8 ) : Grid box optical depth (all grids)  [unitless]
-!  (35) ZMEU     (REAL*8 ) : GEOS-4 Z&M updraft entrainment      [Pa/s]
-!  (36) ZMMD     (REAL*8 ) : GEOS-4 Z&M downdraft mass flux      [Pa/s]
-!  (37) ZMMU     (REAL*8 ) : GEOS-4 Z&M updraft mass flux        [Pa/s]
-!  (38) GWETTOP  (REAL*8 ) : GEOS-4 topsoil wetness              
-!  (39) HFLUX    (REAL*8 ) : Sensible heat flux                  [W/m2]
-!  (40) PARDF    (REAL*8 ) : Photosyn active diffuse radiation   [W/m2]
-!  (41) PARDR    (REAL*8 ) : Photosyn active direct radiation    [W/m2]
-!  (42) PBL      (REAL*8 ) : Mixed layer depth                   [hPa]
-!  (43) PREACC   (REAL*8 ) : Total precip at the ground          [mm H2O/day]
-!  (44) PRECON   (REAL*8 ) : Convective precip at the ground     [mm H2O/day]
-!  (45) RADLWG   (REAL*8 ) : Net upward LW rad at the ground     [W/m2]
-!  (46) RADSWG   (REAL*8 ) : Net downward SW rad at the ground   [W/m2]
-!  (47) SNOW     (REAL*8 ) : Snow cover (H2O equivalent)         [mm H2O]
-!  (48) TS       (REAL*8 ) : Surface air temperature             [K]
-!  (49) TSKIN    (REAL*8 ) : Surface ground/sea surface temp     [K]
-!  (50) U10M     (REAL*8 ) : Zonal wind at 10 m altitude         [m/s]
-!  (51) USTAR    (REAL*8 ) : Friction velocity                   [m/s]
-!  (52) V10M     (REAL*8 ) : Meridional wind at 10 m altitude    [m/s]
-!  (53) Z0       (REAL*8 ) : Roughness height                    [m]
-!  (52) DETRAINE (REAL*8)  : Detrainment flux (entr. plume)
-!  (53) DETRAINN (REAL*8)  : Detrainment flux (non-entr. plume)
-!  (54) DNDE     (REAL*8)  : Downdraft (entraining plume) 
-!  (55) DNDN     (REAL*8)  : Downdraft (non-entraining plume)
-!  (56) ENTRAIN  (REAL*8)  : Entrainment flux
-!  (57) LWI_GISS (REAL*8)  : Fraction of land cover
-!  (58) MOLENGTH (REAL*8)  : Monin-Obhukov length
-!  (59) OICE     (REAL*8)  : Ocean ice ??
-!  (60) SNICE    (REAL*8)  : Snow ice ??
-!  (61) UPDE     (REAL*8)  : Updraft (entraining plume)
-!  (62) UPDN     (REAL*8)  : Updraft (non-entraining plume)
-!  (63) AD       (REAL*8 ) : Dry air mass                        [kg]
-!  (64) AIRVOL   (REAL*8 ) : Volume of air in grid box           [m3]
-!  (65) AIRDEN   (REAL*8 ) : Density of air in grid box          [kg/m3]
-!  (66) AVGW     (REAL*8 ) : Mixing ratio of water vapor         [v/v]
-!  (67) BXHEIGHT (REAL*8 ) : Grid box height                     [m]
-!  (68) DELP     (REAL*8 ) : Pressure thickness of grid box      [hPa]
-!  (69) OBK      (REAL*8 ) : Monin-Obhukov length                [m]
-!  (70) RH       (REAL*8 ) : Relative humidity                   [%]
-!  (71) SUNCOS   (REAL*8 ) : COSINE( solar zenith angle )        [unitless]
-!  (72) EFLUX    (REAL*8 ) : Latent heat flux                    [W/m2]
+      IMPLICIT NONE
+      PRIVATE
+
+#     include "CMN_SIZE"           ! Size parameters
+#     include "CMN_GCTM"           ! Physical constants
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) AVGPOLE        : computes average pressure for polar boxes
-!  (2 ) AIRQNT         : computes air mass and related quantities    
-!  (3 ) INTERP         : interpolates I-6 fields to current timestep
-!  (4 ) IS_LAND        : returns TRUE if (I,J) is a surface land box
-!  (5 ) IS_WATER       : returns TRUE if (I,J) is a surface water box
-!  (6 ) MAKE_AVGW      : computes AVGW [mixing ratio of H2O] from SPHU
-!  (7 ) MAKE_RH        : computes relative humidity from SPHU and T
-!  (8 ) MAKE_WIND10M   : makes the 10 m wind for GEOS-STRAT
-!  (9 ) MOLENGTH       : computes the Monin-Obhukov length
-!  (10) COSSZA         : computes the cosine of the solar zenith angle
-!  (11) CONVERT_UNITS  : Converts STT tracer array to/from [kg] and [v/v]
-!  (12) COPY_I6_FIELDS : Copies I-6 fields from one 6-hr timestep to the next
-!  (13) INIT_DAO       : allocates memory for all met field arrays
-!  (14) CLEANUP_DAO    : deallocates memory for all met field arrays
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by dao_mod.f
-!  ============================================================================
-!  (1 ) diag_mod.f     : Module containing GEOS-CHEM diagnostic arrays
-!  (2 ) error_mod.f    : Module containing I/O error and NaN check routines
-!  (3 ) grid_mod.f     : Module containing horizontal grid information
-!  (4 ) pressure_mod.f : Module containing routines to compute P(I,J,L) 
-!  (5 ) time_mod.f     : Module containing routines to compute date & time
+      PUBLIC  :: AVGPOLE
+      PUBLIC  :: AIRQNT
+      PUBLIC  :: CLEANUP_DAO
+      PUBLIC  :: CONVERT_UNITS
+      PUBLIC  :: COPY_I6_FIELDS
+      PUBLIC  :: COSSZA
+      PUBLIC  :: GET_OBK
+      PUBLIC  :: INIT_DAO
+      PUBLIC  :: INTERP
+      PUBLIC  :: IS_LAND
+      PUBLIC  :: IS_WATER
+      PUBLIC  :: IS_ICE
+      PUBLIC  :: IS_NEAR
+      PUBLIC  :: MAKE_AVGW
+      PUBLIC  :: MAKE_RH
 !
-!  NOTES:
+! !PUBLIC DATA MEMBERS:
+!
+      ! 2-D data fields
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD1   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD2   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ALBD    (:,:)
+      INTEGER, ALLOCATABLE, PUBLIC :: CLDTOPS (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDFRC  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: EFLUX   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: EVAP    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAKE  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLAND  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FROCEAN (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRLANDIC(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRSEAICE(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: FRSNO   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: GRN     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: GWETROOT(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: GWETTOP (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: HFLUX   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: LAI     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: LWI_GISS(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: LWI     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MOLENGTH(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: OICE    (:,:)      
+      REAL*8,  ALLOCATABLE, PUBLIC :: PARDF   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PARDR   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PBL     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PHIS    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PREACC  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PREANV  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRECON  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRELSC  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRECSNO (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PS1     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PS2     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PSC2    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RADLWG  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RADSWG  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE00(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE10(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE20(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE30(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE40(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE50(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE60(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE70(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE80(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SEAICE90(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SLP     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNICE   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNODP   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SNOW    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS  (:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO31    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO32    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TO3     (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TTO3    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP1  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP2  (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TROPP   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TS      (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TSKIN   (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: U10M    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: USTAR   (:,:)  
+      REAL*8,  ALLOCATABLE, PUBLIC :: V10M    (:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: Z0      (:,:)
+
+      ! 3-D data fields
+      REAL*8,  ALLOCATABLE, PUBLIC :: AD      (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRVOL  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AVGW    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: BXHEIGHT(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCU   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSAN (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDF    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CLDMAS  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CMFMC   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DELP    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINE(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DETRAINN(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DNDE    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DNDN    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQIDTMST(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQLDTMST(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRCON  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQRLSC  (:,:,:)    
+      REAL*8,  ALLOCATABLE, PUBLIC :: DQVDTMST(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: DTRAIN  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ENTRAIN (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: HKBETA  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: HKETA   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFXC    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFYC    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MFZ     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: MOISTQ  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: OPTDEP  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: OPTD    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFICU   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFILSAN (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFLCU   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PFLLSAN (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PV      (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: QI      (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: QL      (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPCN(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: REEVAPLS(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH1     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH2     (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: RH      (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU2   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: SPHU    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T       (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLI  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAUCLW  (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: TMPU2   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UPDE    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UPDN    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND2   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: UWND    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND1   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND2   (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VWND    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU    (:,:,:)
+!
+! !REVISION HISTORY:
+!  26 Jun 2010 - R. Yantosca - Initial version
 !  (1 ) Added sea level pressure (SLP) met field for GEOS-3 (bmy, 10/10/00)
 !  (2 ) Moved MAKE_QQ to "wetscav_mod.f" (bmy, 10/12/00)
 !  (3 ) Now get LWI from ALBEDO for GEOS-3 in routines IS_LAND and
@@ -162,136 +227,41 @@
 !        for methane (kjw, 8/18/09)
 !  (32) Bug fix in AVGPOLE (bmy, 12/18/09)
 !  (33) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Arrays
-      REAL*8,  ALLOCATABLE :: AD(:,:,:)
-      REAL*8,  ALLOCATABLE :: AIRDEN(:,:,:)
-      REAL*8,  ALLOCATABLE :: AIRVOL(:,:,:)
-      REAL*8,  ALLOCATABLE :: ALBD1(:,:)
-      REAL*8,  ALLOCATABLE :: ALBD2(:,:)
-      REAL*8,  ALLOCATABLE :: ALBD (:,:)
-      REAL*8,  ALLOCATABLE :: AVGW(:,:,:)
-      REAL*8,  ALLOCATABLE :: BXHEIGHT(:,:,:)
-      INTEGER, ALLOCATABLE :: CLDTOPS(:,:)
-      REAL*8,  ALLOCATABLE :: CLDF(:,:,:)
-      REAL*8,  ALLOCATABLE :: CLDMAS(:,:,:)
-      REAL*8,  ALLOCATABLE :: CLDFRC(:,:)
-      REAL*8,  ALLOCATABLE :: CMFMC(:,:,:)
-      REAL*8,  ALLOCATABLE :: DELP(:,:,:)
-      REAL*8,  ALLOCATABLE :: DETRAINE(:,:,:)
-      REAL*8,  ALLOCATABLE :: DETRAINN(:,:,:)
-      REAL*8,  ALLOCATABLE :: DNDE(:,:,:)
-      REAL*8,  ALLOCATABLE :: DNDN(:,:,:)
-      REAL*8,  ALLOCATABLE :: DQIDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE :: DQLDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE :: DQRCON(:,:,:)
-      REAL*8,  ALLOCATABLE :: DQRLSC(:,:,:)    
-      REAL*8,  ALLOCATABLE :: DQVDTMST(:,:,:)
-      REAL*8,  ALLOCATABLE :: DTRAIN(:,:,:)
-      REAL*8,  ALLOCATABLE :: ENTRAIN(:,:,:)
-      REAL*8,  ALLOCATABLE :: EVAP(:,:)
-      REAL*8,  ALLOCATABLE :: FRLAND(:,:)
-      REAL*8,  ALLOCATABLE :: FROCEAN(:,:)
-      REAL*8,  ALLOCATABLE :: FRLANDIC(:,:)
-      REAL*8,  ALLOCATABLE :: FRLAKE(:,:)
-      REAL*8,  ALLOCATABLE :: GRN(:,:)
-      REAL*8,  ALLOCATABLE :: GWETROOT(:,:)
-      REAL*8,  ALLOCATABLE :: GWETTOP(:,:)
-      REAL*8,  ALLOCATABLE :: HFLUX(:,:)
-      REAL*8,  ALLOCATABLE :: HKBETA(:,:,:)
-      REAL*8,  ALLOCATABLE :: HKETA(:,:,:)
-      REAL*8,  ALLOCATABLE :: LAI(:,:)
-      REAL*8,  ALLOCATABLE :: LWI_GISS(:,:)
-      REAL*8,  ALLOCATABLE :: LWI(:,:)
-      REAL*8,  ALLOCATABLE :: MFXC(:,:,:)
-      REAL*8,  ALLOCATABLE :: MFYC(:,:,:)
-      REAL*8,  ALLOCATABLE :: MFZ(:,:,:)
-      REAL*8,  ALLOCATABLE :: MOISTQ(:,:,:)
-      REAL*8,  ALLOCATABLE :: MOLENGTH(:,:)
-      REAL*8,  ALLOCATABLE :: OICE(:,:)      
-      REAL*8,  ALLOCATABLE :: OPTDEP(:,:,:)
-      REAL*8,  ALLOCATABLE :: OPTD(:,:,:)
-      REAL*8,  ALLOCATABLE :: PARDF(:,:)
-      REAL*8,  ALLOCATABLE :: PARDR(:,:)
-      REAL*8,  ALLOCATABLE :: PBL(:,:)
-      REAL*8,  ALLOCATABLE :: PHIS(:,:)
-      REAL*8,  ALLOCATABLE :: PREACC(:,:)
-      REAL*8,  ALLOCATABLE :: PRECON(:,:)
-      REAL*8,  ALLOCATABLE :: PRECSNO(:,:)
-      REAL*8,  ALLOCATABLE :: PS1(:,:)
-      REAL*8,  ALLOCATABLE :: PS2(:,:)
-      REAL*8,  ALLOCATABLE :: PSC2(:,:)
-      REAL*8,  ALLOCATABLE :: PV(:,:,:)
-      REAL*8,  ALLOCATABLE :: QI(:,:,:)
-      REAL*8,  ALLOCATABLE :: QL(:,:,:)
-      REAL*8,  ALLOCATABLE :: RADLWG(:,:)
-      REAL*8,  ALLOCATABLE :: RADSWG(:,:)
-      REAL*8,  ALLOCATABLE :: RH(:,:,:)
-      REAL*8,  ALLOCATABLE :: SLP(:,:)
-      REAL*8,  ALLOCATABLE :: SNICE(:,:)
-      REAL*8,  ALLOCATABLE :: SNODP(:,:)
-      REAL*8,  ALLOCATABLE :: SNOMAS(:,:)
-      REAL*8,  ALLOCATABLE :: SNOW(:,:)
-      REAL*8,  ALLOCATABLE :: SPHU1(:,:,:)
-      REAL*8,  ALLOCATABLE :: SPHU2(:,:,:)
-      REAL*8,  ALLOCATABLE :: SPHU (:,:,:)
-      REAL*8,  ALLOCATABLE :: SUNCOS(:)
-      REAL*8,  ALLOCATABLE :: T(:,:,:)
-      REAL*8,  ALLOCATABLE :: TAUCLI(:,:,:)
-      REAL*8,  ALLOCATABLE :: TAUCLW(:,:,:)
-      REAL*8,  ALLOCATABLE :: TO31(:,:)
-      REAL*8,  ALLOCATABLE :: TO32(:,:)
-      REAL*8,  ALLOCATABLE :: TO3(:,:)
-      REAL*8,  ALLOCATABLE :: TTO3(:,:)
-      REAL*8,  ALLOCATABLE :: TMPU1(:,:,:)
-      REAL*8,  ALLOCATABLE :: TMPU2(:,:,:)
-      REAL*8,  ALLOCATABLE :: TROPP1(:,:)
-      REAL*8,  ALLOCATABLE :: TROPP2(:,:)
-      REAL*8,  ALLOCATABLE :: TROPP(:,:)
-      REAL*8,  ALLOCATABLE :: TS(:,:)
-      REAL*8,  ALLOCATABLE :: TSKIN(:,:)
-      REAL*8,  ALLOCATABLE :: U10M(:,:)
-      REAL*8,  ALLOCATABLE :: UPDE(:,:,:)
-      REAL*8,  ALLOCATABLE :: UPDN(:,:,:)
-      REAL*8,  ALLOCATABLE :: USTAR(:,:)  
-      REAL*8,  ALLOCATABLE :: UWND1(:,:,:)
-      REAL*8,  ALLOCATABLE :: UWND2(:,:,:)
-      REAL*8,  ALLOCATABLE :: UWND(:,:,:)
-      REAL*8,  ALLOCATABLE :: V10M(:,:)
-      REAL*8,  ALLOCATABLE :: VWND1(:,:,:)
-      REAL*8,  ALLOCATABLE :: VWND2(:,:,:)
-      REAL*8,  ALLOCATABLE :: VWND(:,:,:)
-      REAL*8,  ALLOCATABLE :: Z0(:,:)
-      REAL*8,  ALLOCATABLE :: ZMEU(:,:,:)
-      REAL*8,  ALLOCATABLE :: ZMMD(:,:,:)
-      REAL*8,  ALLOCATABLE :: ZMMU(:,:,:)
-      REAL*8,  ALLOCATABLE :: EFLUX(:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-   
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
+!  18 Aug 2010 - R. Yantosca - Move CMN_SIZE, CMN_DIAG to top of module
+!  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: avgpole
+!
+! !DESCRIPTION: Subroutine AVGPOLE computes average quantity near polar caps, 
+!  defined by (J = 1, 2) and (J = JJPAR-1, JJPAR).  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE AVGPOLE( Z ) 
 !
-!******************************************************************************
-!  Subroutine AVGPOLE computes average quantity near polar caps, defined 
-!  by (J = 1, 2) and (J = JJPAR-1, JJPAR).  (bmy, 1/30/98, 12/18/09)
+! !USES:
+!
+      USE GRID_MOD, ONLY : GET_AREA_M2
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8, INTENT(INOUT) :: Z(IIPAR,JJPAR)   ! Quantity to be averaged 
+                                                !  over the pole (usually PS)
 ! 
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) Z (REAL*8) : Quantity to be averaged over the pole (usually PS)
-!                                               
-!  NOTES:                            
+! !REVISION HISTORY: 
+!  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AVGPOLE is written in Fixed-Form Fortran 90.  Use F90 syntax
 !        for declarations, etc (bmy, 4/14/99)
 !  (2 ) MAIN now passes the Harvard CTM variable for surface area of
@@ -305,21 +275,16 @@
 !        grids...GRID1x1 can now also denote a global grid (bmy, 12/1/04)
 !  (7 ) Also need to RETURN for 0.5 x 0.666 nested grid simulations 
 !        (mpb, bmy, 12/18/09)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD, ONLY : GET_AREA_M2
-
-#     include "CMN_SIZE"
-
-      ! Arguments
-      REAL*8, INTENT(INOUT) :: Z(IIPAR,JJPAR)
-
-      ! Local varaibles
-      INTEGER               :: I, J
-
-      REAL*8                :: TOTAL_Z1, TOTAL_Z2, TOTAL_Z3, TOTAL_Z4
-      REAL*8                :: TOTAL_A1, TOTAL_A2, TOTAL_A3, TOTAL_A4
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J
+      REAL*8  :: TOTAL_Z1, TOTAL_Z2, TOTAL_Z3, TOTAL_Z4
+      REAL*8  :: TOTAL_A1, TOTAL_A2, TOTAL_A3, TOTAL_A4
 
       !=================================================================
       ! AVGPOLE begins here!                                                  
@@ -360,19 +325,31 @@
          Z(I,JJPAR  ) = Z(I,JJPAR-1)
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE AVGPOLE
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: airqnt
+!
+! !DESCRIPTION: Subroutine AIRQNT calculates the volume [m\^3 and cm\^3], mass 
+!  [kg], density, [kg/m\^3], and pressure thickness [hPa] of air for each grid 
+!  box (I,J,L).   The quantity (surface pressure - PTOP) [hPa] at each surface 
+!  grid box (I,J) is also computed. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE AIRQNT
 !
-!******************************************************************************
-!  Subroutine AIRQNT calculates the volume [m^3 and cm^3], mass [kg], density,
-!  [kg/m^3], and pressure thickness [hPa] of air for each grid box (I,J,L).  
-!  The quantity (surface pressure - PTOP) [hPa] at each surface grid box (I,J)
-!  is also computed. (bmy, 1/30/98, 3/11/03)
+! !USES:
 !
+      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
+!
+! !REMARKS:
 !  DAO met fields updated by AIRQNT:
 !  ========================================================================
 !  (1 ) BXHEIGHT (REAL*8 ) : Vertical extent of a grid box   [m       ]
@@ -380,8 +357,9 @@
 !  (3 ) AIRVOL   (REAL*8 ) : Volume  of air  in a grid box   [m^3     ]
 !  (4 ) AD       (REAL*8 ) : Mass    of air  in a grid box   [kg      ]
 !  (5 ) AIRDEN   (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
 !        for declarations etc. (bmy, 4/14/99)
 !  (2 ) AIRQNT can now compute PW from PS (if LMAKEPW=T) or PS from PW.
@@ -420,18 +398,15 @@
 !        (bmy, 3/11/03)
 !  (19) Now move computation of DELP into main loop.  Also remove P, LOGP,
 !        JREF, DSIG variables -- these are obsolete for fvDAS.  (bmy, 6/19/03)
-!******************************************************************************
-!    
-      ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_M2
-      USE PRESSURE_MOD, ONLY : GET_BP, GET_PEDGE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
-
-      ! Local variables
-      INTEGER             :: I,  J,  L
-      REAL*8              :: P1, P2, AREA_M2
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,  J,  L
+      REAL*8  :: P1, P2, AREA_M2
 
       !=================================================================
       ! AIRQNT begins here! 
@@ -509,25 +484,43 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE AIRQNT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: interp
+!
+! !DESCRIPTION: Subroutine INTERP linearly interpolates GEOS-Chem I6 fields 
+!  (winds, surface pressure, temperature, surface albedo, specific humidity
+!   etc.)  to the current dynamic timestep.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
 !
-!******************************************************************************
-!  Subroutine INTERP linearly interpolates GEOS-CHEM I-6 fields (winds, 
-!  surface pressure, temperature, surface albedo, specific humidity) to the 
-!  current dynamic timestep. (bdf, bmy, 1/30/98, 9/18/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTIME0 (INTEGER) : elapsed time [s] at the start of the 6-hr timestep. 
-!  (2 ) NTIME1 (INTEGER) : elapsed time [s] at current time
-!  (3 ) NTDT   (INTEGER) : length of dynamic timestep [s]
+      USE GRID_MOD,    ONLY : GET_YEDGE
+      USE LOGICAL_MOD, ONLY : LVARTROP
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: NTIME0   ! Elapsed time [s] at start of 6hr step
+      INTEGER, INTENT(IN)  :: NTIME1   ! Elapsed time [s] at current time
+      INTEGER, INTENT(IN)  :: NTDT     ! Length of dynamic timestep [s]
+! 
+! !REMARKS:
+!  Different met fields are archived at I6 (instantaneous 6-hr) time 
+!  resolution depending on the specific product.  For example, relative 
+!  humidity is an instantaneous 6hr field in MERRA and a 6-hr time averaged
+!  field in GEOS-5.
+!
+! !REVISION HISTORY: 
+!  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) INTERP is written in Fixed-Form Fortran 90.
 !  (2 ) Subtract PINT from PSC since the only subroutine that uses PSC
 !        is TPCORE.  This prevents having to subtract and add PINT to PSC
@@ -563,25 +556,21 @@
 !  (16) Don't interpolate TROPP for GEOS-5 (bmy, 1/17/07)
 !  (17) Now limit tropopause pressure to 200 mbar at latitudes above 60deg
 !        (phs, 9/18/07)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  18 Aug 2010 - R. Yantosca - Rewrite #if block logic for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD,    ONLY : GET_YEDGE
-      USE LOGICAL_MOD, ONLY : LVARTROP
-     
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: NTIME0, NTIME1, NTDT  
-
-      ! Local variables
-      INTEGER              :: I,        J,        L
-      REAL*8               :: D_NTIME0, D_NTIME1, D_NDT
-      REAL*8               :: D_NTDT,   TM,       TC2
-      REAL*8               :: YSOUTH,   YNORTH
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,        J,        L
+      REAL*8  :: D_NTIME0, D_NTIME1, D_NDT
+      REAL*8  :: D_NTDT,   TM,       TC2
+      REAL*8  :: YSOUTH,   YNORTH
 
       !=================================================================
-      ! INTERP begins here!                                      
+      ! Initialization
       !=================================================================
 
       ! Convert time variables from FLOAT to DBLE
@@ -596,11 +585,10 @@
       ! Fraction of 6h timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_3 )
+#if defined( GEOS_3 )
 
       !=================================================================
-      ! For GEOS-1, GEOS-S, GEOS-3 met fields:
-      ! Interpolate PSC2, UWND, VWND, ALBD, T, SPHU
+      ! Do the interpolation for GEOS-3 met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -609,41 +597,43 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
          
-         ! 2D variables
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
          IF ( L == 1 ) THEN
             
-            ! Pressures: at start, midpt, and end of dyn timestep
-            PSC2(I,J)  = PS1(I,J)   + ( PS2(I,J) - PS1(I,J) ) * TC2 
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J)  = PS1(I,J)  + ( PS2(I,J) - PS1(I,J) ) * TC2 
   
-            ! Albedo: at midpt of dyn timestep
+            ! Interpolate ALBEDO to the midpt of the dynamic timestep
             ALBD(I,J) = ALBD1(I,J) + ( ALBD2(I,J) - ALBD1(I,J) ) * TM
 
-            ! Tropopause pressure at midpt
+            ! Interpolate TROPP to the midpt of the dynamic timestep
             IF ( LVARTROP ) THEN
                TROPP(I,J) = TROPP1(I,J) 
      &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
             ENDIF
-
          ENDIF
          
-         ! 3D Variables: at midpt of dyn timestep
+         !-----------------------------------------------------
+         ! Interpolate 3D Variables
+         !-----------------------------------------------------
+
+         ! Interpolate to the midpt of the dynamic timestep
          UWND(I,J,L) = UWND1(I,J,L) + (UWND2(I,J,L) - UWND1(I,J,L)) * TM
          VWND(I,J,L) = VWND1(I,J,L) + (VWND2(I,J,L) - VWND1(I,J,L)) * TM
          SPHU(I,J,L) = SPHU1(I,J,L) + (SPHU2(I,J,L) - SPHU1(I,J,L)) * TM
          T(I,J,L)    = TMPU1(I,J,L) + (TMPU2(I,J,L) - TMPU1(I,J,L)) * TM
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-#else
+#elif defined( GEOS_4 ) || defined( GCAP )
 
       !=================================================================
-      ! For GEOS-4, GEOS-5, GCAP met fields:
-      !
-      ! (1) Interpolate PSC2 (pressure at end of dyn timestep)
-      ! (2) Interpolate TROPP (GEOS-4, GCAP only)
-      ! (3) Cap TROPP at 200 hPa in polar regions
+      ! Do the interpolation for GEOS-4 or GCAP met fields 
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -656,26 +646,18 @@
 
          DO I = 1, IIPAR
 
-            ! Pressure at end of dynamic timestep [hPa]
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
             PSC2(I,J) = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
 
             ! Test if we are using the variable tropopause
             IF ( LVARTROP ) THEN
  
-#if   !defined( GEOS_5 ) 
-               ! GEOS-5 has 3-hr avg tropopause, so we don't need to 
-               ! interpolate it (only do this for GEOS-3, GEOS-4)
+               ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
                TROPP(I,J) = TROPP1(I,J) 
      &                    + ( TROPP2(I,J) - TROPP1(I,J) ) * TM
-#endif
-               
-#if defined( GEOS_5 )
-               ! We may want to use the total O3 column from GEOS_5
-               TO3(I,J) = TO31(I,J)
-     &                  + ( TO32(I,J) - TO31(I,J) ) * TM
-#endif
 
-               ! However, we still need to make sure to cap TROPP in the 
+
+               ! However, we still need to make sure to cap TROPP in the
                ! polar regions (if the entire box is outside 60S-60N)
                ! so that we don't do chemistry at an abnormally high
                ! altitude.  Set TROPP in the polar regions to 200 hPa.
@@ -688,24 +670,125 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+#elif defined( GEOS_5 )
+
+      !=================================================================
+      ! Do the interpolation for GEOS-5 met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
+      DO J = 1, JJPAR
+
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
+
+         DO I = 1, IIPAR
+
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J) = PS1(I,J)  + ( PS2(I,J)  - PS1(I,J)  ) * TC2 
+
+            ! Interpolate the GEOS-5 total O3 column [DU] to current time
+            TO3(I,J)  = TO31(I,J) + ( TO32(I,J) - TO31(I,J) ) * TM
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+#elif defined( MERRA )
+
+      !=================================================================
+      ! Do the interpolation for MERRA met fields 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( J   )
+         YNORTH = GET_YEDGE( J+1 )
+
+      DO I = 1, IIPAR
+
+         !----------------------------------------------------
+         ! Interpolate 2D variables
+         !----------------------------------------------------
+         IF ( L == 1 ) THEN
+            
+            ! Interpolate pressure [hPa] to the end of the dynamic timestep
+            PSC2(I,J)  = PS1(I,J) + ( PS2(I,J) - PS1(I,J) ) * TC2 
+
+            ! Even though TROPP is a 3-hour average field, we 
+            ! we still need to make sure to cap TROPP in the
+            ! polar regions (if the entire box is outside 60S-60N)
+            ! so that we don't do chemistry at an abnormally high
+            ! altitude.  Set TROPP in the polar regions to 200 hPa.
+            ! (jal, phs, bmy, 9/18/07)
+            IF ( LVARTROP ) THEN
+               IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+                  TROPP(I,J) = MAX( TROPP(I,J), 200d0 )
+               ENDIF
+            ENDIF
+         ENDIF
+
+         !----------------------------------------------------
+         ! Interpolate 3D variables
+         !----------------------------------------------------
+         RH(I,J,L) = RH1(I,J,L) + ( RH2(I,J,L) - RH1(I,J,L) ) * TM
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
 #endif
-                              
-      ! Return to calling program
+
       END SUBROUTINE INTERP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_land
+!
+! !DESCRIPTION: Function IS\_LAND returns TRUE if surface grid box (I,J) is 
+!  a land box.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IS_LAND( I, J ) RESULT ( LAND )
 !
-!******************************************************************************
-!  Function IS_LAND returns TRUE if surface grid box (I,J) is a land box.
-!  (bmy, 6/26/00, 8/4/06)
+! !USES:
 !
-!  Arguments as Input
-!  ===========================================================================
-!  (1-2) I, J : Longitude and latitude indices of the grid box
+      USE TIME_MOD, ONLY : GET_YEAR
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
+      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+!
+! !RETURN VALUE:
+!
+      LOGICAL              :: LAND        ! =T if it is a land box
+! 
+! !REVISION HISTORY: 
+!  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now use ALBEDO field to determine land or land ice boxes for GEOS-3.
 !        (bmy, 4/4/01)
 !  (2 ) For 4x5 data, regridded albedo field can cause small inaccuracies
@@ -725,27 +808,19 @@
 !  (8 ) Now return TRUE only for land boxes (w/ no ice) (bmy, 8/10/05)
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_YEAR
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-
-      ! Return variable
-      LOGICAL              :: LAND
-
-      !=================================================================
-      ! IS_LAND begins here!
-      !=================================================================
+! !LOCAL VARIABLES:
+!
 #if   defined( GEOS_3 )
 
-      !---------------------
+      !--------------------------
       ! GEOS-3
-      !---------------------
+      !--------------------------
       IF ( GET_YEAR() == 1998 ) THEN
 
          ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
@@ -759,20 +834,20 @@
 
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
-      !---------------------
-      ! GEOS-4 & GEOS-5
-      !---------------------
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
 
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( LWI(I,J) ) == 1 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's a land box if 50% or more of the box is covered by 
       ! land and less than 50% of the box is covered by ice
@@ -780,22 +855,38 @@
     
 #endif
 
-      ! Return to calling program
       END FUNCTION IS_LAND
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_water 
+!
+! !DESCRIPTION: Function IS\_WATER returns TRUE if surface grid box (I,J) is 
+!  an ocean or an ocean-ice box.  
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IS_WATER( I, J ) RESULT ( WATER )
 !
-!******************************************************************************
-!  Function IS_WATER returns TRUE if surface grid box (I,J) is an ocean 
-!  or an ocean-ice box.  (bmy, 6/26/00, 8/4/06)
+! !USES:
 !
-!  Arguments as Input
-!  ===========================================================================
-!  (1-2) I, J : Longitude and latitude indices of the grid box
+      USE TIME_MOD, ONLY : GET_YEAR
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
+      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+!
+! !RETURN VALUE:
+!
+      LOGICAL              :: WATER       ! =T if this is a water box
+! 
+! !REVISION HISTORY: 
+!  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) Now use ALBEDO field to determine water or water ice boxes for GEOS-3.
 !        (bmy, 4/4/01)
 !  (2 ) For 4x5 data, regridded albedo field can cause small inaccuracies
@@ -814,28 +905,20 @@
 !  (7 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (8 ) Now remove test for sea ice (bmy, 8/10/05)
 !  (9 ) Now use NINT to round LWI for GEOS-4/GEOS-5 (ltm, bmy, 5/9/06)
-!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+!  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_YEAR
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-
-      ! Return variable
-      LOGICAL              :: WATER
-
-      !=================================================================
-      ! IS_WATER begins here!
-      !=================================================================
+! !LOCAL VARIABLES:
+!
 #if   defined( GEOS_3 )
       
-      !---------------------
+      !--------------------------
       ! GEOS-3 
-      !---------------------
+      !--------------------------
       IF ( GET_YEAR() == 1998 ) THEN
 
          ! 1998 fields don't have LWI/SURFTYPE flags, so use albedo as 
@@ -849,20 +932,20 @@
          
       ENDIF
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
       
-      !----------------------
-      ! GEOS-4 and GEOS-5
-      !----------------------
+      !---------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !---------------------------
 
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
       WATER = ( NINT( LWI(I,J) ) == 0 .and. ALBD(I,J) < 0.695d0 )
 
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's a water box if less than 50% of the box is
       ! covered by land and less than 50% is covered by ice
@@ -870,110 +953,130 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION IS_WATER
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_ice
+!
+! !DESCRIPTION: Function IS\_ICE returns TRUE if surface grid box (I,J) 
+!  contains either land-ice or sea-ice. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IS_ICE( I, J ) RESULT ( ICE )
 !
-!******************************************************************************
-!  Function IS_ICE returns TRUE if surface grid box (I,J) contains either
-!  land-ice or sea-ice. (bmy, 8/9/05, 8/4/06)
+! !USES:
 !
-!  Arguments as Input
-!  ===========================================================================
-!  (1-2) I, J : Longitude and latitude indices of the grid box
-!
-!  NOTES:
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TIME_MOD, ONLY : GET_YEAR
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: I, J
-
-      ! Return variable
-      LOGICAL              :: ICE
-
-      !=================================================================
-      ! IS_WATER begins here!
-      !=================================================================
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: I           ! Longitude index of grid box
+      INTEGER, INTENT(IN)  :: J           ! Latitude  index of grid box
+!
+! !RETURN VALUE:
+!
+      LOGICAL              :: ICE         ! =T if this is an ice box
+!
+! 
+! !REVISION HISTORY: 
+!  09 Aug 2005 - R. Yantosca - Initial version
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
 #if   defined( GEOS_3 )
 
-      !---------------------
+      !--------------------------
       ! GEOS-3
-      !---------------------      
+      !-------------------------- 
 
       ! Fields for 1998 don't have LWI/SURFTYPE flags, so use albedo 
       ! as a proxy for water coverage instead: ALBEDO > 0.695
       ICE = ( ALBD(I,J) >= 0.695d0 )
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 )
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
-      !---------------------
-      ! GEOS-4 & GEOS-5
-      !---------------------  
+      !--------------------------
+      ! GEOS-4 / GEOS-5 / MERRA
+      !--------------------------
 
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( LWI(I,J) ) == 2 .or. ALBD(I,J) >= 0.695d0 )
 
 #elif defined( GCAP )
 
-      !-----------------------
+      !--------------------------
       ! GCAP
-      !-----------------------
+      !--------------------------
 
       ! It's an ice box if 50% or more of the box is covered by ice
       ICE = ( SNICE(I,J) >= 0.5d0 )
 
 #endif
 
-      ! Return to calling program
       END FUNCTION IS_ICE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_near
+!
+! !DESCRIPTION: Function IS\_NEAR returns TRUE if surface grid box (I,J) 
+!  contains any land above a certain threshold (THRESH) or any of the 
+!  adjacent boxes up to NEIGHBOR boxes away contain land.  
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION IS_NEAR( I, J, THRESH, NEIGHBOR ) RESULT ( NEAR )
 !
-!******************************************************************************
-!  Function IS_NEAR returns TRUE if surface grid box (I,J) contains any land
-!  above a certain threshold (THRESH) or any of the adjacent boxes up to
-!  NEIGHBOR boxes away contain land.  (rch, ltm, bmy, 5/9/06, 8/4/06)
+! !INPUT PARAMETERS: 
 !
+      ! Arguments
+      INTEGER, INTENT(IN) :: I, J        ! Lon & lat grid box indices
+      INTEGER, INTENT(IN) :: NEIGHBOR    ! # of neighbor boxes to consider
+      REAL*8,  INTENT(IN) :: THRESH      ! LWI threshold for near-land 
+!
+! !RETURN VALUE:
+!
+      LOGICAL             :: NEAR        ! # of near land boxes
+!
+! !REMARKS:
 !  Typical values for:
 !     GCAP   : THRESH =  0.2, NEIGHBOR = 1
 !     GEOS-3 : THRESH = 80.0, NEIGHBOR = 1
 !     GEOS-4 : THRESH =  0.2, NEIGHBOR = 1
 !     GEOS-5 : THRESH =  0.2, NEIGHBOR = 1
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I        (INTEGER) : GEOS-Chem longitude index
-!  (2 ) J        (INTEGER) : GEOS-Chem latitude index
-!  (3 ) THRESH   (REAL*8 ) : LWI threshold for near-land 
-!  (4 ) NEIGHBOR (INTEGER) : # of neighbor boxes on each side to consider
+!                                                                             .
+!  NOTE: This routine is mostly obsolete now.
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  09 May 2006 - R. Yantosca - Initial version
 !  (1 ) Modified for GCAP and GEOS-3 met fields (bmy, 5/16/06)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  19 Aug 2010 - R. Yantosca - Rewrote logic of #if block for clarity
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, NEIGHBOR
-      REAL*8,  INTENT(IN) :: THRESH
-
-      ! Return variable
-      LOGICAL             :: NEAR
-
-      ! Local variables
-      INTEGER             :: NS, EW, LONGI, LATJ
+! !LOCAL VARIABLES:
+!
+      INTEGER :: NS, EW, LONGI, LATJ
 
       !=================================================================
       ! IS_NEAR begins here!
@@ -1019,6 +1122,13 @@
             IF ( LWI_GISS(LONGI,LATJ) >  THRESH .and.
      &           LWI_GISS(LONGI,LATJ) <= 1.0d0 ) THEN
 
+               ! We are in a near-land box
+               NEAR = .TRUE.
+
+               ! Break out of loop
+               GOTO 999
+            ENDIF
+
 #elif defined( GEOS_3 )
 
             !---------------------------------------------------
@@ -1037,10 +1147,17 @@
             !---------------------------------------------------
             IF ( LWI(LONGI,LATJ) < THRESH ) THEN 
 
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) 
+               ! We are in a near-land box
+               NEAR = .TRUE.
+
+               ! Break out of loop
+               GOTO 999
+            ENDIF
+
+#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
             !---------------------------------------------------
-            ! GEOS-4 or GEOS-5 met fields
+            ! GEOS-4 / GEOS-5 / MERRA met fields
             !
             ! LWI = 0.0 is ocean
             ! LWI = 1.0 is land
@@ -1054,32 +1171,40 @@
             IF ( LWI(LONGI,LATJ) >  THRESH  .and.
      &           LWI(LONGI,LATJ) <= 1d0    ) THEN
 
-#endif
-
                ! We are in a near-land box
                NEAR = .TRUE.
 
                ! Break out of loop
                GOTO 999
             ENDIF
+
+#endif
+
          ENDDO
       ENDDO
 
       ! Exit
  999  CONTINUE
 
-      ! Return to calling program
       END FUNCTION IS_NEAR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_avgw
+!
+! !DESCRIPTION: Subroutine MAKE\_AVGW converts DAO specific humidity SPHU 
+!  to AVGW, which is the mixing ratio of water vapor. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_AVGW
-!
-!******************************************************************************
-!  Subroutine MAKE_AVGW converts DAO specific humidity SPHU to AVGW, which 
-!  is the mixing ratio of water vapor. (bmy, 1/30/98, 11/15/02)
-!
-!  NOTES:      
+! 
+! !REVISION HISTORY: 
+!  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AVGW was originally indexed by (L,I,J).  Reorder the indexing to
 !        (I,J,L) to take advantage of the way FORTRAN stores by columns.
 !        An (L,I,J) ordering can lead to excessive disk swapping.
@@ -1088,13 +1213,17 @@
 !  (3 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
 !  (4 ) SPHU and AVGW are declared w/in "dao_mod.f", so we don't need to pass
 !        these as arguments anymore (bmy, 11/15/02)
-!******************************************************************************
-!     
-#     include "CMN_SIZE"  ! Size parameters
-      
-      ! Local Variables
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, IREF, J, JREF, L      
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Conversion factor
       REAL*8, PARAMETER   :: HCONV = 28.97d-3 / 18.0d0 
 
@@ -1131,24 +1260,36 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE MAKE_AVGW
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_rh
+!
+! !DESCRIPTION: Subroutine MAKE\_RH computes relative humidity from specific 
+!  humidity and temperature. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_RH
 !
-!******************************************************************************
-!  Subroutine MAKE_RH computes relative humidity from specific humidity and
-!  temperature. (bmy, 10/13/99, 9/18/02)
+! !USES:
 !
+      USE PRESSURE_MOD, ONLY : GET_PCENTER
+!
+! !REMARKS:
 !  Module variables used:
 !  ===========================================================================
 !  (1 ) SPHU (REAL*8) : Array containing 3-D specific humidity [g H2O/kg air]
 !  (2 ) TMPU (REAL*8) : Array containing 3-D temperature field [K]
 !  (3 ) RH   (REAL*8) : Output array for relative humidity     [%]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  13 Oct 1999 - R. Yantosca - Initial version
 !  (1 ) Use F90 syntax for declarations, etc. 
 !  (2 ) Cosmetic changes (bmy, 10/12/99)
 !  (3 ) Now use GET_PCENTER from "pressure_mod.f" to compute the pressure
@@ -1158,21 +1299,21 @@
 !  (4 ) Removed obsolete code from 8/02 (bmy, 9/18/02)
 !  (5 ) Now remove SPHU, TMPU, RH from the arg list, since these are now
 !        all contained w/in this dao_mod.f as module variables. (bmy, 9/23/02)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE PRESSURE_MOD, ONLY : GET_PCENTER
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
+      REAL*8              :: ESAT, SHMB, PRES, TEMP
+      INTEGER             :: I, J, L
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER   :: A =   23.5518d0
       REAL*8, PARAMETER   :: B = 2937.4d0
       REAL*8, PARAMETER   :: C =   -4.9283d0
-      REAL*8              :: ESAT, SHMB, PRES, TEMP
-      INTEGER             :: I, J, L
 
       !=================================================================
       ! MAKE_RH begins here!
@@ -1205,32 +1346,41 @@
       ENDDO  
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE MAKE_RH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_obk
+!
+! !DESCRIPTION: Function GET\_OBK returns the Monin-Obhukov length at a grid 
+!  box (I,J).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_OBK( I, J ) RESULT( OBK )
 !
-!******************************************************************************
-!  Function GET_OBK returns the Monin-Obhukov length at a grid box (I,J)
-!  (bmy, 5/25/05)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J (INTEGER) : GEOS-CHEM longitude & latitude indices
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
-!******************************************************************************
-!      
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_GCTM"   ! Physical constants
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Function value
-      REAL*8              :: OBK
+      INTEGER, INTENT(IN) :: I     ! Longitude index
+      INTEGER, INTENT(IN) :: J     ! Latitude  index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: OBK   ! Monin-Obhukhov length
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - R. Yantosca - Initial version
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
 #if   defined( GCAP )
 
@@ -1282,25 +1432,38 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_OBK
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cossza
+!
+! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE COSSZA( JDAY, SUNCOS )
 !
-!******************************************************************************
-!  COSSZA computes the cosine of the solar zenith angle. (bmy 1/21/98, 4/27/10)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) JDAY   (INTEGER) : The current day of the year (0-365 or 0-366)
+      USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : GET_LOCALTIME
+      USE TIME_MOD, ONLY : GET_TS_SUN_2
 !
-!  Arguments as output:
-!  ===========================================================================
-!  (2 ) SUNCOS (REAL*8 ) : 1D Array of cos(SZA) for each grid box (in radians)
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)  :: JDAY             ! Day of year (0-365)
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( Solar zenith angle )
+! 
+! !REVISION HISTORY: 
+!  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
 !  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
 !  (3 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
@@ -1322,31 +1485,26 @@
 !  (14) Now compute SUNCOS at the midpoint of the relevant time interval
 !        (i.e. the chemistry timestep).   Also make the A and B coefficients
 !        parameters instead of variables. (bmy, 4/27/10)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD,    ONLY : GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_LOCALTIME, GET_TS_SUN_2
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! Physical constants
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: JDAY
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)
-      
-      ! Local variables
-      INTEGER              :: I, IJLOOP, J
-      REAL*8               :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
-
+! !LOCAL VARIABLES:
+!      
+      INTEGER            :: I, IJLOOP, J
+      REAL*8             :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+!
+! !DEFINED PARAMETERS:
+!
       ! Coefficients for solar declination angle
-      REAL*8,  PARAMETER   :: A0 = 0.006918d0
-      REAL*8,  PARAMETER   :: A1 = 0.399912d0
-      REAL*8,  PARAMETER   :: A2 = 0.006758d0
-      REAL*8,  PARAMETER   :: A3 = 0.002697d0
-      REAL*8,  PARAMETER   :: B1 = 0.070257d0
-      REAL*8,  PARAMETER   :: B2 = 0.000907d0
-      REAL*8,  PARAMETER   :: B3 = 0.000148d0
+      REAL*8,  PARAMETER :: A0 = 0.006918d0
+      REAL*8,  PARAMETER :: A1 = 0.399912d0
+      REAL*8,  PARAMETER :: A2 = 0.006758d0
+      REAL*8,  PARAMETER :: A3 = 0.002697d0
+      REAL*8,  PARAMETER :: B1 = 0.070257d0
+      REAL*8,  PARAMETER :: B2 = 0.000907d0
+      REAL*8,  PARAMETER :: B3 = 0.000148d0
 
       !=================================================================
       ! COSSZA begins here!   
@@ -1423,30 +1581,50 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program 
       END SUBROUTINE COSSZA
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_units
+!
+! !DESCRIPTION: Subroutine CONVERT\_UNITS converts the units of STT from [kg] 
+!  to [v/v] mixing ratio, or vice versa.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
 !
-!******************************************************************************
-!  Subroutine CONVERT_UNITS converts the units of STT from [kg] to [v/v]
-!  mixing ratio, or vice versa.  (bmy, 6/15/98, 10/15/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ======================================================================
-!  (1 ) IFLAG  (INTEGER) : =1 then convert from [kg ] --> [v/v]
-!                          =2 then convert from [v/v] --> [kg ]
-!  (2 ) NTRACE (INTEGER) : 
-!  (3 ) TCVV   (REAL*8 ) : Array containing [Air MW / Tracer MW] for tracers
-!  (4 ) AD     (REAL*8 ) : Array containing grid box air masses
+      USE ERROR_MOD,  ONLY : ERROR_STOP
 !
-!  Arguments as Input/Output:
-!  ======================================================================
-!  (5 ) STT    (REAL*8 ) : Array containing tracer conc. [kg] or [v/v]
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+
+      ! =1 then convert from [kg ] --> [v/v]
+      ! =2 then convert from [v/v] --> [kg ]
+      INTEGER, INTENT(IN)    :: IFLAG
+
+      ! Number of tracers
+      INTEGER, INTENT(IN)    :: N_TRACERS 
+
+      ! Array containing [Air MW / Tracer MW] for tracers
+      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
+
+      ! Array containing grid box air masses
+      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
+!
+! !OUTPUT PARAMETERS:
+!
+      !  Array containing tracer conc. [kg] or [v/v]
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
+!
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) CONVERT_UNITS is written in Fixed-Form Fortran 90.
 !  (2 ) Cosmetic changes, updated comments (bmy, 4/19/00)
 !  (3 ) Now use SELECT CASE statement.  Also added parallel DO-loops
@@ -1459,22 +1637,14 @@
 !  (6 ) Updated comments.  Now reference ERROR_STOP from "error_mod.f" 
 !        (bmy, 10/15/02)
 !  (7 ) Renamed NTRACE to N_TRACERS for consistency (bmy, 7/19/04)
-!******************************************************************************
-! 
-      ! References to F90 modules
-      USE ERROR_MOD,  ONLY : ERROR_STOP
-
-#     include "CMN_SIZE"     ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: IFLAG
-      INTEGER, INTENT(IN)    :: N_TRACERS 
-      REAL*8,  INTENT(IN)    :: TCVV(N_TRACERS)
-      REAL*8,  INTENT(IN)    :: AD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS)
-
-      ! Local Variables
-      INTEGER                :: I, J, L, N
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, N
 
       !=================================================================
       ! CONVERT_UNITS begins here!
@@ -1568,89 +1738,163 @@
 
       ! Return to calling program
       END SUBROUTINE CONVERT_UNITS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: copy_i6_fields
+!
+! !DESCRIPTION: Subroutine COPY\_I6\_FIELDS copies the I-6 fields at the end 
+!  of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
+!  become the fields at the beginning of the next 6-hr timestep. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE COPY_I6_FIELDS
-!
-!******************************************************************************
-!  Subroutine COPY_I6_FIELDS copies the I-6 fields at the end of a 6-hr 
-!  timestep.  The I-6 fields at the end of a given 6-hr timestep become the
-!  fields at the beginning of the next 6-hr timestep. (bmy, 4/13/04, 1/17/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  13 Apr 2004 - R. Yantosca - Initial version
 !  (1 ) Added parallel DO-loops (bmy, 4/13/04)
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (3 ) Added TROPP (phs 11/10/06)
 !  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
-!******************************************************************************
-! 
-#     include "CMN_SIZE" ! Size parameters
-      
-      ! Local variables
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
+!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L
 
       !=================================================================
       ! COPY_I6_FIELDS begins here!
       !=================================================================
+!-----------------------------------------------------------------------------
+! Prior to 8/20/10:
+! Rewrite #if block for clarity
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Copy surface pressure
+!         PS1(I,J)   = PS2(I,J) 
+!
+!#if   !defined( GEOS_5 )
+!         ! Tropopause pressure (except for GEOS-5)
+!         TROPP1(I,J) = TROPP2(I,J)
+!#endif
+!
+!#if   defined( GEOS_3 )
+!         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
+!         ALBD1(I,J) = ALBD2(I,J)  
+!#endif
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#if   defined( GEOS_3 )
+!
+!      !=================================================================
+!      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
+!      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
+!      !=================================================================
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L )
+!      DO L = 1, LLPAR
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!         UWND1(I,J,L) = UWND2(I,J,L)
+!         VWND1(I,J,L) = VWND2(I,J,L)
+!         TMPU1(I,J,L) = TMPU2(I,J,L)
+!         SPHU1(I,J,L) = SPHU2(I,J,L)
+!      ENDDO
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!#endif
+!-----------------------------------------------------------------------------
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+#if   defined( GCAP )
 
-         ! Copy surface pressure
-         PS1(I,J)   = PS2(I,J) 
+      !-----------------
+      ! GCAP met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
 
-#if   !defined( GEOS_5 )
-         ! Tropopause pressure (except for GEOS-5)
-         TROPP1(I,J) = TROPP2(I,J)
+#elif defined( GEOS_3 )
+
+      !-----------------
+      ! GEOS-3 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
+      ALBD1  = ALBD2        ! I6 surface albedo      [unitless]
+      UWND1  = UWND2        ! I6 zonal wind          [m/s]
+      VWND1  = VWND2        ! I6 meridional wind     [m/s]
+      TMPU1  = TMPU2        ! I6 temperature         [K]
+      SPHU1  = SPHU2        ! I6 specific humidity   [g/kg]
+
+#elif defined( GEOS_4 )
+
+      !-----------------
+      ! GEOS-4 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      TROPP1 = TROPP2       ! I6 tropopause pressure [hPa]
+
+#elif defined( GEOS_5 )
+
+      !-----------------
+      ! GEOS-5 met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa] 
+
+#elif defined( MERRA )
+
+      !-----------------
+      ! MERRA met
+      !-----------------
+      PS1    = PS2          ! I6 surface pressure    [hPa]
+      RH1    = RH2          ! I6 relative humidity   [%]
+
 #endif
 
-#if   defined( GEOS_3 )
-         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
-         ALBD1(I,J) = ALBD2(I,J)  
-#endif
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#if   defined( GEOS_3 )
-
-      !=================================================================
-      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
-      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         UWND1(I,J,L) = UWND2(I,J,L)
-         VWND1(I,J,L) = VWND2(I,J,L)
-         TMPU1(I,J,L) = TMPU2(I,J,L)
-         SPHU1(I,J,L) = SPHU2(I,J,L)
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#endif
-
-      ! Return to calling program
       END SUBROUTINE COPY_I6_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dao
+!
+! !DESCRIPTION: Subroutine INIT\_DAO allocates memory for all allocatable 
+!  module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DAO
 !
-!******************************************************************************
-!  Subroutine INIT_DAO allocates memory for all allocatable module arrays. 
-!  (bmy, 6/26/00, 4/28/10)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
+      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
+!
+! !REVISION HISTORY: 
+!  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now allocate AVGW for either NSRCX == 3 or NSRCX == 5 (bmy, 9/24/01)
 !  (2 ) Removed obsolete code from 9/01 (bmy, 10/23/01)
 !  (3 ) Add PSC2 array for TPCORE mixing ratio fix.   (bmy, 3/27/02)
@@ -1683,16 +1927,15 @@
 !  (17) Reorganized for GEOS-5 met fields (bmy, 1/17/07)
 !  (18) Bug fix: should be CMFMC=0 after allocating CMFMC (jaf, bmy, 6/11/08)
 !  (19) Remove obsolete SUNCOSB array (bmy, 4/28/10)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  18 Aug 2010 - R. Yantosca - Now allocate met fields for MERRA
+!  20 Aug 2010 - R. Yantosca - Bug fix, now allocate REEVAPCN
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY : LWETD, LDRYD, LCHEM
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-
-#     include "CMN_SIZE"    ! Size parameters 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -2047,10 +2290,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZMMU' )
       ZMMU = 0d0
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       !-----------------------------------------------------------------
-      ! Allocate met field arrays that are only used for GEOS-5
+      ! Allocate met field arrays that are used for GEOS-5 or MERRA
       !-----------------------------------------------------------------
 
       ! GEOS-5 cloud mass flux 
@@ -2068,16 +2311,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQLDTMST' )
       DQLDTMST = 0d0
 
-      ! GEOS-5 convective rain production
-      ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
-      DQRCON = 0d0
-
-      ! GEOS-5 convective rain production
-      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
-      DQRLSC = 0d0
-
       ! GEOS-5 tendency of ice in moist processes
       ALLOCATE( DQVDTMST( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQVDTMST' )
@@ -2087,6 +2320,11 @@
       ALLOCATE( DTRAIN( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DTRAIN' )
       DTRAIN = 0d0
+
+      ! Latent heat flux
+      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
+      EFLUX = 0d0
 
       ! GEOS-5 evapotranspiration flux
       ALLOCATE( EVAP( IIPAR, JJPAR ), STAT=AS )
@@ -2127,23 +2365,6 @@
       ALLOCATE( LAI( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LAI' )
       LAI = 0d0
-
-      !------- activate these later ------------------------------
-      ! GEOS-5 E-W mass flux (C-grid)
-      !ALLOCATE( MFXC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'MFXC' )
-      !MFXC = 0d0
-      !
-      ! GEOS-5 N-S mass flux (C-grid)
-      !ALLOCATE( MFYC( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'MFYC' )
-      !MFYC = 0d0
-      !
-      ! GEOS-5 up/down mass flux (C-grid)
-      !ALLOCATE( MFZ( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
-      !IF ( AS /= 0 ) CALL ALLOC_ERR( 'MFZ' )
-      !MFZ = 0d0
-      !-----------------------------------------------------------
 
       ! GEOS-5 "snow" (i.e. frozen) precipitation
       ALLOCATE( PRECSNO( IIPAR, JJPAR ), STAT=AS )
@@ -2205,10 +2426,149 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTO3' )
       TTO3 = 0d0
 
-      ! Latent heat flux
-      ALLOCATE( EFLUX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EFLUX' )
-      EFLUX = 0d0
+#if   defined( GEOS_5 )
+
+      !-----------------------------------------------------------------
+      ! Allocate met field arrays that are used ONLY for GEOS-5
+      !-----------------------------------------------------------------
+
+      ! GEOS-5 convective rain production
+      ALLOCATE( DQRCON( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCON' )
+      DQRCON = 0d0
+
+      ! GEOS-5 convective rain production
+      ALLOCATE( DQRLSC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSC' )
+      DQRLSC = 0d0
+
+#elif defined( MERRA )
+
+      !-----------------------------------------------------------------
+      ! Allocate met field arrays that are used ONLY for MERRA
+      !-----------------------------------------------------------------
+
+      ! Precipitation production rate -- convective
+      ALLOCATE( DQRCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRCU' )
+      DQRCU = 0d0
+
+      ! Precipitation production rate -- LS + anvil
+      ALLOCATE( DQRLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DQRLSAN' )
+      DQRLSAN = 0d0
+
+      ! Fraction of grid box that is land ice
+      ALLOCATE( FRSEAICE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSEAICE' )
+      FRSEAICE = 0d0
+
+      ! Fraction of grid box that is snow
+      ALLOCATE( FRSNO( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRSNO' )
+      FRSNO = 0d0
+
+      ! Downward flux of ice precipitation -- convective 
+      ALLOCATE( PFICU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFICU' )
+      PFICU = 0d0
+
+      ! Downward flux of ice precipitation -- LS + anvil
+      ALLOCATE( PFILSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+      PFILSAN = 0d0
+
+      ! Downward flux of liquid precipitation -- convective 
+      ALLOCATE( PFLCU( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLCU' )
+      PFLCU = 0d0
+
+      ! Downward flux of liquid precipitation -- LS + anvil
+      ALLOCATE( PFLLSAN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFILSAN' )
+      PFLLSAN = 0d0
+
+      ! Surface precipitation flux from anvils
+      ALLOCATE( PREANV( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREANV' )
+      PREANV = 0d0
+
+      ! Surface precipitation flux from large-scale 
+      ALLOCATE( PRELSC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRELSC' )
+      PRELSC = 0d0
+
+      ! RH at current 3-hr timestep
+      ALLOCATE( RH1( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH1' )
+      RH1 = 0d0
+
+      ! RH at next 3-hr timestep
+      ALLOCATE( RH2( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'RH2' )
+      RH2 = 0d0
+
+      ! Evaporation of precipitating convective condensate 	
+      ALLOCATE( REEVAPCN( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPCN' )
+      REEVAPCN = 0d0
+
+      ! Evaporation of precipitating LS & anvil condensate 	
+      ALLOCATE( REEVAPLS( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'REEVAPLS' )
+      REEVAPLS = 0d0
+
+      ! 0-10% sea ice coverage
+      ALLOCATE( SEAICE00( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE00' )
+      SEAICE00 = 0d0
+
+      ! 10-20% sea ice coverage
+      ALLOCATE( SEAICE10( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE10' )
+      SEAICE10 = 0d0
+
+      ! 20-30% sea ice coverage
+      ALLOCATE( SEAICE20( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE20' )
+      SEAICE20 = 0d0
+
+      ! 30-40% sea ice coverage
+      ALLOCATE( SEAICE30( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE30' )
+      SEAICE30 = 0d0
+
+      ! 40-50% sea ice coverage
+      ALLOCATE( SEAICE40( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE40' )
+      SEAICE40 = 0d0
+
+      ! 50-60% sea ice coverage
+      ALLOCATE( SEAICE50( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE50' )
+      SEAICE50 = 0d0
+
+      ! 60-70% sea ice coverage
+      ALLOCATE( SEAICE60( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE60' )
+      SEAICE60 = 0d0
+
+      ! 70-80% sea ice coverage
+      ALLOCATE( SEAICE70( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE70' )
+      SEAICE70 = 0d0
+
+      ! 80-90 sea ice coverage
+      ALLOCATE( SEAICE80( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE80' )
+      SEAICE80 = 0d0
+
+      ! 90-100% sea ice coverage
+      ALLOCATE( SEAICE90( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SEAICE90' )
+      SEAICE90 = 0d0
+
+#endif 
 
 #elif defined( GCAP )
 
@@ -2270,16 +2630,23 @@
 
       ! Return to calling program
       END SUBROUTINE INIT_DAO
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_DAO
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_DAO deallocates all met field arrays. 
-!  (bmy, 6/26/00, 4/28/10)
+! !IROUTINE: cleanup_dao
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DAO deallocates all met field arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_DAO
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  26 Jun 2000 - R. Yantosca - Initial version
 !  (1 ) Now deallocate SLP met field for GEOS-3 (bmy, 10/10/00)
 !  (2 ) Now deallocate OPTDEP met field for GEOS-3 (bmy, 8/15/01)
 !  (3 ) Now deallocate AVGW (bmy, 9/24/01)
@@ -2298,7 +2665,13 @@
 !  (13) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (14) Deallocate additional arrays for GEOS-5 (bmy, 1/17/07)
 !  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
-!******************************************************************************
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
 !
       !=================================================================
       ! CLEANUP_DAO begins here!
@@ -2320,11 +2693,13 @@
       IF ( ALLOCATED( DETRAINE ) ) DEALLOCATE( DETRAINE )
       IF ( ALLOCATED( DETRAINN ) ) DEALLOCATE( DETRAINN ) 
       IF ( ALLOCATED( DNDE     ) ) DEALLOCATE( DNDE     ) 
-      IF ( ALLOCATED( DNDN     ) ) DEALLOCATE( DNDN     ) 
+      IF ( ALLOCATED( DNDN     ) ) DEALLOCATE( DNDN     )
       IF ( ALLOCATED( DQIDTMST ) ) DEALLOCATE( DQIDTMST )
       IF ( ALLOCATED( DQLDTMST ) ) DEALLOCATE( DQLDTMST )
       IF ( ALLOCATED( DQRCON   ) ) DEALLOCATE( DQRCON   )
+      IF ( ALLOCATED( DQRCU    ) ) DEALLOCATE( DQRCU    )
       IF ( ALLOCATED( DQRLSC   ) ) DEALLOCATE( DQRLSC   )
+      IF ( ALLOCATED( DQRLSAN  ) ) DEALLOCATE( DQRLSAN  )
       IF ( ALLOCATED( DQVDTMST ) ) DEALLOCATE( DQVDTMST )
       IF ( ALLOCATED( DTRAIN   ) ) DEALLOCATE( DTRAIN   )
       IF ( ALLOCATED( ENTRAIN  ) ) DEALLOCATE( ENTRAIN  ) 
@@ -2333,6 +2708,8 @@
       IF ( ALLOCATED( FRLAKE   ) ) DEALLOCATE( FRLAKE   )
       IF ( ALLOCATED( FROCEAN  ) ) DEALLOCATE( FROCEAN  )
       IF ( ALLOCATED( FRLANDIC ) ) DEALLOCATE( FRLANDIC )
+      IF ( ALLOCATED( FRSEAICE ) ) DEALLOCATE( FRSEAICE )
+      IF ( ALLOCATED( FRSNO    ) ) DEALLOCATE( FRSNO    )
       IF ( ALLOCATED( GRN      ) ) DEALLOCATE( GRN      ) 
       IF ( ALLOCATED( GWETROOT ) ) DEALLOCATE( GWETROOT ) 
       IF ( ALLOCATED( GWETTOP  ) ) DEALLOCATE( GWETTOP  )
@@ -2354,8 +2731,14 @@
       IF ( ALLOCATED( PARDR    ) ) DEALLOCATE( PARDR    )
       IF ( ALLOCATED( PBL      ) ) DEALLOCATE( PBL      )
       IF ( ALLOCATED( PHIS     ) ) DEALLOCATE( PHIS     )
+      IF ( ALLOCATED( PFICU    ) ) DEALLOCATE( PFICU    )
+      IF ( ALLOCATED( PFILSAN  ) ) DEALLOCATE( PFILSAN  )
+      IF ( ALLOCATED( PFLCU    ) ) DEALLOCATE( PFLCU    )
+      IF ( ALLOCATED( PFLLSAN  ) ) DEALLOCATE( PFLLSAN  )
       IF ( ALLOCATED( PREACC   ) ) DEALLOCATE( PREACC   )
+      IF ( ALLOCATED( PREANV   ) ) DEALLOCATE( PREANV   )
       IF ( ALLOCATED( PRECON   ) ) DEALLOCATE( PRECON   )
+      IF ( ALLOCATED( PRELSC   ) ) DEALLOCATE( PRELSC   )
       IF ( ALLOCATED( PRECSNO  ) ) DEALLOCATE( PRECSNO  )
       IF ( ALLOCATED( PS1      ) ) DEALLOCATE( PS1      )
       IF ( ALLOCATED( PS2      ) ) DEALLOCATE( PS2      )
@@ -2365,7 +2748,21 @@
       IF ( ALLOCATED( QL       ) ) DEALLOCATE( QL       )
       IF ( ALLOCATED( RADLWG   ) ) DEALLOCATE( RADLWG   )
       IF ( ALLOCATED( RADSWG   ) ) DEALLOCATE( RADSWG   )
+      IF ( ALLOCATED( REEVAPCN ) ) DEALLOCATE( REEVAPCN )
+      IF ( ALLOCATED( REEVAPLS ) ) DEALLOCATE( REEVAPLS )
+      IF ( ALLOCATED( RH1      ) ) DEALLOCATE( RH1      )
+      IF ( ALLOCATED( RH2      ) ) DEALLOCATE( RH2      )
       IF ( ALLOCATED( RH       ) ) DEALLOCATE( RH       )
+      IF ( ALLOCATED( SEAICE00 ) ) DEALLOCATE( SEAICE00 )
+      IF ( ALLOCATED( SEAICE10 ) ) DEALLOCATE( SEAICE10 )
+      IF ( ALLOCATED( SEAICE20 ) ) DEALLOCATE( SEAICE20 )
+      IF ( ALLOCATED( SEAICE30 ) ) DEALLOCATE( SEAICE30 )
+      IF ( ALLOCATED( SEAICE40 ) ) DEALLOCATE( SEAICE40 )
+      IF ( ALLOCATED( SEAICE50 ) ) DEALLOCATE( SEAICE50 )
+      IF ( ALLOCATED( SEAICE60 ) ) DEALLOCATE( SEAICE60 )
+      IF ( ALLOCATED( SEAICE70 ) ) DEALLOCATE( SEAICE70 )
+      IF ( ALLOCATED( SEAICE80 ) ) DEALLOCATE( SEAICE80 )
+      IF ( ALLOCATED( SEAICE90 ) ) DEALLOCATE( SEAICE90 )
       IF ( ALLOCATED( SLP      ) ) DEALLOCATE( SLP      )
       IF ( ALLOCATED( SNICE    ) ) DEALLOCATE( SNICE    )
       IF ( ALLOCATED( SNODP    ) ) DEALLOCATE( SNODP    )
@@ -2406,10 +2803,6 @@
       IF ( ALLOCATED( ZMMU     ) ) DEALLOCATE( ZMMU     )
       IF ( ALLOCATED( EFLUX    ) ) DEALLOCATE( EFLUX    )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DAO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DAO_MOD

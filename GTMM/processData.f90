@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: processData
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE processData
@@ -17,10 +18,10 @@ SUBROUTINE processData
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
+!  09 Jul 2010 - C. Caroauge - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -588,3 +589,4 @@ SUBROUTINE processData
      ENDIF
   ENDIF
 END SUBROUTINE processData
+!EOC

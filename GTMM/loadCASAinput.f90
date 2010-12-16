@@ -6,16 +6,8 @@
 ! !MODULE: loadCASAinput
 !
 ! !DESCRIPTION: Loads input files.
-!
-! !REMARKS: For global studies, these files should be given 
-!  as 180 by 360 matrix for 1x1 degree, 360 by 720 for half by half 
-!  etc.  This routine will construct a 'mask' with vegetated gridcells
-!  and will reshape them into an X by 1 matrix, where X is the total
-!  number of vegetated grid cells.  
-!  The files which contain monthly varying parameters (i.e. precip)
-!  should be given as (for 1x1) 180x360x12, and will be reshaped to
-!  an X by 12 matrix, one column for each month
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE loadCASAinput
@@ -25,7 +17,7 @@ MODULE loadCASAinput
   USE defineConstants
   USE CasaRegridModule
 
-  implicit none
+  IMPLICIT NONE
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -78,15 +70,23 @@ MODULE loadCASAinput
    
   REAL*8, ALLOCATABLE :: mask2(:,:)
 !
-! !REVISION HISTORY:
+! !REMARKS: For global studies, these files should be given 
+!  as 180 by 360 matrix for 1x1 degree, 360 by 720 for half by half 
+!  etc.  This routine will construct a 'mask' with vegetated gridcells
+!  and will reshape them into an X by 1 matrix, where X is the total
+!  number of vegetated grid cells.  
+!  The files which contain monthly varying parameters (i.e. precip)
+!  should be given as (for 1x1) 180x360x12, and will be reshaped to
+!  an X by 12 matrix, one column for each month
 !
+! !REVISION HISTORY:
 ! 9 July 2010 - C. Carouge  - Modified for coupled simulations with GEOS-Chem
 !                             or to restart offline simulations. 
 !EOP
 !------------------------------------------------------------------------------
-
-CONTAINS
-
+!BOC
+  CONTAINS
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -95,7 +95,8 @@ CONTAINS
 ! !IROUTINE: load_data
 !
 ! !DESCRIPTION: Reads input data.
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE load_data(LCPLE)
@@ -336,10 +337,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CONV_TO_1D
+! !IROUTINE: conv_to_1d
 !
 ! !DESCRIPTION: Convert maps into one column with only vegetated grid cells
-!
+!\\
+!\\
 ! !INTERFACE:
 !
  SUBROUTINE CONV_TO_1D
@@ -466,10 +468,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IFUNCTION: maskfile
+! !IROUTINE: maskfile
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
  function maskfile(dummy,mask3) result (masked_file)
@@ -526,10 +529,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IFUNCTION: mask12file
+! !IROUTINE: mask12file
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
  function mask12file(dummy12, mask3) result (masked_12file)
@@ -572,8 +576,7 @@ CONTAINS
    END DO
    
  end function mask12file
-
-END MODULE loadCASAinput
 !EOC
-!----------------------------------------------------------------------------
+END MODULE loadCASAinput
+
 

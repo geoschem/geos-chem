@@ -7,13 +7,8 @@
 !
 ! !DESCRIPTION: Module CasaRegridModule contains arrays and variables used to 
 !  regrid the GEOS-5 data from 1 x 1 Generic to 2 x 2.5, and 4 x 5 geos grids.
-!  (bmy, 1/14/08)
-!
-!  CasaRegridModule uses the regridding software "MAP_A2A" from S-J Lin.  
-!  This is area-preserving mapping.  For example, if you have a quantity 
-!  such as kg/m2/s or W/m2, MAP_A2A will multiply by the area on the
-!  input grid, then regrid, and divide by the area on the output grid,
-!  such that the total quantity is preserved.  
+!\\
+!\\
 ! !INTERFACE: 
 !
 MODULE CasaRegridModule
@@ -21,13 +16,10 @@ MODULE CasaRegridModule
 ! !USES:
 !
   IMPLICIT NONE
-
-  ! Make everything PRIVATE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  ! ... and these routines
   PUBLIC :: regrid1x1to4x5
   PUBLIC :: regrid4x5to1x1
   PUBLIC :: regrid1x1to2x25
@@ -36,18 +28,17 @@ MODULE CasaRegridModule
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  ! ... except these variables ...
   PUBLIC :: I1x1,      J1x1,      L1x1    
-  !PUBLIC :: I1x125,    J1x125,    L1x125  
   PUBLIC :: I2x25,     J2x25,     L2x25   
   PUBLIC :: I4x5,      J4x5,      L4x5    
-
-  ! Size parameters for 1x1, 2x2.5, 4x5 grids
+!
+! !DEFINED PARAMETERS:
+!
   INTEGER, PARAMETER  :: I1x1     = 360,  J1x1     = 180,  L1x1     = 72    
   INTEGER, PARAMETER  :: I2x25    = 144,  J2x25    = 91,   L2x25    = 72
   INTEGER, PARAMETER  :: I4x5     = 72,   J4x5     = 46,   L4x5     = 72
 !
-! !PRIVATE DATA MEMBERS:
+! !PRIVATE TYPES:
 !
   ! Degrees to Radians
   REAL*8,  PARAMETER  :: D2R = 3.141592658979323d0 / 180d0
@@ -91,16 +82,23 @@ MODULE CasaRegridModule
   ! Latitude edges
   REAL*8 :: sine_4x5( J4x5 + 1 )
 !
+! !REMARKS:
+!  CasaRegridModule uses the regridding software "MAP_A2A" from S-J Lin.  
+!  This is area-preserving mapping.  For example, if you have a quantity 
+!  such as kg/m2/s or W/m2, MAP_A2A will multiply by the area on the
+!  input grid, then regrid, and divide by the area on the output grid,
+!  such that the total quantity is preserved.  
+!
 ! !REVISION HISTORY:
-!  
-! (1 ) Modify regriddGeos5To* routines so that if all values are zero,
-!       then we just fill the output data array with zeros and return.
-!       This ought to speed up program execution. (bmy, 11/14/06)
+!  14 Jan 2008 - R. Yantosca - Initial version
+!  (1 ) Modify regriddGeos5To* routines so that if all values are zero,
+!        then we just fill the output data array with zeros and return.
+!        This ought to speed up program execution. (bmy, 11/14/06)
 !EOP
 !------------------------------------------------------------------------------
-
-CONTAINS
-
+!BOC
+  CONTAINS
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -108,9 +106,11 @@ CONTAINS
 !
 ! !IROUTINE: regrid4x5to1x1
 !
-! !DESCRIPTION: Subroutine regrid4x5to1x1 is a wrapper for MAP_A2A, which is 
+! !DESCRIPTION: Subroutine regrid4x5to1x1 is a wrapper for MAP\_A2A, which is 
 !  called to regrid from the GEOS-5 4x5 grid to the GENERIC 1x1 grid. 
-!  (bmy, 11/8/06)
+!\\
+!\\
+! !INTERFACE:
 !
   SUBROUTINE regrid4x5to1x1( iv, q1, q2 )
 !
@@ -124,7 +124,7 @@ CONTAINS
     REAL*8,  INTENT(OUT) :: q2( I1x1, J1x1 )
 !
 ! !REVISION HISTORY: 
-!
+!  08 Nov 2006 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -152,10 +152,10 @@ CONTAINS
 !
 ! !IROUTINE: regrid1x1to4x5
 !
-! !DESCRIPTION: Subroutine regrid1x1to4x5 is a wrapper for MAP_A2A, which is 
+! !DESCRIPTION: Subroutine regrid1x1to4x5 is a wrapper for MAP\_A2A, which is 
 !  called to regrid from the GENERIC 1x1 grid to the GEOS-5 4x5 grid.
-!  (bmy, 11/8/06)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE regrid1x1to4x5( iv, q1, q2 )
@@ -170,7 +170,7 @@ CONTAINS
     REAL*8,  INTENT(OUT) :: q2( I4x5, J4x5 )
 !
 ! !REVISION HISTORY:
-!
+!  08 Nov 2006 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -198,11 +198,11 @@ CONTAINS
 !
 ! !IROUTINE: regrid2x25to1x1
 !
-! !DESCRIPTION: Subroutine regrid2x25to1x1 is a wrapper for MAP_A2A, which is 
+! !DESCRIPTION: Subroutine regrid2x25to1x1 is a wrapper for MAP\_A2A, which is 
 !  called to regrid from the GENERIC 1x1 grid to the GEOS 2 x 2.5 grid.
 !  (bmy, 11/8/06)
-!
-!
+!\\
+!\\
 ! !INTERFACE
 !
   SUBROUTINE regrid2x25to1x1( iv, q1, q2 )
@@ -217,7 +217,7 @@ CONTAINS
     REAL*8,  INTENT(OUT) :: q2( I1x1,  J1x1  )
 !
 ! !REVISION HISTORY:
-!
+!  08 Nov 2006 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,10 +245,10 @@ CONTAINS
 !
 ! !IROUTINE: regrid1x1to2x25
 !
-! !DESCRIPTION: Subroutine regridGeos5to2x25 is a wrapper for MAP_A2A, which 
+! !DESCRIPTION: Subroutine regridGeos5to2x25 is a wrapper for MAP\_A2A, which 
 !  regrids from the GEOS-5 1x1 grid to the GEOS 2 x 2.5 grid.  
-!  (bmy, 11/8/06)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE regrid1x1to2x25( iv, q1, q2 )
@@ -263,7 +263,7 @@ CONTAINS
     REAL*8,  INTENT(OUT) :: q2( I2x25, J2x25 )
 !
 ! !REVISION HISTORY:
-!
+!  08 Nov 2006 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,9 +291,10 @@ CONTAINS
 !
 ! !IROUTINE: map_a2a
 !
-! !DESCRIPTION: Subroutine MAP_A2A is a orizontal arbitrary grid to arbitrary 
+! !DESCRIPTION: Subroutine MAP\_A2A is a orizontal arbitrary grid to arbitrary 
 !  grid conservative high-order mapping regridding routine by S-J Lin.
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE map_a2a( im, jm, lon1, sin1, q1, &
@@ -313,9 +314,9 @@ CONTAINS
 !  !REVISION HISTORY:
 !  (1) Original subroutine by S-J Lin.  Converted to F90 freeform format
 !      and inserted into "Geos3RegridModule" by Bob Yantosca (9/21/00)
-!
 !  (2) Added F90 type declarations to be consistent w/ TypeModule.f90.
 !      Also updated comments. (bmy, 9/21/00)
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,13 +367,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Routine to perform area preserving mapping in N-S from an 
 !  arbitrary resolution to another.
-!
-! !REMARKS:
-!  sin1 (1) = -1 must be south pole; sin1(jm+1)=1 must be N pole.
-!
-!  sin1(1) < sin1(2) < sin1(3) < ... < sin1(jm) < sin1(jm+1)
-!  sin2(1) < sin2(2) < sin2(3) < ... < sin2(jn) < sin2(jn+1)
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE ymap(im, jm, sin1, q1, jn, sin2, q2, ig, iv)
@@ -398,6 +394,12 @@ CONTAINS
     REAL*8,  INTENT(OUT) :: q2(im,jn)     ! Mapped data at the 
                                           !  target resolution
 !
+! !REMARKS:
+!  sin1 (1) = -1 must be south pole; sin1(jm+1)=1 must be N pole.
+!                                                                             .
+!  sin1(1) < sin1(2) < sin1(3) < ... < sin1(jm) < sin1(jm+1)
+!  sin2(1) < sin2(2) < sin2(3) < ... < sin2(jn) < sin2(jn+1)
+!
 ! !AUTHOR:
 !  S.-J. Lin
 !  First version: piece-wise constant mapping
@@ -405,7 +407,7 @@ CONTAINS
 !  Last modified:
 !
 ! !REVISION HISTORY:
-!
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -520,8 +522,9 @@ CONTAINS
 ! !IROUTINE: ppm_lat
 !
 ! !DESCRIPTION: Subroutine PPM\_LAT is called by YMAP.  Written by S-J Lin, and
-!  converted to F90 freeform format by Bob Yantosca. (bmy, 9/21/00)
-!
+!  converted to F90 freeform format by Bob Yantosca.
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE ppm_lat(im, jm, ig, q, al, ar, a6, jord, iv)
@@ -545,7 +548,7 @@ CONTAINS
     REAL*8            :: a6(im,jm-ig)
 !
 ! !REVISION HISTORY:
-!
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -725,7 +728,8 @@ CONTAINS
 !  arbitrary resolution to another.
 !  Periodic domain will be assumed, i.e., the eastern wall bounding cell
 !  im is lon1(im+1) = lon1(1); Note the equal sign is true geographysically.
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE xmap(im, jm, lon1, q1, in, lon2, q2)
@@ -747,7 +751,8 @@ CONTAINS
                                          !  target resolution
 !
 ! !REVISION HISTORY:
-!
+!  21 Sep 2000 - R. Yantosca - Initial version
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -911,7 +916,8 @@ CONTAINS
 ! !IROUTINE: ppm_cycle
 !
 ! !DESCRIPTION: PPM\_CYCLE is called by XMAP
-!
+!\\
+!\\
 ! !INTERFACE:
 !
    subroutine ppm_cycle(im, q, al, ar, a6, p, iord)
@@ -926,7 +932,7 @@ CONTAINS
      REAL*8,  INTENT(OUT) :: al(1), ar(1), a6(1), p(0:im+1)
 !
 ! !REVISION HISTORY:
-!
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -981,13 +987,9 @@ CONTAINS
 !
 ! !IROUTINE: lmppm
 !
-! !DESCRIPTION: Subroutine LMPPM is called by PPM_CYCLE.
-!
-! !REMARKS:
-!  LMT = 0: full monotonicity
-!  LMT = 1: semi-monotonic constraint (no undershoot)
-!  LMT = 2: positive-definite constraint
-! 
+! !DESCRIPTION: Subroutine LMPPM is called by PPM\_CYCLE.
+!\\
+!\\ 
 ! !INTERFACE:
 !
    SUBROUTINE lmppm(dm, a6, ar, al, p, im, lmt)
@@ -1001,8 +1003,13 @@ CONTAINS
 !
      REAL*8            :: a6(im),ar(im),al(im)
 !
-! !REVISION HISTORY:
+! !REMARKS:
+!  LMT = 0: full monotonicity
+!  LMT = 1: semi-monotonic constraint (no undershoot)
+!  LMT = 2: positive-definite constraint
 !
+! !REVISION HISTORY:
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1087,7 +1094,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HUYNH enforces Huynh's 2nd constraint in 1D 
 !  periodic domain
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE huynh(im, ar, al, p, d2, d1)
@@ -1102,7 +1110,7 @@ CONTAINS
     REAL*8  :: ar(im), al(im), d2(im), d1(im)
 !
 ! !REVISION HISTORY:
-!
+!  21 Sep 2000 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1183,18 +1191,18 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine CasaRegridInit initializes the longitude and 
 !  latitude edge arrays for 0.5 x 0.666, 1 x 1.25, 2 x 2.5, and 4 x 5 grids.
-! (bmy, 11/9/06)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CasaRegridInit
 !
 ! !REMARKS:
 !  Computation is done in REAL*8 and then casted to REAL*4 in order
 !  to get correct values for the high-resolution grids. 
 !
-! !INTERFACE:
-!
-  SUBROUTINE CasaRegridInit
-!
 ! !REVISION HISTORY:
-!
+!  09 Nov 2006- R. Yantosca - Initial version
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -1289,7 +1297,6 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE CasaRegridInit
-END MODULE CasaRegridModule
 !EOC
-!-----------------------------------------------------------------------------
+END MODULE CasaRegridModule
 

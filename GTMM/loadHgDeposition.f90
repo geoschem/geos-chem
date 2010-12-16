@@ -6,8 +6,9 @@
 ! !IROUTINE: loadHgDeposition
 !
 ! !DESCRIPTION: This code reads in output from geos chem 4x5 degree, 
-!  converts it to 1x1 degree, then converts it to (n_veg,1) for CASA
-!
+!  converts it to 1x1 degree, then converts it to (n\_veg,1) for CASA
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
@@ -32,6 +33,7 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
 ! 15 Dec 09 - C. Carouge  - Add arguments for coupling with GEOS-Chem
 !                         - Change format of emission years file to 
 !                           facilitate restart.
+!EOP
 !-----------------------------------------------------------------------
 !BOC
 !
@@ -182,7 +184,8 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
            OPEN(UNIT=3, FILE=filename1, IOSTAT=ios, FORM="FORMATTED")
            READ(3,FMT="(72E12.5)") HgIIdryGEOS
            CLOSE(3)
-     
+     !------------------------------------------------------------------------------
+
            filename1(f_len+1:f_len+6)='Hg2wet'
            OPEN(UNIT=3, FILE=filename1, IOSTAT=ios, FORM="FORMATTED")
            READ(3,FMT="(72E12.5)") HgIIwetGEOS
@@ -237,4 +240,3 @@ SUBROUTINE loadHgDeposition(LCPLE, DD_Hg0, DD_HgII, WD_HgII)
   
 END SUBROUTINE loadHgDeposition
 !EOC
-!------------------------------------------------------------------------------

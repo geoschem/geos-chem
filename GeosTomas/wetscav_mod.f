@@ -3,7 +3,7 @@
 !
 !******************************************************************************
 !  Module WETSCAV_MOD contains arrays for used in the wet scavenging of
-!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 7/20/09)
+!  tracer in cloud updrafts, rainout, and washout. (bmy, 2/28/00, 8/13/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -138,6 +138,7 @@
 !  (31) Add LGTMM as condition to output AD39. (ccc, 11/18/09)
 !  (32) Add snow scavenging, different washout/rainout ratio 
 !       (wqq, ccc, 7/13/10)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -203,6 +204,7 @@
 !  NOTES:
 !  (1 ) Now references LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (2 ) Don't do rainout/washout for conv precip for GEOS-5 (hyl, bmy, 3/5/08)
+!  13 Aug 2010 - R. Yantosca - Treat GEOS-5 like MERRA
 !******************************************************************************
 !
       ! References to F90 modules
@@ -221,7 +223,7 @@
       CALL WETDEP(  .TRUE. )
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
 
-#if   !defined( GEOS_5 )
+#if   !defined( GEOS_5 ) && !defined( MERRA )
 
       !------------------------------------------------------------------
       ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -2250,6 +2252,7 @@
 !        overlooked this. (havala, bmy, 7/20/09)
 !  (18) Add TOMAS aerosol number and mass tracers and H2SO4 to the list, 
 !       reference to TOMAS_MOD.  (win, 7/16/09)
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2313,7 +2316,7 @@
       ! Save the local temperature in TK for convenience
       TK = T(I,J,L)
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       !------------------------------------------------------------------
       ! NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
       !

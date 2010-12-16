@@ -1,13 +1,12 @@
-! $Id: emissions_mod.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: EMISSIONS_MOD
+! !MODULE: emissions_mod
 !
 ! !DESCRIPTION: Module EMISSIONS\_MOD is used to call the proper emissions 
-!  subroutines for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
+!  subroutines for the various GEOS-Chem simulations.
 !\\
 !\\
 ! !INTERFACE: 
@@ -29,6 +28,7 @@
       PUBLIC :: ISOP_SCALING,NOx_SCALING
 !
 ! !REVISION HISTORY:
+!  11 Feb 2003 - R. Yantosca - Initial version
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
 !  (2 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (3 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/2/04)
@@ -55,18 +55,21 @@
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
+! !PRIVATE TYPES:
+!
       !FP_ISOP. For scaling Isoprene and NOx emissions.
       REAL*8              :: ISOP_SCALING,NOx_SCALING
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_EMISSIONS
+! !IROUTINE: do_emissions
 !
 ! !DESCRIPTION: Subroutine DO\_EMISSIONS is the driver routine which calls 
 !  the appropriate emissions subroutine for the various GEOS-CHEM simulations. 
@@ -547,11 +550,6 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG ( '### DO_EMISSIONS: a EMISSIONS' )
 
-      ! Return to calling program
       END SUBROUTINE DO_EMISSIONS
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE EMISSIONS_MOD
 !EOC
+      END MODULE EMISSIONS_MOD

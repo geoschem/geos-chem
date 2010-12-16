@@ -1,11 +1,10 @@
-! $Id: bpch.intro,v 1.1 2009/11/20 21:43:00 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOI
-! !TITLE: The GEOS-Chem Model: Binary Punch File I/O Modules
+! !TITLE: The GEOS-Chem Model: Source Code Reference
 ! !AUTHORS: Bob Yantosca, Philippe Le Sager, and Claire Carouge
 ! !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
-! !DATE: November 20, 2009
+! !DATE: August 27, 2010
 !EOI
 !------------------------------------------------------------------------------

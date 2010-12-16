@@ -1,118 +1,99 @@
-! $Id: initialize.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: initialize
+!
+! !DESCRIPTION: Subroutine INITIALIZE does the following:
+!
+! \begin{enumerate}
+! \item Zeroes globally defined GEOS-CHEM variables.
+! \item Zeroes accumulating diagnostic arrays.
+! \item Resets certain year/month/day and counter variables used 
+!       in GEOS-Chem diagnostic subroutines. 
+! \end{enumerate}
+!
+! !INTERFACE:
+!
       SUBROUTINE INITIALIZE( IFLAG )
 !
-!******************************************************************************
-!  Subroutine INITIALIZE (bmy, 6/15/98, 11/18/08) does the following:
-!     (1) Zeroes globally defined GEOS-CHEM variables.
-!     (2) Zeroes accumulating diagnostic arrays.
-!     (3) Resets certain year/month/day and counter variables used 
-!         in GEOS-CHEM diagnostic subroutines.
+! !USES:
 !
-!  NOTE: Eventually we will fold this into "diag_mod.f" in a cleaner,
-!        more consistent fashion.  Think about this later (bmy, 11/14/02)
+      USE DIAG_MOD,    ONLY : AD01,        AD02,        AD05    
+      USE DIAG_MOD,    ONLY : AD06,        AD07,        AD07_BC
+      USE DIAG_MOD,    ONLY : AD07_OC,     AD07_HC,     AD08
+      USE DIAG_MOD,    ONLY : AD07_SOAGM
+      USE DIAG_MOD,    ONLY : AD09,        AD09_em,     AD11
+      USE DIAG_MOD,    ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
+      USE DIAG_MOD,    ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
+      USE DIAG_MOD,    ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
+      USE DIAG_MOD,    ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
+      USE DIAG_MOD,    ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
+      USE DIAG_MOD,    ONLY : CONVFLUP,    TURBFLUP,    AD16
+      USE DIAG_MOD,    ONLY : CT16,        AD17,        CT17
+      USE DIAG_MOD,    ONLY : AD18,        CT18,        AD21
+      USE DIAG_MOD,    ONLY : AD21_cr,     AD22,        LTJV
+      USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
+      USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
+      USE DIAG_MOD,    ONLY : AD30,        AD31
+      !add potential temp diagnostic (fp, 6/2009)
+      USE DIAG_MOD,    ONLY : AD57
+      USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
+      USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
+      USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
+      USE DIAG_MOD,    ONLY : AD34,        AD35,        AD36
+      USE DIAG_MOD,    ONLY : AD37,        AD38,        AD39
+      USE DIAG_MOD,    ONLY : AD43,        LTNO
+      USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
+      USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
+      USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
+      ! update for arom (dkh, 06/21/07)  
+      USE DIAG_MOD,    ONLY : CTLBRO2H,    CTLBRO2N
+      USE DIAG_MOD,    ONLY : CTLTRO2H,    CTLTRO2N
+      USE DIAG_MOD,    ONLY : CTLXRO2H,    CTLXRO2N
+      USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
+      USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
+      USE DIAG_MOD,    ONLY : AD52
+      USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
+      USE DIAG_MOD,    ONLY : AD19,        AD58,        AD60
+      USE DIAG_MOD,    ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT !(win, 7/28/09)
+      USE DIAG_MOD,    ONLY : AD59_ECIL,   AD59_ECOB              !(win, 7/28/09)
+      USE DIAG_MOD,    ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST !(win, 7/28/09)
+      USE DIAG_MOD,    ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL !(win, 7/28/09)
+      USE DIAG_MOD,    ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA  !(win, 7/28/09)
+      USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
+      USE DIAG_MOD,    ONLY : AD68,        AD69
+      USE DIAG_MOD,    ONLY : AD10,        AD10em
+      USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
+      USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
+      USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
+      USE DIAG42_MOD,  ONLY : ND42,        ZERO_DIAG42
+      USE DIAG56_MOD,  ONLY : ND56,        ZERO_DIAG56
+      USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LCRYST
+      USE TIME_MOD
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_DIAG"    ! NDxx flags
+
 !
-!  Arguments as Input/Output
-!  ============================================================================
-!  (1 ) IFLAG : IFLAG=1, zero global CTM arrays 
-!             : IFLAG=2, zero accumulating diagnostic arrays
-!             : IFLAG=3, zero accumulating diagnostic counters
+! !INPUT PARAMETERS: 
 !
-!  CTM arrays passed via COMMON blocks:
-!  ============================================================================
-!  (2 ) XTRA2       : Contains global boundary layer height in # of layers
+      ! If IFLAG=1, zero global CTM arrays 
+      ! If IFLAG=2, zero accumulating diagnostic arrays
+      ! If IFLAG=3, zero accumulating diagnostic counters
+      INTEGER, INTENT(IN)  :: IFLAG
 !
-!  Allocatable arrays passed via F90 module "diag_mod.f"
-!  ============================================================================
-!  (-1) AD11        : ND11 array -- acetone source diagnostic
-!  (0 ) AD12        : ND12 array -- boundary layer emissions in "setemis.f"
-!  (1 ) AD13_DMS    : ND13 array -- DMS emissions
-!  (2 ) AD13_SO2_ac : ND13 array -- SO2 aircraft emissions
-!  (3 ) AD13_SO2_an : ND13 array -- SO2 anthro emissions
-!  (4 ) AD13_SO2_bb : ND13 array -- SO2 biomass emissions
-!  (4a) AD13_SO2_bf : ND13 array -- SO2 biofuel emissions
-!  (5 ) AD13_SO2_nv : ND13 array -- SO2 non-eruptive volcano emissions
-!  (6 ) AD13_SO2_ev : ND13 array -- SO2 eruptive volcano emissions
-!  (6a) AD13_SO2_sh : ND13 array -- SO2 ship emissions
-!  (7 ) AD13_SO4_an : ND13 array -- SO4 anthro emissions
-!  (8 ) AD13_NH3_an : ND13 array -- NH3 anthro emissions
-!  (8a) AD13_NH3_na : ND13 array -- NH3 natural source emissions
-!  (9 ) AD13_NH3_bb : ND13 array -- NH3 biomass emissions
-!  (10) AD13_NH3_bf : ND13 array -- NH3 biofuel emissions
-!  (11) CONVFLUP    : ND14 array -- cloud convection fluxes
-!  (12) TURBFLUP    : ND15 array -- mass change in BL mixing
-!  (13) AD16        : ND16 array -- precip fractions for wetdep
-!  (14) AD17        : ND17 array -- rainout fractions
-!  (15) AD18        : ND18 array -- washout fractions
-!  (16) AD21        : ND21 array -- optical depths, cloud fractions
-!  (17) AD22        : ND22 array -- J-values
-!  (18) DIAGCHLORO  : ND23 array -- CH3CCl3 lifetime 
-!  (19) MASSFLEW    : ND24 array -- E-W transport fluxes
-!  (20) MASSFLNS    : ND25 array -- N-S transport fluxes
-!  (21) MASSFLUP    : ND26 array -- vertical transport fluxes
-!  (22) AD31        : ND31 array -- Psurface - PTOP
-!  (23) AD33        : ND33 array -- tropopsheric sum of tracer
-!  (24) AD32_ac     : ND32 array -- NOx source from aircraft 
-!  (25) AD32_an     : ND32 array -- NOx source from anthro emissions 
-!  (26) AD32_bb     : ND32 array -- NOx source from biomass burning
-!  (27) AD32_bf     : ND32 array -- NOx source from biofuel burning
-!  (28) AD32_fe     : ND32 array -- NOx source from fertilizers
-!  (29) AD32_li     : ND32 array -- NOx source from lightning
-!  (30) AD32_so     : ND32 array -- NOx source from soils
-!  (31) AD32_ub     : ND32 array -- NOx source from upper boundary
-!  (32) AD34        : ND34 array -- biofuel burning emissions
-!  (33) AD35        : ND35 array -- tracer at 500 mb
-!  (34) AD37        : ND37 array -- wet scavenging fraction
-!  (35) AD38        : ND38 array -- rainout in wet conv
-!  (36) AD39        : ND39 array -- washout in aerosol deposition
-!  (37) AD40        : ND40 array -- prod/loss H2/HD
-!  (38) AD40em      : ND40 array -- H2/HD emissions
-!  (38) AD41        : ND41 array -- afternoon PBL depths
-!  (39) AD43        : ND43 array -- OH, NO concentrations
-!  (40) AD45        : ND45 array -- tracer concentrations
-!  (41) AD47        : ND47 array -- 24-h avg'd tracer conc.
-!  (42) TCOBOX      : ND48 array -- station time series
-!  (43) AD54        : ND54 array -- time in the troposphere (fraction)
-!  (44) AD55        : ND55 array -- tropopause quantities
-!  (45) AD65        : ND65 array -- chemical prod & loss
-!  (46) FAMPL       : ND65 array -- accumulator for chemical prod & loss
-!  (47) AD66        : ND66 array -- DAO 3-D fields
-!  (48) AD67        : ND67 array -- DAO surface fields
-!  (49) AD68        : ND68 array -- boxheights, air mass, water vapor, 
-!                                   Air number density 
-!  (50) AD69        : ND69 array -- surface areas
-!
-!  Scalars & Counter variables passed via COMMON blocks
-!  ============================================================================
-!  (1 ) TAU0        : beginning of diagnostic interval
-!  (2 ) NTAU0       : integer representation of TAU0
-!  (3 ) IDAY0       : day at beginning of diagnostic interval
-!  (4 ) TOFDY0      : GMT at beginning of diagnostic interval
-!  (5 ) JDATE0      : day of month  at beginning of diagnostic interval
-!  (6 ) JMNTH0      : month of year at beginning of diagnostic interval
-!  (7 ) JYEAR0      : year          at beginning of diagnostic interval
-!  (8 ) KDA48       : Counter for timeseries accumulation (ND48 diagnostic)
-!  (9 ) KDACC       : Counter for DIAG1
-!  (10) KDADYN      : Counter of dynamic timesteps
-!  (11) KDACONV     : Counter of convective timesteps
-!  (12) KDASRCE     : Counter of emission timesteps
-!  (13) KDACHEM     : Counter of chemistry timesteps
-!  (14) KDA3FLDS    : Counter for # of times A-3 fields are read
-!  (15) KDA6FLDS    : Counter for # of times A-6 fields are read
-!  (16) KDI6FLDS    : Counter for # of times I-6 fields are read
-!  (17) KDKZZFLDS   : Counter for # of times KZZ fields are read
-!
-!  Dynamically allocatable counter variables passed via F90 Modules
-!  ============================================================================
-!  (1 ) CT16        : ND16 counter array 
-!  (2 ) CT17        : ND17 counter array
-!  (3 ) CT18        : ND18 counter array
-!  (4 ) CTJV        : ND22 counter array
-!  (5 ) AFTTOT      : ND41 counter array
-!  (6 ) CTNO        : ND43 counter array -- NO
-!  (7 ) CTOH        : ND43 counter array -- OH
-!  (8 ) CTOTH       : ND45 counter array 
-!
-!  NOTES:
+! !REMARKS:
+!  Eventually we will fold this into "diag_mod.f" in a cleaner,
+!   more consistent fashion.  Think about this later (bmy, 11/14/02)
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - M. Prather  - Initial version
 !  (1 ) INITIALIZE is written in Fixed-Form Fortran 90.
 !  (2 ) To ensure double precision accuracy, use 0d0 instead of 0.0.
 !  (3 ) Also zero the mass flux arrays from TPCORE (bmy, 4/26/99)
@@ -176,77 +157,17 @@
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
-!******************************************************************************
-! 
-      ! References to F90 modules
-      USE DIAG_MOD,    ONLY : AD01,        AD02,        AD05    
-      USE DIAG_MOD,    ONLY : AD06,        AD07,        AD07_BC
-      USE DIAG_MOD,    ONLY : AD07_OC,     AD07_HC,     AD08
-      USE DIAG_MOD,    ONLY : AD07_SOAGM
-      USE DIAG_MOD,    ONLY : AD09,        AD09_em,     AD11
-      USE DIAG_MOD,    ONLY : AD12,        AD13_DMS,    AD13_SO2_ac 
-      USE DIAG_MOD,    ONLY : AD13_SO2_an, AD13_SO2_bb, AD13_SO2_bf
-      USE DIAG_MOD,    ONLY : AD13_SO2_ev, AD13_SO2_nv, AD13_SO4_an
-      USE DIAG_MOD,    ONLY : AD13_SO4_bf, AD13_SO2_sh, AD13_NH3_an
-      USE DIAG_MOD,    ONLY : AD13_NH3_na, AD13_NH3_bb, AD13_NH3_bf
-      USE DIAG_MOD,    ONLY : CONVFLUP,    TURBFLUP,    AD16
-      USE DIAG_MOD,    ONLY : CT16,        AD17,        CT17
-      USE DIAG_MOD,    ONLY : AD18,        CT18,        AD21
-      USE DIAG_MOD,    ONLY : AD21_cr,     AD22,        LTJV
-      USE DIAG_MOD,    ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,    ONLY : MASSFLUP,    AD28,        AD29
-      USE DIAG_MOD,    ONLY : AD30,        AD31
-      !add potential temp diagnostic (fp, 6/2009)
-      USE DIAG_MOD,    ONLY : AD57
-      USE DIAG_MOD,    ONLY : AD32_ac,     AD32_an,     AD32_bb
-      USE DIAG_MOD,    ONLY : AD32_bf,     AD32_fe,     AD32_li
-      USE DIAG_MOD,    ONLY : AD32_so,     AD32_ub,     AD33
-      USE DIAG_MOD,    ONLY : AD34,        AD35,        AD36
-      USE DIAG_MOD,    ONLY : AD37,        AD38,        AD39
-      USE DIAG_MOD,    ONLY : AD43,        LTNO
-      USE DIAG_MOD,    ONLY : CTNO,        LTOH,        CTOH
-      USE DIAG_MOD,    ONLY : LTHO2,       CTHO2,       LTNO2
-      USE DIAG_MOD,    ONLY : CTNO2,       LTNO3,       CTNO3
-      ! update for arom (dkh, 06/21/07)  
-      USE DIAG_MOD,    ONLY : CTLBRO2H,    CTLBRO2N
-      USE DIAG_MOD,    ONLY : CTLTRO2H,    CTLTRO2N
-      USE DIAG_MOD,    ONLY : CTLXRO2H,    CTLXRO2N
-      USE DIAG_MOD,    ONLY : AD44,        AD45,        LTOTH
-      USE DIAG_MOD,    ONLY : CTOTH,       AD46,        AD47
-      USE DIAG_MOD,    ONLY : AD52
-      USE DIAG_MOD,    ONLY : AD54,        CTO3,        CTO3_24h
-      USE DIAG_MOD,    ONLY : AD19,        AD58,        AD60
-      USE DIAG_MOD,    ONLY : AD59_NUMB,   AD59_SULF,   AD59_SALT !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD59_ECIL,   AD59_ECOB              !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD59_OCIL,   AD59_OCOB,   AD59_DUST !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD60_COND,   AD60_COAG,   AD60_NUCL !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD60_AQOX,   AD60_ERROR,  AD60_SOA  !(win, 7/28/09)
-      USE DIAG_MOD,    ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,    ONLY : AD68,        AD69
-      USE DIAG_MOD,    ONLY : AD10,        AD10em
-      USE DIAG03_MOD,  ONLY : ND03,        ZERO_DIAG03
-      USE DIAG04_MOD,  ONLY : ND04,        ZERO_DIAG04
-      USE DIAG41_MOD,  ONLY : ND41,        ZERO_DIAG41
-      USE DIAG42_MOD,  ONLY : ND42,        ZERO_DIAG42
-      USE DIAG56_MOD,  ONLY : ND56,        ZERO_DIAG56
-      USE DIAG_PL_MOD, ONLY : AD65,        FAM_PL
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LCRYST
-      USE TIME_MOD
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Arguments 
-      INTEGER, INTENT(IN)  :: IFLAG
- 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       !=================================================================
       ! INITIALIZE begins here!
-      !
-      ! Error condition if IFLAG does not equal 2, or 3!
       !=================================================================
+
+      ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
          CALL ERROR_STOP( 'Invalid IFLAG!', 'initialize.f' )
       ENDIF  
@@ -424,6 +345,7 @@
       IF ( IFLAG == 3 ) THEN
 
          ! Now reset timesteps here for now 
+         CALL SET_CT_A1(   RESET=.TRUE. )
          CALL SET_CT_A3(   RESET=.TRUE. )
          CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
@@ -461,6 +383,6 @@
          ! Echo output
          WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
       ENDIF
- 
-      ! Return to calling program
+
       END SUBROUTINE INITIALIZE
+!EOC

@@ -1,10 +1,9 @@
-! $Id: bravo_mod.f,v 1.1 2009/09/16 14:06:39 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: BRAVO_MOD
+! !MODULE: bravo_mod
 !
 ! !DESCRIPTION: \subsection*{Overview}
 !  Module BRAVO\_MOD contains variables and routines to read the BRAVO 
@@ -45,8 +44,10 @@
 !  (2 ) Now scale emissions using int-annual scale factors (amv, 08/24/07)
 !  (3 ) Now accounts for FSCLYR (phs, 3/17/08)
 !  (4 ) Added ProTeX headers (bmy, 1/30/09)
+!  31 Aug 2010 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
+!BOC
 !
 ! !PRIVATE DATA MEMBERS:
 ! 
@@ -57,17 +58,17 @@
       REAL*8,  ALLOCATABLE :: BRAVO_SO2(:,:)
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_BRAVO_MASK
+! !IROUTINE: get_bravo_mask
 !
 ! !DESCRIPTION: Function GET\_BRAVO\_MASK returns the value of the Mexico 
 !  mask for BRAVO emissions at grid box (I,J).  MASK=1 if (I,J) is in the 
-!  BRAVO Mexican region, or MASK=0 otherwise. (rjp, kfb, bmy, 6/22/06)
+!  BRAVO Mexican region, or MASK=0 otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -84,7 +85,7 @@
       REAL*8              :: MASK     ! Returns the mask value @ (I,J)
 !
 ! !REVISION HISTORY: 
-!  22 Jun 2006 - R. Yantosca - Initial version
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,7 +94,6 @@
       !=================================================================
       MASK = BRAVO_MASK(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_BRAVO_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -101,11 +101,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_BRAVO_ANTHRO
+! !IROUTINE: get_bravo_anthro
 !
 ! !DESCRIPTION: Function GET\_BRAVO\_ANTHRO returns the BRAVO emission 
 !  for GEOS-Chem grid box (I,J) and tracer N.  Units are [molec/cm2/s]. 
-!  (rjp, kfb, bmy, 6/22/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -127,6 +126,7 @@
       REAL*8              :: BRAVO   ! Returns emissions at (I,J)
 !
 ! !REVISION HISTORY: 
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) added SOx, SOx ship and NH3 emissions, plus optional kg/s output
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
@@ -157,7 +157,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_BRAVO_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -165,11 +164,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_BRAVO
+! !IROUTINE: emiss_bravo
 !
 ! !DESCRIPTION: Subroutine EMISS\_BRAVO reads the BRAVO emission fields at 1x1 
 !  resolution and regrids them to the current model resolution. 
-!  (rjp, kfb, bmy, 6/22/06, 8/9/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -189,6 +187,7 @@
 #     include "CMN_O3"           ! 
 !
 ! !REVISION HISTORY: 
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass the unit string to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !EOP
 !------------------------------------------------------------------------------
@@ -329,7 +328,6 @@
       !=================================================================
       CALL TOTAL_ANTHRO_TG( SCALEYEAR )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_BRAVO
 !EOC
 !------------------------------------------------------------------------------
@@ -337,10 +335,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: BRAVO_SCALE_FUTURE
+! !IROUTINE: bravo_scale_future
 !
 ! !DESCRIPTION: Subroutine BRAVO\_SCALE\_FUTURE applies the IPCC future 
-!  scale factors to the BRAVO anthropogenic emissions. (swu, bmy, 5/30/06)
+!  scale factors to the BRAVO anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -391,7 +389,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE BRAVO_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
@@ -399,11 +396,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ANTHRO_TG
+! !IROUTINE: total_anthro_Tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of BRAVO 
 !  anthropogenic emissions that are emitted each year.
-!  (rjp, kfb, bmy, 6/26/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -423,6 +419,7 @@
       INTEGER, INTENT(IN)   :: YEAR
 !
 ! !REVISION HISTORY: 
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now YEAR is input to reflect scaling factors applied (phs, 3/17/08) 
 !EOP
 !------------------------------------------------------------------------------
@@ -500,11 +497,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_BRAVO_MASK
+! !IROUTINE: read_bravo_mask
 !
 ! !DESCRIPTION: Subroutine READ\_BRAVO\_MASK reads the Mexico mask from 
 !  disk.  The Mexico mask is the fraction of the grid box (I,J) which lies 
-!  w/in the BRAVO Mexican emissions region. (rjp, kfb, bmy, 6/22/06, 8/9/06)
+!  w/in the BRAVO Mexican emissions region.
 !\\
 !\\
 ! !INTERFACE:
@@ -522,6 +519,7 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY: 
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !  (1 ) Now pass UNIT to DO_REGRID_G2G_1x1 (bmy, 8/9/06)
 !EOP
 !------------------------------------------------------------------------------
@@ -564,7 +562,6 @@
       ! Regrid from GEOS 1x1 GRID to current model resolution
       CALL DO_REGRID_1x1( 'unitless', GEOS_1x1, BRAVO_MASK )
 
-      ! Return to calling program
       END SUBROUTINE READ_BRAVO_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -572,11 +569,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_BRAVO
+! !IROUTINE: init_bravo
 !
 ! !DESCRIPTION: Subroutine INIT\_BRAVO allocates and zeroes BRAVO module 
 !  arrays, and also creates the mask which defines the Mexico region 
-!  (rjp, kfb, bmy, 6/26/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -592,7 +588,7 @@
 #     include "CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
-!  18 Oct 2006 - R. Yantosca - Initial version
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -635,7 +631,6 @@
       ! Read the mask
       CALL READ_BRAVO_MASK
 
-      ! Return to calling program
       END SUBROUTINE INIT_BRAVO
 !EOC
 !------------------------------------------------------------------------------
@@ -646,15 +641,14 @@
 ! !IROUTINE: CLEANUP_BRAVO
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_BRAVO deallocates all BRAVO module arrays.
-!  (rjp, kfb, bmy, 6/26/06)
 !\\
 !\\
 ! !INTERFACE:
 !
       SUBROUTINE CLEANUP_BRAVO
 !
-! !REVISION HISTORY: 
-!  1 Nov 2005 - R. Yantosca - Initial Version
+! !REVISION HISTORY:
+!  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -666,11 +660,6 @@
       IF ( ALLOCATED( BRAVO_SO2  ) ) DEALLOCATE( BRAVO_SO2  )
       IF ( ALLOCATED( BRAVO_MASK ) ) DEALLOCATE( BRAVO_MASK )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_BRAVO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE BRAVO_MOD
 !EOC
+      END MODULE BRAVO_MOD

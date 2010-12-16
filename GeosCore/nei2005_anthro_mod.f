@@ -1,4 +1,3 @@
-! $Id: nei2005_anthro_mod.f,v 1.5 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -60,10 +59,11 @@
 !  10 Dec 2009 - D. Millet - Fix scaling, which is by ozone season
 !  11 Dec 2009 - L. Zhang, A. Van Donkelaar - Add seasonality for NH3 
 !  21 Dec 2009 - R. Yantosca - Added support for 0.5 x 0.666 nested grids
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !EOP
 !------------------------------------------------------------------------------
 !
-! !PRIVATE DATA MEMBERS:
+! !PRIVATE TYPES:
 !
       ! Array for surface area
       REAL*8,  ALLOCATABLE :: A_CM2(:)
@@ -96,13 +96,12 @@
 
       REAL*8,  ALLOCATABLE :: ALK4_WKEND(:,:,:) ! 105
       REAL*8,  ALLOCATABLE :: ACET_WKEND(:,:,:) ! 109
-      REAL*8,  ALLOCATABLE :: MEK_WKEND(:,:,:) ! 110
+      REAL*8,  ALLOCATABLE :: MEK_WKEND(:,:,:)  ! 110
       REAL*8,  ALLOCATABLE :: ALD2_WKEND(:,:,:) ! 111
       REAL*8,  ALLOCATABLE :: PRPE_WKEND(:,:,:) ! 118
       REAL*8,  ALLOCATABLE :: C2H6_WKEND(:,:,:) ! 121
       REAL*8,  ALLOCATABLE :: C3H8_WKEND(:,:,:) ! 119
       REAL*8,  ALLOCATABLE :: CH2O_WKEND(:,:,:) ! 120
-
 !
 ! !DEFINED PARAMETERS:
 !
@@ -382,7 +381,7 @@
 !  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
 !                              in updated files (by Aaron van Donkelaar) to
 !                              fix a problem in the VOC emissions.
-! !REMARKS:
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -419,7 +418,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
@@ -449,11 +448,6 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-!------------------------------------------------------------------------------
-! Prior to 7/12/10:
-! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
-!         FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_200910/' //
-!------------------------------------------------------------------------------
          FILENAME  = TRIM( DATA_DIR_1x1 ) // 'NEI2005_201007/' //
      &               'NEI2005.' // TRIM( SNAME ) // '.1x1.AVG.bpch'
 
@@ -685,7 +679,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMISS_NEI2005_ANTHRO_05x0666
+! !IROUTINE: emiss_nei2005_anthro_05x0666
 !
 ! !DESCRIPTION: Subroutine EMISS\_NEI2005\_ANTHRO reads the NEI2005
 !  emission fields at 1/2 x 2.3 resolution
@@ -714,8 +708,8 @@
 !  03 Nov 2009 - A. van Donkelaar - initial version
 !  12 Jul 2010 - R. Yantosca - Now point to NEI2005_201007 directory, to read
 !                              in updated files (by Aaron van Donkelaar) to
-!                              fix a problem in the VOC emissions.!
-! !REMARKS:
+!                              fix a problem in the VOC emissions.
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (leave for future use)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -752,7 +746,7 @@
          THISYEAR = FSCALYR
       ENDIF
 
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
       SNAME = 'GEOS5'
 #elif defined( GEOS_4 )
       SNAME = 'GEOS4'
@@ -782,11 +776,6 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-!------------------------------------------------------------------------------
-! Prior to 7/12/10:
-! Point to the NEI2005_201007 which has fixed VOC emissions (bmy, 7/12/10)
-!         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200910/' //
-!------------------------------------------------------------------------------
          FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
      &            'NEI2005.' // TRIM( SNAME ) 
      &             // '.1t2x2t3.AVG.na.bpch'
@@ -1195,7 +1184,7 @@
 !
 ! !IROUTINE: get_vistas_season
 !
-! !DESCRIPTION: Subroutine GET_VISTAS_SEASON returns monthly scale
+! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON returns monthly scale
 !  factors to account for monthly variations in NOx emissions
 !  on 1x1 resolution grid (amv, 11/02/09)
 !\\
@@ -1370,7 +1359,7 @@
 !
 ! !IROUTINE: get_vistas_season_05x0666
 !
-! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON\05x0666 returns monthly scale
+! !DESCRIPTION: Subroutine GET\_VISTAS\_SEASON\_05x0666 returns monthly scale
 !  factors to account for monthly variations in NOx emissions
 !  for the 0.5 x 0.666 nested grids. (amv, 11/02/09)
 !\\
@@ -1592,8 +1581,7 @@
 !
 ! !IROUTINE: read_nei2005_mask
 !
-! !DESCRIPTION: Subroutine READ\_NEI2005\_MASK reads the mask for NEI data 
-!  
+! !DESCRIPTION: Subroutine READ\_NEI2005\_MASK reads the mask for NEI data  
 !\\
 !\\
 ! !INTERFACE:
@@ -1716,8 +1704,8 @@
 !
 ! !IROUTINE: nei2005_scale_future
 !
-! !DESCRIPTION: Subroutine NEI2005\_SCALE\_FUTURE applies the IPCC future scale 
-!  factors to the NEI2005 anthropogenic emissions.
+! !DESCRIPTION: Subroutine NEI2005\_SCALE\_FUTURE applies the IPCC future 
+!  scale factors to the NEI2005 anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -2154,11 +2142,6 @@
       IF (ALLOCATED(C3H8_WKEND)) DEALLOCATE(C3H8_WKEND)
       IF (ALLOCATED(CH2O_WKEND)) DEALLOCATE(CH2O_WKEND)
       
-      ! Return to calling program
       END SUBROUTINE CLEANUP_NEI2005_ANTHRO
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE NEI2005_ANTHRO_MOD
 !EOC
+      END MODULE NEI2005_ANTHRO_MOD

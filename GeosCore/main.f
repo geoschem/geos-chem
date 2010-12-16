@@ -1,46 +1,20 @@
-! $Id: main.f,v 1.8 2010/03/15 19:33:23 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !PROGRAM: geos_chem 
+!
+! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
+!  GEOS-Chem model of atmospheric chemistry and composition.
+!\\
+!\\
+! !INTERFACE:
+!
       PROGRAM GEOS_CHEM
-! 
-!******************************************************************************
-!                                                                       
-!                                                                       
-!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
-!    G        E       O     O S            C       H     H E       M M M M    
-!    G   GGG  EEEEEE  O     O SSSSSSS      C       HHHHHHH EEEEEE  M  M  M    
-!    G     G  E       O     O       S      C       H     H E       M     M    
-!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
-!                                                                       
-!                                                                       
-!                 (formerly known as the Harvard-GEOS model)
-!           for 4 x 5, 2 x 2.5 global grids and 1 x 1 nested grids
 !
-!       Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)
-!                                                                     
-!******************************************************************************
+! !USES:
 !
-!  See the GEOS-Chem Web Site:
-!
-!     http://acmg.seas.harvard.edu/geos/
-!
-!  and  the GEOS-Chem User's Guide:
-!
-!     http://acmg.seas.harvard.edu/geos/doc/man/
-!
-!  and the GEOS-Chem wiki:
-!
-!     http://wiki.seas.harvard.edu/geos-chem/
-!
-!  for the most up-to-date GEOS-Chem documentation on the following topics:
-!
-!     - installation, compilation, and execution
-!     - coding practice and style
-!     - input files and met field data files
-!     - horizontal and vertical resolution
-!     - modification history
-!
-!******************************************************************************
-!
-      ! References to F90 modules 
       USE A3_READ_MOD,       ONLY : GET_A3_FIELDS
       USE A3_READ_MOD,       ONLY : OPEN_A3_FIELDS
       USE A3_READ_MOD,       ONLY : UNZIP_A3_FIELDS
@@ -70,11 +44,6 @@
       USE DAO_MOD,           ONLY : INTERP,          PS1
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
-!----------------------------------------------------------------------
-! Prior to 4/28/10:
-! Remove obsolete SUNCOSB (bmy, 4/28/10)
-!      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
-!----------------------------------------------------------------------
       USE DAO_MOD,           ONLY : SUNCOS
       USE DAO_MOD,           ONLY : MAKE_RH
       !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
@@ -122,7 +91,6 @@
       USE SOAPROD_MOD,       ONLY : READ_SOAPROD_FILE
       ! hotp 5/25/09
       USE SOAPROD_MOD,       ONLY : FIRST_APRODGPROD
-
       USE TIME_MOD,          ONLY : GET_NYMDb,        GET_NHMSb
       USE TIME_MOD,          ONLY : GET_NYMD,         GET_NHMS
       USE TIME_MOD,          ONLY : GET_A3_TIME,      GET_FIRST_A3_TIME
@@ -161,6 +129,7 @@
       USE TRACER_MOD,        ONLY : ITS_A_TAGCO_SIM
       USE TRANSPORT_MOD,     ONLY : DO_TRANSPORT
       USE TROPOPAUSE_MOD,    ONLY : READ_TROPOPAUSE, CHECK_VAR_TROP
+      USE TROPOPAUSE_MOD,    ONLY : DIAG_TROPOPAUSE
       USE RESTART_MOD,       ONLY : MAKE_RESTART_FILE, READ_RESTART_FILE
       USE UPBDFLX_MOD,       ONLY : DO_UPBDFLX,        UPBDFLX_NOY
       USE UVALBEDO_MOD,      ONLY : READ_UVALBEDO
@@ -176,22 +145,78 @@
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
-
       USE TRACERID_MOD,      ONLY : IS_Hg2
+
       ! For GTMM for mercury simulations. (ccc, 6/7/10)
       USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
       USE MERCURY_MOD,       ONLY : PARTITIONHG
 
-      ! Force all variables to be declared explicitly
+      ! For MERRA met fields (bmy, 8/19/10)
+      USE MERRA_A1_MOD,      ONLY : GET_MERRA_A1_FIELDS
+      USE MERRA_A1_MOD,      ONLY : OPEN_MERRA_A1_FIELDS
+      USE MERRA_A3_MOD,      ONLY : GET_MERRA_A3_FIELDS
+      USE MERRA_A3_MOD,      ONLY : OPEN_MERRA_A3_FIELDS
+      USE MERRA_CN_MOD,      ONLY : GET_MERRA_CN_FIELDS
+      USE MERRA_CN_MOD,      ONLY : OPEN_MERRA_CN_FIELDS
+      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_1
+      USE MERRA_I6_MOD,      ONLY : GET_MERRA_I6_FIELDS_2
+      USE MERRA_I6_MOD,      ONLY : OPEN_MERRA_I6_FIELDS
+      USE TIME_MOD,          ONLY : GET_A1_TIME
+      USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
+      USE TIME_MOD,          ONLY : ITS_TIME_FOR_A1
+
       IMPLICIT NONE
       
-      ! Header files 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
 #     include "CMN_GCTM"          ! Physical constants
-#     include "comode.h" 
-
-      ! Local variables
+#     include "comode.h"          ! SMVGEAR common blocks
+!
+! !REMARKS:
+!                                                                             .
+!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
+!    G        E       O     O S            C       H     H E       M M M M    
+!    G   GGG  EEEEEE  O     O SSSSSSS      C       HHHHHHH EEEEEE  M  M  M    
+!    G     G  E       O     O       S      C       H     H E       M     M    
+!     GGGGGG  EEEEEEE  OOOOO  SSSSSSS       CCCCCC H     H EEEEEEE M     M    
+!                                                                             .
+!                                                                             .
+!                 (formerly known as the Harvard-GEOS model)
+!           for 4 x 5, 2 x 2.5 global grids and 1 x 1 nested grids
+!                                                                             .
+!       Contact: GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)
+!                                                                     
+!                                                                             .
+!  See the GEOS-Chem Web Site:
+!                                                                             .
+!     http://acmg.seas.harvard.edu/geos/
+!                                                                             .
+!  and the GEOS-Chem User's Guide:
+!                                                                             .
+!     http://acmg.seas.harvard.edu/geos/doc/man/
+!                                                                             .
+!  and the GEOS-Chem wiki:
+!                                                                             .
+!     http://wiki.seas.harvard.edu/geos-chem/
+!                                                                             .
+!  for the most up-to-date GEOS-Chem documentation on the following topics:
+!                                                                             .
+!     - installation, compilation, and execution
+!     - coding practice and style
+!     - input files and met field data files
+!     - horizontal and vertical resolution
+!     - modification history
+!
+! !REVISION HISTORY: 
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL            :: FIRST = .TRUE.
       LOGICAL            :: LXTRA 
       INTEGER            :: I,             IOS,   J,         K,      L
@@ -279,8 +304,46 @@
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
 
+#if   defined( MERRA )
+
       !=================================================================
-      !   ***** U N Z I P   M E T   F I E L D S  @ start of run *****
+      !    *****  R E A D   M E R R A   M E T   F I E L D S  *****
+      !    *****  At the start of the GEOS-Chem simulation   *****
+      !
+      !    Handle MERRA met fields separately from other met products
+      !=================================================================
+
+      ! Open constant fields
+      DATE = (/ 20000101, 000000 /)
+      CALL OPEN_MERRA_CN_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_CN_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA CN TIME' )
+
+      ! Open and read A-1 fields
+      DATE = GET_FIRST_A1_TIME()
+      CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
+      CALL GET_MERRA_A1_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A1 TIME' )
+
+      ! Open and read A-3 fields
+      DATE = GET_FIRST_A3_TIME()
+      CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+      CALL GET_MERRA_A3_FIELDS(  DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
+
+      ! Open & read I-6 fields
+      DATE = (/ NYMD, NHMS /)
+      CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
+      CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
+      IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
+
+#else
+
+      !=================================================================
+      !    *****      U N Z I P   M E T   F I E L D S        *****
+      !    ***** At at the start of the GEOS-Chem simulation *****
+      !
+      !   Here we unzip the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
       !=================================================================
       IF ( LUNZIP ) THEN
 
@@ -333,9 +396,12 @@
          !### Debug output
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a UNZIP' )
       ENDIF
-      
+
       !=================================================================
-      !    ***** R E A D   M E T   F I E L D S  @ start of run *****
+      !      *****      R E A D   M E T   F I E L D S       *****
+      !      ***** At the start of the GEOS-Chem simulation *****
+      !
+      !  Here we read in the initial GEOS-3, GEOS-4, GEOS-5, GCAP data
       !=================================================================
 
       ! Open and read A-3 fields
@@ -370,6 +436,11 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
       
 #if   defined( GEOS_3 )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GEOS-3 meteorology
+      !-----------------------------------------------------------------
+
       ! Open & read GEOS-3 GWET fields
       IF ( LDUST ) THEN
          DATE = GET_FIRST_A3_TIME()
@@ -385,9 +456,15 @@
          CALL GET_XTRA_FIELDS(  DATE(1), DATE(2) ) 
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st XTRA TIME' )
       ENDIF
+
 #endif
 
 #if   defined( GCAP )
+
+      !-----------------------------------------------------------------
+      ! Read additional fields for GCAP meteorology
+      !-----------------------------------------------------------------
+
       ! Read GCAP PHIS and LWI fields (if necessary)
       CALL OPEN_GCAP_FIELDS
       CALL GET_GCAP_FIELDS
@@ -396,7 +473,14 @@
       IF ( LUNZIP ) THEN
          CALL UNZIP_GCAP_FIELDS( 'remove date' )
       ENDIF
+
 #endif
+
+#endif
+
+      !=================================================================
+      !        ***** I N I T I A L I Z A T I O N  continued *****
+      !=================================================================
 
       ! Compute avg surface pressure near polar caps
       CALL AVGPOLE( PS1 )
@@ -421,7 +505,7 @@
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09) 
-      IF (.NOT. LNLPBL) THEN
+      IF ( .NOT. LNLPBL ) THEN
         CALL DO_PBL_MIX( .FALSE. )
         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
       ELSE
@@ -618,8 +702,70 @@
          !==============================================================
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
+#if   defined( MERRA )
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   A - 1   F I E L D S *****
+         !
+         !    The MERRA archive contains hourly surface data fields.
+         !==============================================================
+         IF ( ITS_TIME_FOR_A1() ) THEN
+
+            ! Get the date/time for the next A-3 data block
+            DATE = GET_A1_TIME()
+
+            ! Open & read A-3 fields
+            CALL OPEN_MERRA_A1_FIELDS( DATE(1), DATE(2) )
+            CALL GET_MERRA_A1_FIELDS ( DATE(1), DATE(2) )
+
+            !%%% NEED TO UPDATE FOR MERRA %%%
+            ! Update daily mean temperature archive for MEGAN biogenics
+            !IF ( LMEGAN ) CALL UPDATE_T_DAY 
+         ENDIf
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   A - 3   F I E L D S *****
+         !
+         !     The MERRA archive contains 3-hourly 3-D data fields.
+         !==============================================================
+         IF ( ITS_TIME_FOR_A3() ) THEN
+            
+            ! Get the date/time for the next A-6 data block
+            DATE = GET_A3_TIME()
+
+            ! Open and read A-6 fields
+            CALL OPEN_MERRA_A3_FIELDS( DATE(1), DATE(2) )
+            CALL GET_MERRA_A3_FIELDS ( DATE(1), DATE(2) )
+
+            ! Since CLDTOPS is an A-3 field, update the
+            ! lightning NOx emissions [molec/box/6h]
+            IF ( LLIGHTNOX ) CALL LIGHTNING
+         ENDIF
+
+         !==============================================================
+         !    ***** R E A D   M E R R A   I - 6   F I E L D S *****
+         !
+         !    The MERRA archive contains 6-hourly instantaneous data.
+         !==============================================================
+         IF ( ITS_TIME_FOR_I6() ) THEN
+
+            ! Get the date/time for the next I-6 data block
+            DATE = GET_I6_TIME()
+
+            ! Open and read files
+            CALL OPEN_MERRA_I6_FIELDS ( DATE(1), DATE(2) )
+            CALL GET_MERRA_I6_FIELDS_2( DATE(1), DATE(2) )
+
+            ! Compute avg pressure at polar caps 
+            CALL AVGPOLE( PS2 )
+         ENDIF
+
+#else
+
          !===============================================================
-         !        ***** U N Z I P   M E T   F I E L D S *****
+         !         ***** U N Z I P   M E T   F I E L D S *****
+         !
+         !      Some met data (except MERRA) are stored compressed.
          !===============================================================
          IF ( LUNZIP .and. ITS_TIME_FOR_UNZIP() ) THEN
             
@@ -645,7 +791,7 @@
             IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, DATE(1) )
             IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, DATE(1) )
 #endif
-         ENDIF     
+         ENDIF
 
          !===============================================================
          !        ***** R E M O V E   M E T   F I E L D S *****  
@@ -665,10 +811,12 @@
             IF ( LDUST ) CALL UNZIP_GWET_FIELDS( ZTYPE, NYMD )
             IF ( LXTRA ) CALL UNZIP_XTRA_FIELDS( ZTYPE, NYMD )
 #endif
-         ENDIF   
+         ENDIF  
 
          !==============================================================
          !          ***** R E A D   A - 3   F I E L D S *****
+         !
+         !  All met data (except MERRA) contain 3-hourly surface data.
          !==============================================================
          IF ( ITS_TIME_FOR_A3() ) THEN
 
@@ -698,7 +846,9 @@
          ENDIF
 
          !==============================================================
-         !          ***** R E A D   A - 6   F I E L D S *****   
+         !          ***** R E A D   A - 6   F I E L D S *****  
+         !
+         !      All other met fields contain 6-hourly 3-D data. 
          !==============================================================
          IF ( ITS_TIME_FOR_A6() ) THEN
             
@@ -729,6 +879,8 @@
             ! Compute avg pressure at polar caps 
             CALL AVGPOLE( PS2 )
          ENDIF
+
+#endif
 
          !==============================================================
          ! ***** M O N T H L Y   O R   S E A S O N A L   D A T A *****
@@ -815,7 +967,13 @@
          CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
          ! Compute tropopause height for ND55 diagnostic
-         IF ( ND55 > 0 ) CALL TROPOPAUSE
+         !---------------------------------------------------------------
+         ! Prior to 9/10/10:
+         ! Moved "tropopause.f" into "tropopause_mod.f" and renamed
+         ! to DIAG_TROPOPAUSE (bmy, 9/10/10)
+         !IF ( ND55 > 0 ) CALL TROPOPAUSE
+         !---------------------------------------------------------------
+         IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
 
 #if   defined( GEOS_3 )
 
@@ -873,7 +1031,7 @@
                CALL UPBDFLX_NOY( 2 )
             ENDIF   
 
-#if   !defined( GEOS_5 )
+#if   !defined( GEOS_5 ) && !defined( MERRA )
             ! Get relative humidity (after recomputing pressures)
             ! NOTE: for GEOS-5 we'll read this from disk instead
             CALL MAKE_RH
@@ -923,7 +1081,7 @@
             !      ***** M I X E D   L A Y E R   M I X I N G *****
             !===========================================================
             ! Add option for non-local PBL. (Lin, 03/31/09)
-            IF (.NOT. LNLPBL) THEN
+            IF ( .NOT. LNLPBL ) THEN
                CALL DO_PBL_MIX( LTURB )
                IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a TURBDAY:1' )
             ELSE
@@ -1005,7 +1163,6 @@
 
          ENDIF 
 
- 
          !==============================================================
          ! ***** W E T   D E P O S I T I O N  (rainout + washout) *****
          !==============================================================
@@ -1024,8 +1181,6 @@
             ENDIF 
 
          ENDIF
-
-
 
          !==============================================================
          !   ***** I N C R E M E N T   E L A P S E D   T I M E *****
@@ -1055,7 +1210,6 @@
          CALL SET_CURRENT_TIME
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
 
-         
          !==============================================================
          !       ***** A R C H I V E   D I A G N O S T I C S *****
          !==============================================================
@@ -1204,39 +1358,35 @@
 
       ! Print ending time of simulation
       CALL DISPLAY_END_TIME
-!
-!******************************************************************************
-!  Internal procedures -- Use the F90 CONTAINS command to inline 
-!  subroutines that only can be called from this main program. 
-!
-!  All variables referenced in the main program (local variables, F90 
-!  module variables, or common block variables) also have scope within 
-!  internal subroutines. 
-!
-!  List of Internal Procedures:
-!  ============================================================================
-!  (1 ) DISPLAY_GRID_AND_MODEL : Displays resolution, data set, & start time
-!  (2 ) GET_NYMD_PHIS          : Gets YYYYMMDD for the PHIS data field
-!  (3 ) DISPLAY_SIGMA_LAT_LON  : Displays sigma, lat, and lon information
-!  (4 ) GET_WIND10M            : Wrapper for MAKE_WIND10M (from "dao_mod.f")
-!  (5 ) CTM_FLUSH              : Flushes diagnostic files to disk
-!  (6 ) DISPLAY_END_TIME       : Displays ending time of simulation
-!  (7 ) MET_FIELD_DEBUG        : Prints min and max of met fields for debug
-!******************************************************************************
-!
+
       CONTAINS
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: display_grid_and_model
+!
+! !DESCRIPTION: Internal Subroutine DISPLAY\_GRID\_AND\_MODEL displays the 
+!  appropriate messages for the given model grid and machine type.  It also 
+!  prints the starting time and date (local time) of the GEOS-Chem simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DISPLAY_GRID_AND_MODEL
-
-      !=================================================================
-      ! Internal Subroutine DISPLAY_GRID_AND_MODEL displays the 
-      ! appropriate messages for the given model grid and machine type.
-      ! It also prints the starting time and date (local time) of the
-      ! GEOS-CHEM simulation. (bmy, 12/2/03, 10/18/05)
-      !=================================================================
-
+! 
+! !REVISION HISTORY: 
+!  02 Dec 2003 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Added extra output
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
 
@@ -1267,6 +1417,12 @@
      &    '   S T A R T I N G   1 x 1   G E O S -- C H E M   '     //
      &    REPEAT( '*', 13 )
 
+#elif defined( GRID05x0666 )
+      WRITE( 6, '(a)' ) 
+     &    REPEAT( '*', 13 )                                          // 
+     &    '   S T A R T I N G   0.5 x 0.666   G E O S -- C H E M   ' //
+     &    REPEAT( '*', 13 )
+
 #endif
 
       !-----------------------
@@ -1292,13 +1448,15 @@
       !-----------------------
       ! Print met field info
       !-----------------------
-#if   defined( GEOS_3     )
-      WRITE( 6, '(a)' ) 'Using GEOS-3 met fields'
-#elif defined( GEOS_4     )
-      WRITE( 6, '(a)' ) 'Using GEOS-4/fvDAS met fields'
-#elif defined( GEOS_5     )
-      WRITE( 6, '(a)' ) 'Using GEOS-5/fvDAS met fields'
-#elif defined( GCAP       )
+#if   defined( GEOS_3 )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-3 met fields'
+#elif defined( GEOS_4 )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-4 met fields'
+#elif defined( GEOS_5 )
+      WRITE( 6, '(a)' ) 'Using GMAO GEOS-5 met fields'
+#elif defined( MERRA )
+      WRITE( 6, '(a)' ) 'Using GMAO MERRA met fields'
+#elif defined( GCAP  )
       WRITE( 6, '(a)' ) 'Using GCAP/GISS met fields'
 #endif
 
@@ -1309,42 +1467,69 @@
       WRITE( 6, 100 ) STAMP
  100  FORMAT( /, '===> SIMULATION START TIME: ', a, ' <===', / )
 
-      ! Return to MAIN program
       END SUBROUTINE DISPLAY_GRID_AND_MODEL
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ctm_flush
+!
+! !DESCRIPTION: Internal subroutine CTM\_FLUSH flushes certain diagnostic
+! file buffers to disk. 
+!\\
+!\\
+! CTM_FLUSH should normally be called after each diagnostic output, so that 
+! in case the run dies, the output files from the last diagnostic timestep 
+! will not be lost.  
+!\\
+!\\
+! FLUSH is an intrinsic FORTRAN subroutine and takes as input the unit number 
+! of the file to be flushed to disk.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CTM_FLUSH
-
-      !================================================================
-      ! Internal subroutine CTM_FLUSH flushes certain diagnostic
-      ! file buffers to disk. (bmy, 8/31/00, 7/1/02)
-      !
-      ! CTM_FLUSH should normally be called after each diagnostic 
-      ! output, so that in case the run dies, the output files from 
-      ! the last diagnostic timestep will not be lost.  
-      !
-      ! FLUSH is an intrinsic FORTRAN subroutine and takes as input 
-      ! the unit number of the file to be flushed to disk.
-      !================================================================
+! 
+! !REVISION HISTORY: 
+!  31 Aug 2000 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       CALL FLUSH( IU_ND48    )  
       CALL FLUSH( IU_BPCH    )  
       CALL FLUSH( IU_SMV2LOG )  
       CALL FLUSH( IU_DEBUG   ) 
 
-      ! Return to MAIN program
       END SUBROUTINE CTM_FLUSH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: display_end_time
+!
+! !DESCRIPTION: Internal subroutine DISPLAY\_END\_TIME prints the ending 
+!  time of the GEOS-Chem simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DISPLAY_END_TIME
-
-      !=================================================================
-      ! Internal subroutine DISPLAY_END_TIME prints the ending time of
-      ! the GEOS-CHEM simulation (bmy, 5/3/05)
-      !=================================================================
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       CHARACTER(LEN=16) :: STAMP
 
       ! Print system time stamp
@@ -1358,114 +1543,7 @@
      &   ( /, '**************   E N D   O F   G E O S -- C H E M   ',
      &        '**************' )
 
-      ! Return to MAIN program
       END SUBROUTINE DISPLAY_END_TIME
-
-!------------------------------------------------------------------------------
-!
-!      SUBROUTINE MET_FIELD_DEBUG
-!
-!      !=================================================================
-!      ! Internal subroutine MET_FIELD_DEBUG prints out the maximum
-!      ! and minimum, and sum of DAO met fields for debugging 
-!      !=================================================================
-!
-!      ! References to F90 modules
-!      USE DAO_MOD, ONLY : AD,       AIRDEN,  AIRVOL,   ALBD1,  ALBD2
-!      USE DAO_MOD, ONLY : ALBD,     AVGW,    BXHEIGHT, CLDFRC, CLDF     
-!      USE DAO_MOD, ONLY : CLDMAS,   CLDTOPS, DELP     
-!      USE DAO_MOD, ONLY : DTRAIN,   GWETTOP, HFLUX,    HKBETA, HKETA     
-!      USE DAO_MOD, ONLY : LWI,      MOISTQ,  OPTD,     OPTDEP, PBL      
-!      USE DAO_MOD, ONLY : PREACC,   PRECON,  PS1,      PS2,    PSC2     
-!      USE DAO_MOD, ONLY : RADLWG,   RADSWG,  RH,       SLP,    SNOW     
-!      USE DAO_MOD, ONLY : SPHU1,    SPHU2,   SPHU,     SUNCOS, SUNCOSB  
-!      USE DAO_MOD, ONLY : TMPU1,    TMPU2,   T,        TROPP,  TS       
-!      USE DAO_MOD, ONLY : TSKIN,    U10M,    USTAR,    UWND1,  UWND2     
-!      USE DAO_MOD, ONLY : UWND,     V10M,    VWND1,    VWND2,  VWND     
-!      USE DAO_MOD, ONLY : Z0,       ZMEU,    ZMMD,     ZMMU     
-!
-!      ! Local variables
-!      INTEGER :: I, J, L, IJ
-!
-!      !=================================================================
-!      ! MET_FIELD_DEBUG begins here!
-!      !=================================================================
-!
-!      ! Define box to print out
-!      I  = 23
-!      J  = 34
-!      L  = 1
-!      IJ = ( ( J-1 ) * IIPAR ) + I
-!
-!      !=================================================================
-!      ! Print out met fields at (I,J,L)
-!      !=================================================================
-!      IF ( ALLOCATED( AD       ) ) PRINT*, 'AD      : ', AD(I,J,L)        
-!      IF ( ALLOCATED( AIRDEN   ) ) PRINT*, 'AIRDEN  : ', AIRDEN(L,I,J) 
-!      IF ( ALLOCATED( AIRVOL   ) ) PRINT*, 'AIRVOL  : ', AIRVOL(I,J,L) 
-!      IF ( ALLOCATED( ALBD1    ) ) PRINT*, 'ALBD1   : ', ALBD1(I,J) 
-!      IF ( ALLOCATED( ALBD2    ) ) PRINT*, 'ALBD2   : ', ALBD2(I,J) 
-!      IF ( ALLOCATED( ALBD     ) ) PRINT*, 'ALBD    : ', ALBD(I,J) 
-!      IF ( ALLOCATED( AVGW     ) ) PRINT*, 'AVGW    : ', AVGW(I,J,L) 
-!      IF ( ALLOCATED( BXHEIGHT ) ) PRINT*, 'BXHEIGHT: ', BXHEIGHT(I,J,L) 
-!      IF ( ALLOCATED( CLDFRC   ) ) PRINT*, 'CLDFRC  : ', CLDFRC(I,J)
-!      IF ( ALLOCATED( CLDF     ) ) PRINT*, 'CLDF    : ', CLDF(L,I,J) 
-!      IF ( ALLOCATED( CLDMAS   ) ) PRINT*, 'CLDMAS  : ', CLDMAS(I,J,L) 
-!      IF ( ALLOCATED( CLDTOPS  ) ) PRINT*, 'CLDTOPS : ', CLDTOPS(I,J) 
-!      IF ( ALLOCATED( DELP     ) ) PRINT*, 'DELP    : ', DELP(L,I,J) 
-!      IF ( ALLOCATED( DTRAIN   ) ) PRINT*, 'DTRAIN  : ', DTRAIN(I,J,L) 
-!      IF ( ALLOCATED( GWETTOP  ) ) PRINT*, 'GWETTOP : ', GWETTOP(I,J) 
-!      IF ( ALLOCATED( HFLUX    ) ) PRINT*, 'HFLUX   : ', HFLUX(I,J) 
-!      IF ( ALLOCATED( HKBETA   ) ) PRINT*, 'HKBETA  : ', HKBETA(I,J,L) 
-!      IF ( ALLOCATED( HKETA    ) ) PRINT*, 'HKETA   : ', HKETA(I,J,L) 
-!      IF ( ALLOCATED( LWI      ) ) PRINT*, 'LWI     : ', LWI(I,J) 
-!      IF ( ALLOCATED( MOISTQ   ) ) PRINT*, 'MOISTQ  : ', MOISTQ(L,I,J) 
-!      IF ( ALLOCATED( OPTD     ) ) PRINT*, 'OPTD    : ', OPTD(L,I,J) 
-!      IF ( ALLOCATED( OPTDEP   ) ) PRINT*, 'OPTDEP  : ', OPTDEP(L,I,J) 
-!      IF ( ALLOCATED( PBL      ) ) PRINT*, 'PBL     : ', PBL(I,J) 
-!      IF ( ALLOCATED( PREACC   ) ) PRINT*, 'PREACC  : ', PREACC(I,J) 
-!      IF ( ALLOCATED( PRECON   ) ) PRINT*, 'PRECON  : ', PRECON(I,J) 
-!      IF ( ALLOCATED( PS1      ) ) PRINT*, 'PS1     : ', PS1(I,J) 
-!      IF ( ALLOCATED( PS2      ) ) PRINT*, 'PS2     : ', PS2(I,J) 
-!      IF ( ALLOCATED( PSC2     ) ) PRINT*, 'PSC2    : ', PSC2(I,J)
-!      IF ( ALLOCATED( RADLWG   ) ) PRINT*, 'RADLWG  : ', RADLWG(I,J)
-!      IF ( ALLOCATED( RADSWG   ) ) PRINT*, 'RADSWG  : ', RADSWG(I,J)
-!      IF ( ALLOCATED( RH       ) ) PRINT*, 'RH      : ', RH(I,J,L) 
-!      IF ( ALLOCATED( SLP      ) ) PRINT*, 'SLP     : ', SLP(I,J) 
-!      IF ( ALLOCATED( SNOW     ) ) PRINT*, 'SNOW    : ', SNOW(I,J) 
-!      IF ( ALLOCATED( SPHU1    ) ) PRINT*, 'SPHU1   : ', SPHU1(I,J,L) 
-!      IF ( ALLOCATED( SPHU2    ) ) PRINT*, 'SPHU2   : ', SPHU2(I,J,L) 
-!      IF ( ALLOCATED( SPHU     ) ) PRINT*, 'SPHU    : ', SPHU(I,J,L) 
-!      IF ( ALLOCATED( SUNCOS   ) ) PRINT*, 'SUNCOS  : ', SUNCOS(IJ) 
-!      IF ( ALLOCATED( SUNCOSB  ) ) PRINT*, 'SUNCOSB : ', SUNCOSB(IJ) 
-!      IF ( ALLOCATED( TMPU1    ) ) PRINT*, 'TMPU1   : ', TMPU1(I,J,L) 
-!      IF ( ALLOCATED( TMPU2    ) ) PRINT*, 'TMPU2   : ', TMPU2(I,J,L) 
-!      IF ( ALLOCATED( T        ) ) PRINT*, 'TMPU    : ', T(I,J,L)
-!      IF ( ALLOCATED( TROPP    ) ) PRINT*, 'TROPP   : ', TROPP(I,J) 
-!      IF ( ALLOCATED( TS       ) ) PRINT*, 'TS      : ', TS(I,J) 
-!      IF ( ALLOCATED( TSKIN    ) ) PRINT*, 'TSKIN   : ', TSKIN(I,J) 
-!      IF ( ALLOCATED( U10M     ) ) PRINT*, 'U10M    : ', U10M(I,J) 
-!      IF ( ALLOCATED( USTAR    ) ) PRINT*, 'USTAR   : ', USTAR(I,J) 
-!      IF ( ALLOCATED( UWND1    ) ) PRINT*, 'UWND1   : ', UWND1(I,J,L) 
-!      IF ( ALLOCATED( UWND2    ) ) PRINT*, 'UWND2   : ', UWND2(I,J,L) 
-!      IF ( ALLOCATED( UWND     ) ) PRINT*, 'UWND    : ', UWND(I,J,L) 
-!      IF ( ALLOCATED( V10M     ) ) PRINT*, 'V10M    : ', V10M(I,J)  
-!      IF ( ALLOCATED( VWND1    ) ) PRINT*, 'VWND1   : ', VWND1(I,J,L) 
-!      IF ( ALLOCATED( VWND2    ) ) PRINT*, 'VWND2   : ', VWND2(I,J,L) 
-!      IF ( ALLOCATED( VWND     ) ) PRINT*, 'VWND    : ', VWND(I,J,L) 
-!      IF ( ALLOCATED( Z0       ) ) PRINT*, 'Z0      : ', Z0(I,J) 
-!      IF ( ALLOCATED( ZMEU     ) ) PRINT*, 'ZMEU    : ', ZMEU(I,J,L) 
-!      IF ( ALLOCATED( ZMMD     ) ) PRINT*, 'ZMMD    : ', ZMMD(I,J,L) 
-!      IF ( ALLOCATED( ZMMU     ) ) PRINT*, 'ZMMU    : ', ZMMU(I,J,L) 
-!
-!      ! Flush the output buffer
-!      CALL FLUSH( 6 )
-!
-!      ! Return to MAIN program
-!      END SUBROUTINE MET_FIELD_DEBUG
-!
-!-----------------------------------------------------------------------------
-
-      ! End of program
+!EOC
       END PROGRAM GEOS_CHEM
 

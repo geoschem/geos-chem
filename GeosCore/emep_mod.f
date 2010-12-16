@@ -1,4 +1,3 @@
-! $Id: emep_mod.f,v 1.4 2010/03/15 19:33:24 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -56,6 +55,7 @@
       PRIVATE :: INIT_EMEP        
 !
 ! !REVISION HISTORY:
+!  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Now only print totals for defined tracers (bmy, 2/6/06)
 !  (2 ) Now modified for IPCC future emissions (swu, bmy, 5/30/06)
 !  (3 ) Now yearly scale factors can be applied (phs, amv, 3/17/08)
@@ -70,6 +70,7 @@
 !                              READ_EMEP_UPDATED now mimics routine
 !                              READ_EMEP_UPDATED_05x0666.
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
+!  31 Aug 2010 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -101,11 +102,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_EUROPE_MASK
+! !IROUTINE: get_europe_mask
 !
 ! !DESCRIPTION: Function GET\_EUROPE\_MASK returns the value of the EUROPE 
 !  mask for EMEP emissions at grid box (I,J).  MASK=1 if (I,J) is in the 
-!  European region, or MASK=0 otherwise. (bdf, bmy, 11/1/05)
+!  European region, or MASK=0 otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -122,7 +123,7 @@
       REAL*8              :: EUROPE   ! Returns the mask value @ (I,J)
 !
 ! !REVISION HISTORY: 
-!  01 Nov 2005 - R. Yantosca - Initial version
+!  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -134,7 +135,6 @@
       !=================================================================
       EUROPE = EUROPE_MASK(I,J)
 
-      ! Return to calling program
       END FUNCTION GET_EUROPE_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -142,10 +142,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_EMEP_ANTHRO
+! !IROUTINE: get_emep_anthro
 !
 ! !DESCRIPTION: Function GET\_EMEP\_ANTHRO returns the EMEP emission for 
-!  GEOS-CHEM grid box (I,J) and tracer N. (bdf, bmy, 11/1/05)
+!  GEOS-CHEM grid box (I,J) and tracer N.
 !\\
 !\\
 ! !INTERFACE:
@@ -173,6 +173,7 @@
       REAL*8                        :: EMEP    ! Returns emissions at (I,J)
 !
 ! !REVISION HISTORY: 
+!  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) added SOx, SOx ship and NH3 emissions, plus optional kg/s output
 !       (amv, 06/2008)
 !  (2 ) Now returns ship emissions if requested (phs, 6/08)
@@ -279,7 +280,6 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_EMEP_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -287,11 +287,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SUBROUTINE EMISS_EMEP
+! !IROUTINE: emiss_emep
 !
 ! !DESCRIPTION: Subroutine EMISS\_EMEP reads the EMEP emission fields at 
 !  1x1 resolution and regrids them to the current model resolution.
-!  (bdf, bmy, 11/1/05, 5/30/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -313,6 +312,7 @@
 #     include "CMN_O3"         ! SCALEYEAR
 !
 ! !REVISION HISTORY: 
+!  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Modified for IPCC future emissions.  Now references LFUTURE from
 !        "logical_mod.f". (bmy, 5/30/06)
 !EOP
@@ -503,7 +503,6 @@
       ! Print totals for EMEP_YEAR
       CALL TOTAL_ANTHRO_TG( EMEP_YEAR, SCALEYEAR, GET_MONTH() )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_EMEP
 !EOC
 !------------------------------------------------------------------------------
@@ -511,11 +510,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: SUBROUTINE EMISS_EMEP_05x0666
+! !IROUTINE: emiss_emep_05x0666
 !
 ! !DESCRIPTION: Subroutine EMISS\_EMEP reads the EMEP emission fields at
 !  05x0666 resolution and regrids them to the current model resolution.
-!  (amv, 10/23/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -536,7 +534,7 @@
 #     include "CMN_O3"         ! SCALEYEAR
 !
 ! !REVISION HISTORY:
-!  (1 ) Copied/Modified from EMISS_EMEP
+!  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -683,7 +681,6 @@
       ! Print totals for EMEP_YEAR
       CALL TOTAL_ANTHRO_TG( EMEP_YEAR, SCALEYEAR, GET_MONTH() )
 
-      ! Return to calling program
       END SUBROUTINE EMISS_EMEP_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -691,10 +688,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EMEP_SCALE_FUTURE
+! !IROUTINE: emep_scale_future
 !
 ! !DESCRIPTION: Subroutine EMEP\_SCALE\_FUTURE applies the IPCC future 
-!  scale factors to the EMEP anthropogenic emissions. (swu, bmy, 5/30/06)
+!  scale factors to the EMEP anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -703,7 +700,6 @@
 !
 ! !USES:
 ! 
-      ! References to F90 modules
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff
@@ -765,7 +761,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE EMEP_SCALE_FUTURE
 !EOC
 !------------------------------------------------------------------------------
@@ -773,11 +768,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: TOTAL_ANTHRO_TG
+! !IROUTINE: total_anthro_Tg
 !
 ! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of EMEP 
 !  anthropogenic emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 1/30/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -786,7 +780,6 @@
 !
 ! !USES:
 ! 
-      ! References to F90 modules
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,  ONLY : LEMEPSHIP
       USE TIME_MOD,     ONLY : ITS_A_LEAPYEAR
@@ -804,6 +797,7 @@
       INTEGER, INTENT(IN)   :: EMEP_MONTH   ! Current simulated month
 !
 ! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman, R. Yantosca - Initial version  
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
 !  (3 ) Now only print totals of defined tracers; other totals will be
@@ -928,7 +922,6 @@
       ! Fancy output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-      ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_TG
 !EOC
 !------------------------------------------------------------------------------
@@ -936,10 +929,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_EUROPE_MASK
+! !IROUTINE: read_europe_mask
 !
 ! !DESCRIPTION: Subroutine READ\_EUROPE\_MASK reads and regrids the 
-!  Europe mask for the EMEP anthropogenic emissions.  (bmy, 10/18/06)
+!  Europe mask for the EMEP anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -955,6 +948,7 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY: 
+!  18 Oct 2006 - R. Yantosca - Initial version
 !  (1 ) Now read the Europe mask from a disk file instead of defining it as 
 !        a rectangular box (bmy, 10/18/06)
 !EOP
@@ -986,7 +980,6 @@
       ! Regrid from GEOS 1x1 GRID to current model resolution
       CALL DO_REGRID_1x1( 'unitless', ARRAY, EUROPE_MASK )
 
-      ! Return to calling program
       END SUBROUTINE READ_EUROPE_MASK
 !EOC
 !------------------------------------------------------------------------------
@@ -994,10 +987,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_EUROPE_MASK_05x0666
+! !IROUTINE: read_europe_mask_05x0666
 !
 ! !DESCRIPTION: Subroutine READ\_EUROPE\_MASK reads and regrids the
-!  Europe mask for the EMEP anthropogenic emissions.  (bmy, 10/18/06)
+!  Europe mask for the EMEP anthropogenic emissions.
 !\\
 !\\
 ! !INTERFACE:
@@ -1013,6 +1006,7 @@
 #     include "CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY:
+!  18 Oct 2006 - R. Yantosca - Initial version
 !  (1 ) Now read the Europe mask from a disk file instead of defining it as
 !        a rectangular box (bmy, 10/18/06)
 !EOP
@@ -1043,7 +1037,6 @@
 
       EUROPE_MASK(:,:) = ARRAY(:,:,1)
 
-      ! Return to calling program
       END SUBROUTINE READ_EUROPE_MASK_05x0666
 !EOC
 !------------------------------------------------------------------------------
@@ -1051,12 +1044,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_EMEP_UPDATED
+! !IROUTINE: read_emep_updated
 !
 ! !DESCRIPTION: Subroutine READ\_EMEP\_UPDATED reads updated EMEP emissions 
 !  from the year 1990 including SOx emissions.  These are regridded to the 
 !  simulation resolution. Ship emissions can also be included. 
-!  (amv, phs, 1/28/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -1087,9 +1079,10 @@
       REAL*8,  INTENT(OUT) :: ARRAY(IIPAR,JJPAR)  ! Output array
 !
 ! !REVISION HISTORY: 
+!  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial version
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
-!   4 Jan 2010 - Extended to 2007, changed input format (amv)
+!  04 Jan 2010 - Extended to 2007, changed input format (amv)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1231,12 +1224,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: READ_EMEP_UPDATED_05x0666
+! !IROUTINE: read_emep_updated_05x0666
 !
 ! !DESCRIPTION: Subroutine READ\_EMEP\_UPDATED reads updated EMEP emissions
 !  from the year 1990 including SOx emissions.  These are regridded to the
 !  simulation resolution. Ship emissions can also be included.
-!  (amv, phs, 1/28/09)
 !\\
 !\\
 ! !INTERFACE:
@@ -1268,6 +1260,7 @@
       REAL*8,  INTENT(OUT) :: ARRAY(IIPAR,JJPAR)  ! Output array
 !
 ! !REVISION HISTORY:
+!  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial version
 !  28 Jan 2009 - P. Le Sager - Now account for LEMEPSHIP
 !  29 Oct 2009 - Added multi-species seasonality (amv)
 !EOP
@@ -1422,11 +1415,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: INIT_EMEP
+! !IROUTINE: init_emep
 !
 ! !DESCRIPTION: Subroutine INIT\_EMEP allocates and zeroes EMEP module 
 !  arrays, and also creates the mask which defines the European region.
-!  (bdf, bmy, 11/1/05, 1/26/10) 
 !\\
 !\\
 ! !INTERFACE:
@@ -1443,6 +1435,7 @@
 #     include "CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
+!  01 Nov 2005 - B. Field, R. Yantosca - Initial version
 !  (1 ) Now call READ_EUROPE_MASK to read & regrid EUROPE_MASK from disk 
 !        instead of just defining it as a rectangular box. (bmy, 10/18/06)
 !  26 Jan 2010 - R. Yantosca - Fixed cut-n-paste error.  Now make sure to zero 
@@ -1524,7 +1517,6 @@
          CALL READ_EUROPE_MASK
 #endif
 
-      ! Return to calling program
       END SUBROUTINE INIT_EMEP
 !EOC
 !------------------------------------------------------------------------------
@@ -1532,10 +1524,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: CLEANUP_EMEP
+! !IROUTINE: cleanup_emep
 !
-! !DESCRIPTION: Subroutine CLEANUP\_EMEP deallocates all module arrays 
-!   (bmy, 11/1/05)
+! !DESCRIPTION: Subroutine CLEANUP\_EMEP deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
@@ -1564,7 +1555,6 @@
       IF ( ALLOCATED( EMEP_C2H6     ) ) DEALLOCATE( EMEP_C2H6     )
       IF ( ALLOCATED( EUROPE_MASK   ) ) DEALLOCATE( EUROPE_MASK   )  
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_EMEP
 !EOC
       END MODULE EMEP_MOD

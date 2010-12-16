@@ -1,94 +1,63 @@
-! $Id: input_mod.f,v 1.3 2010/03/15 19:33:19 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: input_mod
+!
+! !DESCRIPTION: Module INPUT\_MOD contains routines that read the GEOS-Chem 
+!  input file at the start of the run and pass the information to several 
+!  other GEOS-Chem F90 modules.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE INPUT_MOD
 !
-!******************************************************************************
-!  Module INPUT_MOD reads the GEOS-Chem input file at the start of the run
-!  and passes the information to several other GEOS-Chem F90 modules.
-!  (bmy, 7/20/04, 2/25/10)
+! !USES:
+!
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!  
+      PUBLIC  :: READ_INPUT_FILE
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: READ_ONE_LINE
+      PRIVATE :: SPLIT_ONE_LINE        
+      PRIVATE :: READ_SIMULATION_MENU
+      PRIVATE :: READ_TRACER_MENU  
+      PRIVATE :: READ_AEROSOL_MENU     
+      PRIVATE :: READ_EMISSIONS_MENU
+      PRIVATE :: READ_FUTURE_MENU
+      PRIVATE :: READ_CHEMISTRY_MENU
+      PRIVATE :: READ_TRANSPORT_MENU
+      PRIVATE :: READ_CONVECTION_MENU
+      PRIVATE :: READ_DEPOSITION_MENU
+      PRIVATE :: READ_OUTPUT_MENU
+      PRIVATE :: READ_DIAGNOSTIC_MENU
+      PRIVATE :: SET_TINDEX
+      PRIVATE :: READ_ND49_MENU      
+      PRIVATE :: READ_ND50_MENU  
+      PRIVATE :: READ_ND51_MENU  
+      PRIVATE :: READ_ND51b_MENU  
+      PRIVATE :: READ_PROD_LOSS_MENU 
+      PRIVATE :: READ_UNIX_CMDS_MENU
+      PRIVATE :: READ_NESTED_GRID_MENU
+      PRIVATE :: READ_ARCHIVED_OH_MENU
+      PRIVATE :: READ_O3PL_MENU
+      PRIVATE :: READ_BENCHMARK_MENU  
+      PRIVATE :: READ_CH4_MENU
+      PRIVATE :: VALIDATE_DIRECTORIES  
+      PRIVATE :: CHECK_DIRECTORY
+      PRIVATE :: CHECK_TIME_STEPS 
+      PRIVATE :: IS_LAST_DAY_GOOD
+      PRIVATE :: INIT_INPUT
 ! 
-!  Module Variables:
-!  ============================================================================
-!  (1 ) VERBOSE   (LOGICAL )  : Turns on echo-back of lines read from disk.
-!  (2 ) FIRSTCOL  (INTEGER )  : First column of the input file (default=26)
-!  (3 ) MAXDIM    (INTEGER )  : Maximum number of substrings to read in
-!  (4 ) TS_CHEM   (INTEGER )  : Placeholder for chemistry  timestep [min]
-!  (5 ) TS_DYN    (INTEGER )  : Placeholder for dynamic    timestep [min]
-!  (6 ) TS_CONV   (INTEGER )  : Placeholder for convection timestep [min]
-!  (7 ) TS_EMIS   (INTEGER )  : Placeholder for emissions  timestep [min]
-!  (8 ) TS_UNIT   (INTEGER )  : Placeholder for unit conv  timestep [min]
-!  (9 ) FILENAME  (CHAR*255)  : GEOS-CHEM input file name
-!  (10) TOPTITLE  (CHAR*255)  : Top line of input file
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) READ_INPUT_FILE       : Driver routine for reading GEOS-CHEM input file
-!  (2 ) READ_ONE_LINE         : Reads one line at a time
-!  (3 ) SPLIT_ONE_LINE        : Splits one line into substrings (by spaces)
-!  (4 ) READ_SIMULATION_MENU  : Reads the GEOS-Chem simulation menu
-!  (4 ) READ_TRACER_MENU      : Reads the GEOS-Chem tracer menu
-!  (6 ) READ_AEROSOL_MENU     : Reads the GEOS-Chem aerosol menu
-!  (7 ) READ_EMISSIONS_MENU   : Reads the GEOS-Chem emission menu
-!  (8 ) READ_FUTURE_MENU      : Reads the GEOS-Chem future emissions menu
-!  (9 ) READ_CHEMISTRY_MENU   : Reads the GEOS-Chem chemistry menu
-!  (10) READ_TRANSPORT_MENU   : Reads the GEOS-Chem transport menu
-!  (11) READ_CONVECTION_MENU  : Reads the GEOS-Chem convection menu
-!  (12) READ_DEPOSITION_MENU  : Reads the GEOS-Chem deposition menu
-!  (13) READ_OUTPUT_MENU      : Reads the GEOS-Chem output menu
-!  (14) READ_DIAGNOSTIC_MENU  : Reads the GEOS-Chem diagnostic menu
-!  (15) SET_TINDEX            : Defines which tracers to print to the BPCH file
-!  (16) READ_ND49_MENU        : Reads the GEOS-Chem ND49 timeseries menu
-!  (17) READ_ND50_MENU        : Reads the GEOS-Chem ND50 timeseries menu
-!  (18) READ_ND51_MENU        : Reads the GEOS-Chem ND51 timeseries menu
-!  (18) READ_ND51b_MENU       : Reads the GEOS-Chem ND51b timeseries menu
-!  (19) READ_PROD_LOSS_MENU   : Reads the GEOS-Chem ND65 timeseries menu
-!  (20) READ_UNIX_CMDS_MENU   : Reads the GEOS-Chem unix commands menu
-!  (21) READ_NESTED_GRID_MENU : Reads the GEOS-Chem nested grid menu
-!  (22) READ_ARCHIVED_OH_MENU : Reads the GEOS-Chem archived OH menu
-!  (23) READ_O3PL_MENU        : Reads the GEOS-CHEM O3 P/L menu
-!  (24) READ_BENCHMARK_MENU   : Reads the GEOS-CHEM benchmark cmds menu
-!  (25) READ_CH4_MENU         : Reads the GEOS-CHEM menu for CH4 simulations
-!  (26) VALIDATE_DIRECTORIES  : Makes sure all given directories are valid
-!  (27) CHECK_DIRECTORY       : Checks a single directory for errors
-!  (28) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
-!  (29) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
-!  (30) INIT_INPUT            : Initializes directory & logical variables
-!
-!  GEOS-CHEM modules referenced by "input_mod.f"
-!  ============================================================================
-!  (1 ) biofuel_mod.f         : Module w/ routines to read biofuel emissions
-!  (2 ) biomass_mod.f         : Module w/ routines to read biomass emissions
-!  (3 ) bpch2_mod.f           : Module w/ routines for binary punch file I/O
-!  (4 ) charpak_mod.f         : Module w/ string handling routines
-!  (5 ) dao_mod.f             : Module w/ arrays for DAO met fields
-!  (6 ) diag_mod.f            : Module w/ GEOS-CHEM diagnostic arrays
-!  (7 ) diag03_mod.f          : Module w/ routines for mercury diagnostics
-!  (8 ) diag41_mod.f          : Module w/ routines for afternoon PBL diag's
-!  (9 ) diag49_mod.f          : Module w/ routines for inst timeseries
-!  (10) diag50_mod.f          : Module w/ routines for 24hr avg timeseries
-!  (11) diag51_mod.f          : Module w/ routines for morning/aft t-series
-!  (12) diag_oh_mod.f         : Module w/ arrays & routines for mean OH diag
-!  (13) diag_pl_mod.f         : Module w/ routines for prod & loss diag's
-!  (14) directory_mod.f       : Module w/ GEOS-CHEM data & met field dirs
-!  (15) drydep_mod.f          : Module w/ GEOS-CHEM drydep routines
-!  (16) error_mod.f           : Module w/ I/O error and NaN check routines
-!  (17) file_mod.f            : Module w/ file unit numbers and error checks
-!  (19) future_emissions_mod.f: Module w/ routines for IPCC future scale facs
-!  (20) grid_mod.f            : Module w/ horizontal grid information
-!  (21) logical_mod.f         : Module w/ GEOS-CHEM logical switches
-!  (22) ocean_mercury_mod.f   : Module w/ routines for ocean flux of Hg0
-!  (23) planeflight_mod.f     : Module w/ routines for flight track diag
-!  (24) pressure_mod.f        : Module w/ routines to compute P(I,J,L)
-!  (25) restart_mod.f         : Module w/ routines for restart file I/O
-!  (26) time_mod.f            : Module w/ routines for computing time & date
-!  (27) tpcore_bc_mod.f       : Module w/ routines to read/write TPCORE BC's
-!  (28) tracer_mod.f          : Module w/ GEOS-CHEM tracer array STT etc.
-!  (29) tracerid_mod.f        : Module w/ pointers to tracers & emissions  
-!  (30) transport_mod.f       : Module w/ driver routine for TPCORE 
-!  (31) unix_cmds_mod.f       : Module w/ Unix commands for unzipping etc
-!  (32) upbdflx_mod.f         : Module w/ routines for strat O3, NOy BC's
-!  (33) wetscav_mod.f         : Module w/ routines for wetdep/scavenging
-!
-!  NOTES:
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
 !  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now 
 !        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/20/04)
@@ -139,24 +108,14 @@
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
-!******************************************************************************
+!  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "input_mod.f"
-      !=================================================================
-     
-      ! Make everything PRIVATE ...
-      PRIVATE
- 
-      ! ... except these routines
-      PUBLIC :: READ_INPUT_FILE
-      
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
+! !PRIVATE TYPES:
+!
       LOGICAL            :: VERBOSE  = .FALSE.
       INTEGER, PARAMETER :: FIRSTCOL = 26
       INTEGER, PARAMETER :: MAXDIM   = 255
@@ -172,34 +131,42 @@
       CHARACTER(LEN=255) :: DIAGINFO  
       CHARACTER(LEN=255) :: TRACERINFO
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_input_file
+!
+! !DESCRIPTION: Subroutine READ\_INPUT\_FILE is the driver program for 
+!  reading the GEOS-Chem input file "input.geos" from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_INPUT_FILE
 !
-!******************************************************************************
-!  Subroutine READ_INPUT_FILE is the driver program for reading the GEOS_CHEM
-!  input file "input.geos" from disk. (bmy, 7/20/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
+      USE CHARPAK_MOD, ONLY : STRREPL
+      USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
+      USE GAMAP_MOD,   ONLY : DO_GAMAP
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
 !        "tracerinfo.dat" files after all diagnostic menus have been read in
 !  (2 ) Now call NDXX_setup from this routine (phs, 11/18/08)
 !  (3 ) Now call READ_ND51b_MENU (amv, bmy, 12/18/09)
-!  (4 ) Add READ_MICROPHYS_MENU for reading in TOMAS aerosol microphysics menu
-!        (win, 7/14/09)
-!******************************************************************************
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : STRREPL
-      USE FILE_MOD,    ONLY : IU_GEOS, IOERROR
-      USE GAMAP_MOD,   ONLY : DO_GAMAP
-      
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL            :: EOF
       INTEGER            :: IOS
       CHARACTER(LEN=1)   :: TAB   = ACHAR(9)
@@ -367,42 +334,49 @@
       ! Echo output
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-      ! Return to calling program
       END SUBROUTINE READ_INPUT_FILE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_one_line
+!
+! !DESCRIPTION: Subroutine READ\_ONE\_LINE reads a line from the input file.  
+!  If the global variable VERBOSE is set, the line will be printed to stdout.  
+!  READ\_ONE\_LINE can trap an unexpected EOF if LOCATION is passed.  
+!  Otherwise, it will pass a logical flag back to the calling routine, 
+!  where the error trapping will be done.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION READ_ONE_LINE( EOF, LOCATION ) RESULT( LINE )
 !
-!******************************************************************************
-!  Subroutine READ_ONE_LINE reads a line from the input file.  If the global 
-!  variable VERBOSE is set, the line will be printed to stdout.  READ_ONE_LINE
-!  can trap an unexpected EOF if LOCATION is passed.  Otherwise, it will pass
-!  a logical flag back to the calling routine, where the error trapping will
-!  be done. (bmy, 7/20/04)
-! 
-!  Arguments as Output:
-!  ===========================================================================
-!  (1 ) EOF      (CHARACTER) : Logical flag denoting EOF condition
-!  (2 ) LOCATION (CHARACTER) : Name of calling routine; traps premature EOF
+! !USES:
 !
-!  Function value:
-!  ===========================================================================
-!  (1 ) LINE     (CHARACTER) : A line of text as read from the file
-!
-!  NOTES:
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_GEOS, IOERROR
-
-      ! Arguments
-      LOGICAL,          INTENT(OUT)          :: EOF
-      CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: LOCATION
-
-      ! Local variables
-      INTEGER                                :: IOS
-      CHARACTER(LEN=255)                     :: LINE, MSG
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: LOCATION    ! Msg to display
+!
+! !OUTPUT PARAMETERS:
+!
+      LOGICAL,          INTENT(OUT)          :: EOF         ! Denotes EOF 
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: IOS
+      CHARACTER(LEN=255) :: LINE, MSG
 
       !=================================================================
       ! READ_ONE_LINE begins here!
@@ -438,46 +412,59 @@
       ! Print the line (if necessary)
       IF ( VERBOSE ) WRITE( 6, '(a)' ) TRIM( LINE )
 
-      ! Return to calling program
+      ! 
       END FUNCTION READ_ONE_LINE
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE SPLIT_ONE_LINE( SUBSTRS, N_SUBSTRS, N_EXP, LOCATION ) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SPLIT_ONE_LINE reads a line from the input file (via routine 
-!  READ_ONE_LINE), and separates it into substrings. (bmy, 7/20/04)
+! !IROUTINE: 
 !
-!  SPLIT_ONE_LINE also checks to see if the number of substrings found is 
+! !DESCRIPTION: Subroutine SPLIT\_ONE\_LINE reads a line from the input file 
+!  (via routine READ\_ONE\_LINE), and separates it into substrings.
+!\\
+!\\
+!  SPLIT\_ONE\_LINE also checks to see if the number of substrings found is 
 !  equal to the number of substrings that we expected to find.  However, if
 !  you don't know a-priori how many substrings to expect a-priori, 
 !  you can skip the error check.
-! 
-!  Arguments as Input:
-!  ===========================================================================
-!  (3 ) N_EXP     (INTEGER  ) : Number of substrings we expect to find
-!                               (N_EXP < 0 will skip the error check!)
-!  (4 ) LOCATION  (CHARACTER) : Name of routine that called SPLIT_ONE_LINE
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Output:
-!  ===========================================================================
-!  (1 ) SUBSTRS   (CHARACTER) : Array of substrings (separated by " ")
-!  (2 ) N_SUBSTRS (INTEGER  ) : Number of substrings actually found
+      SUBROUTINE SPLIT_ONE_LINE( SUBSTRS, N_SUBSTRS, N_EXP, LOCATION ) 
 !
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE CHARPAK_MOD, ONLY: STRSPLIT
-      
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(OUT) :: SUBSTRS(MAXDIM)
-      INTEGER,            INTENT(OUT) :: N_SUBSTRS
+!
+! !INPUT PARAMETERS: 
+!
+      ! Number of substrings we expect to find
       INTEGER,            INTENT(IN)  :: N_EXP
-      CHARACTER(LEN=*),   INTENT(IN)  :: LOCATION 
 
-      ! Local varaibles
+      ! Name of routine that called SPLIT_ONE_LINE
+      CHARACTER(LEN=*),   INTENT(IN)  :: LOCATION 
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Array of substrings (separated by " ")
+      CHARACTER(LEN=255), INTENT(OUT) :: SUBSTRS(MAXDIM)
+
+      ! Number of substrings actually found
+      INTEGER,            INTENT(OUT) :: N_SUBSTRS
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL                         :: EOF
       CHARACTER(LEN=255)              :: LINE, MSG
 
@@ -521,33 +508,29 @@
  100     FORMAT( 'Expected ',i2, ' substrs but found ',i3 )
       ENDIF
        
-      ! Return to calling program
+      ! 
       END SUBROUTINE SPLIT_ONE_LINE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_simulation_menu
+!
+! !DESCRIPTION: Subroutine READ\_SIMULATION\_MENU reads the SIMULATION MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_SIMULATION_MENU
 !
-!******************************************************************************
-!  Subroutine READ_SIMULATION_MENU reads the SIMULATION MENU section of 
-!  the GEOS-CHEM input file (bmy, 7/20/04, 10/15/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
-!  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
-!  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
-!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
-!        INIT_TRANSFER (bmy, 11/5/07)
-!  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
-!  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
-!  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR,  GEOS_4_DIR,   GEOS_5_DIR
+      USE DIRECTORY_MOD, ONLY : MERRA_DIR
       USE DIRECTORY_MOD, ONLY : RUN_DIR
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
@@ -558,8 +541,28 @@
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
       USE TIME_MOD,      ONLY : SET_NDIAGTIME,    GET_TAU
       USE TRANSFER_MOD,  ONLY : INIT_TRANSFER
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
+!  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
+!  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
+!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
+!        INIT_TRANSFER (bmy, 11/5/07)
+!  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
+!  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
+!  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
+!  13 Aug 2010 - R. Yantosca - Now read MERRA_DIR
+!  19 Aug 2010 - R. Yantosca - Set LUNZIP=F for MERRA met fields.
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I0,    J0
       INTEGER            :: N,     NDIAGTIME
       INTEGER            :: NYMDb, NHMSb 
@@ -616,36 +619,48 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:11' )
       READ( SUBSTRS(1:N), '(a)' ) GEOS_5_DIR
 
-      ! Temp dir
+      ! MERRA subdir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:12' )
-      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+      READ( SUBSTRS(1:N), '(a)' ) MERRA_DIR
 
       ! Temp dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:13' )
+      READ( SUBSTRS(1:N), '(a)' ) DATA_DIR_1x1
+
+      ! Temp dir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
       READ( SUBSTRS(1:N), '(a)' ) TEMP_DIR
 
       ! Unzip met fields
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:14' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
       READ( SUBSTRS(1:N), *     ) LUNZIP
 
       ! Wait for met fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:15' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LWAIT
 
       ! Variable Tropopause
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
       ! LINOZ chemistry in the stratosphere
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:18' )
       READ( SUBSTRS(1:N), *     ) LLINOZ  
 
       ! I0, J0
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:18' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:19' )
       READ( SUBSTRS(1:N), *     ) I0, J0
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:19' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:20' )
+
+      !=================================================================
+      ! Add safety checks for logical switches
+      !=================================================================
+#if   defined( MERRA )
+      ! Turn unzipping off for MERRA met fields
+      LUNZIP = .FALSE. 
+#endif
 
       !=================================================================
       ! Print to screen
@@ -666,6 +681,8 @@
      &                     TRIM( GEOS_4_DIR )
       WRITE( 6, 110     ) 'GEOS-5     sub-directory    : ', 
      &                     TRIM( GEOS_5_DIR )
+      WRITE( 6, 110     ) 'MERRA      sub-directory    : ', 
+     &                     TRIM( MERRA_DIR )
       WRITE( 6, 110     ) '1x1 Emissions etc Data Dir  : ',
      &                     TRIM( DATA_DIR_1x1 )
       WRITE( 6, 110     ) 'Temporary Directory         : ', 
@@ -723,33 +740,28 @@
       ! Set counter
       CT1 = CT1 + 1
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_SIMULATION_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_tracer_menu
+!
+! !DESCRIPTION: Subroutine READ\_TRACER\_MENU reads the TRACER MENU section 
+!  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_TRACER_MENU
 !
-!******************************************************************************
-!  Subroutine READ_TRACER_MENU reads the TRACER MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 4/5/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
-!  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
-!  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
-!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
-!  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
-!  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CHARPAK_MOD,       ONLY : ISDIGIT
       USE BIOFUEL_MOD,       ONLY : SET_BFTRACE
-      !FP_ISOP
-      ! Initialzie IDBxxxs (6/2009)
       USE BIOMASS_MOD,       ONLY : SET_BIOTRCE
       USE ERROR_MOD,         ONLY : ALLOC_ERR, ERROR_STOP
       USE LOGICAL_MOD,       ONLY : LSPLIT
@@ -766,8 +778,24 @@
       USE TRACERID_MOD,      ONLY : TRACERID
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
+!  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
+!  (3 ) Now set LSPLIT correctly for Tagged HCN/CH3CN sim (xyp, bmy, 6/30/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Now reference XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
+!  (6 ) Now move call to INIT_OCEAN_MERCURY to READ_MERCURY_MENU (bmy, 2/24/06)
+!  (7 ) Now do not call SET_BIOTRCE anymore; it's obsolete (bmy, 4/5/06)
+!  (8 ) Add SET_BIOTRCE to initialize IDBxxxs. (fp, 2/26/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N,  T,  C
       CHARACTER(LEN=255) :: C1, C2, LINE, NAME
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1015,32 +1043,25 @@
       ! Set counter
       CT1 = CT1 + 1
 
-      ! Return to calling program
       END SUBROUTINE READ_TRACER_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_aerosol_menu
+!
+! !DESCRIPTION: Subroutine READ\_AEROSOL\_MENU reads the AEROSOL MENU 
+!  section of the GEOS-Chem input file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_AEROSOL_MENU
 !
-!******************************************************************************
-!  Subroutine READ_AEROSOL_MENU reads the AEROSOL MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 6/1/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference LSOA (bmy, 9/28/04)
-!  (2 ) Now stop run if LSOA=T and SOA tracers are undefined (bmy, 11/19/04)
-!  (3 ) Now reference LCRYST from "logical_mod.f".  Also now check to make
-!        prevent aerosol tracers from being undefined if the corresponding
-!        logical switch is set. (cas, bmy, 1/14/05)
-!  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
-!        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
-!  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
-!      (ccc, tmf, 3/10/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LSULF, LCARB, LSOA
       USE LOGICAL_MOD,  ONLY : LDUST, LDEAD, LSSALT, LCRYST
@@ -1058,7 +1079,27 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now reference LSOA (bmy, 9/28/04)
+!  (2 ) Now stop run if LSOA=T and SOA tracers are undefined (bmy, 11/19/04)
+!  (3 ) Now reference LCRYST from "logical_mod.f".  Also now check to make
+!        prevent aerosol tracers from being undefined if the corresponding
+!        logical switch is set. (cas, bmy, 1/14/05)
+!  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
+!        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
+!  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
+!      (ccc, tmf, 3/10/09)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       INTEGER            :: N, T, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
@@ -1308,22 +1349,25 @@
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
 
-      ! Return to calling program
       END SUBROUTINE READ_AEROSOL_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_microphys_menu
+!
+! !DESCRIPTION: Subroutine READ\_MICROPHYS\_MENU reads the AEROSOL 
+!  MICROPHYSICS MENU section  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_MICROPHYS_MENU
 !
-!******************************************************************************
-!  Subroutine READ_MICROPHYS_MENU reads the AEROSOL MICROPHYSICS MENU section  
-!  of the GEOS-CHEM input file. (win, 7/14/09)
+! !USES:
 !
-!  NOTES:
-!
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LTOMAS
 c$$$      USE LOGICAL_MOD,  ONLY : LSULF30,  LSALT30, LCARB30
@@ -1336,8 +1380,54 @@ c$$$      USE LOGICAL_MOD,  ONLY : LDUST30,  LNUMB30
       USE TRACERID_MOD, ONLY : IDTECOB1, IDTECIL1, IDTOCOB1,IDTOCIL1
       USE TRACERID_MOD, ONLY : IDTH2SO4, IDTDUST1
       USE TOMAS_MOD,    ONLY : INIT_TOMAS
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
+!  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
+!  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
+!  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!        (bmy, 5/10/06)
+!  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
+!  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
+!  (10) Now read LSTREETS for David Streets' emissions (bmy, 8/17/06)
+!  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
+!        lightning schemes have not yet been implemented.  Rename LOTDLIS
+!        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
+!  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
+!  (13) Add new error traps for OTD-LIS options, dependent on met field type
+!        (ltm, bmy, 11/29/07)
+!  (14) Bug fix, create string variables for ERROR_STOP (bmy, 1/24/08)
+!  (15) Now read LCAC for CAC emissions (amv, 1/09/2008)
+!  (16) Now read LEDGARSHIP, LARCSHIP and LEMEPSHIP (phs, 12/5/08)
+!  (17) Fixed typo in message for GEOS-3 (bmy, 10/30/08)
+!  (18) Now read LVISTAS (amv, 12/2/08)
+!  (19) Now read L8DAYBB, L3HRBB and LSYNOPBB for GFED2 8-days and 3hr
+!        emissions, and LICARTT for corrected EPA (phs, yc, 12/17/08)
+!  (20) Add a specific switch for MEGAN emissions for monoterpenes and MBO
+!       (ccc, 2/2/09)
+!  (21) Now read LICOADSSHIP (cklee, 6/30/09)
+!  (22) Bug fix: for now, if LEMEPSHIP is turned on but LEMEP is turned off,
+!        just turn off LEMEPSHIP and print a warning msg. (mak, bmy, 10/18/09)
+!  (23) Now accounts for NEI2005 (amv, phs, 10/9/09)
+!  (24) Included optional flag for using MODIS LAI data (mpb,2009).
+!  (25) Included optional flag for using PCEEA model (mpb, 2009)
+!  (26) Now force settings for EU, NA, CC nested grids (amv, bmy, 12/18/09)
+!  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
+!  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
+!  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
@@ -1528,18 +1618,51 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Initialize TOMAS microphysics variables
       CALL INIT_TOMAS    
  
-      ! Return to calling program
       END SUBROUTINE READ_MICROPHYS_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_emissions_menu
+!
+! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_EMISSIONS_MENU 
 !
-!******************************************************************************
-!  Subroutine READ_EMISSIONS_MENU reads the EMISSIONS MENU section of 
-!  the GEOS-Chem input file. (bmy, 7/20/04, 2/24/10)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE LOGICAL_MOD, ONLY : LAIRNOX,    LANTHRO,   LAVHRRLAI, LBBSEA    
+      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX
+      USE LOGICAL_MOD, ONLY : LCOOKE
+      USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
+      USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
+      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
+      USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
+      USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
+      USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
+      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
+      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
+      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
+      USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
+      USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+      USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
+      USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
+      USE EMISSIONS_MOD, ONLY : NOx_SCALING
+
+
+#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_O3"        ! FSCALYR
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -1578,38 +1701,15 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
 !  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
 !  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
-!******************************************************************************
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ERROR_STOP
-      USE LOGICAL_MOD, ONLY : LAIRNOX,    LANTHRO,   LAVHRRLAI, LBBSEA    
-      USE LOGICAL_MOD, ONLY : LBIOFUEL,   LBIOGENIC, LBIOMASS,  LBIONOX
-      USE LOGICAL_MOD, ONLY : LCOOKE
-      USE LOGICAL_MOD, ONLY : LEMIS,      LFOSSIL,   LLIGHTNOX, LMONOT    
-      USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
-      USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
-      !add separate switch for Fert NOx (fp, 6/2009)
-      USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
-      USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
-      USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
-      USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
-      USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
-      USE LOGICAL_MOD, ONLY : LICOADSSHIP,LNEI05 
-      USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
-      USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
-      !allow for ISOP and NOx emissions scaling (fp, 6/2009)
-      USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
-      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
-
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_O3"      ! FSCALYR
-
-      ! Local variables
-      INTEGER              :: N
-      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG, LOC
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
 
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
@@ -1853,17 +1953,36 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          LEDGARSOx  = .TRUE.
       ENDIF
 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
       !%%% off, this will cause an error (because arrays are not   %%%
       !%%% allocated, etc.).  For now, just turn off LEMEPSHIP     %%%
       !%%% and print a warning message.  Whoever wants to fix this %%%
       !%%% in a more robust way is welcome to do so.               %%%
       !%%% (mak, bmy, 10/19/09)                                    %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( LEMEPSHIP .and. ( .not. LEMEP ) ) THEN
          LEMEPSHIP = .FALSE.
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
          WRITE( 6, '(a)' ) 'WARNING! EMEP emissions are turned off,'
          WRITE( 6, '(a)' ) 'so also turn off EMEP ship emissions'
+         WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      ENDIF
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%% Bug fix!  If LMEGANMONO is turned on but LMEGAN is turned %%%
+      !%%% off, this will cause an error (because arrays are not     %%%
+      !%%% allocated, etc.).  For now, just turn off LMEGANMONO      %%%
+      !%%% and print a warning message.  Whoever wants to fix this   %%%
+      !%%% in a more robust way is welcome to do so.                 %%%
+      !%%% (bmy, 10/19/09)                                           %%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      IF ( LMEGANMONO .and. ( .not. LMEGAN ) ) THEN
+         LMEGANMONO = .FALSE.
+         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+         WRITE( 6, '(a)' ) 'WARNING! MEGAN emissions are turned off, so'
+         WRITE( 6, '(a)' ) 'we also turn off LMEGANMONO ship emissions'
          WRITE( 6, '(a)' ) 'in order to avoid crashing GEOS-Chem!'
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       ENDIF
@@ -2031,6 +2150,24 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
+#elif defined( MERRA    )
+
+         ! Display warning
+         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+            WRITE( 6, 150 )
+ 150        FORMAT( 
+     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
+     &         '% Warning: MERRA redistribution not computed yet %',/
+     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%' )
+         ENDIF
+
+         ! Error trap if wrong options selected
+         IF ( LMFLUX .or. LPRECON ) THEN
+            MSG =  'MFLUX or PRECON not available for MERRA yet. ' //
+     &             'Select CTH instead.'
+            CALL ERROR_STOP( MSG, LOC )
+         ENDIF
+
 #elif defined( GEOS_3   )
 
          !--------------------------------
@@ -2131,43 +2268,55 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_EMISSIONS_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_co2_sim_menu
+!
+! !DESCRIPTION: Subroutine READ\_CO2\_SIM\_MENU reads the CO2 SIM MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CO2_SIM_MENU
 !
-!******************************************************************************
-!  Subroutine READ_CO2_SIM_MENU reads the CO2 SIM MENU section of 
-!  the GEOS-Chem input file. (R Nassar, 2009-03-02)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
-
       USE ERROR_MOD,   ONLY : ERROR_STOP
-
       USE LOGICAL_MOD, ONLY : LANTHRO, LFOSSIL
       USE LOGICAL_MOD, ONLY : LGENFF, LANNFF, LMONFF, LSTREETS
       USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
-	USE LOGICAL_MOD, ONLY : LBIODAILY, LBIODIURNAL
-	USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
+      USE LOGICAL_MOD, ONLY : LBIODAILY, LBIODIURNAL
+      USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD, ONLY : LOCN1997, LOCN2009ANN, LOCN2009MON
-	USE LOGICAL_MOD, ONLY : LFFBKGRD
-	USE LOGICAL_MOD, ONLY : LSHIPEDG, LSHIPICO, LPLANE
-	USE LOGICAL_MOD, ONLY : LBIOSPHTAG, LFOSSILTAG
-	USE LOGICAL_MOD, ONLY : LSHIPTAG, LPLANETAG
-	USE LOGICAL_MOD, ONLY : LSHIPSCALE, LPLANESCALE
-	USE LOGICAL_MOD, ONLY : LCHEMCO2
-
+      USE LOGICAL_MOD, ONLY : LFFBKGRD
+      USE LOGICAL_MOD, ONLY : LSHIPEDG, LSHIPICO, LPLANE
+      USE LOGICAL_MOD, ONLY : LBIOSPHTAG, LFOSSILTAG
+      USE LOGICAL_MOD, ONLY : LSHIPTAG, LPLANETAG
+      USE LOGICAL_MOD, ONLY : LSHIPSCALE, LPLANESCALE
+      USE LOGICAL_MOD, ONLY : LCHEMCO2     
       USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_O3"      ! FSCALYR
-
-      ! Local variables
-      INTEGER              :: N
-      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG, LOC
+! 
+! !REVISION HISTORY: 
+!  02 Mar 2009 - R. Nassar   - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
 
       !=================================================================
       ! READ_CO2_SIM_MENU begins here!
@@ -2403,31 +2552,44 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  100  FORMAT( A, L5 )
  110  FORMAT( A, L5, A )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_CO2_SIM_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_future_menu
+!
+! !DESCRIPTION: Subroutine READ\_FUTURE\_MENU reads the FUTURE MENU section 
+!  of the GEOS-Chem input file; this defines IPCC future emissions options.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_FUTURE_MENU
 !
-!******************************************************************************
-!  Subroutine READ_FUTURE_MENU reads the FUTURE MENU section of the GEOS-Chem 
-!  input file; this defines IPCC future emissions options. (swu, bmy, 6/1/06)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
       USE LOGICAL_MOD,          ONLY : LFUTURE
  
 #     include "define.h"             ! C-preprocessor switches
-
-      ! Local variables
-      INTEGER                       :: N
-      INTEGER                       :: FUTURE_YEAR 
-      CHARACTER(LEN=255)            :: FUTURE_SCEN
-      CHARACTER(LEN=255)            :: SUBSTRS(MAXDIM)
+! 
+! !REVISION HISTORY: 
+!  01 Jun 2006 - S. Wu       - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      INTEGER            :: FUTURE_YEAR 
+      CHARACTER(LEN=255) :: FUTURE_SCEN
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_FUTURE_MENU begins here!
@@ -2480,24 +2642,25 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
          CALL DO_FUTURE_EMISSIONS( FUTURE_YEAR, TRIM( FUTURE_SCEN ) )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE READ_FUTURE_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_chemistry_menu
+!
+! !DESCRIPTION: Subroutine READ\_CHEMISTRY\_MENU reads the CHEMISTRY MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CHEMISTRY_MENU
 !
-!******************************************************************************
-!  Subroutine READ_CHEMISTRY_MENU reads the CHEMISTRY MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES: 
-!  (1) added optional test on KPPTRACER (phs, 6/17/09)
-!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
-!      (bmy, 2/25/10)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP 
       USE LOGICAL_MOD, ONLY : LCHEM 
       USE LOGICAL_MOD, ONLY : LSVCSPEC, LKPP
@@ -2505,8 +2668,19 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TRACER_MOD,  ONLY : N_TRACERS
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1) added optional test on KPPTRACER (phs, 6/17/09)
+!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
+!      (bmy, 2/25/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
@@ -2576,35 +2750,48 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_CHEMISTRY_MENU  
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_transport_menu
+!
+! !DESCRIPTION: Subroutine READ\_TRANSPORT\_MENU reads the TRANSPORT MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_TRANSPORT_MENU
 !
-!******************************************************************************
-!  Subroutine READ_TRANSPORT_MENU reads the TRANSPORT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 11/6/08)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
-!  (2 ) Update text in error message (bmy, 2/23/05)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Don't stop run if TS_DYN > MAX_DYN but transport is turned off
-!        (cdh, bmy, 7/7/08)
-!  (5 ) Set MAX_DYN for the 0.5 x 0.666 nested grid (yxw, dan, bmy, 11/6/08)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE LOGICAL_MOD,   ONLY : LTRAN,              LUPBD
       USE LOGICAL_MOD,   ONLY : LMFCT,              LFILL
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
       USE TRANSPORT_MOD, ONLY : SET_TRANSPORT
       USE UPBDFLX_MOD,   ONLY : INIT_UPBDFLX
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
+!  (2 ) Update text in error message (bmy, 2/23/05)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Don't stop run if TS_DYN > MAX_DYN but transport is turned off
+!        (cdh, bmy, 7/7/08)
+!  (5 ) Set MAX_DYN for the 0.5 x 0.666 nested grid (yxw, dan, bmy, 11/6/08)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N, IORD, JORD, KORD, J1, KS, MAX_DYN
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
@@ -2703,28 +2890,41 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Pass parameters to "upbdflx_mod.f"
       CALL INIT_UPBDFLX( IORD, JORD, KORD )
 
-      ! Return to calling program
       END SUBROUTINE READ_TRANSPORT_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_convection_menu 
+!
+! !DESCRIPTION: Subroutine READ\_CONVECTION\_MENU reads the CONVECTION MENU 
+!  section of the GEOS-Chem input file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CONVECTION_MENU
 !
-!******************************************************************************
-!  Subroutine READ_CONVECTION_MENU reads the CONVECTION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Add option for new non-local PBL scheme. And a check on GEOS-5, 
-!        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCONV, LTURB
-      USE LOGICAL_MOD, ONLY : LNLPBL ! (Lin, 03/31/09)
-
-      ! Local variables
+      USE LOGICAL_MOD, ONLY : LNLPBL        ! (Lin, 03/31/09)
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Add option for new non-local PBL scheme. And a check on GEOS-5, 
+!        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
+!  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: N
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
 
@@ -2757,8 +2957,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_convection_menu:5' )
 
-      ! The non-local PBL scheme is valid only with GEOS-5 !
-#if !defined(GEOS_5) 
+      ! The non-local PBL scheme is valid only with GEOS-5 or MERRA!
+#if   !defined( GEOS_5 ) && !defined( MERRA )
       IF ( LNLPBL ) THEN
          WRITE(*,*) '================================================='
          WRITE(*,*) 'The non-local PBL scheme is only valid for GEOS-5'
@@ -2782,26 +2982,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
       
-      ! Return to calling program 
+      !  
       END SUBROUTINE READ_CONVECTION_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_deposition_menu
+!
+! !DESCRIPTION: Subroutine READ\_DEPOSITION\_MENU reads the DEPOSITION MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_DEPOSITION_MENU
 !
-!******************************************************************************
-!  Subroutine READ_DEPOSITION_MENU reads the DEPOSITION MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
-!  (2 ) We need to call WETDEPID for both wetdep and cloud convection
-!        since this sets up the list of soluble tracers (bmy, 3/1/05)
-!  (3 ) Remove references to obsolete CO_OH simulation (bmy, 6/24/05)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE DRYDEP_MOD,  ONLY : INIT_DRYDEP
       USE LOGICAL_MOD, ONLY : LCONV,             LDRYD
@@ -2811,10 +3011,23 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE WETSCAV_MOD, ONLY : WETDEPID
-
-      ! Local variables
-      INTEGER              :: N
-      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
+!  (2 ) We need to call WETDEPID for both wetdep and cloud convection
+!        since this sets up the list of soluble tracers (bmy, 3/1/05)
+!  (3 ) Remove references to obsolete CO_OH simulation (bmy, 6/24/05)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_DEPOSITION_MENU begins here!
@@ -2891,21 +3104,33 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
      &        'as the total HgP tracer.' )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_DEPOSITION_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine READ\_GAMAP\_MENU reads the GAMAP MENU section 
+!  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_GAMAP_MENU
+! 
+! !REVISION HISTORY: 
+!  25 Apr 2005 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!******************************************************************************
-!  Subroutine READ_GAMAP_MENU reads the GAMAP MENU section of the 
-!  GEOS-CHEM input file. (bmy, 4/25/05)
+! !LOCAL VARIABLES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! Local variables
       LOGICAL            :: EOF
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -2935,27 +3160,40 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
      &                    TRIM( TRACERINFO )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_GAMAP_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_output_menu
+!
+! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of 
+!  the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_OUTPUT_MENU
 !
-!******************************************************************************
-!  Subroutine READ_OUTPUT_MENU reads the OUTPUT MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_GEOS, IOERROR
       
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! NJDAY
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: IOS
 
       !=================================================================
@@ -2992,46 +3230,26 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_OUTPUT_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_diagnostic_menu
+!
+! !DESCRIPTION: Subroutine READ\_DIAGNOSTIC\_MENU reads the DIAGNOSTIC MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_DIAGNOSTIC_MENU
 !
-!******************************************************************************
-!  Subroutine READ_DIAGNOSTIC_MENU reads the DIAGNOSTIC MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 2/10/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
-!        from "bpch2_mod.f".  Now opens the bpch file for output here
-!        instead of w/in "main.f" (bmy, 2/3/05)
-!  (2 ) Now references "diag03_mod.f" and "diag41_mod.f".  Now turn off ND38
-!        when both LWETD=F and LCONV=F.  Now calls EXPAND_DATE to replace
-!        YYYYMMDD and HHMMSS tokens in the bpch file name with the actual
-!        starting date & time of the run. (bmy, 3/25/05)
-!  (3 ) Now get diag info for ND09 for HCN/CH3CN sim (bmy, 6/27/05)
-!  (4 ) Now references "diag04_mod.f" (bmy, 7/26/05)
-!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
-!        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
-!  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
-!  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f" 
-!        (bmy, 5/10/06)
-!  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
-!        (dkh, bmy, 5/22/06)
-!  (9 ) Now set max dimension for GFED2 or default biomass (bmy, 9/22/06)
-!  (10) Bug fix: Should use ND52 in call to SET_TINDEX (cdh, bmy, 2/11/08)
-!  (11) Remove call to NDXX_SETUP; this is now called in READ_INPUT_FILE.
-!        (phs, 11/18/08)
-!  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
-!        (tmf, 2/10/09)
-!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
-!******************************************************************************
-!
-      ! References to F90 modules
-      ! NBIOMAX now in CMN_SIZE (fp, 6/2009)
-      !USE BIOMASS_MOD,  ONLY : NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
       USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
@@ -3057,10 +3275,41 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
-
-      ! Local variables
-      INTEGER               :: M, N, N_MAX, N_TMP
-      CHARACTER(LEN=255)    :: SUBSTRS(MAXDIM), MSG, LOCATION
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
+!        from "bpch2_mod.f".  Now opens the bpch file for output here
+!        instead of w/in "main.f" (bmy, 2/3/05)
+!  (2 ) Now references "diag03_mod.f" and "diag41_mod.f".  Now turn off ND38
+!        when both LWETD=F and LCONV=F.  Now calls EXPAND_DATE to replace
+!        YYYYMMDD and HHMMSS tokens in the bpch file name with the actual
+!        starting date & time of the run. (bmy, 3/25/05)
+!  (3 ) Now get diag info for ND09 for HCN/CH3CN sim (bmy, 6/27/05)
+!  (4 ) Now references "diag04_mod.f" (bmy, 7/26/05)
+!  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
+!  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
+!  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f" 
+!        (bmy, 5/10/06)
+!  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
+!        (dkh, bmy, 5/22/06)
+!  (9 ) Now set max dimension for GFED2 or default biomass (bmy, 9/22/06)
+!  (10) Bug fix: Should use ND52 in call to SET_TINDEX (cdh, bmy, 2/11/08)
+!  (11) Remove call to NDXX_SETUP; this is now called in READ_INPUT_FILE.
+!        (phs, 11/18/08)
+!  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
+!        (tmf, 2/10/09)
+!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: M, N, N_MAX, N_TMP
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
       !=================================================================
       ! READ_DIAGNOSTIC_MENU begins here!
@@ -3594,46 +3843,56 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Open the binary punch file for output 
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 
-      ! Return to calling program
       END SUBROUTINE READ_DIAGNOSTIC_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine SET\_TINDEX sets the TINDEX and TMAX arrays, 
+!  which determine how many tracers to print to the punch file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_TINDEX( N_DIAG, L_DIAG, SUBSTRS, N, NMAX )
 !
-!******************************************************************************
-!  Subroutine SET_TINDEX sets the TINDEX and TMAX arrays, which determine how 
-!  many tracers to print to the punch file. (bmy, 7/20/04, 11/15/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N_DIAG  (INTEGER  ) : Number of the GEOS-CHEM diagnostic
-!  (2 ) L_DIAG  (INTEGER  ) : Number of levels that we are saving
-!  (3 ) SUBSTRS (CHARACTER) : Substrings passed from READ_DIAGNOSTIC_MENU
-!  (4 ) N       (INTEGER  ) : Number of valid substrings being passed
-!  (5 ) NMAX    (INTEGER  ) : Maximum number of tracers for this diagnostic
-!      
-!  NOTES:
-!  (1 ) Bug fix: now do not drop the last tracer number if "all" is not
-!        explicitly specified (tmf, bmy, 11/15/04)
-!******************************************************************************
-!      
       USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! TMAX, TINDEX
-
-      ! Arguments
-      INTEGER,            INTENT(IN) :: N_DIAG, N, NMAX, L_DIAG
-      CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)
-
-      ! Local variables
-      LOGICAL, SAVE                  :: FIRST = .TRUE.
-      LOGICAL                        :: IS_ALL 
-      INTEGER                        :: M
-      INTEGER                        :: NN, COL, IFLAG, TC ! (win, 7/14/09)
-      CHARACTER (LEN=255) :: WORD, SUBWORD, TMP1, TMP2     ! (win, 7/14/09)
-      INTEGER                        :: MINTMP, MAXTMP     ! (win, 7/14/09)
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,            INTENT(IN) :: N_DIAG      ! GEOS-Chem diagnostic #
+      INTEGER,            INTENT(IN) :: N           ! # of valid substrs passed
+      INTEGER,            INTENT(IN) :: NMAX        ! Max # of tracers allowed
+      INTEGER,            INTENT(IN) :: L_DIAG      ! # of levels to save
+      CHARACTER(LEN=255), INTENT(IN) :: SUBSTRS(N)  ! Substrs passed from
+                                                    !  READ_DIAGNOSTIC_MENU
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Bug fix: now do not drop the last tracer number if "all" is not
+!        explicitly specified (tmf, bmy, 11/15/04)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE       :: FIRST = .TRUE.
+      LOGICAL             :: IS_ALL 
+      INTEGER             :: M
+      INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
+      CHARACTER (LEN=255) :: WORD,   SUBWORD, TMP1,  TMP2   ! (win, 7/14/09)
+      INTEGER             :: MINTMP, MAXTMP                 ! (win, 7/14/09)
 
       !=================================================================
       ! SET_TINDEX begins here!
@@ -3760,29 +4019,42 @@ c$$$         IS_ALL = .FALSE.
 
       ENDIF
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE SET_TINDEX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_planeflight_menu
+!
+! !DESCRIPTION: Subroutine READ\_PLANEFLIGHT\_MENU reads the PLANEFLIGHT MENU 
+!  section of the GEOS-Chem input file.  This turns on the ND40 flight track 
+!  diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_PLANEFLIGHT_MENU
 !
-!******************************************************************************
-!  Subroutine READ_PLANEFLIGHT_MENU reads the PLANEFLIGHT MENU section of the 
-!  GEOS-CHEM input file.  This turns on the ND40 flight track diagnostic.
-!  (bmy, 7/20/04)
-!  
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE ERROR_MOD,       ONLY : ERROR_STOP
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
 
-#     include "CMN_SIZE"  ! MAXFAM
-#     include "CMN_DIAG"  ! ND40
-
-      ! Local variables
+#     include "CMN_SIZE"        ! MAXFAM
+#     include "CMN_DIAG"        ! ND40
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL            :: DO_PF
       INTEGER            :: N
       CHARACTER(LEN=255) :: IFILE
@@ -3840,26 +4112,39 @@ c$$$         IS_ALL = .FALSE.
       ! Pass variables to "planeflight_mod.f"
       CALL SET_PLANEFLIGHT( DO_PF, IFILE, OFILE )
    
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_PLANEFLIGHT_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd48_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND48\_MENU reads the ND48 MENU section of the 
+!  GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND48_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND48_MENU reads the ND48 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04, 3/6/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Bug fix: ND48 stations should now be read correctly. (bmy, 3/6/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG48_MOD, ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ERROR_MOD,  ONLY : ERROR_STOP
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Bug fix: ND48 stations should now be read correctly. (bmy, 3/6/06)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL            :: DO_ND48
       INTEGER            :: N, S
       INTEGER            :: FREQ
@@ -3940,27 +4225,40 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
      &                  JARR,    LARR, NARR,  FILE )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ND48_MENU
-
-!-----------------------------------------------------------------------------
-    
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd49_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND49\_MENU reads the ND49 MENU section of 
+!  the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND49_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND49_MENU reads the ND49 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG49_MOD, ONLY : INIT_DIAG49
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
       ! Increased to 121 from 100 (mpb,2009)
@@ -4047,29 +4345,43 @@ c$$$         IS_ALL = .FALSE.
      &                  IMAX,    JMIN,   JMAX,    LMIN,    
      &                  LMAX,    FREQ,   FILE )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ND49_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd50_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND50\_MENU reads the ND50 MENU section of 
+!  the GEOS-Chem input file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND50_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND50_MENU reads the ND50 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
-!        (amv, bmy, 12/21/09)
-!  (2 ) Increase tracer number to 121. (ccc, 4/20/10)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG50_MOD,  ONLY : INIT_DIAG50
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND50_HDF
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
+!        (amv, bmy, 12/21/09)
+!  (2 ) Increase tracer number to 121. (ccc, 4/20/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 
-      ! Local variables
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL              :: DO_ND50
       INTEGER              :: N,      I,       AS  
       ! Increased # of tracers to 121. (ccc, 4/20/10)
@@ -4158,32 +4470,45 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
      &                  JMIN,    JMAX,   LMIN,    LMAX, FILE )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ND50_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd51_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND51\_MENU reads the ND51 MENU section of 
+!  the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND51_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND51_MENU reads the ND51 MENU section of the GEOS-CHEM 
-!  input file. (bmy, 7/20/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
-!        (amv, bmy, 12/21/09)
-!  (2 ) Increase # of tracers to 121 (ccc, 4/20/10)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG51_MOD,  ONLY : INIT_DIAG51
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51_HDF
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! NDxx flags
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
+!        (amv, bmy, 12/21/09)
+!  (2 ) Increase # of tracers to 121 (ccc, 4/20/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL              :: DO_ND51
       INTEGER              :: N,      I,       AS
       ! Increased to 121 from 100 (mpb,2009)
@@ -4286,29 +4611,42 @@ c$$$         IS_ALL = .FALSE.
      &                  HR1,     HR2,    IMIN,    IMAX,   
      &                  JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ND51_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nd51b_menu
+!
+! !DESCRIPTION: Subroutine READ\_ND51b\_MENU reads the ND51 MENU section 
+!  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ND51b_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ND51b_MENU reads the ND51 MENU section of the GEOS-CHEM
-!  input file. (amv, 12/21/09)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG51b_MOD, ONLY : INIT_DIAG51b
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51b_HDF
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_DIAG"    ! NDxx flags
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  21 Dec 2009 - Aaron van D - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL              :: DO_ND51
       INTEGER              :: N,      I,       AS
       ! Increase to 121 from 100 (ccc, 4/20/10)
@@ -4408,28 +4746,29 @@ c$$$         IS_ALL = .FALSE.
 
       ! Initialize parameters for ND51b timeseries
       CALL INIT_DIAG51b( DO_ND51, N_ND51, TRACERS, HR_WRITE,
-     &                  HR1,     HR2,    IMIN,    IMAX,
-     &                  JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+     &                   HR1,     HR2,    IMIN,    IMAX,
+     &                   JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ND51b_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_prod_loss_menu 
+!
+! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD & LOSS MENU 
+!  section of the GEOS-Chem input file 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_PROD_LOSS_MENU
 !
-!******************************************************************************
-!  Subroutine READ_PROD_LOSS_MENU reads the PROD & LOSS MENU section of the 
-!  GEOS-CHEM input file (bmy, 7/20/04, 10/29/04)
-!  
-!  NOTES:
-!  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and 
-!        TagCO runs if DO_SAVE_PL=T.  Also turn off this diagnostic for
-!        the offline aerosol run. (bmy, 10/29/04)
-!  (2 ) Add error trap is P/L families are asked when using KPP. (ccc, 3/10/10)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE CHARPAK_MOD, ONLY : ISDIGIT,         STRSPLIT
       USE DIAG_PL_MOD, ONLY : INIT_DIAG_PL
       USE ERROR_MOD,   ONLY : ERROR_STOP
@@ -4439,7 +4778,20 @@ c$$$         IS_ALL = .FALSE.
 
 #     include "CMN_SIZE"    ! MAXFAM
 #     include "CMN_DIAG"    ! ND65
-
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and 
+!        TagCO runs if DO_SAVE_PL=T.  Also turn off this diagnostic for
+!        the offline aerosol run. (bmy, 10/29/04)
+!  (2 ) Add error trap is P/L families are asked when using KPP. (ccc, 3/10/10)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Local variables
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
       !FP_ISOP moved to CMN_SIZE (6/2009)
@@ -4620,31 +4972,44 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG_PL( DO_SAVE_PL, DO_SAVE_O3, NFAM,     FAM_NAME,   
      &                   FAM_TYPE,   FAM_NMEM,   FAM_MEMB, FAM_COEF )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_PROD_LOSS_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_unix_cmds_menu
+!
+! !DESCRIPTION: Subroutine READ\_UNIX\_CMDS\_MENU reads the UNIX CMDS MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_UNIX_CMDS_MENU
 !
-!******************************************************************************
-!  Subroutine READ_UNIX_CMDS_MENU reads the UNIX CMDS MENU section of the 
-!  GEOS-CHEM input file. (bmy, 7/20/04, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CHARPAK_MOD,   ONLY : STRSQUEEZE
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,  REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR,  SPACE,     UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : WILD_CARD,  ZIP_SUFFIX 
-
-      ! Local variables
-      LOGICAL                :: EOF
-      INTEGER                :: N
-      CHARACTER(LEN=255)     :: SUBSTRS(MAXDIM)
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: EOF
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_UNIX_CMDS_MENU begins here!
@@ -4709,23 +5074,26 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_UNIX_CMDS_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_nested_grid_menu
+!
+! !DESCRIPTION: Subroutine READ\_NESTED\_GRID\_MENU reads the NESTED GRID MENU 
+!  section of the GEOS-CHEM input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_NESTED_GRID_MENU
 !
-!******************************************************************************
-!  Subroutine READ_NESTED_GRID_MENU reads the NESTED GRID MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now give user the option of saving out nested grid boundary conditions 
-!        at 2 x 2.5 resolution for the EU, CH, or NA grids (amv, bmy, 12/18/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : TPBC_DIR
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_NA, TPBC_DIR_EU
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_CH
@@ -4733,8 +5101,18 @@ c$$$         IS_ALL = .FALSE.
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU, LWINDO_CH
       USE LOGICAL_MOD,   ONLY : LWINDO_CU
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
- 
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now give user the option of saving out nested grid boundary conditions 
+!        at 2 x 2.5 resolution for the EU, CH, or NA grids (amv, bmy, 12/18/09)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I0W, J0W, I1, I2, J1, J2, N, TS
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -4826,25 +5204,38 @@ c$$$         IS_ALL = .FALSE.
       ! Pass values to "tpcore_bc_mod.f"
       CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_NESTED_GRID_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_benchmark_menu
+!
+! !DESCRIPTION: Subroutine READ\_BENCHMARK\_MENU reads the BENCHMARK MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_BENCHMARK_MENU
 !
-!******************************************************************************
-!  Subroutine READ_BENCHMARK_MENU reads the BENCHMARK MENU section of 
-!  the GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BENCHMARK_MOD, ONLY : INITIAL_FILE, FINAL_FILE
       USE LOGICAL_MOD,   ONLY : LSTDRUN
- 
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N 
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -4882,24 +5273,37 @@ c$$$         IS_ALL = .FALSE.
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
     
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_BENCHMARK_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_archived_oh_menu
+!
+! !DESCRIPTION: Subroutine READ\_ARCHIVED\_OH\_MENU reads the ARCHIVED OH MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_ARCHIVED_OH_MENU
 !
-!******************************************************************************
-!  Subroutine READ_ARCHIVED_OH_MENU reads the ARCHIVED OH MENU section of the 
-!  GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : OH_DIR
- 
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -4924,24 +5328,37 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
     
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_ARCHIVED_OH_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_o3pl_menu
+!
+! !DESCRIPTION: Subroutine READ\_O3PL\_MENU reads the O3 P/L MENU section 
+!  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_O3PL_MENU
 !
-!******************************************************************************
-!  Subroutine READ_O3PL_MENU reads the O3 P/L MENU section of the 
-!  GEOS-CHEM input file. (bmy, 7/20/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : O3PL_DIR
- 
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
@@ -4967,21 +5384,25 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
     
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_O3PL_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_mercury_menu
+!
+! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_MERCURY_MENU
 !
-!******************************************************************************
-!  Subroutine READ_MERCURY_MENU reads the BENCHMARK MENU section of 
-!  the GEOS-CHEM input file. (bmy, 2/24/06)
-!
-!  NOTES:
-!  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
-!  ( 2) Add options to use GTMM for mercury soil emissions (ccc, 9/16/09)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LPREINDHG, LGTMM
@@ -4990,12 +5411,22 @@ c$$$         IS_ALL = .FALSE.
       USE DEPO_MERCURY_MOD,  ONLY : INIT_DEPO_MERCURY
       USE LAND_MERCURY_MOD,  ONLY : INIT_LAND_MERCURY
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
- 
-      ! Local variables
-      LOGICAL                    :: USE_CHECKS
-      INTEGER                    :: ANTHRO_Hg_YEAR,  N 
-      CHARACTER(LEN=255)         :: SUBSTRS(MAXDIM), Hg_RST_FILE
-      CHARACTER(LEN=255)         :: GTMM_RST_FILE
+! 
+! !REVISION HISTORY: 
+!  24 Feb 2006 - R. Yantosca - Initial version
+!  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
+!  ( 2) Add options to use GTMM for mercury soil emissions (ccc, 9/16/09)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: USE_CHECKS
+      INTEGER            :: ANTHRO_Hg_YEAR,  N 
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), Hg_RST_FILE
+      CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       !=================================================================
       ! READ_MERCURY_MENU begins here!
@@ -5074,32 +5505,46 @@ c$$$         IS_ALL = .FALSE.
 
       ENDIF
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_MERCURY_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_ch4_menu
+!
+! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of 
+!  the GEOS-Chem input file; this defines emissions options for CH4 tagged 
+!  simulations.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CH4_MENU
 !
-!******************************************************************************
-!  Subroutine READ_CH4_MENU reads the CH4 MENU section of the GEOS-Chem 
-!  input file; this defines emissions options for CH4 tagged simulations.
-!  (kjw, ccc, 8/3/09)
-!
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules
-      USE LOGICAL_MOD,          ONLY : LGAO,    LCOL,    LLIV,   LWAST
-      USE LOGICAL_MOD,          ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
-      USE LOGICAL_MOD,          ONLY : LOTANT,  LSOABS,  LOTNAT
-      USE LOGICAL_MOD,          ONLY : LCH4BUD
+      USE LOGICAL_MOD, ONLY : LGAO,    LCOL,    LLIV,   LWAST
+      USE LOGICAL_MOD, ONLY : LBFCH4,  LBMCH4,  LWETL,  LRICE
+      USE LOGICAL_MOD, ONLY : LOTANT,  LSOABS,  LOTNAT
+      USE LOGICAL_MOD, ONLY : LCH4BUD
  
 #     include "define.h"             ! C-preprocessor switches
-
-      ! Local variables
-      INTEGER                       :: N
-      CHARACTER(LEN=255)            :: SUBSTRS(MAXDIM)
+! 
+! !REVISION HISTORY: 
+!  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
       ! READ_CH4_MENU begins here!
@@ -5177,32 +5622,32 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
-      ! Return to calling program
+      ! 
       END SUBROUTINE READ_CH4_MENU
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: validate_directories
+!
+! !DESCRIPTION: Subroutine VALIDATE\_DIRECTORIES makes sure that each of the 
+!  directories that we have read from the GEOS-Chem input file are valid.  
+!  Also, trailing separator characters will be added.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE VALIDATE_DIRECTORIES
 !
-!******************************************************************************
-!  Subroutine VALIDATE_DIRECTORIES makes sure that each of the directories
-!  that we have read from the GEOS-CHEM input file are valid.  Also, trailing
-!  separator characters will be added. (bmy, 7/20/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
-!        GCAP and GEOS-5 directories. (bmy, 10/3/05)
-!  (2 ) Now references DATA_DIR_1x1 from directory_mod.f (bmy, 10/24/05)
-!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,    DATA_DIR_1x1, GCAP_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_1_DIR,  GEOS_S_DIR,   GEOS_3_DIR
       USE DIRECTORY_MOD, ONLY : GEOS_4_DIR,  GEOS_5_DIR,   O3PL_DIR  
       USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
-      USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA
+      USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA,  MERRA_DIR
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_EU, TPBC_DIR_CH
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
       USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
@@ -5210,10 +5655,24 @@ c$$$         IS_ALL = .FALSE.
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMDb,    GET_NYMDe
 
 #     include "define.h" 
-
-      ! Local variables
-      INTEGER                :: NYMDb, NYMDe
-      CHARACTER(LEN=255)     :: DIR
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
+!        GCAP and GEOS-5 directories. (bmy, 10/3/05)
+!  (2 ) Now references DATA_DIR_1x1 from directory_mod.f (bmy, 10/24/05)
+!  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (4 ) Now check TPBC_DIR_NA, TPBC_DIR_CH, TPBC_DIR_EU (amv, bmy, 12/18/09)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  27 Aug 2010 - R. Yantosca - Now check MERRA directory
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: NYMDb, NYMDe
+      CHARACTER(LEN=255) :: DIR
 
       !=================================================================
       ! VALIDATE_DIRECTORIES begins here!
@@ -5302,6 +5761,21 @@ c$$$         IS_ALL = .FALSE.
       DIR = TRIM( DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( DIR )
 
+#elif defined( MERRA )
+
+      ! Check GEOS-5 met field directory (starting date)
+      DIR = MERRA_DIR
+      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
+
+      ! Check GEOS-5 met field directory (ending date)
+      DIR = MERRA_DIR
+      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      DIR = TRIM( DATA_DIR ) // TRIM( DIR )
+      CALL CHECK_DIRECTORY( DIR )
+
 #elif defined( GCAP )
 
       ! Check GEOS-5 met field directory (starting date)
@@ -5319,39 +5793,49 @@ c$$$         IS_ALL = .FALSE.
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE VALIDATE_DIRECTORIES
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_directory
+!
+! !DESCRIPTION: Subroutine CHECK\_DIRECTORY makes sure that the given 
+!  directory is valid.  Also a trailing slash character will be added if 
+!  necessary. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_DIRECTORY( DIR )
 !
-!******************************************************************************
-!  Subroutine CHECK_DIRECTORY makes sure that the given directory 
-!  is valid.  Also a trailing slash character will be added if necessary. 
-!  (bmy, 3/20/03, 3/23/05)
-! 
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (1 ) DIR (CHARACTER) : Directory to be checked
-!
-!  NOTES:
-!  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
-!******************************************************************************
+! !USES:
 !
       ! References to F90 modules 
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE FILE_MOD,      ONLY : FILE_EXISTS
       USE UNIX_CMDS_MOD, ONLY : SEPARATOR
 
-#     include "define.h"      ! C-preprocessor flags
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(INOUT) :: DIR
-      
-      ! Local variables
-      INTEGER                         :: C
-      CHARACTER(LEN=255)              :: MSG
+#     include "define.h"                        ! C-preprocessor flags
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(INOUT) :: DIR    ! Directory to be checked
+! 
+! !REVISION HISTORY: 
+!  20 Mar 2003 - R. Yantosca - Initial version
+!  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: C
+      CHARACTER(LEN=255) :: MSG
       
       !=================================================================
       ! CHECK_DIRECTORY begins here!
@@ -5375,20 +5859,35 @@ c$$$         IS_ALL = .FALSE.
          CALL ERROR_STOP( MSG, 'CHECK_DIRECTORY ("input_mod.f")' )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHECK_DIRECTORY
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_time_steps
+!
+! !DESCRIPTION: Subroutine CHECK\_TIME\_STEPS computes the smallest dynamic 
+!  time step for the model, based on which operation are turned on.  This 
+!  is called from routine READ\_INPUT\_FILE, after all of the timesteps and 
+!  logical flags have been read from "input.geos".
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_TIME_STEPS
 !
-!******************************************************************************
-!  Subroutine CHECK_TIME_STEPS computes the smallest dynamic time step for the
-!  model, based on which operation are turned on.  This is called from routine
-!  READ_INPUT_FILE, after all of the timesteps and logical flags have been
-!  read from "input.geos". (bmy, 7/20/04, 8/21/09)
+! !USES:
 !
-!  NOTES:
+      USE LOGICAL_MOD, ONLY : LCONV, LCHEM, LDRYD 
+      USE LOGICAL_MOD, ONLY : LEMIS, LTRAN, LTURB 
+      USE TIME_MOD,    ONLY : SET_TIMESTEPS
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+      USE TRACER_MOD,  ONLY : ITS_A_CH4_SIM
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Add TS_DIAG, the largest time steps used for diagnostics.
 !        And test that all time steps are multiple of the smallest one.
@@ -5398,9 +5897,13 @@ c$$$         IS_ALL = .FALSE.
 !        smallest timestep if LCHEM=LEMIS=LDRYD=F).  This is used to compute
 !        SUNCOS at the midpoint of the timestep instead of the beginning.
 !        (bmy, 4/27/10)
-!******************************************************************************
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
+! !LOCAL VARIABLES:
+!
       USE LOGICAL_MOD, ONLY : LCONV, LCHEM, LDRYD 
       USE LOGICAL_MOD, ONLY : LEMIS, LTRAN, LTURB 
       USE TIME_MOD,    ONLY : SET_TIMESTEPS
@@ -5517,36 +6020,48 @@ c$$$         IS_ALL = .FALSE.
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )
 
-      ! Return to MAIN program
       END SUBROUTINE CHECK_TIME_STEPS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: is_last_day_good
+!
+! !DESCRIPTION: Suborutine IS\_LAST\_DAY\_GOOD tests to see if there is 
+!  output scheduled on the last day of the run. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE IS_LAST_DAY_GOOD
 !
-!******************************************************************************
-!  Suborutine IS_LAST_DAY_GOOD tests to see if there is output scheduled on 
-!  the last day of the run.  (bmy, 1/11/05, 4/24/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Moved to "input_mod.f" from "main.f" (bmy, 1/11/05)
-!  (2 ) Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to always return whether
-!        the year Y would be a leap year, regardless of met field type.
-!        (swu, bmy, 4/24/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE JULDAY_MOD, ONLY : JULDAY
       USE TIME_MOD,   ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DIAG"   ! NJDAY
-
-      ! Local variables
-      LOGICAL             :: IS_LEAPYEAR
-      INTEGER             :: NYMDe, Y, M, D, LASTDAY
-      REAL*8              :: JD, JD0
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Moved to "input_mod.f" from "main.f" (bmy, 1/11/05)
+!  (2 ) Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to always return whether
+!        the year Y would be a leap year, regardless of met field type.
+!        (swu, bmy, 4/24/06)
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: IS_LEAPYEAR
+      INTEGER :: NYMDe, Y, M, D, LASTDAY
+      REAL*8  :: JD, JD0
 
       !=================================================================
       ! IS_LAST_DAY_GOOD begins here!
@@ -5574,37 +6089,25 @@ c$$$         IS_ALL = .FALSE.
      &                    'IS_LAST_DAY_GOOD ("input_mod.f")' )
       ENDIF
      
-      ! Return to calling program
       END SUBROUTINE IS_LAST_DAY_GOOD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_input
+!
+! !DESCRIPTION: Subroutine INIT\_INPUT initializes all variables from 
+!  "directory_mod.f" and "logical_mod.f" for safety's sake.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_INPUT
 !
-!******************************************************************************
-!  Subroutine INIT_INPUT initializes all variables from "directory_mod.f" and
-!  "logical_mod.f" for safety's sake. (bmy, 7/20/04, 10/16/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
-!  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Now also initialize LMEGAN switch (tmf, bmy, 10/20/05)
-!  (5 ) Now also initialize LEMEP, LGFED2BB switches and DATA_DIR_1x1
-!        directory (bmy, 4/5/06)
-!  (6 ) Now also intitialize LFUTURE (swu, bmy, 6/1/06)
-!  (7 ) Now reference the EDGAR logical switches from "logical_mod.f"
-!        (avd, bmy, 7/11/06)
-!  (8 ) Now initialize the LVARTROP switch (phs, 9/14/06)
-!  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
-!  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
-!  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
-!  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
-!  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
-!  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR,   GEOS_1_DIR, GEOS_S_DIR 
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
       USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
@@ -5644,7 +6147,29 @@ c$$$         IS_ALL = .FALSE.
       USE LOGICAL_MOD,   ONLY : LSHIPSCALE,  LPLANESCALE
       USE LOGICAL_MOD,   ONLY : LSHIPTAG,    LPLANETAG
       USE LOGICAL_MOD,   ONLY : LCHEMCO2
-      
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now also initialize LNEI99 from "logical_mod.f" (bmy, 11/5/04)
+!  (2 ) Now also initialize LAVHRRLAI from "logical_mod.f" (bmy, 12/20/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now also initialize LMEGAN switch (tmf, bmy, 10/20/05)
+!  (5 ) Now also initialize LEMEP, LGFED2BB switches and DATA_DIR_1x1
+!        directory (bmy, 4/5/06)
+!  (6 ) Now also intitialize LFUTURE (swu, bmy, 6/1/06)
+!  (7 ) Now reference the EDGAR logical switches from "logical_mod.f"
+!        (avd, bmy, 7/11/06)
+!  (8 ) Now initialize the LVARTROP switch (phs, 9/14/06)
+!  (9 ) Now initialize LOTDREG, LOTDLOC, LCTH, LMFLUX, LPRECON (bmy, 1/31/07)
+!  (10) Now initialize LOTDSCALE (ltm, bmy, 9/24/07)
+!  (11) Add MEGAN Monoterpenes switch (ccc, 2/2/09)
+!  16 Oct 2009 - R. Yantosca - Now initialize LLINOZ
+!  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
+!  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC      
       !=================================================================
       ! INIT_INPUT begins here!
       !=================================================================
@@ -5761,10 +6286,6 @@ c$$$         IS_ALL = .FALSE.
       CT2          = 0
       CT3          = 0
 
-      ! Return to calling program
       END SUBROUTINE INIT_INPUT
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE INPUT_MOD

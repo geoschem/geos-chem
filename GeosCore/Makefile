@@ -1,4 +1,3 @@
-# $Id: Makefile,v 1.23 2010/03/15 19:33:25 ccarouge Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
@@ -92,25 +91,26 @@
 #  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
+#  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
-ROOTDIR = ..
-BIN     = $(ROOTDIR)/bin
-BPCH    = $(ROOTDIR)/GeosBpch
-DOC     = $(ROOTDIR)/doc
-EXE     = geos
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-ISO     = $(ROOTDIR)/ISOROPIA
-LIB     = $(ROOTDIR)/lib
-KPP     = $(ROOTDIR)/KPP
-MOD     = $(ROOTDIR)/mod
-TOM     = $(ROOTDIR)/GeosTomas
-GTMM    = $(ROOTDIR)/GTMM
-UTIL    = $(ROOTDIR)/GeosUtil
+ROOTDIR := ..
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+DOC     := $(ROOTDIR)/doc
+EXE     := geos
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+LIB     := $(ROOTDIR)/lib
+KPP     := $(ROOTDIR)/KPP
+MOD     := $(ROOTDIR)/mod
+TOM     := $(ROOTDIR)/GeosTomas
+GTMM    := $(ROOTDIR)/GTMM
+UTIL    := $(ROOTDIR)/GeosUtil
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
@@ -123,11 +123,14 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # List of source files
-SRC = $(wildcard *.f) $(wildcard *.f90)
+SRC := $(wildcard *.f) $(wildcard *.f90)
+
+# Skip certain files (uncomment if necessary)
+#SRC := $(filter-out , $(SRC))
 
 # Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.f=.o)
-OBJ = $(TMP:.f90=.o)
+TMP := $(SRC:.f=.o)
+OBJ := $(TMP:.f90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -732,13 +735,15 @@ main.o                      : main.f                                         \
                               tropopause_mod.o        restart_mod.o          \
                               upbdflx_mod.o           uvalbedo_mod.o         \
                               vdiff_mod.o             wetscav_mod.o          \
-                              xtra_read_mod.o
+                              xtra_read_mod.o         merra_cn_mod.o         \
+                              merra_a1_mod.o          merra_a3_mod.o         \
+                              merra_i6_mod.o
 
 MATIN4.o                    : MATIN4.f
 
 megan_mod.o                 : megan_mod.f             a3_read_mod.o          \
                               lai_mod.o               logical_mod.o          \
-                              meganut_mod.o
+                              meganut_mod.o           merra_a1_mod.o
 
 meganut_mod.o               : meganut_mod.f           dao_mod.o     
 
@@ -752,6 +757,18 @@ mercury_mod.o               : mercury_mod.f                                  \
                               pbl_mix_mod.o           RnPbBe_mod.o           \
                               tracerid_mod.o          tracer_mod.o           \
                               tropopause_mod.o        vdiff_pre_mod.o
+
+merra_a1_mod.o              : merra_a1_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_a3_mod.o              : merra_a3_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_cn_mod.o              : merra_cn_mod.f                                 \
+                              logical_mod.o           dao_mod.o
+
+merra_i6_mod.o              : merra_i6_mod.f                                 \
+                              logical_mod.o           dao_mod.o
 
 MIESCT.o                    : MIESCT.f
 
@@ -991,7 +1008,7 @@ tropopause.o                : tropopause.f                                   \
 
 tropopause_mod.o            : tropopause_mod.f                               \
                               comode_mod.o            dao_mod.o              \
-                              logical_mod.o
+                              diag_mod.o              logical_mod.o
 
 upbdflx_mod.o               : upbdflx_mod.f                                  \
                               dao_mod.o               linoz_mod.o            \

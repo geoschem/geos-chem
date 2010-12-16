@@ -5,6 +5,13 @@
 !  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
 !  constituent chemistry species before each SMVGEAR chemistry timestep.
 !  (bdf, bmy, 4/1/03, 1/7/09)
+!
+!  Warning: 
+!  ========
+!  Partition was written assuming NOx tracer is before Ox tracer
+!  in the tracer declaration in input.geos. If you want to change this
+!  order, you need to adjust the code.
+!
 ! 
 !  Arguments as Input:
 !  ============================================================================

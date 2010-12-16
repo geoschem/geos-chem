@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doTreeCarbon
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doTreeCarbon
@@ -17,11 +18,10 @@ SUBROUTINE doTreeCarbon
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -330,4 +330,3 @@ SUBROUTINE doTreeCarbon
   ENDIF
 END SUBROUTINE doTreeCarbon
 !EOC
-!------------------------------------------------------------------------------

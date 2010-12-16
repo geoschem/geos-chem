@@ -1,4 +1,3 @@
-! $Id: pressure_mod.f,v 1.1 2009/11/20 21:43:03 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,13 +32,13 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 10/30/07)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4 and GEOS-5 (hybrid grids):
+!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
-!  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
-!  is defined as follows:
+!  For GEOS-4/GEOS-5/MERRA met data products, the pressure at the bottom edge 
+!  of grid box (I,J,L) is defined as follows:
 !                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
 !                                                                             .
@@ -57,7 +56,7 @@
 !  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
 !  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
 !  sigma edges at higher levels).  For these grids, can stil use the same
-!  formula as for GEOS-4, with one modification:
+!  formula as for GEOS-4/GEOS-5/MERRA, with one modification:
 !                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
 !                                                                             .
@@ -68,7 +67,7 @@
 !     Bp(L)         = SIGE(L) = bottom sigma edge of level L
 !                                                                             .
 !                                                                             .
-!  The following are true for GCAP, GEOS-3, GEOS-4:
+!  The following are true for GCAP, GEOS-3, GEOS-4, GEOS-5, MERRA:
 !  ----------------------------------------------------------------------------
 !  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
 !  (2) Bp(1)       = 1.0          (L=1       is the surface       )
@@ -87,6 +86,8 @@
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Added Ap and Bp for GEOS-5 met fields (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
+!  30 Aug 2010 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,11 +271,12 @@
 !  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -376,6 +378,9 @@
 !  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
 !  (5 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute Ap and Bp for MERRA the same way as for
+!                              GEOS-5.  The vertical grids are identical.
+!  30 Aug 2010 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,16 +408,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
       !=================================================================
-      ! GEOS-5 vertical coordinates (47 or 72 levels)
+      ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
       !=================================================================
 
 #if   defined( GRIDREDUCED )
 
       !-----------------------------------
-      ! GEOS-5 47 level grid
+      ! GEOS-5/MERRA 47 level grid
       !  
       !  level  Edge     # L's
       !  edge   Prs hPa  lumped

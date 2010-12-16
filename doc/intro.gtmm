@@ -1,11 +1,10 @@
-! $Id: util.intro,v 1.2 2010/02/02 16:57:45 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOI
-! !TITLE: The GEOS-Chem Model: Utility Modules
-! !AUTHORS: Bob Yantosca, Claire Carouge, and Philippe Le Sager
+! !TITLE: Global Terrestrial Mercury Model (GTMM) Routines in GEOS-Chem
+! !AUTHORS: Claire Carouge, Bess Corbitt, Chris Holmes, Nicole Smith-Downey
 ! !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
-! !DATE: January 28, 2010
+! !DATE: August 31, 2010
 !EOI
 !------------------------------------------------------------------------------

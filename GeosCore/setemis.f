@@ -1,37 +1,80 @@
-! $Id: setemis.f,v 1.5 2010/03/15 19:33:21 ccarouge Exp $
-      SUBROUTINE SETEMIS( EMISRR, EMISRRN )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine SETEMIS places emissions computed from GEOS-Chem
+! !ROUTINE: setemis.f
+!
+! !DESCRIPTION: Subroutine SETEMIS places emissions computed from GEOS-Chem
 !  subroutines into arrays for SMVGEAR II chemistry. 
-!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08)
-!
+!\\
+!\\
 !  SETEMIS converts from units of [molec tracer/box/s] to units of
 !  [molec chemical species/cm3/s], and stores in the REMIS array.  For
 !  hydrocarbons that are carried through the GEOS-CHEM model as [molec C], 
 !  these are converted back to [molec hydrocarbon], and then stored in REMIS.  
+!\\
+!\\
+! !INTERFACE:
 !
+      SUBROUTINE SETEMIS( EMISRR, EMISRRN )
+!
+! !USES:
+!
+      USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
+      USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
+      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE
+      ! Use this array to determine if emissions are handled here (hotp 8/3/09)
+      USE BIOMASS_MOD,       ONLY : BIOBGAS
+      USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
+      USE COMODE_MOD,        ONLY : IYSAVE
+      USE DIAG_MOD,          ONLY : AD12
+      USE GRID_MOD,          ONLY : GET_AREA_CM2
+      !------------------------------------------------------------------------
+      ! Prior to 9/10/10:
+      ! Remove LVARTROP, now use ITS_IN_THE_STRAT (bmy, 9/10/10)
+      !USE LOGICAL_MOD,       ONLY : LVARTROP
+      !------------------------------------------------------------------------
+      USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
+      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,      ONLY : GET_PEDGE
+      USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
+      !------------------------------------------------------------------------
+      ! Prior to 9/10/10:
+      ! Remove GET_TPAUSE_LEVEL, now use ITS_IN_THE_STRAT (bmy, 9/10/10)
+      !USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
+      !------------------------------------------------------------------------
+      USE TROPOPAUSE_MOD,    ONLY : ITS_IN_THE_STRAT
+      USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
+      USE LOGICAL_MOD, ONLY : LPRT
+
+      ! NOx emissions scaling FP 15/12/09
+      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_NOX"   ! GEMISNOX2
+#     include "CMN_DIAG"  ! Diagnostic flags
+#     include "comode.h"  ! IDEMS, NEMIS
+!
+! !INPUT PARAMETERS:
+!
+      ! CO, hydrocarbon emission   [molec tracer/box/s]
+      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
+
+      ! Multi-level NOx emissions  [molec NOx/box/s]
+      REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
+
+!
+! !REMARKS:
+!  Developers: lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08
+!  (lwh, jyl, gmg, djj, bdf, bmy, 6/8/98, 6/11/08)
+!                                                                             .
 !  REMIS(JLOOP,N) = emis. rate of species corr. to tracer N in box JLOOP
 !                   (reaction number NTEMIS(N))
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) EMISRR   (REAL*8 ) : CO, hydrocarbon emission   [molec tracer/box/s ]
-!  (2 ) EMISRRN  (REAL*8 ) : Multi-level NOx emissions  [molec NOx/box/s    ]
-!
-!  Variables taken from F90 Modules:
-!  ============================================================================
-!  (1 ) BIOFUEL  (REAL*8 ) : Biofuel burning emissions  [molec (C)/cm3/s    ]
-!  (2 ) BFTRACE  (INTEGER) : Index array for biofuels   [CTM tracer #       ]
-!  (3 ) NBFTRACE (INTEGER) : Number of biofuel species  [unitless           ]
-!  (4 ) BURNEMIS (REAL*8 ) : Biomass burning emissions  [molec (C)/cm3/s    ] 
-!  (5 ) BIOTRCE  (INTEGER) : Index array for bioburn    [CTM tracer #       ] 
-!  (6 ) NBIOTRCE (INTEGER) : Number of bioburn species  [unitless           ]
-!  (7 ) JLOP     (INTEGER) : SMVGEAR grid box index     [unitless           ]
-!  (8 ) REMIS    (REAL*8 ) : SMVGEAR emissions array    [molec species/cm3/s]
-!  (9 ) VOLUME   (REAL*8 ) : SMVGEAR volume array       [cm3                ]
-!
-!  NOTES: 
+! !REVISION HISTORY: 
 !  (1 ) Original code from Harvard Tropospheric Chemistry Module for 3-D 
 !        applications by Larry Horowitz, Jinyou Liang, Gerry Gardner, 
 !        Prof. Daniel Jacob of Harvard University (Release V2.0)  
@@ -99,58 +142,25 @@
 !  (32) Check for emissions above PBL -anthro NOx only for now- (phs, 10/27/09)
 !  (33) Modify selection of biomass burning emissions (hotp, 8/3/09)
 !  (34) Moved NOx scaling to improve parallelization. (ccc, 11/10/10)
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!      
+! !LOCAL VARIABLES:
 !
-      ! References to F90 modules 
-      USE AIRCRAFT_NOX_MOD,  ONLY : EMIS_AC_NOx
-      USE BIOFUEL_MOD,       ONLY : BIOFUEL,   BFTRACE, NBFTRACE
-      ! NBIOMAX_GAS no longer used (hotp 8/3/09)
-      USE BIOMASS_MOD,       ONLY : BIOMASS,   BIOTRCE!, NBIOMAX_GAS
-      ! Use this array to determine if emissions are handled here (hotp 8/3/09)
-      USE BIOMASS_MOD,       ONLY : BIOBGAS
-
-      USE COMODE_MOD,        ONLY : JLOP,      REMIS,   VOLUME
-      USE COMODE_MOD,        ONLY : IYSAVE
-      USE DIAG_MOD,          ONLY : AD12
-      USE GRID_MOD,          ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,       ONLY : LVARTROP
-      USE LIGHTNING_NOX_MOD, ONLY : EMIS_LI_NOx
-      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
-      USE PRESSURE_MOD,      ONLY : GET_PEDGE
-      USE TRACERID_MOD,      ONLY : CTRMB,     IDEMIS,  IDENOX
-      USE TROPOPAUSE_MOD,    ONLY : GET_TPAUSE_LEVEL
-      USE LOGICAL_MOD,       ONLY : LNLPBL ! (Lin, 03/31/09)
-      USE LOGICAL_MOD, ONLY : LPRT
-
-
-!NOx emissions scaling FP 15/12/09
-
-      USE EMISSIONS_MOD,     ONLY : NOx_SCALING
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_NOX"   ! GEMISNOX2
-#     include "CMN_DIAG"  ! Diagnostic flags
-#     include "comode.h"  ! IDEMS, NEMIS
-
-      ! Arguments
-      REAL*8,  INTENT(IN) :: EMISRR(IIPAR,JJPAR,NEMPARA+NEMPARB)
-      REAL*8,  INTENT(IN) :: EMISRRN(IIPAR,JJPAR,NOXEXTENT)  
-
-      ! Local variables
-      LOGICAL             :: IS_LI_NOx, IS_AC_NOx
-      INTEGER             :: I, J,  JLOOP, JLOOP1, LTROP
-      INTEGER             :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
-      REAL*8              :: COEF1,   TOTPRES, DELTPRES
-      REAL*8              :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
+      ! Scalars
+      LOGICAL :: IS_LI_NOx, IS_AC_NOx
+      INTEGER :: I, J,  JLOOP, JLOOP1, LTROP
+      INTEGER :: L, LL, N, NN,  NBB, NBF, TOP, TOPMIX
+      REAL*8  :: COEF1,   TOTPRES, DELTPRES
+      REAL*8  :: EMIS_BL, NOXTOT,  TOTAL, A_CM2
 
       !=================================================================
       ! SETEMIS begins here!
       !=================================================================
 
       ! some ajdustments for non-local PBL (Lin, 03/31/09)
-      call flush(6)
+      !call flush(6)
       IF (NCS == 0) THEN
         REMIS(:,:)=0.
         RETURN
@@ -341,15 +351,26 @@
                ! Distribute emissions in the troposphere
                !========================================================
 
-               ! bdf - variable tropopause is a tropospheric box
-               IF ( LVARTROP ) THEN 
-                  LTROP = GET_TPAUSE_LEVEL( I, J ) 
-               ELSE
-                  LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
-               ENDIF
+               !-------------------------------------------------------------
+               ! Prior to 9/10/10:
+               ! Simplify the test for the trop vs. strat (bmy, 9/10/10)
+               !! bdf - variable tropopause is a tropospheric box
+               !IF ( LVARTROP ) THEN 
+               !   LTROP = GET_TPAUSE_LEVEL( I, J ) 
+               !ELSE
+               !   LTROP = GET_TPAUSE_LEVEL( I, J ) - 1
+               !ENDIF
+               !
+               !
+               !DO L = 1, LTROP 
+               !-------------------------------------------------------------
+               DO L = 1, LLTROP
 
-
-               DO L = 1, LTROP 
+                  ! Now use ITS_IN_THE_STRAT to test if we have passed from
+                  ! the trop into the strat.  We only want to partition
+                  ! emissions in the troposphere. (bmy, 9/10/10)
+                  IF ( ITS_IN_THE_STRAT(I,J,L) ) EXIT
+                  
                   JLOOP   = JLOP(I,J,L)
                   EMIS_BL = 0d0
 
@@ -535,5 +556,5 @@
       ENDDO     ! N
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE SETEMIS
+!EOC

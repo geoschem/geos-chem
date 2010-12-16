@@ -1,14 +1,12 @@
-! $Id: scale_anthro_mod.f,v 1.2 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: SCALE_ANTHRO_MOD
+! !MODULE: scale_anthro_mod
 !
 ! !DESCRIPTION: Module SCALE\_ANTHRO\_MOD contains routines to scale 
-!  anthropogenic emissions from a base year to a simulation year 
-!  (avm, phs, 1/29/08)
+!  anthropogenic emissions from a base year to a simulation year.
 !\\
 !\\
 ! !INTERFACE: 
@@ -27,7 +25,7 @@
       PUBLIC  :: GET_ANNUAL_SCALAR_05x0666_NESTED
 !
 ! !REVISION HISTORY:
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !
 ! !REMARKS:
 !  (1 ) Add GET_ANNUAL_SCALAR_05x0666_NESTED_CH for nested grid simulations 
@@ -49,11 +47,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_ANNUAL_SCALAR
+! !IROUTINE: get_annual_scalar
 !
 ! !DESCRIPTION: Subroutine GET\_ANNUAL\_SCALAR returns annual scale 
 !  factors to convert B\_YEAR (base year) to T\_YEAR (simulation year), 
-!  on the current model resolution (avd, bmy, phs, 1/28/09)
+!  on the current model resolution.
 !\\
 !\\
 ! !INTERFACE:
@@ -77,7 +75,7 @@
       REAL*4,  INTENT(INOUT) :: AS(IIPAR,JJPAR)  ! Scale factor array
 !
 ! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
+!  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,7 +98,6 @@
       ! Cast to REAL*4
       AS(:,:) = AS_R8(:,:)
 
-      ! Return to calling program
       END SUBROUTINE GET_ANNUAL_SCALAR
 !EOC
 !------------------------------------------------------------------------------
@@ -108,11 +105,11 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GET_ANNUAL_SCALAR_1x1
+! !IROUTINE: get_annual_scalar_1x1
 !
 ! !DESCRIPTION: Subroutine GET\_ANNUAL\_SCALAR\_1x1 returns annual scale 
 !  factors to convert B\_YEAR (base year) to T\_YEAR (target year), on the 1x1 
-!  GEOS-Chem grid. (avd, bmy, phs, 1/28/09) 
+!  GEOS-Chem grid.
 !\\
 !\\
 ! !INTERFACE:
@@ -136,8 +133,8 @@
 !
       REAL*8,   INTENT(OUT)  :: AS_1x1(I1x1,J1x1)  ! Scale factor array
 !
-! !REVISION HISTORY: 
-!  28 Jan 2009 - P. Le Sager - Initial Version
+! !REVISION HISTORY:
+!  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !
 ! !REMARKS:
 !  (1) Scaling factors are for years between 1985 and 2005, on the GEOS-Chem
@@ -257,7 +254,6 @@
       ! Get scaling and cast as real*8
       AS_1x1(:,:) = T_1x1(:,:) / B_1x1(:,:)
 
-      ! Return to calling program
       END SUBROUTINE GET_ANNUAL_SCALAR_1x1
 !EOC
 !------------------------------------------------------------------------------
@@ -270,7 +266,7 @@
 ! !DESCRIPTION:  Subroutine GET\_ANNUAL\_SCALAR\_05x0666\_NESTED
 !  returns annual scale factors to convert B\_YEAR (base year) to 
 !  T\_YEAR (target year), on the 0.5x0.666 GEOS-Chem grid for nested China 
-!  domain. (avd, bmy, phs, 3/10/08)
+!  domain.
 !\\
 !\\
 ! !INTERFACE:
@@ -294,6 +290,7 @@
       REAL*4,         INTENT(INOUT) :: AS(IIPAR,JJPAR)
 !
 ! !REVISION HISTORY: 
+!  28 Jan 2009 - A. v. Donkelaar and P. Le Sager - Initial Version
 !  12 Mar 2009 - T-M. Fu     - Initial Version
 !  03 Nov 2009 - Aaron van D - rewritten to employ GET_ANNUAL_SCALAR_1x1
 !                              and regrid.
@@ -323,13 +320,8 @@
       CALL DO_REGRID_1x1( 'unitless', AS_1x1, AS_R8 )
       AS(:,:) = AS_R8(:,:)
 
-      ! Return to calling program
       END SUBROUTINE GET_ANNUAL_SCALAR_05x0666_NESTED
 !EOC
-!------------------------------------------------------------------------------
-
-      ! End of module
       END MODULE SCALE_ANTHRO_MOD
-!EOC
 
 

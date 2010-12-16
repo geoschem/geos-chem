@@ -1,4 +1,3 @@
-! $Id: transport_mod.f,v 1.5 2010/03/15 19:33:20 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -1196,7 +1195,7 @@
 ! !IROUTINE: set_transport
 !
 ! !DESCRIPTION: Subroutine SET\_TRANSPORT passes IORD, JORD, KORD values 
-!  from "input_mod.f".
+!  from "input\_mod.f".
 !\\
 !\\
 ! !INTERFACE:

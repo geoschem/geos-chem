@@ -158,8 +158,8 @@
      &                 TRIM( A3_STR     ) // TRIM( ZIP_SUFFIX )
 
          ! Location of unzipped A-3 file in temp dir 
-         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )     
-         
+         A3_FILE     = TRIM( TEMP_DIR   ) // TRIM( A3_STR     )
+
          ! Remove A-3 files for this date from temp dir
          REMOVE_DATE = TRIM( REMOVE_CMD ) // ' '                // 
      &                 TRIM( TEMP_DIR   ) // TRIM( A3_STR     )   

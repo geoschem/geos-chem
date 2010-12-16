@@ -17,9 +17,9 @@
 !        distribution of carbon dioxide emissions from fossil fuel 
 !        consumption and cement manufacture}, \underline{Glob. Biogeochem. 
 !        Cycles}, \textbf{10}, 419-429, 1996.
-!  \item Corbett & Koehler (2003) \emph{Updated emissions from ocean shipping},
-!        \underline{J. Geophys. Res.}, \textbf{108}, D20, 4650.
-!  \item Corbett & Koehler (2004) \emph{Considering alternative input 
+!  \item Corbett and Koehler (2003) \emph{Updated emissions from ocean 
+!        shipping}, \underline{J. Geophys. Res.}, \textbf{108}, D20, 4650.
+!  \item Corbett and Koehler (2004) \emph{Considering alternative input 
 !        parameters in an activity-based ship fuel consumption and emissions 
 !        model: Reply ...} \underline{J. Geophys. Res.}, D23303.
 !  \item Endresen et al. (2007) \emph{A historical reconstruction of ships 
@@ -703,7 +703,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------
@@ -778,7 +777,6 @@
       ! assume that incoming data is on the same vertical grid
       CHEMCO2 = DBLE(ARRAY)
 
-      ! Return to calling program
       END SUBROUTINE READ_CHEMCO2   
 !EOC
 !------------------------------------------------------------------------------
@@ -1230,7 +1228,6 @@
 
  200  FORMAT( A, F9.5, A ) 
 
-      ! Return to calling program
       END SUBROUTINE CHEM_SURF  
 !EOC
 !------------------------------------------------------------------------------
@@ -1396,7 +1393,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_oceanco2
 !
 ! !DESCRIPTION: Subroutine READ\_OCEANCO2 reads in either
 !
@@ -1730,9 +1727,9 @@
 !  the current resolution is carried out in the code.
 !                                                                             .
 !  References:
-!  (1) Corbett & Koehler (2003) "Updated emissions from ocean shipping", 
+!  (1) Corbett and Koehler (2003) "Updated emissions from ocean shipping", 
 !       JGR 108, D20, 4650.
-!  (2) Corbett & Koehler (2004) "Considering alternative input parameters in 
+!  (2) Corbett and Koehler (2004) "Considering alternative input parameters in 
 !       an activity-based ship fuel consumption and emissions model: Reply ..."
 !       JGR, 109, D23303.
 !  (3) Endresen et al. (2007) "A historical reconstruction of ships fuel 
@@ -1837,7 +1834,6 @@
          EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE READ_SHIPCO2_ICOADS
 !EOC
 !------------------------------------------------------------------------------
@@ -1846,11 +1842,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_aviation_co2
 !
 ! !DESCRIPTION: Subroutine READ\_AVIATION\_CO2 reads monthly mean aircraft 
 !  fuel emissions and converts them to CO2 emissions.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -2069,9 +2064,8 @@
 !
 ! !IROUTINE: read_annual_bionet_co2
 !
-! !DESCRIPTION: Subroutine READ_ANNUAL_BIONET_CO2 reads in annual mean 
+! !DESCRIPTION: Subroutine READ\_ANNUAL\_BIONET\_CO2 reads in annual mean 
 !  values of for Net Terrestrial exchange from a binary punch file.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -2525,7 +2519,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: def_biosph_co2_regions_f
 !
 ! !DESCRIPTION: Subroutine DEF\_BIOSPH\_CO2\_REGIONS defines the land 
 !  biospheric and ocean CO2 exchange regions.
@@ -3244,7 +3238,6 @@
       ! Reset IS_INIT flag
       IS_INIT = .TRUE.
       
-      ! Return to calling program
       END SUBROUTINE INIT_CO2 
 !EOC
 !------------------------------------------------------------------------------

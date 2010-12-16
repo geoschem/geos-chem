@@ -103,6 +103,7 @@
 !  (9 ) Added quick fix for GEOS-5 years 2004, 2005, 2008 (ltm, bmy, 4/29/09)
 !  (10) Updated OTD/LIS scaling for GEOS-5 reprocessed data (ltm, bmy, 7/10/09)
 !  (11) Updated for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -414,10 +415,10 @@
             IF ( LTOP        >  LMAX      ) LTOP = LMAX
             IF ( LTOP        <  LCHARGE   ) CYCLE
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
             !--------------------------
-            ! GEOS-5 only!
+            ! GEOS-5 or MERRA only!
             !--------------------------
 
             ! Eliminate the shallow-cloud inhibition trap for 
@@ -1737,6 +1738,7 @@
 !  (6 ) Updated scale factors for GEOS-5 based on 4+ years of data.  Remove
 !        temporary fixes. (bmy, 7/10/09)
 !  (7 ) Modification for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
+!  13 Aug 2010 - R. Yantosca - For now, treat MERRA like GEOS-5
 !******************************************************************************
 !
 #     include "define.h"
@@ -1846,6 +1848,58 @@
       WRITE(6,*) 'OTD/LIS not yet available for GEOS5 Nested NA sim.'
       CALL FLUSH(6)
       SCALE = 1.0d0
+
+#elif defined( MERRA ) && defined( GRID4x5 )
+
+      !-------------------------------------
+      ! MERRA: 4 x 5 global simulation
+      !-------------------------------------
+      IF ( LCTH ) THEN
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%  NOTE: For now, treat MERRA like GEOS-5, but we may  %%%
+         !%%%  need to rescale this in the future (bmy, 8/13/10)   %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
+         !       and compared against OTD/LIS May 1995-Dec 2005
+         !       (ltm, bmy, 7/10/09)
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE / 21.4694d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE / 18.3875d0
+         ENDIF
+
+      ELSE
+         WRITE( 6, '(a)' ) 'Warning: OTD-LIS MERRA scaling only for CTH'   
+         SCALE = 1.0d0
+      ENDIF
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !-------------------------------------
+      ! GEOS-5: 2 x 2.5 global simulation
+      !-------------------------------------
+      IF ( LCTH ) THEN
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%%  NOTE: For now, treat MERRA like GEOS-5, but we may  %%%
+         !%%%  need to rescale this in the future (bmy, 8/13/10)   %%%
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
+         !       and compared against OTD/LIS May 1995-Dec 2005
+         !       (ltm, bmy, 7/10/09)
+         IF ( LOTDLOC ) THEN
+            SCALE = ANN_AVG_FLASHRATE / 64.0538d0
+         ELSE
+            SCALE = ANN_AVG_FLASHRATE / 52.0135d0
+         ENDIF
+      ELSE
+         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
+         SCALE = 1.0d0
+      ENDIF
+
 
 #elif defined( GEOS_4 ) && defined( GRID4x5 )
 
