@@ -1,36 +1,40 @@
-! $Id: a3_read_mod.f,v 1.3 2010/02/02 16:57:55 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: a3_read_mod
+!
+! !DESCRIPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
+!  read the GEOS-Chem A3 (avg 3-hour) met fields from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE A3_READ_MOD
 !
-!******************************************************************************
-!  Module A3_READ_MOD contains routines that unzip, open, and read the
-!  GEOS-Chem A-3 (avg 3-hour) met fields from disk. (bmy, 6/23/03, 10/15/09)
-! 
-!  Module Routines:
-!  =========================================================================
-!  (1 ) UNZIP_A3_FIELDS : Unzips & copies met field files to a temp dir
-!  (2 ) DO_OPEN_A3      : Returns TRUE if it's time to read A-3 fields
-!  (3 ) OPEN_A3_FIELDS  : Opens met field files residing in the temp dir
-!  (4 ) GET_A3_FIELDS   : Wrapper for routine READ_A3
-!  (5 ) GET_N_A3        : Returns # of A-3 fields for each DAO data set 
-!  (6 ) CHECK_TIME      : Tests if A-3 met field timestamps equal current time
-!  (7 ) READ_A3         : Reads A-3 fields from disk
-!  (8 ) ARCHIVE_ND67_1D : Archives 1-D data arrays into the ND67 diagnostic
-!  (9 ) A3_CHECK        : Checks if we have found all of the A-3 fields
-! 
-!  GEOS-CHEM modules referenced by a3_read_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) dao_mod.f       : Module containing arrays for DAO met fields
-!  (3 ) diag_mod.f      : Module containing GEOS-CHEM diagnostic arrays
-!  (4 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs
-!  (5 ) error_mod.f     : Module containing NaN and other error check routines
-!  (6 ) logical_mod.f   : Module containing GEOS-CHEM logical switches 
-!  (7 ) file_mod.f      : Module containing file unit #'s and error checks
-!  (8 ) time_mod.f      : Module containing routines for computing time & date
-!  (9 ) transfer_mod.f  : Module containing routines to cast & resize arrays
-!  (10) unix_cmds_mod.f : Module containing Unix commands for unzipping etc.
+! !USES:
 !
-!  NOTES:
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      PUBLIC  :: ARCHIVE_ND67_1D 
+      PUBLIC  :: GET_A3_FIELDS
+      PUBLIC  :: OPEN_A3_FIELDS
+      PUBLIC  :: UNZIP_A3_FIELDS
+!
+! !PRIVATE DATA MEMBERS:
+!
+      PRIVATE :: A3_CHECK        
+      PRIVATE :: CHECK_TIME      
+      PRIVATE :: DO_OPEN_A3      
+      PRIVATE :: GET_N_A3        
+      PRIVATE :: READ_A3         
+!
+! !REVISION HISTORY:
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Adapted from "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Now can read from either zipped or unzipped files. (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 met field ident string (bmy, 12/12/03)
@@ -45,52 +49,54 @@
 !  (11) Extra modifications for GEOS-5 met fields (bmy, 1/17/07)
 !  (12) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
 !  (13) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!******************************************************************************
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "a3_read_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: ARCHIVE_ND67_1D 
-      PUBLIC :: GET_A3_FIELDS
-      PUBLIC :: OPEN_A3_FIELDS
-      PUBLIC :: UNZIP_A3_FIELDS
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! Number of A3 fields in the file
       INTEGER :: N_A3_FIELDS
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: unzip_a3_fields 
+!
+! !DESCRIPTION: Subroutine UNZIP\_A3\_FIELDS invokes a FORTRAN system call 
+!  to uncompress GEOS-Chem A3 met field files and store the uncompressed data 
+!  in a temporary directory, where GEOS-CHEM can read them.  The original data 
+!  files are not disturbed.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UNZIP_A3_FIELDS( OPTION, NYMD )
 !
-!*****************************************************************************
-!  Subroutine UNZIP_A3_FIELDS invokes a FORTRAN system call to uncompress
-!  GEOS-CHEM A-3 met field files and store the uncompressed data in a 
-!  temporary directory, where GEOS-CHEM can read them.  The original data 
-!  files are not disturbed.  (bmy, bdf, 6/15/98, 8/4/06)
+! !USES:
 !
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) OPTION (CHAR*(*)) : Option
-!  (2 ) NYMD   (INTEGER ) : YYYYMMDD of A-3 file to be unzipped (optional)
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE
+      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
+      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
+
+#     include "CMN_SIZE"                        ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*),  INTENT(IN) :: OPTION   ! Unzip option
+      INTEGER, OPTIONAL, INTENT(IN) :: NYMD     ! YYYY/MM/DD of file to unzip
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from UNZIP_MET_FIELDS of "dao_read_mod.f" (bmy, 6/23/03)
 !  (2 ) Directory information YYYY/MM or YYYYMM is now contained w/in 
 !        GEOS_1_DIR, GEOS_S_DIR, GEOS_3_DIR, GEOS_4_DIR (bmy, 12/11/03)
@@ -100,28 +106,17 @@
 !  (4 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!*****************************************************************************
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
-      USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
-
-#     include "CMN_SIZE"
-
-      ! Arguments
-      CHARACTER(LEN=*),  INTENT(IN) :: OPTION
-      INTEGER, OPTIONAL, INTENT(IN) :: NYMD
-
-      ! Local variables
-      CHARACTER(LEN=255)            :: A3_STR,     GEOS_DIR
-      CHARACTER(LEN=255)            :: A3_FILE_GZ, A3_FILE
-      CHARACTER(LEN=255)            :: UNZIP_BG,   UNZIP_FG
-      CHARACTER(LEN=255)            :: REMOVE_ALL, REMOVE_DATE
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255) :: A3_STR,     GEOS_DIR
+      CHARACTER(LEN=255) :: A3_FILE_GZ, A3_FILE
+      CHARACTER(LEN=255) :: UNZIP_BG,   UNZIP_FG
+      CHARACTER(LEN=255) :: REMOVE_ALL, REMOVE_DATE
 
       !=================================================================
       ! UNZIP_A3_FIELDS begins here!
@@ -224,39 +219,57 @@
  110  FORMAT( '     - Removing: ', a )
  120  FORMAT( '     - About to execute command: ', a )
 
-      ! Return to calling program
       END SUBROUTINE UNZIP_A3_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      FUNCTION DO_OPEN_A3( NYMD, NHMS ) RESULT( DO_OPEN )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Function DO_OPEN_A3 returns TRUE if is time to open the A-3 met field file
-!  or FALSE otherwise.  This prevents us from opening a file which has already
-!  been opened. (bmy, 6/23/03, 5/25/05)
+! !IROUTINE: do_open_a3
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD 
-!  (2 ) NHMS (INTEGER) :  and HHMMSS to be tested for A-3 file open
+! !DESCRIPTION: Function DO\_OPEN\_A3 returns TRUE if is time to open the A3 
+!  met field file or FALSE otherwise.  This prevents us from opening a file 
+!  which has already been opened. 
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      FUNCTION DO_OPEN_A3( NYMD, NHMS, RESET ) RESULT( DO_OPEN )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/DD date
+      INTEGER, INTENT(IN)           :: NHMS    ! hh:mm:ss time
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
-!******************************************************************************
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Sep 2010 - R. Yantosca - Bug fix: If we are using MEGAN (which reads many
+!                              days of A3 data @ start of run), then reset the
+!                              first-time flag.  This will prevent an error if
+!                              if the start time is not 00 GMT.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-
-      ! Local variables
-      LOGICAL             :: DO_OPEN
-      LOGICAL, SAVE       :: FIRST    = .TRUE.
-      INTEGER, SAVE       :: LASTNYMD = -1
-      INTEGER, SAVE       :: LASTNHMS = -1
+! !LOCAL VARIABLES:
+!
+      LOGICAL       :: DO_OPEN
+      LOGICAL, SAVE :: FIRST    = .TRUE.
+      INTEGER, SAVE :: LASTNYMD = -1
+      INTEGER, SAVE :: LASTNHMS = -1
       
       !=================================================================
       ! DO_OPEN_A3 begins here!
       !=================================================================
+
+      ! Reset the FIRST flag if 
+      IF ( PRESENT( RESET ) ) THEN
+         IF ( RESET ) FIRST = .TRUE.
+      ENDIF
 
       ! Initialize
       DO_OPEN = .FALSE.
@@ -293,23 +306,43 @@
       LASTNHMS = NHMS
       FIRST    = .FALSE.
 
-      ! Return to calling program
       END FUNCTION DO_OPEN_A3
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: open_a3_fields
+!
+! !DESCRIPTION: Subroutine OPEN\_A3\_FIELDS opens the A3 met fields file 
+!  for date NYMD and time NHMS.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS, RESET )
+!
+! !USES:
+!
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
+      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
+      USE LOGICAL_MOD,   ONLY : LUNZIP
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
+      USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      SUBROUTINE OPEN_A3_FIELDS( NYMD, NHMS )
+#     include "CMN_SIZE"                       ! Size parameters
 !
-!******************************************************************************
-!  Subroutine OPEN_A3_FIELDS opens the A-3 met fields file for date NYMD and 
-!  time NHMS. (bmy, bdf, 6/15/98, 10/7/08)
-!  
-!  Arguments as input:
-!  ===========================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS timestamps for A-3 file
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)           :: NYMD    ! YYYY/MM/dd and 
+      INTEGER, INTENT(IN)           :: NHMS    !  hh:mm:ss of desired data
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET   ! Reset first-time flag?
+! 
+! !REVISION HISTORY: 
+!  15 Jun 1998 - R. Yantosca - Initial version
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
@@ -322,37 +355,35 @@
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (9 ) Now get the # of A-3 fields from the file ident string (bmy, 10/7/08)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR,   GCAP_DIR,   GEOS_3_DIR 
-      USE DIRECTORY_MOD, ONLY : GEOS_4_DIR, GEOS_5_DIR, TEMP_DIR 
-      USE LOGICAL_MOD,   ONLY : LUNZIP
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
-      USE TIME_MOD,      ONLY : EXPAND_DATE
-
-#     include "CMN_SIZE"      ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NYMD, NHMS
-
-      ! Local variables
-      LOGICAL                :: IT_EXISTS
-      INTEGER                :: IOS
-      CHARACTER(LEN=2)       :: DUM
-      CHARACTER(LEN=8)       :: IDENT
-      CHARACTER(LEN=255)     :: A3_FILE
-      CHARACTER(LEN=255)     :: GEOS_DIR
-      CHARACTER(LEN=255)     :: PATH
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  21 Sep 2010 - R. Yantosca - Now pass RESET flag to DO_OPEN_A3
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL            :: DO_RESET
+      LOGICAL            :: IT_EXISTS
+      INTEGER            :: IOS
+      CHARACTER(LEN=2)   :: DUM
+      CHARACTER(LEN=8)   :: IDENT
+      CHARACTER(LEN=255) :: A3_FILE
+      CHARACTER(LEN=255) :: GEOS_DIR
+      CHARACTER(LEN=255) :: PATH
 
       !=================================================================
       ! OPEN_A3_FIELDS begins here!
       !=================================================================
- 
+      
+      IF ( PRESENT( RESET ) ) THEN
+         DO_RESET = RESET
+      ELSE
+         DO_RESET = .FALSE. 
+      ENDIF
+
       ! Open A-3 fields at the proper time, or on the first call
-      IF ( DO_OPEN_A3( NYMD, NHMS ) ) THEN
+      IF ( DO_OPEN_A3( NYMD, NHMS, DO_RESET ) ) THEN
 
 #if   defined( GEOS_3 )
 
@@ -432,24 +463,43 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OPEN_A3_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_a3_fields
+!
+! !DESCRIPTION: Subroutine GET\_A3\_FIELDS is a wrapper for routine READ\_A3.  
+!  GET\_A3\_FIELDS calls READ\_A3 properly for reading GEOS-3, GEOS-4, GEOS-5, 
+!  or GCAP met data sets. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_A3_FIELDS( NYMD, NHMS )
 !
-!******************************************************************************
-!  Subroutine GET_A3_FIELDS is a wrapper for routine READ_A3.  GET_A3_FIELDS
-!  calls READ_A3 properly for reading GEOS-3, GEOS-4, GEOS-5, or GCAP
-!  met data sets. (bmy, 6/23/03, 1/17/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD
-!  (2 ) NHMS (INTEGER) :  and HHMMSS of A-3 fields to be read from disk
+      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
+      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
+      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
+      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
+      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
+      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
+      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
+
+#     include "CMN_SIZE"  ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD
+      INTEGER, INTENT(IN) :: NHMS   !  and hh:mm:ss of desired data
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) Now save RADSWG to the RADSWG array (instead of RADIAT).  Now save
 !        CLDFRC to the CLDFRC array (instead of CFRAC).  Now get RADLWG, 
 !        SNOW arrays.  Also updated comments. (bmy, 12/9/03)
@@ -464,24 +514,14 @@
 !        (ccc, 5/14/09)
 !  (9 ) Now read FRLAND, FROCEAN, FRLANDIC and FRLAKE for methane
 !        (kjw, 8/18/09)
-!******************************************************************************
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD, ONLY : ALBD,    CLDFRC, EVAP,   GRN,      GWETROOT 
-      USE DAO_MOD, ONLY : GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE    
-      USE DAO_MOD, ONLY : PARDF,   PARDR,  PBL,    PREACC,   PRECON
-      USE DAO_MOD, ONLY : PRECSNO, RADLWG, RADSWG, SNICE,    SNOMAS
-      USE DAO_MOD, ONLY : SNODP,   SNOW,   TROPP,  TS,       TSKIN
-      USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
-      USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD, NHMS 
-
-      ! Local variables
-      INTEGER, SAVE       :: LASTNYMD = -1, LASTNHMS = -1
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE :: LASTNYMD = -1, LASTNHMS = -1
 
       !=================================================================
       ! GET_A3_FIELDS begins here!
@@ -581,22 +621,40 @@
       LASTNYMD = NYMD
       LASTNHMS = NHMS
 
-      ! Return to MAIN program
       END SUBROUTINE GET_A3_FIELDS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_n_a3
+!
+! !DESCRIPTION: Function GET\_N\_A3 returns the number of A3 fields per 
+!  met data set.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_N_A3( NYMD ) RESULT( N_A3 )
 !
-!******************************************************************************
-!  Function GET_N_A3 returns the number of A-3 fields per met data set
-!  (bmy, 6/23/03, 1/17/07) 
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NYMD (INTEGER) : YYYYMMDD for which to read in A-3 fields
+#     include "CMN_SIZE"            ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NYMD   ! YYYY/MM/DD date
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: N_A3   ! Number of A3 fields in file
+!
+! !REMARKS:
+! 
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
 !  (1 ) GEOS-4/fvDAS now has 19 A-3 fields; we added LAI, RADLWG, SNOW.
 !        (bmy, 12/9/03)
 !  (2 ) Now modified for GEOS-5 and GCAP met fields (bmy, 5/25/05)
@@ -604,16 +662,10 @@
 !  (4 ) Increase # of fields for GCAP from 12 to 16 (swu, bmy, 10/4/06)
 !  (5 ) Increase # of fields for GEOS-5 to 25 (bmy, 1/17/07)
 !  (6 ) Increase # of fields for GEOS-5 to 26 (EFLUX) (ccc, 5/21/09)
-!******************************************************************************
-!
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NYMD
-
-      ! Function value
-      INTEGER             :: N_A3
-
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_N_A3 begins here!
       !=================================================================
@@ -647,36 +699,49 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_N_A3
-
-!---------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: 
+!
+! !DESCRIPTION: Function CHECK\_TIME checks to see if the timestamp of the A3 
+!  field just read from disk matches the current time.  If so, then it's 
+!  time to return the A3 field to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function CHECK_TIME checks to see if the timestamp of the A-3 field just
-!  read from disk matches the current time.  If so, then it's time to return
-!  the A-3 field to the calling program. (bmy, 6/23/03, 8/4/06)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) XYMD (INTEGER) : YYYYMMDD timestamp for A-3 field in file
-!  (2 ) XHMS (INTEGER) : HHMMSS   timestamp for A-3 field in file
-!  (3 ) NYMD (INTEGER) : YYYYMMDD at which A-3 field is to be read
-!  (4 ) NHMS (INTEGER) : HHMMSS   at which A-3 field is to be read
-!
-!  NOTES:
-!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!******************************************************************************
+! !USES:
 !
 #     include "CMN_SIZE"
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: XYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: XHMS       !  timestamp of A3 data in file
+      INTEGER, INTENT(IN) :: NYMD       ! YYYY/MM/DD and hh:mm:ss
+      INTEGER, INTENT(IN) :: NHMS       !  timestamp for desired data
+! 
+! !RETURN VALUE:
+!
+      LOGICAL             :: ITS_TIME   ! =T if XYMD & XHMS match NYMD & NHMS
+!
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
+!  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       ! Arguments 
-      INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
       
       ! Function value
-      LOGICAL             :: ITS_TIME
 
       !=================================================================
       ! CHECK_TIME begins here!
@@ -687,11 +752,20 @@
          ITS_TIME = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END FUNCTION CHECK_TIME
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_a3
+!
+! !DESCRIPTION: Subroutine READ\_A3 reads GEOS A-3 (3-hr avg) fields from disk.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_A3( NYMD,    NHMS, 
      &                    ALBEDO,  CLDFRC, EVAP,   GRN,      GWETROOT,
      &                    GWETTOP, HFLUX,  LAI,    MOLENGTH, OICE,   
@@ -701,17 +775,63 @@
      &                    TSKIN,   U10M,   USTAR,  V10M,     Z0,
      &                    EFLUX,   FRLAND, FRLAKE, FROCEAN,  FRLANDIC )
 !
-!******************************************************************************
-!  Subroutine READ_A3 reads GEOS A-3 (3-hr avg) fields from disk.
-!  (bmy, 5/8/98, 10/15/09)
-! 
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) NYMD     : YYYYMMDD
-!  (2 ) NHMS     :  and HHMMSS of A-3 met fields to be accessed 
+! !USES:
 !
-!  A-3 Met Fields as Output:
-!  ============================================================================
+      USE DIAG_MOD,     ONLY : AD67
+      USE FILE_MOD,     ONLY : IOERROR
+      USE FILE_MOD,     ONLY : IU_A3
+      USE TIME_MOD,     ONLY : SET_CT_A3
+      USE TIME_MOD,     ONLY : TIMESTAMP_STRING
+      USE TRANSFER_MOD, ONLY : TRANSFER_2D
+      USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
+
+#     include "CMN_SIZE"                       ! Size parameters
+#     include "CMN_DIAG"                       ! ND67
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)            :: NYMD   ! YYYYMMDD
+      INTEGER, INTENT(IN)            :: NHMS   !  and hhmmss of desired data
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO  (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: EVAP    (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: GRN     (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX   (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: LAI     (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: OICE    (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: PARDF   (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: PARDR   (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: PBL     (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: PREACC  (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: PRECON  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: PRECSNO (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNICE   (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNODP   (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNOMAS  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: SNOW    (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP   (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: TS      (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN   (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: U10M    (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: USTAR   (IIPAR,JJPAR) 
+      REAL*8,  INTENT(OUT), OPTIONAL :: V10M    (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: Z0      (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX   (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAND  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAKE  (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FROCEAN (IIPAR,JJPAR)
+      REAL*8,  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
+!
+! !REMARKS:
 !  (1 ) ALBEDO   : (2-D) GMAO surface albedo at 10 m            [unitless]
 !  (2 ) CLDFRC   : (2-D) GMAO column cloud fraction @ ground    [unitless]
 !  (3 ) EVAP     : (2-D) GMAO evapotranspiration flux 
@@ -747,8 +867,9 @@
 !  (33) FROCEAN  : (2-D) GMAO fraction of ocean                 [unitless]
 !  (34) FRLANDIC : (2-D) GMAO fraction of land ice              [unitless]
 !  (35) FRLAKE   : (2-D) GMAO fraction of lake water            [unitless]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  08 May 1998 - R. Yantosca - Initial version
 !  (1 ) Now use function TIMESTAMP_STRING from "time_mod.f" for formatted 
 !        date/time output. (bmy, 10/28/03)
 !  (2 ) RADSWG, CLDFRC, USTAR, and Z0. are now 2-D arrays.  Also added RADLWG 
@@ -766,61 +887,18 @@
 !  (9 ) Now read EFLUX for non-local PBL scheme for GEOS5 (ccc, 5/14/09)
 !  (10) Now read FRLAND, FROCEAN, FRLANDIC, FRLAKE for methane (kjw, 8/18/09)
 !  (11) Remove reference to IN_CLOUD_OD (bmy, 10/15/09)
-!******************************************************************************
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD,     ONLY : AD67
-      USE FILE_MOD,     ONLY : IOERROR,     IU_A3
-      USE TIME_MOD,     ONLY : SET_CT_A3,   TIMESTAMP_STRING
-      USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_TO_1D
-
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! ND67
-
-      ! Arguments
-      INTEGER, INTENT(IN)            :: NYMD, NHMS
-      REAL*8,  INTENT(OUT), OPTIONAL :: ALBEDO(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: CLDFRC(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EVAP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GRN(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETROOT(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: GWETTOP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: HFLUX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: LAI(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: MOLENGTH(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: OICE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDF(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PARDR(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PBL(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PREACC(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECON(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: PRECSNO(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADLWG(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWG(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: RADSWT(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNICE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNODP(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOMAS(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: SNOW(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: TROPP(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TS(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: TSKIN(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: U10M(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: USTAR(IIPAR,JJPAR) 
-      REAL*8,  INTENT(OUT), OPTIONAL :: V10M(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: Z0(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: EFLUX(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAND(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLAKE(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FROCEAN(IIPAR,JJPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: FRLANDIC(IIPAR,JJPAR)
-
-      ! Local Variables
-      INTEGER                        :: I, IJLOOP, IOS, J, N_A3, NFOUND 
-      REAL*4                         :: Q2(IGLOB,JGLOB)
-      CHARACTER(LEN=8)               :: NAME
-      CHARACTER(LEN=16)              :: STAMP
-      INTEGER                        :: XYMD, XHMS
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, IJLOOP, IOS, J, N_A3, NFOUND 
+      REAL*4            :: Q2(IGLOB,JGLOB)
+      CHARACTER(LEN=8)  :: NAME
+      CHARACTER(LEN=16) :: STAMP
+      INTEGER           :: XYMD, XHMS
 
       !=================================================================
       ! READ_A3 begins here!      
@@ -1424,36 +1502,44 @@
       ! Increment KDA3FLDS -- this is the # of times READ_A3 is called
       CALL SET_CT_A3( INCREMENT=.TRUE. )
 
-      ! Return to calling program
       END SUBROUTINE READ_A3
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: archive_nd67_1d
+!
+! !DESCRIPTION: Subroutine ARCHIVE\_ND67\_1D saves 1-D arrays for the ND67 
+!  diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ARCHIVE_ND67_1D( FIELD, N )
 !
-!******************************************************************************
-!  Subroutine ARCHIVE_ND67_1D saves 1-D arrays for the ND67 diagnostic.
-!  (bmy, 6/23/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FIELD (REAL*8 ) : Met field array to be archived into ND67
-!  (2 ) N     (INTEGER) : Index of AD67 array under which to archive data
+      USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
+
+#     include "CMN_SIZE"                    ! Size parameters
 !
-!  NOTES
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD67
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-      REAL*8,  INTENT(IN) :: FIELD(MAXIJ)
-
-      ! Local variables
-      INTEGER             :: I, IJLOOP, J
+      REAL*8,  INTENT(IN) :: FIELD(MAXIJ)   ! Array to be archived in ND67
+      INTEGER, INTENT(IN) :: N              ! ND67 index in which to store data
+! 
+! !REVISION HISTORY: 
+!  23 Jun 2003 - R. Yantosca - Initial version
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, IJLOOP, J
 
       !=================================================================
       ! ARCHIVE_1D begins here
@@ -1470,32 +1556,39 @@
       ENDDO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE ARCHIVE_ND67_1D
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: a3_check
+!
+! !DESCRIPTION: Subroutine A3\_CHECK prints an error message if not all 
+!  of the A-3 met fields are found.  The run is also terminated. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE A3_CHECK( NFOUND, N_A3 )
 !
-!******************************************************************************
-!  Subroutine A3_CHECK prints an error message if not all of the A-3 met 
-!  fields are found.  The run is also terminated. (bmy, 10/27/00, 6/23/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NFOUND (INTEGER) : # of A-3 met fields read from disk
-!  (2 ) N_A3   (INTEGER) : # of A-3 met fields expected to be read from disk
-!
-!  NOTES
-!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/23/03)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NFOUND, N_A3
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NFOUND   ! Number of A3 fields found in file
+      INTEGER, INTENT(IN) :: N_A3     ! Expected number of A3 fields
+! 
+! !REVISION HISTORY: 
+!  27 Oct 2000 - R. Yantosca - Initial version
+!  (1 ) Adapted from DAO_CHECK from "dao_read_mod.f" (bmy, 6/23/03)
+!  21 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! A3_CHECK begins here!
       !=================================================================
@@ -1514,10 +1607,6 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE A3_CHECK
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE A3_READ_MOD

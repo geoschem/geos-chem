@@ -149,6 +149,8 @@
       USE TIME_MOD,          ONLY : SET_CURRENT_TIME, PRINT_CURRENT_TIME
       USE TIME_MOD,          ONLY : SET_ELAPSED_MIN,  SYSTEM_TIMESTAMP
       USE TIME_MOD,          ONLY : TIMESTAMP_DIAG
+      USE TIME_MOD,          ONLY : GET_HOUR,         GET_MINUTE
+      USE TIME_MOD,          ONLY : GET_FIRST_I6_TIME
       USE TPCORE_BC_MOD,     ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TRACER_MOD,        ONLY : CHECK_STT, N_TRACERS, STT, TCVV
       USE TRACER_MOD,        ONLY : ITS_AN_AEROSOL_SIM
@@ -192,15 +194,15 @@
       ! Local variables
       LOGICAL            :: FIRST = .TRUE.
       LOGICAL            :: LXTRA 
-      INTEGER            :: I,           IOS,   J,         K,      L
-      INTEGER            :: N,           JDAY,  NDIAGTIME, N_DYN,  NN
-      INTEGER            :: N_DYN_STEPS, NSECb, N_STEP,    DATE(2)
-      INTEGER            :: YEAR,        MONTH, DAY,       DAY_OF_YEAR
-      INTEGER            :: SEASON,      NYMD,  NYMDb,     NHMS
-      INTEGER            :: ELAPSED_SEC, NHMSb, RC
-      REAL*8             :: TAU,         TAUb         
-      REAL*8 :: HGPFRAC(IIPAR,JJPAR,LLPAR)
-
+      INTEGER            :: I,             IOS,   J,         K,      L
+      INTEGER            :: N,             JDAY,  NDIAGTIME, N_DYN,  NN
+      INTEGER            :: N_DYN_STEPS,   NSECb, N_STEP,    DATE(2)
+      INTEGER            :: YEAR,          MONTH, DAY,       DAY_OF_YEAR
+      INTEGER            :: SEASON,        NYMD,  NYMDb,     NHMS
+      INTEGER            :: ELAPSED_SEC,   NHMSb, RC
+      INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
+      REAL*8             :: TAU,           TAUb         
+      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -338,7 +340,7 @@
 
       ! Open and read A-3 fields
       DATE = GET_FIRST_A3_TIME()
-      CALL OPEN_A3_FIELDS( DATE(1), DATE(2) )
+      CALL OPEN_A3_FIELDS( DATE(1), DATE(2), RESET=.TRUE. )
       CALL GET_A3_FIELDS(  DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A3 TIME' )
 
@@ -355,7 +357,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
-      DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------------
+      ! Prior to 9/27/10:
+      ! Now call GET_FIRST_I6_TIME so that we can get the time of
+      ! the first I6 data read.  Works for start times other than
+      ! 00 GMT. (bmy, 9/27/10)
+      !DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------------
+      DATE = GET_FIRST_I6_TIME()
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )
@@ -473,11 +482,25 @@
       ! Compute time parameters at start of 6-h loop
       CALL SET_CURRENT_TIME
 
+      !----------------------------------------------------------------------
+      ! Prior to 9/27/10:
+      ! Now define NSECb not as total elapsed time since the start of a G-C
+      ! simulation, but with respect to the start of the current day.
+      ! (bmy, 9/27/10)
       ! NSECb is # of seconds at the start of 6-h loop
-      NSECb = GET_ELAPSED_SEC()
+      !NSECb = GET_ELAPSED_SEC()
+      !----------------------------------------------------------------------
+
+      ! NSECb is # of seconds (measured from 00 GMT today) 
+      ! at the start of this 6-hr timestepping loop.
+      ! NOTE: Assume we start at the head of each minute (i.e. SECONDS=0)
+      HOUR   = GET_HOUR()
+      HOUR   = ( HOUR / 6 ) * 6
+      MINUTE = GET_MINUTE()
+      NSECb  = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
       ! Get dynamic timestep in seconds
-      N_DYN = 60d0 * GET_TS_DYN()
+      N_DYN  = 60d0 * GET_TS_DYN()
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
@@ -489,14 +512,17 @@
          CALL PRINT_CURRENT_TIME
 
          ! Set time variables for dynamic loop
-         DAY_OF_YEAR = GET_DAY_OF_YEAR()
-         ELAPSED_SEC = GET_ELAPSED_SEC()
-         MONTH       = GET_MONTH()
-         NHMS        = GET_NHMS()
-         NYMD        = GET_NYMD()
-         TAU         = GET_TAU()
-         YEAR        = GET_YEAR()
-         SEASON      = GET_SEASON()
+         DAY_OF_YEAR   = GET_DAY_OF_YEAR()
+         ELAPSED_SEC   = GET_ELAPSED_SEC()
+         MONTH         = GET_MONTH()
+         NHMS          = GET_NHMS()
+         NYMD          = GET_NYMD()
+         HOUR          = GET_HOUR()
+         MINUTE        = GET_MINUTE()
+         TAU           = GET_TAU()
+         YEAR          = GET_YEAR()
+         SEASON        = GET_SEASON()
+         ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 )
 
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a SET_CURRENT_TIME' )
@@ -763,7 +789,14 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )
+         !---------------------------------------------------------------
+         ! Prior to 9/27/10:
+         ! Use elapsed seconds from the start of today rather than
+         ! elapsed seconds from the start of the run for the 
+         ! interpolation of the I6 fields. (bmy, 9/27/10)
+         !CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )
+         !---------------------------------------------------------------
+         CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
 
          ! Case of variable tropopause:
          ! Check LLTROP and set LMIN, LMAX, and LPAUSE

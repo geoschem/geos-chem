@@ -1265,7 +1265,7 @@
       J0_BC = J1_BC - 1
 
       IF (.not. LWINDO2x25) THEN
-#if defined(GRID4x5)
+#if defined(GRID4x5) || defined(NESTED_NA)
          ! Lower-left corner of coarse-grid NA BC WINDOW region
          I1_BC_NA = 9
          J1_BC_NA = 26

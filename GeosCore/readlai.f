@@ -106,8 +106,6 @@
             !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/' 
             FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/' // 
      &                 YEAR // '/lai' // CMONTH(MM) // '.global'
-
-            print*, 'The LAI filename is: ', FILENAME
          ELSE 
             !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/1985/' 
             FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/1985/' //
