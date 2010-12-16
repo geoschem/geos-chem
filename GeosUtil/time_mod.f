@@ -354,6 +354,8 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
+!                              MERRA met data goes back prior to 1985
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -366,15 +368,21 @@
       ! SET_BEGIN_TIME begins here!
       !=================================================================
 
-      ! Make sure NHMSb is valid
+      ! Error check THISNHMSb
       IF ( THISNHMSb > 235959 ) THEN
          CALL ERROR_STOP( 'NHMSb cannot be greater than 23:59:59!',
      &                    'SET_BEGIN_TIME (time_mod.f)' )
       ENDIF
 
-      ! Make sure THISNYMDb uses 4 digits for the year
-      ! and is not less than 1985/01/01
-      IF ( THISNYMDb < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 12/16/10:
+! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
+!      ! Make sure THISNYMDb uses 4 digits for the year
+!      ! and is not less than 1985/01/01
+!      IF ( THISNYMDb < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+      ! Error check THISNYMDb
+      IF ( THISNYMDb < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDb must be in the format YYYYMMDD!',
      &                    'SET_BEGIN_TIME (time_mod.f)' )
 
@@ -422,6 +430,8 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
+!                              MERRA met data goes back prior to 1985
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,15 +444,21 @@
       ! SET_END_TIME begins here!
       !=================================================================
 
-      ! Error check to make sure 
+      ! Error check THISNHMS
       IF ( THISNHMSe > 235959 ) THEN
          CALL ERROR_STOP( 'NHMSe cannot be greater than 23:59:59!',
      &                    'SET_END_TIME (time_mod.f)' )
       ENDIF
 
-      ! Make sure THISNYMDb uses 4 digits for the year
-      ! and is not less than 1985/01/01
-      IF ( THISNYMDe < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 12/16/10:
+! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
+!!      ! Make sure THISNYMDb uses 4 digits for the year
+!!      ! and is not less than 1985/01/01
+!!      IF ( THISNYMDe < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+      ! Error check THISNYMDe
+      IF ( THISNYMDe < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDe must be in the format YYYYMMDD!',
      &                    'SET_END_TIME (time_mod.f)' )
 
