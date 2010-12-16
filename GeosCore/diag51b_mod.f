@@ -135,6 +135,8 @@
 !  (19) Added MEGAN species (mpb, bmy, 12/21/09)
 !  (20) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -356,6 +358,8 @@
 !  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
 !        bin's individual AOD (amv, bmy, 12/21/09)
 !  (12) Added MEGAN species (mpb, bmy, 12/21/09)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       ! References to F90 modules
@@ -850,12 +854,17 @@
             ELSE IF ( N == 99 ) THEN
 
                !-----------------------------------
-               ! SURFACE PRESSURE - PTOP [hPa]
+               ! PEDGE-$ (prs @ level edges) [hPa]
                !-----------------------------------
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
-               ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 11/12/10:
+! Now save PEDGE-$ instead of PSURFACE - PTOP (bmy, 11/12/10)
+!               IF ( K == 1 ) THEN
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
+!               ENDIF
+!-----------------------------------------------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 100 ) THEN 
 
@@ -1177,6 +1186,8 @@
 !  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
 !       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
 !  (13) Added MEGAN species (mpb, bmy, 12/21/09)
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -1226,8 +1237,6 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - DIAG51b: Opening file ', a ) 
-
-      print*, '### LND51b_HDF: ', LND51b_hdf
 
       ! Open output file
       IF ( LND51b_HDF ) THEN
@@ -1583,7 +1592,11 @@
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMNL     = 1
+            !--------------------------
+            ! Prior to 11/12/10:
+            !GMNL     = 1
+            !--------------------------
+            GMNL     = ND51_NL
             GMTRC    = 1
 
          ELSE IF ( N == 100 ) THEN
