@@ -71,6 +71,7 @@
 !                              READ_EMEP_UPDATED_05x0666.
 !  26 Jan 2010 - R. Yantosca - Minor bug fix in INIT_EMEP
 !  31 Aug 2010 - R. Yantosca - Updated comments
+!  24 Nov 2010 - G. Vinken   - Updated EMEP mask file
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -951,6 +952,8 @@
 !  18 Oct 2006 - R. Yantosca - Initial version
 !  (1 ) Now read the Europe mask from a disk file instead of defining it as 
 !        a rectangular box (bmy, 10/18/06)
+!  (2 ) Updated the mask file to correspond with the 200911 EMEP emissions
+!        (gvinken, 11/24/10)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -965,8 +968,14 @@
       !=================================================================
 
       ! File name
+!-----------------------------------------------------------------------
+! Prior to 11/24/10:
+! Read in new mask file for EMEP emissions (gvinken, 11/24/10)
+!      FILENAME  = TRIM( DATA_DIR_1x1 ) // 
+!     &            'EMEP_200510/EMEP_mask.geos.1x1'
+!-----------------------------------------------------------------------
       FILENAME  = TRIM( DATA_DIR_1x1 ) // 
-     &            'EMEP_200510/EMEP_mask.geos.1x1'
+     &            'EMEP_200911/EMEP_mask.geos.1x1'
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
