@@ -4,7 +4,7 @@
 !******************************************************************************
 !  Module EDGAR_MOD contains variables and routines to read anthropogenic 
 !  emissions from the EDGAR inventory for NOx, CO and SO2. 
-!  (avd, bmy, phs, 7/14/06, 3/10/08)
+!  (avd, bmy, phs, 7/14/06, 12/20/10)
 !
 !  Module Routines:
 !  ============================================================================
@@ -63,6 +63,7 @@
 !  (5 ) Added subroutines READ_AROMATICS_05x0666, READ_C2H4_05x0666 and 
 !        READ_C2H2_05x0666 for 0.5x0.666 resolution emissions. 
 !        They are PUBLIC routines as they are used by anthroems.f.(ccc, 3/2/09)
+!  (6 ) Fixed typos in READ_C2H2 and READ_C2H4 (tmf, bmy, 12/20/10)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -2104,6 +2105,7 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2133,7 +2135,7 @@
 
       ! Define the binary punch file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &        'EDGAR200607/C2H4/C2H4_1985_FF_IND_EDGAR2.1x1geos.bpch'
+     &        'EDGAR_200607/C2H4/C2H4_1985_FF_IND_EDGAR2.1x1geos.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2173,6 +2175,7 @@
 !                         [molec/cm2/s] (tmf, 7/8/05)
 !
 !  NOTES:
+!  (1) Bug fix: EDGAR200607 should be EDGAR_200607 (tmf, bmy, 12/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2202,7 +2205,7 @@
 
       ! Define the binary punch file name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &        'EDGAR200607/C2H2/C2H2_1985_FF_IND_EDGAR2.1x1geos.bpch'
+     &        'EDGAR_200607/C2H2/C2H2_1985_FF_IND_EDGAR2.1x1geos.bpch'
 
       ! Write file name to stdout
       WRITE( 6, 100 ) TRIM( FILENAME )
