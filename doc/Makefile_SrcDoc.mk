@@ -36,6 +36,7 @@
 #  02 Dec 2010 - R. Yantosca - Added diag03_mod, diag49_mod, diag50_mod
 #  02 Dec 2010 - R. Yantosca - Added diag51_mod, diag51b_mod, boxvl, rdmonot
 #  02 Dec 2010 - R. Yantosca - Added rdlight, rdland, rdsoil, emmonot
+#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_3.*"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -135,10 +136,10 @@ $(CORE)/tcorr.f
 
 
 # Output file names
-TEX1 := GEOS-Chem.tex
-DVI1 := GEOS-Chem.dvi
-PDF1 := GEOS-Chem.pdf
-PS1  := GEOS-Chem.ps
+TEX1 := GC_Ref_Vol_3.tex
+DVI1 := GC_Ref_Vol_3.dvi
+PDF1 := GC_Ref_Vol_3.pdf
+PS1  := GC_Ref_Vol_3.ps
 
 
 # Make commands

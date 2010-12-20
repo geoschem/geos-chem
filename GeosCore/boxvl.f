@@ -3,9 +3,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: boxvl
 !
-! !DESCRIPTION: !  The new function BOXVL converts the DAO grid box volume 
+! !DESCRIPTION: The new function BOXVL converts the DAO grid box volume 
 !  values stored in AIRVOL from m3 to cm3.  The conversion factor is 
 !  (100)**3 = 1e6 cm3 per m3.
 !\\

@@ -82,7 +82,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: write_diag56
 !
 ! !DESCRIPTION: Subroutine WRITE\_DIAG56 writes the ND03 diagnostic arrays 
 !  to the binary punch file at the proper time. 

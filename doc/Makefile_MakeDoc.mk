@@ -22,6 +22,7 @@
 #
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
+#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_1.*"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,10 +50,10 @@ $(HELP)/Makefile
 
 
 # Output file names
-TEX2 := GEOS-Chem-Makefiles.tex
-DVI2 := GEOS-Chem-Makefiles.dvi
-PDF2 := GEOS-Chem-Makefiles.pdf
-PS2  := GEOS-Chem-Makefiles.ps
+TEX2 := GC_Ref_Vol_1.tex
+DVI2 := GC_Ref_Vol_1.dvi
+PDF2 := GC_Ref_Vol_1.pdf
+PS2  := GC_Ref_Vol_1.ps
 
 
 # Make command

@@ -23,6 +23,7 @@
 #
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
+#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_4.*"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -70,10 +71,10 @@ $(GTMM)/sort_pick_veg.f90
 
 
 # Output file names
-TEX4 := GEOS-Chem-GTMM.tex
-DVI4 := GEOS-Chem-GTMM.dvi
-PDF4 := GEOS-Chem-GTMM.pdf
-PS4  := GEOS-Chem-GTMM.ps
+TEX4 := GC_Ref_Vol_4.tex
+DVI4 := GC_Ref_Vol_4.dvi
+PDF4 := GC_Ref_Vol_4.pdf
+PS4  := GC_Ref_Vol_4.ps
 
 
 # Make commands

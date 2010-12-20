@@ -22,6 +22,7 @@
 #
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
+#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -31,10 +32,10 @@ SRC3 := ./intro.util $(wildcard $(UTIL)/*.f)
 
 
 # Output file names
-TEX3 := GEOS-Chem-Utility.tex
-DVI3 := GEOS-Chem-Utility.dvi
-PDF3 := GEOS-Chem-Utility.pdf
-PS3  := GEOS-Chem-Utility.ps
+TEX3 := GC_Ref_Vol_2.tex
+DVI3 := GC_Ref_Vol_2.dvi
+PDF3 := GC_Ref_Vol_2.pdf
+PS3  := GC_Ref_Vol_2.ps
 
 
 # Make commands
