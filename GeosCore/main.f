@@ -332,7 +332,14 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
-      DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------------
+      ! Prior to 12/17/10:
+      ! Now call GET_FIRST_I6_TIME so that we can get the time of
+      ! the first I6 data read.  Works for start times other than
+      ! 00 GMT. (bmy, 9/27/10)
+      !DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------------
+      DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st I6 TIME' )

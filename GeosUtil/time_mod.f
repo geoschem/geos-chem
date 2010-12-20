@@ -175,6 +175,7 @@
 !  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
 !  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
 !  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
+!  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1358,13 +1359,14 @@
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: THISYEAR, THISMONTH, THISDAY
+      INTEGER :: THISYEAR, THISMONTH, THISDAY, TMP
       REAL*8  :: JD
 
       !=================================================================
@@ -1376,6 +1378,23 @@
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD, DATE(1), DATE(2) )
+
+      ! Check to see if HHMMSS is 240000.  This may occur due to a
+      ! roundoff error in CALDATE.  If this is the case, then add 1 
+      ! to the date and then set HHMMSS = 0.  Use the GET_JD and 
+      ! CALDATE functions to do this computation rigorously.
+      IF ( DATE(2) == 240000 ) THEN
+
+         ! Split the date into Y/M/D variables
+         CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
+
+         ! Increment the Astronomical Julian Date by 1 day
+         TMP = THISYEAR*10000 + THISMONTH*100 + THISDAY
+         JD  = GET_JD( TMP, 000000 ) + 1
+
+         ! Convert to YYYY/MM/DD and hh:mm:ss
+         CALL CALDATE( JD, DATE(1), DATE(2) )
+      ENDIF
 
 #if   defined( GCAP )
 
@@ -1395,7 +1414,6 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_TIME_AHEAD
 !EOC
 !------------------------------------------------------------------------------

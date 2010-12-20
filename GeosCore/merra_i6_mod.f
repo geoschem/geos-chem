@@ -438,7 +438,7 @@
  100     FORMAT( 'ERROR -- not enough MERRA I6 fields found!' )
  110     FORMAT( 'There are ', i2, ' fields but only ', i2 ,
      &           ' were found!'                               )
- 120     FORMAT( '### STOP in A3_CHECK (merra_a3_mod.f)'      )
+ 120     FORMAT( '### STOP in I6_CHECK (merra_i6_mod.f)'      )
 
          ! Deallocate arrays and stop
          CALL GEOS_CHEM_STOP
