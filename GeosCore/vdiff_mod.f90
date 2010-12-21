@@ -1965,7 +1965,7 @@ contains
        ! initialized at the start of the subroutine (bmy, 12/21/10)
        !if (NCS .gt. 0) then
        !---------------------------------------------------------------------
-       IF ( IS_FULLCHEM ) THEN
+       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
 
           do N = 1, NEMIS(NCS)
              NN = IDEMS(N)

@@ -2067,7 +2067,7 @@ C** Load array DVEL
       ! DIFFG begins here!
       !=================================================================
 
-      ! Air density
+      ! Air density [molec/m3]
       AIRDEN = ( PRESS * AVOGAD ) / ( RGAS * TK )
 
       ! DIAM is the collision diameter for gas X with air.
