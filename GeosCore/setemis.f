@@ -133,6 +133,7 @@
 !  (34) Moved NOx scaling to improve parallelization. (ccc, 11/10/10)
 !  16 Dec 2010 - R. Yantosca - Removed obsolete, commented-out code
 !  16 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  21 Dec 2010 - R. Yantosca - Now set REMIS=0d0.  Also updated comments.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,10 +152,13 @@
       !=================================================================
 
       ! some ajdustments for non-local PBL (Lin, 03/31/09)
-      !call flush(6)
-      IF (NCS == 0) THEN
-        REMIS(:,:)=0.
-        RETURN
+      ! NOTE: If NCS=0 and we are NOT doing a full-chemistry run, then
+      ! setting REMIS=0 can lead to a seg-fault error.  Therefore, you should
+      ! add an error check in the calling routine to prevent SETEMIS from
+      ! being called if we are not doing full-chemistry. (bmy, 12/21/10)
+      IF ( NCS == 0 ) THEN
+         REMIS = 0d0
+         RETURN
       ENDIF
 
       ! Test if the EMIS_LI_NOx and EMIS_AC_NOx arrays are allocated

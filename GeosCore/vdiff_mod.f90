@@ -34,40 +34,63 @@ MODULE VDIFF_MOD
   
   integer, parameter :: plev = LLPAR, plevp = plev + 1
   
-  real*8, parameter :: &
-       rearth = 6.37122e6, & ! radius earth (m)
-       cpwv   = 1.81e3, &
-       cpair  = 1004.64, &
-       rair   = 287.04, &
-       rh2o   = 461., &
+  real*8, parameter ::          &
+       rearth = 6.37122e6,      & ! radius earth (m)
+       cpwv   = 1.81e3,         &
+       cpair  = 1004.64,        &
+       rair   = 287.04,         &
+       rh2o   = 461.,           &
        zvir   = rh2o/rair - 1., &
-       gravit = 9.80616, &
-       ra     = 1./rearth, &
-       epsilo = 0.622, &
-       latvap = 2.5104e06, &
-       latice = 3.336e5, &
-       cappa  = rair/cpair, &
-       rhoh2o = 1.e3, &
-       r_g    = rair / gravit, &
+       gravit = 9.80616,        &
+       ra     = 1./rearth,      &
+       epsilo = 0.622,          &
+       latvap = 2.5104e06,      &
+       latice = 3.336e5,        &
+       cappa  = rair/cpair,     &
+       rhoh2o = 1.e3,           &
+       r_g    = rair / gravit,  &
        tfh2o  = 273.16
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
 !-----------------------------------------------------------------------
-  real*8 :: &
-       betam = 15., &   ! constant in wind gradient expression
-       betas = 5., &    ! constant in surface layer gradient expression
-       betah = 15., &   ! constant in temperature gradient expression 
-       fak = 8.5, &     ! constant in surface temperature excess         
-       g, &             ! gravitational acceleration
-       onet, &          ! 1/3 power in wind gradient expression
-       fakn = 7.2, &    ! constant in turbulent prandtl number
-       ricr = .3, &     ! critical richardson number
-       sffrac = .1, &   ! surface layer fraction of boundary layer
-       vk = .4, &       ! von karmans constant
-       ccon, &          ! fak * sffrac * vk
-       binm, &          ! betam * sffrac
-       binh             ! betah * sffrac
+!-----------------------------------------------------------------------------
+! Prior to 12/17/10:
+! Declare constants with the PARAMETER attribute (bmy, 12/17/10)
+!  real*8 :: &
+!       betam = 15., &   ! constant in wind gradient expression
+!       betas = 5., &    ! constant in surface layer gradient expression
+!       betah = 15., &   ! constant in temperature gradient expression 
+!       fak = 8.5, &     ! constant in surface temperature excess         
+!       g, &             ! gravitational acceleration
+!       onet, &          ! 1/3 power in wind gradient expression
+!       fakn = 7.2, &    ! constant in turbulent prandtl number
+!       ricr = .3, &     ! critical richardson number
+!       sffrac = .1, &   ! surface layer fraction of boundary layer
+!       vk = .4, &       ! von karmans constant
+!       ccon, &          ! fak * sffrac * vk
+!       binm, &          ! betam * sffrac
+!       binh             ! betah * sffrac
+!-----------------------------------------------------------------------------
+
+  ! These are constants, so use PARAMETER tag
+  real*8, parameter :: &
+       betam  = 15.,   & ! constant in wind gradient expression
+       betas  =  5.,   & ! constant in surface layer gradient expression
+       betah  = 15.,   & ! constant in temperature gradient expression 
+       fak    =  8.5,  & ! constant in surface temperature excess         
+       fakn   =  7.2,  & ! constant in turbulent prandtl number
+       ricr   =   .3,  & ! critical richardson number
+       sffrac =   .1,  & ! surface layer fraction of boundary layer
+       vk     =   .4     ! von karmans constant
+
+  ! These are assigned later, so we can't use the PARAMETER tag
+  real*8 ::            & 
+       g,              & ! gravitational acceleration
+       onet,           & ! 1/3 power in wind gradient expression
+       ccon,           & ! fak * sffrac * vk
+       binm,           & ! betam * sffrac
+       binh              ! betah * sffrac
 
 !-----------------------------------------------------------------------
 ! 	... constants used in vertical diffusion and pbl
@@ -82,22 +105,27 @@ MODULE VDIFF_MOD
        ntopfl, &        ! top level to which vertical diffusion is applied.
        npbl             ! maximum number of levels in pbl from surface
 
-  logical :: divdiff = .true. , arvdiff = .false.
+  logical, parameter :: divdiff = .true. , arvdiff = .false.
   
-  logical :: pblh_ar = .true.
+  logical, parameter :: pblh_ar = .true.
   
-  logical :: pbl_mean_drydep = .false. ! use mean concentration within the 
-                                       !  PBL for calculating drydep fluxes
-  logical :: drydep_back_cons = .false. ! backward consistency with previous 
-                                        !  GEOS-Chem drydep budgets 
-                                        !-- useless when 
-                                        !    pbl_mean_drydep = .false.
+  logical, parameter :: pbl_mean_drydep = .false.  ! use mean concentration 
+                                                   !  within the  PBL for 
+                                                   ! calculating drydep fluxes
+  logical, parameter :: drydep_back_cons = .false. ! backward consistency 
+                                                   !  with previous GEOS-Chem 
+                                                   !  drydep budgets 
+                                                   !-- useless when 
+                                                   !   pbl_mean_drydep=.false.
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
 !  24 Sep 2010 - J. Lin      - Modified ND15 to account for all mixing
 !                              processes but not dry deposition and emissions.
+!  17 Dec 2010 - R. Yantosca - Declare constants w/ the PARAMETER attribute
+!  20 Dec 2010 - R. Yantosca - Bug fixes for the parallelization
+
 !EOP
 !------------------------------------------------------------------------------
 
@@ -332,7 +360,7 @@ contains
     ! vdiff begins here!
     !=================================================================
 
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
@@ -362,7 +390,6 @@ contains
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
     IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
-
 
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
@@ -452,7 +479,7 @@ contains
        end do
     end do
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
@@ -480,7 +507,7 @@ contains
                     wvflx, cgsh, plonl, ustar=ustar )
     endif
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
@@ -637,7 +664,7 @@ contains
        end do
     end do
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
@@ -706,7 +733,6 @@ contains
        call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, L, M, K )
        DO M = 1, pcnst
        DO L = 1, plev 
        do I = 1, plonl
@@ -719,7 +745,6 @@ contains
        enddo
        enddo
        ENDDO
-!$OMP END PARALLEL DO
 
     ENDIF
 
@@ -1658,12 +1683,22 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set physical constants for vertical diffusion and pbl
 !-----------------------------------------------------------------------
+    !--------------------------------------------------------------------------
+    ! Prior to 12/21/10:
+    ! Rewrite DO loop so as to avoid having to call UPSIDEDOWN (bmy, 12/21/10)
+    !do k = 1, plev
+    !   ref_pmid(k) = 0.5*(GET_AP(k)*100. + GET_BP(k)*1.e5 + &
+    !                 GET_AP(k+1)*100. + GET_BP(k+1)*1.e5)
+    !enddo
+    !call upsidedown(ref_pmid)
+    !--------------------------------------------------------------------------
+    ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being 
+    ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
     do k = 1, plev
-       ref_pmid(k) = 0.5*(GET_AP(k)*100. + GET_BP(k)*1.e5 + &
-                     GET_AP(k+1)*100. + GET_BP(k+1)*1.e5)
+       ref_pmid(plev-k+1) = 0.5*( GET_AP(k  )*100. + GET_BP(k  )*1.e5 + &
+                                  GET_AP(k+1)*100. + GET_BP(k+1)*1.e5 )
     enddo
-    call upsidedown(ref_pmid)
-      
+
 !-----------------------------------------------------------------------
 ! 	... derived constants
 !           ntopfl = top level to which v-diff is applied
@@ -1769,6 +1804,7 @@ contains
     USE DAO_MOD,      ONLY : LWI, IS_ICE, IS_LAND, SNOMAS, SNOW !cdh
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
+    USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
 
 #   include "define.h"
@@ -1788,6 +1824,9 @@ contains
 !  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  24 Sep 2010 - J. Lin      - Move ND15 to vdiff.  
+!  21 Dec 2010 - R. Yantosca - Add logical flags for different sim types
+!  21 Dec 2010 - R. Yantosca - Now call ITS_A_FULLCHEM_SIM instead of
+!                              relying on NCS == 0
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1815,13 +1854,26 @@ contains
       
     REAL*8  :: DEP_KG !(cdh, 8/28/09)
 
+    REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
+
+    ! Add flags
+    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
 
-!      !### Debug
+    !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
     
+    ! Test for different types of simulations and save in local variables/
+    ! These are used in the parallel DO loops below (bmy, 12/21/10)
+    IS_CH4      = ITS_A_CH4_SIM()
+    IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+    IS_Hg       = ITS_A_MERCURY_SIM()
+    IS_TAGCO    = ITS_A_TAGCO_SIM()
+    IS_TAGOX    = ITS_A_TAGOX_SIM()
+
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
     shflx = eflux / latvap ! latent heat -> water vapor flux
@@ -1886,6 +1938,17 @@ contains
 
     !!! calculate surface flux = emissions - dry deposition !!!
 
+    ! NCS is not defined = to NCSURBAN before chemistry. 
+    ! So certainly not on the first time step since chemistry called 
+    ! after vdiff_mod.f90.  NCSURBAN is not defined either.  For the 
+    ! moment just put NCS = 1 since we are always using urban chemistry.
+    ! (ccarouge, bmy, 12/20/10)
+    NCS = 1
+
+    ! Define slice of AS2, so as not to blow up the parallelization
+    ! (ccarouge, bmy, 12/20/10)
+    as2_scal = as2(:,:,1,:)
+
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
@@ -1893,16 +1956,32 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
 
-       if (NCS .gt. 0) then
+       !----------------------------------------------------------------
+       ! Add emissions for full-chemistry simulation
+       !----------------------------------------------------------------
+       !---------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !if (NCS .gt. 0) then
+       !---------------------------------------------------------------------
+       IF ( IS_FULLCHEM ) THEN
 
           do N = 1, NEMIS(NCS)
              NN = IDEMS(N)
-             if (NN == 0) CYCLE
+             !---------------------------------------------------------------
+             ! Prior to 12/21/10:
+             ! Replace CYCLE with an IF statement (bmy, 12/21/10)
+             !if (NN == 0) CYCLE
+             !---------------------------------------------------------------
              ! for emissions in the lowest model layer only
-             JLOOP = JLOP(I,J,1)
-             eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
+             IF ( NN > 0 ) THEN
+                JLOOP = JLOP(I,J,1)
+                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
+             ENDIF
 
           enddo
+
           ! additional step to convert from molec spec/cm3/s to kg/m2/s
           eflx(I,J,:) = eflx(I,J,:) * BXHEIGHT(I,J,1) / 6.022d23 * 1.d6
 
@@ -1922,16 +2001,37 @@ contains
                                                          GET_TS_EMIS() / 60.d0
           enddo
 
-          ! add ITS_A_TAGCO_SIM. CO emis are considered in tagged_co_mod.f.
-          ! This over-simplified treatment may be inconsistent with the full 
-          ! chemistry simulation. Hopefully this simplification wouldn't cause 
-          ! too much problem, since the std. tagged_co simulation is also 
-          ! approximate, anyway. (Lin, 06/20/09) 
-          if ( ITS_A_TAGCO_SIM() ) eflx(I,J,:) = 0d0 
-          
-       endif ! NCS
-       
-       if ( ITS_A_CH4_SIM() ) then
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Zero emissions for tagged CO simulation
+       !
+       ! CO emis are considered in tagged_co_mod.f.  This over-
+       ! simplified treatment may be inconsistent with the full 
+       ! chemistry simulation. Hopefully this simplification wouldn't 
+       ! cause too much problem, since the std. tagged_co simulation 
+       ! is also approximate, anyway. (Lin, 06/20/09) 
+       !----------------------------------------------------------------
+       !----------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !if ( ITS_A_TAGCO_SIM() ) eflx(I,J,:) = 0d0 
+       !----------------------------------------------------------------------
+       IF ( IS_TAGCO ) THEN
+          eflx(I,J,:) = 0d0 
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Add emissions for offline CH4 simulation
+       !----------------------------------------------------------------
+       !----------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !if ( ITS_A_CH4_SIM() ) then
+       !----------------------------------------------------------------------
+       IF ( IS_CH4 ) THEN
           ! add surface emis
           ! (after converting kg/box/timestep to kg/m2/s)
           ! Should NOT use ID_EMITTED here, since it is only for gases 
@@ -1942,15 +2042,25 @@ contains
           enddo
        endif
 
-       ! Add emissions for mercury simulation. May be useful for other
-       ! offline simulations
-       IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------
+       ! Add emissions for offline mercury simulation
+       !----------------------------------------------------------------
+       !----------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------------
+       IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
              eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
                   GET_TS_EMIS() / 60.d0
           enddo
        ENDIF
 
+       !----------------------------------------------------------------
+       ! Apply dry deposition frequencies
+       !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
               TRIM( DEPNAME(N) ) == 'DST2'.OR. &
@@ -1992,10 +2102,12 @@ contains
                                BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
              endif
           else
+
              ! only use the lowest model layer for calculating drydep fluxes
              ! given that as2 is in v/v
-             dflx(I,J,NN) = DEPSAV(I,J,N) * as2(I,J,1,NN) / TCVV(NN) 
-
+             ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+             ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+             dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
              ! If flag is set to treat Hg2 as half aerosol, half gas, then
              ! use average deposition velocity (cdh, 9/01/09)
@@ -2016,7 +2128,13 @@ contains
           ! ocean_mercury_mod defines ocean based on fraction 
           ! land, albedo and mixed layer depth. The difference with LWI is
           ! small. (cdh, 8/28/09) 
-          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
+          !-------------------------------------------------------------------
+          ! Prior to 12/21/10:
+          ! Replace function call with local variable that has been
+          ! initialized at the start of the subroutine (bmy, 12/21/10)
+          !IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
+          !-------------------------------------------------------------------
+          IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
 
@@ -2031,7 +2149,13 @@ contains
           ! GEOS1-4 snow heigt (water equivalent) in mm
           SNOW_HT = SNOW(I,J)
 #endif 
-          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. &
+          !-------------------------------------------------------------------
+          ! Prior to 12/21/10:
+          ! Replace function call with local variable that has been
+          ! initialized at the start of the subroutine (bmy, 12/21/10)
+          !IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. &
+          !-------------------------------------------------------------------
+          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
                ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
@@ -2039,8 +2163,17 @@ contains
           
        enddo
 
-       ! add ITS_A_TAGOX_SIM (Lin, 06/21/08 )
-       if ( ITS_A_TAGOX_SIM() ) then
+       !----------------------------------------------------------------
+       ! Apply dry deposition frequencies for Tagged Ox simulation
+       ! (Jintai Lin, 06/21/08)
+       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !if ( ITS_A_TAGOX_SIM() ) then
+       !--------------------------------------------------------------------
+       IF ( IS_TAGOX ) THEN
           do N = 2, N_TRACERS ! the first species, Ox, has been done above
              if (pbl_mean_drydep) then
                 wk1 = 0.d0
@@ -2082,11 +2215,21 @@ contains
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
 
+       !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
-       IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------
+       !----------------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------------
+       IF ( IS_Hg ) THEN
           
+          ! Loop over # of drydep species
           DO N = 1, NUMDEP
              
+             ! GEOS_Chem tracer number
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
@@ -2136,7 +2279,13 @@ contains
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
-       if ( ITS_A_TAGOX_SIM() ) then
+       !----------------------------------------------------------------
+       ! Prior to 12/21/10:
+       ! Replace function call with local variable that has been
+       ! initialized at the start of the subroutine (bmy, 12/21/10)
+       !if ( ITS_A_TAGOX_SIM() ) then
+       !----------------------------------------------------------------
+       IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
              ! Convert : kg/m2/s -> molec/cm2/s
@@ -2151,59 +2300,68 @@ contains
 
     endif
 
-!      !### Debug
+    !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
 
     if( divdiff ) then
-        
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
-             
-          if (pblh_ar) pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
- 
-          ! mozart is top-down and geos-chem is bottom-up
-          call upsidedown(um1(I,J,:))
-          call upsidedown(vm1(I,J,:))
-          call upsidedown(tadv(I,J,:))
-          call upsidedown(pmid(I,J,:))
-          call upsidedown(pint(I,J,:))
-          call upsidedown(rpdel(I,J,:))
-          call upsidedown(rpdeli(I,J,:))
-          call upsidedown(zm(I,J,:))
-          call upsidedown(thp(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(shp(I,J,:))
-          
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+      
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)  
+!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
+!!       do J = 1, JJPAR
+!!       do I = 1, IIPAR
+!!             
+!!          if (pblh_ar) pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
+!! 
+!!          ! mozart is top-down and geos-chem is bottom-up
+!!          call upsidedown(um1(I,J,:))
+!!          call upsidedown(vm1(I,J,:))
+!!          call upsidedown(tadv(I,J,:))
+!!          call upsidedown(pmid(I,J,:))
+!!          call upsidedown(pint(I,J,:))
+!!          call upsidedown(rpdel(I,J,:))
+!!          call upsidedown(rpdeli(I,J,:))
+!!          call upsidedown(zm(I,J,:))
+!!          call upsidedown(thp(I,J,:))
+!!          do N = 1, N_TRACERS
+!!             call upsidedown(as2(I,J,:,N))
+!!          enddo
+!!          call upsidedown(shp(I,J,:))
+!!          
+!!       enddo
+!!       enddo
+!!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       um1    = um1   ( :, :, LLPAR  :1:-1 )   
+       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
+       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       zm     = zm    ( :, :, LLPAR  :1:-1 )
+       thp    = thp   ( :, :, LLPAR  :1:-1 )
+
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
        do N = 1, N_TRACERS
           as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
        enddo
        shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-          
-!--- Previous to (ccc, 11/19/09)
-!          call vdiff( J, 1, um1(:,J,:), vm1(:,J,:), tadv(:,J,:), &
-!                      pmid(:,J,:), pint(:,J,:), rpdel(:,J,:), &
-!                      rpdeli(:,J,:), dtime, &
-!                      zm(:,J,:), hflx(:,J), sflx(:,J,:), &
-!                      thp(:,J,:), as2(:,J,:,:), pblh(:,J), &
-!                      kvh(:,J,:), &
-!                      kvm(:,J,:), tpert(:,J), qpert(:,J), &
-!                      cgs(:,J,:), shp(:,J,:), &
-!                      shflx(:,J), IIPAR, ustar=ustar(:,J))
-
           call vdiff( J, 1, um1, vm1, tadv,        &
                       pmid, pint, rpdel,           &
                       rpdeli, dtime,               &
@@ -2216,7 +2374,7 @@ contains
        enddo
 !$OMP END PARALLEL DO
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
        do N = 1, N_TRACERS
@@ -2224,71 +2382,107 @@ contains
        enddo
        shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)
+!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
+!!       do J = 1, JJPAR
+!!       do I = 1, IIPAR
+!!
+!!          ! mozart is top-down and geos-chem is bottom-up
+!!          ! resume the order of meteorological variables
+!!          call upsidedown(um1(I,J,:))
+!!          call upsidedown(vm1(I,J,:))
+!!          call upsidedown(tadv(I,J,:))
+!!          call upsidedown(thp(I,J,:))
+!!          do N = 1, N_TRACERS
+!!             call upsidedown(as2(I,J,:,N))
+!!          enddo
+!!          call upsidedown(kvh(I,J,:))
+!!          call upsidedown(kvm(I,J,:))
+!!          call upsidedown(cgs(I,J,:))
+!!          call upsidedown(shp(I,J,:))
+!!
+!!       enddo
+!!       enddo
+!!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
-          ! mozart is top-down and geos-chem is bottom-up
-          ! resume the order of meteorological variables
-          call upsidedown(um1(I,J,:))
-          call upsidedown(vm1(I,J,:))
-          call upsidedown(tadv(I,J,:))
-          call upsidedown(thp(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(kvm(I,J,:))
-          call upsidedown(cgs(I,J,:))
-          call upsidedown(shp(I,J,:))
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       um1    = um1   ( :, :, LLPAR  :1:-1 )   
+       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
+       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       zm     = zm    ( :, :, LLPAR  :1:-1 )
+       thp    = thp   ( :, :, LLPAR  :1:-1 )
 
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
 !  	... vertical diffusion using archived values of cgs and kvh.
+!
+!       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
+!       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
 !-----------------------------------------------------------------------
-         
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
+      
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)   
+!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
+!!       do J = 1, JJPAR
+!!       do I = 1, IIPAR
+!!
+!!          ! not sure if it is necessary to use L specifically 
+!!          t1(I,J,:) = tadv(I,J,:)  ! simplified treatment
+!!
+!!          call upsidedown(t1(I,J,:))
+!!          call upsidedown(pmid(I,J,:))
+!!          call upsidedown(pint(I,J,:))
+!!          call upsidedown(rpdel(I,J,:))
+!!          call upsidedown(rpdeli(I,J,:))
+!!          do N = 1, N_TRACERS
+!!             call upsidedown(as2(I,J,:,N))
+!!          enddo
+!!          call upsidedown(kvh(I,J,:))
+!!          call upsidedown(cgs(I,J,:))
+!!       enddo
+!!       enddo
+!!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
-          ! not sure if it is necessary to use L specifically 
-          t1(I,J,:) = tadv(I,J,:)  ! simplified treatment
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       t1     = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
 
-          call upsidedown(t1(I,J,:))
-          call upsidedown(pmid(I,J,:))
-          call upsidedown(pint(I,J,:))
-          call upsidedown(rpdel(I,J,:))
-          call upsidedown(rpdeli(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(cgs(I,J,:))
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
        do N = 1, N_TRACERS
           as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
        enddo
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )   &
 !$OMP PRIVATE( J )
        do J = 1, JJPAR
-
-!--- Previous to (ccc,11/19/09)
-!          call vdiffar( J, tadv(:,J,:), &
-!                        pmid (:,J,:), pint(:,J,:),        &
-!                        rpdel(:,J,:), rpdeli(:,J,:), dtime, &
-!                        sflx(:,J,:), as2(:,J,:,:),                   &
-!                        kvh(:,J,:), cgs(:,J,:), IIPAR)
           call vdiffar( J, tadv, &
                         pmid, pint,        &
                         rpdel, rpdeli, dtime, &
@@ -2298,28 +2492,44 @@ contains
       enddo
 !$OMP END PARALLEL DO
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
        do N = 1, N_TRACERS
           as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
        enddo
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
-          call upsidedown(t1(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(cgs(I,J,:))
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10) 
+!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
+!!       do J = 1, JJPAR
+!!       do I = 1, IIPAR
+!!          call upsidedown(t1(I,J,:))
+!!          do N = 1, N_TRACERS
+!!             call upsidedown(as2(I,J,:,N))
+!!          enddo
+!!          call upsidedown(kvh(I,J,:))
+!!          call upsidedown(cgs(I,J,:))
+!!       enddo
+!!       enddo
+!!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       t1     = t1    ( :, :, LLPAR  :1:-1 )
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
+
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
     end if
 
+!------------------------------------------------------------------------------
 !-- Prior to 09/24/10.
 !
 ! Diagnostic moved to vdiff. (lin, ccc, 09/24/10)
@@ -2346,6 +2556,7 @@ contains
 !!$OMP END PARALLEL DO
 !
 !    ENDIF
+!------------------------------------------------------------------------------
 
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
@@ -2367,47 +2578,50 @@ contains
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
   END SUBROUTINE VDIFFDR
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: upsidedown
-!
-! !DESCRIPTION: Subroutine UPSIDEDOWN flips a vector upside-down.
-!\\
-!\\
-! !INTERFACE:
-!
-  subroutine upsidedown( dat )
-!
-! !USES:
-! 
-    implicit none
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    real*8, intent(inout) :: dat(:)
-!
-! !REVISION HISTORY: 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    real*8 :: dtmp
-    integer :: L, LSUM
-    
-    LSUM = size(dat)
-    do L = 1, int(LSUM/2)
-       dtmp = dat(L)
-       dat(L) = dat(LSUM-L+1)
-       dat(LSUM-L+1) = dtmp
-    enddo
-    
-  END SUBROUTINE UPSIDEDOWN
+!!
+!!%%% NOTE: This subroutine is now obsolete %%% 
+!!
+!!EOC
+!!-----------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group           !
+!!-----------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: upsidedown
+!!
+!! !DESCRIPTION: Subroutine UPSIDEDOWN flips a vector upside-down.
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  subroutine upsidedown( dat )
+!!
+!! !USES:
+!! 
+!    implicit none
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!    real*8, intent(inout) :: dat(:)
+!!
+!! !REVISION HISTORY: 
+!!EOP
+!!-----------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    real*8 :: dtmp
+!    integer :: L, LSUM
+!    
+!    LSUM = size(dat)
+!    do L = 1, int(LSUM/2)
+!       dtmp = dat(L)
+!       dat(L) = dat(LSUM-L+1)
+!       dat(LSUM-L+1) = dtmp
+!    enddo
+!    
+!  END SUBROUTINE UPSIDEDOWN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2429,9 +2643,9 @@ contains
 ! !USES:
 !
     USE LOGICAL_MOD,   ONLY : LTURB, LPRT
-    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV
+    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
     USE PBL_MIX_MOD,   ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT 
-    
+
     USE VDIFF_PRE_MOD, ONLY : EMISRR, EMISRRN
     USE ERROR_MOD,     ONLY : DEBUG_MSG
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
@@ -2445,19 +2659,19 @@ contains
 !
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
+!  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL, SAVE       :: FIRST = .TRUE.
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! DO_PBL_MIX2 begins here!
     !=================================================================
-    
-    call flush(6)
+    !call flush(6)
     
     ! First-time initialization
     IF ( FIRST ) THEN
@@ -2472,11 +2686,17 @@ contains
     !=================================================================
     ! Call SETEMIS which sets emission rates REMIS
     !=================================================================
-    IF ( ITS_TIME_FOR_EMIS() ) CALL SETEMIS( EMISRR, EMISRRN )
-    
-!      !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-    
+
+    ! Don't call SETEMIS if we aren't using the fullchem simulation
+    IF ( ITS_A_FULLCHEM_SIM() ) THEN
+
+       ! Compute emissions and distribute in boundary layer
+       IF ( ITS_TIME_FOR_EMIS() ) CALL SETEMIS( EMISRR, EMISRRN )
+
+       !### Debug
+       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after SETEMIS' )
+    ENDIF
+
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) CALL vdiffdr (STT)
 

@@ -1,44 +1,75 @@
-! $Id: comode_mod.f,v 1.2 2009/09/16 19:19:00 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: comode_mod
+!
+! !DESCRIPTION: Module COMODE\_MOD contains allocatable arrays for SMVGEAR 
+!  that were previously contained in common blocks in header file "comode.h".
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE COMODE_MOD
 !
-!******************************************************************************
-!  Module COMODE_MOD contains allocatable arrays for SMVGEAR that were
-!  previously contained in common blocks in header file "comode.h".
-!  (bmy, 8/31/00, 9/28/04)
-!  
+! !USES:
+!
+      IMPLICIT NONE
+      PRIVATE
+!
+! !PUBLIC DATA MEMBERS:
+!
+      !======================================================================
+      ! ABSHUM    : array for absolute humidity [H2O molec/cm3]
+      ! AIRDENS   : array for air density [molec/cm3]
+      ! CSPEC     : array of chemical species concentration [molec/cm3]
+      ! CSPEC_FULL: array of chemical species for full potential troposphere
+      ! CSUMA     : array for time of sunrise/sunset, from midnight [s]
+      ! CSUMC     : array for temporary storage 
+      ! ERADIUS   : array for aerosol or dust radii [cm]
+      ! ERRMX2    : array for storing stiffness values 
+      ! IXSAVE    : array of grid box longitude indices
+      ! IYSAVE    : array of grid box latitude indices
+      ! IZSAVE    : array of grid box altitude indices
+      ! JLOP      : array of 1-D grid box indices
+      ! PRESS3    : array for grid box pressure [mb]
+      ! REMIS     : array for emissions from GEOS-CHEM [molec/cm3] 
+      ! T3        : array for grid box temperature [K]
+      ! TAREA     : array for surface area of aerosol or dust [cm2/cm3]
+      ! VOLUME    : array for grid box volume [cm3]
+      !======================================================================
+      REAL*8,  ALLOCATABLE, PUBLIC :: ABSHUM(:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDENS(:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CSPEC_FULL(:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMA(:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: CSUMC(:) 
+      REAL*8,  ALLOCATABLE, PUBLIC :: ERADIUS(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: ERRMX2(:) 
+      INTEGER, ALLOCATABLE, PUBLIC :: IXSAVE(:)
+      INTEGER, ALLOCATABLE, PUBLIC :: IYSAVE(:)
+      INTEGER, ALLOCATABLE, PUBLIC :: IZSAVE(:)
+      INTEGER, ALLOCATABLE, PUBLIC :: JLOP(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: PRESS3(:)      
+      REAL*8,  ALLOCATABLE, PUBLIC :: REMIS(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T3(:)      
+      REAL*8,  ALLOCATABLE, PUBLIC :: TAREA(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: VOLUME(:)      
+      REAL*8,  ALLOCATABLE, PUBLIC :: WTAREA(:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: WERADIUS(:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC :: CLEANUP_COMODE
+      PUBLIC :: INIT_COMODE
+!
+! !REMARKS:
 !  In case you were wondering, "comode" stands for:
 !     "COMmon blocks: Ordinary Differential Equations"
-!  
-!  Module Variables:
-!  ============================================================================
-!  (1 ) ABSHUM     : array for absolute humidity [H2O molec/cm3]
-!  (2 ) AIRDENS    : array for air density [molec/cm3]
-!  (3 ) CSPEC      : array of chemical species concentration [molec/cm3]
-!  (3a) CSPEC_FULL : array of chemical species for full potential troposphere
-!  (4 ) CSUMA    : array for time of sunrise/sunset, measured from midnight [s]
-!  (5 ) CSUMC    : array for temporary storage 
-!  (6 ) ERADIUS  : array for aerosol or dust radii [cm]
-!  (7 ) ERRMX2   : array for storing stiffness values 
-!  (8 ) IXSAVE   : array of grid box longitude indices
-!  (9 ) IYSAVE   : array of grid box latitude indices
-!  (10) IZSAVE   : array of grid box altitude indices
-!  (11) JLOP     : array of 1-D grid box indices
-!  (12) PRESS3   : array for grid box pressure [mb]
-!  (13) REMIS    : array for emissions from GEOS-CHEM [molec/cm3] 
-!  (14) T3       : array for grid box temperature [K]
-!  (15) TAREA    : array for surface area of aerosol or dust [cm2/cm3]
-!  (16) VOLUME   : array for grid box volume [cm3]
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) INIT_COMODE    : allocates memory for arrays
-!  (2 ) CLEANUP_COMODE : deallocates memory for arrays
-!
-!  GEOS-CHEM modules referenced by comode_mod.f
-!  ============================================================================
-!  (1 ) error_mod.f    : Module containing NaN and other error check routines
-!
-!  NOTES:
+! !REVISION HISTORY:
+!  31 Aug 2000 - R. Yantosca - Initial version
 !  (1 ) Now zero CSPEC after allocating memory (bmy, 9/8/00)
 !  (2 ) Now declare more SMVGEAR arrays allocatable (bmy, 10/19/00)
 !  (3 ) Updated comments (bmy, 9/4/01)
@@ -56,66 +87,51 @@
 !       archived WTAREA and WERADIUS should include dusts, 
 !       but excludes BCPO and OCPO (tmf, ccc, 1/7/09)
 !  (11) Added 3 *_KPP arrays (phs,ks,dhk, 09/15/09)
-!  (12) Removed 3 *_KPP arrays (phs, 09/16/09) !      
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-      REAL*8,  ALLOCATABLE :: ABSHUM(:) 
-      REAL*8,  ALLOCATABLE :: AIRDENS(:) 
-      REAL*8,  ALLOCATABLE :: CSPEC(:,:)
-      REAL*8,  ALLOCATABLE :: CSPEC_FULL(:,:,:,:)
-      REAL*8,  ALLOCATABLE :: CSUMA(:) 
-      REAL*8,  ALLOCATABLE :: CSUMC(:) 
-      REAL*8,  ALLOCATABLE :: ERADIUS(:,:)
-      REAL*8,  ALLOCATABLE :: ERRMX2(:) 
-      INTEGER, ALLOCATABLE :: IXSAVE(:)
-      INTEGER, ALLOCATABLE :: IYSAVE(:)
-      INTEGER, ALLOCATABLE :: IZSAVE(:)
-      INTEGER, ALLOCATABLE :: JLOP(:,:,:)
-      REAL*8,  ALLOCATABLE :: PRESS3(:)      
-      REAL*8,  ALLOCATABLE :: REMIS(:,:)
-      REAL*8,  ALLOCATABLE :: T3(:)      
-      REAL*8,  ALLOCATABLE :: TAREA(:,:)
-      REAL*8,  ALLOCATABLE :: VOLUME(:)      
-      REAL*8,  ALLOCATABLE :: WTAREA(:,:)
-      REAL*8,  ALLOCATABLE :: WERADIUS(:,:)
-!      REAL*8,  ALLOCATABLE :: R_KPP(:,:)
-!      REAL*8,  ALLOCATABLE :: HSAVE_KPP(:,:,:) 
-!      REAL*8,  ALLOCATABLE :: CSPEC_FOR_KPP(:,:) 
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-      
+!  (12) Removed 3 *_KPP arrays (phs, 09/16/09)
+!  21 Dec 2010 - R. Yantosca - Added ProTeX headers     
+!EOP
 !------------------------------------------------------------------------------
-      
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_comode
+!
+! !DESCRIPTION: Subroutine INIT\_COMODE allocates memory for allocatable 
+!  arrays that were previously contained in common blocks in "comode.h".
+
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_COMODE
 !
-!******************************************************************************
-!  Subroutine INIT_COMODE allocates memory for allocatable arrays that were 
-!  previously contained in common blocks in "comode.h". (bmy, 8/31/00, 9/28/04)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM
+      USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
+      
+#     include "CMN_SIZE"
+#     include "comode.h" 
+! 
+! !REVISION HISTORY: 
+!  31 Aug 2000 - R. Yantosca - Initial version
 !  (1 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (2 ) Cosmetic chagnes (bmy, 2/27/03)
 !  (3 ) Now allocate CSUMA, CSUMC, ERRMX2; cosmetic changes (bmy, 7/18/03)
 !  (4 ) Now allocate certain arrays for offline aerosol sim (bmy, 9/28/04)
-!******************************************************************************
+!  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-!      USE LOGICAL_MOD, ONLY : LKPP  
-      USE TRACER_MOD,  ONLY : ITS_AN_AEROSOL_SIM, ITS_A_FULLCHEM_SIM
-      
-#     include "CMN_SIZE"
-#     include "comode.h" 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -205,22 +221,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'WERADIUS' )
          WERADIUS = 0d0      
 
-!         !***** KPP_INTERFACE (phs,ks,dhk, 09/15/09) *********
-!         IF ( LKPP ) THEN
-!            ALLOCATE( R_KPP( ITLOOP, NMTRATE ), STAT=AS )
-!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'R_KPP' )
-!            R_KPP = 0d0
-!
-!            ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLTROP ), STAT=AS )
-!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'HSAVE_KPP' )
-!            HSAVE_KPP = 0.d0 
-!            
-!            ALLOCATE( CSPEC_FOR_KPP( ITLOOP, IGAS ), STAT=AS )
-!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'CSPEC_FOR_KPP' )
-!            CSPEC_FOR_KPP = 0d0
-!
-!         ENDIF
-!         !********************************************
       ENDIF
 
       !----------------------------------
@@ -262,53 +262,54 @@
          
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_COMODE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_comode
+!
+! !DESCRIPTION: Subroutine CLEANUP\_COMODE deallocates memory from allocatable 
+!  arrays that were previously contained in common blocks in "comode.h" 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_COMODE
-!
-!******************************************************************************
-!  Subroutine CLEANUP_COMODE deallocates memory from allocatable arrays 
-!  that were previously contained in common blocks in "comode.h" 
-!  (bmy, 8/31/00, 7/18/03)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  31 Aug 2000 - R. Yantosca - Initial version
 !  (1 ) Now deallocate CSPEC, CSUMA, ERRMX2; cosmetic changes (bmy, 7/18/03)
-!******************************************************************************
-!
+!  21 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_COMODE begins here!
       !=================================================================
-      IF ( ALLOCATED( ABSHUM     ) ) DEALLOCATE( ABSHUM  )
-      IF ( ALLOCATED( AIRDENS    ) ) DEALLOCATE( AIRDENS )
-      IF ( ALLOCATED( CSPEC      ) ) DEALLOCATE( CSPEC   )
-      IF ( ALLOCATED( CSPEC_FULL ) ) DEALLOCATE( CSPEC_FULL)
-      IF ( ALLOCATED( CSUMA      ) ) DEALLOCATE( CSUMA   )
-      IF ( ALLOCATED( CSUMC      ) ) DEALLOCATE( CSUMC   )
-      IF ( ALLOCATED( ERADIUS    ) ) DEALLOCATE( ERADIUS )
-      IF ( ALLOCATED( ERRMX2     ) ) DEALLOCATE( ERRMX2  )
-      IF ( ALLOCATED( IXSAVE     ) ) DEALLOCATE( IXSAVE  )
-      IF ( ALLOCATED( IYSAVE     ) ) DEALLOCATE( IYSAVE  )
-      IF ( ALLOCATED( IZSAVE     ) ) DEALLOCATE( IZSAVE  )
-      IF ( ALLOCATED( JLOP       ) ) DEALLOCATE( JLOP    )
-      IF ( ALLOCATED( PRESS3     ) ) DEALLOCATE( PRESS3  )     
-      IF ( ALLOCATED( REMIS      ) ) DEALLOCATE( REMIS   )
-      IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3      )     
-      IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA   )
-      IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME  )  
-      IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA  )
-      IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS )
-!      ! KPP arrays
-!      IF ( ALLOCATED( R_KPP         ) ) DEALLOCATE( R_KPP         )
-!      IF ( ALLOCATED( CSPEC_FOR_KPP ) ) DEALLOCATE( CSPEC_FOR_KPP )
-!      IF ( ALLOCATED( HSAVE_KPP     ) ) DEALLOCATE( HSAVE_KPP     )
+      IF ( ALLOCATED( ABSHUM     ) ) DEALLOCATE( ABSHUM     )
+      IF ( ALLOCATED( AIRDENS    ) ) DEALLOCATE( AIRDENS    )
+      IF ( ALLOCATED( CSPEC      ) ) DEALLOCATE( CSPEC      )
+      IF ( ALLOCATED( CSPEC_FULL ) ) DEALLOCATE( CSPEC_FULL )
+      IF ( ALLOCATED( CSUMA      ) ) DEALLOCATE( CSUMA      )
+      IF ( ALLOCATED( CSUMC      ) ) DEALLOCATE( CSUMC      )
+      IF ( ALLOCATED( ERADIUS    ) ) DEALLOCATE( ERADIUS    )
+      IF ( ALLOCATED( ERRMX2     ) ) DEALLOCATE( ERRMX2     )
+      IF ( ALLOCATED( IXSAVE     ) ) DEALLOCATE( IXSAVE     )
+      IF ( ALLOCATED( IYSAVE     ) ) DEALLOCATE( IYSAVE     )
+      IF ( ALLOCATED( IZSAVE     ) ) DEALLOCATE( IZSAVE     )
+      IF ( ALLOCATED( JLOP       ) ) DEALLOCATE( JLOP       )
+      IF ( ALLOCATED( PRESS3     ) ) DEALLOCATE( PRESS3     )     
+      IF ( ALLOCATED( REMIS      ) ) DEALLOCATE( REMIS      )
+      IF ( ALLOCATED( T3         ) ) DEALLOCATE( T3         )     
+      IF ( ALLOCATED( TAREA      ) ) DEALLOCATE( TAREA      )
+      IF ( ALLOCATED( VOLUME     ) ) DEALLOCATE( VOLUME     )  
+      IF ( ALLOCATED( WTAREA     ) ) DEALLOCATE( WTAREA     )
+      IF ( ALLOCATED( WERADIUS   ) ) DEALLOCATE( WERADIUS   )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_COMODE
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE COMODE_MOD
 

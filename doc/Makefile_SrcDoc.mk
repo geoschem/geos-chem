@@ -36,7 +36,8 @@
 #  02 Dec 2010 - R. Yantosca - Added diag03_mod, diag49_mod, diag50_mod
 #  02 Dec 2010 - R. Yantosca - Added diag51_mod, diag51b_mod, boxvl, rdmonot
 #  02 Dec 2010 - R. Yantosca - Added rdlight, rdland, rdsoil, emmonot
-#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_3.*"
+#  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_3.*"\
+#  21 Dec 2010 - R. Yantosca - Added comode_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -54,6 +55,7 @@ $(CORE)/bravo_mod.f                  \
 $(CORE)/cac_anthro_mod.f             \
 $(CORE)/chemistry_mod.f              \
 $(CORE)/co2_mod.f                    \
+$(CORE)/comode_mod.f                 \
 $(CORE)/convection_mod.f             \
 $(CORE)/dao_mod.f                    \
 $(CORE)/depo_mercury_mod.f           \
