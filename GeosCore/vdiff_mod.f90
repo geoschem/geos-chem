@@ -2684,21 +2684,25 @@ contains
     CALL COMPUTE_PBL_HEIGHT
 
     !=================================================================
-    ! Call SETEMIS which sets emission rates REMIS
+    ! For full-chemistry simulations, call routine SETEMIS
+    ! which sets up the emission rates array REMIS
     !=================================================================
-
-    ! Don't call SETEMIS if we aren't using the fullchem simulation
     IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
-       ! Compute emissions and distribute in boundary layer
-       IF ( ITS_TIME_FOR_EMIS() ) CALL SETEMIS( EMISRR, EMISRRN )
+       ! If it's time to do emissions, call SETEMIS
+       IF ( ITS_TIME_FOR_EMIS() ) THEN 
+          CALL SETEMIS( EMISRR, EMISRRN )
+          IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
+       ENDIF
 
-       !### Debug
-       IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after SETEMIS' )
     ENDIF
 
     ! Do mixing of tracers in the PBL (if necessary)
-    IF ( DO_TURBDAY ) CALL vdiffdr (STT)
+    IF ( DO_TURBDAY ) THEN 
+       CALL VDIFFDR( STT )
+       CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
+    ENDIF
+
 
   END SUBROUTINE DO_PBL_MIX_2
 !EOC  
