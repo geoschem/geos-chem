@@ -1827,6 +1827,8 @@ contains
 !  21 Dec 2010 - R. Yantosca - Add logical flags for different sim types
 !  21 Dec 2010 - R. Yantosca - Now call ITS_A_FULLCHEM_SIM instead of
 !                              relying on NCS == 0
+!  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion 
+!                              to save on operations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1854,6 +1856,8 @@ contains
       
     REAL*8  :: DEP_KG !(cdh, 8/28/09)
 
+    ! Array to store a single level of the AS2 array,
+    ! so as not to blow up the parallelization (ccc, 12/22.10)
     REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
 
     ! Add flags
@@ -1866,6 +1870,26 @@ contains
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
     
+    ! Initialize local arrays. (ccc, 12/21/10)
+    pmid    = 0d0
+    rpdel   = 0d0
+    rpdeli  = 0d0
+    zm      = 0d0
+    pint    = 0d0
+    sflx    = 0d0
+    eflx    = 0d0
+    dflx    = 0d0
+    cgs     = 0d0
+    kvh     = 0d0
+    kvm     = 0d0
+    pblh    = 0d0
+    tpert   = 0d0
+    qpert   = 0d0
+    thp     = 0d0
+    shflx   = 0d0
+    t1      = 0d0
+    as2_scal= 0d0
+
     ! Test for different types of simulations and save in local variables/
     ! These are used in the parallel DO loops below (bmy, 12/21/10)
     IS_CH4      = ITS_A_CH4_SIM()
@@ -1878,13 +1902,6 @@ contains
     
     shflx = eflux / latvap ! latent heat -> water vapor flux
     
-    as = as2 ! save tracer MR before vdiffdr
-    
-    ! initialization
-    eflx = 0.d0
-    dflx = 0.d0
-    sflx = 0.d0
-
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
     do J = 1, JJPAR
     do I = 1, IIPAR
@@ -1938,15 +1955,8 @@ contains
 
     !!! calculate surface flux = emissions - dry deposition !!!
 
-    ! NCS is not defined = to NCSURBAN before chemistry. 
-    ! So certainly not on the first time step since chemistry called 
-    ! after vdiff_mod.f90.  NCSURBAN is not defined either.  For the 
-    ! moment just put NCS = 1 since we are always using urban chemistry.
-    ! (ccarouge, bmy, 12/20/10)
-    NCS = 1
-
     ! Define slice of AS2, so as not to blow up the parallelization
-    ! (ccarouge, bmy, 12/20/10)
+    ! (ccc, bmy, 12/20/10)
     as2_scal = as2(:,:,1,:)
 
 !$OMP PARALLEL DO       &
@@ -2113,9 +2123,11 @@ contains
              ! use average deposition velocity (cdh, 9/01/09)
              IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
 
+                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
                 dflx(I,J,NN) =  &
                      ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                     as2(I,J,1,NN) / TCVV(NN) 
+                     as2_scal(I,J,NN) / TCVV(NN) 
                 
              ENDIF
           endif
@@ -2199,7 +2211,9 @@ contains
              else 
                 ! only use the lowest model layer for calculating drydep fluxes
                 ! given that as2 is in v/v
-                dflx(I,J,N) = DEPSAV(I,J,1) * as2(I,J,1,N) / TCVV(1) 
+                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+                dflx(I,J,N) = DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
              endif
           enddo
        endif
@@ -2347,13 +2361,18 @@ contains
        thp    = thp   ( :, :, LLPAR  :1:-1 )
 
        ! Flip AS2 array in vertical (tracer concentrations)
+       ! Also convert from v/v -> m/m (i.e., kg/kg)
        DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
        ENDDO
 
-       do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
-       enddo
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Combine the conversion with flipping the vertical dimension. (ccc, 12/22/10)
+!       do N = 1, N_TRACERS
+!          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
+!       enddo
+!------------------------------------------------------------------------------
        shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
 
        !### Debug
@@ -2377,9 +2396,13 @@ contains
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
-       do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
-       enddo
+!------------------------------------------------------------------------------
+! Prior to 12/20/10:
+! Combine the conversion with flipping the vertical dimension. (ccc, 12/22/10)
+!       do N = 1, N_TRACERS
+!          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
+!       enddo
+!------------------------------------------------------------------------------
        shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
 
 !------------------------------------------------------------------------------
@@ -2421,8 +2444,9 @@ contains
        thp    = thp   ( :, :, LLPAR  :1:-1 )
 
        ! Flip AS2 array in vertical (tracer concentrations)
+       ! Also convert from m/m (i.e. kg/kg) -> v/v
        DO N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
        ENDDO
 
     else if( arvdiff ) then
@@ -2473,8 +2497,9 @@ contains
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
        ENDDO
 
+       ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
+          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) 
        enddo
 
        !### Debug
@@ -2495,8 +2520,9 @@ contains
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
+       ! Convert from m/m (i.e. kg/kg) -> v/v
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
+          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) 
        enddo
 
 !------------------------------------------------------------------------------
