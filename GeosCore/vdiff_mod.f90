@@ -2686,6 +2686,7 @@ contains
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
 !  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
+!  22 Dec 2010 - R. Yantosca - Bug fix: print debug output only if LPRT=T
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2726,7 +2727,7 @@ contains
     ! Do mixing of tracers in the PBL (if necessary)
     IF ( DO_TURBDAY ) THEN 
        CALL VDIFFDR( STT )
-       CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
+       IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
 
