@@ -650,7 +650,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
       !(eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP
+      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 !CDH
 
@@ -1550,6 +1550,62 @@
          ISOL = GET_ISOL( N )
 
       !-------------------------------
+      ! POPG (liquid phase only) (clf 11/16/10)
+      !-------------------------------
+      ELSE IF (N == IDTPOPG ) THEN
+
+         ! No scavenging at the surface
+         F(:,:,1) = 0d0
+
+         ! Apply scavenging in levels 2 and higher
+         DO L = 2, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Compute liquid to gas ratio for POPs using
+            ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+            ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as first argument
+            ! and negative enthalpy of water-air exchange (kJ/mol)
+            ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
+            ! (Ref for PAHs: Ma et al. 2010 J. Chem. Eng. Data, 55, p819)
+            CALL COMPUTE_L2G( 1.74d-3, -8.4d3, 
+     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+            ! Fraction of POP in liquid phase 
+            ! Assume (for now) that POP is not present in ice phase
+            ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+            C_TOT = 1d0 + L2G
+            F_L   = L2G / C_TOT
+
+            ! Compute the rate constant K.  Assume retention efficiency  
+            ! for POP in liquid is 0.0 for T <= 248 K and 0.02 for 
+            ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
+            IF ( T(I,J,L) >= 268d0 ) THEN
+               K = KC * F_L  
+
+            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+               K = KC * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+            ! Distance between grid box centers [m]
+            TMP = 0.5d0 * ( BXHEIGHT(I,J,L-1) + BXHEIGHT(I,J,L) ) 
+
+            ! F is the fraction of POP scavenged out of the updraft
+            ! (Eq. 2, Jacob et al, 2000)
+            F(I,J,L) = 1d0 - EXP( -K * TMP / Vud(I,J) )
+
+         ENDDO
+         ENDDO
+         ENDDO
+
+         ! ND38 index
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
       ! POPP (treat like aerosol)
       !-------------------------------
       ELSE IF (N == IDTPOPP ) THEN
@@ -2146,7 +2202,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       !POPs (eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP
+      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3003,13 +3059,50 @@
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
         ! CDH 9/28/2009
 !         IF ( TK < 248d0 ) RAINFRAC = 0d0
+
+      !-------------------------------
+      ! POPG (liquid phase only) (clf 11/16/10)
+      !-------------------------------
+      ELSE IF (N == IDTPOPG ) THEN
+
+               ! Compute liquid to gas ratio for POPs using
+               ! the appropriate parameters for Henry's Law (M/atm, unitless Kaw
+               ! divided by R (in atm/M/K, or 8.21d-2) and T (T = 298 K)) as first argument
+               ! and negative enthalpy of water-air exchange (kJ/mol)
+               ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
+               ! (Ref for PAHs: Ma et al. 2010 J. Chem. Eng. Data, 55, p819)
+               CALL COMPUTE_L2G( 1.74d-3, -8.4d3, 
+     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+
+               ! Fraction of POP in liquid phase 
+               ! Assume (for now) that POP is not present in ice phase
+               ! (Eqs. 4, 5, 6, Jacob et al, 2000)
+               C_TOT = 1d0 + L2G
+               F_L   = L2G / C_TOT
+
+           ! Compute the rate constant K.  Assume that the retention factor
+           ! for liquid POP is 0.02 for 248 K < T < 268 K, and
+           ! 1.0 for T > 268 K. (Eq. 1, Jacob et al, 2000)
+           IF ( TK >= 268d0 ) THEN
+             K = K_RAIN * F_L
+
+           ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+             K = K_RAIN * ( 2d-2 * F_L ) 
+                  
+            ELSE
+               K = 0d0
+
+            ENDIF
+               
+         ! Compute RAINFRAC, the fraction of rained-out POP
+         ! (Eq. 10, Jacob et al, 2000)
+         RAINFRAC = GET_RAINFRAC( K, F, DT )
+
       !------------------------------
       ! POPP (treat like aerosol)
       !------------------------------
       ELSE IF ( N == IDTPOPP ) THEN
-         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
-
- 
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
 
       !------------------------------
       ! ERROR: insoluble tracer!
@@ -3143,7 +3236,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       !POPs (eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP
+      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3502,6 +3595,14 @@
       ELSE IF ( IS_HgP( N ) ) THEN 
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      !------------------------------
+      ! POPG (liquid and gas phases) (clf, 11/17/2010)
+      !------------------------------
+      ELSE IF ( N == IDTPOPG ) THEN
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
+     &                                F,      DZ,   TK, K_WASH )      
 
       !------------------------------
       ! POPP (treat like aerosol) 
@@ -5015,7 +5116,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! POPS (10/2010)
-      USE TRACERID_MOD, ONLY : IDTPOPP
+      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
 
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -5286,12 +5387,16 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = N
          !-----------------------------
-         ! POPs: PARTICULATE ONLY 
+         ! POPs: Particulate and gas phase 
          !-----------------------------
             
          ELSE IF (N == IDTPOPP) THEN
             NSOL = NSOL + 1
             IDWETD(NSOL) = IDTPOPP
+
+         ELSE IF (N == IDTPOPG) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPG
         
          ENDIF
       ENDDO
@@ -5430,7 +5535,7 @@
          ! ------------------
          ! POPs simulation
          ! -----------------
-         NMAX=1
+         NMAX=2                                 ! POPP and POPG
 
       ELSE
 
