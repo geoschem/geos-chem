@@ -534,8 +534,8 @@
       ! Local variables
       REAL*8              :: Kstar
 
-      ! R = universal gas constant [atm/moles/K]
-      REAL*8, PARAMETER   :: R = 8.32d-2
+      ! R = universal gas constant [atm/moles/K]  ! clf, 1/6/11, should be atm/M/K
+      REAL*8, PARAMETER   :: R = 8.21d-2  ! clf, 1/6/11, changed R from 8.32d-2 to 8.21d-2
 
       ! INV_T0 = 1/298 K
       REAL*8, PARAMETER   :: INV_T0 = 1d0 / 298d0
@@ -1568,7 +1568,7 @@
             ! and negative enthalpy of water-air exchange (kJ/mol)
             ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
             ! (Ref for PAHs: Ma et al. 2010 J. Chem. Eng. Data, 55, p819)
-            CALL COMPUTE_L2G( 1.74d-3, -8.4d3, 
+            CALL COMPUTE_L2G( 2.352d1, -8.4d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
             ! Fraction of POP in liquid phase 
@@ -1578,7 +1578,7 @@
             F_L   = L2G / C_TOT
 
             ! Compute the rate constant K.  Assume retention efficiency  
-            ! for POP in liquid is 0.0 for T <= 248 K and 0.02 for 
+            ! for POPG in liquid is 0.0 for T <= 248 K and 0.02 for 
             ! 248 K < T < 268 K.  (Eq. 1, Jacob et al, 2000)
             IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
@@ -3071,7 +3071,7 @@
                ! and negative enthalpy of water-air exchange (kJ/mol)
                ! divided by R (in kJ/mol/K, or 8.32d-3) as second argument. 
                ! (Ref for PAHs: Ma et al. 2010 J. Chem. Eng. Data, 55, p819)
-               CALL COMPUTE_L2G( 1.74d-3, -8.4d3, 
+               CALL COMPUTE_L2G( 2.352d1, -8.4d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
                ! Fraction of POP in liquid phase 
@@ -3601,7 +3601,7 @@
       !------------------------------
       ELSE IF ( N == IDTPOPG ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
+         WASHFRAC = WASHFRAC_LIQ_GAS( 2.352d1, 0.d0, PP, DT, 
      &                                F,      DZ,   TK, K_WASH )      
 
       !------------------------------
