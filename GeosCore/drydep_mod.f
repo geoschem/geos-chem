@@ -231,6 +231,7 @@
       REAL*8,  ALLOCATABLE :: DEPSAV(:,:,:)
       REAL*8               :: DRYCOEFF(NNPOLY)
       REAL*8               :: HSTAR(MAXDEP)
+      REAL*8               :: KOA(MAXDEP)
       REAL*8               :: F0(MAXDEP)
       REAL*8               :: XMW(MAXDEP)
       REAL*8               :: A_RADI(MAXDEP)
@@ -1179,6 +1180,8 @@
 
       ! References to F90 modules (bmy, 3/8/01)
       USE ERROR_MOD, ONLY : IT_IS_NAN
+      USE TRACER_MOD, ONLY : ITS_A_POPS_SIM ! (clf, 1/3/2011)
+      
                         
 C     Subroutine computes the dry deposition velocities using 
 C      a resistance-in-series model.
@@ -1370,7 +1373,22 @@ C Logical for snow and sea ice
 C
 
       LOGICAL LSNOW(MAXIJ)
+
+      ! Adding logical switch for POPs in order to use octanol-air partitioning
+      ! instead of Henry's law (water-air) for scaling of cuticular resistances
+      ! only (since POPs accumulate in waxy part of cuticules), clf 1/3/2011
+
+      LOGICAL :: IS_POPS
+
+      
+
+
 C***********************************************************************       
+
+      ! Is this a POPs simulation?
+      IS_POPS = ITS_A_POPS_SIM()  ! clf, 1/3/2011
+
+C***********************************************************************
 C
 C
 C** If LDEP(K)=F, species does not deposit.
@@ -1556,6 +1574,14 @@ C** exit for non-depositing species or aerosols.
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
      C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0D+05 + F0(K))
+
+               ! If a POPs simulation, scale cuticular resistances with 
+               ! octanol-air partition coefficient (Koa) instead of HSTAR
+               ! (clf, 1/3/2011)
+
+               IF (IS_POPS) THEN
+                    RLUXX = RLU(LDT)/(KOA(K)/1.0D+05 + F0(K))
+               ENDIF
 C*
 C* To prevent virtually zero resistance to species with huge HSTAR, such
 C* as HNO3, a minimum value of RLUXX needs to be set. The rationality
@@ -4291,27 +4317,41 @@ C** Load array DVEL
          !----------------------------------
 
           ELSE IF ( IS_POPS ) THEN
-             !dry dep of pops gas (like Hg(0) for now)
+             ! POPs GASEOUS
              IF ( N == IDTPOPG) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPG
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPG'
-               HSTAR(NUMDEP)   = 0.11
-               ! F0 consistent with Lin et al (2006)
-               F0(NUMDEP)      = 1.0d-5
-               XMW(NUMDEP)     = 201d-3
+               HSTAR(NUMDEP)   = 2.352d1
+               ! Adding octanol-air partition coefficient for POPs            clf 1/3/2011
+               ! to account for accumulation in leaf cuticles
+               ! Needs to be in units of mol/liter/atm as with HSTAR
+               ! Divide unitless Koa at 298 K by product of R (0.0821 atm/M/K) and T (298 K)
+               ! Currently set for phenanthrene               
+               KOA(NUMDEP)     = 1.78d6
+               ! F0 zero for now   clf, 1/3/2011
+               F0(NUMDEP)      = 0.0d0
+               ! Need to change molecular weight for different POPs
+               ! Currently set for phenanthrene (kg/mol)
+               XMW(NUMDEP)     = 178.23d-3
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
-             ! POPs PARTICLES (copy Hg(P) for now)
+
+             ! POPs PARTICLES
             IF ( N == IDTPOPP ) THEN
                NUMDEP          = NUMDEP + 1
                NTRAIND(NUMDEP) = IDTPOPP
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPP'
                HSTAR(NUMDEP)   = 0.0d0
+               ! Koa for particulate POPs is just set to the equivalent of Henry's Law
+               ! so that cuticular accumulation is not considered 
+               KOA(NUMDEP)     = 0.0d0
                F0(NUMDEP)      = 0.0d0
-               XMW(NUMDEP)     = 201d-3
+               ! Need to change molecular weight for different POPs
+               ! Currently set for phenanthrene (kg/mol)
+               XMW(NUMDEP)     = 178.23d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
           ENDIF
@@ -4326,7 +4366,7 @@ C** Load array DVEL
       IF ( IS_POPS ) THEN
 
          ! Initialize flags
-         ! add dry dep of Hg0
+         ! add dry dep of POPG and POPP
          DRYPOPG = 0
          DRYPOPP = 0
          
