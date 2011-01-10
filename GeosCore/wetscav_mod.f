@@ -1583,8 +1583,9 @@
             IF ( T(I,J,L) >= 268d0 ) THEN
                K = KC * F_L  
 
-            ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
-               K = KC * ( 2d-2 * F_L ) 
+            ! ELSE IF ( T(I,J,L) > 248d0 .and. T(I,J,L) < 268d0 ) THEN
+            !   K = KC * ( 2d-2 * F_L )
+            ! clf, 1/7/11 - no retention below 268 K 
                   
             ELSE
                K = 0d0
