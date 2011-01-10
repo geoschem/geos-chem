@@ -633,10 +633,6 @@
 !
       SUBROUTINE COMPUTE_L2G( Kstar298, H298_R, TK, H2OLIQ, L2G )
 !
-! !USES:
-!
-
-!
 ! !INPUT PARAMETERS: 
 !
       REAL*8, INTENT(IN)  :: KStar298    ! Henry's law constant @ 298 K   
@@ -661,6 +657,7 @@
 !  23 Feb 2000 - R. Yantosca - Initial version
 !  (1 ) Bundled into "wetscav_mod.f" (bmy, 11/8/02)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  04 Jan 2011 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -671,7 +668,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      ! R = universal gas constant [atm/moles/K]
+      ! R = universal gas constant [L*atm/mol/K]
       REAL*8, PARAMETER   :: R = 8.32d-2
 
       ! INV_T0 = 1/298 K
