@@ -1702,7 +1702,9 @@
       ENDDO
 
       !-----------------------------------------------------------------
-      ! Compute MB (???) and QB_NUM (???)   HELEN, please add comments
+      ! Compute MB (the total mass of air below the cloud base)
+      ! and QB_NUM (the numerator of QB, the weighted avg mixing ratio
+      ! below the cloud base)   
       !-----------------------------------------------------------------
 
       ! Zero variables
@@ -1763,7 +1765,7 @@
                   ! %%% Non-negligible Cloud mass flux %%% 
                   !-----------------------------------------------------
 
-                  ! Compute the weighted avg mixing ration below
+                  ! Compute the weighted avg mixing ratio below
                   ! the cloud base
                   QB = QB_NUM(IC) / ( PEDGE(1) - PEDGE(CLDBASE) )
 
@@ -1815,7 +1817,7 @@
                ENTRN   = 0d0
                QC_PRES = 0d0
                QC_SCAV = 0d0
-              
+               
                ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
                ! grid box (K) from the box immediately below (K-1).
                IF ( K == 1 ) THEN
@@ -1864,84 +1866,68 @@
                   ! QC_SCAV = 0 for non-soluble tracer
                   QC_SCAV = QC * F(K,IC)
 
-
                   ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
                   IF ( QC_SCAV > 0d0 ) THEN 
 
-!------------------------------------------------------------------------------
-! Leave commented out (hamos, bmy, 12/15/10)
-!                     ! The fraction ALPHA is the fraction of raindrops that 
-!                     ! will re-evaporate soluble tracer while falling from 
-!                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
-!C                     IF ( PDOWN(K+1)  > TINYNUM .AND. 
-!C     &                    REEVAPCN(K) > TINYNUM          ) THEN 
-!C
-!C                       ! Define ALPHA, the fraction of raindrops that 
-!C                       ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-!C                         ALPHA = ( REEVAPCN(K) * AD(K)             )
-!C     &                         / ( PDOWN(K+1)  * AREA_M2 * 10      ) C\
-!C
-!C                     ELSE
-!C                        ALPHA = 0d0
-!C                     ENDIF
-!------------------------------------------------------------------------------
+                     ! The fraction ALPHA is the fraction of raindrops that 
+                     ! will re-evaporate soluble tracer while falling from 
+                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
 
                      ! Initialize 
                      ALPHA = 0d0
+                     
+                     IF ( PDOWN(K+1)  > TINYNUM ) THEN 
 
-                     ! If we have non-negligible precip
-                     IF ( PDOWN(K+1) > TINYNUM ) THEN 
-
-                        ! %%%%% Case 1 %%%%% 
+                        ! %%%% CASE 1 %%%%
                         ! Partial re-evaporation. Less precip is leaving 
                         ! the grid box then entered from above.
                         IF ( PDOWN(K+1) > PDOWN(K) .AND.
      &                       PDOWN(K)   > TINYNUM        ) THEN
 
                            ! Define ALPHA, the fraction of raindrops that 
-                           ! re-evaporate when falling from (I,J,L+1) 
-                           ! to (I,J,L)
-                           ALPHA = ( REEVAPCN(K) * AD(K)             )
-     &                          / ( PDOWN(K+1)  * AREA_M2 * 10      )
+                           ! re-evaporate when falling from grid box
+                           ! (I,J,L+1) to (I,J,L)
+                           ALPHA = ( REEVAPCN(K) * AD(K)           )
+     &                           / ( PDOWN(K+1)  * AREA_M2 * 10d0  )
+
+                           ! Restrict ALPHA to be less than 1 
+                           ! (>1 is unphysical)  (hma, 24-Dec-2010)  
+                           IF ( ALPHA > 1d0 ) THEN 
+                              ALPHA = 1d0 
+                           ENDIF
+
+                           ! We assume that 1/2 of the soluble tracer w/in 
+                           ! the raindrops actually gets resuspended into 
+                           ! the atmosphere
+                           ALPHA2   = ALPHA * 0.5d0
+
                         ENDIF
 
-                        ! %%%%% Case 2 %%%%% 
-                        ! Total re-evaporation.  Precip entered from above, 
-                        ! but no precip is leaving grid box
-                        ! (ALPHA = 2 so that ALPHA2 = 1)
+                        ! %%%% CASE 2 %%%%
+                        ! Total re-evaporation. Precip entered from above, 
+                        ! but no precip is leaving grid box (ALPHA = 2 so 
+                        ! that  ALPHA2 = 1)
                         IF ( PDOWN(K) < TINYNUM ) THEN
-                           ALPHA = 2d0
+                           ALPHA2 = 1d0
                         ENDIF
                         
                      ENDIF
-  
-                     ! We assume that 1/2 of the soluble tracer w/in the
-                     ! raindrops actually gets resuspended into the atmosphere
-                     ALPHA2   = ALPHA * 0.5d0
-
-                     ! ### Debugging ### Trying to keep ALPHA2 < 1 
-                     ! (hma, 20101123)  May want to consider adding a 
-                     ! similar statement to wetscav_mod.f
-                     IF ( ALPHA2 > 1d0 ) THEN 
-                        ALPHA2 = 1d0 
-                     ENDIF
-
+                    
                      ! The resuspension takes 1/2 the amount of the scavenged
                      ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
                      QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
-
+                    
                      ! ... then we decrement QC_SCAV accordingly
                      QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
 
                   ENDIF
                   !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-
                   ! Update QC taking entrainment into account
                   ! Prevent div by zero condition
                   IF ( ENTRN >= 0d0 .and. CMOUT > 0d0 ) THEN
                      QC   = ( CMFMC_BELOW * QC_PRES   + 
-     &                        ENTRN       * Q(K,IC) ) / CMOUT
+     &                       ENTRN       * Q(K,IC) ) / CMOUT
                   ENDIF
 
                   !------------------------------------------------------------
@@ -2015,7 +2001,7 @@
                   T2      = -CMFMC(K  )  * QC
                   T3      =  CMFMC(K  )  * Q(K+1,IC)
                   T4      = -CMFMC_BELOW * Q(K,  IC)
-                  
+                 
                   TSUM    = T1 + T2 + T3 + T4 
                   
                   DELQ    = ( SDT / BMASS(K) ) * TSUM
@@ -2029,7 +2015,7 @@
                   Q(K,IC) = Q(K,IC) + DELQ
 
                   ! check for infinity
-                  IF (.NOT. IT_IS_FINITE( Q(K,IC) ) ) THEN
+                  IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
                      PRINT*, 'Q IS INFINITY'
                      CALL GEOS_CHEM_STOP
                   ENDIF
@@ -2072,11 +2058,10 @@
      &                            + ( T0 * AREA_M2 / TCVV_DNS )
 
                      ! check for infinity (added by hma, 20101117)
-                     IF (.NOT. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                     IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
                         PRINT*, 'DIAG38 IS INFINITY at K = ', K
                         CALL GEOS_CHEM_STOP
                      ENDIF
-                     
                   ENDIF
                   
                ELSE
@@ -2162,48 +2147,47 @@
      &                          F_WASHOUT, H2O2s(K), SO2s(K), 
      &                          WASHFRAC,  AER )
 
-                  ! Check if washout is a kinetic (aerosol) or equilibrium
-                  ! (non-aerosol) process...
+                  ! Check if the tracer is an aerosol or not
                   IF ( AER == .TRUE. ) THEN
-                     
-                 ! Define ALPHA, the fraction of raindrops that 
-                 ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-! fix units, hma 20101118 ----------------------------------------------------
-!                         ALPHA = ( REEVAPCN(K) * BXHEIGHT(K) * 100d0 )
-!     &                         / ( PDOWN(K+1)                        ) 
+ 
+                     !---------------------------------------------------------
+                     ! Washout of aerosol tracers
+                     ! This is modeled as a kinetic process
+                     !---------------------------------------------------------
 
-                     ALPHA = ( REEVAPCN(K) * AD(K)             )
-     &                     / ( PDOWN(K+1)  * AREA_M2 * 10d0    ) 
-!-----------------------------------------------------------------------------
+                     ! Define ALPHA, the fraction of raindrops that 
+                     ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+                     ALPHA   = ( REEVAPCN(K) * AD(K)          )
+     &                       / ( PDOWN(K+1)  * AREA_M2 * 10d0 )
 
                      ! ALPHA2 is the fraction of the rained-out aerosols
                      ! that gets resuspended in grid box (I,J,L)
-                     ALPHA2 = 0.5d0 * ALPHA
+                     ALPHA2  = 0.5d0 * ALPHA
 
                      ! GAINED is the rained out aerosol coming down from 
                      ! grid box (I,J,L+1) that will evaporate and re-enter 
                      ! the atmosphere in the gas phase in grid box (I,J,L).
-                     GAINED = T0_SUM * ALPHA2
+                     GAINED  = T0_SUM * ALPHA2
 
                      ! Amount of aerosol lost to washout in grid box
-                     ! (qli, bmy, 10/29/02)
                      WETLOSS = Q(K,IC) * WASHFRAC - GAINED
-                     
+
                      ! LOST is the rained out aerosol coming down from
                      ! grid box (I,J,L+1) that will remain in the liquid
                      ! phase in grid box (I,J,L) and will NOT re-evaporate.
-                     LOST = T0_SUM - GAINED
+                     LOST    = T0_SUM - GAINED
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
-                     T0_SUM = LOST + WETLOSS
-                     
-                  !-----------------------------------------------------
-                  ! Washout of non-aerosol tracers
-                  ! This is modeled as an equilibrium process
-                  !-----------------------------------------------------
+                     T0_SUM  = LOST + WETLOSS
+
                   ELSE
-                     
+
+                     !---------------------------------------------------------
+                     ! Washout of non-aerosol tracers
+                     ! This is modeled as an equilibrium process
+                     !---------------------------------------------------------
+
                      ! MASS_NOWASH is the amount of non-aerosol tracer in 
                      ! grid box (I,J,L) that is NOT available for washout.
                      MASS_NOWASH = ( 1d0 - F_WASHOUT ) * Q(K,IC)
@@ -2214,62 +2198,53 @@
                      ! part of box (I,J,L), plus the previously rained-out
                      ! tracer coming down from grid box (I,J,L+1).
                      ! (Eq. 15, Jacob et al, 2000).
-                     MASS_WASH = ( F_WASHOUT*Q(K,IC) ) + T0_SUM
+                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
 
-                 ! WETLOSS is the amount of tracer mass in 
-                 ! grid box (I,J,L) that is lost to washout.
-                 ! (Eq. 16, Jacob et al, 2000)
-C                 WETLOSS = MASS_WASH * WASHFRAC -DSTT(NN,L+1,I,J)
-C DEBUGGING (hma, 20101119)=====================================================
-C Check wetloss computation!
-C Should it be WETLOSS = MASS_WASH * WASHFRAC ?
-                     WETLOSS = MASS_WASH * WASHFRAC
-c                     WETLOSS = MASS_WASH * WASHFRAC -T0_SUM
-C===============================================================================
+                     ! WETLOSS is the amount of tracer mass in 
+                     ! grid box (I,J,L) that is lost to washout.
+                     ! (Eq. 16, Jacob et al, 2000)
+                     WETLOSS     = MASS_WASH * WASHFRAC
+                     
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 
                      ! of the box, plus MASS_WASH, less WETLOSS. 
-                     !STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
-                     Q(K,IC) = Q(K,IC) - WETLOSS
-            
-C                     ! Add washout losses in grid box (I,J,L) to DSTT 
-C                     DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-                 
+                     Q(K,IC)     = Q(K,IC) - WETLOSS
+                     
                      ! Updated T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
-                     T0_SUM = WETLOSS             
+                     T0_SUM      = WETLOSS  
 
-                     !---------------------------------------------------------
-                     ! N D 1 4   D i a g n o s t i c
-                     !
-                     ! Archive upward mass flux due to wet convection.  
-                     ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
-                     ! for the tracer IC going out of the top of the layer K 
-                     ! to the layer above (K+1)  (bey, 11/10/99). 
-                     !---------------------------------------------------------
-                     IF ( OPTIONS%USE_DIAG14 ) THEN
-                        DIAG14(K,IC) = DIAG14(K,IC) 
-     &                               + ( ( -T2-T3 ) * AREA_M2/TCVV_DNS )
-                     ENDIF
+                  ENDIF
 
-                     !---------------------------------------------------------
-                     ! N D 3 8   D i a g n o s t i c
-                     !
-                     ! Archive the loss of soluble tracer to wet scavenging in 
-                     ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
-                     ! internal timesteps.
-                     !---------------------------------------------------------
-                     IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
-                        DIAG38(K,IC) = DIAG38(K,IC)
-     &                               + ( T0_SUM * AREA_M2 / TCVV_DNS )
-                     ENDIF
+                  !------------------------------------------------------------
+                  ! N D 1 4   D i a g n o s t i c
+                  !
+                  ! Archive upward mass flux due to wet convection.  
+                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
+                  ! for the tracer IC going out of the top of the layer K 
+                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                     DIAG14(K,IC) = DIAG14(K,IC) 
+     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                  ENDIF
+
+                  !------------------------------------------------------------
+                  !  N D 3 8   D i a g n o s t i c
+                  !
+                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
+                  ! internal timesteps.
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                     DIAG38(K,IC) = DIAG38(K,IC)
+     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
+                  ENDIF
                 
-                     ! CHECK for infinity (added by hma, 20101117)
-                     IF ( .NOT. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
-                        PRINT*, 'DIAG38 IS INFINITY at K = ', K
-                        CALL GEOS_CHEM_STOP
-                     ENDIF
-                     
+                  ! CHECK for infinity (added by hma, 20101117)
+                  IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                     PRINT*, 'DIAG38 IS INFINITY at K = ', K
+                     CALL GEOS_CHEM_STOP
                   ENDIF
                ENDIF
             ENDDO  

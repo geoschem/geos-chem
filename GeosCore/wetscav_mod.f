@@ -131,6 +131,8 @@
 !  20 Sep 2010 - H. Amos, R. Yantosca - Implement new algorithms for MERRA
 !  08 Oct 2010 - H. Amos - WASHFRAC_LIQ_GAS is now a subroutine
 !  08 Oct 2010 - H. Amos - Various other modifications in WETDEP_MERRA
+!  14 Jan 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
+!  14 Jan 2011 - H. Amos - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,28 +457,9 @@
             QQ(L,I,J)    = ( DQRLSAN(I,J,L)                   )
      &                   * ( AIRDEN(L,I,J)  / 1000d0          )
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% NOTE: There has been debate about whether QQ should be computed as 
-!%%% above, or whether it should be:
-!%%%
-!%%%     QQ = (DQRLSAN - REEVAPLSAN) * AIRDEN / 1000.0
-!%%%
-!%%% where REEVAPLSAN is the MERRA 3-D evaporation of precipitating 
-!%%% large-scale + anvil condensate [kg/kg/s].  Based on the MERRA File Spec 
-!%%% documentation, it is not clear which is the most appropriate. The MERRA 
-!%%% team at NASA has been contacted and we¢re waiting for an answer. 
-!%%%
-!%%%   --- Helen Amos, 9/10/2010
-!%%%
-!%%%            ! Rate of precipitation formation [cm3 H2O/cm2/s]
-!%%%            QQ(L,I,J)    = ( DQRLSAN(I,J,L) - REEVAPLS(I,J,L) ) 
-!%%%                         * ( AIRDEN(L,I,J)  / 1000d0          )
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
             ! Column precipitation [cm3 H2O/cm2 air/s]
             PDOWN(L,I,J) = ( ( PFLLSAN(I,J,L) / 1000d0 ) 
      &                   +   ( PFILSAN(I,J,L) /  917d0 ) ) * 100d0
-     &
 
          ENDDO
 
@@ -636,7 +619,7 @@
 ! !INPUT PARAMETERS: 
 !
       REAL*8, INTENT(IN)  :: KStar298    ! Henry's law constant @ 298 K   
-                                         !  [moles/atm]
+                                         !  [M/atm]
       REAL*8, INTENT(IN)  :: H298_R      ! Molar heat of formation @ 298 K / R 
                                          !  [K]
       REAL*8, INTENT(IN)  :: TK          ! Temperature [K]
@@ -657,7 +640,8 @@
 !  23 Feb 2000 - R. Yantosca - Initial version
 !  (1 ) Bundled into "wetscav_mod.f" (bmy, 11/8/02)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  04 Jan 2011 - R. Yantosca - Updated comments
+!  10-Jan-2011 - H. Amos - Corrected the units on KStar298 from moles/atm
+!                          to M/atm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -790,6 +774,10 @@
 !  (21) Bug fix: now use separate conversion factors for H2O2 and NH3.
 !        (havala, bmy, 7/26/06)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  10-Jan-2011 - H.Amos - Changed Hg2 Henry's law constant from 1.0d14 (no 
+!                         citation) to 1.4d6 M/atm (HgCl2, Lindqvist & Rhode, 
+!                         1985). Henry's law constant in wetscav_mod.f is 
+!                         now consistent with what's used in mercury_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1628,7 +1616,14 @@
                ! the appropriate parameters for Henry's law
                ! (Refs: INSERT HERE)
                !
-               CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
+!----------------------------------------------------------------------------
+! Prior to 1/10/11:
+! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm
+! Ref: Lindqvist and Rhode, 1985
+!               CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
+!     &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
+!----------------------------------------------------------------------------
+               CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
      &                           T(I,J,L), CLDLIQ(I,J,L), L2G )
 
                ! Fraction of HgCl2 in liquid phase 
@@ -3030,11 +3025,8 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !----------------------------------
-      ! SOG[1,2,3,4] (liquid phase only)
+      ! SOG[1,2,3,4,5] (liquid phase only)
       !----------------------------------
-      ! Add SOG5 (dkh, 03/26/07)  
-!      ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
-!     &          N == IDTSOG3 .or. N == IDTSOG4 ) THEN
       ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3 .or. N == IDTSOG4  .or. 
      &          N == IDTSOG5                    ) THEN  
@@ -3068,12 +3060,9 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !--------------------------------------
-      ! SOA[1,2,3,4] (aerosol)
+      ! SOA[1,2,3,4,5] (aerosol)
       ! Scavenging efficiency for SOA is 0.8
       !--------------------------------------
-      ! Add SOA5 (dkh, 03/26/07)  
-!      ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
-!     &          N == IDTSOA3 .or. N == IDTSOA4 ) THEN
       ELSE IF ( N == IDTSOA1 .or. N == IDTSOA2  .or. 
      &          N == IDTSOA3 .or. N == IDTSOA4  .or. 
      &          N == IDTSOA5                    ) THEN
@@ -3106,7 +3095,14 @@
             ! Compute liquid to gas ratio for HgCl2, using
             ! the appropriate parameters for Henry's law
             ! (Refs: INSERT HERE)
-            CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
+!---------------------------------------------------------------------------
+! Prior to 1/10/11:
+! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm for 
+! HgCl2 (Lindqvist and Rodhe, 1985)
+!           CALL COMPUTE_L2G( 1.0d+14, -8.4d3, 
+!     &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
+!---------------------------------------------------------------------------
+           CALL COMPUTE_L2G( 1.4d+6, -8.4d3, 
      &                        T(I,J,L), CLDLIQ(I,J,L), L2G )
          
             ! Fraction of HgCl2 in liquid phase
@@ -3163,10 +3159,6 @@
 ! !INTERFACE:
 !
       FUNCTION GET_RAINFRAC( K, F, DT ) RESULT( RAINFRAC )
-!
-! !USES:
-!
-
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3237,8 +3229,6 @@
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3266,12 +3256,8 @@
       LOGICAL, INTENT(OUT)   :: AER        ! =T if the tracer is an aerosol
                                            ! =F otherwise
 !
-! !REMARKS:
-! 
-! 
 ! !REVISION HISTORY: 
 !  28 Feb 2000 - R. Yantosca - Initial version
-!  NOTES:
 !  (1 ) Currently works for either full chemistry simulation (NSRCX == 3) 
 !        or Rn-Pb-Be chemistry simulation (NSRCX == 1).  Other simulations
 !        do not carry soluble tracers, so set WASHFRAC = 0. 
@@ -3310,6 +3296,7 @@
 !  14 Oct 2010 - H. Amos     - Remove dependence on I, J. That means removing
 !                              I, J as input arguments and adding T, BXHEIGHT,
 !                              H2O2s, and SO4s and input arguments.
+!  14 Jan 2011 - H. Amos     - Don't pass AER to WASHFRAC_LIQ_GAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3351,18 +3338,17 @@
       ! H2O2 (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
-         CALL WASHFRAC_LIQ_GAS( 8.3d4,   -7.4d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH, 
-     &                          WASHFRAC, AER                    )
-
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! CH2O (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
-         CALL WASHFRAC_LIQ_GAS( 3.0d3,   -7.2d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH, 
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! GLYX (liquid & gas phases)
@@ -3374,9 +3360,10 @@
          ! (2) Schweitzer et al. (1998) showed that the temperature 
          ! dependence for CH2O works well for glyoxal,
          !      so we use the same H298_R as CH2O
-         CALL WASHFRAC_LIQ_GAS( 3.6d5,   -7.2d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH, 
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
+
 
       !------------------------------
       ! MGLY (liquid & gas phases)
@@ -3386,9 +3373,9 @@
          ! the appropriate parameters for Henry's law
          ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
          ! H298_R = -7.5d3 K
-         CALL WASHFRAC_LIQ_GAS( 3.7d3,   -7.5d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! GLYC (liquid & gas phases)
@@ -3398,76 +3385,74 @@
          ! the appropriate parameters for Henry's law
          ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
          ! H298_R = -4.6d3 K
-         CALL WASHFRAC_LIQ_GAS( 4.1d4,   -4.6d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! MP (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTMP ) THEN
-         CALL WASHFRAC_LIQ_GAS( 3.1d2,   -5.2d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
-      !%%%%%%%%%%% FP ISOP (6/2009) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !------------------------------
       ! MOBA (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMOBA ) THEN       
-         CALL WASHFRAC_LIQ_GAS( 2.6d4,   -6.3d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! ISOPN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTISOPN ) THEN
-         CALL WASHFRAC_LIQ_GAS( 17d3,    -9.2d3 , PP, DT, 
-     &                          F,        DZ,    TK, K_WASH, 
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! MMN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
-         CALL WASHFRAC_LIQ_GAS( 17d3,    -9.2d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! PROPNN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
-         CALL WASHFRAC_LIQ_GAS( 1.0d3,    0.0d0, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! RIP (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
-         CALL WASHFRAC_LIQ_GAS( 8.3d4,   -7.4d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! MAP   (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMAP ) THEN
-         CALL WASHFRAC_LIQ_GAS( 8.4d2,   -5.3d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! IEPOX (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
-         CALL WASHFRAC_LIQ_GAS( 8.3d4,   -7.4d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
-      !%%%%%%%%%%% end FP ISOP (6/2009) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! SO2 (aerosol treatment)
@@ -3525,9 +3510,9 @@
       ! NH3 (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
-         CALL WASHFRAC_LIQ_GAS( 3.3d6,   -4.1d3, PP, DT, 
-     &                          F,        DZ,    TK, K_WASH,
-     &                          WASHFRAC, AER                )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
+     &                                F,      DZ,    TK, K_WASH )
 
       !------------------------------
       ! NH4 and NH4aq (aerosol)
@@ -3576,27 +3561,25 @@
       ! ALPH (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
-         CALL WASHFRAC_LIQ_GAS( 0.023d0,  0.d0, PP, DT, 
-     &                          F,        DZ,   TK, K_WASH,
-     &                          WASHFRAC, AER               )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
+     &                                F,       DZ,   TK, K_WASH )
 
       !------------------------------
       ! LIMO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
-         CALL WASHFRAC_LIQ_GAS( 0.07d0,   0.d0, PP, DT, 
-     &                          F,        DZ,   TK, K_WASH,
-     &                          WASHFRAC, AER               )
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
+     &                                F,      DZ,   TK, K_WASH )
 
       !------------------------------
       ! ALCO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
-         CALL WASHFRAC_LIQ_GAS( 54.d0,    0.d0, PP, DT, 
-     &                          F,        DZ,   TK, K_WASH,
-     &                          WASHFRAC, AER               )
-
-
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
+     &                                F,     DZ,   TK, K_WASH )
 
       !---------------------------------
       ! SOG[1,2,3,4] (liq & gas phases)
@@ -3604,10 +3587,9 @@
       ELSE IF ( N == IDTSOG1 .or. N == IDTSOG2  .or. 
      &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
      &          N == IDTSOG5                    ) THEN   
-         CALL WASHFRAC_LIQ_GAS( 1.0d5,   -6.039d3, PP, DT, 
-     &                          F,        DZ,      TK, K_WASH,
-     &                          WASHFRAC, AER                 )
-
+         AER      = .FALSE.
+         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
+     &                                F,      DZ,      TK, K_WASH )
 
       !------------------------------
       ! SOA[1,2,3,4,5] (aerosol)
@@ -3642,9 +3624,16 @@
 
             ! Assume Hg2 is in gas phase and equilibrates with precip
             ! according to Henry's law
-            CALL WASHFRAC_LIQ_GAS( 1.0d+14, -8.4d3, PP, DT, 
-     &                             F,        DZ,    TK, K_WASH,
-     &                             WASHFRAC, AER                )
+            AER      = .FALSE.
+!---------------------------------------------------------------------------
+! Prior to 1/10/11:
+! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm
+! Ref: Lindqvist and Rhode, 1985
+!            WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d+14, -8.4d3, PP, DT, 
+!     &                                   F,        DZ,    TK, K_WASH )
+!---------------------------------------------------------------------------
+            WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP, DT, 
+     &                                   F,       DZ,    TK, K_WASH )
 
          ENDIF
       
@@ -3730,15 +3719,15 @@
 !
 ! !IROUTINE: washfrac_liq_gas
 !
-! !DESCRIPTION: Subroutine WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
+! !DESCRIPTION: Function WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
 !  liquid/gas phase tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
-     &                             F,        DZ,     TK, K_WASH,
-     &                             WASHFRAC, AER ) 
+      FUNCTION WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
+     &                           F,        DZ,     TK, K_WASH ) 
+     &         RESULT( WASHFRAC ) 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3754,22 +3743,17 @@
       REAL*8,  INTENT(IN)  :: TK         ! Temperature in grid box [K]
       REAL*8,  INTENT(IN)  :: K_WASH     ! 1st order washout rate const [1/cm]
 !
-! !OUTPUT PARAMETERS :
+! !FUNCTION VALUE:
 !
-      REAL*8,  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to washout
-      LOGICAL, INTENT(OUT) :: AER        ! =T washout is a kinetic process
-                                         ! =F washout is an equilibrium process
+      REAL*8               :: WASHFRAC   ! Fraction of tracer lost to washout
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) WASHFRAC_LIQ_GAS used to be an internal function to subroutine WASHOUT.
 !        This caused NaN's in the parallel loop on Altix, so we moved it to
 !        the module and now pass all arguments explicitly (bmy, 7/20/04)
-!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
-!  30 Sep 2010 - H. Amos     - Make FUNCTION into a SUBROUTINE, which now
-!                              passes WASHFRAC and AER as output. The result
-!                              of FUNCTION WASHFRAC_LIQ_GAS was just 
-!                              WASHFRAC. 
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!  10 Jan 2011 - H. Amos     - Remove AER from the argument list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3781,10 +3765,6 @@
       !=================================================================
       ! WASHFRAC_LIQ_GAS begins here!
       !=================================================================
-
-      ! Assume washout for a gas or liquid is limited by Henry's
-      ! law equilibrium (added by Helen Amos, 20100930)
-      AER = .FALSE.
 
       ! Suppress washout below 268 K
       IF ( TK >= 268d0 ) THEN
@@ -3805,31 +3785,14 @@
 
          ! Do not let the Henry's law washout fraction exceed
          ! ( washout fraction / F ) from Eq. 14 -- this is a cap
-         IF ( WASHFRAC > WASHFRAC_F_14 ) THEN
+         IF ( WASHFRAC > WASHFRAC_F_14 ) WASHFRAC = WASHFRAC_F_14
             
-            ! Washout is limited by mass transfer (i.e kinetic
-            ! process) and the species should be treated like
-            ! an aerosol (added by Helen Amos, 20100930)
-            WASHFRAC = WASHFRAC_F_14
-            AER = .TRUE.
-            
-         ENDIF
-           
       ELSE
          WASHFRAC = 0d0
             
       ENDIF
 
-      !=======================================================================
-      ! %%%%% NOTE from Helen Amos (5 Oct 2010) %%%%%
-      !
-      ! If you want SUBROUTINE WASHFRAC_LIQ_GAS to behave exactly like
-      ! it did prior to the release of v9-01-01, uncomment the line below:
-      !
-      ! AER = .FALSE.  ! <--- uncomment this                                   
-      !=======================================================================
-
-      END SUBROUTINE WASHFRAC_LIQ_GAS
+      END FUNCTION WASHFRAC_LIQ_GAS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -4575,6 +4538,8 @@
 !  08 Oct 2010 - R. Yantosca - Adjusted OpenMP do loop
 !  09-Dec-2010 - H. Amos     - Added PDOWN(L+1) > 0 to criterion for IS_WASHOUT
 !  09-Dec-2010 - H. Amos     - SAFETY now prints PDOWN(L+1) instead of PDOWN(L)
+!  31-Dec-2010 - H. Amos     - Clean up code, remove obsolete code
+!  31-Dec-2010 - H. Amos     - Added comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4593,8 +4558,7 @@
       REAL*8             :: F,     FTOP,   F_PRIME,   WASHFRAC
       REAL*8             :: LOST,  GAINED, MASS_WASH, MASS_NOWASH
       REAL*8             :: ALPHA, ALPHA2, WETLOSS,   TMP
-      REAL*8             :: F_RAINOUT,     F_WASHOUT
-      REAL*8             :: NEW_PRECIP, PRECIP_DOWN  
+      REAL*8             :: F_RAINOUT,     F_WASHOUT 
 
       ! DSTT is the accumulator array of rained-out 
       ! soluble tracer for a given (I,J) column
@@ -4627,9 +4591,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,           J,          FTOP,        L          )    
 !$OMP+PRIVATE( NN,          ERRMSG,     F,           F_PRIME    )
-!$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )      
-!$OMP+PRIVATE( PRECIP_DOWN, QDOWN,      NEW_PRECIP,  IS_RAINOUT ) 
-!$OMP+PRIVATE( IS_WASHOUT,  IS_BOTH,    N                       )
+!$OMP+PRIVATE( F_RAINOUT,   F_WASHOUT,  K_RAIN,      Q          )       
+!$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
 !$OMP+SCHEDULE( DYNAMIC )   
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -4655,8 +4618,7 @@
          F_RAINOUT   = 0d0      
          F_WASHOUT   = 0d0      
          K_RAIN      = 0d0
-         Q           = 0d0
-         PRECIP_DOWN = 0d0      ! added by hma 20100929
+         Q           = 0d0     
 
          ! Start at the top of the atmosphere
          L = LLPAR
@@ -4682,29 +4644,9 @@
      &                               IDX, ERRMSG, F,   K_RAIN, 
      &                               DT,  STT,    DSTT         )
             ENDIF
-         ENDIF
 
-         ! Save FTOP for the next level
-         !
-         ! If there is a  downward flux of precipitation through the
-         ! bottom of grid box (I,J,L)
-         IF ( PDOWN(L,I,J) > 0 ) THEN
-
-            ! Convert PDOWN the downward flux of precip leaving grid
-            ! box (I,J,L) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-            PRECIP_DOWN = PDOWN(L,I,J) / ( BXHEIGHT(I,J,L) * 100d0  )
-
-            ! Compute K_RAIN and FTOP based on the flux of precip 
-            ! leaving grid box (I,J,L). FTOP is viewed by the grid box
-            ! directly below (i.e. grid box (I,J,L-1))
-            K_RAIN      = LS_K_RAIN( PRECIP_DOWN )
-            FTOP        = LS_F_PRIME( PRECIP_DOWN, K_RAIN ) 
-
-         ELSE
-
-            ! If there isn't any precip leaving grid box (I,J,L),
-            ! then from the view of the grid box below grid FTOP = 0.
-            FTOP        = 0
+            ! Save FTOP for the next lower level 
+            FTOP = F
 
          ENDIF         
 
@@ -4722,9 +4664,6 @@
             K_RAIN      = 0d0
             Q           = 0d0
             QDOWN       = 0d0
-            NEW_PRECIP  = 0d0   ! added by hma 20100929
-            PRECIP_DOWN = 0d0   ! added by hma 20100929
-
 
             ! If there is new precip forming w/in the grid box ...
             IF ( QQ(L,I,J) > 0d0 ) THEN
@@ -4733,122 +4672,96 @@
                ! precipitation (cf. Eqs. 11-13, Jacob et al, 2000) 
                ! F_RAINOUT is the fraction of grid box (I,J,L) 
                ! experiencing rainout.
-               K_RAIN    = LS_K_RAIN( QQ(L,I,J) )
-               F_RAINOUT = LS_F_PRIME( QQ(L,I,J), K_RAIN )
+               K_RAIN  = LS_K_RAIN( QQ(L,I,J) )
+               F_PRIME = LS_F_PRIME( QQ(L,I,J), K_RAIN )
                
             ELSE
                
-               ! If no precip is forming, then zero F_RAINOUT
+               F_PRIME = 0d0
+ 
+            ENDIF
+
+            ! The following block implements Qiaoqiao's changes
+            ! Calculate the fractional areas subjected to rainout and
+            ! washout. If PDOWN = 0, then all dissolved tracer returns
+            ! to the atmosphere. (cdh, 7/13/10)
+            IF ( PDOWN(L,I,J) > 0d0 ) THEN
+               F_RAINOUT = F_PRIME
+               ! Washout occurs where there is no rainout
+               F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
+            ELSE
                F_RAINOUT = 0d0
- 
+               F_WASHOUT = 0d0
             ENDIF
 
-            ! Total fraction of grid box (I,J,L) experiencing precip
-            F         = MAX( F_RAINOUT, FTOP )
- 
-            ! Fraction of grid box (I,J,L) experiencing washout
-            F_WASHOUT = MAX( FTOP - F_RAINOUT, 0d0 )
 
-!------------------------------------------------------------------------------
-! Prior to 12/15/10:
-! Leave this commented out.  Helen Amos wrote this as an "improvement" to the 
-! existing code, but then decided that the existing code was better.  This
-! section should stay inactive until further notice. (hamos, bmy, 12/15/10)
-!            !-----------------------------------------------------------
-!            ! Define Q and QDOWN for washout directly from MERRA met
-!            !-----------------------------------------------------------
-!
-!C            ! Net precipitation rate in grid box (I,J,L) 
-!C            Q = QQ(L,I,J)
-! 
-!            ! Re-evaporation of precipitating condensate
-!            Q = REEVAPLS(I,J,L) * ( AIRDEN(L,I,J) / 1000d0 )
-!
-!            ! The precipitation causing washout is the precip
-!            ! entering the top of grid box (I,J,L)
-!            QDOWN = PDOWN(L+1,I,J)
-!*************************************************************************
+            IF ( F_WASHOUT > 0d0 ) THEN    
 
-            !-----------------------------------------------------------
-            ! Define Q and QDOWN for washout
-            !-----------------------------------------------------------
+               ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
+               ! Q     is the new precip that is forming within box (I,J,L)
+               QDOWN = PDOWN(L,I,J)
+               Q     = QQ(L,I,J)
 
-            ! QDOWN is the precip leaving thru the bottom of box (I,J,L)
-            ! Q     is the new precip that is forming within box (I,J,L)
-            QDOWN = PDOWN(L,I,J)
-            Q     = QQ(L,I,J)
+               !  Define PDOWN and p
+               IF ( F_RAINOUT > 0d0 ) THEN
 
-            ! If there is rainout occurring ...
-            IF ( F_RAINOUT > 0d0 ) THEN
+                  ! The precipitation causing washout 
+                  ! is the precip entering thru the top
+                  QDOWN = PDOWN(L+1,I,J)
 
-               ! The precipitation causing washout is the precip entering
-               ! the top. 
-               QDOWN = PDOWN(L+1,I,J)
+                  ! The amount of precipitating water entering from above 
+                  ! which evaporates. If there is rainout (new precip
+                  ! forming) then we have no way to estimate this, so assume
+                  ! zero for now. Consequently there will be no resuspended
+                  ! aerosol.
+                  Q = 0d0
+               ELSE
+                  Q = QQ(L,I,J)                  
+               ENDIF
 
-               ! The amount of precipitating water entering from above 
-               ! which evaporates. If there is rainout (new precip
-               ! forming) then we have no way to estimate this, so assume
-               ! zero for now. Consequently there will be no resuspended
-               ! aerosol.
-               Q = 0d0
-            ELSE
-               Q = QQ(L,I,J)                  
-            ENDIF
+            ENDIF 
 
             !-----------------------------------------------------------
-            ! Determine if we have one of the following conditions:
+            ! Determine if we have the following conditions:
             !
-            ! (a) Rainout only
-            ! (b) Washout only
-            ! (c) Rainout and Washout
+            ! (a) Rainout 
+            ! (b) Washout 
+            !
+            ! Note that rainout and washout can happen in the same 
+            ! grid box.
             !-----------------------------------------------------------
 
-            ! There is ONLY rainout if there is new precip formation in 
-            ! the grid box (i.e. DQRLSAN(I,J,L) > 0) and the fraction 
-            ! of the grid box experiencing rainout (i.e. F_RAINOUT) 
-            ! is greater than or equal to the fraction of the grid box 
-            ! directly overhead experiencing precip (i.e. FTOP).
-            ! (hma, 9/10/10)
-            IS_RAINOUT = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
-     &                     ( ( FTOP - F_RAINOUT ) <= 0d0 )        )
+            ! If a non-zero fraction of the grid box is 
+            ! experiencing rainout...
+            IS_RAINOUT = ( F_RAINOUT > 0d0 )
 
-            ! There is ONLY washout if there is no new precipitation
-            ! formation in grid box (I,J,L) but there is precipitation
-            ! entering grid box (I,J,L) from the grid box directly 
-            ! overhead (I,J,L+1).  (hma, 9/10/10)
-            IS_WASHOUT = ( ( DQRLSAN(I,J,L)       == 0d0 ) .and.
-     &                     ( F_WASHOUT            > 0    ) .and.
-     &                     ( PDOWN(L+1,I,J)       > 0    )       )
-
-            ! There is BOTH rainout AND washout if you have new precip
-            ! production in grid box (I,J,L) and you have some fraction
-            ! of the grid box (I,J,L) experiencing washout (as described
-            ! above).  (hma, 9/10/10)
-            IS_BOTH    = ( ( DQRLSAN(I,J,L)       >  0d0 ) .and.
-     &                     ( ( FTOP - F_RAINOUT ) >  0d0 )        )
+            ! If a non-zero fraction of the grid box is 
+            ! experiencing washout...
+            IS_WASHOUT = ( F_WASHOUT > 0d0 )
 
             IF ( IS_RAINOUT ) THEN
 
                !--------------------------------------------------------
-               ! RAINOUT ONLY
+               ! RAINOUT 
                !--------------------------------------------------------
 
                ! Error msg for stdout
-               ERRMSG = 'RAINOUT: Rainout ONLY'
+               ERRMSG = 'RAINOUT'
 
                ! Do rainout if we meet the above criteria
                CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
      &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
      &                               DT,  STT,    DSTT               )
+            ENDIF  
 
-            ELSE IF ( IS_WASHOUT ) THEN
+            IF ( IS_WASHOUT ) THEN 
 
                !--------------------------------------------------------
                ! WASHOUT ONLY
                !--------------------------------------------------------
 
                ! Error msg for stdout
-               ERRMSG = 'WASHOUT: Washout ONLY'
+               ERRMSG = 'WASHOUT'
 
                ! Do the washout
                CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
@@ -4856,52 +4769,7 @@
      &                               F_WASHOUT, DT,     PDOWN, STT, 
      &                               DSTT                           )
 
-            ELSE IF ( IS_BOTH ) THEN
-
-               !--------------------------------------------------------
-               ! BOTH RAINOUT AND WASHOUT
-               !--------------------------------------------------------
-
-               ! Apply rainout to the fraction of the box F_RAINOUT
-               ERRMSG = 'RAINOUT & WASHOUT: Rainout'
-               CALL DO_RAINOUT_ONLY( LS,  I,      J,         L,   
-     &                               IDX, ERRMSG, F_RAINOUT, K_RAIN,  
-     &                               DT,  STT,    DSTT               )
-
-
-
-               ! Apply washout to the fraction of the box F_WASHOUT
-               ERRMSG = 'RAINOUT & WASHOUT: Washout'
-               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
-     &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
-
             ENDIF
-
-            ! Save FTOP for the next level
-            !
-            ! If there is a downward flux of precip through the
-            ! bottom of grid box (I,J,L)
-            IF ( PDOWN(L,I,J) > 0 ) THEN
- 
-               ! Convert PDOWN the downward flux of precip leaving grid
-               ! box (I,J,L) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-               PRECIP_DOWN = PDOWN(L,I,J) / ( BXHEIGHT(I,J,L) * 100d0  )
-
-               ! Compute K_RAIN and FTOP based on the flux of precip 
-               ! leaving grid box (I,J,L). FTOP is viewed by the grid box
-               ! directly below (i.e. grid box (I,J,L-1))
-               K_RAIN      = LS_K_RAIN( PRECIP_DOWN  )
-               FTOP        = LS_F_PRIME( PRECIP_DOWN, K_RAIN ) 
-
-            ELSE
-
-               ! If there isn't any precip leaving grid box (I,J,L),
-               ! then from the view of the grid box below grid FTOP = 0.
-               FTOP        = 0
-
-            ENDIF 
 
             !===========================================================
             ! (6)  N o   D o w n w a r d   P r e c i p i t a t i o n 
@@ -4915,7 +4783,10 @@
             ! re-enter the atmosphere in the gas phase in grid box 
             ! (I,J,L).  This is called "resuspension".
             !===========================================================
-            IF ( PDOWN(L+1,I,J) > 0d0 .and. PDOWN(L,I,J) == 0d0 ) THEN
+
+            ! Check if there is precip entering grid box, but not
+            ! leaving grid box
+            IF ( F_WASHOUT == 0d0 .and. F_RAINOUT == 0d0 ) THEN
 
                ! No precipitation at grid box (I,J,L), thus F = 0
                F = 0d0
@@ -4929,12 +4800,6 @@
             ENDIF 
 
             ! Save FTOP for next level
-            !------------------------------------------------------------
-            ! Prior to 12/3/10:
-            ! Don't set FTOP = 0, because this will cause the section
-            ! "Washout in level 1" not to execute. (hma, bmy, 12/3/10)
-            !FTOP = 0
-            !------------------------------------------------------------
             FTOP = F_RAINOUT + F_WASHOUT
 
          ENDDO               
@@ -5460,9 +5325,8 @@
 !  16 Sep 2010 - R. Yantosca - Initial version
 !  20 Sep 2010 - R. Yantosca - Update definition of ALPHA if we are doing
 !                              partial re-evaporation.
-!  28 Sep 2010 - H. Amos     - De-activate the new definition of ALPHA
-!                              for partial re-evaporation for now
 !  28 Sep 2010 - H. Amos     - Now check for NaN's with function IT_IS_NAN
+!  31-Dec-2010 - H. Amos     - new variable, TK, for temperature
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5473,23 +5337,11 @@
       INTEGER :: N,         NN
       REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
-      REAL*8  :: TK ! added by hma 20101014
+      REAL*8  :: TK 
 
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 9/28/10:
-! Uncomment if we change the definition of ALPHA again, but if we're using
-! the old definition of ALPHA we don't need this check (Helen Amos, 20100928)
-! Leave code here for potential future use.
-!      ! Define a flag to denote if we are doing partial re-evaporation
-!      IF ( PRESENT( REEVAP ) ) THEN
-!         DO_REEVAP = REEVAP
-!      ELSE
-!         DO_REEVAP = .FALSE.
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! ND16 diagnostic...save F (fraction of grid box raining)
       IF ( ND16 > 0d0 .and. L <= LD16 ) THEN
@@ -5503,7 +5355,7 @@
       ENDIF
 
       ! air temperature [K]
-      TK  = T(I,J,L)   ! added by hma, 20101014
+      TK  = T(I,J,L)   
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -5554,17 +5406,15 @@
                 ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
      &               / ( PDOWN(L+1,I,J)                     )
 
+            ! Restrict ALPHA to be less than 1 (>1 is unphysical)
+            ! (hma, 24-Dec-2010)
+            IF (ALPHA > 1) THEN 
+               ALPHA = 1
+            ENDIF
 
             ! ALPHA2 is the fraction of the rained-out aerosols
             ! that gets resuspended in grid box (I,J,L)
             ALPHA2 = 0.5d0 * ALPHA
-
-C There isn't anything to keep ALPHA2 =< 1, which doesn't make
-C much physical sense. Put in this statement to debug. 
-C (hma, 06-Dec-2010)
-            IF (ALPHA2 > 1) THEN 
-               ALPHA2 = 1
-            ENDIF
 
             ! GAINED is the rained out aerosol coming down from 
             ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -5886,7 +5736,7 @@ C (hma, 06-Dec-2010)
       LOGICAL :: AER
       INTEGER :: N,        NN
       REAL*8  :: WASHFRAC, WETLOSS, TMP
-      REAL*8  :: TK   ! added by hma 20101014
+      REAL*8  :: TK   
 
       !=================================================================
       ! DO_WASHOUT_AT_SFC begins here!
@@ -5904,7 +5754,7 @@ C (hma, 06-Dec-2010)
       ENDIF
 
       ! air temperature [K]
-      TK = T(I,J,L)   ! added by hma, 20101014
+      TK = T(I,J,L)   
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -6510,6 +6360,8 @@ C (hma, 06-Dec-2010)
 !BOC
       !=================================================================
       ! GET_WETDEP_NMAX begins here!
+      !
+      ! NOTE: If you add tracers to a simulation, update as necessary
       !=================================================================
       IF ( ITS_A_FULLCHEM_SIM() ) THEN 
       
