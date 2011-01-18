@@ -469,6 +469,8 @@
 !  (5 ) Added Hg0 dry deposition (eck)
 !  (6 ) Chemistry and dry deposition now occur simultaneously. (cdh, 7/9/08)
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
+!  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
+!                              from GEOS-5 and MERRA met fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -602,7 +604,64 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-         ! Get volume fraction of gridbox containing cloud [dimensionless]
+!------------------------------------------------------------------------------
+! Prior to 1/10/11:
+! Get values directly from GEOS-5/MERRA met fields (skim, bmy, 1/14/10)
+!         ! Get volume fraction of gridbox containing 
+!         ! cloud [unitless], following Sundqvist et al 1989.
+!         FC          = GET_VCLDF( I, J, L )
+!
+!         ! Get liquid water content for entire grid box,
+!         ! based on formula for LWC in cloud (m3/m3)
+!         LWC         = GET_LWC( T(I,J,L) ) * FC 
+!
+!         ! There should be no liquid water when T < 258K 
+!         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+!
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!         IF ( LGEOSLWC ) THEN
+!
+!            ! Get grid-averaged liquid water content from met fields (kg/kg)
+!            ! Convert to m3/m3
+!            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+!
+!         ENDIF
+!#endif
+!------------------------------------------------------------------------------
+#if   defined( GEOS_5 ) || defined( MERRA ) 
+
+         !---------------------------------------------
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
+         ! (skim, bmy, 1/14/10)
+         !---------------------------------------------
+
+         ! Get cloud fraction from met fields [unitless]
+         FC = CLDF(L,I,J)
+
+         IF ( LGEOSLWC ) THEN
+
+            ! Get liquid water content [m3 H2O/m3 air] within cloud from met
+            ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+
+         ELSE
+
+            ! Get liquid water content for entire grid box,
+            ! based on formula for LWC in cloud [m3 H2O/m3 air]
+            LWC = GET_LWC( T(I,J,L) ) * FC 
+
+            ! There should be no liquid water when T < 258K 
+            IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+
+         ENDIF
+
+#else
+         !---------------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !---------------------------------------------    
+
+         ! Get volume fraction of gridbox containing 
+         ! cloud [unitless], following Sundqvist et al 1989.
          FC          = GET_VCLDF( I, J, L )
 
          ! Get liquid water content for entire grid box,
@@ -612,14 +671,6 @@
          ! There should be no liquid water when T < 258K 
          IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
-#if defined( GEOS_5 ) || defined( MERRA )
-         IF ( LGEOSLWC ) THEN
-
-            ! Get grid-averaged liquid water content from met fields (kg/kg)
-            ! Convert to m3/m3
-            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-
-         ENDIF
 #endif
 
          ! Define fraction of Hg(II) which is in aqueous solution
@@ -3542,14 +3593,16 @@
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 12/7/04)
+!  Function GET_LWC returns the cloud liquid water content [m3 H2O/m3 air] at 
+!  a GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  12/7/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
 !
 !  NOTES:
+!  18 Jan 2011 - R. Yantosca - Updated comments
 !******************************************************************************
 !
       ! Arguments
@@ -3577,6 +3630,7 @@
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
+      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
       LWC = LWC * 1.D-6         
 
       ! Return to calling program

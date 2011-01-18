@@ -323,6 +323,7 @@
 !  (1) Sundqvist et al. [1989]
 !
 !  NOTES:
+!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -341,6 +342,11 @@
       !=================================================================
       ! GET_VCLDF begins here!
       !=================================================================
+
+      ! Exit if we VCLDF is not allocated.  We will now get the cloud
+      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
+      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
@@ -382,14 +388,16 @@
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 1/14/03)
+!  Function GET_LWC returns the cloud liquid water content [m3 H2O/m3 air] at 
+!  a  GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  1/14/03)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
-!
+! 
 !  NOTES:
+!  18 Jan 2011 - R. Yantosca - Updated comments 
 !******************************************************************************
 !
       ! Arguments
@@ -418,6 +426,7 @@
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
+      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
       LWC = LWC * 1.D-6         
 
       ! Return to calling program
@@ -1608,8 +1617,8 @@
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
 
-         ! Get liquid water content within cloud from met fields (kg/kg)
-         ! Convert to m3/m3 averaged over grid box
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
 #else
@@ -7862,9 +7871,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
+#if   !defined( GEOS_5 ) && !defined( MERRA )
+      ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
+      ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
       VCLDF = 0d0
+#endif
 
       !=================================================================
       ! Only initialize the following for offline aerosol simulations
