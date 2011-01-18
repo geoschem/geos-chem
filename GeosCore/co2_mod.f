@@ -116,6 +116,7 @@
 !  (5 ) Implemented CO2 emissions from shipping and aviation (R.Nassar 2010)
 !  (6 ) Implemented monthly CO2 chemical production and surface correction 
 !        (R.Nassar 2010)   
+!  (7 ) Modified to include GFED3 (psk, 1/5/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,6 +176,7 @@
       USE TRACERID_MOD, ONLY : IDBCO2
       USE LOGICAL_MOD,  ONLY : LGENFF,      LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD,  ONLY : LSEASBB,     LGFED2BB, L8DAYBB, LBIOFUEL
+      USE LOGICAL_MOD,  ONLY : LGFED3BB, L8DAYBB3
       USE LOGICAL_MOD,  ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD,  ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD,  ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
@@ -277,7 +279,10 @@
 !  3a) compute_biomass_emissions calls gfed2_compute_biomass 
 !      in gfed2_biomass_mod.f
 !               ** OR **
-!  3b) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
+!  3b) compute_biomass_emissions calls gfed3_compute_biomass 
+!      in gfed3_biomass_mod.f
+!               ** OR **
+!  3c) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
 !------------------------------------------------------------------------------
 
 !      ! Check if Balanced Biosphere emissions are required  
@@ -466,7 +471,8 @@
          !-------------------------------------------
          ! #5: CO2 from biomass burning emissions
          !-------------------------------------------
-         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB ) THEN 
+         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB .OR.
+     &        LGFED3BB. OR. L8DAYBB3) THEN 
 
             ! Biomass burning emissions [molec/cm2/s]
             E_CO2          = BIOMASS(I,J,IDBCO2)
@@ -3136,6 +3142,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LGENFF,  LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
+      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
       USE LOGICAL_MOD, ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD, ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON

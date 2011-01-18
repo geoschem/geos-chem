@@ -86,6 +86,7 @@
 !  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
+!  (45) Modified to include GFED3 (psk, 1/5/11)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -120,6 +121,7 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
       USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
+      USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -200,6 +202,7 @@
       CALL CLEANUP_EPA_NEI
       CALL CLEANUP_GC_BIOMASS
       CALL CLEANUP_GFED2_BIOMASS
+      CALL CLEANUP_GFED3_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3

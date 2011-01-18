@@ -217,6 +217,7 @@
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
 !  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  (52) Modified to include GFED3 (psk, 1/5/11)
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -3824,6 +3825,7 @@
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -3914,7 +3916,8 @@
 
       ENDIF
 
-      IF(  ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) .AND. 
+      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
+     &       ITS_A_NEW_MONTH() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')
