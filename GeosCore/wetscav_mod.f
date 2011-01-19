@@ -3087,9 +3087,10 @@
            IF ( TK >= 268d0 ) THEN
              K = K_RAIN * F_L
 
-           ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
-             K = K_RAIN * ( 2d-2 * F_L ) 
-                  
+           ! ELSE IF ( TK > 248d0 .and. TK < 268d0 ) THEN
+           ! K = K_RAIN * ( 2d-2 * F_L ) 
+           ! clf, 1/7/11 - no retention below 268 K     
+   
             ELSE
                K = 0d0
 
