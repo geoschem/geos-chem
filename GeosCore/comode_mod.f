@@ -103,7 +103,6 @@
 !
 ! !DESCRIPTION: Subroutine INIT\_COMODE allocates memory for allocatable 
 !  arrays that were previously contained in common blocks in "comode.h".
-
 !\\
 !\\
 ! !INTERFACE:
