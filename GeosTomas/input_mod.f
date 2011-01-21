@@ -412,7 +412,6 @@
       ! Print the line (if necessary)
       IF ( VERBOSE ) WRITE( 6, '(a)' ) TRIM( LINE )
 
-      ! 
       END FUNCTION READ_ONE_LINE
 !EOC
 !------------------------------------------------------------------------------
@@ -420,7 +419,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: split_one_line
 !
 ! !DESCRIPTION: Subroutine SPLIT\_ONE\_LINE reads a line from the input file 
 !  (via routine READ\_ONE\_LINE), and separates it into substrings.
@@ -508,7 +507,6 @@
  100     FORMAT( 'Expected ',i2, ' substrs but found ',i3 )
       ENDIF
        
-      ! 
       END SUBROUTINE SPLIT_ONE_LINE
 !EOC
 !------------------------------------------------------------------------------
@@ -740,7 +738,6 @@
       ! Set counter
       CT1 = CT1 + 1
 
-      ! 
       END SUBROUTINE READ_SIMULATION_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -777,7 +774,7 @@
       USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD,      ONLY : TRACERID
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"          ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1100,7 +1097,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       INTEGER            :: N, T, I
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOCATION
 
@@ -1657,7 +1653,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
 
-
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_O3"        ! FSCALYR
 ! 
@@ -1702,6 +1697,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
 !  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2125,7 +2121,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
-#if   defined( GEOS_5   )
+#if   defined( GEOS_5 )
          
          !--------------------------------
          ! GEOS-5 warnings & error traps
@@ -2268,7 +2264,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! add formatting for ISOP_SCALING and NOx_scaling (hotp 8/4/09)
  120  FORMAT( A, f6.2 )
 
-      ! 
       END SUBROUTINE READ_EMISSIONS_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -2552,7 +2547,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  100  FORMAT( A, L5 )
  110  FORMAT( A, L5, A )
 
-      ! 
       END SUBROUTINE READ_CO2_SIM_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -2667,7 +2661,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2750,7 +2744,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  110  FORMAT( A, I5  )
  120  FORMAT( A, 2I5 )
 
-      ! 
       END SUBROUTINE READ_CHEMISTRY_MENU  
 !EOC
 !------------------------------------------------------------------------------
@@ -2925,8 +2918,8 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER              :: N
-      CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM), MSG
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
 
       !=================================================================
       ! READ_CONVECTION_MENU begins here!
@@ -2982,7 +2975,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
       
-      !  
       END SUBROUTINE READ_CONVECTION_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3104,7 +3096,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
  121  FORMAT( 'All tagged HgP tracers have the same dep velocity '
      &        'as the total HgP tracer.' )
 
-      ! 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3112,7 +3103,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_gamap_menu
 !
 ! !DESCRIPTION: Subroutine READ\_GAMAP\_MENU reads the GAMAP MENU section 
 !  of the GEOS-Chem input file.
@@ -3160,7 +3151,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
      &                    TRIM( TRACERINFO )
 
-      ! 
       END SUBROUTINE READ_GAMAP_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3230,7 +3220,6 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD
 
-      ! 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3850,7 +3839,7 @@ c$$$      WRITE( 6, 100     ) '30-BIN DUST AEROSOLS?       : ', LDUST30
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: set_tindex
 !
 ! !DESCRIPTION: Subroutine SET\_TINDEX sets the TINDEX and TMAX arrays, 
 !  which determine how many tracers to print to the punch file. 
@@ -4019,7 +4008,6 @@ c$$$         IS_ALL = .FALSE.
 
       ENDIF
 
-      ! 
       END SUBROUTINE SET_TINDEX
 !EOC
 !------------------------------------------------------------------------------
@@ -4112,7 +4100,6 @@ c$$$         IS_ALL = .FALSE.
       ! Pass variables to "planeflight_mod.f"
       CALL SET_PLANEFLIGHT( DO_PF, IFILE, OFILE )
    
-      ! 
       END SUBROUTINE READ_PLANEFLIGHT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4225,7 +4212,6 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
      &                  JARR,    LARR, NARR,  FILE )
 
-      ! 
       END SUBROUTINE READ_ND48_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4345,7 +4331,6 @@ c$$$         IS_ALL = .FALSE.
      &                  IMAX,    JMIN,   JMAX,    LMIN,    
      &                  LMAX,    FREQ,   FILE )
 
-      ! 
       END SUBROUTINE READ_ND49_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4375,7 +4360,6 @@ c$$$         IS_ALL = .FALSE.
 !        (amv, bmy, 12/21/09)
 !  (2 ) Increase tracer number to 121. (ccc, 4/20/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4470,7 +4454,6 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
      &                  JMIN,    JMAX,   LMIN,    LMAX, FILE )
 
-      ! 
       END SUBROUTINE READ_ND50_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4611,7 +4594,6 @@ c$$$         IS_ALL = .FALSE.
      &                  HR1,     HR2,    IMIN,    IMAX,   
      &                  JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 
-      ! 
       END SUBROUTINE READ_ND51_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4749,7 +4731,6 @@ c$$$         IS_ALL = .FALSE.
      &                   HR1,     HR2,    IMIN,    IMAX,
      &                   JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 
-      ! 
       END SUBROUTINE READ_ND51b_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -4759,7 +4740,7 @@ c$$$         IS_ALL = .FALSE.
 !
 ! !IROUTINE: read_prod_loss_menu 
 !
-! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD & LOSS MENU 
+! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD AND LOSS MENU 
 !  section of the GEOS-Chem input file 
 !\\
 !\\
@@ -4792,7 +4773,6 @@ c$$$         IS_ALL = .FALSE.
 !
 ! !LOCAL VARIABLES:
 !
-      ! Local variables
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
       !FP_ISOP moved to CMN_SIZE (6/2009)
       !INTEGER, PARAMETER   :: MAXMEM=10
@@ -4972,7 +4952,6 @@ c$$$         IS_ALL = .FALSE.
       CALL INIT_DIAG_PL( DO_SAVE_PL, DO_SAVE_O3, NFAM,     FAM_NAME,   
      &                   FAM_TYPE,   FAM_NMEM,   FAM_MEMB, FAM_COEF )
 
-      ! 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5074,7 +5053,6 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
 
-      ! 
       END SUBROUTINE READ_UNIX_CMDS_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5204,7 +5182,6 @@ c$$$         IS_ALL = .FALSE.
       ! Pass values to "tpcore_bc_mod.f"
       CALL INIT_TPCORE_BC( TS, I0W, J0W, I1, J1, I2, J2 )
 
-      ! 
       END SUBROUTINE READ_NESTED_GRID_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5273,7 +5250,6 @@ c$$$         IS_ALL = .FALSE.
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
     
-      ! 
       END SUBROUTINE READ_BENCHMARK_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5328,7 +5304,6 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
     
-      ! 
       END SUBROUTINE READ_ARCHIVED_OH_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5384,7 +5359,6 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, A )
     
-      ! 
       END SUBROUTINE READ_O3PL_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5505,7 +5479,6 @@ c$$$         IS_ALL = .FALSE.
 
       ENDIF
 
-      ! 
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5622,7 +5595,6 @@ c$$$         IS_ALL = .FALSE.
       ! FORMAT statements
  100  FORMAT( A, L5  )
 
-      ! 
       END SUBROUTINE READ_CH4_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -6099,7 +6071,7 @@ c$$$         IS_ALL = .FALSE.
 ! !IROUTINE: init_input
 !
 ! !DESCRIPTION: Subroutine INIT\_INPUT initializes all variables from 
-!  "directory_mod.f" and "logical_mod.f" for safety's sake.
+!  "directory\_mod.f" and "logical\_mod.f" for safety's sake.
 !\\
 !\\
 ! !INTERFACE:

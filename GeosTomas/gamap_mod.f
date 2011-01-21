@@ -76,6 +76,8 @@
 !                              #include "CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
+!  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
+!  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,8 +94,25 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
+      !--------------------------------------------------------------------
+      ! Prior to 8/3/10:
+      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
+      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
+      ! when these parameters are extended to add more tracers.
+      ! (psk, bmy, 8/3/10)
+      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
+      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
+      !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! Prior to 12/7/10:
+      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
+      ! AD44 holds the data for deposition velocity and deposition flux)
+      ! So MAXTRACER must be defined as 2*MAX_TRACER
+      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
+      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
+      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
-      INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER
+      INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
       INTEGER,           ALLOCATABLE :: INDEX(:,:)
       INTEGER,           ALLOCATABLE :: MOLC(:,:)
@@ -732,6 +751,8 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  21 Sep 2010 - R. Yantosca - Remove duplicate definitions of CV-FLX-$,
 !                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
+!  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
+!                              SPACING*3 since it has units of kg/s.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -862,6 +883,11 @@
       N           = N + 1
       CATEGORY(N) = 'WETDLS-$'
       DESCRIPT(N) = 'Wet deposition'
+      OFFSET(N)   = SPACING * 3
+
+      N           = N + 1
+      CATEGORY(N) = 'MC-FRC-$'
+      DESCRIPT(N) = 'Moist conv fraction'
       OFFSET(N)   = SPACING * 3
 
       N           = N + 1
@@ -1029,18 +1055,6 @@
       !OFFSET(N)   = SPACING * 4
       !------------------------------------------------------------------------
 
-!--- Previous to (ccc, 3/17/10)------------------
-! Category names for GPROD and APROD have changed
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-GPROD'
-!      DESCRIPT(N) = 'SOA GPROD restart'
-!      OFFSET(N)   = SPACING * 6
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-APROD'
-!      DESCRIPT(N) = 'SOA APROD restart'
-!      OFFSET(N)   = SPACING * 6
-!-------------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
@@ -1171,10 +1185,14 @@
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
 
-      N           = N + 1
-      CATEGORY(N) = 'MC-FRC-$'
-      DESCRIPT(N) = 'Moist conv fraction'
-      OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
+      ! Prior to 10/21/10:
+      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
+      !N           = N + 1
+      !CATEGORY(N) = 'MC-FRC-$'
+      !DESCRIPT(N) = 'Moist conv fraction'
+      !OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
@@ -1409,7 +1427,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE DIAG03_MOD,   ONLY : ND03, PD03
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
@@ -1457,6 +1474,7 @@
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
 ! 
 ! !REVISION HISTORY: 
+!  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
 !        biomass burning emissions w/ offset of 45000.  Bug fix: write out
 !        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
@@ -1481,6 +1499,8 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
+!  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
+!                              tracerinfo.dat for the timeseries diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1577,6 +1597,8 @@
       !
       ! Updated for tagged Hg simulation
       ! (cdh, bmy, 1/9/06)
+      ! Modified to avoid over-sized arrays.
+      ! (ccc, 7/20/10)
       !-------------------------------------
       IF ( ND03 > 0 ) THEN
          
@@ -1793,9 +1815,11 @@
       IF ( ND04 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(04) = 6
+         ! Increased from 6 to 10. (rnassar, 30/08/10)
+!         NTRAC(04) = 6
+         NTRAC(04) = 10
 
-         ! Loop over tracers: HG-SRCE
+         ! Loop over tracers: CO2-SRCE
          DO T = 1, NTRAC(04)
 
             ! Define quantities
@@ -1806,11 +1830,14 @@
             SCALE(T,04) = 1e0
 
             ! Get name, long-name
+            ! Names updated (rnassar, 30/08/10)
             SELECT CASE( T )
                CASE( 1  )
                   NAME (T,04) = 'CO2ff'
                   FNAME(T,04) = 'CO2 fossil fuel emiss'
                CASE( 2  )
+!                  NAME (T,04) = 'CO2ocn'
+!                  FNAME(T,04) = 'CO2 ocean exchange'
                   NAME (T,04) = 'CO2oc'
                   FNAME(T,04) = 'CO2 ocean emissions'
                CASE( 3  )
@@ -1823,8 +1850,21 @@
                   NAME (T,04) = 'CO2bf'
                   FNAME(T,04) = 'CO2 biofuel emission'
                CASE( 6  )
-                  NAME (T,04) = 'CO2net'
+!                  NAME (T,04) = 'CO2net'
+                  NAME (T,04) = 'CO2nte'
                   FNAME(T,04) = 'CO2 net terr exchange'
+               CASE( 7  )
+                  NAME (T,04) = 'CO2shp'
+                  FNAME(T,04) = 'CO2 ship emissions'
+               CASE( 8  )
+                  NAME (T,04) = 'CO2pln'
+                  FNAME(T,04) = 'CO2 aircraft emissions'
+               CASE( 9  )
+                  NAME (T,04) = 'CO2che'
+                  FNAME(T,04) = 'CO2 chemical oxidation'
+               CASE( 10  )
+                  NAME (T,04) = 'CO2sur'
+                  FNAME(T,04) = 'CO2 chem surf correction'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2814,8 +2854,16 @@
 
       !-------------------------------------      
       ! Surface pressure (ND31)
-      !-------------------------------------      
-      IF ( ND31 > 0 ) THEN
+      !-------------------------------------   
+      !-------------------------------------------------------------
+      ! Prior to 11/12/10:
+      ! Need to save out surface pressure line to tracerinfo.dat
+      ! for the timeseries diagnostics (bmy, 11/12/10)
+      !IF ( ND31 > 0 ) THEN
+      !-------------------------------------------------------------
+      IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
+     &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
+     &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN
          T           = 1
          NTRAC(31)   = T
          NAME (T,31) = 'PSURF'
@@ -4014,6 +4062,7 @@ c$$$            ENDDO
       CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path for "tracerinfo.dat"
 !
 ! !REVISION HISTORY:
+!  22 Apr 2005 - R. Yantosca - Initial version 
 !  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
 !  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
@@ -4124,12 +4173,12 @@ c$$$            ENDDO
 
          HDFCATEGORY(:) = CATEGORY(:)
          HDFDESCRIPT(:) = DESCRIPT(:)
-         HDFNAME(:,:) = NAME(:,:)
-         HDFFNAME(:,:) = FNAME(:,:)
-         HDFUNIT(:,:) = UNIT(:,:)
-         HDFMOLC(:,:) = MOLC(:,:)
-         HDFMWT(:,:) = MWT(:,:)
-         HDFSCALE(:,:) = SCALE(:,:)
+         HDFNAME(:,:)   = NAME(:,:)
+         HDFFNAME(:,:)  = FNAME(:,:)
+         HDFUNIT(:,:)   = UNIT(:,:)
+         HDFMOLC(:,:)   = MOLC(:,:)
+         HDFMWT(:,:)    = MWT(:,:)
+         HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
 

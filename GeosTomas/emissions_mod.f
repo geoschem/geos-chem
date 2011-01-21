@@ -3,10 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: EMISSIONS_MOD
+! !MODULE: emissions_mod
 !
 ! !DESCRIPTION: Module EMISSIONS\_MOD is used to call the proper emissions 
-!  subroutines for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
+!  subroutines for the various GEOS-Chem simulations.
 !\\
 !\\
 ! !INTERFACE: 
@@ -28,6 +28,7 @@
       PUBLIC :: ISOP_SCALING,NOx_SCALING
 !
 ! !REVISION HISTORY:
+!  11 Feb 2003 - R. Yantosca - Initial version
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
 !  (2 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (3 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/2/04)
@@ -54,18 +55,21 @@
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
+! !PRIVATE TYPES:
+!
       !FP_ISOP. For scaling Isoprene and NOx emissions.
       REAL*8              :: ISOP_SCALING,NOx_SCALING
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_EMISSIONS
+! !IROUTINE: do_emissions
 !
 ! !DESCRIPTION: Subroutine DO\_EMISSIONS is the driver routine which calls 
 !  the appropriate emissions subroutine for the various GEOS-CHEM simulations. 
@@ -155,6 +159,7 @@
 !        (amv, 10/19/09)
 !  (22) Reference to TRACERID_MOd for IDTDUST1 for calling EMISSDUST (Win, 7/17/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
+!  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -554,11 +559,6 @@ c$$$         IF ( LDUST             ) CALL EMISSDUST
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG ( '### DO_EMISSIONS: a EMISSIONS' )
 
-      ! Return to calling program
       END SUBROUTINE DO_EMISSIONS
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE EMISSIONS_MOD
 !EOC
+      END MODULE EMISSIONS_MOD

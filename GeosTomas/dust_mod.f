@@ -54,6 +54,7 @@
 !  (12) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -86,7 +87,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LDRYD,   LDUST
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
@@ -554,8 +554,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-!
+      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -566,7 +566,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! local variables
       INTEGER :: I,   J,   L,      N
       REAL*8  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
 
@@ -621,7 +620,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRY_DEPOSITION
 !EOC
 !------------------------------------------------------------------------------
@@ -642,7 +640,6 @@
 !
 ! !USES:
 !
-      ! References to F(0 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LDEAD, LDUST, LPRT
       USE TRACER_MOD,   ONLY : STT
@@ -798,7 +795,6 @@ c$$$      ENDIF
          ENDIF
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE EMISSDUST
 !EOC
 !------------------------------------------------------------------------------
@@ -878,6 +874,9 @@ c$$$      ENDIF
 !  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
+!                              and has units of mm H2O instead of m H2O
+!                              so we need to convert to m H2O.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -371,7 +371,7 @@
                   AD44(I,J,IDDEP(N),1) = AD44(I,J,IDDEP(N),1) + FLUX
                ENDIF
             ENDDO
-         enddo
+         ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -673,9 +673,11 @@
       REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
       REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 
-      !----------------
-      ! Parameters
-      !----------------
+      ! External functions
+      REAL*8,  EXTERNAL       :: SFCWINDSQR
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
       REAL*8, PARAMETER      :: G       = g0 * 1.D2
       REAL*8, PARAMETER      :: RHOA    = 1.25D-3
@@ -683,9 +685,6 @@
       REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
-
-      ! External functions
-      REAL*8,  EXTERNAL       :: SFCWINDSQR
 
       !=================================================================
       ! SRC_DUST_DEAD begins here!

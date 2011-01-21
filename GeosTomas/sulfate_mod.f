@@ -221,6 +221,7 @@
 !  (52) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (53) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
+!  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -287,8 +288,11 @@
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
       REAL*8,  ALLOCATABLE :: PSO4_SO2AQ(:,:,:)
 
-      ! Volcano levels (jaf, 8/7/09)
-      INTEGER, PARAMETER   :: LVOLC=20
+      ! Volcanic emissions parameters (ccc, 9/30/10)
+      INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
+      INTEGER, PARAMETER   :: MNYEAR_VOLC = 1979  ! Min year of data
+      INTEGER, PARAMETER   :: MXYEAR_VOLC = 2009  ! Max year of data
+
 
       ! Eruptive volcanoes
       REAL*8,  ALLOCATABLE :: EEV(:,:,:)
@@ -320,6 +324,7 @@
 !  (1) Sundqvist et al. [1989]
 !
 !  NOTES:
+!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -338,6 +343,11 @@
       !=================================================================
       ! GET_VCLDF begins here!
       !=================================================================
+
+      ! Exit if we VCLDF is not allocated.  We will now get the cloud
+      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
+      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
@@ -379,14 +389,16 @@
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 1/14/03)
+!  Function GET_LWC returns the cloud liquid water content [m3 H2O/m3 air] at 
+!  a  GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  1/14/03)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
-!
+! 
 !  NOTES:
+!  18 Jan 2011 - R. Yantosca - Updated comments 
 !******************************************************************************
 !
       ! Arguments
@@ -415,6 +427,7 @@
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
+      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
       LWC = LWC * 1.D-6         
 
       ! Return to calling program
@@ -1420,6 +1433,7 @@
 !  (15) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !  (16) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
+!  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1615,15 +1629,15 @@
 #if   defined ( GEOS_5 ) || defined( MERRA )
 
          !---------------------------------------------
-         ! GEOS-5/MERRA Get LWC, FC from met fields
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
          ! (jaf, bmy, 6/30/10)
          !---------------------------------------------
 
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
 
-         ! Get liquid water content within cloud from met fields (kg/kg)
-         ! Convert to m3/m3 averaged over grid box
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
 #else
@@ -1730,20 +1744,6 @@
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
      &                       O3,  HPLUS, KaqH2O2, KaqO3 ) 
 
-!------------------------------------------------------------------------------
-! Prior to 1/4/10:
-! Add better error-checking for exponential terms (win, bmy, 1/4/10)
-!            ! Aqueous phase SO2 loss rate (v/v/timestep): 
-!            L2  = EXP( ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM )  
-!            L3  = EXP( ( SO2_ss - O3    ) * KaqO3   * DTCHEM )       
-!
-!            ! Loss by H2O2
-!            L2S = SO2_ss * H2O20 * (L2 - 1.D0) / ((SO2_ss * L2) - H2O20)  
-!
-!            ! Loss by O3
-!            L3S = SO2_ss * O3    * (L3 - 1.D0) / ((SO2_ss * L3) - O3)     
-!------------------------------------------------------------------------------
-
             !----------------------------------------------------------
             ! Compute loss by H2O2.  Prevent floating-point exception
             ! by not allowing the exponential to go to infinity if 
@@ -1754,7 +1754,15 @@
             XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            ! Prior to 11/12/10:
+            ! If SO2_ss = H2O20 (i.e. if they are both zero), then prevent
+            ! a division by zero, because SO2_ss*L2 - H2O20 will be zero.
+            ! Only execute the "IF" part of the block if XX is nonzero.  
+            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
+            !IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
                L2  = EXP( XX )
@@ -1763,13 +1771,6 @@
                L2S = SO2_ss * H2O20 * ( L2 - 1.D0 ) / 
      &               ( (SO2_ss * L2) - H2O20 )  
             ELSE
-
-               !-------------------------------------------------------------
-               ! Prior to 4/28/10:
-               ! If exponential can't be computed, set to
-               ! the initial H2O2 concentration
-               !L2S = H2O20
-               !-------------------------------------------------------------
 
                ! NOTE from Jintai Lin (4/28/10):
                ! However, in the case of a negative XX, L2S should be 
@@ -1795,7 +1796,15 @@
             XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            ! Prior to 11/12/10:
+            ! If SO2_ss = O3 (i.e. if they are both zero), then prevent
+            ! a division by zero, because SO2_ss*L3 - O3 will be zero.
+            ! Only execute the "IF" part of the block if XX is nonzero.  
+            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
+            !IF ( IS_SAFE_EXP( XX ) ) THEN
+            !----------------------------------------------------------------
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
                L3  = EXP( XX )
@@ -1805,13 +1814,6 @@
 
             ELSE
  
-               !-------------------------------------------------------------
-               ! Prior to 4/28/10:
-               ! If exponential can't be computed, set to
-               ! the initial O3 concentration
-               !L3S = O3
-               !-------------------------------------------------------------
-
                ! Follow the same logic for L3S as described in
                ! Jintai Lin's note above (bmy, 4/28/10)
                IF ( XX > 0.d0 ) THEN 
@@ -6425,6 +6427,9 @@ c      print *,BINMASS(24,11,2,:)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -6454,8 +6459,11 @@ c      print *,BINMASS(24,11,2,:)
 
       ! Set year based on availability of volcanic emission files
       THISYEAR = INYEAR
-      IF ( INYEAR < 1985 ) THISYEAR = 1985
-      IF ( INYEAR > 2007 ) THISYEAR = 2007
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years.
+!      IF ( INYEAR < 1985 ) THISYEAR = 1985
+!      IF ( INYEAR > 2007 ) THISYEAR = 2007
+      THISYEAR = MAX( INYEAR, MNYEAR_VOLC )
+      THISYEAR = MIN( INYEAR, MXYEAR_VOLC )
 
       ! Need to deal with leap years for which there is no data (i.e.
       ! 2008). Assume emissions on Feb. 29th are identical to emissions
@@ -6467,8 +6475,13 @@ c      print *,BINMASS(24,11,2,:)
       YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
 
       ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!      FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &           'volcano_SO2_200909/' //
+!     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
+
       FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &           'volcano_SO2_200909/' //
+     &           'volcano_SO2_201010/' //
      &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
 
       ! Replace YYYY/MM in the file name
@@ -6529,6 +6542,9 @@ c      print *,BINMASS(24,11,2,:)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -6558,14 +6574,22 @@ c      print *,BINMASS(24,11,2,:)
 
       ! If the current year falls within the range of available data,
       ! get eruptive volcanic emissions (jaf, 10/15/09)
-      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+      IF ( ( INYEAR .GE. MNYEAR_VOLC )  .AND. 
+     &     ( INYEAR .LE. MXYEAR_VOLC ) ) THEN
 
          ! Set date
          YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
 
          ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!         FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &              'volcano_SO2_200909/' //
+!     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
+
          FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &              'volcano_SO2_200909/' //
+     &              'volcano_SO2_201010/' //
      &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
 
          ! Replace YYYY/MM in the file name
@@ -6604,12 +6628,23 @@ c      print *,BINMASS(24,11,2,:)
 
       ! If no data are available for current year, set eruptive
       ! emissions to zero and print a warning message.
-      ! Current data range is 1985-2007 (jaf, 10/15/09)
+      ! Current data range is MNYEAR_VOLC - MXYEAR_VOLC (jaf, 10/15/09)
+      ! Year parameters are defined at the beginning of the module.
+      ! (ccc, 9/30/10)
       ELSE
 
-         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
-     &               ' for 1985-2007. You are outside the window.'
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
+!     &               ' for 1985-2007. You are outside the window.'
+!         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+
+         WRITE(6, 110) MNYEAR_VOLC, MXYEAR_VOLC
          WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+ 110     FORMAT( 'WARNING: Eruptive SO2 emissions only available for ', 
+     &        i4,'-',i4,'. You are outside the window.')
+
 
          EEV = 0d0
 
@@ -7771,11 +7806,6 @@ c      print *,BINMASS(24,11,2,:)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!------------------------------------------------------------
-! Prior to 3/5/10:
-! STREETS needs to be held PRIVATE (dkh, bmy, 3/5/10)
-!!$OMP+PRIVATE( I, J )
-!------------------------------------------------------------
 !$OMP+PRIVATE( I, J, STREETS )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -8480,9 +8510,13 @@ c      print *,BINMASS(24,11,2,:)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
+#if   !defined( GEOS_5 ) && !defined( MERRA )
+      ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
+      ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
       VCLDF = 0d0
+#endif
 
       ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLTROP ), STAT=AS ) !(win, 1/25/10)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4_SO2AQ' )

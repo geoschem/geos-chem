@@ -1475,10 +1475,17 @@
          CATEGORY     = 'CH4-LOSS'
          N            = 1
 	
+! Replace LLPAR by LD19= # of levels requested in input.geos. (ccc, 7/29/10)
+!         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+!     &               HALFPOLAR, CENTER180, CATEGORY, N,
+!     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+!     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+!     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
+     &               IIPAR,     JJPAR,     LD19,    IFIRST,     
      &               JFIRST,    LFIRST,    AD19(:,:,:) )
 
 	ENDIF
@@ -4118,28 +4125,28 @@
 !
 !   # : Field  : Description                      : Units    : Scale factor
 !  -----------------------------------------------------------------------
-!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_A3
-!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_A3
-!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_A3
-!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_A3
-!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_A3
-!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_A3
-!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_A3
-!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_A3
-!  (9 ) PBL    : GMAO PBL depth                   : mb       : SCALE_A3
-!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_A3
-!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_A3
-!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_A3
+!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_ND67
+!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_ND67
+!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_ND67
+!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_ND67
+!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_ND67
+!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
+!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
+!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
+!  (9 ) PBL    : GMAO PBL depth                   : mb       : SCALE_ND67
+!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
+!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
+!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
 !  (13) PS-PBL : GMAO Boundary Layer Top Pressure : mb       : SCALEDYN
-!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_I6 
+!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
 !  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
-!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_I6
-!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_I6
-!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_A3
-!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_A3
-!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_A3
-!  (22) GWET   : Top soil wetness                 : unitless : SCALE_A3
+!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_ND67
+!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_ND67
+!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_ND67
+!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_ND67
+!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_ND67
+!  (22) GWET   : Top soil wetness                 : unitless : SCALE_ND67
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.

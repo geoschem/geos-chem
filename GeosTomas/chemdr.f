@@ -191,8 +191,9 @@
 !  (36) Now bracket out dust emissions if TOMAS is invoked (bmy, 1/25/10)
 !  (37) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
+!  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOP
+!EOPp
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -249,7 +250,6 @@
       NTLOOP = NLOOP * NVERT
 
       CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
-
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
@@ -388,7 +388,7 @@
       
          ELSE 
 
-            ! Use default background values 
+            ! Use restart values 
             WRITE(6,*) 
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
@@ -477,6 +477,9 @@
 
       ! SCHEM applies a simplified strat chemistry in order
       ! to prevent stuff from building up in the stratosphere
+      !
+      ! NOTE: SCHEM still needs to be called whether or not LINOZ is
+      ! used.  LINOZ is just a replacement for SYNOZ. (bmy, 4/28/10)
       CALL SCHEM
 
       !### Debug

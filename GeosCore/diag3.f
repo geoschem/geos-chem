@@ -3526,6 +3526,7 @@
 !  (6 ) Fix SCALEX for ALBEDO: use I6 for GEOS-3 only, and A3 for other
 !     models (phs, 9/3/08)
 !  (7 ) add EFLUX for output. (lin, ccc 5/29/09)
+!  26 Aug 2010 - R. Yantosca - Modified for MERRA
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
