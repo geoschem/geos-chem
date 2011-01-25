@@ -32,7 +32,6 @@
       PRIVATE :: FLASHES_MFLUX            
       PRIVATE :: FLASHES_PRECON           
       PRIVATE :: GET_IC_CG_RATIO          
-      PRIVATE :: READ_REGIONAL_REDIST     
       PRIVATE :: READ_LOCAL_REDIST        
       PRIVATE :: GET_OTD_LIS_SCALE        
       PRIVATE :: INIT_LIGHTNING_NOX       
@@ -53,6 +52,9 @@
 !  (4 ) Hudman et al (2007), JGR, 112, D12S05, doi:10.1029/2006JD007912
 !  (5 ) Sauvage et al, 2007, ACP, 
 !        http://www.atmos-chem-phys.net/7/815/2007/acp-7-815-2007.pdf
+!  (6 ) Ott et al., (2010), JGR
+!  (7 ) Allen et al., (2010), JGR
+!  (8 ) Murray et al., (2011), in prep.
 !
 ! !REVISION HISTORY:
 !  14 Apr 2004 - L. Murray, R. Hudman - Initial version
@@ -90,6 +92,11 @@
 !  (9 ) Added quick fix for GEOS-5 years 2004, 2005, 2008 (ltm, bmy, 4/29/09)
 !  (10) Updated OTD/LIS scaling for GEOS-5 reprocessed data (ltm, bmy, 7/10/09)
 !  (11) Updated for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
+!  (12) Reprocessed for CLDTOPS calculation error; Updated Ott vertical
+!        profiles; Removal of depreciated options, e.g., MFLUX and PRECON;
+!        GEOS5 5.1.0 vs. 5.2.0 special treatment; MERRA; Other changes.
+!        Please see PDF on wiki page for full description of lightning
+!        changes to v9-01-01. (ltm, 1/25/11)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  10 Nov 2010 - L. Murray   - Updated OTD/LIS local scaling for MERRA 4x5
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
@@ -105,7 +112,7 @@
       REAL*8               :: OTD_LIS_SCALE
 
       ! Parameters
-      INTEGER, PARAMETER   :: NLTYPE        = 3
+      INTEGER, PARAMETER   :: NLTYPE        = 4
       REAL*8,  PARAMETER   :: RFLASH_MIDLAT = 3.011d26   ! 500 mol/flash
       REAL*8,  PARAMETER   :: RFLASH_TROPIC = 1.566d26   ! 260 mol/flash
       REAL*8,  PARAMETER   :: EAST_WEST_DIV = -30d0
@@ -146,9 +153,7 @@
       USE DAO_MOD,      ONLY : BXHEIGHT,  CLDTOPS,    PRECON,   T, ZMMU
       USE DIAG56_MOD,   ONLY : AD56,      ND56
       USE GRID_MOD,     ONLY : GET_YMID,  GET_XMID,   GET_AREA_M2
-      USE LOGICAL_MOD,  ONLY : LCTH,      LMFLUX,     LOTDLOC
-      USE LOGICAL_MOD,  ONLY : LOTDREG,   LPRECON
-      USE LOGICAL_MOD,  ONLY : LOTDSCALE
+      USE LOGICAL_MOD,  ONLY : LOTDLOC
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
@@ -157,9 +162,6 @@
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
-!                                                                             .
-!  NOTE: all options other than CTH are now deprecated and will be removed
-!  in a future version. (L. Murray, R. Yantosca, 10 Nov 2010)
 ! 
 ! !REVISION HISTORY: 
 !  10 May 2006 - L. Murray - Initial version  
@@ -176,6 +178,9 @@
 !        midlatitudes (rch, ltm, bmy, 3/27/07)
 !  (3 ) Remove path-length algorithm.  Renamed from LIGHTNING_NL to LIGHTNING.
 !        Other improvements. (ltm, bmy, 9/24/07)
+!  (4 ) Remove depreciated options; Update to new Ott et al vertical profiles;
+!        Reprocessed for bug in CLDTOPS calculation. See PDF on wiki for
+!        full description of changes for v9-01-01. (ltm, bmy, 1/25,11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -215,26 +220,11 @@
       ! Get current month
       MONTH  = GET_MONTH()
 
-      ! Does the current year exceed that of the climatology window?  If so,
-      ! warn the user. (ltm, 09/24/07)
-      YEAR   = GET_YEAR()
-      IF ( LOTDREG .OR. LOTDLOC .OR. LOTDSCALE ) THEN
-         IF ( YEAR .GT. 2005 ) THEN
-            WRITE( 6, * ) 'WARNING: Lightning scaling/redist based on '
-            WRITE( 6, * ) ' the observed climatology for 1995-2005.'
-            WRITE( 6, * ) ' You are outside the OTD-LIS window.'
-         ENDIF
-      ENDIF
-
       ! Check if it's a new month
       IF ( MONTH /= LASTMONTH ) THEN
          
-         ! OTD-LIS regional redistribution: read monthly redist factors
-         IF ( LOTDREG ) THEN
-            CALL READ_REGIONAL_REDIST( MONTH )
-
          ! OTD-LIS local redistribution: read monthly redist factors
-         ELSE IF ( LOTDLOC ) THEN
+         IF ( LOTDLOC ) THEN
             CALL READ_LOCAL_REDIST( MONTH )
          ENDIF
 
@@ -397,30 +387,20 @@
 
             ! Cloud top level
             LTOP = CLDTOPS(I,J)
+            
+            ! Error check LTOP
+            IF ( LTOP == 0 ) CYCLE
 
             ! Error check LTOP as described above
             IF ( LTOP        >  LMAX      ) LTOP = LMAX
             IF ( LTOP        <  LCHARGE   ) CYCLE
 
-#if   defined( GEOS_5 ) || defined( MERRA )
+#if    defined( GEOS_4 )
 
             !--------------------------
-            ! GEOS-5 or MERRA only!
+            ! GEOS-4 only
             !--------------------------
-
-            ! Eliminate the shallow-cloud inhibition trap for 
-            ! GEOS-5 and local-redistribution (ltm, bmy, 2/20/08)
-            IF ( .not. LOTDLOC ) THEN
-               IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
-            ENDIF
-
-#else
-            !--------------------------
-            ! All other met fields
-            !--------------------------
-
-            ! Leave the shallow-cloud inhibition trap intact for
-            ! all other met fields than GEOS-5 (ltm, bmy, 2/20/08)
+            ! Shallow-cloud inhibition trap (see Murray et al. [2011])
             IF ( T(I,J,LTOP) >= T_NEG_TOP ) CYCLE
 
 #endif
@@ -549,63 +529,62 @@
             ! (ltm, bmy, 5/10/06, 12/11/06)
             !===========================================================
 
-            IF ( LCTH ) THEN
+            !--------------------------------------------------------
+            ! (5a) CLOUD TOP HEIGHT PARAMETERIZATION (all met fields)
+            !
+            ! Based on Price & Rind [1992,1993,1994].
+            !--------------------------------------------------------
 
-               !--------------------------------------------------------
-               ! (5a) CLOUD TOP HEIGHT PARAMETERIZATION (all met fields)
-               !
-               ! Based on Price & Rind (1992).
-               !--------------------------------------------------------
+            ! Get lightning flash rate per minute and IC/CG ratio
+            CALL FLASHES_CTH( I, J, H0, FLASHRATE )
 
-               ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_CTH( I, J, H0, FLASHRATE )
-
-            ELSE IF ( LMFLUX ) THEN
-
-               !--------------------------------------------------------
-               ! (5b) MFLUX PARAMETERIZATION (GEOS-4 only)
-               !
-               ! Call FLASHES_MFLUX to return the # of lightning 
-               ! flashes per minute.  ZMMU has to be converted from 
-               ! [Pa/s] to [kg/m2/min] to match the literature.  The 
-               ! conversion involves dividing by g and multiplying by 
-               ! a time conversion factor of 60 sec/min.
-               !
-               ! MFLUX is defined as the vertical mass flux at the 
-               ! first box with a pressure at the 0.44 sigma level 
-               ! (~440 hPa).  Allen et al [2002].  Sigma level 0.44 
-               ! (from GEOS-STRAT) was chosen because it limits 
-               ! lightning production to deep convective clouds.
-               !
-               ! For now hardwire the L_MFLUX value, since at L = 9 in
-               ! GEOS-4, sig mid = 0.433887, pressure ~ 433.893 hPa,
-               ! and altitude ~ 6.591 km.  Later, include a loop to run
-               ! through L-values until one is close to sig=0.44 for 
-               ! more compatability.
-               !--------------------------------------------------------
-
-               ! Layer where MFLUX is taken
-               L_MFLUX = 9
-
-               ! Convert from [Pa/s] --> [kg/m2/min]
-               MFLUX   = ZMMU( I, J, L_MFLUX ) * 60.0d0 / g0
-
-               ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
-
-            ELSE IF ( LPRECON ) THEN
-
-               !--------------------------------------------------------
-               ! (5c) PRECON PARAMETERIZATION (all met fields)
-               !--------------------------------------------------------
-
-               ! Convective precip [mm H2O/day]
-               RAIN = PRECON( I, J )
-
-               ! Get lightning flash rate per minute and IC/CG ratio
-               CALL FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
-               
-            ENDIF
+!           The following options have been depreciated.
+!           IF ( LMFLUX ) THEN
+!
+!               !--------------------------------------------------------
+!               ! (5b) MFLUX PARAMETERIZATION (GEOS-4 only)
+!               !
+!               ! Call FLASHES_MFLUX to return the # of lightning 
+!               ! flashes per minute.  ZMMU has to be converted from 
+!               ! [Pa/s] to [kg/m2/min] to match the literature.  The 
+!               ! conversion involves dividing by g and multiplying by 
+!               ! a time conversion factor of 60 sec/min.
+!               !
+!               ! MFLUX is defined as the vertical mass flux at the 
+!               ! first box with a pressure at the 0.44 sigma level 
+!               ! (~440 hPa).  Allen et al [2002].  Sigma level 0.44 
+!               ! (from GEOS-STRAT) was chosen because it limits 
+!               ! lightning production to deep convective clouds.
+!               !
+!               ! For now hardwire the L_MFLUX value, since at L = 9 in
+!               ! GEOS-4, sig mid = 0.433887, pressure ~ 433.893 hPa,
+!               ! and altitude ~ 6.591 km.  Later, include a loop to run
+!               ! through L-values until one is close to sig=0.44 for 
+!               ! more compatability.
+!               !--------------------------------------------------------
+!
+!               ! Layer where MFLUX is taken
+!               L_MFLUX = 9
+!
+!               ! Convert from [Pa/s] --> [kg/m2/min]
+!               MFLUX   = ZMMU( I, J, L_MFLUX ) * 60.0d0 / g0
+!
+!               ! Get lightning flash rate per minute and IC/CG ratio
+!               CALL FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
+!
+!            ELSE IF ( LPRECON ) THEN
+!
+!               !--------------------------------------------------------
+!               ! (5c) PRECON PARAMETERIZATION (all met fields)
+!               !--------------------------------------------------------
+!
+!               ! Convective precip [mm H2O/day]
+!               RAIN = PRECON( I, J )
+!
+!               ! Get lightning flash rate per minute and IC/CG ratio
+!               CALL FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
+!               
+!            ENDIF
 
             !===========================================================
             ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
@@ -682,20 +661,7 @@
             !
             ! We now emit at the Northern Mid-latitudes using an RFLASH
             ! value of 500 mol/flash.  This is independent of path 
-            ! length.  The overall final top-down scaling factor is not 
-            ! applied here.  Since we over-predict the total global 
-            ! flash rate slightly
-            !
-            !   OTD-LIS         :  45.9 flashes/sec; 
-            !   GEOS-CHEM 4x5   :  68.2 flashes/sec; 
-            !   GEOS-Chem 2x2.5 : 170.4 flashes/sec
-            !
-            ! an appropriate scaling factor is applied to the mid-
-            ! latitudes boxes ( 45.9/68.2 or 45.9/170.4 ) so that we
-            ! don't over-predict the amount of NOx released.  In 2004, 
-            ! using just 500 mol/flash and no additional scaling, this 
-            ! creates a MidLat LNOx contribution of 5.46 Tg N, and with 
-            ! scaling (as in the implemented version), 3.68 Tg N.
+            ! length.  
             !
             ! NOTE: The OTD-LIS local redistribution method was expanded
             ! upon from Sauvage et al, 2007, ACP.
@@ -718,13 +684,13 @@
             ! Convert [flashes/min] to [flashes/6h]
             RATE     = FLASHRATE * 360.0d0
 
-            ! Get factors for OTD-LIS regional redistribution, OTD-LIS local
-            ! redistribution, or no redistribution.  Redistribution makes sure 
-            ! that the flashes appear in the proper place geographically.
+            ! Get factors for OTD-LIS local redistribution or none.
+            ! This constrains the seasonality and spatial distribution
+            ! of the parameterized lightning to match the HRMC v2.2
+            ! product from LIS/OTD, while still allowing the model to
+            ! place lightning locally within deep convective events.
             ! (ltm, bmy, 1/31/07)
-            IF ( LOTDREG ) THEN
-               REDIST = OTD_REG_REDIST(I,J)
-            ELSE IF ( LOTDLOC ) THEN
+            IF ( LOTDLOC ) THEN
                REDIST = OTD_LOC_REDIST(I,J)
             ELSE
                REDIST = 1d0
@@ -736,7 +702,7 @@
 
             ! Apply scaling factor to make sure annual average flash rate 
             ! equals that of the climatology. (ltm, 09/24/07)
-            IF ( LOTDSCALE ) RATE = RATE * OTD_LIS_SCALE
+            RATE = RATE * OTD_LIS_SCALE
 
             !-----------------------------------------------------------
             ! (6b) Compute cloud-ground/total flash ratio
@@ -816,7 +782,7 @@
             ! the ground to the convective cloud top using cumulative
             ! distribution functions for ocean flashes, tropical land
             ! flashes, and non-tropical land flashes, as specified by
-            ! Ken Pickering (1997).
+            ! Lesley Ott [JGR, 2010]
             !-----------------------------------------------------------
 
             ! If there's lightning w/in the column ...
@@ -857,8 +823,10 @@
       USE DAO_MOD,       ONLY : BXHEIGHT, IS_ICE,  IS_LAND
       USE DAO_MOD,       ONLY : IS_NEAR,  IS_WATER
       USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,      ONLY : IU_FILE,  IOERROR
-      USE LOGICAL_MOD,   ONLY : LPRECON
+      USE GRID_MOD,      ONLY : GET_YMID
+      USE TIME_MOD,      ONLY : GET_MONTH
 
 #     include "CMN_SIZE"                        ! Size parameters
 !
@@ -879,6 +847,8 @@
 !  References:
 !  ============================================================================
 !  (1 ) Pickering et al., JGR 103, 31,203 - 31,316, 1998.
+!  (2 ) Ott et al., JGR, 2010
+!  (3 ) Allen et al., JGR, 2010
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2002 - M. Evans - Initial version (based on Yuhang Wang's code)
@@ -904,6 +874,8 @@
 !  (8 ) Now uses near-land formulation (ltm, bmy, 5/10/06)
 !  (9 ) Added extra safety check for pathological boxes (bmy, 12/11/06)
 !  (10) Remove the near-land formulation, except for PRECON (ltm, bmy, 9/24/07)
+!  (11) Now use the Ott et al. [2010] profiles, and apply consistently with
+!        GMI model [Allen et al., 2010] (ltm, bmy, 1/25/11).
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -911,9 +883,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: ITS_LAND
-      INTEGER            :: M, MTYPE, L, III, IOS, IUNIT, JJJ
-      REAL*8             :: ZHEIGHT
+      INTEGER            :: M, MTYPE, L, III, IOS, IUNIT, JJJ, MONTH
+      REAL*8             :: ZHEIGHT, YMID
       REAL*8             :: FRAC(LLPAR)
       CHARACTER(LEN=255) :: FILENAME
 
@@ -924,6 +895,8 @@
       ! Initialize 
       MTYPE    = 0
       VERTPROF = 0d0
+      MONTH    = GET_MONTH()
+      YMID     = GET_YMID(J)
 
       !=================================================================
       ! Test whether location (I,J) is continental, marine, or snow/ice
@@ -932,68 +905,67 @@
       ! assign a flag describing the type of lightning:
       !
       !   MTYPE = 1: ocean lightning
-      !   MTYPE = 2: tropical continental lightning (from 30S to 30N)
-      !   MTYPE = 3: midlatitude continental lightning (all other lats)
-      !       
-      ! Here, we are using the "near-land" criteria.  Grid boxes that:
-      !
-      !   (a) contain at least 20% land (25% for PRECON param), and/or
-      !   (b) have a nearest-neighbor box that is a land box
-      !
-      ! are treated as if they were themselves land boxes.  Therefore, 
-      ! the continental lightning flash rates will be applied to land 
-      ! boxes PLUS those boxes which are located just offshore.
-      !
-      ! Also, there is no lightning over the polar regions, so we
-      ! return with VERTPROF(:) = 0 if the box is mostly snow/ice.
-      !
-      ! (ltm, bmy, 5/10/06)
+      !   MTYPE = 2: tropical continental lightning
+      !   MTYPE = 3: midlatitude continental lightning 
+      !   MTYPE = 4: subtropical lightning
+      !             
+      ! (ltm, bmy, 1/25/11)
       !=================================================================
 
-      ! Test for near-land and save w/in a variable
-      IF ( LPRECON ) THEN
-         ITS_LAND = IS_NEAR( I, J, 0.25d0, 0 )
-      ELSE 
-         ITS_LAND = IS_LAND( I, J )
-      ENDIF
+      ! Assign profile kind to grid box, following Allen et al. 
+      ! [JGR, 2010] (ltm, 1/25,11)
+      SELECT CASE (MONTH)
 
-      ! Test for land/water/ice
-      IF ( ITS_LAND ) THEN
+      ! Southern Hemisphere Summer
+      CASE ( 1,2,3,12 )
 
-         !------------------------------
-         ! Land or Near-Land box
-         !------------------------------
-         IF ( ABS( XLAT ) <= 30 ) THEN
-
-            ! Tropical continental lightning
-            MTYPE = 2
-
+         IF ( ABS(YMID) .le. 15 ) THEN
+            IF ( IS_LAND(I,J) ) THEN
+               MTYPE = 2        ! Tropical continental
+            ELSE
+               MTYPE = 1        ! Tropical marine
+            ENDIF
+         ELSE IF ( ( YMID .gt. 15. ) .and. ( YMID .le. 30. ) ) THEN
+            MTYPE = 4           ! N. Subtropics
+         ELSE IF ( ( YMID .ge. -40. ) .and. ( YMID .lt. -15. ) ) THEN
+            MTYPE = 4           ! S. Subtropics
          ELSE
-
-            ! Midlatitude continental lightning
-            MTYPE = 3
-
+            MTYPE = 3           ! Midlatitude
          ENDIF
 
-      ELSE IF ( IS_WATER( I, J ) ) THEN
+      ! Equinox months
+      CASE ( 4,5,10,11 )
 
-         !------------------------------
-         ! Ocean box (not near-land)
-         !------------------------------
-    
-         ! Marine lightning
-         MTYPE = 1
+         IF ( ABS(YMID) .le. 15 ) THEN
+            IF ( IS_LAND(I,J) ) THEN
+               MTYPE = 2        ! Tropical continental
+            ELSE
+               MTYPE = 1        ! Tropical marine
+            ENDIF
+         ELSE IF ( ABS(YMID) .le. 30 ) THEN
+            MTYPE = 4           ! Subtropics
+         ELSE
+            MTYPE = 3           ! Midlatitude
+         ENDIF
 
-      ELSE IF ( IS_ICE( I, J ) ) THEN
+      ! Northern Hemisphere Summer
+      CASE ( 6,7,8,9 )
 
-         !------------------------------
-         ! Snow/Ice box (e.g. at poles)
-         !------------------------------
-
-         ! Turn off lightning 
-         RETURN
-
-      ENDIF
+         IF ( ABS(YMID) .le. 15 ) THEN
+            IF ( IS_LAND(I,J) ) THEN
+               MTYPE = 2        ! Tropical continental
+            ELSE
+               MTYPE = 1        ! Tropical marine
+            ENDIF
+         ELSE IF ( ( YMID .gt. 15. ) .and. ( YMID .le. 40. ) ) THEN
+            MTYPE = 4           ! N. Subtropics
+         ELSE IF ( ( YMID .ge. -30. ) .and. ( YMID .lt. -15. ) ) THEN
+            MTYPE = 4           ! S. Subtropics
+         ELSE
+            MTYPE = 3           ! Midlatitude
+         ENDIF
+         
+      END SELECT
 
       ! Extra safety check for pathological grid boxes (bmy, 11/29/06)
       IF ( MTYPE == 0 ) RETURN
@@ -1509,104 +1481,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_regional_redist
-!
-! !DESCRIPTION: Subroutine READ\_REGIONAL\_REDIST reads in monthly factors 
-!  in order to redistribute GEOS-Chem flash rates according the OTD-LIS 
-!  climatological regional redistribution method.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_REGIONAL_REDIST( MONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0
-      USE BPCH2_MOD,     ONLY : READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LCTH
-      USE LOGICAL_MOD,   ONLY : LMFLUX
-      USE LOGICAL_MOD,   ONLY : LPRECON
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"                ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)    :: MONTH   ! Current month
-! 
-! !REVISION HISTORY:
-!  10 May 2006 - R. Yantosca - Initial version
-!  (1 ) Change CTH filename from "v0" to "v2". Renamed to READ_REGIONAL_REDIST.
-!        (lth, bmy, 2/22/07)
-!  (2 ) Change all filenames from "v2" to "v3".  Also now read from the 
-!        directory lightning_NOx_200709. (ltm, bmy, 9/24/07)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8             :: TAU0
-      CHARACTER(LEN=255) :: FILENAME
-
-      !=================================================================
-      ! READ_OTD_LIS_REDIST begins here!
-      !=================================================================
-
-      ! Get file name
-      IF ( LCTH ) THEN
-
-         ! OTD-LIS regional file for CTH parameterization
-         FILENAME = 'OTD-LIS-Regional-Redist.CTH.v3.'   // 
-     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ELSE IF ( LMFLUX ) THEN
-
-         ! OTD-LIS regional file for MFLUX parameterization
-         FILENAME = 'OTD-LIS-Regional-Redist.MFLUX.v3.'  // 
-     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ELSE IF ( LPRECON ) THEN
-
-         ! OTD-LIS regional file for PRECON parameterization
-         FILENAME = 'OTD-LIS-Regional-Redist.PRECON.v3.' // 
-     &               GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ENDIF
-     
-      ! Prefix directory to file name
-      FILENAME = TRIM( DATA_DIR )        // 
-     &           'lightning_NOx_200709/' // TRIM( FILENAME ) 
-
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_REGIONAL_REDIST: Reading ', a )
-
-      ! Use "generic" year 1985 for time indexing
-      TAU0 = GET_TAU0( MONTH, 1, 1985 ) 
-
-      ! Read data
-      CALL READ_BPCH2( FILENAME, 'OTD-REG',  1, 
-     &                 TAU0,      IGLOB,     JGLOB,     
-     &                 1,         ARRAY,     QUIET=.TRUE. )  
-
-      ! Cast to REAL*8 and resize if necessary
-      CALL TRANSFER_2D( ARRAY(:,:,1), OTD_REG_REDIST )
-
-      END SUBROUTINE READ_REGIONAL_REDIST
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_local_redist
 !
 ! !DESCRIPTION: Subroutine READ\_LOCAL\_REDIST reads in seasonal factors 
@@ -1628,9 +1502,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE LOGICAL_MOD,   ONLY : LCTH
-      USE LOGICAL_MOD,   ONLY : LMFLUX
-      USE LOGICAL_MOD,   ONLY : LPRECON
+      USE TIME_MOD,      ONLY : GET_TAU
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"                ! Size parameters
@@ -1650,6 +1522,9 @@
 !  (4 ) Now read from lightning_NOx_200907 directory for GEOS-4 and
 !        GEOS-5 CTH parameterizations.  Updated OTD/LIS for GEOS-5 based on
 !        4+ years of data; removed temporary fixes. (ltm, bmy, 7/10/09)
+!  (5 ) Remove depreciated options and update to v5 of redist files in
+!       new data directory. Special handling for GEOS5.1.0 and 5.2.0 added. 
+!       (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1660,52 +1535,43 @@
       REAL*4             :: ARRAY(IGLOB,JGLOB,1)
       REAL*8             :: TAU0
       CHARACTER(LEN=255) :: FILENAME
+      CHARACTER(LEN=9)   :: MODELNAME
 
       !=================================================================
       ! READ_LOCAL_REDIST begins here!
       !=================================================================
 
-      !%%% NOTE: Now read CTH parameterization files from the 
-      !%%% lightning_NOx_200907 directory.  Leave the MFLUX and PRECON
-      !%%% files for GEOS-4 in lightning_NOx_200709, those are going
-      !%%% to be phased out in the next release (ltm, bmy, 7/10/09)
+      ! Get model name
+#if   defined( MERRA )
+      MODELNAME = 'merra'
+#elif defined( GEOS_5 )
+      ! GEOS-5 convection scheme changed in GCM post 9/1/2008
+      IF ( GET_TAU() .ge. GET_TAU0( 9, 1, 2008 ) ) THEN
+         MODELNAME = 'geos5.2.0'
+      ELSE
+         MODELNAME = 'geos5.1.0'
+      ENDIF
+#else
+      MODELNAME = GET_NAME_EXT()
+#endif
 
       ! Get file name
-      IF ( LCTH ) THEN
-
-         ! OTD-LIS Local file for CTH parameterization
-         FILENAME = 
-     &        'lightning_NOx_200907/OTD-LIS-Local-Redist.CTH.v4.' // 
-#if defined( MERRA )
-     &        'merra.' // GET_RES_EXT()
-#else
-     &        GET_NAME_EXT() // '.' // GET_RES_EXT()
-#endif
-      ELSE IF ( LMFLUX ) THEN
-
-         ! OTD-LIS Local file for MFLUX parameterization
-         FILENAME = 
-     &        'lightning_NOx_200709/OTD-LIS-Local-Redist.MFLUX.v3.' // 
-     &         GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ELSE IF ( LPRECON ) THEN
-
-         ! OTD-LIS local file for PRECON parameterization
-         FILENAME = 
-     &        'lightning_NOx_200709/OTD-LIS-Local-Redist.PRECON.v3.' // 
-     &        GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ENDIF
+      ! OTD-LIS Local file for CTH parameterization
+      FILENAME = 
+     &        'lightning_NOx_201101/OTD-LIS-Local-Redist.CTH.v5.' // 
+     &        TRIM( MODELNAME ) // '.' // GET_RES_EXT()
 
       ! Prefix directory to file name
       FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
-
+      
       ! For GEOS-5 nested grids, append the a suffix to denote either 
       ! CHINA or NORTH AMERICA nested regions (ltm, bmy, 11/14/08)
-#if   defined( NESTED_CH ) 
+#if   defined( GEOS_5 ) && defined( NESTED_CH ) 
       FILENAME = TRIM( FILENAME ) // '.CH'
-#elif defined( NESTED_NA ) 
+#elif defined( GEOS_5 ) && defined( NESTED_NA ) 
       FILENAME = TRIM( FILENAME ) // '.NA'
+#elif defined( GEOS_5 ) && defined( NESTED_EU ) 
+      FILENAME = TRIM( FILENAME ) // '.EU'
 #endif
 
       ! Echo info
@@ -1808,25 +1674,25 @@
 !  scale factor which is to be applied to the lightning flash rate to bring 
 !  the annual average flash rate to match that of the OTD-LIS climatology 
 !  ( ~ 45.9 flashes/sec ). Computed by running the model over the 11-year 
-!  OTD-LIS campaign window and comparing the average flash rates.
+!  OTD-LIS campaign window and comparing the average flash rates, or as 
+!  many years as are available.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_OTD_LIS_SCALE() RESULT( SCALE )
+      FUNCTION GET_OTD_LIS_SCALE() RESULT( BETA )
 !
 ! !USES:
 !
 #     include "define.h"
 
-      USE LOGICAL_MOD, ONLY : LCTH
-      USE LOGICAL_MOD, ONLY : LMFLUX
-      USE LOGICAL_MOD, ONLY : LPRECON
-      USE LOGICAL_MOD, ONLY : LOTDLOC
+      USE BPCH2_MOD,   ONLY : GET_TAU0
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,    ONLY : GET_TAU
 !
 ! !RETURN VALUE:
 !
-      REAL*8 :: SCALE   ! Scale factor
+      REAL*8 :: BETA    ! Scale factor
 !
 ! !REMARKS:
 ! 
@@ -1844,7 +1710,8 @@
 !  (6 ) Updated scale factors for GEOS-5 based on 4+ years of data.  Remove
 !        temporary fixes. (bmy, 7/10/09)
 !  (7 ) Modification for GEOS-4 1 x 1.25 grid (lok, ltm, bmy, 1/13/10)
-!  13 Aug 2010 - R. Yantosca - For now, treat MERRA like GEOS-5
+!  (8 ) Reprocessed for error in CLDTOPS field; Updated for GEOS
+!        5.1.0 vs. 5.2.0; MERRA added; (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1865,186 +1732,149 @@
 #elif defined( GRID1x125 )
       REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8655d0
 #elif defined( GRID05x0666 ) && defined( NESTED_CH )
-      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.75523d0
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
+#elif defined( GRID05x0666 ) && defined( NESTED_NA )
+      REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+#endif
+
+#if   defined( GEOS_5 )
+
+      ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
+      LOGICAL :: GEOS_520
+
+      ! Lightning is sensitive to which convection scheme
+      ! is used in the GCM used for the data assimilation.
+      ! GEOS-5 changed its scheme in met fields following 9/1/2008,
+      ! and requires special treatment. (ltm, 1/25/11)
+      if ( GET_TAU() .GE. GET_TAU0( 9, 1, 2008 ) ) then
+         GEOS_520 = .TRUE.      ! Using GEOS 5.2.0
+      else
+         GEOS_520 = .FALSE.     ! Using GEOS 5.1.0
+      endif
+
 #endif
 
       !=================================================================
       ! GET_OTD_LIS_SCALE begins here!
       !=================================================================
 
-#if   defined( GCAP )
+      ! The lightning flash rate equations are sensitive to model resolution
+      ! and convection scheme used in the data assimilation.
+      ! We know from the LIS/OTD satellite products that the global annual
+      ! average flash rate is 46 fl s-1. We determine a single scaling 
+      ! factor, beta, to be applied uniformly 
+      !
+      ! beta =  ( Annual Average Flash Rate Observed ) / 
+      !           ( Annual Average Flash Rate Unconstr Parameterization )
+      !
+      ! This is equivalent to modifying the first coefficient of the 
+      ! Price and Rind [1992] formulation to get the right magnitude 
+      ! for a given model framework.
+      ! 
+      ! Beta corresponds to beta in Murray et al. [2011]
+      !
+      ! Note: GEOS-5 requires separate factors for GEOS 5.2.0 and 5.1.0.
+      ! (ltm, 1/25/11)
 
-      !-------------------------------------
-      ! GCAP: 4 x 5 global simulation
-      !-------------------------------------
-      WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GCAP'
-      SCALE = 1.0d0
+      ! Initialize
+      BETA = 1d0
 
-#elif defined( MERRA ) && defined( GRID4x5 )
+#if   defined( MERRA ) && defined( GRID4x5 )
 
-      !-------------------------------------
+      !---------------------------------------
       ! MERRA: 4 x 5 global simulation
-      !-------------------------------------
-      ! Note: Begin to depreciate anything except CTH
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 76.019042d0
 
-      IF ( LCTH ) THEN
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 24.766724d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 21.839849d0
-         ENDIF
-      ELSE
-         WRITE( 6, '(a)' )
-     &        'Warning: Use CTH with MERRA, and OTD/LIS is recommended'
-         SCALE = 1.0d0
-      ENDIF
-      
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_NA)
 
-      !-------------------------------------
-      ! GEOS-5: 4 x 5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
+      !---------------------------------------
+      ! GEOS 5: 0.5 x 0.666
+      ! Nested grid simulation: North America
+      !---------------------------------------
+      if ( GEOS_520 ) then
+         BETA = 1d0
+      else
+         BETA = ANN_AVG_FLASHRATE / 186.81288d0
+      endif
 
-         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
-         !       and compared against OTD/LIS May 1995-Dec 2005
-         !       (ltm, bmy, 7/10/09)
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 21.4694d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 18.3875d0
-         ENDIF
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
 
-      ELSE
-         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'   
-         SCALE = 1.0d0
-      ENDIF
+      !---------------------------------------
+      ! GEOS 5: 0.5 x 0.666
+      ! Nested grid simulation: China
+      !---------------------------------------
+      if ( GEOS_520 ) then
+         BETA = ANN_AVG_FLASHRATE / 598.19036d0
+      else
+         BETA = ANN_AVG_FLASHRATE / 546.56367d0
+      endif  
 
 #elif defined( GEOS_5 ) && defined( GRID2x25 )
 
-      !-------------------------------------
-      ! GEOS-5: 2 x 2.5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
+      !---------------------------------------
+      ! GEOS 5: 2 x 2.5 global simulation
+      !---------------------------------------
+      if ( GEOS_520 ) then
+         BETA = ANN_AVG_FLASHRATE / 221.90013d0
+      else
+         BETA = ANN_AVG_FLASHRATE / 199.54964d0
+      endif
 
-         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
-         !       and compared against OTD/LIS May 1995-Dec 2005
-         !       (ltm, bmy, 7/10/09)
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 64.0538d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 52.0135d0
-         ENDIF
-      ELSE
-         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
-         SCALE = 1.0d0
-      ENDIF
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) & defined( NESTED_CH )
-
-      !-------------------------------------
-      ! GEOS-5: 0.5 x 0.666
-      ! Nested grid simulation: CHINA
-      !-------------------------------------
-      IF ( LCTH ) THEN
-
-         ! Note: These values are computed from geos5 Dec 2003-Feb 2009,
-         !       and compared against OTD/LIS May 1995-Dec 2005
-         !       (ltm, bmy, 7/10/09)
-         IF ( LOTDLOC ) THEN
-            SCALE = ANN_AVG_FLASHRATE / 175.392d0
-         ELSE
-            SCALE = ANN_AVG_FLASHRATE / 75.0679d0
-         ENDIF
-      ELSE
-         WRITE( 6, '(a)' ) 'Warning: OTD-LIS GEOS5 scaling only for CTH'
-         SCALE = 1.0d0
-      ENDIF
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) & defined( NESTED_NA )
-
-      !-------------------------------------
-      ! GEOS-5: 0.5 x 0.666
-      ! Nested grid simulation: N. AMERICA
-      !-------------------------------------
-      WRITE(6,*) 'OTD/LIS not yet available for GEOS5 Nested NA sim.'
-      CALL FLUSH(6)
-      SCALE = 1.0d0
-
-#elif defined( GEOS_4 ) && defined( GRID4x5 )
-
-      !-------------------------------------
-      ! GEOS-4: 4 x 5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 29.3173d0
-
-      ELSE IF ( LMFLUX ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 1.93753d0
-
-      ELSE IF ( LPRECON ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 30.4879d0
-
-      ENDIF
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
+      
+      !---------------------------------------
+      ! GEOS 5: 4 x 5 global simulation
+      !---------------------------------------
+      if ( GEOS_520 ) then
+         BETA = ANN_AVG_FLASHRATE / 70.525888d0
+      else
+         BETA = ANN_AVG_FLASHRATE / 64.167893d0
+      endif
 
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
       
-      !-------------------------------------
-      ! GEOS-4: 2 x 2.5 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 83.3208d0
+      !---------------------------------------
+      ! GEOS 4: 2 x 2.5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 83.522403d0
 
-      ELSE IF ( LMFLUX ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 9.24531d0
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
 
-      ELSE IF ( LPRECON ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 135.305d0
+      !---------------------------------------
+      ! GEOS 4: 4 x 5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 29.359449d0
 
-      ENDIF
-
-#elif defined( GEOS_4 ) && defined( GRID1x125 )
-
-      !-------------------------------------
-      ! GEOS-4: 1 x 1.25 global simulation
-      !-------------------------------------
-      IF ( LCTH ) THEN
-         SCALE = ANN_AVG_FLASHRATE / 305.885d0
-      ELSE
-         WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for 1x125'
-         SCALE = 1.0d0
-      ENDIF
-
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_CH ) 
-
-      !-------------------------------------
-      ! GEOS-3: 1 x 1
-      ! Nested grid simulation: CHINA
-      !-------------------------------------
-      WRITE(6,*) 'Warning: OTD-LIS Scaling not defined for NESTED CH'
-      SCALE = 1.0d0
-
-#elif defined( GEOS_3 ) && defined( GRID1x1 ) && defined( NESTED_NA ) 
-
-      !-------------------------------------
-      ! GEOS-3: 1 x 1
-      ! Nested grid simulation: N. AMERICA
-      !-------------------------------------
-
-      ! NOTE: This was determined for the GEOS-3 nested grid 2001, 
-      ! which we needed to use for the MIT/FAA ULS sulfur project 
-      ! (ltm, bmy, phs, 11/12/08)
-      SCALE = 6.98353d0 / 44.9307d0
-
-#elif defined( GEOS_3 )
-
-      !-------------------------------------
-      ! GEOS-3: global simulation
-      !-------------------------------------
-      WRITE( 6, * ) 'Warning: OTD-LIS Scaling not defined for GEOS3'
-      SCALE = 1.0d0
+#elif   defined( GCAP )
+      
+      !---------------------------------------
+      ! GCAP: 4 x 5 global simulation
+      !---------------------------------------
+      BETA = ANN_AVG_FLASHRATE / 49.020136d0
 
 #endif
+
+      IF ( BETA .eq. 1d0 ) THEN
+
+         WRITE( 6,* ) 'Your model framework has not had its'
+         WRITE( 6,* ) 'lightning code reprocessed for the correction'
+         WRITE( 6,* ) 'to how CLDTOPS are calculated, probably due to'
+         WRITE( 6,* ) 'the lack of your met fields at Harvard.'
+         WRITE( 6,* ) ''
+         WRITE( 6,* ) 'Please contact Lee Murray'
+         WRITE( 6,* ) '(ltmurray@post.harvard.edu), who can help you'
+         WRITE( 6,* ) 'prepare the necessary modifications and files'
+         WRITE( 6,* ) 'to get lightning working for you.'
+         WRITE( 6,* ) ''
+         WRITE( 6,* ) 'You may remove this trap in lightning_nox_mod.f'
+         WRITE( 6,* ) 'at your own peril, but be aware that the'
+         WRITE( 6,* ) 'magnitude and distribution of lightning may be'
+         WRITE( 6,* ) 'unrealistic.'
+         
+         CALL GEOS_CHEM_STOP
+         
+      ENDIF
 
       END FUNCTION GET_OTD_LIS_SCALE
 !EOC
@@ -2072,12 +1902,7 @@
       USE FILE_MOD,      ONLY : IU_FILE
       USE GRID_MOD,      ONLY : GET_YEDGE
       USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,   ONLY : LCTH
-      USE LOGICAL_MOD,   ONLY : LMFLUX
-      USE LOGICAL_MOD,   ONLY : LPRECON
       USE LOGICAL_MOD,   ONLY : LOTDLOC
-      USE LOGICAL_MOD,   ONLY : LOTDREG
-      USE LOGICAL_MOD,   ONLY : LOTDSCALE
 
 #     include "CMN_SIZE"      ! Size parameters
 ! 
@@ -2096,6 +1921,8 @@
 !        INIT_LIGHTNING_NOX.  Now allocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  (7 ) Also update location of PDF file to lightning_NOx_200709 directory. 
 !        (bmy, 1/24/08)
+!  (8 ) Read in new Ott profiles from lightning_NOx_201101. Remove
+!        depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -2117,34 +1944,10 @@
 
       ! Get scaling factor to match annual average global flash rate
       ! (ltm, 09/24/07)
-      IF ( LOTDSCALE ) OTD_LIS_SCALE = GET_OTD_LIS_SCALE()
+      OTD_LIS_SCALE = GET_OTD_LIS_SCALE()
 
-      ! NNLIGHT is the number of points for the lightning PDF's
+      ! NNLIGHT is the number of points for the lightning CDF's
       NNLIGHT = 3200
-
-      ! Find area of box centered at 30N.  This is necessary for the 
-      ! PRECON and MFLUX parameterizations, which are normalized to a 
-      ! box this size in the literature. (ltm, bmy, 5/10/06)
-      IF ( LMFLUX .or. LPRECON ) THEN
-       
-         ! Loop over latitudes
-         DO JJJ = 1, JJPAR             
-                                
-            ! S and N latitude edges of grid box [degrees]
-            Y0 = GET_YEDGE( JJJ   )
-            Y1 = GET_YEDGE( JJJ+1 )
-
-            ! Test if the box center spans 30N
-            IF ( Y0 <= 30d0 .and. Y1 >= 30d0 ) THEN
-
-               ! Grid box surface area [m2] 
-               AREA_30N = GET_AREA_M2( JJJ )
-
-               ! Break out of loop
-               EXIT
-            ENDIF
-         ENDDO
-      ENDIF
 
       !-----------------
       ! Allocate arrays
@@ -2165,14 +1968,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SLBASE' )
       SLBASE = 0d0
 
-      IF ( LOTDREG ) THEN
-
-         ! Array for OTD-LIS regional redistribution factors
-         ALLOCATE( OTD_REG_REDIST( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'OTD_REG_REDIST' )
-         OTD_REG_REDIST = 0d0
-
-      ELSE IF ( LOTDLOC ) THEN
+      IF ( LOTDLOC ) THEN
 
          ! Array for OTD-LIS local redistribution factors
          ALLOCATE( OTD_LOC_REDIST( IIPAR, JJPAR ), STAT=AS )
@@ -2182,18 +1978,12 @@
       ENDIF
 
       !=================================================================
-      ! Read lightning CDF for GEOS-3, GEOS-4, GEOS-5, GCAP met data
-      ! 
-      ! NOTE: Since some of these vertical grids have a fine vertical
-      ! resolution near the surface, we had to interpolate Ken
-      ! Pickering CDF's to a much finer mesh, with 3200 points instead 
-      ! of 100.  This was done by Mat Evans.  The vertical resolution
-      ! of the CDF's in the file read in below is 0.05 km. 
+      ! Read lightning CDF from Ott et al [JGR, 2010]. (ltm, 1/25/11)
       !=================================================================
 
-      ! Define filename for GEOS-3 CDF file
-      FILENAME = TRIM( DATA_DIR ) // 
-     &           'lightning_NOx_200709/light_dist.dat.geos345.gcap'        
+      ! Define filename
+      FILENAME = 'lightning_NOx_201101/light_dist.ott2010.dat'
+      FILENAME = TRIM( DATA_DIR ) // TRIM( FILENAME ) 
 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
@@ -2241,6 +2031,7 @@
 !        (bmy, 1/31/07)
 !  (3 ) Renamed from CLEANUP_LIGHTNING_NOX_NL to CLEANUP_LIGHTNING_NOX.
 !        Now deallocate EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!  (4 ) Remove depreciated options. (ltm, bmy, 1/25/11)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -2251,7 +2042,6 @@
       IF ( ALLOCATED( EMIS_LI_NOx    ) ) DEALLOCATE( EMIS_LI_NOx    )
       IF ( ALLOCATED( PROFILE        ) ) DEALLOCATE( PROFILE        )
       IF ( ALLOCATED( SLBASE         ) ) DEALLOCATE( SLBASE         )
-      IF ( ALLOCATED( OTD_REG_REDIST ) ) DEALLOCATE( OTD_REG_REDIST )
       IF ( ALLOCATED( OTD_LOC_REDIST ) ) DEALLOCATE( OTD_LOC_REDIST )
 
       END SUBROUTINE CLEANUP_LIGHTNING_NOx

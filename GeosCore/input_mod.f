@@ -108,6 +108,7 @@
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
+!  (33) Remove depreciated lightning options (ltm, bmy, 1/24/11)
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -1369,8 +1370,8 @@
       USE LOGICAL_MOD, ONLY : LNEI99,     LSHIPSO2,  LSOILNOX,  LTOMSAI   
       USE LOGICAL_MOD, ONLY : LWOODCO,    LMEGAN,    LMEGANMONO,LEMEP
       USE LOGICAL_MOD, ONLY : LFERTILIZERNOX
-      USE LOGICAL_MOD, ONLY : LOTDREG,    LOTDLOC,   LCTH,      LMFLUX
-      USE LOGICAL_MOD, ONLY : LOTDSCALE,  LPRECON,   LBRAVO,    LEDGAR    
+      USE LOGICAL_MOD, ONLY : LOTDLOC
+      USE LOGICAL_MOD, ONLY : LBRAVO,    LEDGAR    
       USE LOGICAL_MOD, ONLY : LEDGARNOx,  LEDGARCO,  LEDGARSOx 
       USE LOGICAL_MOD, ONLY : LEDGARSHIP, LSTREETS,  LCAC,      LVISTAS
       USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
@@ -1424,6 +1425,7 @@
 !  (27) Now force MEGAN to use MODIS LAI (ccarouge, bmy, 2/24/10)
 !  (28) Add separate switch for NOx fertilizer. (fp, 2/29/10)
 !  (29) Add scaling for isoprene and NOx emissions. (fp, 2/29/10)
+!  (30) Remove depreciated lightning options. (ltm, 1/25,11)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
 !EOP
@@ -1566,79 +1568,60 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:30' )
       READ( SUBSTRS(1:N), * ) LLIGHTNOX
 
-      ! Scale lightning flash rate to OTD-LIS annual averate rate?
+      ! Apply OTD-LIS local redistribution for lightning spatial and
+      ! seasonal constraint
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:31' )
-      READ( SUBSTRS(1:N), * ) LOTDSCALE
-
-      ! Use OTD-LIS regional redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
-      READ( SUBSTRS(1:N), * ) LOTDREG
-
-      ! Use OTD-LIS local redistribution for lightning flash rates
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LOTDLOC
 
-      ! Use Cloud-top-height (CTH) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
-      READ( SUBSTRS(1:N), * ) LCTH
-
-      ! Use Mass-flux (MFLUX) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
-      READ( SUBSTRS(1:N), * ) LMFLUX
-
-      ! Use Convective precip (PRECON) lightning parameterization
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
-      READ( SUBSTRS(1:N), * ) LPRECON
-
       ! Use soil NOx
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:32' )
       READ( SUBSTRS(1:N), * ) LSOILNOX
 
       ! separate use fertilizer and soil NOx (fp, 06/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:33' )
       READ( SUBSTRS(1:N), * ) LFERTILIZERNOX
 
       !(FP, 15/12/09)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:34' )
       READ( SUBSTRS(1:N), * ) NOx_SCALING
 
       ! Separator line (start of ship emissions)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
 
       ! Use ship EDGAR ship emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
       READ( SUBSTRS(1:N), * ) LEDGARSHIP
 
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:37' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
 
       ! Use ship EMEP emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:38' )
       READ( SUBSTRS(1:N), * ) LEMEPSHIP
 
       ! Use ship SO2 Corbett emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:39' )
       READ( SUBSTRS(1:N), * ) LSHIPSO2
 
       ! Use ship ARCTAS (SO2, CO2) emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:40' )
       READ( SUBSTRS(1:N), * ) LARCSHIP
 
       ! Use COOKE over North AMerica for BC/OC?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LCOOKE
 
       ! Use AVHRR-derived LAI fields?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:47' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
       ! Use MODIS-derived LAI fields? (mpb,2009)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:48' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:49' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
 
       !=================================================================
       ! Error check logical flags
@@ -1832,73 +1815,21 @@
          ENDIF
       ! ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
       
-      !=================================================================
-      ! Error check lightning switches
-      !=================================================================
-      IF ( LLIGHTNOX ) THEN
-
-         ! Make sure people don't set both LOTDREG=T and LOTDLOC=T
-         IF ( LOTDREG .and. LOTDLOC ) THEN
-            MSG = 'LOTDREG, LOTDLOC cannot both be turned on!'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-
-         IF ( LOTDREG ) THEN
-            MSG = 'Regional redistribution of lightning not yet '  //
-     &            'available for OTD-LIS. Use local redist or none.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-
 #if   defined( GEOS_5 )
          
          !--------------------------------
          ! GEOS-5 warnings & error traps
          !--------------------------------
 
-         ! Display warning
-         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
-            WRITE( 6, 150 )
- 150        FORMAT( 
-     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
-     &         '% Warning: GEOS-5 redistribution calculated from %',/
-     &         '% one year (2005) of model simulation versus     %',/
-     &         '% the 11-year satellite climatology (1995-2005)  %',/
-     &         '% because of GEOS-5 availability.                %',/
-     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%' )
-         ENDIF
+#endif
 
-         ! Error trap if wrong options selected
-         IF ( LMFLUX .or. LPRECON ) THEN
-            MSG =  'MFLUX or PRECON not available for GEOS-5 yet. ' //
-     &             'Select CTH instead.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-
-#elif defined( MERRA    )
-
-         ! Display warning
-         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
-            WRITE( 6, 150 )
- 150        FORMAT( 
-     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/
-     &         '% Warning: MERRA redistribution not computed yet %',/
-     &         '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%' )
-         ENDIF
-
-         ! Error trap if wrong options selected
-         IF ( LMFLUX .or. LPRECON ) THEN
-            MSG =  'MFLUX or PRECON not available for MERRA yet. ' //
-     &             'Select CTH instead.'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-
-#elif defined( GEOS_3   )
+#if defined( GEOS_3   )
 
          !--------------------------------
          ! GEOS-3 error trap
          !--------------------------------
 
-         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+         IF ( LOTDLOC ) THEN
             MSG = 'Lightning rescaling not available for GEOS-3.  ' //
      &            'Use one of the parameterizations without '       //
      &            'redist/scale.  CTH performs best on GEOS-4 and ' //
@@ -1913,22 +1844,15 @@
          ! GCAP error message 
          !--------------------------------
 
-         IF ( LOTDLOC .or. LOTDREG .or. LOTDSCALE ) THEN
+         IF ( LOTDLOC ) THEN
             MSG = 'Lightning rescaling not available nor very ' //
      &            'appropriate for GCAP sim because of window ' // 
      &            'of OTD/LIS satellite observations.  Select ' //
-     &            'one of the raw params without redist/rescaling.'
+     &            'one of the raw params without redist.'
             CALL ERROR_STOP( MSG, LOC )
          ENDIF
 
 #endif
-
-         ! Make sure one of LCTH, LMFLUX, LPRECON is selected
-         IF ( .not. LCTH .and. .not. LMFLUX .and. .not. LPRECON ) THEN
-            MSG = 'One of LCTH, LMFLUX, LPRECON must be T!'
-            CALL ERROR_STOP( MSG, LOC )
-         ENDIF
-      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -1965,12 +1889,7 @@
       WRITE( 6, 100     ) '    3hr GFED emission?      : ', L3HRBB 
       WRITE( 6, 100     ) '    synoptic GFED ?         : ', LSYNOPBB
       WRITE( 6, 100     ) 'Turn on LIGHTNING NOx?      : ', LLIGHTNOX
-      WRITE( 6, 100     ) 'Scale to OTD-LIS avg flrte? : ', LOTDSCALE
-      WRITE( 6, 100     ) 'Use OTD-LIS regional redist : ', LOTDREG
       WRITE( 6, 100     ) 'Use OTD-LIS local redist?   : ', LOTDLOC
-      WRITE( 6, 100     ) 'Use CTH LIGHTNING Param?    : ', LCTH
-      WRITE( 6, 100     ) 'Use MFLUX LIGHTNING Param?  : ', LMFLUX
-      WRITE( 6, 100     ) 'Use PRECON LIGHTNING Param? : ', LPRECON
       WRITE( 6, 100     ) 'Turn on AIRCRAFT NOx?       : ', LAIRNOX
       WRITE( 6, 100     ) 'Turn on SOIL NOx?           : ', LSOILNOX
 !FP_ISOP (6/2009)
@@ -5753,9 +5672,9 @@
       USE LOGICAL_MOD,   ONLY : LMEGAN,     LMEGANMONO, LDYNOCEAN
       USE LOGICAL_MOD,   ONLY : LGFED2BB,   LFUTURE,    LEDGAR
       USE LOGICAL_MOD,   ONLY : LEDGARNOx,  LEDGARCO,   LEDGARSHIP
-      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP,   LOTDREG
-      USE LOGICAL_MOD,   ONLY : LOTDLOC,    LCTH,       LMFLUX
-      USE LOGICAL_MOD,   ONLY : LOTDSCALE,  LPRECON,    LEMEP
+      USE LOGICAL_MOD,   ONLY : LEDGARSOx,  LVARTROP
+      USE LOGICAL_MOD,   ONLY : LOTDLOC
+      USE LOGICAL_MOD,   ONLY : LEMEP
       USE LOGICAL_MOD,   ONLY : LNEI05,     LPREINDHG
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       USE LOGICAL_MOD,   ONLY : LLINOZ
@@ -5833,7 +5752,6 @@
       LBIOFUEL     = .FALSE.
       LBIOGENIC    = .FALSE.
       LBBSEA       = .FALSE.
-      LCTH         = .FALSE.
       LDYNOCEAN    = .FALSE.
       LEMEP        = .FALSE.
       LEMIS        = .FALSE.
@@ -5849,14 +5767,10 @@
       LLIGHTNOX    = .FALSE.
       LMEGAN       = .FALSE.
       LMEGANMONO   = .FALSE.
-      LMFLUX       = .FALSE.
       LMONOT       = .FALSE.
       LNEI99       = .FALSE.
       LNEI05       = .FALSE.
       LOTDLOC      = .FALSE.
-      LOTDREG      = .FALSE.
-      LOTDSCALE    = .FALSE.
-      LPRECON      = .FALSE.
       LSHIPSO2     = .FALSE.
       LSOILNOX     = .FALSE.
       LTOMSAI      = .FALSE.

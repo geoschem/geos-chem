@@ -769,13 +769,13 @@
       ! CLDTOPS highest location of CMFMC in the column (I,J)
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         K = 1
-         DO L = 1, LLPAR
+         CLDTOPS(I,J) = 1
+         DO L = LLPAR, 1, -1
             IF ( CMFMC(I,J,L) > 0d0 ) THEN
-               K = K + 1
+               CLDTOPS(I,J) = L + 1
+               EXIT
             ENDIF
          ENDDO
-         CLDTOPS(I,J) = K
       ENDDO
       ENDDO
 
