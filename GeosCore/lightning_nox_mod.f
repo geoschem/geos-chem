@@ -1795,7 +1795,7 @@
       if ( GEOS_520 ) then
          BETA = 1d0
       else
-         BETA = ANN_AVG_FLASHRATE / 186.81288d0
+         BETA = ANN_AVG_FLASHRATE / 160.51908d0
       endif
 
 #elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
@@ -1805,7 +1805,7 @@
       ! Nested grid simulation: China
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = ANN_AVG_FLASHRATE / 598.19036d0
+         BETA = ANN_AVG_FLASHRATE / 573.24835d0
       else
          BETA = ANN_AVG_FLASHRATE / 546.56367d0
       endif  
@@ -1816,7 +1816,7 @@
       ! GEOS 5: 2 x 2.5 global simulation
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = ANN_AVG_FLASHRATE / 221.90013d0
+         BETA = ANN_AVG_FLASHRATE / 221.72962d0
       else
          BETA = ANN_AVG_FLASHRATE / 199.54964d0
       endif
@@ -1827,7 +1827,7 @@
       ! GEOS 5: 4 x 5 global simulation
       !---------------------------------------
       if ( GEOS_520 ) then
-         BETA = ANN_AVG_FLASHRATE / 70.525888d0
+         BETA = ANN_AVG_FLASHRATE / 70.236997d0
       else
          BETA = ANN_AVG_FLASHRATE / 64.167893d0
       endif
@@ -1851,7 +1851,7 @@
       !---------------------------------------
       ! GCAP: 4 x 5 global simulation
       !---------------------------------------
-      BETA = ANN_AVG_FLASHRATE / 49.020136d0
+      BETA = ANN_AVG_FLASHRATE / 48.681763d0
 
 #endif
 
