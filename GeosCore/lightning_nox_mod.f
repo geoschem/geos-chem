@@ -29,8 +29,12 @@
 !
       PRIVATE :: LIGHTDIST                
       PRIVATE :: FLASHES_CTH              
-      PRIVATE :: FLASHES_MFLUX            
-      PRIVATE :: FLASHES_PRECON           
+      !------------------------------------------------------------------------
+      ! Prior to 1/25/11:
+      ! These are now obsolete and will be removed later (ltm, bmy, 1/25/11)
+      !PRIVATE :: FLASHES_MFLUX            
+      !PRIVATE :: FLASHES_PRECON           
+      !------------------------------------------------------------------------
       PRIVATE :: GET_IC_CG_RATIO          
       PRIVATE :: READ_LOCAL_REDIST        
       PRIVATE :: GET_OTD_LIS_SCALE        
@@ -538,6 +542,8 @@
             ! Get lightning flash rate per minute and IC/CG ratio
             CALL FLASHES_CTH( I, J, H0, FLASHRATE )
 
+!------------------------------------------------------------------------------
+! Prior to 1/25/11:
 !           The following options have been depreciated.
 !           IF ( LMFLUX ) THEN
 !
@@ -585,6 +591,7 @@
 !               CALL FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
 !               
 !            ENDIF
+!------------------------------------------------------------------------------
 
             !===========================================================
             ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
@@ -1082,285 +1089,290 @@
       END SUBROUTINE FLASHES_CTH
 !EOC
 !------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
+! Prior to 1/25/11:
+! The following subroutines are obsolete and to be removed later.
+! (ltm, bmy, 1/25/11)
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: flashes_mflux
+!!
+!! !DESCRIPTION: Subroutine FLASHES\_MFLUX determines the rate of lightning 
+!!  flashes per minute, based on the upward cloud mass flux [kg/m2/min] 
+!!  at 0.44 sigma, and the intra-cloud to cloud-ground strike ratio. 
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
+!!
+!! !USES:
+!!
+!      USE DAO_MOD,  ONLY : IS_ICE
+!      USE GRID_MOD, ONLY : GET_AREA_M2
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN)  :: I             ! Longitude index
+!      INTEGER, INTENT(IN)  :: J             ! Latitude index
+!      REAL*8,  INTENT(IN)  :: MFLUX         ! Cloud mass flux [kg/m2/min]
+!      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Inter-cloud/cloud-ground ratio
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
+!!
+!! !REMARKS:
+!!  %%%%% NOTE: This routine is deprecated %%%%%
+!! 
+!! 
+!! !REVISION HISTORY: 
+!!  10 May 2006 - L. Murray - Initial version
+!!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
+!!        argument.  Remove computation of IC_CG_RATIO and move that to 
+!!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
+!!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      REAL*8 :: F_CG, LF_CG, MF
+!
+!      !=================================================================
+!      ! FLASHES_MFLUX begins here!
+!      !=================================================================       
+!
+!      ! Test for land type
+!      IF ( IS_ICE( I, J ) ) THEN
+!
+!         ! Suppress lightning near poles
+!         FLASHRATE   = 0d0
+!
+!      ELSE
+!
+!         !==============================================================
+!         ! (1) COMPUTE CLOUD-GROUND LIGHTNING FLASH RATE / MINUTE
+!         !
+!         ! Allen and Pickering (2002) give the following 
+!         ! parameterizations for lightning flash rates as a function 
+!         ! of upward cloud mass flux [kg m^-2 min^-1] at 0.44 sigma:
+!         !
+!         !    LF_CG = [delta x][delta y] *
+!         !            ( a + b*M + c*M^2 + d*M^3 + e*M^4 ) / A
+!         !
+!         !    For: 0 < M < 9.6 [km/m2/min]
+!         !
+!         ! Where:
+!         !    (1) LF_CG is the CG flash rate [flashes/min)] within the
+!         !         2.0 x 2.5 grid box 
+!         !    (2) a, b, c, d, e are coefficients, listed below
+!         !    (3) [delta x][delta y] is the area of the grid box
+!         !    (4) A is the area of a 2.0 x 2.5 box centered at 30N
+!         !    (5) M is the upward cloud mass flux at 0.44 sigma
+!         !        
+!         ! Since the polynomial experiences an inflection at 
+!         ! M ~= 9.6 [km/m2/min], points greater than this are 
+!         ! set to 9.6 [km/m2/min].
+!         ! 
+!         ! The polynomial coefficients are:
+!         !    a=-2.34e-2, b=3.08e-1, c=-7.19e-1, d=5.23e-1, e=-3.71e-2
+!         !
+!         ! NOTE: LF_CG is the cloud-ground flash rate.
+!         !==============================================================
+!
+!         ! Cap mass flux at 9.6 [km/m2/min]
+!         MF = MIN( MFLUX, 9.6d0 )
+!
+!         ! First make the polynomial
+!         LF_CG = -2.34d-02 + MF * ( -3.71d-02 +
+!     &                       MF * (  5.23d-01 +
+!     &                       MF * ( -7.19d-01 +
+!     &                       MF * (  3.08d-01 ) ) ) )
+!
+!         ! Now normalize it by the area of the box at 30N
+!         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
+!         
+!         !==============================================================
+!         ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
+!         !==============================================================
+!
+!         ! Cloud-ground flash rate [flashes/min]
+!	 F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
+!
+!	 ! Divide the CG flash rate by the fraction of CG/total flashes
+!         ! to get the total flash rate in [flashes/min]
+!         FLASHRATE   = LF_CG / F_CG
+!         
+!      ENDIF
+!
+!      END SUBROUTINE FLASHES_MFLUX
+!!EOC
+!!------------------------------------------------------------------------------
+!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: flashes_precon
+!!
+!! !DESCRIPTION: Subroutine FLASHES\_PRECON determines the rate of lightning 
+!!  flashes per minute, based on the rate of surface-level convective 
+!!  precipitation, and the intra-cloud to cloud-ground strike ratio.  
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!      SUBROUTINE FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
+!!
+!! !USES:
+!!
+!      USE DAO_MOD,  ONLY : IS_NEAR
+!      USE DAO_MOD,  ONLY : IS_ICE
+!      USE DAO_MOD,  ONLY : IS_WATER
+!      USE GRID_MOD, ONLY : GET_AREA_M2
+!!
+!! !INPUT PARAMETERS: 
+!!
+!      INTEGER, INTENT(IN)  :: I             ! Longitude index
+!      INTEGER, INTENT(IN)  :: J             ! Latitude index
+!      REAL*8,  INTENT(IN)  :: RAIN          ! Convective precip
+!      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Intra-cloud/cloud-ground ratio
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
+!!
+!! !REMARKS:
+!!  %%%%% NOTE: This routine is deprecated %%%%%
+!! 
+!! !REVISION HISTORY: 
+!!  10 May 2006 - R. Yantosca - Initial version 
+!!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
+!!        argument.  Remove computation of IC_CG_RATIO and move that to 
+!!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
+!!  (2 ) Do not treat land neighbors as land anymore. (ltm, 09/24/07)
+!!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!      LOGICAL           :: ITS_LAND
+!      REAL*8            :: F_CG, LF_CG, PR
+!!
+!! !DEFINED PARAMETERS:
+!!
+!      REAL*8, PARAMETER :: THRESH = 0.25      ! Min % of land in box 
+!
+!      !=================================================================
+!      ! FLASHES_PRECON begins here!
+!      !
+!      ! (1) COMPUTE CLOUD-GROUND LIGHTNING FLASH RATE / MINUTE
+!      !
+!      ! Allen and Pickering (2002) give the following parameterizations 
+!      ! for CG lightning flash rates as a function of surface 
+!      ! convective precipitation [mm d^-1] during the 6-hr period:
+!      !
+!      !    LF_CG = [delta x][delta y] *
+!      !            ( a + b*P + c*P^2 + d*P^3 + e*P^4 ) /A,
+!      !                                           
+!      !    For: 7 < P < 90 [mm/day]
+!      !       
+!      ! Where:
+!      !    (1) LF_CG = CG flash rate (flashes/min) w/in the grid box
+!      !    (2) a, b, c, d, e are coefficients, listed below
+!      !    (3) [delta x][delta y] is the area of the grid box
+!      !    (4) A is the area of a grid box centered at 30N
+!      !    (5) P is the PRECON rate [mm/day] during the 6-hour period.
+!      ! 
+!      ! Land equation for boxes that are greater than 25% land.
+!      ! Water equation for boxes that are less than 25% land.
+!      !
+!      ! The polynomial coefficients for land boxes are:
+!      !   a=3.75e-02, b=-4.76e-02, c=5.41e-03, d=3.21e-04, e=-2.93e-06
+!      !
+!      ! and the polynomial coefficients for water boxes are:
+!      !   a=5.23e-02, b=-4.80e-02, c=5.45e-03, d=3.68e-05, e=-2.42e-07
+!      !
+!      ! Both polynomials give slightly negative values for small precip
+!      ! rates. In addition, the land polynomial has an inflection point 
+!      ! at ~90 [mm/day]. Therefore flash rates are set to 0 for precip
+!      ! rates of less than 7 [mm/day] and to the value at 90 [mm/day]
+!      ! precipitation rates exceeding 90 [mm/day].
+!      !=================================================================
+!
+!      ! Make sure PR is w/in 7-90 [mm/day]
+!      IF ( RAIN > 90.0d0 ) THEN
+!         PR = 90.0d0
+!      ELSE IF ( RAIN < 7.0d0 ) THEN
+!         PR = 7.0d0
+!      ELSE
+!         PR = RAIN
+!      ENDIF
+!
+!      ! Test if the box is a land box or a near-land box
+!      ITS_LAND = IS_NEAR( I, J, THRESH, 0 )
+!
+!      ! Test for land type
+!      IF ( ITS_LAND ) THEN
+!
+!         !---------------------------
+!         ! Land box
+!         !---------------------------
+!
+!         ! First make the polynomial
+!         LF_CG = 3.75d-02 + PR * ( -4.76d-02 +
+!     &                      PR * (  5.41d-03 +
+!     &                      PR * (  3.21d-04 +
+!     &                      PR * ( -2.93d-06 ) ) ) )
+!
+!         ! Then normalize it by the area the box at 30N
+!         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
+!
+!      ELSE IF ( IS_WATER( I, J ) ) THEN
+!
+!         !---------------------------
+!         ! Water box
+!         !---------------------------
+!
+!         ! First make the polynomial
+!         LF_CG = 5.23d-02 + PR * ( -4.80d-02 +
+!     &                      PR * (  5.45d-03 +
+!     &                      PR * (  3.68d-05 +
+!     &                      PR * ( -2.42d-07 ) ) ) )
+!
+!         ! Then normalize it by the area the box at 30N
+!         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
+!
+!      ELSE IF ( IS_ICE( I, J ) ) THEN
+!
+!         !---------------------------
+!         ! Snow/ice box (e.g. poles)
+!         !---------------------------
+!
+!         ! Suppress lightning over poles
+!         FLASHRATE   = 0d0
+!
+!      ENDIF
+!
+!      !=================================================================
+!      ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
+!      !=================================================================
+!
+!      ! Cloud-ground flash rate [flashes/min]
+!      F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
+!
+!      ! Divide the CG flash rate by the fraction of CG/total flashes
+!      ! to get the total flash rate in [flashes/min]
+!      FLASHRATE   = LF_CG / F_CG
+!
+!      END SUBROUTINE FLASHES_PRECON
+!!EOC
 !------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: FLASHES_MFLUX
-!
-! !DESCRIPTION: Subroutine FLASHES\_MFLUX determines the rate of lightning 
-!  flashes per minute, based on the upward cloud mass flux [kg/m2/min] 
-!  at 0.44 sigma, and the intra-cloud to cloud-ground strike ratio. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE FLASHES_MFLUX( I, J, MFLUX, IC_CG_RATIO, FLASHRATE )
-!
-! !USES:
-!
-      USE DAO_MOD,  ONLY : IS_ICE
-      USE GRID_MOD, ONLY : GET_AREA_M2
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: I             ! Longitude index
-      INTEGER, INTENT(IN)  :: J             ! Latitude index
-      REAL*8,  INTENT(IN)  :: MFLUX         ! Cloud mass flux [kg/m2/min]
-      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Inter-cloud/cloud-ground ratio
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
-!
-! !REMARKS:
-!  %%%%% NOTE: This routine is deprecated %%%%%
-! 
-! 
-! !REVISION HISTORY: 
-!  10 May 2006 - L. Murray - Initial version
-!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
-!        argument.  Remove computation of IC_CG_RATIO and move that to 
-!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL*8 :: F_CG, LF_CG, MF
-
-      !=================================================================
-      ! FLASHES_MFLUX begins here!
-      !=================================================================       
-
-      ! Test for land type
-      IF ( IS_ICE( I, J ) ) THEN
-
-         ! Suppress lightning near poles
-         FLASHRATE   = 0d0
-
-      ELSE
-
-         !==============================================================
-         ! (1) COMPUTE CLOUD-GROUND LIGHTNING FLASH RATE / MINUTE
-         !
-         ! Allen and Pickering (2002) give the following 
-         ! parameterizations for lightning flash rates as a function 
-         ! of upward cloud mass flux [kg m^-2 min^-1] at 0.44 sigma:
-         !
-         !    LF_CG = [delta x][delta y] *
-         !            ( a + b*M + c*M^2 + d*M^3 + e*M^4 ) / A
-         !
-         !    For: 0 < M < 9.6 [km/m2/min]
-         !
-         ! Where:
-         !    (1) LF_CG is the CG flash rate [flashes/min)] within the
-         !         2.0 x 2.5 grid box 
-         !    (2) a, b, c, d, e are coefficients, listed below
-         !    (3) [delta x][delta y] is the area of the grid box
-         !    (4) A is the area of a 2.0 x 2.5 box centered at 30N
-         !    (5) M is the upward cloud mass flux at 0.44 sigma
-         !        
-         ! Since the polynomial experiences an inflection at 
-         ! M ~= 9.6 [km/m2/min], points greater than this are 
-         ! set to 9.6 [km/m2/min].
-         ! 
-         ! The polynomial coefficients are:
-         !    a=-2.34e-2, b=3.08e-1, c=-7.19e-1, d=5.23e-1, e=-3.71e-2
-         !
-         ! NOTE: LF_CG is the cloud-ground flash rate.
-         !==============================================================
-
-         ! Cap mass flux at 9.6 [km/m2/min]
-         MF = MIN( MFLUX, 9.6d0 )
-
-         ! First make the polynomial
-         LF_CG = -2.34d-02 + MF * ( -3.71d-02 +
-     &                       MF * (  5.23d-01 +
-     &                       MF * ( -7.19d-01 +
-     &                       MF * (  3.08d-01 ) ) ) )
-
-         ! Now normalize it by the area of the box at 30N
-         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
-         
-         !==============================================================
-         ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
-         !==============================================================
-
-         ! Cloud-ground flash rate [flashes/min]
-	 F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
-
-	 ! Divide the CG flash rate by the fraction of CG/total flashes
-         ! to get the total flash rate in [flashes/min]
-         FLASHRATE   = LF_CG / F_CG
-         
-      ENDIF
-
-      END SUBROUTINE FLASHES_MFLUX
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: flashes_precon
-!
-! !DESCRIPTION: Subroutine FLASHES\_PRECON determines the rate of lightning 
-!  flashes per minute, based on the rate of surface-level convective 
-!  precipitation, and the intra-cloud to cloud-ground strike ratio.  
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE FLASHES_PRECON( I, J, RAIN, IC_CG_RATIO, FLASHRATE )
-!
-! !USES:
-!
-      USE DAO_MOD,  ONLY : IS_NEAR
-      USE DAO_MOD,  ONLY : IS_ICE
-      USE DAO_MOD,  ONLY : IS_WATER
-      USE GRID_MOD, ONLY : GET_AREA_M2
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN)  :: I             ! Longitude index
-      INTEGER, INTENT(IN)  :: J             ! Latitude index
-      REAL*8,  INTENT(IN)  :: RAIN          ! Convective precip
-      REAL*8,  INTENT(IN)  :: IC_CG_RATIO   ! Intra-cloud/cloud-ground ratio
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,  INTENT(OUT) :: FLASHRATE     ! Lighting flash rate [flash/min]
-!
-! !REMARKS:
-!  %%%%% NOTE: This routine is deprecated %%%%%
-! 
-! !REVISION HISTORY: 
-!  10 May 2006 - R. Yantosca - Initial version 
-!  (1 ) Remove CCTHICK as an argument.  Now change IC_CG_RATIO to an input
-!        argument.  Remove computation of IC_CG_RATIO and move that to 
-!        GET_IC_CG_RATIO. (ltm, bmy, 12/11/06)
-!  (2 ) Do not treat land neighbors as land anymore. (ltm, 09/24/07)
-!  10 Nov 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL           :: ITS_LAND
-      REAL*8            :: F_CG, LF_CG, PR
-!
-! !DEFINED PARAMETERS:
-!
-      REAL*8, PARAMETER :: THRESH = 0.25      ! Min % of land in box 
-
-      !=================================================================
-      ! FLASHES_PRECON begins here!
-      !
-      ! (1) COMPUTE CLOUD-GROUND LIGHTNING FLASH RATE / MINUTE
-      !
-      ! Allen and Pickering (2002) give the following parameterizations 
-      ! for CG lightning flash rates as a function of surface 
-      ! convective precipitation [mm d^-1] during the 6-hr period:
-      !
-      !    LF_CG = [delta x][delta y] *
-      !            ( a + b*P + c*P^2 + d*P^3 + e*P^4 ) /A,
-      !                                           
-      !    For: 7 < P < 90 [mm/day]
-      !       
-      ! Where:
-      !    (1) LF_CG = CG flash rate (flashes/min) w/in the grid box
-      !    (2) a, b, c, d, e are coefficients, listed below
-      !    (3) [delta x][delta y] is the area of the grid box
-      !    (4) A is the area of a grid box centered at 30N
-      !    (5) P is the PRECON rate [mm/day] during the 6-hour period.
-      ! 
-      ! Land equation for boxes that are greater than 25% land.
-      ! Water equation for boxes that are less than 25% land.
-      !
-      ! The polynomial coefficients for land boxes are:
-      !   a=3.75e-02, b=-4.76e-02, c=5.41e-03, d=3.21e-04, e=-2.93e-06
-      !
-      ! and the polynomial coefficients for water boxes are:
-      !   a=5.23e-02, b=-4.80e-02, c=5.45e-03, d=3.68e-05, e=-2.42e-07
-      !
-      ! Both polynomials give slightly negative values for small precip
-      ! rates. In addition, the land polynomial has an inflection point 
-      ! at ~90 [mm/day]. Therefore flash rates are set to 0 for precip
-      ! rates of less than 7 [mm/day] and to the value at 90 [mm/day]
-      ! precipitation rates exceeding 90 [mm/day].
-      !=================================================================
-
-      ! Make sure PR is w/in 7-90 [mm/day]
-      IF ( RAIN > 90.0d0 ) THEN
-         PR = 90.0d0
-      ELSE IF ( RAIN < 7.0d0 ) THEN
-         PR = 7.0d0
-      ELSE
-         PR = RAIN
-      ENDIF
-
-      ! Test if the box is a land box or a near-land box
-      ITS_LAND = IS_NEAR( I, J, THRESH, 0 )
-
-      ! Test for land type
-      IF ( ITS_LAND ) THEN
-
-         !---------------------------
-         ! Land box
-         !---------------------------
-
-         ! First make the polynomial
-         LF_CG = 3.75d-02 + PR * ( -4.76d-02 +
-     &                      PR * (  5.41d-03 +
-     &                      PR * (  3.21d-04 +
-     &                      PR * ( -2.93d-06 ) ) ) )
-
-         ! Then normalize it by the area the box at 30N
-         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
-
-      ELSE IF ( IS_WATER( I, J ) ) THEN
-
-         !---------------------------
-         ! Water box
-         !---------------------------
-
-         ! First make the polynomial
-         LF_CG = 5.23d-02 + PR * ( -4.80d-02 +
-     &                      PR * (  5.45d-03 +
-     &                      PR * (  3.68d-05 +
-     &                      PR * ( -2.42d-07 ) ) ) )
-
-         ! Then normalize it by the area the box at 30N
-         LF_CG = LF_CG * ( GET_AREA_M2( J ) / AREA_30N )
-
-      ELSE IF ( IS_ICE( I, J ) ) THEN
-
-         !---------------------------
-         ! Snow/ice box (e.g. poles)
-         !---------------------------
-
-         ! Suppress lightning over poles
-         FLASHRATE   = 0d0
-
-      ENDIF
-
-      !=================================================================
-      ! (2) COMPUTE TOTAL FLASHRATE FROM IC/CG RATIO
-      !=================================================================
-
-      ! Cloud-ground flash rate [flashes/min]
-      F_CG        = 1d0 / ( 1d0 + IC_CG_RATIO )
-
-      ! Divide the CG flash rate by the fraction of CG/total flashes
-      ! to get the total flash rate in [flashes/min]
-      FLASHRATE   = LF_CG / F_CG
-
-      END SUBROUTINE FLASHES_PRECON
-!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
