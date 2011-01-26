@@ -232,6 +232,14 @@
             CALL READ_LOCAL_REDIST( MONTH )
          ENDIF
 
+#if defined( GEOS_5 ) 
+      ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
+      ! this value is different before and after Sept 1, 2008. 
+      ! So reset value at start of each month, just in case it's
+      ! a 2008 simulation. (ltm,1/26/11)
+      OTD_LIS_SCALE = GET_OTD_LIS_SCALE()
+#endif
+
          ! Reset for next month
          LASTMONTH = MONTH
       ENDIF
