@@ -184,41 +184,46 @@
       !=================================================================
 
       ! Filename string
-      !FILENAME = 'rate.YYYYMMDD'
-      !CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+      FILENAME = 'rate.YYYYMMDD'
+      CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
 
-      ! -----------------------------------------
-      ! dbj 
-      ! JLIU, 2008/10/01
-      ! -----------------------------------------
-      IF (TAGO3_PL_YEAR .GT. 0) THEN
+      ! Get the TAU0 value for today
+      XTAU = GET_TAU()
 
-          ! Extract today's date into year, month, and day sections
-          CALL YMD_EXTRACT( GET_NYMD(), YYYY, MM, DD )
-
-          IF ( ITS_A_LEAPYEAR() ) THEN
-             IF ( (.NOT. ITS_A_LEAPYEAR(TAGO3_PL_YEAR)) .AND. 
-     &            (DD .EQ. 29) ) THEN
-                 DD = DD - 1
-             ENDIF
-          ENDIF
-
-#if       defined( LINUX_PGI )
-          ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
-          ENCODE( 2, '(a,i4.4,i2.2,i2.2)', FILENAME ) 
-     &        'rate.',TAGO3_PL_YEAR,MM,DD
-#else
-          ! For other platforms, use an F90 internal write (bmy, 9/29/03)
-          WRITE(FILENAME, '(a,i4.4,i2.2,i2.2)') 
-     &         'rate.',TAGO3_PL_YEAR,MM,DD
-#endif
-
-      ELSE
-          FILENAME = 'rate.YYYYMMDD'
-          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
-      ENDIF
-
-!------------------------------------------
+!------------------------------------------------------------------------------
+! Comment out for now (bmy, 2/4/11)
+!      ! -----------------------------------------
+!      ! dbj 
+!      ! JLIU, 2008/10/01
+!      ! -----------------------------------------
+!      IF (TAGO3_PL_YEAR .GT. 0) THEN
+!
+!          ! Extract today's date into year, month, and day sections
+!          CALL YMD_EXTRACT( GET_NYMD(), YYYY, MM, DD )
+!
+!          IF ( ITS_A_LEAPYEAR() ) THEN
+!             IF ( (.NOT. ITS_A_LEAPYEAR(TAGO3_PL_YEAR)) .AND. 
+!     &            (DD .EQ. 29) ) THEN
+!                 DD = DD - 1
+!             ENDIF
+!          ENDIF
+!
+!#if       defined( LINUX_PGI )
+!          ! Use ENCODE statement for PGI/Linux (bmy, 9/29/03)
+!          ENCODE( 2, '(a,i4.4,i2.2,i2.2)', FILENAME ) 
+!     &        'rate.',TAGO3_PL_YEAR,MM,DD
+!#else
+!          ! For other platforms, use an F90 internal write (bmy, 9/29/03)
+!          WRITE(FILENAME, '(a,i4.4,i2.2,i2.2)') 
+!     &         'rate.',TAGO3_PL_YEAR,MM,DD
+!#endif
+!
+!      ELSE
+!          FILENAME = 'rate.YYYYMMDD'
+!          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+!
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Prefix FILENAME w/ the proper directory
       FILENAME = TRIM( O3PL_DIR ) // FILENAME
@@ -227,38 +232,39 @@
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - READ_POX_LOX: Reading ', a )
 
-!---------------------------------------
-! dbj
-!JLIU, 2008/10/01
-!---------------------------------------
-
-      IF (TAGO3_PL_YEAR .GT. 0) THEN
-
-         XTAU =
-     &          ( (JULDAY(TAGO3_PL_YEAR,MM,DFLOAT(DD)) - 
-     &             JULDAY(1985,1,DFLOAT(1)))*24.0d0 ) +
-     &             GET_HOUR()
-
-
-      ELSE
-         ! Get the TAU0 value for today
-         XTAU = GET_TAU()
-      ENDIF
+!------------------------------------------------------------------------------
+! Comment out for now (bmy, 2/4/11)
+!      !---------------------------------------
+!      ! dbj
+!      !JLIU, 2008/10/01
+!      !---------------------------------------
+!
+!      IF (TAGO3_PL_YEAR .GT. 0) THEN
+!
+!         XTAU =
+!     &          ( (JULDAY(TAGO3_PL_YEAR,MM,DFLOAT(DD)) - 
+!     &             JULDAY(1985,1,DFLOAT(1)))*24.0d0 ) +
+!     &             GET_HOUR()
+!
+!
+!      ELSE
+!         ! Get the TAU0 value for today
+!         XTAU = GET_TAU()
+!      ENDIF
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Read P(O3) [kg/cm3/s]
       !=================================================================
 
       ! Initialize
-      !ARRAY = 0e0
-      ARRAY(:,:,:) = 0e0
+      ARRAY = 0e0
 
       ! Limit array 3d dimension to LLTROP_FIX, i.e, case of annual mean
       ! tropopause. This is backward compatibility with offline data set.
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 1,      
-     &                 XTAU,      IGLOB,     JGLOB,      
-     &         LLTROP_FIX,        ARRAY,     QUIET=.false.)
-c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
+      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 1,      
+     &                 XTAU,       IGLOB,     JGLOB,      
+     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8
       CALL TRANSFER_3D_TROP( ARRAY, P24H )
@@ -268,14 +274,12 @@ c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )
       !=================================================================
 
       ! Initialize
-      ARRAY(:,:,:) = 0e0
-      !ARRAY = 0e0
+      ARRAY = 0e0
 
       ! read data
-      CALL READ_BPCH2( FILENAME, 'PORL-L=$', 2,      
-     &                 XTAU,      IGLOB,     JGLOB,      
-     &         LLTROP_FIX,        ARRAY,     QUIET=.false.)
-c    &                 LLTROP,    ARRAY,     QUIET=.TRUE. )  ! dbj
+      CALL READ_BPCH2( FILENAME,  'PORL-L=$', 2,      
+     &                 XTAU,       IGLOB,     JGLOB,      
+     &                 LLTROP_FIX, ARRAY,     QUIET=.false.)
 
       ! Cast from REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY, L24H )

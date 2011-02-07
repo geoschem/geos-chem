@@ -246,11 +246,15 @@
          ! Start at top layer and continue to lowest layer for strat. chem
          OUT_DATA = 0d0
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
-!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
-!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!------------------------------------------------------------------------------
+! Prior to 2/7/11:
+! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
+!!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
+!!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!------------------------------------------------------------------------------
          DO J = 1, JM
          DO I = 1, IM
             LBOT = GET_TPAUSE_LEVEL(I,J)+1
@@ -336,7 +340,11 @@
          ENDDO          ! loop over I
 
       ENDDO             ! loop pver J
-!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
+! Prior to 2/7/11:
+! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
       !write our calculated column o3 maximum
       !write(6,*) 'max of columns= ',maxval(out_data)

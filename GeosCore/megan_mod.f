@@ -2500,7 +2500,6 @@
          T_DAILY(I,J)  = TMP_T
 
          ! Repeat for PAR diffuse & direct (mpb,2009)
-
          PARDR_15(I,J,1)   = TMP_PARDR
          PARDR_15_AVG(I,J) = SUM( PARDR_15(I,J,:) ) / D_DAYS 
          PARDR_DAILY(I,J)  = TMP_PARDR
@@ -2551,6 +2550,8 @@
 !  26 Aug 2010 - R. Yantosca - Now reference merra_a1_mod.f
 !  01 Sep 2010 - R. Yantosca - Now read in NUM_DAYS of sfc temp data (this had
 !                              been hardwired to 15 days previously)
+!  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
+!                              PARDF_* and PARDR_* arrays after allocation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2639,41 +2640,77 @@
       !AEF_SPARE = 0d0
 
       ! Allocate arrays for light (mpb,2009)
+!------------------------------------------------------------------------------
+! Prior to 2/7/11:
+! Fix typos: make sure to zero out the proper arrays (dbm, bmy, 2/7/11)
+!      ! -- Direct --
+!      ALLOCATE( PARDR_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAY' )
+!      T_DAY = 0d0
+!
+!      ALLOCATE( PARDR_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15' )
+!      T_15 = 0d0
+!
+!      ALLOCATE( PARDR_15_AVG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15_AVG' )
+!      T_15_AVG = 0d0
+!
+!      ALLOCATE( PARDR_DAILY( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAILY' )
+!      T_DAILY = 0d0
+!
+!      ! -- Diffuse --
+!      ALLOCATE( PARDF_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAY' )
+!      T_DAY = 0d0
+!
+!      ALLOCATE( PARDF_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15' )
+!      T_15 = 0d0
+!
+!      ALLOCATE( PARDF_15_AVG( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15_AVG' )
+!      T_15_AVG = 0d0
+!
+!      ALLOCATE( PARDF_DAILY( IIPAR, JJPAR ), STAT=AS )
+!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
+!      T_DAILY = 0d0
+!------------------------------------------------------------------------------
 
       ! -- Direct --
       ALLOCATE( PARDR_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAY' )
-      T_DAY = 0d0
+      PARDR_DAY = 0d0
 
       ALLOCATE( PARDR_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15' )
-      T_15 = 0d0
+      PARDR_15 = 0d0
 
       ALLOCATE( PARDR_15_AVG( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15_AVG' )
-      T_15_AVG = 0d0
+      PARDR_15_AVG = 0d0
 
       ALLOCATE( PARDR_DAILY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAILY' )
-      T_DAILY = 0d0
+      PARDR_DAILY = 0d0
 
       ! -- Diffuse --
       ALLOCATE( PARDF_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAY' )
-      T_DAY = 0d0
+      PARDF_DAY = 0d0
 
       ALLOCATE( PARDF_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15' )
-      T_15 = 0d0
+      PARDF_15 = 0d0
 
       ALLOCATE( PARDF_15_AVG( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15_AVG' )
-      T_15_AVG = 0d0
+      PARDF_15_AVG = 0d0
 
       ALLOCATE( PARDF_DAILY( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
-      T_DAILY = 0d0
-
+      PARDF_DAILY = 0d0
 
       ! Get annual emission factors for MEGAN inventory
 #if   defined( GRID05x0666 )
