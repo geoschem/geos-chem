@@ -182,6 +182,8 @@
 !  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
 !   7 Feb 2011 - R. Yantosca - If we are using the EPA/NEI05 anthropogenic
 !                              emissions, get biofuels from EPA/NEI99 over USA
+!  18 Feb 2011 - C. Carouge  - Bug fix to avoid double-counting biofuel
+!                              emissions over Asia.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -817,7 +819,19 @@
             ! emission year is GE 2006), set BIOFUEL to zero since they
             ! are already accounted for (phs, 3/17/08)
             !-----------------------------------------------------------
-            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
+!------------------------------------------------------------------------------
+! Prior to 2/18/11:
+! NOTE from Claire Carouge (2/18/11):
+! I found a bug in biofuel_mod.f about Streets emissions. Initially we used 
+! Streets 2000 for years <= 2005, then Streets 2006 for year >= 2006. But this 
+! was changed because of discrepancies in the total emissions between 2005 and 
+! 2006. So now we use Streets 2000 for years <=2000 and Streets 2006 for years 
+! >= 2001. The problem is that Streets 2006 contains biofuels and not Streets 
+! 2000. So in biofuel_mod.f, there is to change the following IF condition to
+! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
+!            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
+!------------------------------------------------------------------------------
+            IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
 
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
