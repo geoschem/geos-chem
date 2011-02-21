@@ -228,7 +228,6 @@
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
       INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
       INTEGER            :: IDTSOA4, IDTHG0,   IDTHg2,  IDTHgP,  IDTAS
-      INTEGER            :: IDTPOPG, IDTPOPP
       INTEGER            :: IDTAHS,  IDTLET,   IDTNH4aq,IDTSO4aq,IDTSO4s
       INTEGER            :: IDTNITs
       INTEGER            :: IDTBENZ,  IDTTOLU,   IDTXYLE,  IDTMONX
@@ -246,6 +245,9 @@
       INTEGER            :: IDTIEPOX
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
+
+      ! For POPs simulation (clf, 2/11/2011)
+      INTEGER              :: IDTPOPPOC,  IDTPOPPBC,   IDTPOPG
 
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
@@ -344,7 +346,7 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
-!  (23) Added IDTPOPG, IDTPOPP for POPs simulation (eck, 9/20/10)
+!  (23) Added IDTPOPG, IDTPOPPOC, and IDTPOPPBC for POPs simulation (eck, 9/20/10)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1050,16 +1052,19 @@
 
             !--------------------------------
             ! POPs
-            ! (eck, 9/20/10)
+            ! (eck, 9/20/10); (clf, 2/11/2011)
             !--------------------------------
             CASE ( 'POPG' )
-               COUNT     = COUNT + 1              
-               IDTPOPG         = 1
+               COUNT     = COUNT+1              
+               IDTPOPG         = N
                
-            CASE ( 'POPP' )
+            CASE ( 'POPPOC' )
                COUNT     = COUNT+1
-               IDTPOPP         = 2
+               IDTPOPPOC       = N
 
+            CASE ( 'POPPBC' )
+               COUNT     = COUNT+1
+               IDTPOPPBC       = N
 
             CASE DEFAULT
                ! Nothing
