@@ -185,7 +185,7 @@
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: DRYHg0, DRYHg2, DryHgP !CDH
-      PUBLIC :: DRYPOPG, DRYPOPP
+      PUBLIC :: DRYPOPG, DRYPOPP_OC, DRYPOPP_BC
       
       ! ... and these routines
       PUBLIC :: CLEANUP_DRYDEP     
@@ -241,7 +241,7 @@
       INTEGER              :: DRYHg0, DRYHg2, DryHgP
 
       ! Additional variables for POPs sim (eck, 9/20/10)
-      INTEGER              :: DRYPOPP, DRYPOPG
+      INTEGER              :: DRYPOPP_OC, DRYPOPP_BC, DRYPOPG
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -352,7 +352,7 @@
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB )
+     &             AZO, USTAR, ZH,  LSNOW, RHB ) 
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -3356,7 +3356,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
       USE TRACERID_MOD, ONLY : ID_Hg0 !eck added 19jul06
-      USE TRACERID_MOD, ONLY : IDTPOPG, IDTPOPP
+      USE TRACERID_MOD, ONLY : IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOC,               IDTPOPPBC
       USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
@@ -4297,21 +4298,32 @@ C** Load array DVEL
                NTRAIND(NUMDEP) = IDTPOPG
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'POPG'
-               HSTAR(NUMDEP)   = 0.11
+               HSTAR(NUMDEP)   = 2.35d1
                ! F0 consistent with Lin et al (2006)
                F0(NUMDEP)      = 1.0d-5
-               XMW(NUMDEP)     = 201d-3
+               XMW(NUMDEP)     = 178d-3
                AIROSOL(NUMDEP) = .FALSE. 
             ENDIF
-             ! POPs PARTICLES (copy Hg(P) for now)
-            IF ( N == IDTPOPP ) THEN
+             ! POPs PARTICLES - OC (copy Hg(P) for now)
+            IF ( N == IDTPOPPOC ) THEN
                NUMDEP          = NUMDEP + 1
-               NTRAIND(NUMDEP) = IDTPOPP
+               NTRAIND(NUMDEP) = IDTPOPPOC
                NDVZIND(NUMDEP) = NUMDEP
-               DEPNAME(NUMDEP) = 'POPP'
+               DEPNAME(NUMDEP) = 'POPPOC'
                HSTAR(NUMDEP)   = 0.0d0
                F0(NUMDEP)      = 0.0d0
-               XMW(NUMDEP)     = 201d-3
+               XMW(NUMDEP)     = 178d-3
+               AIROSOL(NUMDEP) = .TRUE. 
+            ENDIF
+            ! POPs PARTICLES - BC (copy Hg(P) for now)
+            IF ( N == IDTPOPPBC ) THEN
+               NUMDEP          = NUMDEP + 1
+               NTRAIND(NUMDEP) = IDTPOPPBC
+               NDVZIND(NUMDEP) = NUMDEP
+               DEPNAME(NUMDEP) = 'POPPBC'
+               HSTAR(NUMDEP)   = 0.0d0
+               F0(NUMDEP)      = 0.0d0
+               XMW(NUMDEP)     = 178d-3
                AIROSOL(NUMDEP) = .TRUE. 
             ENDIF
           ENDIF
@@ -4328,7 +4340,8 @@ C** Load array DVEL
          ! Initialize flags
          ! add dry dep of Hg0
          DRYPOPG = 0
-         DRYPOPP = 0
+         DRYPOPP_OC = 0
+         DRYPOPP_BC = 0
          
          ! If drydep is turned on ...
          IF ( LDRYD ) THEN
@@ -4340,8 +4353,10 @@ C** Load array DVEL
                SELECT CASE ( TRIM( DEPNAME(N) ) )
                   CASE( 'POPG' )
                      DRYPOPG = N
-                  CASE( 'POPP' )
-                     DRYPOPP = N
+                  CASE( 'POPPOC' )
+                     DRYPOPP_OC = N
+                  CASE( 'POPPBC' )
+                     DRYPOPP_BC = N
                   CASE DEFAULT
                      ! nothing
                 END SELECT
