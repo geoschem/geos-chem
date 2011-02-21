@@ -527,7 +527,8 @@ emissions_mod.o             : emissions_mod.f                                \
                               nei2005_anthro_mod.o    RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o
+                              tracer_mod.o            vistas_anthro_mod.o    \
+                              pops_mod.o
 
 emmonot.o                   : emmonot.f
 
@@ -621,6 +622,10 @@ global_o1d_mod.o            : global_o1d_mod.f
 global_o3_mod.o             : global_o3_mod.f
 
 global_oh_mod.o             : global_oh_mod.f
+
+global_oc_mod.o             : global_oc_mod.f
+
+global_bc_mod.o             : global_bc_mod.f
 
 gwet_read_mod.o             : gwet_read_mod.f                                \
                               dao_mod.o               diag_mod.o             \
@@ -812,6 +817,7 @@ pops_mod.o           	    : pops_mod.f    	                             \
 			      drydep_mod.o 	      vdiff_pre_mod.o	     \
 	        	      global_oh_mod.o         pbl_mix_mod.o	     \
 			      logical_mod.o	      diag53_mod.o	     \
+                              global_oc_mod.o	      global_bc_mod.o	     \
 			      tracer_mod.o            tracerid_mod.o	 
 
 precipfrac.o                : precipfrac.f            dao_mod.o
