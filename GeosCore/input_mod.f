@@ -52,6 +52,8 @@
 !  (28) CHECK_TIME_STEPS      : Sets the GEOS_CHEM timesteps
 !  (29) IS_LAST_DAY_GOOD      : Makes sure we have output on last day of run
 !  (30) INIT_INPUT            : Initializes directory & logical variables
+!  (31) READ_ARCHIVED_OC_MENU : Reads the GEOS-Chem archived OC menu (clf, 1/20/2011)
+!  (32) READ_ARCHIVED_BC_MENU : Reads the GEOS-Chem archived BC menu (clf, 1/20/2011)
 !
 !  GEOS-CHEM modules referenced by "input_mod.f"
 !  ============================================================================
@@ -2808,6 +2810,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM,    ITS_A_RnPbBe_SIM
       USE TRACER_MOD,   ONLY : ITS_A_TAGOX_SIM,      ITS_A_CH3I_SIM
       USE TRACER_MOD,   ONLY : SALA_REDGE_um,        ITS_A_CH4_SIM
+      USE TRACER_MOD,   ONLY : ITS_A_POPS_SIM
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
@@ -3212,6 +3215,7 @@
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
+      IF ( .not. ITS_A_POPS_SIM() ) ND53 = 0
       CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
@@ -4679,6 +4683,90 @@
 
 !------------------------------------------------------------------------------
 
+!      SUBROUTINE READ_ARCHIVED_OC_MENU
+!
+!******************************************************************************
+!  Subroutine READ_ARCHIVED_OC_MENU reads the ARCHIVED OC MENU section of the 
+!  GEOS-CHEM input file. (clf, 1/20/2011)
+!
+!  NOTES: Based on READ_ARCHIVED_OH_MENU
+!******************************************************************************
+!
+!      ! References to F90 modules
+!      USE DIRECTORY_MOD, ONLY : OC_DIR
+! 
+!      ! Local variables
+!      INTEGER            :: N
+!      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+!
+!      !=================================================================
+!      ! READ_ARCHIVED_OC_MENU begins here!
+!      !=================================================================
+!
+!      ! Directory where offline OC files are stored
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+!      READ( SUBSTRS(1:N), '(a)' ) OC_DIR
+!
+!      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:3' ) ! clf, 1/20/2011 (3?)
+!
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      WRITE( 6, '(/,a)' ) 'ARCHIVED OC MENU'
+!      WRITE( 6, '(  a)' ) '-----------------'          
+!      WRITE( 6, 100     ) 'Dir w/ archived OC files    : ', TRIM(OC_DIR)
+!
+!      ! FORMAT statements
+! 100  FORMAT( A, A )
+!    
+!      ! Return to calling program
+!      END SUBROUTINE READ_ARCHIVED_OC_MENU
+!
+!------------------------------------------------------------------------------
+!
+!      SUBROUTINE READ_ARCHIVED_BC_MENU
+!
+!******************************************************************************
+!  Subroutine READ_ARCHIVED_BC_MENU reads the ARCHIVED BC MENU section of the 
+!  GEOS-CHEM input file. (clf, 1/20/2011)
+!
+!  NOTES: Based on READ_ARCHIVED_OH_MENU
+!******************************************************************************
+!
+!      ! References to F90 modules
+!      USE DIRECTORY_MOD, ONLY : BC_DIR
+! 
+!      ! Local variables
+!      INTEGER            :: N
+!      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+!
+!      !=================================================================
+!      ! READ_ARCHIVED_BC_MENU begins here!
+!      !=================================================================
+!
+!      ! Directory where offline BC files are stored
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:1' )
+!      READ( SUBSTRS(1:N), '(a)' ) BC_DIR
+!
+!      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_archived_oh_menu:4' ) ! clf, 1/20/2011 (4?)
+!
+!      !=================================================================
+!      ! Print to screen
+!      !=================================================================
+!      WRITE( 6, '(/,a)' ) 'ARCHIVED BC MENU'
+!      WRITE( 6, '(  a)' ) '-----------------'          
+!      WRITE( 6, 100     ) 'Dir w/ archived BC files    : ', TRIM(BC_DIR)
+!
+!      ! FORMAT statements
+! 100  FORMAT( A, A )
+!    
+!      ! Return to calling program
+!      END SUBROUTINE READ_ARCHIVED_BC_MENU
+!
+!------------------------------------------------------------------------------
+
       SUBROUTINE READ_MERCURY_MENU
 !
 !******************************************************************************
@@ -4911,6 +4999,7 @@
       USE DIRECTORY_MOD, ONLY : OH_DIR,      RUN_DIR,      TEMP_DIR
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,    TPBC_DIR_NA
       USE DIRECTORY_MOD, ONLY : TPBC_DIR_EU, TPBC_DIR_CH
+!      USE DIRECTORY_MOD, ONLY : OC_DIR, BC_DIR  !(clf, 1/20/2011)
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID 
       USE LOGICAL_MOD,   ONLY : LWINDO_CU,   LUNZIP
       USE LOGICAL_MOD,   ONLY : LWINDO_NA,   LWINDO_EU,    LWINDO_CH
@@ -4936,6 +5025,8 @@
       CALL CHECK_DIRECTORY( RUN_DIR      )
       CALL CHECK_DIRECTORY( OH_DIR       )
       CALL CHECK_DIRECTORY( O3PL_DIR     )
+!      CALL CHECK_DIRECTORY( OC_DIR       )  !(clf, 1/20/2011)
+!      CALL CHECK_DIRECTORY( BC_DIR       )  !(clf, 1/20/2011)
 
       ! Only validate the TEMP_DIR if we are unzipping met fields
       IF ( LUNZIP ) CALL CHECK_DIRECTORY( TEMP_DIR )
@@ -5316,6 +5407,7 @@
       USE DIRECTORY_MOD, ONLY : GEOS_3_DIR, GEOS_4_DIR, TEMP_DIR   
       USE DIRECTORY_MOD, ONLY : RUN_DIR,    OH_DIR,     O3PL_DIR   
       USE DIRECTORY_MOD, ONLY : TPBC_DIR,   DATA_DIR_1x1
+!      USE DIRECTORY_MOD, ONLY : OC_DIR, BC_DIR               ! (clf, 1/20/2011)
       USE LOGICAL_MOD,   ONLY : LATEQ,      LAVHRRLAI,  LCARB      
       USE LOGICAL_MOD,   ONLY : LDEAD,      LDUST,      LSULF      
       USE LOGICAL_MOD,   ONLY : LSOA,       LSSALT,     LCHEM      
@@ -5368,6 +5460,8 @@
       OH_DIR       = ''
       O3PL_DIR     = ''
       TPBC_DIR     = ''
+!      OC_DIR       = ''      ! (clf, 1/20/2011)
+!      BC_DIR       = ''      ! (clf, 1/20/2011)
 
       ! Initialize logicals
       LATEQ        = .FALSE.
