@@ -516,7 +516,7 @@
       ! Do some error checking to make sure the file is the right format.
       !=================================================================
       CALL OPEN_BPCH2_FOR_READ( IU_FILE, FILENAME )
-
+      
       !=================================================================
       ! Read data from the binary punch file 
       !
@@ -603,6 +603,7 @@
 
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
