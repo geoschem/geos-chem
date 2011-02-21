@@ -39,7 +39,9 @@
 !  
 !  Module Variables:
 !  ============================================================================
-!  (1 ) AD53         (REAL*4) : Array for POPS emissions 
+!  (1 ) AD53         (REAL*4) : Array for POPS emissions
+!  (2 ) AD53_PG_PP   (REAL*4) : Array for partitioning of gas phase POP to particles 
+!  (3 ) AD53_POPG_OH (REAL*4) : Array for POPG oxidized by OH
 
 !
 !  Module Routines:
@@ -69,11 +71,14 @@
 
       ! Scalars
       INTEGER              :: ND53, LD53
-      INTEGER, PARAMETER   :: PD53 = 18
+      INTEGER, PARAMETER   :: PD53 = 4  ! Number of diagnostics for AD03
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD53(:,:,:)
       REAL*4,  ALLOCATABLE :: AD53_PG_PP(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD53_POPG_OH(:,:,:)
+!      REAL*4,  ALLOCATABLE :: AD53_POPG_NO3(:,:,:)
+!      REAL*4,  ALLOCATABLE :: AD53_POPG_OX(:,:,:)
  
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -104,15 +109,16 @@
       INTEGER :: I, J, L, N
 
       !=================================================================
-      ! ZERO_DIAG03 begins here!
+      ! ZERO_DIAG53 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND53 is turned off
       IF ( ND53 == 0 ) RETURN
 
       ! Zero arrays
       AD53         = 0D0
-      AD53_PG_PP = 0D0
+      AD53_PG_PP   = 0D0
+      AD53_POPG_OH = 0D0
   
       ! Return to calling program
       END SUBROUTINE ZERO_DIAG53
@@ -127,9 +133,9 @@
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) PG-SRCE  : Anthropogenic HG0 emission      : kg       : 1
-
-!  (21) PL-PP-$ : Amount of POPG CONVERTED TO PARTICLE : kg       : 1 
+!  (1 ) PG-SRCE  : Total POP emission                  : kg       : 1
+!  (2 ) PG-SRCE  : Total gas phase POP reacted with OH : kg       : 1
+!  (21) PL-PP-$  : Amount of POPG CONVERTED TO PARTICLE: kg       : 1 
 !
 !  NOTES:
 !******************************************************************************
@@ -140,7 +146,7 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,     ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
-      USE TRACERID_MOD, ONLY : N_Hg_CATS
+!      USE TRACERID_MOD, ONLY : N_Hg_CATS
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! TINDEX
@@ -181,35 +187,56 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
-      DO M = 1, TMAX(3)
+      ! Loop over ND53 diagnostic tracers
+      DO M = 1, TMAX(53)
 
-         ! Get ND03 tracer #
-         N = TINDEX(3,M)
+         ! Get ND53 tracer #
+         N = TINDEX(53,M)
 
          ! Pick the proper array & dimensions
-         IF ( N == 1  ) THEN
+         IF ( N == 1 .or. N == 2 .or. N == 3 .or. N == 4  ) THEN
                
             !--------------------------------
-            ! #1 POP emissions
+            ! #1 POP emissions (total, OC-sorbed, BC-sorbed, and gas phase)
             !--------------------------------
             CATEGORY          = 'PG-SRCE'
             UNIT              = 'kg'
             LMAX              = 1
             NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N)
+            ARRAY(:,:,1)     = AD53(:,:,N)
 
-         ELSE IF ( N == 2  ) THEN
+         ELSE IF ( N == 5  ) THEN
 
             !--------------------------------
-            ! #2 AMOUNT CONVERTED TO PARTICLE
+            ! #2 Amount converted to OC particle
             !--------------------------------
-            CATEGORY          = ' PL-PP-$'
+            CATEGORY          = 'PL-PP-$'
             UNIT              = 'kg'
-            LMAX              = 1
+            LMAX              = LD53 
             NN                = N
-            ARRAY(:,:,1)      = AD53(:,:,N) / SCALE
-               
+            ARRAY(:,:,1:LMAX) = AD53_PG_PP(:,:,1:LMAX)
+
+         ELSE IF ( N == 6  ) THEN
+
+            !--------------------------------
+            ! #2 Amount converted to BC particle
+            !--------------------------------
+            CATEGORY          = 'PL-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_PG_PP(:,:,1:LMAX)
+        
+         ELSE IF ( N == 7  ) THEN
+
+            !--------------------------------
+            ! #3 Production of oxidized POPG from rxn with OH (clf, 1/27/11)
+            !--------------------------------
+            CATEGORY          = 'PL-PP-$'
+            UNIT              = 'kg'
+            LMAX              = LD53 
+            NN                = N
+            ARRAY(:,:,1:LMAX) = AD53_POPG_OH(:,:,1:LMAX)               
   
 
             !--------------------------------
@@ -252,7 +279,7 @@
       ! INIT_DIAG53 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND53 is turned off
       IF ( ND53 == 0 ) THEN
          LD53 = 0
          RETURN
@@ -268,6 +295,9 @@
       ! 3-D arrays ("PL-PG-$")
       ALLOCATE( AD53_PG_PP( IIPAR, JJPAR, LD53 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_PP_PG' )
+
+      ALLOCATE( AD53_POPG_OH( IIPAR, JJPAR, LD53 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPG_OH' )
 
     
       ! Zero arrays
@@ -291,6 +321,7 @@
       !=================================================================
       IF ( ALLOCATED( AD53         ) ) DEALLOCATE( AD53         ) 
       IF ( ALLOCATED( AD53_PG_PP ) ) DEALLOCATE( AD53_PG_PP)
+      IF ( ALLOCATED( AD53_POPG_OH ) ) DEALLOCATE( AD53_POPG_OH )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG53
