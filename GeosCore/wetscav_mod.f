@@ -650,7 +650,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP
       USE TRACERID_MOD, ONLY : IDTMAP
       !(eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOC,  IDTPOPPBC,  IDTPOPG 
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 !CDH
 
@@ -1607,9 +1607,17 @@
          ISOL = GET_ISOL( N )
 
       !-------------------------------
-      ! POPP (treat like aerosol)
+      ! POPPOC (treat like aerosol)
       !-------------------------------
-      ELSE IF (N == IDTPOPP ) THEN
+      ELSE IF (N == IDTPOPPOC ) THEN
+
+         CALL F_AEROSOL( KC, F ) 
+         ISOL = GET_ISOL( N )
+
+      !-------------------------------
+      ! POPPBC (treat like aerosol)
+      !-------------------------------
+      ELSE IF (N == IDTPOPPBC ) THEN
 
          CALL F_AEROSOL( KC, F ) 
          ISOL = GET_ISOL( N )
@@ -2203,7 +2211,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       !POPs (eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3101,9 +3109,15 @@
          RAINFRAC = GET_RAINFRAC( K, F, DT )
 
       !------------------------------
-      ! POPP (treat like aerosol)
+      ! POPPOC (treat like aerosol)
       !------------------------------
-      ELSE IF ( N == IDTPOPP ) THEN
+      ELSE IF ( N == IDTPOPPOC ) THEN
+         RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
+
+      !------------------------------
+      ! POPPBC (treat like aerosol)
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBC ) THEN
          RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT ) 
 
       !------------------------------
@@ -3238,7 +3252,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       !POPs (eck, 9/21/10)
-      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC, IDTPOPG
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
@@ -3607,9 +3621,16 @@
      &                                F,      DZ,   TK, K_WASH )      
 
       !------------------------------
-      ! POPP (treat like aerosol) 
+      ! POPPOC (treat like aerosol) 
       !------------------------------
-      ELSE IF ( N == IDTPOPP ) THEN 
+      ELSE IF ( N == IDTPOPPOC ) THEN 
+         AER      = .TRUE.
+         WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
+
+      !------------------------------
+      ! POPPBC (treat like aerosol) 
+      !------------------------------
+      ELSE IF ( N == IDTPOPPBC ) THEN 
          AER      = .TRUE.
          WASHFRAC = WASHFRAC_AEROSOL( DT, F, K_WASH, PP, TK )
 
@@ -5118,7 +5139,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       ! POPS (10/2010)
-      USE TRACERID_MOD, ONLY : IDTPOPP, IDTPOPG
+      USE TRACERID_MOD, ONLY : IDTPOPPOC, IDTPOPPBC,  IDTPOPG
 
 
 #     include "CMN_SIZE"  ! Size parameters
@@ -5392,11 +5413,15 @@
          ! POPs: Particulate and gas phase 
          !-----------------------------
             
-         ELSE IF (N == IDTPOPP) THEN
+         ELSE IF (N == IDTPOPPOC ) THEN
             NSOL = NSOL + 1
-            IDWETD(NSOL) = IDTPOPP
+            IDWETD(NSOL) = IDTPOPPOC
 
-         ELSE IF (N == IDTPOPG) THEN
+         ELSE IF (N == IDTPOPPBC ) THEN
+            NSOL = NSOL + 1
+            IDWETD(NSOL) = IDTPOPPBC
+
+         ELSE IF (N == IDTPOPG ) THEN
             NSOL = NSOL + 1
             IDWETD(NSOL) = IDTPOPG
         
@@ -5537,7 +5562,7 @@
          ! ------------------
          ! POPs simulation
          ! -----------------
-         NMAX=2                                 ! POPP and POPG
+         NMAX=3                                 ! POPPOC, POPPBC, and POPG
 
       ELSE
 
