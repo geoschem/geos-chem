@@ -53,6 +53,7 @@
 !        (dan, ccc, 3/11/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
+!  01 Feb 2011 - C Friedman  - Added POP emissions
 !EOP
 !------------------------------------------------------------------------------
 
@@ -102,6 +103,7 @@
       USE MERCURY_MOD,            ONLY : EMISSMERCURY
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD,     ONLY : EMISS_NEI2005_ANTHRO_05x0666
+      USE POPS_MOD,               ONLY : EMISSPOPS  !(clf, 2/1/2011)
       USE RnPbBe_MOD,             ONLY : EMISSRnPbBe
       USE SEASALT_MOD,            ONLY : EMISSSEASALT
       USE STREETS_ANTHRO_MOD,     ONLY : EMISS_STREETS_ANTHRO
@@ -154,6 +156,7 @@
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  01 Feb 2011 - CFriedman   - Added emissions for POPs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -456,6 +459,13 @@
          ! Mercury
          !--------------------
          CALL EMISSMERCURY
+
+      ELSE IF ( ITS_A_POPS_SIM() ) THEN
+
+         !--------------------
+         ! POPS
+         !--------------------
+         CALL EMISSPOPS
 
       ELSE IF ( ITS_A_CO2_SIM() ) THEN
 
