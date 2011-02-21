@@ -32,6 +32,8 @@
       CHARACTER(LEN=255) :: TEMP_DIR      ! Temp dir for unzipping met data
       CHARACTER(LEN=255) :: RUN_DIR       ! Run directory for GEOS-Chem
       CHARACTER(LEN=255) :: OH_DIR        ! Dir w/ mean OH files
+      CHARACTER(LEN=225) :: BC_DIR        ! Dir w/ mean BC files
+      CHARACTER(LEN=255) :: OC_DIR        ! Dir w/ mean OC files
       CHARACTER(LEN=255) :: O3PL_DIR      ! Dir w/ archived O3 P/L rate files 
       CHARACTER(LEN=255) :: TPBC_DIR      ! Dir w/ TPCORE boundary conditions
       CHARACTER(LEN=255) :: TPBC_DIR_NA   ! Dir w/ TPCORE BC's for NA nest grid
@@ -44,6 +46,7 @@
 !  24 Oct 2005 - R. Yantosca - Added DATA_DIR_1x1
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  18 Dec 2009 - Aaron van D - Added TPBC_DIR_NA, TPBC_DIR_EU, TPBC_DIR_CH
+!  20 Jan 2011 - CL Friedman - Added OC_DIR and BC_DIR
 
 !EOP
 !------------------------------------------------------------------------------
