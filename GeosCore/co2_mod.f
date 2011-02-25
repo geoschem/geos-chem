@@ -116,6 +116,7 @@
 !  (5 ) Implemented CO2 emissions from shipping and aviation (R.Nassar 2010)
 !  (6 ) Implemented monthly CO2 chemical production and surface correction 
 !        (R.Nassar 2010)   
+!  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -822,6 +823,9 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -881,7 +885,13 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.' // 
      &              YEAR_STR          // '.'                        //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -890,8 +900,14 @@
       ELSE IF ( LMONFF ) THEN
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+         FILENAME = TRIM( DATA_DIR )                                //
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)                          // 
+!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.'//
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -960,7 +976,10 @@
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
-!EOP
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
+!EOP!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1039,7 +1058,13 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)                   
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'  // 
      &              YEAR_STR          // '.'                         //
      &              GET_NAME_EXT_2D() // '.'       //  GET_RES_EXT()
 
@@ -1047,7 +1072,13 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)    
+!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.' //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
 
@@ -1267,6 +1298,9 @@
 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1284,7 +1318,7 @@
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
 
       !-----------------------------------------------------------------
-	! Read Generic or annual fossil fuel emissions file
+      ! Read Generic or annual fossil fuel emissions file
       !-----------------------------------------------------------------
       YEAR   = GET_YEAR()
       WRITE( YEAR_STR, '(i4)' ) YEAR 
@@ -1299,7 +1333,13 @@
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                               // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)        
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'//  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()
       ENDIF
@@ -1427,6 +1467,9 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
