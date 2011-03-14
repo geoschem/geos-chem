@@ -1226,8 +1226,11 @@
                         
                            ! Scaling factor for wavelength specified in
                            ! jv_spec_aod.dat
-                           SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-     &                               QAA(4,IND(N)+RH-1) 
+    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
+    ! &                               QAA(4,IND(N)+RH-1)
+                           ! We no longer need to scale by wavelength
+                           ! (skim, 02/03/11)
+                           SAODnm = 1.0
 
                            ! Index for type of aerosol and RH value
                            IRHN    = ( (N-1) * NRH ) + RH
@@ -1257,8 +1260,11 @@
                         
                            ! Scaling factor for wavelength specified in
                            ! jv_spec_aod.dat
-                           SAODnm  = QAA_AOD(IND(N)+RH-1) / 
-     &                               QAA(4,IND(N)+RH-1) 
+    !                       SAODnm  = QAA_AOD(IND(N)+RH-1) / 
+    ! &                               QAA(4,IND(N)+RH-1)
+                           ! We no longer need to scale by wavelength
+                           ! (skim, 02/03/11)
+                           SAODnm = 1.0 
 
                            ! Index for type of aerosol and RH value
                            IRHN    = ( (N-1) * NRH ) + RH

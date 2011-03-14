@@ -97,6 +97,8 @@
 !  (14) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
 !  (15) Bug fix in ITS_TIME_TO_CLOSE: compare HR1 to 00 not 24. (ccc, 11/11/10)
+!  (16) Now do not scale AOD output (recalculated in RDAER AND DUST_MOD)
+!       (skim, 02/02/11)
 !  12 Nov 2010 - R. Yantosca - Changed tracer 99 to be PEDGE-$ (pressure at
 !                              level edges) instead of Psurface-PTOP.
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -658,7 +660,9 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
                
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -674,6 +678,7 @@
                ENDDO
                ENDDO
 !$OMP END PARALLEL DO
+
             ENDDO
 
          ELSE IF ( N == 85 ) THEN
@@ -692,7 +697,9 @@
                H          = NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0 
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -726,7 +733,9 @@
                H          = 2*NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+               ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -760,7 +769,10 @@
                H          = 3*NRH + R
   
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)             
+               ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
+    
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, X, Y, K )
@@ -793,7 +805,9 @@
                H          = 4*NRH + R
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -824,7 +838,9 @@
             DO R = 1, NDUST
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)           
+               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)    
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0  
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -856,7 +872,9 @@
             R = N - 114
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
-            SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+            ! We no longer need to scale by wavelength (skim, 02/03/11)
+            SCALEAODnm = 1.0
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
