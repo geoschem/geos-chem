@@ -1092,7 +1092,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
 !
 ! !USES:
 !
@@ -1113,7 +1113,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
-      REAL*8, INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1122,6 +1123,10 @@
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  (4 ) Include wavelength argument to determine the wavelength at which the
+!        AOD should be computed. This will set the optical properties that are
+!        used for the calculation of the AOD. The ND21 diagnostic should only
+!        be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1177,9 +1182,21 @@
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
+
+         IF ( WAVELENGTH > 0 ) THEN
+
+         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                      DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                     ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+         ELSE
+
          ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
      &                      DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                     ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO
@@ -1212,7 +1229,15 @@
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+         IF ( WAVELENGTH > 0 ) THEN
+
+            ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
+
+         ELSE
+
+            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+
+         ENDIF
 
          TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
@@ -1242,7 +1267,7 @@
       ! Tracer #5: Dust surface areas (from all size bins)
       ! Tracers #21-27: Dust AOD for each size bin
       !==============================================================
-      IF ( ND21 > 0 ) THEN
+      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
 
          DO N = 1, NDUST
 
@@ -1256,14 +1281,14 @@
                !--------------------------------------
                ! ND21 tracer #4: Dust optical depths (clh)
                !--------------------------------------
-               AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
+               AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
 
                !--------------------------------------
                ! ND21 tracer #21-27: size-resolved dust optical depths
                !--------------------------------------
                AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
+     &                                ODMDUST(I,J,L,N)
+  
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
@@ -1302,7 +1327,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
 !
 ! !USES:
 !
@@ -1330,6 +1355,8 @@
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+      ! Determine which wavelength to use for optical properties
+      INTEGER, INTENT(IN) :: WAVELENGTH  
 !
 ! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1380,6 +1407,10 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  (23) Include third input argument to determine the wavelength at which
+!        the AOD should be computed. This will set the optical properties
+!        that are used for the calculation of the AOD. The ND21 diagnostic
+!        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1469,9 +1500,21 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
+
+            IF ( WAVELENGTH > 0 ) THEN
+
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+            ELSE
+
             ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
      &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
      &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -1508,7 +1551,15 @@
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
 
-            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+            IF ( WAVELENGTH > 0 ) THEN
+
+               ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
+
+            ELSE
+
+               ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+
+            ENDIF
 
             TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                         DUST(I,J,L,N) / MSDENS(N)  
@@ -1537,7 +1588,7 @@
          ! Tracer #4: Dust optical depths at  (from all size bins)
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
-         IF ( ND21 > 0 ) THEN
+         IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
             DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1550,9 +1601,19 @@
                   !--------------------------------------
                   ! ND21 tracer #4: Dust optical depths
                   !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &               ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
+                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
 
+
+                  !--------------------------------------
+                  ! ND21 tracer #21-27: size-resolved dust optical depths
+                  !--------------------------------------
+
+                  ! Added the optical depths for each size bin
+                  ! (skim, 02/03/11)
+
+                  AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
+     &                                   ODMDUST(I,J,L,N)
+  
                   !--------------------------------------
                   ! ND21 tracer #5: Dust surface areas
                   !--------------------------------------

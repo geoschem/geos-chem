@@ -24,7 +24,8 @@
       USE BENCHMARK_MOD,     ONLY : STDRUN
       ! (hotp 5/24/09) Modified for SOA from aroms
       !USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
-      USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
+      ! Add RECOMPUTE_OD to call AOD calculation twice (skim, 02/02/11)
+      USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY, RECOMPUTE_OD
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
       USE GCKPP_COMODE_MOD,  ONLY : INIT_GCKPP_COMODE
@@ -211,6 +212,7 @@
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
+!  02 Feb 2011 - S. Kim      - Call Compute_OD after wet deposition
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1187,6 +1189,17 @@
                CALL PARTITIONHG( 2, STT, HGPFRAC )
             ENDIF 
 
+         ENDIF
+
+         !==============================================================
+         !      ***** U P D A T E  O P T I C A L  D E P T H *****          
+         !==============================================================
+         ! Recalculate the optical depth at the wavelength specified by
+         ! jv_spec_aod.dat This must be done before the call to any
+         ! diagnostic and only on a chemistry timestep.
+         ! (skim, 02/05/11)
+         IF ( ITS_TIME_FOR_CHEM() ) THEN
+            CALL RECOMPUTE_OD
          ENDIF
 
          !==============================================================

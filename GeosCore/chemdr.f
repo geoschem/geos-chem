@@ -201,6 +201,7 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+      INTEGER                  :: WAVELENGTH
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
@@ -419,7 +420,11 @@
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
-      CALL RDAER( MONTH, YEAR )
+
+      ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
+      WAVELENGTH = 0
+
+      CALL RDAER( MONTH, YEAR, WAVELENGTH )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
@@ -434,9 +439,9 @@
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
       IF ( LDUST ) THEN
-         CALL RDUST_ONLINE( SOILDUST )
+         CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
       ELSE
-         CALL RDUST_OFFLINE( MONTH, YEAR )
+         CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
       ENDIF
 
       !### Debug
