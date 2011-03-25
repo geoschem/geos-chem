@@ -125,7 +125,7 @@ MODULE VDIFF_MOD
 !                              processes but not dry deposition and emissions.
 !  17 Dec 2010 - R. Yantosca - Declare constants w/ the PARAMETER attribute
 !  20 Dec 2010 - R. Yantosca - Bug fixes for the parallelization
-
+!  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !EOP
 !------------------------------------------------------------------------------
 
@@ -2348,6 +2348,14 @@ contains
 !!!$OMP END PARALLEL DO
 !------------------------------------------------------------------------------
 
+       if ( pblh_ar ) then
+       do J = 1, JJPAR
+       do I = 1, IIPAR
+         pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
+       enddo
+       enddo
+       endif
+
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
        um1    = um1   ( :, :, LLPAR  :1:-1 )   
@@ -2366,6 +2374,8 @@ contains
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
        ENDDO
 
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
+
 !------------------------------------------------------------------------------
 ! Prior to 12/20/10:
 ! Combine the conversion with flipping the vertical dimension. (ccc, 12/22/10)
@@ -2373,7 +2383,7 @@ contains
 !          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
 !       enddo
 !------------------------------------------------------------------------------
-       shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
+!       shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
@@ -2403,7 +2413,7 @@ contains
 !          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
 !       enddo
 !------------------------------------------------------------------------------
-       shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
+!       shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
 
 !------------------------------------------------------------------------------
 ! Prior to 12/20/10:
@@ -2448,6 +2458,11 @@ contains
        DO N = 1, N_TRACERS
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
        ENDDO
+
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       kvm    = kvm   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d3 ! kg/kg -> g/kg
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
