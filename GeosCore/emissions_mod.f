@@ -117,7 +117,7 @@
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
-
+      USE RETRO_MOD		  ONLY : EMISS_RETRO
 #     include "CMN_SIZE"               ! Size parameters
 #     include "CMN_O3"                 ! FSCLYR
 !
@@ -213,6 +213,10 @@
          IF ( ITS_A_NEW_MONTH() ) THEN
             CALL EMISS_EDGAR( YEAR, MONTH )
          ENDIF
+
+         ! Read RETRO emissions once per month (wfr, 3/8/11)
+         print*, '### EMISSIONS: calling EMISS_RETRO'
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
