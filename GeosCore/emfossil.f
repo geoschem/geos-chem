@@ -30,6 +30,8 @@
       USE LOGICAL_MOD,        ONLY : LEDGARSHIP,       LARCSHIP
       USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
+      USE LOGICAL_MOD,        ONLY : LRETRO
+      USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
@@ -142,6 +144,7 @@
       REAL*8  :: XEMISRN(NOXLEVELS)
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
+      REAL*8  :: RETRO
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -571,6 +574,29 @@
             ! to be in the proper units for EMISRR array
             EMX(1) = EDGAR * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
 
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! Get CO emissions from RETRO inventory
+         !--------------------------------------------------------------
+        
+        ! If we are using RETRO emissions ...
+         IF ( LRETRO ) THEN
+
+	    ! Get RETRO emissions
+            RETRO = GET_RETRO_ANTHRO( I, J, NN )
+
+	    ! -1 indicates tracer NN does not have RETRO emissions
+            IF ( .not. ( RETRO < 0d0 ) ) THEN
+
+	       ! Apply time-of-day factor
+	       RETRO = RETRO * TODX
+           ! Convert from molec/cm2/s to kg/box/timestep in order
+           ! to be in the proper units for EMISRR array
+
+	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+
+	    ENDIF  
          ENDIF
 
          !--------------------------------------------------------------
