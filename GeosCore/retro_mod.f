@@ -101,7 +101,7 @@
       !=================================================================
 
       ! Anthro file name
-      FILENAME = TRIM( DATA_DIR ) // 'retro_201101/' //
+      FILENAME = TRIM( DATA_DIR ) // 'RETRO_201103/' //
      &                  'YYYYMM.' // GET_RES_EXT()
 
       ! Replace date in filename

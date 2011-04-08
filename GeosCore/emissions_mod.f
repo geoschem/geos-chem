@@ -117,7 +117,7 @@
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
 
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
-      USE RETRO_MOD		  ONLY : EMISS_RETRO
+      USE RETRO_MOD,		  ONLY : EMISS_RETRO
 #     include "CMN_SIZE"               ! Size parameters
 #     include "CMN_O3"                 ! FSCLYR
 !
