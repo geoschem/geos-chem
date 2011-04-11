@@ -562,7 +562,8 @@ c$$$
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG              
+      ! Add reference to IS_WATER for Holmes et al. 2010 version (jaf, 4/11/11)
+      USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
       USE DIAG03_MOD,    ONLY : AD03, ND03
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
@@ -772,10 +773,13 @@ c$$$
          !===========================================================
          ! Make sure we are in an ocean box
          !===========================================================
-         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
-     &        ( FRAC_L    <  0.8d0 ) .and.
-     &        ( MLDCM     > 0.99d0 )      ) THEN
-
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+!         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
+!     &        ( FRAC_L    <  0.8d0 ) .and.
+!     &        ( MLDCM     > 0.99d0 )      ) THEN
+          ! Use consistent criteria for Ocean/Land/Ice categories
+          ! with snowpack and terrestrial emissions  !CDH 5/18/2010
+          IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
 
             !===========================================================
             ! Reduction and oxidation coefficients
