@@ -55,8 +55,8 @@
       LOGICAL              :: LHGSNOW
 !
 ! !REVISION HISTORY:
-! 23 Apr 2010 - C. Carouge  - Initial version
-!
+!  23 Apr 2010 - C. Carouge  - Initial version
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -312,6 +312,7 @@
 !  02 Sep 2008 - C. Holmes   - Initial version
 !  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to depo_mercury_mod.f
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC

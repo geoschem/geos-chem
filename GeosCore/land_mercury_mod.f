@@ -36,6 +36,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  30 Aug 2010 - R. Yantosca - Added more ProTeX headers
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,6 +92,7 @@
 !       (cdh, 8/19/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -210,6 +212,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jul 2008 - N. E. Selin, C. Holmes, B. Corbitt - Initial version 
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -473,6 +476,7 @@
 !  2 June 2010 - C. Carouge  - Solve  
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -724,6 +728,7 @@
 ! !REVISION HISTORY: 
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTex headers
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
