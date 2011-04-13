@@ -296,7 +296,7 @@
 ! !USES:
 !
       USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-      USE DAO_MOD,           ONLY : IS_ICE
+      USE DAO_MOD,           ONLY : IS_ICE, IS_LAND ! cdh
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
 
