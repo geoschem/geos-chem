@@ -159,6 +159,8 @@
 !
       ! References to F90 modules
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT, LGCAPEMIS, LPOLARBR
+      ! Added LVEGEMIS, distinct from LGCAPEMIS (jaf, eds, 4/1/11)
+      USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
 !      USE OCEAN_MERCURY_MOD, ONLY : LHGSNOW,     LHg2HalfAerosol
       USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW, ADD_HG2_SNOWPACK
@@ -1979,7 +1981,10 @@
       
 !         EHg0_ln = EHg0_ln + EHg0_snow
       
-         CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+         ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+         ! (jaf, eds, 4/1/11)
+         !CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
          CALL SOILEMIS( EHg0_dist, EHg0_so )
@@ -5180,9 +5185,10 @@ c$$$      ENDIF
       ! Selin et al. 2008 (+bug fixes) if FALSE
       ! This is temporary
       ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
-      ! no Hg emitted through transpiration (VEGEMIS off)
       ! With these emissions, Bess found the best chemistry results
       LGCAPEMIS=.TRUE.
+      ! no Hg emitted through transpiration (VEGEMIS off)
+      LVEGEMIS=.FALSE.
 
       ! Switch adds bromine explosion in Northern springtime
       LPOLARBR=.TRUE.

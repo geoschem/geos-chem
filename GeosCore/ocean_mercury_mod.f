@@ -130,6 +130,7 @@
 !      PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
 !      PUBLIC :: SNOW_HG ! CDH snowpack
       PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      PUBLIC :: LVEGEMIS ! jaf
 !      PUBLIC :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       PUBLIC :: LRED_JNO2,   LGEOSLWC
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
@@ -180,6 +181,7 @@
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
       LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      LOGICAL   :: LVEGEMIS ! jaf
 !      LOGICAL   :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
       LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3

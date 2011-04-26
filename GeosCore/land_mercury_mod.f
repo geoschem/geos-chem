@@ -286,7 +286,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
 !
 ! !USES:
 !
@@ -300,7 +302,10 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,                INTENT(IN)  :: LGCAPEMIS
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      !LOGICAL,                INTENT(IN)  :: LGCAPEMIS
+      LOGICAL,                INTENT(IN)  :: LVEGEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
 !
 ! !OUTPUT PARAMETERS:
@@ -360,7 +365,10 @@
       !=================================================================
 
       ! No emissions through transpiration if we use Bess' GCAP emissions
-      IF (LGCAPEMIS) THEN
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      !IF (LGCAPEMIS) THEN
+      IF (.NOT. LVEGEMIS) THEN
 
          EHg0_vg = 0D0
 
