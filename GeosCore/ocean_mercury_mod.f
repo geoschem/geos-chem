@@ -561,11 +561,15 @@ c$$$
 !  (3 ) Ocean parameterizations are rewritten entirely to account for actual
 !        processes in the ocean. Different subsurface conc. are included
 !        (anls, 20/10/09)
+!  (4 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !******************************************************************************
 !
       ! References to F90 modules
       ! Add reference to IS_WATER for Holmes et al. 2010 version (jaf, 4/11/11)
       USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
+!--jaf.start
+      USE DAO_MOD,       ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
+!--jaf.end
       USE DIAG03_MOD,    ONLY : AD03, ND03
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
@@ -588,6 +592,7 @@ c$$$
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
+      LOGICAL               :: IS_OCEAN_BOX ! jaf
       CHARACTER(LEN=255)    :: FILENAME
       INTEGER               :: I,         J,        NN, C
       INTEGER               :: N,         N_tot_oc
@@ -700,9 +705,19 @@ c$$$
          ! Grid box surface area [m2]
          A_M2 = GET_AREA_M2( J )
 
+!--jaf.start
+         ! Use fractional land type information in MERRA (jaf, 4/26/11)
+         ! FROCEAN is a constant, so to get correct ocean fraction we
+         ! need to subtract the sea ice fraction.
+#if   defined(MERRA)
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
+     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+         A_ocean = A_ocean + A_M2 * 
+     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+#else
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * ( 1d0 - FRCLND(I,J))
-
          A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
+#endif
 
       ENDDO
       ENDDO
@@ -722,6 +737,7 @@ c$$$
 !$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  HgPaq_SUNK, OC_tot_kg  )
 !$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
+!$OMP+PRIVATE( IS_OCEAN_BOX                   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -764,8 +780,21 @@ c$$$
          MLDcm      = MLDav(I,J)
 
          ! Get fractions of land and ocean in the grid box [unitless]
+         ! Use fractional land type information in MERRA. Also make sure
+         ! we do not use boxes that are mostly sea ice for consistency
+         ! FROCEAN is a constant, so to get correct ocean fraction we
+         ! need to subtract the sea ice fraction. Don't let the fraction
+         ! be less than zero (jaf, 4/26/11)
+#if   defined(MERRA)
+         FRAC_L     = FRLAND(I,J)
+         FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
+         IS_OCEAN_BOX = ((FRAC_O > 0d0) .and. (SEAICE00(I,J) > 0.5d0))
+#else
          FRAC_L     = FRCLND(I,J)
          FRAC_O     = 1d0 - FRAC_L
+         IS_OCEAN_BOX = ( IS_WATER(I,J) )
+#endif
+!--jaf.end
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes 
@@ -779,9 +808,12 @@ c$$$
 !         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
 !     &        ( FRAC_L    <  0.8d0 ) .and.
 !     &        ( MLDCM     > 0.99d0 )      ) THEN
+!--jaf.start
           ! Use consistent criteria for Ocean/Land/Ice categories
           ! with snowpack and terrestrial emissions  !CDH 5/18/2010
-          IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
+          !IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
+         IF ( (IS_OCEAN_BOX) .and. (MLDCM > 0.99d0) ) THEN
+!--jaf.end
 
             !===========================================================
             ! Reduction and oxidation coefficients
@@ -1674,6 +1706,7 @@ c$$$
 !  (4 ) MLDnew (REAL*8 ) : New ocean mixed layer depth [m]
 !
 !  NOTES:
+!  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -1681,6 +1714,7 @@ c$$$
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
+      USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DEP"      ! FRCLND
@@ -1710,7 +1744,16 @@ c$$$
       A_M2   = GET_AREA_M2( J )
 
       ! Fraction of box that is ocean
+!--jaf.start
+      ! Use fractional land type information in MERRA (jaf, 4/26/11)
+      ! FROCEAN is a constant, so to get correct ocean fraction we
+      ! need to subtract the sea ice fraction.
+#if   defined(MERRA)
+      FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
+#else
       FRAC_O = 1d0 - FRCLND(I,J)
+#endif
+!--jaf.end
       
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = TRACER_MW_KG(ID_Hg_tot)
