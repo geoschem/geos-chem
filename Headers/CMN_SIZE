@@ -372,7 +372,9 @@
       !  Add non-biogenic emission species:
       !  BENZ, TOLU, XYLE, C2H2, C2H4, GLYX, MGLY, GLYC, HAC. (tmf, 1/7/09)
       !INTEGER, PARAMETER :: NEMPARA = 21 
-      INTEGER, PARAMETER :: NEMPARA = 26 
+      !  Add RCHO, HCOOH, ACTA
+      !INTEGER, PARAMETER :: NEMPARA = 26 
+      INTEGER, PARAMETER :: NEMPARA = 29
 
       ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
 !      INTEGER, PARAMETER :: NEMPARB = 3

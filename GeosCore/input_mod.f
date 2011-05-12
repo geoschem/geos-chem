@@ -1494,7 +1494,7 @@
 
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
-      READ ( SUBSTRS(1:N), * ) LRETRO
+      READ( SUBSTRS(1:N), * ) LRETRO
 
       ! Use EPA/NEI99 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
@@ -1875,6 +1875,7 @@
       WRITE( 6, 100     ) '  Use CAC anthro emissions  : ', LCAC
       WRITE( 6, 100     ) '  Use STREETS anthro emiss. : ', LSTREETS
       WRITE( 6, 100     ) '  Use EPA/NEI 2005          : ', LNEI05
+      WRITE( 6, 100     ) '  Use RETRO emissions       : ', LRETRO
       WRITE( 6, 100     ) 'Use EPA/NEI99 (ANTH + BF)   : ', LNEI99
       WRITE( 6, 100     ) '      --> with NOx VISTAS?  : ', LVISTAS
       WRITE( 6, 100     ) '      --> with ICARTT modif?: ', LICARTT

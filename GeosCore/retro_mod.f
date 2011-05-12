@@ -113,7 +113,6 @@
      &                 RETRO_CH2O, RETRO_BENZ, RETRO_TOLU, RETRO_XYLE,
      &                 RETRO_C2H4, RETRO_C2H2                         )
 
-
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
@@ -236,6 +235,7 @@
      &   CATEGORY, NTRACER, UNIT, ZTAU0, ZTAU1, RESERVED,
      &   NI, NJ, NL, IFIRST, JFIRST, LFIRST, NSKIP
 
+
          ! Error check
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_data:3' )
 
@@ -279,7 +279,6 @@
             CASE DEFAULT
                ! Nothing
          END SELECT
-
       END DO
 
       ! Close file
@@ -436,7 +435,7 @@
          WRITE( 6, 100   ) 'C2H4', THISMONTH, C2H4, ' C'
          WRITE( 6, 100   ) 'C2H2', THISMONTH, C2H2, ' C'
  100     FORMAT( 'Total anthro ', a4, ' for 2000/',
-     &           i2.2, ': ', f13.6, 'Tg', a2 )
+     &           i2.2, ': ', f13.6, ' Tg', a2 )
 
          ! Return to calling program
          END SUBROUTINE TOTAL_ANTHRO_TG

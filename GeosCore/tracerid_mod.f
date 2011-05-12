@@ -246,6 +246,8 @@
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
 
+      INTEGER		 :: IDTHCOOH, IDTACTA  ! (mjc, 4/13/11)
+
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
 
@@ -271,8 +273,9 @@
       INTEGER            :: IDEGLYC
       INTEGER            :: IDEGLYX, IDEMGLY
       INTEGER            :: IDEHAC
-       
-
+      !%%%%(bmy 4/13/11)
+      INTEGER            :: IDERCHO, IDEHCOOH, IDEACTA       
+      
       ! GEOS-CHEM biofuel ID's
       INTEGER            :: IDBFNOX,  IDBFCO,   IDBFALK4, IDBFACET 
       INTEGER            :: IDBFMEK,  IDBFALD2, IDBFPRPE, IDBFC3H8
@@ -1166,6 +1169,34 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEC2H2   = NEMANTHRO
          ENDIF
+         
+         !%%%%%%bmy add these here%%%%%%%%%%
+	 IF ( IDTRCHO > 0 ) THEN
+
+            NEMANTHRO = NEMANTHRO + 1
+
+            IDERCHO  = NEMANTHRO
+
+          ENDIF
+
+          IF ( IDTHCOOH > 0 ) THEN
+
+            NEMANTHRO = NEMANTHRO + 1
+
+            IDEHCOOH  = NEMANTHRO
+
+          ENDIF
+
+          IF ( IDTACTA > 0 ) THEN
+
+            NEMANTHRO = NEMANTHRO + 1
+
+            IDEACTA   = NEMANTHRO
+
+          ENDIF
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
          ! Now add additional species treated in SMVGEAR that are NOT
          ! anthropogenic, increment NEMBIOG
          ! All non-anthropogenic species should be last (see anthroems.f
@@ -1227,6 +1258,11 @@
       IF ( IDEMONX /= 0 ) IDEMS(IDEMONX) = IDTMONX
       IF ( IDEC2H4 /= 0 ) IDEMS(IDEC2H4) = IDTC2H4
       IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      IF (IDERCHO /= 0 )   IDEMS(IDERCHO) = IDTRCHO
+      IF ( IDEHCOOH /= 0 ) IDEMS(IDEHCOOH) = IDTHCOOH
+      IF ( IDEACTA /= 0 )  IDEMS(IDEACTA) = IDTACTA
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
       IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
