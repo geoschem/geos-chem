@@ -215,7 +215,7 @@
          ENDIF
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
-         print*, '### EMISSIONS: calling EMISS_RETRO'
+         !print*, '### EMISSIONS: calling EMISS_RETRO'
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
 
          ! Read EPA/NEI99 (USA) emissions once per month
