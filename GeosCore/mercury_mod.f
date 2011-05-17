@@ -521,7 +521,7 @@
       REAL*8                :: LWC,         AREA_CM2
       REAL*8                :: C_O3,        C_OH,        C_BR
       REAL*8                :: C_BRO
-      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO         
+      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO   
       REAL*8                :: K_OX,        K_RED       
       REAL*8                :: E_KOX_T,     E_KRED_T    
 
@@ -540,8 +540,8 @@
       REAL*8                :: DEP_HG2_DRY, DEP_HG2_SALT
       REAL*8                :: DEP_DRY_FLX
 !      REAL*8                :: SNOW_HT - obsolete
-      REAL*8                :: FRAC_NO_HG_DEP !jaf 
-      LOGICAL               :: ZERO_HG_DEP !jaf 
+      REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+      LOGICAL               :: ZERO_HG0_DEP !jaf 
 
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
       REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
@@ -599,7 +599,7 @@
 !$OMP+PRIVATE( TMP_HG0, TMP_HG2,  TMP_OX                          )    
 !$OMP+PRIVATE( DEP_HG0, DEP_HG2,  DEP_HG2_DRY, DEP_HG2_SALT       )
 !!$OMP+PRIVATE( DEP_DRY_FLX,      SNOW_HT                          )
-!$OMP+PRIVATE( DEP_DRY_FLX,       ZERO_HG_DEP, FRAC_NO_HG_DEP     )
+!$OMP+PRIVATE( DEP_DRY_FLX,       ZERO_HG0_DEP, FRAC_NO_HG0_DEP   )
 !$OMP+PRIVATE( NET_OX,  GROSS_OX                                  )
 !$OMP+PRIVATE( GROSS_OX_OH,       GROSS_OX_O3, GROSS_OX_BR        )
       DO L = 1, LLPAR
@@ -793,26 +793,26 @@
             
          ! Except in MERRA, we assume entire grid box is water or ice
          ! if conditions are met (jaf, 4/26/11)
-         FRAC_NO_HG_DEP = 1d0
+         FRAC_NO_HG0_DEP = 1d0
 #if   defined( MERRA )
-         FRAC_NO_HG_DEP =
+         FRAC_NO_HG0_DEP =
      &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
-         ZERO_HG_DEP = ( FRAC_NO_HG_DEP > 0d0 )
+         ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
 #elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         ZERO_HG_DEP = ( (LWI(I,J) == 0) .OR. 
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
      &                   (IS_ICE(I,J)) .OR.
      &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         ZERO_HG_DEP = ( (LWI(I,J) == 0) .OR.
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
      &                   (IS_ICE(I,J)) .OR. 
      &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif 
 
          K_DEP0 = K_DRYD0
-         IF ( ZERO_HG_DEP ) THEN
-            K_DEP0 = K_DEP0 * MAX(1d0 - FRAC_NO_HG_DEP,0d0)
+         IF ( ZERO_HG0_DEP ) THEN
+            K_DEP0 = K_DEP0 * MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
          ENDIF
 !--jaf.end
 

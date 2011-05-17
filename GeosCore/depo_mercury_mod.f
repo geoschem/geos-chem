@@ -301,7 +301,7 @@
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
       USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
 
-#     include 'define.h'
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !
@@ -389,7 +389,7 @@
       IS_SNOW_OR_ICE = ( (IS_ICE(I,J)) .OR. 
      &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
 #else
-      ! Use GEOS1-4 snow heigt (water equivalent) in mm
+      ! Use GEOS1-4 snow height (water equivalent) in mm
       IS_SNOW_OR_ICE = ( (IS_ICE(I,J)) .OR. 
      &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif 

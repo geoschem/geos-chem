@@ -1807,8 +1807,8 @@ contains
     real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
 
 !    REAL*8                :: SNOW_HT !cdh - obsolete
-    REAL*8                :: FRAC_NO_HG_DEP !jaf 
-    LOGICAL               :: ZERO_HG_DEP !jaf 
+    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+    LOGICAL               :: ZERO_HG0_DEP !jaf 
 !
 ! !REVISION HISTORY:
 !
@@ -1959,7 +1959,7 @@ contains
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
 !!$OMP PRIVATE( SNOW_HT )
-!$OMP PRIVATE( FRAC_NO_HG_DEP, ZERO_HG_DEP )
+!$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -2141,27 +2141,27 @@ contains
 
           ! Except in MERRA, we assume entire grid box is water or ice
           ! if conditions are met (jaf, 4/26/11)
-          FRAC_NO_HG_DEP = 1d0
+          FRAC_NO_HG0_DEP = 1d0
 #if   defined( MERRA )
-          FRAC_NO_HG_DEP = &
+          FRAC_NO_HG0_DEP = &
                MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
-          ZERO_HG_DEP = ( FRAC_NO_HG_DEP > 0d0 )
+          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
 #elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          ZERO_HG_DEP = ( (LWI(I,J) == 0) .OR. &
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
-          ZERO_HG_DEP = ( (LWI(I,J) == 0) .OR. &
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
                           (IS_ICE(I,J)) .OR.   &
                           (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif 
           
           IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
-             IF ( ZERO_HG_DEP ) THEN
+             IF ( ZERO_HG0_DEP ) THEN
                 DFLX(I,J,NN) = DFLX(I,J,NN) * &
-                               MAX(1d0 - FRAC_NO_HG_DEP,0d0)
+                               MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
              ENDIF
           ENDIF
 
