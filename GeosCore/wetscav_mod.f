@@ -4181,7 +4181,7 @@
                F_RAINOUT = 0d0
                F_WASHOUT = 0d0
             ENDIF
-!
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE from Chris Holmes (8/21/10)
 !%%% 
@@ -5325,6 +5325,8 @@
 !                              partial re-evaporation.
 !  28 Sep 2010 - H. Amos     - Now check for NaN's with function IT_IS_NAN
 !  31-Dec-2010 - H. Amos     - new variable, TK, for temperature
+!  26 May 2011 - R. Yantosca - Bug fix: Only apply the error trap for the
+!                              condition WASHFRAC < 1d-3 for MERRA met
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5380,6 +5382,10 @@
      &                 F_WASHOUT, H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  AER )
 
+#if    defined( MERRA )
+         !%%% BUG FIX: Only apply this section of when running
+         !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
+         !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
          ! If WASHFRAC = NaN, then DSTT = NaN and SAFETY trips because 
@@ -5391,6 +5397,7 @@
          ELSEIF ( WASHFRAC < 1D-3 ) THEN
             CYCLE
          ENDIF
+#endif
                   
          !--------------------------------------------------------------
          ! Washout of aerosol tracers -- 
@@ -5406,8 +5413,9 @@
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
-            IF (ALPHA > 1) THEN 
-               ALPHA = 1
+            ! NOTE: GEOS-5 should not produce any ALPHA > 1.
+            IF ( ALPHA > 1d0 ) THEN 
+               ALPHA = 1d0
             ENDIF
 
             ! ALPHA2 is the fraction of the rained-out aerosols
