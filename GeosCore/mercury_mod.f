@@ -644,6 +644,9 @@
             ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
             LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
+            !%%% NOTE: Someone should investigate effect of dividing LWC by the
+            !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+
          ELSE
 
             ! Get liquid water content for entire grid box,
