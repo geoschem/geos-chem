@@ -4256,8 +4256,6 @@
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
                   Q = 0d0
-               ELSE
-                  Q = QQ(L,I,J)                  
                ENDIF
 
                ! Error msg for stdout
@@ -4266,8 +4264,8 @@
                ! Do the washout
                CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
      &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
+     &                               F_WASHOUT, F_RAINOUT,    DT,      
+     &                               PDOWN,     STT,        DSTT   )
             ENDIF
 
             !===========================================================
@@ -4713,8 +4711,6 @@
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
                   Q = 0d0
-               ELSE
-                  Q = QQ(L,I,J)                  
                ENDIF
 
             ENDIF 
@@ -4764,8 +4760,8 @@
                ! Do the washout
                CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
      &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
+     &                               F_WASHOUT, F_RAINOUT,    DT,      
+     &                               PDOWN,     STT,        DSTT  )
 
             ENDIF
 
@@ -5219,8 +5215,9 @@
 ! !INTERFACE:
 !
       SUBROUTINE DO_WASHOUT_ONLY( LS,     I,     J,    L,         IDX, 
-     &                            ERRMSG, QDOWN, Q,    F_WASHOUT, DT,  
-     &                            PDOWN,  STT,   DSTT, REEVAP          )
+     &                            ERRMSG, QDOWN, Q,    F_WASHOUT,  
+     &                            F_RAINOUT,     DT,   PDOWN,  
+     &                            STT,   DSTT, REEVAP          )
 !
 ! !USES:
 !
@@ -5260,6 +5257,8 @@
                                                        !  in box (I,J,L)
       REAL*8,           INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
                                                        !  undergoing washout
+      REAL*8,           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+                                                       !  undergoing rainout
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
 !
@@ -5327,7 +5326,7 @@
 !  31-Dec-2010 - H. Amos     - new variable, TK, for temperature
 !  26 May 2011 - R. Yantosca - Bug fix: Only apply the error trap for the
 !                              condition WASHFRAC < 1d-3 for MERRA met
-!EOP
+!  25-May-2011 - Q. Wang     - new variable, TF, for total precipitation fractio!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -5337,7 +5336,7 @@
       INTEGER :: N,         NN
       REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
-      REAL*8  :: TK 
+      REAL*8  :: TK,        TF  
 
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
@@ -5356,6 +5355,8 @@
 
       ! air temperature [K]
       TK  = T(I,J,L)   
+      ! TOTAL precipitation fraction
+      TF  = F_WASHOUT+F_RAINOUT
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -5379,7 +5380,7 @@
          ! tracer lost to washout in grid box (I,J,L)
          CALL WASHOUT( L,         N,            BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
-     &                 F_WASHOUT, H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  AER )
 
 #if    defined( MERRA )
@@ -5398,6 +5399,9 @@
             CYCLE
          ENDIF
 #endif
+         IF (AER) THEN
+            WASHFRAC=WASHFRAC / TF * F_WASHOUT
+         ENDIF
                   
          !--------------------------------------------------------------
          ! Washout of aerosol tracers -- 
@@ -5455,7 +5459,11 @@
             ! Add the washed out tracer from grid box (I,J,L) to 
             ! DSTT.  Also add the amount of tracer coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
-            DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            IF F_RAINOUT == 0D0 THEN 
+               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            ELSE
+               DSTT(NN,L,I,J) = DSTT(NN,L,I,J) + WETLOSS
+            ENDIF
 
             ! ND18 diagnostic...divide washout fraction by F
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
@@ -5492,7 +5500,11 @@
             STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
             
             ! Add washout losses in grid box (I,J,L) to DSTT 
-            DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            IF F_RAINOUT == 0D0 THEN 
+               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            ELSE
+               DSTT(NN,L,I,J) = DSTT(NN,L,I,J) + WETLOSS
+            ENDIF
 
             ! ND18 diagnostic...we don't have to divide the
             ! washout fraction by F since this is accounted for.
