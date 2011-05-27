@@ -240,6 +240,7 @@
 !  20 Aug 2010 - R. Yantosca - Now reference GET_A1_TIME from "time_mod.f"
 !  26 May 2011 - R. Yantosca - For ND44, omit the special treatment of
 !                              isoprene tracers if we are not doing fullchem
+!  27 May 2011 - R. Yantosca - Now use SCALEDIAG for ND54 (time-in-trop) diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3146,7 +3147,13 @@
          UNIT = 'unitless'
 
          DO L = 1, LD54
-            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
+!-----------------------------------------------------------------------------
+! Prior to 5/27/11:
+! The time in the tropopause is now archived once every chemistry timestep,
+! so we need to divide by SCALEDIAG instead of SCALEDYN (bmy, 5/27/11)
+!            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
+!-----------------------------------------------------------------------------
+            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDIAG
          ENDDO
 
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
