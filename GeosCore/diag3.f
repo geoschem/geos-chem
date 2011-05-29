@@ -238,6 +238,8 @@
 !  20 Aug 2010 - R. Yantosca - Now pick proper scale for ND67 for MERRA
 !  20 Aug 2010 - R. Yantosca - Now added SCALE_A1 for hourly data
 !  20 Aug 2010 - R. Yantosca - Now reference GET_A1_TIME from "time_mod.f"
+!  26 May 2011 - R. Yantosca - For ND44, omit the special treatment of
+!                              isoprene tracers if we are not doing fullchem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2799,16 +2801,17 @@
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
-            
-            ! Special case for tracers with several dry dep. tracers
-            ! E.g. ISOPN: ISOPND and ISOPNB.
-            ! We handle both tracers at the same time so we need to 
-            ! skip the second tracer. (ccc, 2/3/10)
-            !IF ( MMB /= NN ) CYCLE
-            IF ( MMB /= NN                .OR.
-     &           DEPNAME( N ) == 'ISOPNB' .OR.
-     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
-
+          
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               ! Special case for tracers with several dry dep. tracers
+               ! E.g. ISOPN: ISOPND and ISOPNB.
+               ! We handle both tracers at the same time so we need to 
+               ! skip the second tracer. (ccc, 2/3/10)
+               !IF ( MMB /= NN ) CYCLE
+               IF ( MMB /= NN                .OR.
+     &              DEPNAME( N ) == 'ISOPNB' .OR.
+     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+            ENDIF
 
             ! Save into ARRAY
             ARRAY(:,:,1) = ( AD44(:,:,N,1) / SCALECHEM )
@@ -2884,16 +2887,17 @@
                MMB = TINDEX(44,MM)
                MM  = MM + 1
             ENDDO
-            
-            ! Special case for tracers with several dry dep. tracers
-            ! E.g. ISOPN: ISOPND and ISOPNB.
-            ! We handle both tracers at the same time so we need to 
-            ! skip the second tracer. (ccc, 2/3/10)
-            !IF ( MMB /= NN ) CYCLE
-            IF ( MMB /= NN                .OR.
-     &           DEPNAME( N ) == 'ISOPNB' .OR.
-     &           DEPNAME( N ) == 'MVKN'       ) CYCLE
 
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               ! Special case for tracers with several dry dep. tracers
+               ! E.g. ISOPN: ISOPND and ISOPNB.
+               ! We handle both tracers at the same time so we need to 
+               ! skip the second tracer. (ccc, 2/3/10)
+               !IF ( MMB /= NN ) CYCLE
+               IF ( MMB /= NN                .OR.
+     &              DEPNAME( N ) == 'ISOPNB' .OR.
+     &              DEPNAME( N ) == 'MVKN'       ) CYCLE
+            ENDIF
 
             ! Tracer number plus GAMAP offset
             ARRAY(:,:,1) = AD44(:,:,N,2) / SCALESRCE

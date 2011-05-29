@@ -100,6 +100,7 @@
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
 !  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
 !  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -562,6 +563,7 @@ c$$$
 !        processes in the ocean. Different subsurface conc. are included
 !        (anls, 20/10/09)
 !  (4 ) Now use MERRA land fraction information (jaf, 4/26/11)
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !******************************************************************************
 !
       ! References to F90 modules

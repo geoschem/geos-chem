@@ -55,8 +55,8 @@
       LOGICAL              :: LHGSNOW
 !
 ! !REVISION HISTORY:
-! 23 Apr 2010 - C. Carouge  - Initial version
-!
+!  23 Apr 2010 - C. Carouge  - Initial version
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -299,7 +299,7 @@
       USE DAO_MOD,           ONLY : IS_ICE, IS_LAND ! cdh
       USE DAO_MOD,           ONLY : FRSNO, FRSEAICE, FRLANDIC ! jaf
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
+      USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
 
 #     include "define.h"
 !
@@ -314,6 +314,8 @@
 !  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to depo_mercury_mod.f
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  13 Apr 2011 - R. Yantosca - Bug fix: reference IS_LAND from dao_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
