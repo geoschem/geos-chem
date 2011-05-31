@@ -36,6 +36,7 @@
 !
       ! References to F90 modules 
       USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
+      USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
       USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
       USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,     IDTRMB
       USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
@@ -55,7 +56,9 @@
       INTEGER                :: I, J, L, N, JLOOP, IPL, JJ, KK
       INTEGER                :: CSAVEID(IGAS)
       INTEGER                :: CSAVEID_JJ(IGAS)
-      INTEGER                :: CS, IDNUM, AS  
+      INTEGER                :: CS, IDNUM, AS 
+      INTEGER                :: LTEST
+      INTEGER                :: JLOOP_P 
       REAL*8                 :: CONCTMP, CONCNOX, SUM, SUM1
       REAL*8                 :: CSAVE( ITLOOP, NTRACER )
       REAL*8                 :: QTEMP
@@ -99,6 +102,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, JLOOP )
+!$OMP+PRIVATE( JLOOP_P, LTEST )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, IDNUM
       DO L = 1, NPVERT
@@ -108,6 +112,33 @@
          ! 1-D SMVGEAR grid box index
          JLOOP = JLOP(I,J,L)
          IF ( JLOOP == 0 ) CYCLE
+
+         ! Also check index from previous time step
+	 JLOOP_P = JLOP_PREVIOUS(I,J,L)
+         IF ( JLOOP_P == 0 ) THEN
+
+	     LTEST = L
+	     ! Get values from the closest tropospheric cell
+             DO WHILE ( JLOOP_P == 0 )
+
+		! Consider one layer lower
+		LTEST = LTEST - 1
+
+ 		! just to be safe...
+                IF ( LTEST == 0 ) THEN
+!$OMP CRITICAL
+		   CALL ERROR_STOP('could no find trop box',
+     &				   'partition.f' )
+!$OMP END CRITICAL
+		ENDIF
+
+		! Check if this layer was in the trop
+		JLOOP_P = JLOP_PREVIOUS(I,J,LTEST)
+
+	      ENDDO
+
+         ENDIF
+		    
 
          ! Store into CSAVE
          CSAVE(JLOOP,N) = CSPEC(JLOOP,CSAVEID_JJ(N))

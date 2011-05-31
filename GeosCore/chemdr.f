@@ -17,6 +17,7 @@
 !
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : T
@@ -248,7 +249,18 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
+      !vartrop fix (dkh, 05/08/11)
+      !Save a copy of JLOP from the previous time step before re-ordering
+      !the grid mappings.
+      JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
+
       CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+
+      !vartrop fix (dkh, 05/08/11)
+      !Use JLOP from this timestep the first time through
+      IF ( FIRSTCHEM ) THEN
+	JLOP_PREVIOUS(:,:,:)= JLOP(:,:,:)
+      ENDIF
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
