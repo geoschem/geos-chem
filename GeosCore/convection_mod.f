@@ -1584,6 +1584,8 @@
 !  15 Oct 2010 - H. Amos     - Added BXHEIGHT and T as arguments
 !  15 Oct 2010 - R. Yantosca - Added I, J, H2O2s and SO2s as arguments
 !  15 Oct 2010 - H. Amos     - Added scavenging below cloud base
+!  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
+!                              algorithm as in the wet deposition code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2179,7 +2181,8 @@
 
                      ! Update T0_SUM, the total amount of scavenged
                      ! tracer that will be passed to the grid box below
-                     T0_SUM  = LOST + WETLOSS
+                     T0_SUM = T0_SUM + WETLOSS  
+
 
                   ELSE
 
@@ -2203,7 +2206,7 @@
                      ! WETLOSS is the amount of tracer mass in 
                      ! grid box (I,J,L) that is lost to washout.
                      ! (Eq. 16, Jacob et al, 2000)
-                     WETLOSS     = MASS_WASH * WASHFRAC
+                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM 
                      
                      ! The tracer left in grid box (I,J,L) is what was
                      ! in originally in the non-precipitating fraction 
@@ -2212,7 +2215,7 @@
                      
                      ! Updated T0_SUM, the total scavenged tracer
                      ! that will be passed to the grid box below
-                     T0_SUM      = WETLOSS  
+                     T0_SUM      = T0_SUM + WETLOSS 
 
                   ENDIF
 

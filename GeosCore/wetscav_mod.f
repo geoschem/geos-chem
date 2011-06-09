@@ -3994,6 +3994,7 @@
 !        running at 2x25 or greater resolution. (bmy, 1/31/08)
 !  (23) Remove reference to SGI_MIPS (bmy, 7/8/09)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4181,7 +4182,7 @@
                F_RAINOUT = 0d0
                F_WASHOUT = 0d0
             ENDIF
-!
+
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% NOTE from Chris Holmes (8/21/10)
 !%%% 
@@ -4243,7 +4244,7 @@
                QDOWN = PDOWN(L,I,J)
                Q     = QQ(L,I,J)
 
-               ! 
+               ! Also test if we have rainout happening simultaneously
                IF ( F_RAINOUT > 0d0 ) THEN
 
                   ! The precipitation causing washout is the precip entering
@@ -4256,18 +4257,17 @@
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
                   Q = 0d0
-               ELSE
-                  Q = QQ(L,I,J)                  
                ENDIF
 
                ! Error msg for stdout
                ERRMSG = 'WASHOUT: Middle levels'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
-     &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
+               CALL DO_WASHOUT_ONLY( LS,        I,    J,     
+     &                               L,         IDX,  ERRMSG, 
+     &                               QDOWN,     Q,    F_WASHOUT, 
+     &                               F_RAINOUT, DT,   PDOWN,     
+     &                               STT,       DSTT             )
             ENDIF
 
             !===========================================================
@@ -4538,6 +4538,7 @@
 !  09-Dec-2010 - H. Amos     - SAFETY now prints PDOWN(L+1) instead of PDOWN(L)
 !  31-Dec-2010 - H. Amos     - Clean up code, remove obsolete code
 !  31-Dec-2010 - H. Amos     - Added comments
+!  27 May 2011 - R. Yantosca - Now pass F_RAINOUT to DO_WASHOUT_ONLY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4705,16 +4706,14 @@
 
                   ! The precipitation causing washout 
                   ! is the precip entering thru the top
-                  QDOWN = PDOWN(L+1,I,J)
-
+                  QDOWN = PDOWN(L+1,I,J)            
+                            
                   ! The amount of precipitating water entering from above 
                   ! which evaporates. If there is rainout (new precip
                   ! forming) then we have no way to estimate this, so assume
                   ! zero for now. Consequently there will be no resuspended
                   ! aerosol.
                   Q = 0d0
-               ELSE
-                  Q = QQ(L,I,J)                  
                ENDIF
 
             ENDIF 
@@ -4762,10 +4761,11 @@
                ERRMSG = 'WASHOUT'
 
                ! Do the washout
-               CALL DO_WASHOUT_ONLY( LS,        I,      J,     L,       
-     &                               IDX,       ERRMSG, QDOWN, Q,   
-     &                               F_WASHOUT, DT,     PDOWN, STT, 
-     &                               DSTT                           )
+               CALL DO_WASHOUT_ONLY( LS,        I,   J,     
+     &                               L,         IDX, ERRMSG,   
+     &                               QDOWN,     Q,   F_WASHOUT, 
+     &                               F_RAINOUT, DT,  PDOWN,     
+     &                               STT,       DSTT            )
 
             ENDIF
 
@@ -5218,9 +5218,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WASHOUT_ONLY( LS,     I,     J,    L,         IDX, 
-     &                            ERRMSG, QDOWN, Q,    F_WASHOUT, DT,  
-     &                            PDOWN,  STT,   DSTT, REEVAP          )
+      SUBROUTINE DO_WASHOUT_ONLY( LS,        I,         J,      L,         
+     &                            IDX,       ERRMSG,    QDOWN,  Q,    
+     &                            F_WASHOUT, F_RAINOUT, DT,     PDOWN,  
+     &                            STT,       DSTT,      REEVAP        )
 !
 ! !USES:
 !
@@ -5260,6 +5261,8 @@
                                                        !  in box (I,J,L)
       REAL*8,           INTENT(IN)    :: F_WASHOUT     ! Fraction of grid box 
                                                        !  undergoing washout
+      REAL*8,           INTENT(IN)    :: F_RAINOUT     ! Fraction of grid box 
+                                                       !  undergoing rainout
       REAL*8,           INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL*8,           INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
 !
@@ -5324,7 +5327,16 @@
 !  20 Sep 2010 - R. Yantosca - Update definition of ALPHA if we are doing
 !                              partial re-evaporation.
 !  28 Sep 2010 - H. Amos     - Now check for NaN's with function IT_IS_NAN
-!  31-Dec-2010 - H. Amos     - new variable, TK, for temperature
+!  31 Dec 2010 - H. Amos     - new variable, TK, for temperature
+!  26 May 2011 - R. Yantosca - Bug fix: Only apply the error trap for the
+!                              condition WASHFRAC < 1d-3 for MERRA met
+!  25 May 2011 - Q. Wang     - new variable, TF, for total precip fraction
+!  25 May 2011 - Q. Wang     - Also pass F_RAINOUT via the arg list
+!  25 May 2011 - Q. Wang     - Correct the washfrac to make sure that washout 
+!                              is applied the area of F_washout instead of 
+!                              total area of (F_washout+F_rainout)
+!  27 May 2011 - R. Yantosca - Added comments, readjusted IF statements to 
+!                              avoid floating-point problems
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5335,7 +5347,7 @@
       INTEGER :: N,         NN
       REAL*8  :: ALPHA,     ALPHA2,      GAINED,   LOST
       REAL*8  :: MASS_WASH, MASS_NOWASH, WASHFRAC, WETLOSS
-      REAL*8  :: TK 
+      REAL*8  :: TK,        TF  
 
       !=================================================================
       ! DO_WASHOUT_ONLY begins here!
@@ -5354,6 +5366,9 @@
 
       ! air temperature [K]
       TK  = T(I,J,L)   
+
+      ! TOTAL precipitation fraction
+      TF  = F_WASHOUT + F_RAINOUT
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -5377,9 +5392,13 @@
          ! tracer lost to washout in grid box (I,J,L)
          CALL WASHOUT( L,         N,            BXHEIGHT(I,J,L), 
      &                 TK,        QDOWN,        DT,   
-     &                 F_WASHOUT, H2O2s(I,J,L), SO2s(I,J,L), 
+     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L), 
      &                 WASHFRAC,  AER )
 
+#if    defined( MERRA )
+         !%%% BUG FIX: Only apply this section of when running
+         !%%% GEOS-Chem with MERRA met fields.  (bmy, hamos, 5/26/11)
+         !
          ! Check if WASHFRAC = NaN or WASHFRAC < 0.1 %
          ! 
          ! If WASHFRAC = NaN, then DSTT = NaN and SAFETY trips because 
@@ -5391,6 +5410,14 @@
          ELSEIF ( WASHFRAC < 1D-3 ) THEN
             CYCLE
          ENDIF
+#endif
+
+         ! Adjust WASHFRAC accordingly for aerosols.  NOTE: TF is always 
+         ! > 0 since DO_WASHOUT_ONLY is only called if F_WASHOUT > 0.  
+         ! We will never get a div-by-zero error here. (bmy, 5/27/11)
+         IF ( AER ) THEN
+            WASHFRAC = WASHFRAC / TF * F_WASHOUT
+         ENDIF
                   
          !--------------------------------------------------------------
          ! Washout of aerosol tracers -- 
@@ -5399,20 +5426,21 @@
 
          IF ( AER ) THEN
 
-             ! Define ALPHA, the fraction of the raindrops that 
-             ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
-     &               / ( PDOWN(L+1,I,J)                     )
+            ! Define ALPHA, the fraction of the raindrops that 
+            ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+            ALPHA = ( ABS( Q ) * BXHEIGHT(I,J,L) * 100d0 )
+     &            / ( PDOWN(L+1,I,J)                     )
 
             ! Restrict ALPHA to be less than 1 (>1 is unphysical)
             ! (hma, 24-Dec-2010)
-            IF (ALPHA > 1) THEN 
-               ALPHA = 1
+            ! NOTE: GEOS-5 should not produce any ALPHA > 1.
+            IF ( ALPHA > 1d0 ) THEN 
+               ALPHA = 1d0
             ENDIF
 
             ! ALPHA2 is the fraction of the rained-out aerosols
             ! that gets resuspended in grid box (I,J,L)
-            ALPHA2 = 0.5d0 * ALPHA
+            ALPHA2  = 0.5d0 * ALPHA
 
             ! GAINED is the rained out aerosol coming down from 
             ! grid box (I,J,L+1) that will evaporate and re-enter 
@@ -5447,7 +5475,21 @@
             ! Add the washed out tracer from grid box (I,J,L) to 
             ! DSTT.  Also add the amount of tracer coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
-            DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            !---------------------------------------------------------------
+            ! Prior to 5/27/11:
+            ! Restructure IF statement to avoid floating point errors
+            ! (bmy, 5/27/11)
+            !IF ( F_RAINOUT == 0D0 ) THEN 
+            !   DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            !ELSE
+            !   DSTT(NN,L,I,J) = DSTT(NN,L,I,J) + WETLOSS
+            !ENDIF
+            !---------------------------------------------------------------
+            IF ( F_RAINOUT > 0d0 ) THEN 
+               DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
+            ELSE
+               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            ENDIF
 
             ! ND18 diagnostic...divide washout fraction by F
             IF ( ND18 > 0 .and. L <= LD18 ) THEN
@@ -5484,7 +5526,21 @@
             STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
             
             ! Add washout losses in grid box (I,J,L) to DSTT 
-            DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            !-------------------------------------------------------------
+            ! Prior to 5/27/11:
+            ! Restructure IF statement to avoid floating point errors.
+            ! (bmy, 5/27/11)
+            !IF ( F_RAINOUT == 0d0 )THEN 
+            !   DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            !ELSE
+            !   DSTT(NN,L,I,J) = DSTT(NN,L,I,J)   + WETLOSS
+            !ENDIF
+            !-------------------------------------------------------------
+            IF ( F_RAINOUT > 0d0 ) THEN
+               DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
+            ELSE
+               DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
+            ENDIF
 
             ! ND18 diagnostic...we don't have to divide the
             ! washout fraction by F since this is accounted for.

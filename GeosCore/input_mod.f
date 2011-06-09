@@ -2918,6 +2918,9 @@
 !        (tmf, 2/10/09)
 !  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
+!                              set N_TMP = N_TRACERS, or else wetdep tracers 
+!                              with indices higher than #32 won't print out.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3076,7 +3079,13 @@
       !--------------------------
       ! ND17: Rainout losses
       !--------------------------
-      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+! Prior to 5/26/11:
+! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
+! won't print out (skim, bmy, 5/26/11) 
+!      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:19' )
       READ( SUBSTRS(1), * ) ND17
       IF ( .not. LWETD ) ND17 = 0
@@ -3085,7 +3094,13 @@
       !--------------------------
       ! ND18: Washout losses
       !--------------------------
-      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+! Prior to 5/26/11:
+! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
+! won't print out (skim, bmy, 5/26/11) 
+!      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:20' )
       READ( SUBSTRS(1), * ) ND18
       IF ( .not. LWETD ) ND18 = 0
@@ -3218,7 +3233,13 @@
       !--------------------------
       ! ND37: Updraft scav frac
       !--------------------------
-      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+! Prior to 5/26/11:
+! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
+! won't print out (skim, bmy, 5/26/11) 
+!      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
       CALL SET_TINDEX( 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
@@ -3226,7 +3247,13 @@
       !--------------------------
       ! ND38: Cld conv losses
       !--------------------------
-      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+! Prior to 5/26/11:
+! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
+! won't print out (skim, bmy, 5/26/11) 
+!      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
       IF ( .not. LWETD .and. .not. LCONV ) ND38 = 0
@@ -3235,7 +3262,13 @@
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
-      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------
+! Prior to 5/26/11:
+! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
+! won't print out (skim, bmy, 5/26/11) 
+!      N_TMP = GET_WETDEP_NMAX()
+!--------------------------------------------------------------------------    
+      N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39
       IF ( .not. LWETD ) ND39 = 0

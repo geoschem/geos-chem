@@ -55,8 +55,8 @@
       LOGICAL              :: LHGSNOW
 !
 ! !REVISION HISTORY:
-! 23 Apr 2010 - C. Carouge  - Initial version
-!
+!  23 Apr 2010 - C. Carouge  - Initial version
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -295,10 +295,10 @@
 !
 ! !USES:
 !
-      USE DAO_MOD,           ONLY : SNOW, SNOMAS 
-      USE DAO_MOD,           ONLY : IS_ICE
+      USE DAO_MOD,           ONLY : SNOW,        SNOMAS 
+      USE DAO_MOD,           ONLY : IS_ICE,      IS_LAND
       USE TRACERID_MOD,      ONLY : GET_Hg2_CAT, GET_HgP_CAT
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP
+      USE TRACERID_MOD,      ONLY : IS_Hg2,      IS_HgP
 
 #     include 'define.h'
 !
@@ -312,6 +312,8 @@
 !  02 Sep 2008 - C. Holmes   - Initial version
 !  23 Apr 2010 - C. Carouge  - Moved from mercury_mod.f to depo_mercury_mod.f
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  13 Apr 2011 - R. Yantosca - Bug fix: reference IS_LAND from dao_mod.f
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -346,13 +348,23 @@
 #endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
-      IF ( (SNOW_HT > 1d0) .OR. (IS_ICE(I,J)) ) THEN
+      ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+      ! (cdh 2/28/09: There are several coastal boxes which are mainly
+      ! ocean, but have some land-based snow that exceeds the snow_HT 
+      ! criteria. This Hg should go to the ocean, not the snowpack )
+      !IF ( (SNOW_HT > 1d0) .OR. (IS_ICE(I,J)) ) THEN
+      IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) THEN
     
-         IF (DEP_HG2<0d0) THEN
-            WRITE(6,'(3I6,2G12.4)') I,J,NN,DEP_HG2,SNOW_HG(I,J,NN)
-         ENDIF
+         ! Remove unnecessary output (jaf, 4/11/11)
+         !IF (DEP_HG2<0d0) THEN
+         !   WRITE(6,'(3I6,2G12.4)') I,J,NN,DEP_HG2,SNOW_HG(I,J,NN)
+         !ENDIF
 
-         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( DEP_HG2, 0D0 )
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         !SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( DEP_HG2, 0D0 )
+         ! Add 60% of deposition to surface, i.e. assume 40% accumulates
+         ! in surface
+         SNOW_HG(I,J,NN) = SNOW_HG(I,J,NN) + MAX( 0.6D0*DEP_HG2, 0D0 )
 
       ENDIF
 
