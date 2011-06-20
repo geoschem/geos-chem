@@ -153,6 +153,7 @@
       REAL*4                        :: B_1x1(I1x1,J1x1)
       REAL*8                        :: TAU
       CHARACTER(LEN=255)            :: FILENAME,      SCALE_DIR
+      CHARACTER(LEN=255)            :: CO_SCALE_DIR
       CHARACTER(LEN=4)              :: BASE_YYYY_STR, TARG_YYYY_STR
       INTEGER                       :: BASE_YEAR,     TARG_YEAR
       INTEGER                       :: I, J
@@ -162,6 +163,7 @@
       !=================================================================
 
       SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200911/'
+      CO_SCALE_DIR = '/mnt/lstr04/srv/home/efischer/geoschemv9/'
 
       ! limit scaling between available years
       BASE_YEAR = MAX( MIN( B_YEAR, 2006 ), 1985 )
@@ -186,8 +188,12 @@
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
-            FILENAME = TRIM( SCALE_DIR ) //
-     &          'CO-AnnualScalar.geos.1x1'
+!            FILENAME = TRIM( SCALE_DIR ) //
+!     &          'CO-AnnualScalar.geos.1x1'
+
+! Set pathway to revised annual scaling factors (5/20/2011, evf)
+            FILENAME = TRIM( CO_SCALE_DIR ) //
+     &          'CO-Annual_Scalarmod.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -227,8 +233,8 @@
          ELSE IF ( TRACER == 72 ) THEN
 
             ! CO
-            FILENAME = TRIM( SCALE_DIR ) //
-     &          'CO-AnnualScalar.geos.1x1'
+            FILENAME = TRIM( CO_SCALE_DIR ) //
+     &          'CO-Annual_Scalarmod.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
