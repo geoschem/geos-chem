@@ -387,6 +387,8 @@
       REAL*8                 :: KG, U, TC, SC, kl, KKL, HSTAR, KL600
       REAL*8                 :: DTSRCE, OCEAN_ACET, AREA_CM2, FOCEAN
       REAL*8,  EXTERNAL      :: SFCWINDSQR
+! evf(6/20/2011)
+      REAL*8                 :: USTAR, CD, Cl
 !
 ! !DEFINED PARAMETERS:
 !
@@ -568,8 +570,23 @@
       IF ( FOCEAN > 0.5d0 ) THEN 
 
          ! Henry's law [unitless] using 32 M/atm Henry's law constant
-         HSTAR    = ( 1d0 / 730d0 ) *
-     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+!         HSTAR    = ( 1d0 / 730d0 ) *
+!     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+
+         ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
+         ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
+
+         HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+
+  
+         ! Want Henry constant exressed as
+         ! concentration in air/concentration in water.
+         ! Take reciprocal.(evf, 5/11/11) 
+ 
+         HSTAR = 1d0/HSTAR
+
+         ! Now HENCONST = dimensionless H 
+         ! [mass Acetone/volume air]/[mass Acetone/volume H2O]
 
          ! Magnitude of resultant wind [m/s]
          ! SFCWINDSQR(I,J) is needed since this will compute the square
@@ -590,8 +607,19 @@
 
          ! KG is conductance for mass transfer in gas phase (Asher 1997)
          ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-         KG       = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U )   
-         KG       = KG * 360000d0
+         !KG       = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U )   
+         !KG       = KG * 360000d0
+
+         ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
+         ! USTAR = friction velocity (U* in Johnson [2010]
+         USTAR = SQRT(6.1d-4 + U*6.3d-5)*U
+         ! CD = drag coefficient
+         CD = (USTAR/U)**2
+
+         !KG is airside transfer velocity (Johnson 2010)
+         ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
+         KG = 1d-3 + (USTAR/(13.3*SC**(1/2) + CD**(-1/2)-5+LOG(SC)/0.8))
+         KG = KG * 360000d0
 
          ! KKL is the air-to-sea transfer velocity (Liss and Slater 1974)
          ! Multiply KKL by 3600 to convert from [cm/hr] to [cm/s]
@@ -625,12 +653,40 @@
          !  emission  | grid box | cm  | s | s      grid box | emission 
          !  time step                                          time step
          !==============================================================
-         OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN 
+         !===============================================================
+         !(evf, 5/11/11)
+         ! Remove photochemical acetone source hypothesized by Jacob.
+         ! et al. [2002]. 
+
+         ! Assume a constant seawater concentration
+         ! of Cl = 15 nM (Available measurements of acetone in seawater:
+         ! Williams et al., (2004) GRL, VOL. 31, L23SO6, 
+         ! doi:10.1029/2004GL020012
+         ! Marandino et al., (2005) GRL, VOL 32, L15806,
+         ! doi:10.1029/2005GL02385
+         ! Kameyama et al., (2010) Marine Chemistry, VOL 122, 59-73
+         ! Zhou and Mopper (1997) Marine Chemistry, VOL 56, 201-213
+
+         ! convert Cl to kg acetone/cm3 (evf, 5/11/11)
+         Cl = 15.0d-9*58.08d0/(1000.0d0*1000.0d0)
+
+         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN
+         !correct for the fraction of the grid cell that is ocean
+         !and compute the flux ( kg/cm2/s)(evf, 5/11/11)
+         OCEAN_ACET = Cl * KKL * FOCEAN 
+          
+         ! Convert to kg Acetone / box / step (evf, 5/11/11)
+         OCEAN_ACET  = OCEAN_ACET * DTSRCE * AREA_CM2
+
+         ! Convert to kg C / box / step (evf, 5/11/11)
+         OCEAN_ACET  = OCEAN_ACET * 36d0/58.08d0       
+
+         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN 
          
          ! Apply further scale factor to account for variations in surface 
          ! temperature wind speed between GEOS met fields -- and also 
          ! surface area between 1x1, 2x2.5, and 4x5 grids. (bmy, 3/15/04)
-         OCEAN_ACET = OCEAN_ACET * SCALE_FACTOR
+         !OCEAN_ACET = OCEAN_ACET * SCALE_FACTOR
 
       ELSE
 
@@ -720,6 +776,7 @@
       INTEGER           :: I, IREF, J, JREF
       REAL*8            :: KH298, DHR, KH, U, TC, SC, KL, KG 
       REAL*8            :: KKL, CG, F, T1L, H, KL600, FLUX, HSTAR
+      REAL*8            :: USTAR, CD
       REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
       REAL*8            :: PRE_ACET
 
@@ -770,9 +827,25 @@
             !===========================================================
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
-               ! Henry's law [unitless] using 32 M/atm Henry's law constant
-               HSTAR = ( 1d0 / 792d0 ) * 
-     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+!               ! Henry's law [unitless] using 32 M/atm Henry's law constant
+!               HSTAR = ( 1d0 / 792d0 ) * 
+!     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
+
+               ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
+               ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
+
+                HSTAR = (660d0)*EXP(-5090d0*(1./298d0 - 1./TS(I,J)))
+  
+               ! Want Henry constant exressed as
+               ! concentration in air/concentration in water.
+               ! Take reciprocal.(evf, 5/11/11) 
+ 
+               HSTAR = 1d0/HSTAR
+
+               ! Now HENCONST = dimensionless H 
+               ! [mass Acetone/volume air]/[mass Acetone/volume H2O]       
+
+
 
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
@@ -793,8 +866,20 @@
 
                ! KG is conductance for mass transfer in gas phase (Asher 1997)
                ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-               KG    = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U ) 
-               KG    = KG * ( 360000d0 )     
+               !KG    = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U ) 
+               !KG    = KG * ( 360000d0 )
+
+               ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
+               ! USTAR = friction velocity (U* in Johnson [2010]
+               USTAR  = SQRT(6.1d-4 + U*6.3d-5)*U
+               ! CD = drag coefficient
+               CD = (USTAR/U)**2
+
+               ! KG is airside transfer velocity (Johnson 2010)
+               ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
+               KG = 1d-3 + (USTAR/(13.3*SC**(1/2) + CD**(-1/2)-5+LOG(SC) 
+     &         /0.8))
+               KG = KG * 360000d0      
 
                ! KKL is the air-to-sea transfer velocity (Liss and Slater 1974)
                ! Multiply KKL by 3600 to convert from [cm/hr] to [cm/s]
@@ -809,7 +894,7 @@
 
                ! Multiply FLUX by OCEANSINK_SCALE, which is the optimized 
                ! BETA value (= 0.15) found from Emily Jin's analysis.
-               FLUX  = FLUX * OCEANSINK_SCALE
+               !FLUX  = FLUX * OCEANSINK_SCALE
 
                !========================================================
                ! Ocean loss of acetone consists of the following terms:
