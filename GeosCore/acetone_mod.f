@@ -70,6 +70,7 @@
 !  (20) Updates for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  20 June 2011 - E. Fischer - Updated Ocean exchange, MEGAN biogenic emiss.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -958,8 +959,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-     &                          EMIS, EMMB, GRASS, ACETONE )
+!      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+!     &                          EMIS, EMMB, GRASS, ACETONE )
+
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, SUNCOS, Q_DIR,
+     &                          Q_DIFF, XNUMOL_C, EMIS, EMMB, GRASS,
+     &                          ACETONE )
 !
 ! !USES:
 !
@@ -968,6 +974,8 @@
       USE GRID_MOD, ONLY : GET_XMID
       USE GRID_MOD, ONLY : GET_YMID
       USE TIME_MOD, ONLY : GET_TS_EMIS
+ !(evf, 5/25/2011)
+      USE MEGAN_MOD, ONLY : GET_EMACET_MEGAN
 
 #     include "CMN_SIZE"                  ! Size parameters
 #     include "CMN_MONOT"                 ! BASEMONOT
@@ -977,11 +985,17 @@
 !
       INTEGER, INTENT(IN)    :: I         ! Grid box longitude index
       INTEGER, INTENT(IN)    :: J         ! Grid box latitude index
-      REAL*8,  INTENT(IN)    :: TMMP      ! Surface temperature [K]
+      REAL*8,  INTENT(IN)    :: TMMP      ! Local Surface Air temperature [K]
       REAL*8,  INTENT(IN)    :: EMMO      ! Monoterpene emission [atoms C]
       REAL*8,  INTENT(IN)    :: EMIS      ! Isoprene emission [atoms C]
       REAL*8,  INTENT(IN)    :: EMMB      ! Methylbutenol emission  [atoms C]
       REAL*8,  INTENT(IN)    :: GRASS     ! Isoprene from grasslands [atoms C]
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      REAL*8,  INTENT(IN)    :: SUNCOS    ! Cosine of Solar Zenith Angle
+      REAL*8,  INTENT(IN)    :: Q_DIR     ! Flux of direct PAR above canopy
+      REAL*8,  INTENT(IN)    :: Q_DIFF    ! Flux of diffuse PAR above canopy
+      REAL*8,  INTENT(IN)    :: XNUMOL_C  ! Number of atoms C / kg C
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1022,6 +1036,8 @@
       ! Scale factors for a posteriori
       REAL*8                 :: MONO_SCALE, DIRECT_SCALE, MB_SCALE 
       REAL*8                 :: DP_SCALE,   GRASS_SCALE
+!evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      REAL*8                 :: EMISS_MEGAN
 
       !=================================================================
       ! EMISS_BIOACET begins here!
@@ -1123,31 +1139,60 @@
 
       !=================================================================
       ! (3) BIOGENIC ACETONE -- DIRECT EMISSION 
+      ! evf, removed obsolete code, replaced with MEGAN acetone
+      ! emissions (5/25/2011) Direct Emission now includes emission
+      ! from grasses and emission from dry leaf matter
       ! 
       ! With communication with Singh we have a direct acetone emission 
       ! source of 18 Tg acet/yr that scales to the isoprene emissions.
       !=================================================================
 
       ! Compute [atoms C/box/step] for ACET, using yield from ISOP
-      YIELD_ISOP   = 0.0282d0
-      ACET_ISOP    = EMIS * YIELD_ISOP
+      ! evf, removed when using MEGAN Acetone emissions
+      !YIELD_ISOP   = 0.0282d0
+      !ACET_ISOP    = EMIS * YIELD_ISOP
 
       ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      DIRECT_SCALE = 1.06d0
-      ACET_ISOP    = ACET_ISOP * DIRECT_SCALE
+      !DIRECT_SCALE = 1.06d0
+      !ACET_ISOP    = ACET_ISOP * DIRECT_SCALE
 
       ! Convert isoprene yield to [atoms C/box/s] and 
       ! add to the total biogenic acetone emissions
-      ACETONE      = ACETONE + ( ACET_ISOP / DTSRCE )
+      !ACETONE      = ACETONE + ( ACET_ISOP / DTSRCE )
+
+      !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+      ! Acetone Emissions from MEGAN (atoms C / box / step)         
+      EMISS_MEGAN = GET_EMACET_MEGAN(I, J, SUNCOS, TMMP, 
+     &              Q_DIR, Q_DIFF, XNUMOL_C )
+
+     
+      !convert MEGAN Acetone Emissions to atoms C/box/s (evf, 5/25/2011)
+      EMISS_MEGAN = EMISS_MEGAN / DTSRCE
+
+      ! Add MEGAN Acetone Emissions to total biogenic acetone emissions (evf, 5/25/2011)
+      ACETONE     = ACETONE +  EMISS_MEGAN
+
 
       ! Diagnostics -- save ACETONE from DIRECT EMISSION [atoms C/cm2/s]
+!      !IF ( ND11 > 0 ) THEN
+!      !   AD11(I,J,3) = AD11(I,J,3) + 
+!     !&                 ( ACET_ISOP / ( AREA_CM2 * DTSRCE ) )
+!     ! ENDIF
+
+      ! Save MEGAN Acetone Emissions to DIRECT EMISSIONS diag [atoms C/cm2/s]
       IF ( ND11 > 0 ) THEN
          AD11(I,J,3) = AD11(I,J,3) + 
-     &                 ( ACET_ISOP / ( AREA_CM2 * DTSRCE ) )
+     &                 ( EMISS_MEGAN / ( AREA_CM2 ) )
       ENDIF
+
 
       !=================================================================
       ! (4) BIOGENIC ACETONE FROM DRY LEAF MATTER / DEAD PLANTS
+      ! !evf, removed obsolete code for emissions from dry leave matter, 
+      ! MEGAN calculations for direct emissions include acetone
+      !emissions from dry leaf matter and dead plants
+      ! Diagnostic Acetdl = 0 (5/25/2011)
+
       !
       ! According to Warneke et al. 1999, 1 g C of dry leaf matter 
       ! produces at least 10^-4 g C in acetone.  We use this lower limit 
@@ -1157,28 +1202,32 @@
       !=================================================================
 
       ! Convert from [g C in dry leaves/m2/s] to [g C in ACETONE/m2/s]
-      YIELD_RESP = 1d-4
-      ACET_RESP  = XRESP(I,J) * YIELD_RESP
+      !YIELD_RESP = 1d-4
+      !ACET_RESP  = XRESP(I,J) * YIELD_RESP
 
       ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      DP_SCALE   = 0.23d0
-      ACET_RESP  = ACET_RESP * DP_SCALE
+      !DP_SCALE   = 0.23d0
+      !ACET_RESP  = ACET_RESP * DP_SCALE
 
       ! Convert [g C in acetone/m2/s] to [atoms C/box/s] 
       ! and add to the total biogenic ACETONE emissions
       ! The 1000 is for changing [g C] to [kg C]
-      ACETONE    = ACETONE + 
-     &             ( ACET_RESP * AREA_M2 * XNUMOL_C / 1000d0 )
+      !ACETONE    = ACETONE + 
+      !!&             ( ACET_RESP * AREA_M2 * XNUMOL_C / 1000d0 )
 
       ! Diagnostics -- save ACETONE from DRY LEAF MATTER in [atoms C/cm2/s]
       ! the 1000 is for [g C] to [kg C], the 1d4 is for [m-2] to [cm-2]
-      IF ( ND11 > 0 ) THEN
-         AD11(I,J,4) = AD11(I,J,4) + 
-     &                 ( ACET_RESP * XNUMOL_C / ( 1000 * 1D4 ) )
-      ENDIF
+      !IF ( ND11 > 0 ) THEN
+      !   AD11(I,J,4) = AD11(I,J,4) + 
+      !! &                 ( ACET_RESP * XNUMOL_C / ( 1000 * 1D4 ) )
+      !! ENDIF
 
       !=================================================================
-      ! (5) BIOGENIC ACETONE FROM GRASSLANDS 
+      ! (5) BIOGENIC ACETONE FROM GRASSLANDS
+      ! !evf, removed obsolete code for emissions from grasses, 
+      ! MEGAN calculations for direct emissions include acetone
+      !emissions from grasses
+      ! Diagnostic Acetgr = 0 (5/25/2011) 
       !
       ! Direct grass emissions should be about 5 TgC/yr from 
       ! Kirstine et al 1998
@@ -1186,22 +1235,22 @@
 
       ! Compute from [atoms C/box/step] of acetone from grass
       ! for all VOC emissions acetone is about 15%
-      YIELD_GRASS = 0.15d0  
-      ACET_GRASS  = GRASS * YIELD_GRASS
+      !YIELD_GRASS = 0.15d0  
+      !ACET_GRASS  = GRASS * YIELD_GRASS
 
       ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      GRASS_SCALE = 1.61d0 
-      ACET_GRASS  = ACET_GRASS * GRASS_SCALE
+      !GRASS_SCALE = 1.61d0 
+      !ACET_GRASS  = ACET_GRASS * GRASS_SCALE
 
       ! Convert grassland acetone yield to [atoms C/box/s] 
       ! and add to the total biogenic acetone emissions
-      ACETONE     = ACETONE + ( ACET_GRASS / DTSRCE )
+      !ACETONE     = ACETONE + ( ACET_GRASS / DTSRCE )
 
       ! Diagnostics -- save ACETONE from GRASSLANDS in [atoms C/cm2/s]
-      IF ( ND11 > 0 ) THEN
-         AD11(I,J,5) = AD11(I,J,5) + 
-     &                 ( ACET_GRASS / ( AREA_CM2 * DTSRCE ) )
-      ENDIF
+      !IF ( ND11 > 0 ) THEN
+      !   AD11(I,J,5) = AD11(I,J,5) + 
+      !&                 ( ACET_GRASS / ( AREA_CM2 * DTSRCE ) )
+      !ENDIF
 
       END SUBROUTINE EMISS_BIOACET
 !EOC
