@@ -399,15 +399,15 @@
             DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
             
             ! For ACET, we need to only do drydep over the land
-            ! and not over the oceans...
+            ! and not over the oceans.
             IF ( NN == IDTACET ) THEN
 
                IF ( IS_LAND( I, J ) ) THEN
-                  DVZ = 0.1
+                  DVZ = 0.1 
                ELSE
                   DVZ = 0d0
                ENDIF
-               
+
             ENDIF
 
             ! Dry deposition frequency [1/s]
@@ -3510,7 +3510,7 @@ C** Load array DVEL
             DEPNAME(NUMDEP) = 'ACET'
             HSTAR(NUMDEP)   = 1.0d+5
             F0(NUMDEP)      = 1.0d0
-            XMW(NUMDEP)     = 34d-3
+            XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
          ! PMN (uses same dep vel as PAN)
