@@ -36,6 +36,7 @@
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
 !  30 Aug 2010 - R. Yantosca - Added more ProTeX headers
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -91,6 +92,7 @@
 !       (cdh, 8/19/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -126,7 +128,9 @@
         
          ! If snow > 1mm on the ground, reemission fraction is 0.6,
          ! otherwise 0.2
-         IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         !IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
+         IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) )THEN
             ! If snowpack model is on, then we don't do rapid reemission
             IF (LHGSNOW) THEN
                REEMFRAC=0d0
@@ -208,6 +212,7 @@
 !
 ! !REVISION HISTORY:
 !  30 Jul 2008 - N. E. Selin, C. Holmes, B. Corbitt - Initial version 
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -223,7 +228,11 @@
       ! Hg/CO molar ratio in BB emissions, mol/mol
       ! emission factor 1.5e-7 molHg/molCO (Slemr et al poster EGU 2006)
       ! change emission factor to 2.1
-      REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
+      ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+      !REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
+      ! Literature range is 70-240e-9. ARCTAS gives 80-130e-9 
+      ! Choose 100e-9 (Holmes et al. 2010 )
+      REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
@@ -467,6 +476,7 @@
 !  2 June 2010 - C. Carouge  - Solve  
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -513,7 +523,9 @@
          SNOW_HT = SNOW(I,J)
 #endif          
          
-         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+         !IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
+         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 10d0) ) THEN     
 
             ! 1-D grid box index for SUNCOS
             JLOOP = ( (J-1) * IIPAR ) + I
@@ -716,6 +728,7 @@
 ! !REVISION HISTORY: 
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
 !  30 Aug 2010 - R. Yantosca - Added ProTex headers
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -757,12 +770,18 @@
          ! If the sun is set, then no emissions, go to next box
          IF (SUNCOS(JLOOP)<0D0) CYCLE 
 
-         ! Decrease residence time to 1 week when T > -3C
-         IF (T(I,J,1) > 270D0) THEN
-            K_EMIT = 1.6D-6
-         ELSE
-            K_EMIT = 6D-8
-         ENDIF
+            ! Decrease residence time to 1 week when T > -3C
+            ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+            ! Emit Hg(0) at a steady rate, based on 180 d residence
+            ! time in snowpack, based on cycle observed at Alert 
+            ! (e.g. Steffen et al. 2008)
+            IF (T(I,J,1) > 270D0) THEN
+               ! NOW USE 3 weeks for broader summer peak
+               !K_EMIT = 1.6D-6
+               K_EMIT = 5D-7
+            ELSE
+               K_EMIT = 6D-8
+            ENDIF
 
          DO NN = 1, N_Hg_CATS
 

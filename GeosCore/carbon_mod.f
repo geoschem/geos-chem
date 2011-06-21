@@ -6444,6 +6444,9 @@ c
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
 
+         !%%% NOTE: Someone should investigate effect of dividing LWC by the
+         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+
 #else
          !---------------------------------------------
          ! Otherwise, compute FC, LWC as before

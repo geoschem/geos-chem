@@ -100,6 +100,7 @@
 !  (3 ) Now can read data for both GCAP or GEOS grids (bmy, 8/16/05)
 !  (4 ) Include updates from S. Strode and C. Holmes (cdh, sas, bmy, 4/6/06)
 !  (5 ) Change HgC (colloidal) to HgP (particulate) or HgPaq. (ccc, 7/20/10)
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -559,10 +560,12 @@ c$$$
 !  (3 ) Ocean parameterizations are rewritten entirely to account for actual
 !        processes in the ocean. Different subsurface conc. are included
 !        (anls, 20/10/09)
+!  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG              
+      ! Add reference to IS_WATER for Holmes et al. 2010 version (jaf, 4/11/11)
+      USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
       USE DIAG03_MOD,    ONLY : AD03, ND03
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
@@ -772,10 +775,13 @@ c$$$
          !===========================================================
          ! Make sure we are in an ocean box
          !===========================================================
-         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
-     &        ( FRAC_L    <  0.8d0 ) .and.
-     &        ( MLDCM     > 0.99d0 )      ) THEN
-
+         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+!         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
+!     &        ( FRAC_L    <  0.8d0 ) .and.
+!     &        ( MLDCM     > 0.99d0 )      ) THEN
+          ! Use consistent criteria for Ocean/Land/Ice categories
+          ! with snowpack and terrestrial emissions  !CDH 5/18/2010
+          IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
 
             !===========================================================
             ! Reduction and oxidation coefficients

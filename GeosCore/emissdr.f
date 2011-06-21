@@ -77,6 +77,7 @@
 !       (bmy, 2/25/10)
 !  (32) Add a NOx fertilizer switch and a scaling factor for ISOP emissions
 !       (fp, 6/09)
+!  (33) Change biogenic acetone emissions to MEGAN
 !******************************************************************************
 !
       ! References to F90 modules
@@ -455,8 +456,15 @@
                   ENDIF
 
                   ! Compute biogenic acetone emissions [atoms C/box/s]
+                 ! CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+    ! &                                EMIS, EMMB, GRASS, BIO_ACET )
+
+                  ! evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
+                  ! Compute biogenic acetone emissions [atoms C/box/s]
                   CALL EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
+     &                                SC, PDR, PDF, XNUMOL_C,
      &                                EMIS, EMMB, GRASS, BIO_ACET )
+
                
                   ! Also add ocean source of acetone [atoms C/box/s]
                   CALL OCEAN_SOURCE_ACET( I, J, BIO_ACET )

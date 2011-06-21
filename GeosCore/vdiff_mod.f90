@@ -35,62 +35,44 @@ MODULE VDIFF_MOD
   integer, parameter :: plev = LLPAR, plevp = plev + 1
   
   real*8, parameter ::          &
-       rearth = 6.37122e6,      & ! radius earth (m)
-       cpwv   = 1.81e3,         &
-       cpair  = 1004.64,        &
-       rair   = 287.04,         &
-       rh2o   = 461.,           &
+       rearth = 6.37122d6,      & ! radius earth (m)
+       cpwv   = 1.81d3,         &
+       cpair  = 1004.64d0,      &
+       rair   = 287.04d0,       &
+       rh2o   = 461.d0,         &
        zvir   = rh2o/rair - 1., &
-       gravit = 9.80616,        &
-       ra     = 1./rearth,      &
-       epsilo = 0.622,          &
-       latvap = 2.5104e06,      &
-       latice = 3.336e5,        &
+       gravit = 9.80616d0,      &
+       ra     = 1.d0/rearth,    &
+       epsilo = 0.622d0,        &
+       latvap = 2.5104d06,      &
+       latice = 3.336d5,        &
        cappa  = rair/cpair,     &
-       rhoh2o = 1.e3,           &
+       rhoh2o = 1.d3,           &
        r_g    = rair / gravit,  &
-       tfh2o  = 273.16
+       tfh2o  = 273.16d0
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
 !-----------------------------------------------------------------------
-!-----------------------------------------------------------------------------
-! Prior to 12/17/10:
-! Declare constants with the PARAMETER attribute (bmy, 12/17/10)
-!  real*8 :: &
-!       betam = 15., &   ! constant in wind gradient expression
-!       betas = 5., &    ! constant in surface layer gradient expression
-!       betah = 15., &   ! constant in temperature gradient expression 
-!       fak = 8.5, &     ! constant in surface temperature excess         
-!       g, &             ! gravitational acceleration
-!       onet, &          ! 1/3 power in wind gradient expression
-!       fakn = 7.2, &    ! constant in turbulent prandtl number
-!       ricr = .3, &     ! critical richardson number
-!       sffrac = .1, &   ! surface layer fraction of boundary layer
-!       vk = .4, &       ! von karmans constant
-!       ccon, &          ! fak * sffrac * vk
-!       binm, &          ! betam * sffrac
-!       binh             ! betah * sffrac
-!-----------------------------------------------------------------------------
 
   ! These are constants, so use PARAMETER tag
-  real*8, parameter :: &
-       betam  = 15.,   & ! constant in wind gradient expression
-       betas  =  5.,   & ! constant in surface layer gradient expression
-       betah  = 15.,   & ! constant in temperature gradient expression 
-       fak    =  8.5,  & ! constant in surface temperature excess         
-       fakn   =  7.2,  & ! constant in turbulent prandtl number
-       ricr   =   .3,  & ! critical richardson number
-       sffrac =   .1,  & ! surface layer fraction of boundary layer
-       vk     =   .4     ! von karmans constant
+  real*8, parameter ::   &
+       betam  = 15.d0,   & ! constant in wind gradient expression
+       betas  =  5.d0,   & ! constant in surface layer gradient expression
+       betah  = 15.d0,   & ! constant in temperature gradient expression 
+       fak    =  8.5d0,  & ! constant in surface temperature excess         
+       fakn   =  7.2d0,  & ! constant in turbulent prandtl number
+       ricr   =   .3d0,  & ! critical richardson number
+       sffrac =   .1d0,  & ! surface layer fraction of boundary layer
+       vk     =   .4d0     ! von karmans constant
 
   ! These are assigned later, so we can't use the PARAMETER tag
-  real*8 ::            & 
-       g,              & ! gravitational acceleration
-       onet,           & ! 1/3 power in wind gradient expression
-       ccon,           & ! fak * sffrac * vk
-       binm,           & ! betam * sffrac
-       binh              ! betah * sffrac
+  real*8 ::              & 
+       g,                & ! gravitational acceleration
+       onet,             & ! 1/3 power in wind gradient expression
+       ccon,             & ! fak * sffrac * vk
+       binm,             & ! betam * sffrac
+       binh                ! betah * sffrac
 
 !-----------------------------------------------------------------------
 ! 	... constants used in vertical diffusion and pbl
@@ -125,7 +107,9 @@ MODULE VDIFF_MOD
 !                              processes but not dry deposition and emissions.
 !  17 Dec 2010 - R. Yantosca - Declare constants w/ the PARAMETER attribute
 !  20 Dec 2010 - R. Yantosca - Bug fixes for the parallelization
-
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
+!  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !EOP
 !------------------------------------------------------------------------------
 
@@ -156,6 +140,8 @@ contains
     real*8, intent(in) :: gravx     !  acceleration of gravity
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -166,7 +152,7 @@ contains
 ! 	... basic constants
 !-----------------------------------------------------------------------
     g    = gravx
-    onet = 1./3.
+    onet = 1d0/3.d0
     
 !-----------------------------------------------------------------------
 ! 	... derived constants
@@ -267,8 +253,10 @@ contains
 ! !REVISION HISTORY:
 ! (1 ) All arguments are full arrays now. Latitude slices are copied in local
 !      variables. (ccc, 11/19/09)
-! 24 Sep 2010 - J. Lin     - Moved call to ND15 at the end of vdiff.
-!                            Modified to account for all mixing processes.
+!  24 Sep 2010 - J. Lin      - Moved call to ND15 at the end of vdiff.
+!                              Modified to account for all mixing processes.
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -394,7 +382,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
-    rcpair = 1./cpair
+    rcpair = 1.d0/cpair
     do i = 1,plonl
        tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
@@ -405,7 +393,7 @@ contains
        endif
        dshbot(i)    = wvflx(i)*tmp1(i)
        dtbot(i)     = shflx(i)*tmp1(i)*rcpair
-       kvf(i,plevp) = 0.
+       kvf(i,plevp) = 0.d0
     end do
     do m = 1,pcnst
        dqbot(:plonl,m) = cflx(:plonl,m)*tmp1(:plonl)
@@ -419,7 +407,7 @@ contains
 ! 	... set the vertical diffusion coefficient above the top diffusion level
 !-----------------------------------------------------------------------
     do k = 1,ntopfl
-       kvf(:plonl,k) = 0.
+       kvf(:plonl,k) = 0.d0
     end do
 
 !-----------------------------------------------------------------------
@@ -447,23 +435,23 @@ contains
 ! 	... vertical shear squared, min value of (delta v)**2 prevents zero shear.
 !-----------------------------------------------------------------------
           dvdz2 = (um1(i,k) - um1(i,k+1))**2 + (vm1(i,k) - vm1(i,k+1))**2
-          dvdz2 = max( dvdz2,1.e-36 )
+          dvdz2 = max( dvdz2,1.d-36 )
           dz    = zm(i,k) - zm(i,k+1)
           dvdz2 = dvdz2/(dz**2)
 !-----------------------------------------------------------------------
 ! 	... static stability (use virtual potential temperature)
 !-----------------------------------------------------------------------
-          sstab = gravit*2.*(thv(i,k) - thv(i,k+1))/((thv(i,k) + thv(i,k+1))*dz)
+          sstab = gravit*2.d0*(thv(i,k) - thv(i,k+1))/((thv(i,k) + thv(i,k+1))*dz)
 !-----------------------------------------------------------------------
 ! 	... richardson number, stable and unstable modifying functions
 !-----------------------------------------------------------------------
           rinub = sstab/dvdz2
-          fstab = 1.0/(1.0 + 10.0*rinub*(1.0 + 8.0*rinub))
-          funst = max( 1. - 18.*rinub,0. )
+          fstab = 1.0d0/(1.0d0 + 10.0d0*rinub*(1.0d0 + 8.0d0*rinub))
+          funst = max( 1.d0 - 18.d0*rinub,0.d0 )
 !-----------------------------------------------------------------------
 ! 	... select the appropriate function of the richardson number
 !-----------------------------------------------------------------------
-          if( rinub < 0. ) then
+          if( rinub < 0.d0 ) then
              fstab = sqrt( funst )
           end if
 !-----------------------------------------------------------------------
@@ -532,7 +520,7 @@ contains
     end do
     do k = 2,plev
        do i = 1,plonl
-          potbar(i,k) = pintm1(i,k)/(.5*(tm1(i,k) + tm1(i,k-1)))
+          potbar(i,k) = pintm1(i,k)/(.5d0*(tm1(i,k) + tm1(i,k-1)))
        end do
     end do
     do i = 1,plonl
@@ -602,7 +590,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... 1.e-12 is the value of qmin (=qmincg) used in ccm2.
 !-----------------------------------------------------------------------
-          if( shmx(i,k) < 1.e-12 ) then
+          if( shmx(i,k) < 1.d-12 ) then
              adjust(i) = .true.
           end if
        end do
@@ -642,23 +630,23 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.
-       cam(i,plev) = 0.
+       cah(i,plev) = 0.d0
+       cam(i,plev) = 0.d0
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1./(1. + cah(i,ntopfl))
-       termm(i,ntopfl) = 1./(1. + cam(i,ntopfl))
+       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
+       termm(i,ntopfl) = 1.d0/(1.d0 + cam(i,ntopfl))
        zeh(i,ntopfl)   = cah(i,ntopfl)*termh(i,ntopfl)
        zem(i,ntopfl)   = cam(i,ntopfl)*termm(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1./(1. + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
-          termm(i,k) = 1./(1. + cam(i,k) + ccm(i,k) - ccm(i,k)*zem(i,k-1))
+          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
+          termm(i,k) = 1.d0/(1.d0 + cam(i,k) + ccm(i,k) - ccm(i,k)*zem(i,k-1))
           zeh(i,k)   = cah(i,k)*termh(i,k)
           zem(i,k)   = cam(i,k)*termm(i,k)
        end do
@@ -679,8 +667,8 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1, plonl )
 ! just use a simplified treatment
-    where (qp1 < 0.)
-       qp1 = 0.
+    where (qp1 < 0.d0)
+       qp1 = 0.d0
     endwhere
 
 !-----------------------------------------------------------------------
@@ -694,8 +682,8 @@ contains
 !-----------------------------------------------------------------------
 !      call shneg( 'vdiff:sh', lat, shp1, plonl )
 ! just use a simplified treatment
-    where (shp1 < 1.e-12)
-       shp1 = 0.
+    where (shp1 < 1.d-12)
+       shp1 = 0.d0
     endwhere
 
 !-----------------------------------------------------------------------
@@ -825,13 +813,15 @@ contains
          qpert(plonl)               ! convective humidity excess
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    real*8, parameter :: tiny = 1.e-36      ! lower bound for wind magnitude
+    real*8, parameter :: tiny = 1.d-36      ! lower bound for wind magnitude
     
     integer :: &
          i, &                 ! longitude index
@@ -906,13 +896,13 @@ contains
     do k = 1,plevp
        kvm(:,k)  = kvf(:,k)
        kvh(:,k)  = kvf(:,k)
-       cgh(:,k)  = 0.
-       cgsh(:,k) = 0.
-       cgs(:,k)  = 0.
+       cgh(:,k)  = 0.d0
+       cgsh(:,k) = 0.d0
+       cgs(:,k)  = 0.d0
     end do
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.
+          cgq(:,k,m) = 0.d0
        end do
     end do
 
@@ -920,27 +910,27 @@ contains
 ! 	... compute various arrays for use later:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       thvsrf(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
-       heatv(i)  = khfs(i) + 0.61*th(i,plev)*kshfs(i)
-       wm(i)     = 0.
-       therm(i)  = 0.
-       qpert(i)  = 0.
-       tpert(i)  = 0.
-       fak3(i)   = 0.  
-       zh(i)     = 0.  
+       thvsrf(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
+       heatv(i)  = khfs(i) + 0.61d0*th(i,plev)*kshfs(i)
+       wm(i)     = 0.d0
+       therm(i)  = 0.d0
+       qpert(i)  = 0.d0
+       tpert(i)  = 0.d0
+       fak3(i)   = 0.d0  
+       zh(i)     = 0.d0  
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
-                   /(g*vk*(heatv(i) + sign( 1.e-10,heatv(i) )))
+                   /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
     
     if (pblh_ar) then  ! use archived PBLH
        
        do i = 1,plonl
-          if( heatv(i) > 0. ) then
+          if( heatv(i) > 0.d0 ) then
              unstbl(i) = .true.
           else
              unstbl(i) = .false.
           end if
-          thvref(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
        end do
 
     else ! use derived PBLH
@@ -952,14 +942,14 @@ contains
 !------------------------------------------------------------------------
        fac = 100.
        do i = 1,plonl
-          thvref(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
           pblh(i)   = z(i,plev)
           check(i)  = .true.
 !------------------------------------------------------------------------
 ! 	... initialization of lowest level ri number 
 !           (neglected in initial holtslag implementation)
 !------------------------------------------------------------------------
-          rino(i,plev) = 0.
+          rino(i,plev) = 0.d0
        end do
 
 !------------------------------------------------------------------------
@@ -973,7 +963,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 + &
                       fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + .61*q(i,k))
+                tkv = th(i,k)*(1. + .61d0*q(i,k))
                 rino(i,k) = g*(tkv - thvref(i))*(z(i,k)-z(i,plev))/ &
                             (thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -1001,7 +991,7 @@ contains
 !           find unstable points (virtual heat flux is positive):
 !------------------------------------------------------------------------
        do i = 1,plonl
-          if( heatv(i) > 0. ) then
+          if( heatv(i) > 0.d0 ) then
              unstbl(i) = .true.
              check(i)  = .true.
           else
@@ -1016,10 +1006,10 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( check(i) ) then
-             phiminv(i)   = (1. - binm*pblh(i)/obklen(i))**onet
+             phiminv(i)   = (1.d0 - binm*pblh(i)/obklen(i))**onet
              wm(i)        = ustar(i)*phiminv(i)
              therm(i)     = heatv(i)*fak/wm(i)       
-             rino(i,plev) = 0.
+             rino(i,plev) = 0.d0
              tlv(i)       = thvref(i) + therm(i)
           end if
        end do
@@ -1034,7 +1024,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 &
                       + fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + 0.61*q(i,k))
+                tkv = th(i,k)*(1. + 0.61d0*q(i,k))
                 rino(i,k) = g*(tkv - tlv(i))*(z(i,k)-z(i,plev)) &
                             /(thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -1069,7 +1059,7 @@ contains
 ! latitude value for f so that c = 0.07/f = 700.
 !------------------------------------------------------------------------
        do i = 1,plonl
-          pblmin  = 700.*ustar(i)
+          pblmin  = 700.d0*ustar(i)
           pblh(i) = max( pblh(i),pblmin )
        end do
        
@@ -1080,24 +1070,24 @@ contains
 ! 	... pblh is now available; do preparation for diffusivity calculation:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       pblk(i) = 0.
+       pblk(i) = 0.d0
        fak1(i) = ustar(i)*pblh(i)*vk
 !------------------------------------------------------------------------
 ! 	... do additional preparation for unstable cases only, set temperature
 !           and moisture perturbations depending on stability.
 !------------------------------------------------------------------------
        if( unstbl(i) ) then
-          phiminv(i) = (1. - binm*pblh(i)/obklen(i))**onet
-          phihinv(i) = sqrt(1. - binh*pblh(i)/obklen(i))
+          phiminv(i) = (1.d0 - binm*pblh(i)/obklen(i))**onet
+          phihinv(i) = sqrt(1.d0 - binh*pblh(i)/obklen(i))
           wm(i)      = ustar(i)*phiminv(i)
           fak2(i)    = wm(i)*pblh(i)*vk
           wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet 
           fak3(i)    = fakn*wstr(i)/wm(i)
-          tpert(i)   = max( khfs(i)*fak/wm(i),0. )   
-          qpert(i)   = max( kshfs(i)*fak/wm(i),0. )    
+          tpert(i)   = max( khfs(i)*fak/wm(i),0.d0 )   
+          qpert(i)   = max( kshfs(i)*fak/wm(i),0.d0 )    
        else
-          tpert(i)   = max( khfs(i)*fak/ustar(i),0. ) 
-          qpert(i)   = max( kshfs(i)*fak/ustar(i),0. ) 
+          tpert(i)   = max( khfs(i)*fak/ustar(i),0.d0 ) 
+          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.d0 ) 
        end if
     end do
 
@@ -1113,17 +1103,17 @@ contains
           stblev(i) = .false.
           zm(i) = z(i,k)
           zp(i) = z(i,k-1)
-          if( zkmin == 0. .and. zp(i) > pblh(i) ) then
+          if( zkmin == 0.d0 .and. zp(i) > pblh(i) ) then
              zp(i) = pblh(i)
           end if
           if( zm(i) < pblh(i) ) then
-             zmzp = 0.5*(zm(i) + zp(i))
+             zmzp = 0.5d0*(zm(i) + zp(i))
              zh(i) = zmzp/pblh(i)
              zl(i) = zmzp/obklen(i)
-             if( zh(i) <= 1. ) then
-                zzh(i) = (1. - zh(i))**2
+             if( zh(i) <= 1.d0 ) then
+                zzh(i) = (1.d0 - zh(i))**2
              else
-                zzh(i) = 0.
+                zzh(i) = 0.d0
              end if
 !------------------------------------------------------------------------
 ! 	... stblev for points zm < plbh and stable and neutral
@@ -1142,7 +1132,7 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( stblev(i) ) then
-             if( zl(i) <= 1. ) then
+             if( zl(i) <= 1.d0 ) then
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(1. + betas*zl(i))
              else
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(betas + zl(i))
@@ -1171,9 +1161,9 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( unssrf(i) ) then
-             term    = (1. - betam*zl(i))**onet
+             term    = (1.d0 - betam*zl(i))**onet
              pblk(i) = fak1(i)*zh(i)*zzh(i)*term
-             pr(i)   = term/sqrt(1. - betah*zl(i))
+             pr(i)   = term/sqrt(1.d0 - betah*zl(i))
           end if
        end do
 !------------------------------------------------------------------------
@@ -1256,6 +1246,8 @@ contains
 !  Richtmyer and Morton (1967,pp 198-199)
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1292,7 +1284,7 @@ contains
 ! 	... bottom level: (includes  surface fluxes)
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1d(i) = 1./(1. + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
+       tmp1d(i) = 1.d0/(1.d0 + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
        ze(i,plev) = 0.
     end do
     do m = 1,ncnst
@@ -1360,6 +1352,8 @@ contains
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1447,7 +1441,7 @@ contains
        end do
     end do
     do k = 2,plev
-       potbar(:,k) = pintm1(:,k)/(.5*(tm1(:,k) + tm1(:,k-1)))
+       potbar(:,k) = pintm1(:,k)/(.5d0*(tm1(:,k) + tm1(:,k-1)))
     end do
     potbar(:,plevp) = pintm1(:,plevp)/tm1(:,plev)
 
@@ -1518,7 +1512,7 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.
+       cah(i,plev) = 0.d0
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat vertical diffusion.  this term is 
@@ -1526,12 +1520,12 @@ contains
 !           diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1./(1. + cah(i,ntopfl))
+       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
        zeh(i,ntopfl) = cah(i,ntopfl)*termh(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1./(1. + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
+          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
           zeh(i,k) = cah(i,k)*termh(i,k)
        end do
     end do
@@ -1545,8 +1539,8 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1(1,1,1), plonl )
 !     simplified treatment
-    where (qp1 < 0.)
-       qp1 = 0.
+    where (qp1 < 0.d0)
+       qp1 = 0.d0
     endwhere
     
     !Output values from local variables to arguments.(ccc, 11/17/09)
@@ -1589,6 +1583,8 @@ contains
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1619,7 +1615,7 @@ contains
 !------------------------------------------------------------------------
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.
+          cgq(:,k,m) = 0.d0
        end do
     end do
 !------------------------------------------------------------------------
@@ -1656,6 +1652,8 @@ contains
     implicit none
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1678,25 +1676,17 @@ contains
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
 !-----------------------------------------------------------------------
-    zkmin = .01
+    zkmin = .01d0
 
 !-----------------------------------------------------------------------
 ! 	... set physical constants for vertical diffusion and pbl
 !-----------------------------------------------------------------------
-    !--------------------------------------------------------------------------
-    ! Prior to 12/21/10:
-    ! Rewrite DO loop so as to avoid having to call UPSIDEDOWN (bmy, 12/21/10)
-    !do k = 1, plev
-    !   ref_pmid(k) = 0.5*(GET_AP(k)*100. + GET_BP(k)*1.e5 + &
-    !                 GET_AP(k+1)*100. + GET_BP(k+1)*1.e5)
-    !enddo
-    !call upsidedown(ref_pmid)
-    !--------------------------------------------------------------------------
+
     ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being 
     ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
     do k = 1, plev
-       ref_pmid(plev-k+1) = 0.5*( GET_AP(k  )*100. + GET_BP(k  )*1.e5 + &
-                                  GET_AP(k+1)*100. + GET_BP(k+1)*1.e5 )
+       ref_pmid(plev-k+1) = 0.5d0*( GET_AP(k  )*100.d0 + GET_BP(k  )*1.d5 + &
+                                    GET_AP(k+1)*100.d0 + GET_BP(k+1)*1.d5 )
     enddo
 
 !-----------------------------------------------------------------------
@@ -1711,7 +1701,7 @@ contains
     end do
     npbl = max( 1,plev - k )
     write(*,*) 'vdinti: pbl height will be limited to bottom ',npbl, &
-               ' model levels. top is ',1.e-2*ref_pmid(plevp-npbl),' hpa'
+               ' model levels. top is ',1.d-2*ref_pmid(plevp-npbl),' hpa'
     if( plev == 1 ) then
        ntopfl = 0
     else
@@ -1721,11 +1711,11 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
-    ml2(1) = 0.
+    ml2(1) = 0.d0
     do k = 2,plev
-       ml2(k) = 30.**2
+       ml2(k) = (30.d0)**2
     end do
-    ml2(plevp) = 0.
+    ml2(plevp) = 0.d0
 !-----------------------------------------------------------------------
 ! 	... set the minimum mixing ratio for the counter-gradient term.
 !           normally this should be the same as qmin.
@@ -1829,6 +1819,8 @@ contains
 !                              relying on NCS == 0
 !  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion 
 !                              to save on operations
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1908,8 +1900,8 @@ contains
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100. ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100. ! hPa -> Pa
+       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.d0 ! hPa -> Pa
+       pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = tadv(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
@@ -1969,21 +1961,11 @@ contains
        !----------------------------------------------------------------
        ! Add emissions for full-chemistry simulation
        !----------------------------------------------------------------
-       !---------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !if (NCS .gt. 0) then
-       !---------------------------------------------------------------------
        IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
 
           do N = 1, NEMIS(NCS)
              NN = IDEMS(N)
-             !---------------------------------------------------------------
-             ! Prior to 12/21/10:
-             ! Replace CYCLE with an IF statement (bmy, 12/21/10)
-             !if (NN == 0) CYCLE
-             !---------------------------------------------------------------
+
              ! for emissions in the lowest model layer only
              IF ( NN > 0 ) THEN
                 JLOOP = JLOP(I,J,1)
@@ -2022,12 +2004,6 @@ contains
        ! cause too much problem, since the std. tagged_co simulation 
        ! is also approximate, anyway. (Lin, 06/20/09) 
        !----------------------------------------------------------------
-       !----------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !if ( ITS_A_TAGCO_SIM() ) eflx(I,J,:) = 0d0 
-       !----------------------------------------------------------------------
        IF ( IS_TAGCO ) THEN
           eflx(I,J,:) = 0d0 
        ENDIF
@@ -2035,12 +2011,6 @@ contains
        !----------------------------------------------------------------
        ! Add emissions for offline CH4 simulation
        !----------------------------------------------------------------
-       !----------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !if ( ITS_A_CH4_SIM() ) then
-       !----------------------------------------------------------------------
        IF ( IS_CH4 ) THEN
           ! add surface emis
           ! (after converting kg/box/timestep to kg/m2/s)
@@ -2055,12 +2025,6 @@ contains
        !----------------------------------------------------------------
        ! Add emissions for offline mercury simulation
        !----------------------------------------------------------------
-       !----------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !IF ( ITS_A_MERCURY_SIM() ) THEN
-       !----------------------------------------------------------------------
        IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
              eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
@@ -2140,12 +2104,6 @@ contains
           ! ocean_mercury_mod defines ocean based on fraction 
           ! land, albedo and mixed layer depth. The difference with LWI is
           ! small. (cdh, 8/28/09) 
-          !-------------------------------------------------------------------
-          ! Prior to 12/21/10:
-          ! Replace function call with local variable that has been
-          ! initialized at the start of the subroutine (bmy, 12/21/10)
-          !IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
-          !-------------------------------------------------------------------
           IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
@@ -2161,12 +2119,7 @@ contains
           ! GEOS1-4 snow heigt (water equivalent) in mm
           SNOW_HT = SNOW(I,J)
 #endif 
-          !-------------------------------------------------------------------
-          ! Prior to 12/21/10:
-          ! Replace function call with local variable that has been
-          ! initialized at the start of the subroutine (bmy, 12/21/10)
-          !IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. &
-          !-------------------------------------------------------------------
+
           IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
                ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
              DFLX(I,J,NN) = 0D0
@@ -2179,12 +2132,6 @@ contains
        ! Apply dry deposition frequencies for Tagged Ox simulation
        ! (Jintai Lin, 06/21/08)
        !----------------------------------------------------------------
-       !--------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !if ( ITS_A_TAGOX_SIM() ) then
-       !--------------------------------------------------------------------
        IF ( IS_TAGOX ) THEN
           do N = 2, N_TRACERS ! the first species, Ox, has been done above
              if (pbl_mean_drydep) then
@@ -2232,12 +2179,6 @@ contains
        !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !----------------------------------------------------------------
-       !----------------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !IF ( ITS_A_MERCURY_SIM() ) THEN
-       !----------------------------------------------------------------------
        IF ( IS_Hg ) THEN
           
           ! Loop over # of drydep species
@@ -2293,12 +2234,6 @@ contains
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
-       !----------------------------------------------------------------
-       ! Prior to 12/21/10:
-       ! Replace function call with local variable that has been
-       ! initialized at the start of the subroutine (bmy, 12/21/10)
-       !if ( ITS_A_TAGOX_SIM() ) then
-       !----------------------------------------------------------------
        IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
@@ -2319,34 +2254,13 @@ contains
 
     if( divdiff ) then
       
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)  
-!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-!!       do J = 1, JJPAR
-!!       do I = 1, IIPAR
-!!             
-!!          if (pblh_ar) pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
-!! 
-!!          ! mozart is top-down and geos-chem is bottom-up
-!!          call upsidedown(um1(I,J,:))
-!!          call upsidedown(vm1(I,J,:))
-!!          call upsidedown(tadv(I,J,:))
-!!          call upsidedown(pmid(I,J,:))
-!!          call upsidedown(pint(I,J,:))
-!!          call upsidedown(rpdel(I,J,:))
-!!          call upsidedown(rpdeli(I,J,:))
-!!          call upsidedown(zm(I,J,:))
-!!          call upsidedown(thp(I,J,:))
-!!          do N = 1, N_TRACERS
-!!             call upsidedown(as2(I,J,:,N))
-!!          enddo
-!!          call upsidedown(shp(I,J,:))
-!!          
-!!       enddo
-!!       enddo
-!!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
+       if ( pblh_ar ) then
+       do J = 1, JJPAR
+       do I = 1, IIPAR
+         pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
+       enddo
+       enddo
+       endif
 
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
@@ -2366,14 +2280,7 @@ contains
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
        ENDDO
 
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Combine the conversion with flipping the vertical dimension. (ccc, 12/22/10)
-!       do N = 1, N_TRACERS
-!          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
-!       enddo
-!------------------------------------------------------------------------------
-       shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
 
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
@@ -2396,41 +2303,6 @@ contains
        !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Combine the conversion with flipping the vertical dimension. (ccc, 12/22/10)
-!       do N = 1, N_TRACERS
-!          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
-!       enddo
-!------------------------------------------------------------------------------
-       shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
-
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)
-!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-!!       do J = 1, JJPAR
-!!       do I = 1, IIPAR
-!!
-!!          ! mozart is top-down and geos-chem is bottom-up
-!!          ! resume the order of meteorological variables
-!!          call upsidedown(um1(I,J,:))
-!!          call upsidedown(vm1(I,J,:))
-!!          call upsidedown(tadv(I,J,:))
-!!          call upsidedown(thp(I,J,:))
-!!          do N = 1, N_TRACERS
-!!             call upsidedown(as2(I,J,:,N))
-!!          enddo
-!!          call upsidedown(kvh(I,J,:))
-!!          call upsidedown(kvm(I,J,:))
-!!          call upsidedown(cgs(I,J,:))
-!!          call upsidedown(shp(I,J,:))
-!!
-!!       enddo
-!!       enddo
-!!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
        um1    = um1   ( :, :, LLPAR  :1:-1 )   
@@ -2449,6 +2321,11 @@ contains
           as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
        ENDDO
 
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       kvm    = kvm   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d3 ! kg/kg -> g/kg
+
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
 !  	... vertical diffusion using archived values of cgs and kvh.
@@ -2457,31 +2334,6 @@ contains
 !       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
 !-----------------------------------------------------------------------
       
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10)   
-!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-!!       do J = 1, JJPAR
-!!       do I = 1, IIPAR
-!!
-!!          ! not sure if it is necessary to use L specifically 
-!!          t1(I,J,:) = tadv(I,J,:)  ! simplified treatment
-!!
-!!          call upsidedown(t1(I,J,:))
-!!          call upsidedown(pmid(I,J,:))
-!!          call upsidedown(pint(I,J,:))
-!!          call upsidedown(rpdel(I,J,:))
-!!          call upsidedown(rpdeli(I,J,:))
-!!          do N = 1, N_TRACERS
-!!             call upsidedown(as2(I,J,:,N))
-!!          enddo
-!!          call upsidedown(kvh(I,J,:))
-!!          call upsidedown(cgs(I,J,:))
-!!       enddo
-!!       enddo
-!!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
        t1     = tadv  ( :, :, LLPAR  :1:-1 )
@@ -2525,23 +2377,6 @@ contains
           as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) 
        enddo
 
-!------------------------------------------------------------------------------
-! Prior to 12/20/10:
-! Now use simpler method for flipping in vertical (bmy, ccarouge, 12/20/10) 
-!!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-!!       do J = 1, JJPAR
-!!       do I = 1, IIPAR
-!!          call upsidedown(t1(I,J,:))
-!!          do N = 1, N_TRACERS
-!!             call upsidedown(as2(I,J,:,N))
-!!          enddo
-!!          call upsidedown(kvh(I,J,:))
-!!          call upsidedown(cgs(I,J,:))
-!!       enddo
-!!       enddo
-!!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
        ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
        ! mozart is top-down and geos-chem is bottom-up
        t1     = t1    ( :, :, LLPAR  :1:-1 )
@@ -2554,35 +2389,6 @@ contains
        ENDDO
 
     end if
-
-!------------------------------------------------------------------------------
-!-- Prior to 09/24/10.
-!
-! Diagnostic moved to vdiff. (lin, ccc, 09/24/10)
-!
-!    !=======================================================
-!    ! ND15 Diagnostic: 
-!    ! mass change due to mixing in the boundary layer
-!    !=======================================================
-!    IF ( ND15 > 0 ) THEN
-!
-!!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L, N )
-!       DO N = 1, N_TRACERS
-!       DO L = 1, LLPAR 
-!       do J = 1, JJPAR
-!       do I = 1, IIPAR
-!          ! as and as2 are volume mixing ratio
-!          TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) &
-!                              + (as2(I,J,L,N) - as(I,J,L,N)) * AD(I,J,L) &
-!                              / ( TCVV(N) * dtime )
-!       enddo
-!       enddo
-!       ENDDO
-!       ENDDO
-!!$OMP END PARALLEL DO
-!
-!    ENDIF
-!------------------------------------------------------------------------------
 
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
@@ -2604,50 +2410,6 @@ contains
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
   END SUBROUTINE VDIFFDR
-!!
-!!%%% NOTE: This subroutine is now obsolete %%% 
-!!
-!!EOC
-!!-----------------------------------------------------------------------------
-!!          Harvard University Atmospheric Chemistry Modeling Group           !
-!!-----------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: upsidedown
-!!
-!! !DESCRIPTION: Subroutine UPSIDEDOWN flips a vector upside-down.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  subroutine upsidedown( dat )
-!!
-!! !USES:
-!! 
-!    implicit none
-!!
-!! !INPUT/OUTPUT PARAMETERS: 
-!!
-!    real*8, intent(inout) :: dat(:)
-!!
-!! !REVISION HISTORY: 
-!!EOP
-!!-----------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    real*8 :: dtmp
-!    integer :: L, LSUM
-!    
-!    LSUM = size(dat)
-!    do L = 1, int(LSUM/2)
-!       dtmp = dat(L)
-!       dat(L) = dat(LSUM-L+1)
-!       dat(LSUM-L+1) = dtmp
-!    enddo
-!    
-!  END SUBROUTINE UPSIDEDOWN
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

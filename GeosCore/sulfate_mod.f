@@ -1415,6 +1415,8 @@
 !  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
 !  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
+!  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
+!                              and adjust the L2S and L3S rates accordingly
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1423,6 +1425,7 @@
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE DIRECTORY_MOD,   ONLY : DATA_DIR
       USE ERROR_MOD,       ONLY : IS_SAFE_EXP
+      USE ERROR_MOD,       ONLY : SAFE_DIV
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE GRID_MOD,        ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
@@ -1621,6 +1624,14 @@
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
+         ! LWC is a grid-box averaged quantity. To improve the representation 
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+         ! compute sulfate chemistry based on the LWC within the cloud.  We 
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC     = SAFE_DIV( LWC, FC, 0d0 )
+
 #else
          !---------------------------------------------
          ! Otherwise, compute FC, LWC as before
@@ -1630,7 +1641,17 @@
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! Prior to 5/21/11:
+         !LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! LWC as returned from the GET_LWC function is the in-cloud liquid
+         ! water content.  To improve the representation of sulfate chemistry, 
+         ! we use this LWC to compute the aqueous sulfate chemistry.  We then
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying by FC AFTER computing the aqueous sulfur chemistry
+         ! within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC = GET_LWC( TK )
 
 #endif
 
@@ -1735,14 +1756,6 @@
             XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            !----------------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! If SO2_ss = H2O20 (i.e. if they are both zero), then prevent
-            ! a division by zero, because SO2_ss*L2 - H2O20 will be zero.
-            ! Only execute the "IF" part of the block if XX is nonzero.  
-            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
-            !IF ( IS_SAFE_EXP( XX ) ) THEN
-            !----------------------------------------------------------------
             IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
@@ -1777,14 +1790,6 @@
             XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            !----------------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! If SO2_ss = O3 (i.e. if they are both zero), then prevent
-            ! a division by zero, because SO2_ss*L3 - O3 will be zero.
-            ! Only execute the "IF" part of the block if XX is nonzero.  
-            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
-            !IF ( IS_SAFE_EXP( XX ) ) THEN
-            !----------------------------------------------------------------
             IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
@@ -1804,6 +1809,15 @@
                ENDIF
             ENDIF
 
+            ! We have used the in-cloud LWC to compute the sulfate
+            ! aqueous chemistry.  We get the appropriate grid-box averaged 
+            ! mass of SO2 and sulfate by multiplying the reaction rates
+            ! L2S and L3s by the cloud fraction after the aqueous chemistry
+            ! has been done.  (lzh, jaf, bmy, 5/27/11)
+            L2S =  L2S * FC
+            L3S =  L3S * FC    
+
+            ! Make sure SO2_ss and H2O20 are in the proper range
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             H2O20  = MAX( H2O20  - L2S,           MINDAT )
 

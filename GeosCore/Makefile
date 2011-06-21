@@ -221,7 +221,7 @@ a6_read_mod.o               : a6_read_mod.f           dao_mod.o              \
                               diag_mod.o              logical_mod.o
 
 acetone_mod.o               : acetone_mod.f           dao_mod.o              \
-                              diag_mod.o               
+                              diag_mod.o              megan_mod.o 
 
 aerosol_mod.o               : aerosol_mod.f           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
