@@ -310,9 +310,10 @@
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
+      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS, IS_LAND
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
+      USE TRACERID_MOD, ONLY : IDTACET
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44
@@ -390,12 +391,24 @@
             ! Index of drydep species in the DVEL array 
             ! as passed back from subroutine DEPVEL
             NDVZ = NDVZIND(N)
-                   
+                  
             ! Dry deposition velocity [cm/s]
             DVZ  = DVEL(IJLOOP,NDVZ) * 100.d0
 
             ! Set minimum velocity for sulfate tracers
             DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
+            
+            ! For ACET, we need to only do drydep over the land
+            ! and not over the oceans...
+            IF ( NN == IDTACET ) THEN
+
+               IF ( IS_LAND( I, J ) ) THEN
+                  DVZ = 0.1
+               ELSE
+                  DVZ = 0d0
+               ENDIF
+               
+            ENDIF
 
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.d0 ) / THIK
@@ -3365,7 +3378,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTMMN
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
-
+      USE TRACERID_MOD, ONLY : IDTACET
+      
 #     include "CMN_SIZE"  ! Size parameters
 
       ! Local variables
@@ -3483,6 +3497,17 @@ C** Load array DVEL
             NDVZIND(NUMDEP) = NUMDEP
             NTRAIND(NUMDEP) = IDTH2O2
             DEPNAME(NUMDEP) = 'H2O2'
+            HSTAR(NUMDEP)   = 1.0d+5
+            F0(NUMDEP)      = 1.0d0
+            XMW(NUMDEP)     = 34d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ACET
+         ELSE IF ( N == IDTACET ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTACET
+            DEPNAME(NUMDEP) = 'ACET'
             HSTAR(NUMDEP)   = 1.0d+5
             F0(NUMDEP)      = 1.0d0
             XMW(NUMDEP)     = 34d-3
