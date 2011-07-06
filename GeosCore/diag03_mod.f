@@ -20,7 +20,8 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03 = 18            ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 18         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 8          ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -334,7 +335,6 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N)
 
-!        ELSE IF ( N == 18 ) THEN
          ELSE IF ( N == 19 ) THEN
 
             !--------------------------------
@@ -346,7 +346,6 @@
             NN                = 1
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX)
 
-!         ELSE IF ( N == 19 ) THEN
          ELSE IF ( N == 20 ) THEN
 
             !--------------------------------
@@ -358,7 +357,6 @@
             NN                = 2
             ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX)
 
-!         ELSE IF ( N == 20 ) THEN
          ELSE IF ( N == 21 ) THEN
 
             !--------------------------------
@@ -370,7 +368,6 @@
             NN                = 3
             ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX)
       
-!         ELSE IF ( N == 21 ) THEN
          ELSE IF ( N == 22 ) THEN
             
             !--------------------------------
@@ -382,7 +379,6 @@
             NN                = 4
             ARRAY(:,:,1:LMAX) = AD03_Hg2_SS(:,:,1:LMAX)
       
-!         ELSE IF ( N == 22 ) THEN
          ELSE IF ( N == 23 ) THEN
             
             !--------------------------------
@@ -394,7 +390,6 @@
             NN                = 5
             ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:) / NCHEMSTEP
 
-!         ELSE IF ( N == 23 ) THEN
          ELSE IF ( N == 24 ) THEN
 
             !--------------------------------
@@ -406,7 +401,6 @@
             NN                = 6
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX)
       
-!         ELSE IF ( N == 24 ) THEN
          ELSE IF ( N == 25 ) THEN
 
             !--------------------------------
@@ -418,7 +412,6 @@
             NN                = 7
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
       
-!         ELSE IF ( N == 25 ) THEN
          ELSE IF ( N == 26 ) THEN
 
             !--------------------------------

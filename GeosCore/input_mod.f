@@ -2868,7 +2868,7 @@
 !
       USE BIOFUEL_MOD,  ONLY : NBFTRACE
       USE BPCH2_MOD,    ONLY : OPEN_BPCH2_FOR_WRITE
-      USE DIAG03_MOD,   ONLY : ND03,      PD03,      INIT_DIAG03
+      USE DIAG03_MOD,   ONLY : ND03,   PD03,PD03_PL, INIT_DIAG03
       USE DIAG04_MOD,   ONLY : ND04,      PD04,      INIT_DIAG04
       USE DIAG41_MOD,   ONLY : ND41,      PD41,      INIT_DIAG41
       USE DIAG42_MOD,   ONLY : ND42,      PD42,      INIT_DIAG42
@@ -2975,7 +2975,7 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:5' )
       READ( SUBSTRS(1), * ) ND03
       IF ( .not. ITS_A_MERCURY_SIM() ) ND03 = 0
-      CALL SET_TINDEX( 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+      CALL SET_TINDEX( 03, ND03, SUBSTRS(2:N), N-1, PD03+PD03_PL )
 
       !--------------------------
       ! ND04: CO2 emissions
