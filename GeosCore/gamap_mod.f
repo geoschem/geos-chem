@@ -1613,9 +1613,12 @@
                CASE( 12 )
 !                  NAME (T,03) = 'Hg_to_C'
 !                  FNAME(T,03) = 'Hg converted to colloidal'
-                  NAME (T,03) = 'Hg_to_P'
-                  FNAME(T,03) = 'Hg converted to particulate'
-                  UNIT (T,03) = 'kg/m2/s'
+!                  NAME (T,03) = 'Hg_to_P'
+!                  FNAME(T,03) = 'Hg converted to particulate'
+!                  UNIT (T,03) = 'kg/m2/s'
+                  NAME (T,03) = 'JorgC'
+                  FNAME(T,03) = 'Mass of orgC sunk in ocean'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
                   NAME (T,03) = 'Hg_bb'

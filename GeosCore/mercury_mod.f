@@ -218,8 +218,8 @@
       REAL*8,  ALLOCATABLE :: ZERO_DVEL(:,:)
 !--- Previous to (ccc, 11/19/09)
 !      REAL*8,  ALLOCATABLE :: TRANSP(:,:)
-      REAL*8,  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) !CDH for seasalt uptake
-      REAL*8,  ALLOCATABLE :: JNO2(:,:,:) !CDH for reduction
+      REAL*8,  ALLOCATABLE :: HG2_SEASALT_LOSSRATE(:,:) 
+      REAL*8,  ALLOCATABLE :: JNO2(:,:,:) 
 
       ! Henry's Law constant for Hg2 [mol /L /atm]
       REAL*8, PARAMETER     :: HL       = 1.4d6
@@ -255,12 +255,12 @@
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
       USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR_NEW
       USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
-      USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL !CDH added LNLPBL
+      USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL 
       USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,    ONLY : N_TRACERS
       USE TRACERID_MOD,  ONLY : N_HG_CATS
 
-      USE TIME_MOD,      ONLY : ITS_TIME_FOR_A3 !cdh for seasalt aerosol
+      USE TIME_MOD,      ONLY : ITS_TIME_FOR_A3 
       USE DRYDEP_MOD,    ONLY : DRYHg0, DRYHg2, DRYHgP
 
 #     include "CMN_SIZE"      ! Size parameters
@@ -288,12 +288,11 @@
          CALL GET_GLOBAL_O3( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         CALL GET_GLOBAL_BR_NEW( MONTH ) !CDH
+         CALL GET_GLOBAL_BR_NEW( MONTH ) 
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
-         ! CDH FOR REDUCTION
          IF (LRED_JNO2) THEN
-            CALL GET_GLOBAL_JNO2( MONTH ) !CDH
+            CALL GET_GLOBAL_JNO2( MONTH ) 
             IF ( LPRT ) 
      &           CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_JNO2' )
          ENDIF
@@ -476,10 +475,10 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : T, AD, IS_WATER, IS_ICE, IS_LAND
       USE DIAG03_MOD,   ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3, AD03_Hg2_OH
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_Br !cdh added diagnostic
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_Br 
       USE DIAG03_MOD,   ONLY : AD03_Hg2_SS,  LD03,        ND03
-      USE DIAG03_MOD,   ONLY : AD03_Hg2_SSR !CDH added diagnostic
-      USE DIAG03_MOD,   ONLY : AD03_Br !CDH added diagnostic
+      USE DIAG03_MOD,   ONLY : AD03_Hg2_SSR 
+      USE DIAG03_MOD,   ONLY : AD03_Br 
       USE LOGICAL_MOD,  ONLY : LSPLIT, LGTMM !ccc for GTMM
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -496,8 +495,8 @@
       USE GRID_MOD,     ONLY : GET_YMID 
       USE DIAG_MOD,     ONLY : AD44
 
-      USE DAO_MOD,      ONLY : AIRDEN, QL !CDH for reduction
-      USE DAO_MOD,      ONLY : AD, CLDF !CDH for LWC
+      USE DAO_MOD,      ONLY : AIRDEN, QL 
+      USE DAO_MOD,      ONLY : AD, CLDF 
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND44
@@ -551,7 +550,6 @@
       REAL*8, PARAMETER     :: K_RED_OH = 1d-10!4.2d-10 from Noelle
                                 !4d-10 works well for Hg+OH/O3
      
-      ! CDH 
       ! K for reduction, using J_NO2, [unitless scale factor]
       ! Source: Holmes et al. 2010
       ! 3.5D-3 for Hg+Br simulation; 1.3D-2 for Hg+OH/O3 simulation
@@ -681,7 +679,6 @@
          FA          = ( HL * R * T(I,J,L) * LWC )
          FA          = FA / ( 1d0 + FA )
 
-         !CDH for reduction
          ! Cl- in sea-salt aerosol enhances solubility 2000X in MBL
          IF (LRED_JNO2 .AND. (F_PBL >0.1) .AND. IS_WATER(I,J)) THEN
             FA          = ( HL * 2D3 * R * T(I,J,L) * LWC )
@@ -949,7 +946,7 @@
                IF ( ID_HG0(NN) == ID_HG_TOT) THEN
 
                   AD03_Hg2_Hg0(I,J,L)= AD03_Hg2_Hg0(I,J,L) + NET_OX
-                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR !cdh added diagnostic
+                  AD03_Hg2_Br(I,J,L) = AD03_Hg2_Br(I,J,L)  + GROSS_OX_BR 
                   AD03_Hg2_OH(I,J,L) = AD03_Hg2_OH(I,J,L)  + GROSS_OX_OH
                   AD03_Hg2_O3(I,J,L) = AD03_Hg2_O3(I,J,L)  + GROSS_OX_O3
 
@@ -1493,7 +1490,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION GET_HGBR_RATE( BR, T, P, OH, METHOD ) RESULT( K_HGBR ) !cdh
+      FUNCTION GET_HGBR_RATE( BR, T, P, OH, METHOD ) RESULT( K_HGBR ) 
 
 !
 !******************************************************************************
@@ -1910,7 +1907,7 @@
 !
       ! References to F90 modules
       USE ERROR_MOD,         ONLY : DEBUG_MSG
-      USE LOGICAL_MOD,       ONLY : LPRT, LDYNOCEAN, LNLPBL !CDH added LNLPBL
+      USE LOGICAL_MOD,       ONLY : LPRT, LDYNOCEAN, LNLPBL 
       USE OCEAN_MERCURY_MOD, ONLY : OCEAN_MERCURY_FLUX
 !      USE OCEAN_MERCURY_MOD, ONLY : RESET_HG_DEP_ARRAYS
       USE DEPO_MERCURY_MOD, ONLY : RESET_HG_DEP_ARRAYS
@@ -1918,7 +1915,7 @@
       USE TRACER_MOD,        ONLY : STT
       USE TRACERID_MOD,      ONLY : N_HG_CATS
       USE DIAG03_MOD,        ONLY : AD03_nat
-      USE VDIFF_PRE_MOD,     ONLY : EMIS_SAVE !cdh for LNLPBL
+      USE VDIFF_PRE_MOD,     ONLY : EMIS_SAVE 
       USE LAND_MERCURY_MOD,  ONLY : LAND_MERCURY_FLUX, VEGEMIS
       USE LAND_MERCURY_MOD,  ONLY : SOILEMIS, BIOMASSHG
       USE LAND_MERCURY_MOD,  ONLY : SNOWPACK_MERCURY_FLUX
@@ -3181,9 +3178,6 @@
             XTAU     = GET_TAU0( 1, 1, 2006 )
 
             ! Filename for anthropogenic mercury source
-!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
-!     &           'GEIA_Streets_Hg0.geos.1x1.YYYY'
-
             FILENAME = TRIM( DATA_DIR_1x1 )       // 
      &           'mercury_201002/GEIA_Streets_Hg0.geos.1x1.YYYY'
 
@@ -3274,7 +3268,6 @@
 
          ! Filename for artisanal mining emissions (4x5 only for now)
 !         FILENAME='/as/home/eck/landproject/current/artisanal.bpch'
-!         FILENAME='/home/cdh/GC/Archived-Br/artisanal.bpch'
          FILENAME=TRIM( DATA_DIR ) // 'mercury_201007/artisanal.bpch'
 
          ! Echo info
@@ -3303,9 +3296,6 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-!            FILENAME = '/home/cdh/GC/Archived-Br/' // 
-!     &           'GEIA_Streets_Hg2.geos.1x1.YYYY'
-
             FILENAME = TRIM( DATA_DIR_1x1 )               // 
      &           'mercury_201002/GEIA_Streets_Hg2.geos.1x1.YYYY'
 
@@ -3362,9 +3352,6 @@
             ! Use Bess' GCAP emissions
 
             ! Filename for anthropogenic mercury source
-!            FILENAME = '/home/cdh/GC/Archived-Br/' //
-!     &           'GEIA_Streets_HgP.geos.1x1.YYYY'
-
             FILENAME = TRIM( DATA_DIR_1x1)   //
      &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
 
@@ -3463,14 +3450,10 @@
 
       IF ( LPREINDHG ) THEN
 !         FILENAME='/as/home/eck/depoproject/bugfix3map.bpch'
-!         FILENAME='/home/cdh/GC/Archived-Br/bugfix3map.bpch'
-!         FILENAME='/home/cdh/GC/Archived-Br/soilhg.preind.cdh.bpch'
          FILENAME=TRIM( DATA_DIR )           //
      &        'mercury_201007/soilhg.preind.cdh.bpch'
       ELSE
 !         FILENAME='/as/home/eck/depoproject/bugfix3current.bpch'
-!         FILENAME='/home/cdh/GC/Archived-Br/bugfix3current.bpch'
-!         FILENAME='/home/cdh/GC/Archived-Br/soilhg.presentday.cdh.bpch'
          FILENAME=TRIM( DATA_DIR )           //
      &        'mercury_201007/soilhg.presentday.cdh.bpch'
       ENDIF
@@ -3505,7 +3488,6 @@
 
       ! Filename for natural land-source mercury
 !      FILENAME= '/as/home/eck/landproject/newnatural.bpch'
-!      FILENAME= '/home/cdh/GC/Archived-Br/newnatural.bpch'
       FILENAME= TRIM( DATA_DIR )            //
      &     'mercury_201007/newnatural.bpch'
 
@@ -3837,6 +3819,7 @@
       USE TIME_MOD,      ONLY : GET_MONTH
       USE DAO_MOD,       ONLY : LWI, GET_OBK, IS_ICE
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
+      USE ERROR_MOD,     ONLY : SAFE_DIV
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DEP"   ! FRCLND
@@ -4036,13 +4019,13 @@ c$$$      ENDIF
       JLOOP = ( (J-1) * IIPAR ) + I
       
       ! Test for sunlight...
-      IF ( SUNCOS(JLOOP) > 0d0 ) THEN
+      IF ( (SUNCOS(JLOOP) > 0d0) .and. (TTDAY(I,J) > 0d0) ) THEN
       
          ! Use a constant function if daylight is < 2 hours or > 22hours
          IF ( ( TTDAY(I,J) < 120d0  ) .OR. 
      &        ( TTDAY(I,J) > 1320d0 ) ) THEN
             
-            BR_FAC = ( 1440d0 / TTDAY(I,J) )  
+            BR_FAC = SAFE_DIV( 1440d0, TTDAY(I,J), 0D0 )  
             
          ELSE
 
@@ -4059,7 +4042,7 @@ c$$$      ENDIF
      &           ( 18D0 - HOUR ) * 1D6 / 12D0 ) / 2D6
 
             ! Normalize the multiplicative factor to have a 24-h mean of 1
-            BR_FAC = BR_FAC / ( 4D-4 * TTDAY(I,J) )
+            BR_FAC = SAFE_DIV( BR_FAC, ( 4D-4 * TTDAY(I,J) ), 0D0 )
 
             
 
@@ -4693,7 +4676,6 @@ c$$$
 
 !------------------------------------------------------------------------------
 
-!CDH ADDED THIS ROUTINE FOR REDUCTION
       SUBROUTINE GET_GLOBAL_JNO2( THISMONTH )
 !
 !******************************************************************************
@@ -4722,7 +4704,7 @@ c$$$
 
       ! Local variables
       REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*4               :: ARRAY2(IGLOB,JGLOB,LLPAR) !CDH
+      REAL*4               :: ARRAY2(IGLOB,JGLOB,LLPAR) 
       REAL*8               :: XTAU
       CHARACTER(LEN=255)   :: FILENAME
 
@@ -4732,10 +4714,6 @@ c$$$
 
       !CDH -WE EVENTUALLY NEED TO SUPPORT OTHER MODEL RESOLUTIONS
       ! Filename for full-level GEOS5 model
-!      FILENAME = 
-!     &           '/home/cdh/GC/Archived-Br/jvalues.noon.geos5.4x5'
-!!     &           GET_NAME_EXT() // '.' // GET_RES_EXT()
-
       FILENAME = 
      &           TRIM( DATA_DIR )  // 'mercury_201007/jvalues.noon.' //
      &           GET_NAME_EXT() // '.' // GET_RES_EXT()
@@ -5094,12 +5072,10 @@ c$$$
          ZERO_DVEL = 0d0
       ENDIF
 
-      ! CDH for seasalt uptake
       ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
       HG2_SEASALT_LOSSRATE = 0d0
 
-      ! CDH for reduction
       ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
       JNO2 = 0d0
@@ -5272,8 +5248,8 @@ c$$$      ENDIF
 !      IF ( ALLOCATED( TRANSP   ) ) DEALLOCATE( TRANSP  )
       IF ( ALLOCATED( ZERO_DVEL) ) DEALLOCATE( ZERO_DVEL )
       IF ( ALLOCATED( HG2_SEASALT_LOSSRATE ) ) 
-     &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) !CDH added diagnostic
-      IF ( ALLOCATED( JNO2     ) ) DEALLOCATE( JNO2    ) !CDH for reduction
+     &     DEALLOCATE( HG2_SEASALT_LOSSRATE   ) 
+      IF ( ALLOCATED( JNO2     ) ) DEALLOCATE( JNO2    ) 
   
       ! Return to calling program
       END SUBROUTINE CLEANUP_MERCURY
