@@ -685,8 +685,14 @@ c$$$
          ! Get current month
          THISMONTH = GET_MONTH()
 
+!--jaf.start
+         ! Get current year to check if leap year (jaf, 7/6/11)
+         THISYEAR = GET_YEAR()
+
          ! Read next month's MLD
-         CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+         !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+         CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
+!--jaf.end
          
       ENDIF
 
@@ -780,6 +786,11 @@ c$$$
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
          MLDcm      = MLDav(I,J)
+!--jaf.start
+         ! Add error trap to prevent new MLD from being negative
+         ! (jaf, 7/6/11)
+         IF (MLDcm .LT. 0d0) MLDcm = 0d0
+!--jaf.end
 
          ! Get fractions of land and ocean in the grid box [unitless]
          ! Use fractional land type information in MERRA. Also make sure
@@ -1618,7 +1629,8 @@ c$$$
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+!      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
 !
 !******************************************************************************
 !  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
@@ -1627,15 +1639,20 @@ c$$$
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!  (2 ) THISYEAR (INTEGER)  : Current year 
 !
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
+!  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!--jaf.start
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+!--jaf.end
 
 #     include "CMN_SIZE"      ! Size parameters
 
@@ -1647,11 +1664,25 @@ c$$$
       REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=255)     :: FILENAME
+!--jaf.start
+      INTEGER                :: DAYS_IN_MONTH
+      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                                     31, 31, 30, 31, 30, 31 /)
+!--jaf.end
 
       !=================================================================
       ! GET_MLD_FOR_NEXT_MONTH begins here!
       !=================================================================
       
+!--jaf.start
+      ! Calculate days in this month (jaf, 7/6/11)
+      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_MONTH = M(THISMONTH) + 1
+      ELSE
+         DAYS_IN_MONTH = M(THISMONTH)
+      ENDIF
+!--jaf.end
+
       ! MLD file name
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
@@ -1680,7 +1711,15 @@ c$$$
       ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24d0 * 30.5d0 )
+!--jaf.start
+         ! This calculation can result in negative values of MLD at the
+         ! end of the the month when there are more than 30.5 days in
+         ! the month. Now use actual number of days per month (jaf, 
+         ! 7/6/11)
+         !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24d0 * 30.5d0 )
+         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
+     &               ( 3.6d3 *24d0 * DAYS_IN_MONTH )
+!--jaf.end
       ENDDO
       ENDDO
 
@@ -2114,6 +2153,15 @@ c$$$
                ! Store ocean Hg(0) in Hg0aq array
                Hg0aq(:,:,NN)   = Hg_OCEAN(:,:,1)
                
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( Hg0aq(I,J,NN) .LT. 0 ) Hg0aq(I,J,NN) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
@@ -2129,6 +2177,15 @@ c$$$
                ! Store ocean Hg(II) in Hg2_aq array
                Hg2aq(:,:,NN)   = Hg_OCEAN(:,:,1)
 
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( Hg2aq(I,J,NN) .LT. 0 ) Hg2aq(I,J,NN) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
@@ -2140,6 +2197,15 @@ c$$$
 
                ! Particulate Hg
                HgPaq(:,:)        = Hg_OCEAN(:,:,1)
+
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( HgPaq(I,J) .LT. 0 ) HgPaq(I,J) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
