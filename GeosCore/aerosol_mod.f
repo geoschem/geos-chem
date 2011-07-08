@@ -262,8 +262,8 @@
             TK             = T(I,J,L)
             CONSEXP        = 17.2693882d0      * 
      &                       ( TK - 273.16d0 ) / ( TK - 35.86d0 )
-            VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK 
-            ABSHUM(JLOOP)  = ABSHUM(JLOOP) / VPRESH2O 
+            VPRESH2O       = CONSVAP * EXP( CONSEXP ) / TK
+            ABSHUM(JLOOP) = ABSHUM(JLOOP) / VPRESH2O
 
          ENDIF
       ENDDO
@@ -488,7 +488,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE RDAER( MONTH, YEAR )
+      SUBROUTINE RDAER( MONTH, YEAR, WAVELENGTH )
 !
 !******************************************************************************
 !  Subroutine RDAER reads global aerosol concentrations as determined by
@@ -501,7 +501,10 @@
 !  ============================================================================
 !  (1 ) THISMONTH   (INTEGER) : Number of the current month (1-12)
 !  (2 ) THISYEAR    (INTEGER) : 4-digit year value (e.g. 1997, 2002)
-
+!  (3 ) WAVELENGTH  (INTEGER) : Logical indicator
+!                                = 0 AOD computed at 999 nm
+!                                = 1 AOD computed at wavelength in jv_spec_aod
+!
 !  NOTES:
 !  (1 ) At the point in which "rdaer.f" is called, ABSHUM is actually
 !        absolute humidity and not relative humidity (rvm, bmy, 2/28/02)
@@ -532,6 +535,10 @@
 !        diagnostic.  Now make MONTH and YEAR optional arguments.  Now bundled
 !        into "aerosol_mod.f".  (rvm, aad, clh, bmy, 7/20/04)
 !  (11) Now remove FWET from extinction efficiency computation (avd, 8/3/10)
+!  (12) Include third input argument to determine the wavelength at which
+!        the AOD should be computed. This will set the optical properties
+!        that are used for the calculation of the AOD. The ND21 diagnostic
+!        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -557,7 +564,7 @@
 #     include "comode.h"   ! NTLOOP
 
       ! Arguments
-      INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR
+      INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR, WAVELENGTH
 
       ! Local variables
       LOGICAL             :: FIRST = .TRUE.
@@ -953,20 +960,36 @@
          ! Loop over relative humidity bins
          DO R = 1, NRH
 
-            ! Wet radius in "jv_spec.dat"
-            RW(R) = RAA(4,IND(N)+R-1)	
+            IF ( WAVELENGTH > 0 ) THEN
 
-            !--------------------------------------------------------------
-            ! Prior to 8/3/10:
-            !! Wet frac of aerosol 
-            !FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
-            !
-            !! Extinction efficiency Q for each RH bin
-            !QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
-            !--------------------------------------------------------------
+               ! Now use the optical properties at the wavelength specified
+               !  in jv_spec_aod.dat (skim, 02/03/11)
 
-            ! Extinction efficiency Q for each RH bin
-            QW(R) = QAA(4,IND(N)+R-1)
+               ! Wet radius in "jv_spec_aod.dat"
+               RW(R) = RAA_AOD(IND(N)+R-1)
+               
+               ! Extinction efficiency for Q for each RH bin
+               QW(R) = QAA_AOD(IND(N)+R-1)
+
+            ELSE 
+
+               ! Wet radius in "jv_spec.dat"
+               RW(R) = RAA(4,IND(N)+R-1)	
+
+               !--------------------------------------------------------------
+               ! Prior to 8/3/10:
+               !! Wet frac of aerosol 
+               !FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
+               !
+               !! Extinction efficiency Q for each RH bin
+               !QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
+               !--------------------------------------------------------------
+
+              ! Extinction efficiency Q for each RH bin
+              QW(R) = QAA(4,IND(N)+R-1)
+
+            ENDIF
+
          ENDDO
 
          ! Loop over SMVGEAR grid boxes
@@ -1027,7 +1050,7 @@
             ! #16 Hygroscopic growth of Sea Salt (accum)   [unitless]
             ! #19 Hygroscopic growth of Sea Salt (coarse)  [unitless]
             !==============================================================
-            IF ( ND21 > 0 .and. L <= LD21 ) THEN
+            IF ( ND21 > 0 .and. L <= LD21 .and. WAVELENGTH > 0 ) THEN
                AD21(I,J,L,4+3*N) = AD21(I,J,L,4+3*N) +SCALEOD(I,J,L,IRH)
             ENDIF
 
@@ -1073,6 +1096,18 @@
             ! Bin for aerosol type and relative humidity
             IRHN = ( (N-1) * NRH ) + R
 
+            IF ( WAVELENGTH > 0 ) THEN
+
+            ! Save aerosol optical depth for each combination 
+            ! of aerosol type and relative humidity into ODAER, 
+            ! which will get passed to the FAST-J routines
+            ODAER(I,J,L,IRHN) = SCALEOD(I,J,L,R) 
+     &                        * 0.75d0 * BXHEIGHT(I,J,L) 
+     &                        * WAERSL(I,J,L,N) * QAA_AOD(IND(N)) / 
+     &                        ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+
+            ELSE
+
             ! Save aerosol optical depth for each combination 
             ! of aerosol type and relative humidity into ODAER, 
             ! which will get passed to the FAST-J routines
@@ -1080,6 +1115,8 @@
      &                        * 0.75d0 * BXHEIGHT(I,J,L) 
      &                        * WAERSL(I,J,L,N) * QAA(4,IND(N)) / 
      &                        ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+
+            ENDIF
 
          ENDDO
          ENDDO
@@ -1161,18 +1198,35 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
+            IF ( WAVELENGTH > 0 ) THEN
+
+            ! Aerosol optical depth
+            ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
+     &                          0.75d0            * BXHEIGHT(I,J,L) * 
+     &                          DAERSL(I,J,L,N-1) * QAA_AOD(IND(N))   / 
+     &                          ( MSDENS(N) * RAA_AOD(IND(N)) * 1.0D-6 )
+
+            ELSE
+
             ! Aerosol optical depth
             ODAER(I,J,L,IRHN) = ODAER(I,J,L,IRHN) + 
      &                          0.75d0            * BXHEIGHT(I,J,L) * 
      &                          DAERSL(I,J,L,N-1) * QAA(4,IND(N))   / 
      &                          ( MSDENS(N) * RAA(4,IND(N)) * 1.0D-6 )
+
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
 
          ! Effective radius
-         REFF = 1.0D-4 * RAA(4,IND(N))
+         IF ( WAVELENGTH > 0 ) THEN
+            REFF = 1.0D-4 * RAA_AOD(IND(N))
+         ELSE
+            REFF = 1.0D-4 * RAA(4,IND(N))
+         ENDIF
 
          ! Loop over grid boxes
 !$OMP PARALLEL DO 
@@ -1247,7 +1301,7 @@
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
-      IF ( ND21 > 0 ) THEN
+      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
 
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO 
@@ -1269,9 +1323,8 @@
                IRHN = ( (N-1) * NRH ) + R
 
                ! Optical Depths (scaled to jv_spec_aod.dat wavelength, clh)
-               AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + 
-     &                        ODAER(I,J,L,IRHN) * 
-     &                        QAA_AOD(IND(N)+R-1) / QAA(4,IND(N)+R-1)
+               ! Scaling based on wavelength no long necessary (skim)
+               AD21(I,J,L,3+3*N) = AD21(I,J,L,3+3*N) + ODAER(I,J,L,IRHN)
 
             ENDDO
             ENDDO
