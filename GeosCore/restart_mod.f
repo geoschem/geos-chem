@@ -1,37 +1,43 @@
-! $Id: restart_mod.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: restart_mod
+!
+! !DESCRIPTION: Module RESTART\_MOD contains variables and routines which 
+!  are used to read and write restart files for GEOS-Chem advected tracers
+!  in units of [v/v] mixing ratio) and chemical species (in concentration 
+!  units of [molec/cm3]).
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE RESTART_MOD
 !
-!******************************************************************************
-!  Module RESTART_MOD contains variables and routines which are used to read
-!  and write GEOS-CHEM restart files, which contain tracer concentrations
-!  in [v/v] mixing ratio. (bmy, 6/25/02, 12/16/05)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) INPUT_RESTART_FILE   : Full path name of the restart file to be read
-!  (2 ) OUTPUT_RESTART_FILE  : Full path name (w/ tokens!) of output file
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) MAKE_RESTART_FILE    : Writes restart file to disk 
-!  (2 ) READ_RESTART_FILE    : Reads restart file from disk 
-!  (3 ) CONVERT_TRACER_TO_VV : Converts from [ppbv], [ppmv], etc to [v/v]
-!  (4 ) CHECK_DIMENSIONS     : Ensures that restart file contains global data
-!  (5 ) COPY_STT             : Converts [v/v] to [kg] and stores in STT
-!  (6 ) CHECK_DATA_BLOCKS    : Makes sure we have read in data for each tracer
-!  (7 ) SET_RESTART          : Gets restart filenames from "input_mod.f"
+! !PUBLIC MEMBER FUNCTIONS
 !
-!  GEOS-CHEM modules referenced by restart_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f          : Module w/ routines for binary punch file I/O
-!  (2 ) error_mod.f          : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f           : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f           : Module w/ horizontal grid information
-!  (5 ) logical_mod.f        : Module w/ GEOS-CHEM logical switches
-!  (6 ) time_mod.f           : Module w/ routines for computing time & date
-!  (7 ) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
+      PUBLIC  :: MAKE_RESTART_FILE
+      PUBLIC  :: READ_RESTART_FILE
+      PUBLIC  :: SET_RESTART
+      PUBLIC  :: MAKE_CSPEC_FILE
+      PUBLIC  :: READ_CSPEC_FILE
 !
-!  NOTES:
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CONVERT_TRACER_TO_VV
+      PRIVATE :: CHECK_DIMENSIONS
+      PRIVATE :: COPY_STT
+      PRIVATE :: CHECK_DATA_BLOCKS
+      PRIVATE :: SET_RESTART
+!
+! !REVISION HISTORY:
+!  25 Jun 2002 - R. Yantosca - Initial version
 !  (1 ) Moved routines "make_restart_file.f"" and "read_restart_file.f" into
 !        this module.  Also now internal routines to "read_restart_file.f"
 !        are now a part of this module.  Now reference "file_mod.f" to get
@@ -50,53 +56,61 @@
 !  (10) Now pass TAU via the arg list in MAKE_RESTART_FILE (bmy, 12/15/05)
 !  (11) Add MAKE_CSPEC_FILE and READ_CSPEC_FILE routines to save and read
 !        CSPEC_FULL restart files (dkh, 02/12/09)
-!******************************************************************************
+!  11 Jul 2011 - R. Yantosca - Corrected mis-indexing problem w/ the 
+!                              CSPEC restart file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "restart_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC  :: MAKE_RESTART_FILE
-      PUBLIC  :: READ_RESTART_FILE
-      PUBLIC  :: SET_RESTART
-      PUBLIC  :: MAKE_CSPEC_FILE
-      PUBLIC  :: READ_CSPEC_FILE
-
-
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================    
+! !PRIVATE TYPES:
+!
+      ! Full path name of the advected tracer restart file (INPUT)
       CHARACTER(LEN=255) :: INPUT_RESTART_FILE  
+
+      ! Full path name of (w/ replaceable tokens) of the 
+      ! advected tracer restart file (OUTPUT)
       CHARACTER(LEN=255) :: OUTPUT_RESTART_FILE 
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_restart_file
+!
+! !DESCRIPTION: Subroutine MAKE\_RESTART\_FILE creates restart files for 
+!  GEOS-Chem advected tracers [units: v/v].  The file format is GEOS-Chem
+!  binary punch (bpch) format.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_RESTART_FILE( YYYYMMDD, HHMMSS, TAU )
 !
-!******************************************************************************
-!  Subroutine MAKE_RESTART_FILE creates GEOS-CHEM restart files of tracer 
-!  mixing ratios (v/v), in binary punch file format. (bmy, 5/27/99, 12/16/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Date 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a restart file       
-!  (3 ) TAU      : GEOS-CHEM TAU value corresponding to YYYYMMDD, HHMMSS
+      USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
+      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
+      USE DAO_MOD,     ONLY : AD
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE FILE_MOD,    ONLY : IU_RST,        IOERROR
+      USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
+
+#     include "CMN_SIZE"    ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss GMT time
+      REAL*8,  INTENT(IN)  :: TAU        ! TAU value (hrs from 1/1/1985)
+! 
+! !REVISION HISTORY: 
+!  27 May 1999 - R. Yantosca - Initial version
 !  (1 ) Now use function NYMD_STRING from "time_mod.f" to generate a
 !        Y2K compliant string for all data sets. (bmy, 6/22/00)
 !  (2 ) Reference F90 module "bpch2_mod.f" which contains routines BPCH2_HDR, 
@@ -121,24 +135,14 @@
 !        grids. (bmy, 6/28/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (12) Add TAU to the argument list (bmy, 12/16/05)
-!******************************************************************************
-!     
-      ! References to F90 modules
-      USE BPCH2_MOD,   ONLY : BPCH2,         GET_MODELNAME
-      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR, OPEN_BPCH2_FOR_WRITE
-      USE DAO_MOD,     ONLY : AD
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST,        IOERROR
-      USE GRID_MOD,    ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
-
-#     include "CMN_SIZE"   ! Size parameters
-
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Arguments
-      INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
-      REAL*8,  INTENT(IN)  :: TAU
 
       ! Local Variables      
       INTEGER              :: I,    I0, IOS, J,  J0, L, N
@@ -230,23 +234,47 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
 
-      ! Return to calling program
       END SUBROUTINE MAKE_RESTART_FILE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_restart_file
+!
+! !DESCRIPTION: Subroutine READ\_RESTART\_FILE initializes GEOS-Chem advected
+!  tracer concentrations from a restart file (binary punch file format) 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_RESTART_FILE( YYYYMMDD, HHMMSS ) 
 !
-!******************************************************************************
-!  Subroutine READ_RESTART_FILE initializes GEOS-CHEM tracer concentrations 
-!  from a restart file (binary punch file format) (bmy, 5/27/99, 12/16/05)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Day 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
+      USE DAO_MOD,     ONLY : AD
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE FILE_MOD,    ONLY : IU_RST
+      USE FILE_MOD,    ONLY : IOERROR
+      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TRACER_MOD,  ONLY : N_TRACERS
+      USE TRACER_MOD,  ONLY : STT
+      USE TRACER_MOD,  ONLY : TRACER_NAME
+      USE TRACER_MOD,  ONLY : TRACER_MW_G
+
+#     include "CMN_SIZE"                ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+! 
+! !REVISION HISTORY: 
+!  27 May 1999 - R. Yantosca - Initial version
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
 !  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
@@ -276,24 +304,13 @@
 !        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to A10.
 !        (bmy, 6/24/05)
 !  (20) Updated comments (bmy, 12/16/05)
-!******************************************************************************
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE DAO_MOD,     ONLY : AD
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST,      IOERROR
-      USE LOGICAL_MOD, ONLY : LSPLIT,      LPRT
-      USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD,  ONLY : N_TRACERS,   STT
-      USE TRACER_MOD,  ONLY : TRACER_NAME, TRACER_MW_G
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
-
-      ! Local Variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, IOS, J, L, N
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4              :: TRACER(IIPAR,JJPAR,LLPAR)
@@ -424,43 +441,53 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_RESTART_FILE: read file' )
 
-      ! Return to calling program
       END SUBROUTINE READ_RESTART_FILE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: convert_tracer_to_vv
+!
+! !DESCRIPTION: Subroutine CONVERT\_TRACER\_TO\_VV converts the TRACER array 
+!  from its natural units (e.g. ppbv, ppmv) as read from the restart file to 
+!  v/v mixing ratio. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CONVERT_TRACER_TO_VV( NTRACER, TRACER, UNIT )
 !
-!******************************************************************************
-!  Subroutine CONVERT_TRACER_TO_VV converts the TRACER array from its
-!  natural units (e.g. ppbv, ppmv) as read from the restart file to v/v
-!  mixing ratio. (bmy, 6/25/02, 6/24/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER)   : Tracer number
-!  (2 ) TRACER  (REAL*4 )   : Array containing tracer concentrations
-!  (3 ) UNIT    (CHARACTER) : Unit of tracer as read in from restart file
+      USE CHARPAK_MOD, ONLY : TRANUC
+      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
+
+#     include "CMN_SIZE"    ! Size parameters
+
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      ! Tracer number and units 
+      INTEGER,          INTENT(IN) :: NTRACER  
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Array containing tracer concentrations
+      REAL*4,        INTENT(INOUT) :: TRACER(IIPAR,JJPAR,LLPAR)  
+! 
+! !REVISION HISTORY: 
 !  (1 ) Added to "restart_mod.f".  Can now also convert from ppm or ppmv
 !        to v/v mixing ratio. (bmy, 6/25/02)
 !  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
 !  (3 ) Remove obsolete reference to CMN (bmy, 6/24/05)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE CHARPAK_MOD, ONLY : TRANUC
-      USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
-
-#     include "CMN_SIZE"              ! Size parameters
-
-      ! Arguments
-      INTEGER,          INTENT(IN)    :: NTRACER
-      REAL*4,           INTENT(INOUT) :: TRACER(IIPAR,JJPAR,LLPAR) 
-      CHARACTER(LEN=*), INTENT(IN)    :: UNIT
-
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CONVERT_TRACER_TO_VV begins here!
       !=================================================================
@@ -495,38 +522,44 @@
       WRITE( 6, 110 ) NTRACER,  MINVAL( TRACER ), MAXVAL( TRACER )
  110  FORMAT( 'Tracer ', i3, ': Min = ', es12.5, '  Max = ',  es12.5 )
 
-      ! Return to READ_RESTART_FILE
       END SUBROUTINE CONVERT_TRACER_TO_VV
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_dimensions
+!
+! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS makes sure that the dimensions 
+!  of the restart file extend to cover the entire grid. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_DIMENSIONS( NI, NJ, NL ) 
 !
-!******************************************************************************
-!  Subroutine CHECK_DIMENSIONS makes sure that the dimensions of the
-!  restart file extend to cover the entire grid. (bmy, 6/25/02, 10/15/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NI (INTEGER) : Number of longitudes read from restart file
-!  (2 ) NJ (INTEGER) : Number of latitudes  read from restart file
-!  (3 ) NL (INTEGER) : Numbef of levels     read from restart file
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
+
+#     include "CMN_SIZE"
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NI   ! # of longitudes read from restart file
+      INTEGER, INTENT(IN) :: NJ   ! # of latitudes  read from restart file
+      INTEGER, INTENT(IN) :: NL   ! # of levels     read from restart file
+! 
+! !REVISION HISTORY: 
 !  (1 ) Added to "restart_mod.f".  Now no longer allow initialization with 
 !        less than a globally-sized data block. (bmy, 6/25/02)
 !  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
 !        allocated memory before stopping the run. (bmy, 10/15/02)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: NI, NJ, NL
-
-#     include "CMN_SIZE"
-
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
       !=================================================================
@@ -558,44 +591,55 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHECK_DIMENSIONS
-
+!EOC
 !------------------------------------------------------------------------------
-     
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: copy_stt
+!
+! !DESCRIPTION: Subroutine COPY\_STT converts tracer concetrations from [v/v] 
+!  to [kg] and then copies the results into the STT tracer array. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE COPY_STT( NTRACER, TRACER, NCOUNT )
 !
-!******************************************************************************
-!  Subroutine COPY_STT converts tracer concetrations from [v/v] to [kg] and 
-!  then copies the results into the STT tracer array. (bmy, 6/25/02, 6/24/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Tracer number
-!  (2 ) NCOUNT  (INTEGER) : Ctr array - # of data blocks read for each tracer
-!  (3 ) TRACER  (REAL*4 ) : Tracer concentrations from restart file [v/v]
+      USE DAO_MOD,    ONLY : AD
+      USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
+      
+#     include "CMN_SIZE"   ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: NTRACER                    ! Tracer #
+      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)  ! Tracers from 
+                                                           !  rst file [v/v]
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)              ! # of data blocks
+!                                                          !  for each tracer
+! 
+! !REVISION HISTORY: 
 !  (1 ) Added to "restart_mod.f".  Also added parallel loops. (bmy, 6/25/02)
 !  (2 ) Now reference AD from "dao_mod.f" (bmy, 9/18/02)
 !  (3 ) Now exit if N is out of range (bmy, 4/29/03)
 !  (4 ) Now references N_TRACERS, STT & TCVV from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Remove call to TRUE_TRACER_INDEX (bmy, 6/24/05)
-!******************************************************************************
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,    ONLY : AD
-      USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
-      
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NTRACER
-      REAL*4,  INTENT(IN)    :: TRACER(IIPAR,JJPAR,LLPAR)
-      INTEGER, INTENT(INOUT) :: NCOUNT(NNPAR)
-
-      ! Local variables
-      INTEGER                :: I, J, L, N
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, N
       
       !=================================================================
       ! COPY_STT begins here!
@@ -624,37 +668,48 @@
       NCOUNT(N) = NCOUNT(N) + 1
 
       END SUBROUTINE COPY_STT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_data_blocks
+!
+! !DESCRIPTION: Subroutine CHECK\_DATA\_BLOCKS checks to see if we have 
+!  multiple or missing data blocks for a given tracer. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_DATA_BLOCKS( NTRACE, NCOUNT )
 !
-!******************************************************************************
-!  Subroutine CHECK_DATA_BLOCKS checks to see if we have multiple or 
-!  missing data blocks for a given tracer. (bmy, 6/25/02, 10/15/02)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACE (INTEGER) : Number of tracers
-!  (2 ) NCOUNT (INTEGER) : Ctr array - # of data blocks found per tracer
-!
-!  NOTES:
-!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
-!        write a long line of "="'s to the screen. (bmy, 6/25/02)
-!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
-!        allocated memory before stopping the run. (bmy, 10/15/02)
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
 #     include "CMN_SIZE"  ! Size parameters
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: NTRACE, NCOUNT(NNPAR)
-  
-      ! Local variables
-      INTEGER             :: N
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: NTRACE          ! # of advected tracers 
+      INTEGER, INTENT(IN) :: NCOUNT(NNPAR)   ! Data blocks found per tracer
+! 
+! !REVISION HISTORY: 
+!  25 Jun 2002 - R. Yantosca - Initial version
+!  (1 ) Added to "restart_mod.f".  Also now use F90 intrinsic REPEAT to
+!        write a long line of "="'s to the screen. (bmy, 6/25/02)
+!  (2 ) Now reference GEOS_CHEM_STOP from "error_mod.f", which frees all
+!        allocated memory before stopping the run. (bmy, 10/15/02)
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N
 
       !=================================================================
       ! CHECK_DATA_BLOCKS begins here! 
@@ -685,86 +740,97 @@
  110  FORMAT( 'No records found for tracer : ',           i4 ) 
  120  FORMAT( 'STOP in CHECK_DATA_BLOCKS (restart_mod.f)'    )
 
-      ! Return to calling program
       END SUBROUTINE CHECK_DATA_BLOCKS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_restart
+!
+! !DESCRIPTION: Subroutine SET\_RESTART initializes the variables 
+!  INPUT\_RESTART\_FILE and OUTPUT\_RESTART\_FILE with the values read from 
+!  the \texttt{input.geos} file.  These specify the names of the input and
+!  output restart files for GEOS-Chem advected tracers.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SET_RESTART( INFILE, OUTFILE )
 !
-!******************************************************************************
-!  Subroutine SET_RESTART initializes the variables INPUT_RESTART_FILE and
-!  OUTPUT_RESTART_FILE with the values read from the "input.geos" file.
-!  (bmy, 7/9/04)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) INFILE  (CHAR*255) : Input restart file name from "input.geos"
-!  (2 ) OUTFILE (CHAR*255) : Output restart file name from "input.geos"
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! Arguments
-      CHARACTER(LEN=255) :: INFILE, OUTFILE
-      
+      CHARACTER(LEN=255) :: INFILE    ! Advected tracer input  restart file
+      CHARACTER(LEN=255) :: OUTFILE   ! Advected tracer output restart file 
+! 
+! !REVISION HISTORY: 
+!  09 Jul 2004 - R. Yantosca - Initial version
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! SET_RESTART begins here
       !=================================================================
       INPUT_RESTART_FILE  = INFILE
       OUTPUT_RESTART_FILE = OUTFILE
      
-      ! Return to calling program
       END SUBROUTINE SET_RESTART
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: make_cspec_file
+!
+! !DESCRIPTION: Subroutine MAKE\_CSPEC\_FILE writes GEOS-Chem chemical
+!  species concentrations into a checkpoint file (binary punch file format).
+!  The chemical species are saved into the CSPEC array, which is used by
+!  the SMVGEAR and KPP solvers.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE MAKE_CSPEC_FILE( YYYYMMDD, HHMMSS )
 !
-!******************************************************************************
-!  Subroutine MAKE_CSPEC_FILE creates GEOS-CHEM checkpt files of species
-!  concentrations. 
-!  (dkh, 8/27/04)!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Date 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to create a checkpoint file       
+! !USES:
 !
-!  Passed via CMN:
-!  ============================================================================
-!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
-!
-!  Passed via comode_mod
-!  ============================================================================
-!  (1 ) CSPEC	: Array of quantities to be checkpointed     
-!                      
-!
-!  NOTES:
-! (1) Based on MAKE_RESTART_FILE 
-!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
-!                              species from the restart.cspec.YYYYMMDDhh file!
-!******************************************************************************
-!     
-      ! References to F90 modules
       USE BPCH2_MOD
-      USE ERROR_MOD,  ONLY : DEBUG_MSG,   ERROR_STOP
-      USE FILE_MOD,   ONLY : IU_RST,      IOERROR
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET
-      USE LOGICAL_MOD, ONLY : LPRT
-      USE TIME_MOD,   ONLY : EXPAND_DATE, GET_TAU
-      USE COMODE_MOD, ONLY : CSPEC,       JLOP
-      ! write CSPEC_FULL hotp 2/25/09
+      USE COMODE_MOD,  ONLY : CSPEC
       USE COMODE_MOD,  ONLY : CSPEC_FULL
-      USE COMODE_MOD,  ONLY : IXSAVE, IYSAVE, IZSAVE
+      USE COMODE_MOD,  ONLY : JLOP
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE FILE_MOD,    ONLY : IU_RST
+      USE FILE_MOD,    ONLY : IOERROR
+      USE GRID_MOD,    ONLY : GET_XOFFSET
+      USE GRID_MOD,    ONLY : ET_YOFFSET
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TIME_MOD,    ONLY : GET_TAU
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! TAU , NSRCX, LSOILNOX
-#     include "comode.h"   ! IGAS
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
-
-      ! Local Variables      
+#     include "CMN_SIZE"                 ! Size parameters
+#     include "CMN"                      ! TAU , NSRCX, LSOILNOX
+#     include "comode.h"                 ! IGAS
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN)  :: HHMMSS     ! hh:mm:ss   GMT time
+! 
+! !REVISION HISTORY: 
+!  27 Aug 2004 - D. Henze    - Initial version, based on MAKE_RESTART
+!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when writing
+!                              species to the restart.cspec.YYYYMMDDhh file!
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: I,    I0, IOS, J,  J0, L, N, JLOOP
       INTEGER              :: YYYY, MM, DD,  HH, SS, ZIP_HH
       CHARACTER(LEN=255)   :: FILENAME
@@ -894,51 +960,58 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_CSPEC_FILE: wrote file' )
 
-      ! Return to calling program
       END SUBROUTINE MAKE_CSPEC_FILE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_cspec_file
+!
+! !DESCRIPTION: Subroutine READ\_CSPEC\_FILE initializes GEOS-Chem chemical
+!  species concentrations from a checkpoint file (binary punch file format).
+!  The chemical species are saved into the CSPEC array, which is used by
+!  the SMVGEAR and KPP solvers.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_CSPEC_FILE( YYYYMMDD, HHMMSS, IT_EXISTS ) 
 !
-!******************************************************************************
-!  Subroutine READ_CSPEC_FILE initializes GEOS-CHEM species concentrations 
-!  from a checkpoint file (binary punch file format) 
-!  (dkh, 8/30/04)
+! !USES:
 !
-!  Arguments as input:
-!  ============================================================================
-!  (1 ) YYYYMMDD : Year-Month-Day 
-!  (2 ) HHMMSS   :  and Hour-Min-Sec for which to read restart file
-!
-!  Passed via CMN:
-!  ============================================================================
-!  (1 ) TAU    : TAU value (elapsed hours) at start of diagnostic interval
-!
-!  Notes
-!  (1 ) Based on READ_RESTART
-!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
-!                              species from the restart.cspec.YYYYMMDDhh file
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
-      USE ERROR_MOD,   ONLY : DEBUG_MSG, ERROR_STOP
-      USE FILE_MOD,    ONLY : IU_RST, IOERROR
+      USE COMODE_MOD,  ONLY : CSPEC_FULL
+      USE COMODE_MOD,  ONLY : JLOP
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE FILE_MOD,    ONLY : IU_RST
+      USE FILE_MOD,    ONLY : IOERROR
       USE FILE_MOD,    ONLY : FILE_EXISTS
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE COMODE_MOD,  ONLY : CSPEC_FULL, JLOP
 
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"	   ! LPRT, NSRCX, LSOILNOX
-#     include "comode.h"   ! ITLOOP, IGAS
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
-
-      ! Local Variables
+#     include "CMN_SIZE"                ! Size parameters
+#     include "CMN"	                ! LPRT, NSRCX, LSOILNOX
+#     include "comode.h"                ! ITLOOP, IGAS
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD GMT date
+      INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
+! 
+! !REVISION HISTORY: 
+!  30 Aug 2004 - D. Henze    - Initial version, based on READ_RESTART  
+!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
+!                              species from the restart.cspec.YYYYMMDDhh file
+!  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, IOS, J, L, N, JLOOP, NN, NTL
       INTEGER             :: NCOUNT(NNPAR) 
       REAL*4		  :: TMP(ILONG,ILAT,IPVERT)
@@ -1069,13 +1142,9 @@
       ! Close file
       CLOSE( IU_RST )      
 
-
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### READ_CSPEC_FILE: read file' )
 
-      ! Return to calling program
       END SUBROUTINE READ_CSPEC_FILE
-
-!----------------------------------------------------------------------
-      ! End of module
+!EOC
       END MODULE RESTART_MOD
