@@ -38,6 +38,7 @@
 #  02 Dec 2010 - R. Yantosca - Added rdlight, rdland, rdsoil, emmonot
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_3.*"\
 #  21 Dec 2010 - R. Yantosca - Added comode_mod
+#  11 Jul 2011 - R. Yantosca - Added restart_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -98,6 +99,7 @@ $(CORE)/merra_i6_mod.f               \
 $(CORE)/nei2005_anthro_mod.f         \
 $(CORE)/optdepth_mod.f               \
 $(CORE)/pjc_pfix_mod.f               \
+$(CORE)/restart_mod.f                \
 $(CORE)/RnPbBe_mod.f                 \
 $(CORE)/scale_anthro_mod.f           \
 $(CORE)/tagged_ox_mod.f              \
