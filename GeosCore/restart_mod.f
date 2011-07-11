@@ -741,7 +741,8 @@
 !
 !  NOTES:
 ! (1) Based on MAKE_RESTART_FILE 
-!
+!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
+!                              species from the restart.cspec.YYYYMMDDhh file!
 !******************************************************************************
 !     
       ! References to F90 modules
@@ -848,10 +849,17 @@
       ! Write the final species concetrations after full chemistry
       UNIT = 'molec/cm3/box'
           
-      ! replace NCS with 1 for safety hotp 2/25/09
-      !DO N = 1 , NTSPEC(NCS)
+      ! Loop over the total # of species.  This also includes the "fake"
+      ! prod/loss family species for the ND65 diagnostic (bmy, 7/11/11)
       DO N = 1 , NTSPEC(1)
- 
+         
+         ! The IFAM array denotes the index # of species in the CSPEC
+         ! array that are "fake" ND65 prod/loss families.  If we 
+         ! encounter one of these, then we can skip it (bmy, 7/11/11)
+         IF ( ANY( IFAM == N ) ) THEN
+            CYCLE
+         ENDIF
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -909,7 +917,8 @@
 !
 !  Notes
 !  (1 ) Based on READ_RESTART
-!  
+!  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
+!                              species from the restart.cspec.YYYYMMDDhh file
 !******************************************************************************
 !
       ! References to F90 modules
@@ -989,9 +998,14 @@
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
 
-      ! force NCS to one (hotp 2/25/09)
-      !DO N = 1, NTSPEC(NCS)
-      DO N = 1, NTSPEC(1)
+      !------------------------------------------------------------------------
+      ! Prior to 7/11/11:
+      ! Now just read as many species as are in the restart file (bmy, 7/11/11)
+      !! force NCS to one (hotp 2/25/09)
+      !!DO N = 1, NTSPEC(NCS)
+      !DO N = 1, NTSPEC(1)
+      !------------------------------------------------------------------------
+      DO 
 
          ! Read the values of CSPEC
          READ( IU_RST, IOSTAT=IOS )
@@ -1022,14 +1036,25 @@
          ! Assign data from the TMP array to CSPEC
          !==============================================================
 
+         ! The IFAM array denotes the index # of species in the CSPEC
+         ! array that are "fake" ND65 prod/loss families.  If we 
+         ! encounter one of these, then we can skip it.
+         IF ( ANY( IFAM == NTRACER ) ) THEN
+            CYCLE
+         ENDIF
+
          ! Only process checkpoint data 
          IF ( CATEGORY(1:8) == 'IJ-CHK-$' .and.
      &        NTL           == ILONG      .and. 
      &        NN            == ILAT       .and. 
      &        NL            == IPVERT            ) THEN
 
-            CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
-
+            !-------------------------------------------------------
+            ! Prior to 7/11/11
+            ! Now use N_TRACER to index CSPEC_FULL (bmy, 7/11/11)
+            !CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
+            !-------------------------------------------------------
+            CSPEC_FULL(:,:,:,NTRACER) = TMP(:,:,:)
 
          ELSE
             CALL ERROR_STOP(' Restart data is not correct ', 
