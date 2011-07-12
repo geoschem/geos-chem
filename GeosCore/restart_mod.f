@@ -824,6 +824,8 @@
 !  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when writing
 !                              species to the restart.cspec.YYYYMMDDhh file!
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  12 Jul 2011 - R. Yantosca - Save species name to restart file using the
+!                              RESERVED field of the bpch file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -945,6 +947,10 @@
          ENDDO
 !$OMP END PARALLEL DO
  
+         ! Save the species name to the RESERVED slot of the bpch file
+         RESERVED = TRIM( NAMEGAS(N) )
+
+         ! Write the data block to the CSPEC checkpoint file
          CALL BPCH2( IU_RST,    MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  N,
      &               UNIT,      GET_TAU(), GET_TAU(), RESERVED,
@@ -1005,6 +1011,8 @@
 !  11 Jul 2011 - R. Yantosca - Now skip over ND65 families when reading 
 !                              species from the restart.cspec.YYYYMMDDhh file
 !  11 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  12 Jul 2011 - R. Yantosca - Now read species name from RESERVED slot
+!                              of bpch file as an extra error check
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1019,6 +1027,7 @@
       REAL*8              :: SUMTC
       CHARACTER(LEN=255)  :: FILENAME
       CHARACTER(LEN=255)  :: INPUT_CHECKPT_FILE
+      CHARACTER(LEN=255)  :: MSG
      
 
       ! For binary punch file, version 2.0
@@ -1070,14 +1079,15 @@
       ! Open the binary punch file for input
       CALL OPEN_BPCH2_FOR_READ( IU_RST, FILENAME )
 
-      !------------------------------------------------------------------------
-      ! Prior to 7/11/11:
-      ! Now just read as many species as are in the restart file (bmy, 7/11/11)
-      !! force NCS to one (hotp 2/25/09)
-      !!DO N = 1, NTSPEC(NCS)
-      !DO N = 1, NTSPEC(1)
-      !------------------------------------------------------------------------
-      DO 
+      ! Loop over all species in the chemical mechanism
+      DO N = 1, NTSPEC(1)
+
+         ! The IFAM array denotes the index # of species in the CSPEC
+         ! array that are "fake" ND65 prod/loss families.  If we 
+         ! encounter one of these, then we can skip it.
+         IF ( ANY( IFAM == N ) ) THEN
+            CYCLE
+         ENDIF
 
          ! Read the values of CSPEC
          READ( IU_RST, IOSTAT=IOS )
@@ -1090,17 +1100,21 @@
          IF ( IOS > 0 ) 
      &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:13' )
 
+         ! Read data block header
          READ( IU_RST, IOSTAT=IOS )
      &         CATEGORY, NTRACER,  UNIT, ZTAU0,  ZTAU1,  RESERVED,
      &         NTL,      NN,       NL,   IFIRST, JFIRST, LFIRST,
      &         NSKIP
 
+         ! Error check
          IF ( IOS /= 0 ) 
      &      CALL IOERROR(IOS,IU_RST,'read_cspec_file:14' )
 
+         ! Read data block
          READ( IU_RST, IOSTAT=IOS )
      &       ( ( ( TMP(I,J,L), I= 1, NTL), J=1,NN ), L = 1, NL)
 
+         ! Error check
          IF ( IOS /= 0 ) 
      &      CALL IOERROR( IOS,IU_RST,'read_cspec_file:16' )
 
@@ -1108,25 +1122,24 @@
          ! Assign data from the TMP array to CSPEC
          !==============================================================
 
-         ! The IFAM array denotes the index # of species in the CSPEC
-         ! array that are "fake" ND65 prod/loss families.  If we 
-         ! encounter one of these, then we can skip it.
-         IF ( ANY( IFAM == NTRACER ) ) THEN
-            CYCLE
-         ENDIF
-
          ! Only process checkpoint data 
          IF ( CATEGORY(1:8) == 'IJ-CHK-$' .and.
      &        NTL           == ILONG      .and. 
      &        NN            == ILAT       .and. 
      &        NL            == IPVERT            ) THEN
 
-            !-------------------------------------------------------
-            ! Prior to 7/11/11
-            ! Now use N_TRACER to index CSPEC_FULL (bmy, 7/11/11)
-            !CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
-            !-------------------------------------------------------
-            CSPEC_FULL(:,:,:,NTRACER) = TMP(:,:,:)
+            ! Also make sure we have the proper species
+            IF ( TRIM( NAMEGAS(N) ) /= TRIM( RESERVED ) ) THEN
+               WRITE( 6, 200 ) TRIM( NAMEGAS(N) )
+ 200           FORMAT( 'Species mismatch for ', a )
+               CALL ERROR_STOP( 'Species mismatch!', 
+     &                          'READ_CSPEC_FILE (restart_mod.f)' )
+            ENDIF
+
+            ! Read data from temporary array into CSPEC_FULL
+            ! NOTE: Using N instead of NTRACER will skip over
+            ! the "fake" ND65 prod/loss families (bmy, 7/12/11)
+            CSPEC_FULL(:,:,:,N) = TMP(:,:,:)
 
          ELSE
             CALL ERROR_STOP(' Restart data is not correct ', 
