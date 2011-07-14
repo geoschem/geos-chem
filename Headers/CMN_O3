@@ -20,7 +20,7 @@
 ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
       REAL*8 EMISR, EMISRN, EMIST, EMISTN
       COMMON /EMIS/                                                     
-     &   EMISR(IGLOB,JGLOB,NEMPARA),  EMISRN(IGLOB,JGLOB,NOXLEVELS),   
+     &   EMISR(IIPAR,JJPAR,NEMPARA),  EMISRN(IIPAR,JJPAR,NOXLEVELS),   
      &   EMIST(IIPAR,JJPAR,NEMPARA),  EMISTN(IIPAR,JJPAR,NOXLEVELS)
 
 ! Rural Emissions:
@@ -66,14 +66,14 @@
      &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX,           &
      &       EMISTBENZ,EMISTTOLU,EMISTXYLE,EMISTC2H4,EMISTC2H2
       COMMON/EMIS4/                                                     &
-     &  EMISTNOX (IGLOB,JGLOB,4,2), EMISTETHE(IGLOB,JGLOB    ),         &
-     &  EMISTCO  (IGLOB,JGLOB    ), EMISTPRPE(IGLOB,JGLOB    ),         &
-     &  EMISTC3H8(IGLOB,JGLOB    ), EMISTALK4(IGLOB,JGLOB    ),         &
-     &  EMISTC2H6(IGLOB,JGLOB    ), EMISTSOX (IGLOB,JGLOB,4,2),         &
-     &  EMISTACET(IGLOB,JGLOB    ), EMISTMEK (IGLOB,JGLOB    ),         &
-     &  EMISTBENZ(IGLOB,JGLOB    ), EMISTTOLU(IGLOB,JGLOB    ),         &
-     &  EMISTXYLE(IGLOB,JGLOB    ), EMISTC2H4(IGLOB,JGLOB    ),         & 
-     &  EMISTC2H2(IGLOB,JGLOB    )
+     &  EMISTNOX (IIPAR,JJPAR,4,2), EMISTETHE(IIPAR,JJPAR    ),         &
+     &  EMISTCO  (IIPAR,JJPAR    ), EMISTPRPE(IIPAR,JJPAR    ),         &
+     &  EMISTC3H8(IIPAR,JJPAR    ), EMISTALK4(IIPAR,JJPAR    ),         &
+     &  EMISTC2H6(IIPAR,JJPAR    ), EMISTSOX (IIPAR,JJPAR,4,2),         &
+     &  EMISTACET(IIPAR,JJPAR    ), EMISTMEK (IIPAR,JJPAR    ),         &
+     &  EMISTBENZ(IIPAR,JJPAR    ), EMISTTOLU(IIPAR,JJPAR    ),         &
+     &  EMISTXYLE(IIPAR,JJPAR    ), EMISTC2H4(IIPAR,JJPAR    ),         & 
+     &  EMISTC2H2(IIPAR,JJPAR    )
 ! Time of day and weekday/weekend scale factors
 ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
       REAL*8         TODH,    TODN,    TODB,    SCNR89
@@ -86,7 +86,7 @@
 ! FTOTCO2 = yearly scale factors based on Total  Fuel CO2 emissions 
 ! FLIQCO2 = yearly scale factors based on Liquid Fuel CO2 emissions
       REAL*4          FTOTCO2,              FLIQCO2
-      COMMON /FSCAL2/ FTOTCO2(IGLOB,JGLOB), FLIQCO2(IGLOB,JGLOB)
+      COMMON /FSCAL2/ FTOTCO2(IIPAR,JJPAR), FLIQCO2(IIPAR,JJPAR)
 
 ! FRACO3, FRACNO          = fractions of O3, NO
 ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 

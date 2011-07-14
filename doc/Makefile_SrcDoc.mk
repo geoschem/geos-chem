@@ -89,6 +89,7 @@ $(CORE)/land_mercury_mod.f           \
 $(CORE)/lightning_nox_mod.f          \
 $(CORE)/linoz_mod.f                  \
 $(CORE)/logical_mod.f                \
+$(CORE)/main.f                       \
 $(CORE)/megan_mod.f                  \
 $(CORE)/meganut_mod.f                \
 $(CORE)/merra_a1_mod.f               \

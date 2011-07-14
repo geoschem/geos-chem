@@ -90,7 +90,7 @@
       REAL*8 SOILFERT(NLAND)    !ferterlizers
       REAL*8 PULSFACT(NPULSE)   !pulsing factors
       REAL*8 PULSDECAY(NPULSE)  !pulsing decay per timestep
-      REAL*8 SOILNOX(IGLOB,JGLOB) !stores output
+      REAL*8 SOILNOX(IIPAR,JJPAR) !stores output
 
       INTEGER NCONSOIL(NVEGTYPE) !olson->soil type,nvegtype in commbio.h
       REAL*8 CANOPYNOX(MAXIJ,NTYPE) !track NOx within canopy dry dep.

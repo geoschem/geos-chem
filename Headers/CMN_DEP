@@ -16,15 +16,15 @@
       !                          land type
       INTEGER IREG,ILAND,IUSE
       REAL*8  FRCLND
-      COMMON /DEPSV6/ IREG(IGLOB,JGLOB),                                &
-     &                ILAND(IGLOB,JGLOB,NTYPE),                         &
-     &                IUSE(IGLOB,JGLOB,NTYPE),                          &
+      COMMON /DEPSV6/ IREG(IIPAR,JJPAR),                                &
+     &                ILAND(IIPAR,JJPAR,NTYPE),                         &
+     &                IUSE(IIPAR,JJPAR,NTYPE),                          &
      &                FRCLND(IIPAR,JJPAR)
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
       REAL*8 XLAI
-      COMMON /DEPSV7/ XLAI(IGLOB,JGLOB,NTYPE)
+      COMMON /DEPSV7/ XLAI(IIPAR,JJPAR,NTYPE)
 
       ! XLAI2   - Leaf Area Index of land type for following MONTH
       REAL*8 XLAI2
-      COMMON /DEPSV5/ XLAI2(IGLOB,JGLOB,NTYPE)
+      COMMON /DEPSV5/ XLAI2(IIPAR,JJPAR,NTYPE)
