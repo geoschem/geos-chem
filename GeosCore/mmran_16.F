@@ -52,7 +52,7 @@
 !
       IMPLICIT NONE
 
-#     include "cmn_fj.h"      ! IPAR, JPAR, LPAR, CMN_SIZE
+#     include "cmn_fj.h"      ! IPAR, JPAR, LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"      ! ZPJ
 
       ! Local variables

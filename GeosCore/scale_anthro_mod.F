@@ -62,7 +62,7 @@
 !
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -121,7 +121,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2
 
-#     include "CMN_SIZE"                           ! Size parameters
+#     include "F77_CMN_SIZE"                           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -277,7 +277,7 @@
 !
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !

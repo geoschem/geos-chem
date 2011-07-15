@@ -28,12 +28,12 @@
 !
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
-!  (1 ) CMN_VOL is used to pass AIRVOL.
-!  (2 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
+!  (1 ) F77_CMN_VOL is used to pass AIRVOL.
+!  (2 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
 !        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
 !  (3 ) Now use F90 syntax for declarations (bmy, 10/5/99)
 !  (4 ) Now reference AIRVOL from "dao_mod.f" instead of from common
-!        block header file "CMN_VOL". (bmy, 6/26/00)
+!        block header file "F77_CMN_VOL". (bmy, 6/26/00)
 !  (5 ) Removed obsolete code from 6/26/00 (bmy, 8/31/00)
 !  (6 ) Updated comments (bmy, 8/5/02)
 !  02 Dec 2010 - R. Yantosca - Initial version

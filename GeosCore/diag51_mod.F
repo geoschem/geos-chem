@@ -290,7 +290,7 @@
       USE TIME_MOD, ONLY : GET_LOCALTIME
       USE TIME_MOD, ONLY : GET_TS_DYN
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -374,10 +374,10 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "cmn_fj.h"  ! includes CMN_SIZE
+#     include "cmn_fj.h"  ! includes F77_CMN_SIZE
 #     include "jv_cmn.h"  ! ODAER, QAA, QAA_AOD
-#     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "CMN_GCTM"  ! SCALE_HEIGHT
+#     include "F77_CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
+#     include "F77_CMN_GCTM"  ! SCALE_HEIGHT
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1226,7 +1226,7 @@
       INTEGER(HID_T)       :: IU_ND51_HDF
 #endif
 
-#     include "CMN_SIZE"   ! Size Parameters
+#     include "F77_CMN_SIZE"   ! Size Parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1848,7 +1848,7 @@
      &                  TAU0,         TAU1,         RESERVED,
      &                  ND51_NI,      ND51_NJ,      GMNL,
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
-     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
 #endif
          ELSE
             CALL BPCH2( IU_ND51,      MODELNAME,    LONRES,   
@@ -1857,7 +1857,7 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
-     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
+     &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
          ENDIF
       ENDDO
 
@@ -1917,7 +1917,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1974,7 +1974,7 @@
       USE TIME_MOD,   ONLY : GET_TAUb
       USE TRACER_MOD, ONLY : N_TRACERS
   
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

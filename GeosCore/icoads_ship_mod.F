@@ -211,8 +211,8 @@
       USE TIME_MOD,          ONLY : GET_YEAR,      GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_O3"            ! FSCALYR
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
@@ -360,7 +360,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version
@@ -415,7 +415,7 @@
 ! !USES:
 ! 
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 
 !
 ! !INPUT PARAMETERS:
@@ -488,7 +488,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LICOADSSHIP
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  21 Jul 2009 - Chulkyu Lee & P. Le Sager - Initial Version

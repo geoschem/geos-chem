@@ -118,8 +118,8 @@
 
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
 
-#     include "CMN_SIZE"               ! Size parameters
-#     include "CMN_O3"                 ! FSCLYR
+#     include "F77_CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_O3"                 ! FSCLYR
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
@@ -156,7 +156,7 @@
 !  (21) Now references EMISS_NEI2005_ANTHRO from "nei2005_anthro_mod.f"
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
-!  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  08 Feb 2010 - NBIOMAX is now in F77_CMN_SIZE
 !  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !EOP
 !------------------------------------------------------------------------------

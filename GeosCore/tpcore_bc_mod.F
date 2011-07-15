@@ -348,7 +348,7 @@
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
@@ -523,7 +523,7 @@
       USE TRACER_MOD, ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO2x25
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -648,7 +648,7 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "define.h"
 
       ! Local variables
@@ -763,7 +763,7 @@
       USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Local variables
       INTEGER           :: I,      IOS,     J,         L      
@@ -882,13 +882,13 @@
 !
 !  NOTES:
 !  (1 ) Rename arguments to avoid conflict w/ I1x1, J1x1 parameters in 
-!        CMN_SIZE. (bmy, 10/24/05)
+!        F77_CMN_SIZE. (bmy, 10/24/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "CMN"        ! NTRACE
 
       ! Arguments
@@ -1034,7 +1034,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "CMN"        ! NTRACE
 
       ! Arguments
@@ -1205,7 +1205,7 @@
       USE LOGICAL_MOD,   ONLY : LWINDO2x25
       USE TRACER_MOD,    ONLY : N_TRACERS
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "define.h"
 
       ! Arguments

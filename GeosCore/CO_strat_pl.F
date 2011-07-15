@@ -37,7 +37,7 @@
 
       IMPLICIT NONE
      
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)

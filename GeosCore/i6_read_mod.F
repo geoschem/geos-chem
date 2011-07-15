@@ -115,7 +115,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -248,7 +248,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_I6
@@ -269,7 +269,7 @@
       USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -586,7 +586,7 @@
 !  (3 ) Increase # of I-6 fields to 5 for GEOS-5 (bmy, 1/17/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD
@@ -650,7 +650,7 @@
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -722,8 +722,8 @@
       USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! NDxx flags
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! NDxx flags
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

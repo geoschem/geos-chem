@@ -65,8 +65,8 @@
 !
       USE DIAG_MOD, ONLY: AD21
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! ND21
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! ND21
 !
 ! !INPUT PARAMETERS: 
 !

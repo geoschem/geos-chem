@@ -102,7 +102,7 @@
       ! References to F90 modules
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
       
       ! Local variables
       INTEGER            :: I, J, L, L2
@@ -214,7 +214,7 @@
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
@@ -343,7 +343,7 @@
 !        (bmy, 3/28/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J, NTRACE
@@ -539,7 +539,7 @@
 !        conserve mixing ratio (swu, bmy, 6/27/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
       
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
@@ -729,7 +729,7 @@
 !  (13) SMALL   (REAL*8 )  : A small number
 ! 
 !  NOTES:
-!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "CMN_DIAG.  
+!  (1 ) Added references to "diag_mod.f", "grid_mod.f", and "F77_CMN_DIAG.  
 !        Also added TCVV and INDEXSOL as arguments.  Now only save LD38
 !        levels of the ND38 diagnostic.  Now place NTRACE before Q in the
 !        arg list. (swu, bmy, 1/21/04)
@@ -763,8 +763,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,           ONLY : SNOMAS, SNOW 
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! ND38, LD38, ND14, LD14
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_DIAG"          ! ND38, LD38, ND14, LD14
 
       ! Arguments
       INTEGER, INTENT(IN)        :: J

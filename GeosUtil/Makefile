@@ -77,7 +77,7 @@ include $(ROOTDIR)/Makefile_header.mk
 # List of source files
 SRC = $(wildcard *.F) $(wildcard *.F90)
 
-# Replace .F and .F90 extensions with *.o
+# Replace .f and .f90 extensions with *.o
 TMP = $(SRC:.F=.o)
 OBJ = $(TMP:.F90=.o)
 

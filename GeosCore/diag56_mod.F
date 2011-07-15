@@ -100,8 +100,8 @@
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_A3
       USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! TINDEX
 !
 ! !REMARKS:
 !   # : Field    : Description              : Units          : Scale factor
@@ -196,7 +196,7 @@
 !
       USE ERROR_MOD,    ONLY : ALLOC_ERR
    
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2006 - R. Yantosca - Initial version

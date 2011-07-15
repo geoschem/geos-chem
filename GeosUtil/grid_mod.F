@@ -112,8 +112,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"  ! Physical constants
 !
 ! !REVISION HISTORY:
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -826,7 +826,7 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -958,7 +958,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !REVISION HISTORY:
 !  11 Mar 2003 - R. Yantosca - Initial version

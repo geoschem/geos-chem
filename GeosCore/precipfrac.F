@@ -16,7 +16,7 @@
 !  (1) RATE (REAL*8) : Rate of precipitation for grid box (I,J) [mm/day  ]
 !  (2) FRAC (REAL*8) : Fraction of grid box undergoing precip   [unitless]
 !
-!  Inputs passed via "CMN_PRECIP"
+!  Inputs passed via "F77_CMN_PRECIP"
 !  ===========================================================================
 !  (3 ) PREACC (REAL*8) : DAO total      precipitation at ground [mm/day]
 !  (4 ) PRECON (REAL*8) : DAO convective precipitation at ground [mm/day]
@@ -33,7 +33,7 @@
 !        as used in the GEOS-CTM prior to 10/18/99.
 !  (3 ) Be sure to force double precision with the "D" exponent.
 !  (4 ) Now reference PREACC, PRECON from "dao_mod.f" instead of from
-!        common block header file "CMN_PRECIP".  (bmy, 6/26/00)
+!        common block header file "F77_CMN_PRECIP".  (bmy, 6/26/00)
 !  (5 ) Removed obsolete code from 6/26/00 (bmy, 8/31/00)
 !  (6 ) Replaced JMX with JJPAR.  Updated comments, cosmetic changes.
 !        (bmy, 6/25/02)
@@ -46,7 +46,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"   ! JJPAR
+#     include "F77_CMN_SIZE"   ! JJPAR
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J

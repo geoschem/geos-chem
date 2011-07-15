@@ -112,7 +112,7 @@
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -206,9 +206,9 @@
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"         ! Size parameters        
-#     include "CMN_GCTM"         ! Physical constants
-#     include "CMN_DIAG"         ! NDxx flags
+#     include "F77_CMN_SIZE"         ! Size parameters        
+#     include "F77_CMN_GCTM"         ! Physical constants
+#     include "F77_CMN_DIAG"         ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -454,9 +454,9 @@
       USE TPCORE_MOD,       ONLY : TPCORE
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_GCTM"         ! Physical constants
-#     include "CMN_DIAG"         ! NDxx flags
+#     include "F77_CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_GCTM"         ! Physical constants
+#     include "F77_CMN_DIAG"         ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -596,9 +596,9 @@
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_GCTM"         ! Physical constants
-#     include "CMN_DIAG"         ! NDxx flags
+#     include "F77_CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_GCTM"         ! Physical constants
+#     include "F77_CMN_DIAG"         ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -856,9 +856,9 @@
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
       USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
 
-#     include "CMN_SIZE"                  ! Size parameters
-#     include "CMN_GCTM"                  ! Physical constants
-#     include "CMN_DIAG"                  ! NDxx flags
+#     include "F77_CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_GCTM"                  ! Physical constants
+#     include "F77_CMN_DIAG"                  ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -1054,8 +1054,8 @@
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
       USE TRACER_MOD,        ONLY : STT, N_TRACERS
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_GCTM"          ! Re
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_GCTM"          ! Re
 ! 
 ! !REVISION HISTORY: 
 !  07 Aug 2003 - Y. Wang & R. Yantosca - Initial version
@@ -1152,8 +1152,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"               ! Size parameters
-#     include "CMN_GCTM"               ! g0_100
+#     include "F77_CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_GCTM"               ! g0_100
 !
 ! !INPUT PARAMETERS:
 !
@@ -1246,14 +1246,14 @@
       USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
       USE TRACER_MOD,       ONLY : N_TRACERS
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_GCTM"         ! Re
+#     include "F77_CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_GCTM"         ! Re
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references GET_TS_DYN from "time_mod.f", INIT_TPCORE_FVDAS from
 !        "tpcore_fvdas_mod.f90", and GET_YMID_R from "grid_mod.f".  Now also
-!        include "CMN_SETUP".  (bdf, bmy, 4/28/03)
+!        include "F77_CMN_SETUP".  (bdf, bmy, 4/28/03)
 !  (2 ) Remove reference to DSIG, it's obsolete. (bmy, 6/24/03)
 !  (3 ) Now references LEMBED & LTPFV from "logical_mod.f".  Now references
 !        N_TRACERS from "tracer_mod.f". (bmy, 7/20/04)
@@ -1377,8 +1377,8 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
       USE TRACER_MOD,              ONLY : N_TRACERS
 
-#     include "CMN_SIZE"                ! Size parameters
-#     include "CMN_GCTM"                ! Re
+#     include "F77_CMN_SIZE"                ! Size parameters
+#     include "F77_CMN_GCTM"                ! Re
 ! 
 ! !REVISION HISTORY: 
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version

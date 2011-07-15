@@ -23,7 +23,7 @@
       IMPLICIT NONE
       PRIVATE
 
-#     include "CMN_SIZE"              
+#     include "F77_CMN_SIZE"              
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !

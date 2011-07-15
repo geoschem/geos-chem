@@ -72,7 +72,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"                      ! Size parameters
+#     include "F77_CMN_SIZE"                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -259,7 +259,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  13 Jul 2004 - R. Yantosca - Initial version

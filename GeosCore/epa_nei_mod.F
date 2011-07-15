@@ -170,7 +170,7 @@
 !      USE LOGICAL_MOD,          ONLY : LFUTURE, LICARTT
 !      USE TIME_MOD,             ONLY : EXPAND_DATE,     GET_MONTH
 !
-!#     include "CMN_SIZE"             ! Size parameters
+!#     include "F77_CMN_SIZE"             ! Size parameters
 !
 !      ! Local variables
 !      LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -632,7 +632,7 @@
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !REMARKS:
 !  Split off from EMISS_EPA_NEI.
@@ -866,7 +866,7 @@
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
 !
 ! !REMARKS:
@@ -1076,8 +1076,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
    
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! FSCLYR
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_O3"               ! FSCLYR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1251,8 +1251,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR, GET_MONTH
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! FSCLYR
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_O3"               ! FSCLYR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1406,7 +1406,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 !
 ! !REMARKS:
 !  From README file:
@@ -1503,7 +1503,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !REMARKS:
 !  From README file:
@@ -1598,7 +1598,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"                 ! Size parameters
+#     include "F77_CMN_SIZE"                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1805,7 +1805,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2042,7 +2042,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2194,7 +2194,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2337,7 +2337,7 @@
       USE LOGICAL_MOD, ONLY : LNEI99
       USE LOGICAL_MOD, ONLY : LNEI05
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !REMARKS:
 !  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or

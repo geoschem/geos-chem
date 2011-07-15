@@ -178,7 +178,7 @@
 !  (22) Now reference ITS_A_H2HD_SIM from "tracer_mod.f" for ND29.
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
-!        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
+!        accounting for FSCLYR from F77_CMN_O3 (phs,3/17/08)
 !  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
 !   7 Feb 2011 - R. Yantosca - If we are using the EPA/NEI05 anthropogenic
 !                              emissions, get biofuels from EPA/NEI99 over USA
@@ -213,9 +213,9 @@
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! ND29, ND32, ND34
-#     include "CMN_O3"               ! FSCLYR
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_DIAG"             ! ND29, ND32, ND34
+#     include "F77_CMN_O3"               ! FSCLYR
       
       ! Local variables
       LOGICAL                       :: WEEKDAY
@@ -1016,7 +1016,7 @@
       ! References to F90 modules
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -1064,7 +1064,7 @@
 !  (3 ) Deleted obsolete code from 9/01 (bmy, 11/15/01)
 !******************************************************************************
 !
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -1101,7 +1101,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbf
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbf
 
-#     include "CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(INOUT) :: BF(IIPAR,JJPAR)
@@ -1263,7 +1263,7 @@
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE LOGICAL_MOD,  ONLY : LBIOFUEL
 
-#     include "CMN_SIZE"  ! Size parameters, etc
+#     include "F77_CMN_SIZE"  ! Size parameters, etc
 
       ! Local variables
       INTEGER :: AS

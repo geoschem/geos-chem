@@ -92,7 +92,6 @@
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
 #  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
-#  14 Jul 2011 - M. Long     - Modified for .F90 & .F tags (vs. .f * .f90)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -112,15 +111,26 @@ MOD     := $(ROOTDIR)/mod
 TOM     := $(ROOTDIR)/GeosTomas
 GTMM    := $(ROOTDIR)/GTMM
 UTIL    := $(ROOTDIR)/GeosUtil
+LESMF   := $(ROOTDIR)/ESMF
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
 include $(ROOTDIR)/Makefile_header.mk
 
+ifeq ($(ESMF),yes)
+	# Hack to force the ESMA headers work correctly with mpif90 as FC
+	override FC = $(COMPILER)
+	# End-of-hack
+  include $(ESMADIR)/Config/ESMA_base.mk  # Generic stuff
+  include $(ESMADIR)/Config/ESMA_arch.mk  # System dependencies
+  include $(ESMADIR)/Config/GMAO_base.mk  # GMAO stuff
+	override FC = $(ESMA_FC) # Unset hack
+endif
+
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.F, *.F90) and compile it. 
+# will find the corresponding source code file (*.f, *.f90) and compile it. 
 #=============================================================================
 
 # List of source files
@@ -129,7 +139,7 @@ SRC := $(wildcard *.F) $(wildcard *.F90)
 # Skip certain files (uncomment if necessary)
 #SRC := $(filter-out , $(SRC))
 
-# Replace .F and .F90 extensions with *.o
+# Replace .f and .f90 extensions with *.o
 TMP := $(SRC:.F=.o)
 OBJ := $(TMP:.F90=.o)
 
@@ -142,8 +152,13 @@ OBJ := $(TMP:.F90=.o)
 all:
 	@$(MAKE) lib
 	@$(MAKE) exe
-
-lib: libkpp libutil libiso libcore
+ifeq ($(ESMF),yes)
+lib: libkpp libutil libiso libcore libesmf
+else ifeq ($(ESMF_TESBED),yes)
+lib: libkpp libutil libiso libcore libesmf_testbed
+else
+lib: libkpp libutil libiso libcore 
+endif
 
 libcore: $(OBJ)
 
@@ -156,7 +171,15 @@ libkpp:
 libutil:
 	@$(MAKE) -C $(UTIL)
 
+libesmf:
+	@$(MAKE) -C $(LESMF) ESMF=yes esmf
+
+libesmf_testbed:
+	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf
+
 exe:
+	@echo 'LIBSYS----' $(FC) $(ESMA_FC) $(TMP_FC)
+	@echo 'INC_MPI---' $(INC_MPI)
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
@@ -170,6 +193,7 @@ realclean:
 	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
+	@$(MAKE) -C $(LESMF) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod

@@ -30,7 +30,7 @@ C SOILTB    = Coefficient used to convert from surface temperture to  *
 C             soil temperature                                        *
 C**********************************************************************
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "commsoil.h"
 
       INTEGER I,J,M,NN

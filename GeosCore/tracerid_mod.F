@@ -113,18 +113,18 @@
 !  (103) IDTDST4   (INTEGER) : DST4  index w/in STT array ("tracer_mod.f")
 !  (104) IDTSALA   (INTEGER) : SALA  index w/in STT array ("tracer_mod.f")
 !  (105) IDTSALC   (INTEGER) : SALC  index w/in STT array ("tracer_mod.f")
-!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("CMN_O3")  
-!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("CMN_O3")  
-!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("CMN_O3")     
-!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("CMN_O3")     
-!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("CMN_O3")     
-!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("CMN_O3")     
-!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("CMN_O3")    
-!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("CMN_O3")    
-!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("CMN_O3")     
-!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("CMN_O3")     
-!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("CMN_O3")    
-!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("CMN_O3")     
+!  (109) IDENOX    (INTEGER) : NOx   index w/in EMISRRN array ("F77_CMN_O3")  
+!  (110) IDEOX     (INTEGER) : Ox    index w/in EMISRR  array ("F77_CMN_O3")  
+!  (111) IDECO     (INTEGER) : CO    index w/in EMISRR  array ("F77_CMN_O3")     
+!  (112) IDEPRPE   (INTEGER) : PRPE  index w/in EMISRR  array ("F77_CMN_O3")     
+!  (113) IDEC3H8   (INTEGER) : C3H8  index w/in EMISRR  array ("F77_CMN_O3")     
+!  (114) IDEALK4   (INTEGER) : ALK4  index w/in EMISRR  array ("F77_CMN_O3")     
+!  (115) IDEC2H6   (INTEGER) : C2H6  index w/in EMISRR  array ("F77_CMN_O3")    
+!  (116) IDEISOP   (INTEGER) : ISOP  index w/in EMISRR  array ("F77_CMN_O3")    
+!  (117) IDEACET   (INTEGER) : ACET  index w/in EMISRR  array ("F77_CMN_O3")     
+!  (118) IDEMEK    (INTEGER) : MEK   index w/in EMISRR  array ("F77_CMN_O3")     
+!  (119) IDEALD2   (INTEGER) : ALD2  index w/in EMISRR  array ("F77_CMN_O3")    
+!  (120) IDECH2O   (INTEGER) : CH2O  index w/in EMISRR  array ("F77_CMN_O3")     
 !  (121) NEMBIOG   (INTEGER) : # of biogenic emission species for SMVGEAR
 !  (122) NEMANTHRO (INTEGER) : # of anthro   emission species for SMVGEAR
 !  (132) IDBFPRPE  (INTEGER) : PRPE index w/in BURNEMIS array (biofuel_mod.f)
@@ -355,7 +355,7 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 #     include "comode.h"    ! IDEMS
 
       ! Local variables
@@ -375,12 +375,12 @@
 
       ! Array dimension check (hotp 8/1/09)
       ! NNNTRID is used in this module to dimension some arrays
-      ! NNNTRID should be the same as NNPAR in CMN_SIZE
+      ! NNNTRID should be the same as NNPAR in F77_CMN_SIZE
       IF ( NNNTRID .NE. NNPAR ) THEN
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
-     &                                     'tracerid_mod,CMN_SIZE' )
+     &                                     'tracerid_mod,F77_CMN_SIZE' )
          ! If you get this error, an appropriate fix is to increase 
-         ! either NNNTRID (in tracerid_mod) or NNPAR (in CMN_SIZE) so
+         ! either NNNTRID (in tracerid_mod) or NNPAR (in F77_CMN_SIZE) so
          ! they are the same and greater than or equal to the number 
          ! of tracers in your simulation (hotp 8/1/09)
       ENDIF
@@ -1318,7 +1318,7 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "comode.h"   ! NAMEGAS
 
       ! Local variabales

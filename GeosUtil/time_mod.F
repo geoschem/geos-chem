@@ -3361,8 +3361,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! NJDAY
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! NJDAY
 !
 ! !RETURN VALUE:
 !

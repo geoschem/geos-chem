@@ -2884,9 +2884,9 @@ C
 
       IMPLICIT NONE 
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches
-#     include "CMN_GCTM"  ! g0_100
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic switches
+#     include "F77_CMN_GCTM"  ! g0_100
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NDT, J1
@@ -3131,7 +3131,7 @@ C
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J1 
@@ -4084,9 +4084,9 @@ C
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! Diagnostic switches
-#     include "CMN_GCTM"      ! g0_100
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! Diagnostic switches
+#     include "F77_CMN_GCTM"      ! g0_100
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT

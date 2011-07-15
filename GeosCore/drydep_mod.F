@@ -203,9 +203,9 @@
 ! Increase MAXDEP to 51 for dicarbonyls. (ccc, 10/8/10)
 !      INTEGER, PARAMETER   :: MAXDEP    = 50
       INTEGER, PARAMETER   :: MAXDEP    = 51
-      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
-      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
-      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
+      INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "F77_CMN_SIZE"
+      INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "F77_CMN_SIZE"
+      INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "F77_CMN_SIZE"
       REAL*8,  PARAMETER   :: XCKMAN    = 0.4d0
  
       ! Scalars
@@ -294,7 +294,7 @@
 !        each call. (rjp, bmy, 7/21/03)
 !  (3 ) Now declare CFRAC, RADIAT, AZO, USTAR as local variables, which are 
 !        returned by METERO.  CFRAC and RADIAT have also been deleted from 
-!        "CMN_DEP". (bmy, 12/9/03)
+!        "F77_CMN_DEP". (bmy, 12/9/03)
 !  (4 ) Now use explicit formula for IJLOOP to allow parallelization.
 !        Also reference LPRT from "logical_mod.f" (bmy, 7/20/04)
 !  (5 ) Now use routines from "pbl_mix_mod.f" to get PBL quantities, instead
@@ -314,10 +314,10 @@
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! ND44
-#     include "CMN_DEP"  ! IREG, ILAND, IUSE, etc.
-#     include "CMN_GCTM" ! Physical constants
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_DIAG" ! ND44
+#     include "F77_CMN_DEP"  ! IREG, ILAND, IUSE, etc.
+#     include "F77_CMN_GCTM" ! Physical constants
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -440,7 +440,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-#     include "CMN_SIZE"   ! Size parameters!
+#     include "F77_CMN_SIZE"   ! Size parameters!
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -546,8 +546,8 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Physical constants
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! Physical constants
 
       ! Arguments
       LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
@@ -659,7 +659,7 @@
 !  (4 ) Updated comments, cosmetic changes (bmy, 3/14/02)
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
-!  (6 ) Removed reference to "comtrid.h", "CMN_SAV", "CMN_DEP", and "CMN_O3",
+!  (6 ) Removed reference to "comtrid.h", "F77_CMN_SAV", "F77_CMN_DEP", and "F77_CMN_O3",
 !        these are not used in this routine.  Also bundled into "drydep_mod.f"
 !        for more convenient packaging. (bmy, 11/19/02)
 !  (7 ) Replaced DXYP(JREF)*1d4 with routine GET_AREA_CM2 of "grid"mod.f".
@@ -683,8 +683,8 @@
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "comode.h"   ! CSPEC
 
       ! Local variables
@@ -788,7 +788,7 @@
 !  (hyl, bmy, bdf, 4/2/99, 5/25/05)
 !
 !  NOTES:
-!  (1 ) Now eliminate DEPFLUX from CMN_SAV, in order to save memory.
+!  (1 ) Now eliminate DEPFLUX from F77_CMN_SAV, in order to save memory.
 !        DEPFLUX is now a local variable (bdf, 4/2/99)
 !  (2 ) Now make DEPFLUX of dimension (IIPAR,JJPAR,MAXDEP) (bmy, 4/2/99)
 !  (3 ) Now use an allocatable array for the ND44 diagnostic.
@@ -821,9 +821,9 @@
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
-#     include "CMN_DEP"   ! Dry deposition variables
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND44
+#     include "F77_CMN_DEP"   ! Dry deposition variables
 
       ! Local variables
       INTEGER             :: I, J, L, PBL_MAX, N, NN
@@ -945,10 +945,10 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
       
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_VEL"   ! IJLAND
-#     include "CMN_DEP"   ! Dry deposition variables
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
+#     include "F77_CMN_VEL"   ! IJLAND
+#     include "F77_CMN_DEP"   ! Dry deposition variables
 #     include "commsoil.h" ! Soil pulsing & wetness variables
 
       ! Local variables
@@ -1259,7 +1259,7 @@ C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C
 C***********************************************************************       
 C
-C Need as landtype input for each grid square (I,J) see (RDLAND & CMN_VEL):
+C Need as landtype input for each grid square (I,J) see (RDLAND & F77_CMN_VEL):
 C     IJREG(JLOOP)       - # of landtypes in grid square
 C     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
 C                          (could be from any source - mapped to deposition 
@@ -1267,7 +1267,7 @@ C                          surface ID in input unit 65)
 C     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
 C                          land type element LDT
 C
-C Need as leaf area index see (RDLAI & CMN_VEL):
+C Need as leaf area index see (RDLAI & F77_CMN_VEL):
 C     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
 C
 C Need as meteorological input for each grid square(I,J) (passed):
@@ -1317,8 +1317,8 @@ C Returned:
 C     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
 C***********************************************************************       
 
-#     include "CMN_SIZE"
-#     include "CMN_VEL"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_VEL"
 #     include "commsoil.h"
 
       INTEGER NPTS
@@ -2127,7 +2127,7 @@ C** Load array DVEL
       
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -2237,7 +2237,7 @@ C** Load array DVEL
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER            :: I, IOS
@@ -3366,7 +3366,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL :: IS_Hg

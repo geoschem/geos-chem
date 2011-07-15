@@ -74,7 +74,7 @@
       USE DIRECTORY_MOD, ONLY : OH_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
-#     include "CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_SIZE"                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -163,7 +163,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 ! 
 ! !REVISION HISTORY: 
 !  28 Jul 2000 - R. Yantosca - Initial version

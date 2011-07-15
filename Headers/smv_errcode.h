@@ -31,8 +31,8 @@
       !INTEGER, PARAMETER :: SMV_FAIL_EM_FINAL    = -1005
       !
       !! Return codes for emissions
-      !INTEGER, PARAMETER :: SMV_FAIL_GINOUX      = -1502 
-      !INTEGER, PARAMETER :: SMV_FAIL_EMDUSTBOX   = -1503
+      INTEGER, PARAMETER :: SMV_FAIL_GINOUX      = -1502 
+      INTEGER, PARAMETER :: SMV_FAIL_EMDUSTBOX   = -1503
       !INTEGER, PARAMETER :: SMV_FAIL_CANOPYNOX   = -1900
       !INTEGER, PARAMETER :: SMV_FAIL_SOILNOX     = -1902
       !----------------------------------------------------------------------

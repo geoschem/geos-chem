@@ -357,7 +357,7 @@
       USE FILE_MOD,             ONLY : FILE_EXISTS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       INTEGER,          INTENT(IN)  :: TRACER
       CHARACTER(LEN=*), INTENT(IN)  :: SPECIES
@@ -1278,7 +1278,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER            :: AS

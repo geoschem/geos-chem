@@ -40,7 +40,7 @@ C NLAND     = Total number of land boxes                              *
 C SOILPULS  = Tracking of wet/dry & three types of pulsing (Y&L, 94)  *
 C**********************************************************************
 C
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "commsoil.h"
 
       ! Now make JDAY, MONTH local variables

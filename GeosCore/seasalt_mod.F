@@ -144,7 +144,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-#     include "CMN_SIZE"     ! Size parameters 
+#     include "F77_CMN_SIZE"     ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -246,9 +246,9 @@
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_GCTM"      ! g0
+#     include "F77_CMN_DIAG"      ! ND44
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -462,9 +462,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -555,7 +555,7 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -675,9 +675,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND44, ND08
-#     include "CMN_GCTM"      ! PI
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND44, ND08
+#     include "F77_CMN_GCTM"      ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -1075,13 +1075,13 @@
 !
 !  NOTES:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
-!        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
+!        ALK_EMIS & N_DENS.  Now reference F77_CMN_SIZE. (bec, bmy, 4/13/05)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

@@ -65,7 +65,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  17 Feb 2005 - R. Yantosca - Initial version
@@ -132,8 +132,8 @@
       USE TIME_MOD,  ONLY : GET_DIAGb
       USE TIME_MOD,  ONLY : GET_DIAGe
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TINDEX
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! TINDEX
 !
 ! !REMARKS:
 !  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
@@ -240,7 +240,7 @@
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_m
       USE TIME_MOD,    ONLY : GET_LOCALTIME
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  18 Nov 1999 - A. Fiore, S. Wu - Initial version
@@ -349,7 +349,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  17 Feb 2005 - R. Yantosca - Initial version

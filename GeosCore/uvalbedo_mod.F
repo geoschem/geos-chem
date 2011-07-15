@@ -100,7 +100,7 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: MONTH

@@ -13,7 +13,7 @@
 !  NOTES:
 !  (1 ) Now use F90 syntax.  Use IOERROR to trap I/O errors.  Now read the
 !        "isopemis.table" file directly from DATA_DIR.  Updated comments
-!        and made cosmetic changes.  CMN_ISOP is not needed. (bmy, 7/6/01)
+!        and made cosmetic changes.  F77_CMN_ISOP is not needed. (bmy, 7/6/01)
 !  (2 ) Deleted obsolete code from ages past (bmy, 9/4/01)
 !  (3 ) Now read the "isopemis.table" file from the DATA_DIR/biogenic_200203/
 !        directory (bmy, 3/29/02)
@@ -29,7 +29,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT) :: CONVERT(NVEGTYPE)

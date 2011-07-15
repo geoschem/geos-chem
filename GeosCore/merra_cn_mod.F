@@ -18,9 +18,9 @@
       IMPLICIT NONE
       PRIVATE
 
-#     include "CMN_SIZE"              ! Size parameters
-#     include "CMN_DIAG"              ! NDxx flags
-#     include "CMN_GCTM"              ! g0
+#     include "F77_CMN_SIZE"              ! Size parameters
+#     include "F77_CMN_DIAG"              ! NDxx flags
+#     include "F77_CMN_GCTM"              ! g0
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 

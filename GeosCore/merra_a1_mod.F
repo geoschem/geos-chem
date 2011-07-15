@@ -274,7 +274,7 @@
       USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
       USE DAO_MOD, ONLY : V10M,     Z0 
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -395,8 +395,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "CMN_SIZE"                             ! Size parameters
-#     include "CMN_DIAG"                             ! ND67 flag
+#     include "F77_CMN_SIZE"                             ! Size parameters
+#     include "F77_CMN_DIAG"                             ! ND67 flag
 !
 ! !INPUT PARAMETERS: 
 !

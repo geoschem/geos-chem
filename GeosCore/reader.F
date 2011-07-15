@@ -37,9 +37,9 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! SMVGEAR II arrays
-#     include "CMN_GCTM"  ! Re, PI
+#     include "F77_CMN_GCTM"  ! Re, PI
 C
 C *********************************************************************
 C *  THIS SUBROUTINE OPENS ALL DATA FILES AND READS DATA FROM m.dat ***

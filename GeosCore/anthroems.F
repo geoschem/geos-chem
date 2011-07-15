@@ -51,8 +51,8 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"               ! Size parameters
-#     include "CMN_O3"                 ! EMIST, EMISR, EMISRR, etc.
+#     include "F77_CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_O3"                 ! EMIST, EMISR, EMISRR, etc.
 #     include "comode.h"               ! IDEMS
 !
 ! !INPUT PARAMETERS: 
@@ -66,7 +66,7 @@
 !    NSEASON=3 --> summer (Jun, Jul, Aug)
 !    NSEASON=4 --> autumn (Sep, Oct, Nov)
 !                                                                             .
-!  Passed Via CMN_O3:
+!  Passed Via F77_CMN_O3:
 !  ===========================================================================
 !  Fossil Fuel arrays: EMISTNOX,  EMISTCO,   EMISTETHE, EMISTPRPE,
 !                      EMISTC2H6, EMISTC3H8, EMISTALK4, EMISTACET,

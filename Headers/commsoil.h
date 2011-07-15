@@ -97,7 +97,7 @@
       REAL*8 SOILTA(NSOIL),SOILTB(NSOIL),SOILAW(NSOIL),SOILAD(NSOIL)
       REAL*8 SOILEXC(NSOIL)     !canopy wind extinction coeff.
 
-      COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            &
+      COMMON /SOIL/ SOILNOX,  INDEXSOIL, NCONSOIL, SOILPULS,            
      &              SOILPREP, SOILFERT,  CANOPYNOX
 
       ! The correct sequence of PULSFACT is 5, 10, 15 
@@ -108,28 +108,28 @@
 
       ! SOILTA = Coefficient used to convert from surface temperture to  
       !          soil temperature     
-      DATA SOILTA /0.D0,   0.84D0, 0.84D0, 0.84D0, 0.84D0,              &
-     &             0.66D0, 0.66D0, 1.03D0, 1.03D0, 0.92D0,              &
+      DATA SOILTA /0.D0,   0.84D0, 0.84D0, 0.84D0, 0.84D0,              
+     &             0.66D0, 0.66D0, 1.03D0, 1.03D0, 0.92D0,              
      &             0.66D0/
 
       ! SOILTB = Coefficient used to convert from surface temperture to  
       !          soil temperature   
-      DATA SOILTB /0.D0,   3.6D0,  3.6D0,  3.6D0,  3.6D0,               &
-     &             8.8D0,  8.8D0,  2.9D0,  2.9D0,  4.4D0,               &
+      DATA SOILTB /0.D0,   3.6D0,  3.6D0,  3.6D0,  3.6D0,               
+     &             8.8D0,  8.8D0,  2.9D0,  2.9D0,  4.4D0,               
      &             8.8D0/
    
       ! SOILAW = Wet biome coefficient   
-      DATA SOILAW /0.D0,   2.6D0,  0.03D0, 0.06D0, 0.03D0,              &
-     &             0.17D0, 0.36D0, 0.36D0, 0.36D0, 0.003D0,             &
+      DATA SOILAW /0.D0,   2.6D0,  0.03D0, 0.06D0, 0.03D0,              
+     &             0.17D0, 0.36D0, 0.36D0, 0.36D0, 0.003D0,             
      &             0.05D0/
 
       ! SOILAD = Dry biome coefficient  
-      DATA SOILAD /0.D0,   8.6D0,  0.22D0, 0.40D0, 0.22D0,              &
-     &             1.44D0, 2.65D0, 2.65D0, 2.65D0, 0.003D0,             &
+      DATA SOILAD /0.D0,   8.6D0,  0.22D0, 0.40D0, 0.22D0,              
+     &             1.44D0, 2.65D0, 2.65D0, 2.65D0, 0.003D0,             
      &             0.37D0/
 
       ! SOILEXC = Canopy wind extinction coeff.  
-      DATA SOILEXC /0.1D0, 4.D0,   4.D0,   4.D0,   4.D0,                &
-     &              2.D0,  1.D0,   2.D0,   2.D0,   0.5D0,               &
+      DATA SOILEXC /0.1D0, 4.D0,   4.D0,   4.D0,   4.D0,                
+     &              2.D0,  1.D0,   2.D0,   2.D0,   0.5D0,               
      &              0.1D0/
 

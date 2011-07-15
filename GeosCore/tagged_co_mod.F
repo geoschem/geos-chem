@@ -203,7 +203,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments
       INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
@@ -285,7 +285,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments
       INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
@@ -441,9 +441,9 @@
       
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
-#     include "CMN_DIAG"     ! Diagnostic arrays & switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
+#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -451,7 +451,7 @@
       INTEGER                :: AS, IREF, JREF, IJLOOP, PBL_MAX
       INTEGER, SAVE          :: LASTMONTH = -999
 
-      ! For now these are defined in CMN_O3
+      ! For now these are defined in F77_CMN_O3
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 
@@ -849,8 +849,8 @@
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND65
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND65
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -1506,7 +1506,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1632,7 +1632,7 @@
 !  (6 ) Removed reference to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 !
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: IS_PROD
@@ -1689,7 +1689,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments 
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1777,7 +1777,7 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_H2HD_SIM
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER :: AS, I, J, IJLOOP

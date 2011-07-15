@@ -116,7 +116,7 @@
 !  (9 ) Now reference STT, N_TRACERS, TCVV from "tracer_mod.f".  Also now
 !        remove hardwired output restart filename.   Now references LPRT
 !        from "logical_mod.f". (bmy, 7/20/04)
-!  (10) Remove references to CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
+!  (10) Remove references to F77_CMN_DIAG and TRCOFFSET.  Now call GET_HALFPOLAR 
 !        from "bpch2_mod.f" to get the HALFPOLAR flag value for GEOS or GCAP 
 !        grids. (bmy, 6/28/05)
 !  (11) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
@@ -134,7 +134,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
@@ -249,7 +249,7 @@
 !  NOTES:
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
-!  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
+!  (2 ) Now pass LFORCE, LSPLIT via F77_CMN_SETUP. (bmy, 11/4/99)
 !  (3 ) Cosmetic changes, added comments (bmy, 3/17/00)
 !  (4 ) Now use function NYMD_STRING from "time_mod.f" to generate a
 !        Y2K compliant string for all data sets. (bmy, 6/22/00)
@@ -273,7 +273,7 @@
 !  (18) No longer use hardwired filename.  Also now reference "logical_mod.f"
 !        and "tracer_mod.f" (bmy, 7/20/04)
 !  (19) Remove code for obsolete CO-OH simulation.  Also remove references
-!        to CMN_DIAG and TRCOFFSET.   Change tracer name format string to A10.
+!        to F77_CMN_DIAG and TRCOFFSET.   Change tracer name format string to A10.
 !        (bmy, 6/24/05)
 !  (20) Updated comments (bmy, 12/16/05)
 !******************************************************************************
@@ -288,7 +288,7 @@
       USE TRACER_MOD,  ONLY : N_TRACERS,   STT
       USE TRACER_MOD,  ONLY : TRACER_NAME, TRACER_MW_G
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -454,7 +454,7 @@
       USE CHARPAK_MOD, ONLY : TRANUC
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"              ! Size parameters
+#     include "F77_CMN_SIZE"              ! Size parameters
 
       ! Arguments
       INTEGER,          INTENT(IN)    :: NTRACER
@@ -525,7 +525,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NI, NJ, NL
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
@@ -587,7 +587,7 @@
       USE DAO_MOD,    ONLY : AD
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
       
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACER
@@ -648,7 +648,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: NTRACE, NCOUNT(NNPAR)
@@ -756,7 +756,7 @@
       USE COMODE_MOD,  ONLY : CSPEC_FULL
       USE COMODE_MOD,  ONLY : IXSAVE, IYSAVE, IZSAVE
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "CMN"        ! TAU , NSRCX, LSOILNOX
 #     include "comode.h"   ! IGAS
 
@@ -922,7 +922,7 @@
       USE COMODE_MOD,  ONLY : CSPEC_FULL, JLOP
 
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "CMN"	   ! LPRT, NSRCX, LSOILNOX
 #     include "comode.h"   ! ITLOOP, IGAS
 

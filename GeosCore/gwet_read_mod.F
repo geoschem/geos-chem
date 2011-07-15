@@ -74,7 +74,7 @@
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
 !  (2 ) Now reference "directory_mod.f" and "unix_cmds_mod.f".  Also remove 
-!        reference to CMN_SETUP. (bmy, 7/20/04)
+!        reference to F77_CMN_SETUP. (bmy, 7/20/04)
 !  (3 ) Now reference "directory_mod.f" and "unix_cmds_mod.f". Now prevent 
 !        EXPAND_DATE from overwriting directory paths with Y/M/D tokens in 
 !        them (bmy, 7/20/04)
@@ -89,7 +89,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -254,7 +254,7 @@
 !
 !  NOTES:
 !  (1 ) Adapted from "a3_read_mod.f" (tdf, bmy, 3/30/04)
-!  (2 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!  (2 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (3 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit 
@@ -270,7 +270,7 @@
       USE FILE_MOD,      ONLY : IU_GWET,    IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -356,7 +356,7 @@
       ! References to F90 modules
       USE DAO_MOD, ONLY : GWETTOP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -409,7 +409,7 @@
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -457,8 +457,8 @@
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D, TRANSFER_TO_1D
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! ND67
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_DIAG"             ! ND67
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

@@ -89,7 +89,7 @@
     
       IMPLICIT NONE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
    
       ! Arguments
       INTEGER, INTENT(IN)    :: MM
@@ -198,7 +198,7 @@
      
       IMPLICIT NONE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
    
       ! Arguments
       INTEGER, INTENT(IN)    :: MM , YYYY
@@ -472,7 +472,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: MM
@@ -582,7 +582,7 @@
       USE TIME_MOD,   ONLY : ITS_A_LEAPYEAR
       USE LOGICAL_MOD, ONLY : LMODISLAI ! Include sensor (mpb,2009)
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
    
       ! Arguments
       INTEGER, INTENT(IN) :: JDAY, MONTH, YEAR ! Include year (mpb,2009)
@@ -667,7 +667,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY    : ALLOC_ERR
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Local Variables
       INTEGER               :: AS

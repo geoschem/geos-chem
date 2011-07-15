@@ -66,7 +66,7 @@
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE TRACERID_MOD, ONLY : IDOH
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "comode.h"     ! NPVERT, NLAT, NLONG
 ! 
 ! !REVISION HISTORY:
@@ -276,11 +276,11 @@
       USE LOGICAL_MOD, ONLY : LCHEM
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Remove references to CO-OH simulation and to CMN_DIAG (bmy, 6/24/05)
+!  (1 ) Remove references to CO-OH simulation and to F77_CMN_DIAG (bmy, 6/24/05)
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------

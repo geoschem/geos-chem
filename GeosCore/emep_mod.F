@@ -309,8 +309,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_O3"         ! SCALEYEAR
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_O3"         ! SCALEYEAR
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -531,8 +531,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_O3"         ! SCALEYEAR
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_O3"         ! SCALEYEAR
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -709,7 +709,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !REVISION HISTORY:
 !  30 May 2006 - S. Wu & R. Yantosca - Initial version
@@ -789,7 +789,7 @@
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -946,7 +946,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -1012,7 +1012,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 !
 ! !REVISION HISTORY:
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -1074,8 +1074,8 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_O3"         ! SCALEYEAR
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_O3"         ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1255,8 +1255,8 @@
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE GRID_MOD,       ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_O3"         ! SCALEYEAR
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_O3"         ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1441,7 +1441,7 @@
       USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
       USE LOGICAL_MOD, ONLY : LEMEP
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version

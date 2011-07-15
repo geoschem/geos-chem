@@ -19,9 +19,9 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_O3"    ! SAVEOH, SAVENO
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
+#     include "F77_CMN_O3"    ! SAVEOH, SAVENO
 ! 
 ! !REVISION HISTORY: 
 !  01 May 1998 - R. Yantosca - Initial version

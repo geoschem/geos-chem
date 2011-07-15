@@ -75,7 +75,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  26 Jul 2005 - R. Yantosca - Initial version
@@ -122,8 +122,8 @@
       USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TINDEX
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! TINDEX
 !
 ! !REMARKS:
 !   # : Field     : Description                  : Units       : Scale factor
@@ -256,7 +256,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 !
 ! !REVISION HISTORY: 
 !  26 Jul 2005 - R. Yantosca - Initial version

@@ -136,7 +136,7 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -252,7 +252,7 @@
       USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
       USE DAO_MOD, ONLY : VWND
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -354,8 +354,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
       USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
 
-#     include "CMN_SIZE"                                    ! Size parameters
-#     include "CMN_DIAG"                                    ! ND66, LD66, ND67
+#     include "F77_CMN_SIZE"                                    ! Size parameters
+#     include "F77_CMN_DIAG"                                    ! ND66, LD66, ND67
 !
 ! !INPUT PARAMETERS: 
 !

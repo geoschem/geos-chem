@@ -73,7 +73,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
-#     include "CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_SIZE"                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -166,7 +166,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 ! 
 ! !REVISION HISTORY: 
 !  15 Oct 2002 - R. Yantosca - Initial version

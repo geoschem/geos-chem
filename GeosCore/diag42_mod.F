@@ -88,8 +88,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! NDxx flags
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -367,8 +367,8 @@
       USE TIME_MOD,     ONLY : GET_DIAGb
       USE TIME_MOD,     ONLY : GET_DIAGe
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! TINDEX
 !
 ! !REMARKS:
 !   # : Field    : Description                 : Units    : Scale factor
@@ -486,7 +486,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LSOA
 
-#     include "CMN_SIZE"    ! Size parameters 
+#     include "F77_CMN_SIZE"    ! Size parameters 
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version

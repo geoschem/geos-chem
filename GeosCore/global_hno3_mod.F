@@ -82,7 +82,7 @@
       USE DAO_MOD,    ONLY : AD, AIRVOL
       USE TRACER_MOD, ONLY : TCVV
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -138,7 +138,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -237,7 +237,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters 
+#     include "F77_CMN_SIZE"  ! Size parameters 
 
       ! Local variables
       INTEGER             :: AS

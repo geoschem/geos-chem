@@ -468,7 +468,7 @@
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
 
-#     include "CMN_SIZE"           ! Size parameters
+#     include "F77_CMN_SIZE"           ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
@@ -562,7 +562,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER :: AS

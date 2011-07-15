@@ -172,8 +172,8 @@
 
 #     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
 #     include "jv_cmn.h"    ! ODAER, ODMDUST, QAA, QAA_OUT
-#     include "CMN_O3"      ! XNUMOLAIR
-#     include "CMN_GCTM"    ! SCALE_HEIGHT
+#     include "F77_CMN_O3"      ! XNUMOLAIR
+#     include "F77_CMN_GCTM"    ! SCALE_HEIGHT
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -696,7 +696,7 @@
      &               HALFPOLAR, CENTER180, CATEGORY, GMTRC,        
      &               UNIT,      TAU,       TAU,      RESERVED,  
      &               1,         1,         K,        I+I0,         
-     &               J+J0,      1,         REAL( Q(1:K) ) )
+     &               J+J0,      1,         REAL( Q(1:K),4 ) )
 
       ENDDO
 
@@ -856,7 +856,7 @@
       USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       LOGICAL,            INTENT(IN) :: DO_ND48

@@ -372,8 +372,8 @@
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_O3"            ! FSCALYR
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  07 Oct 2009 - A. van Donkelaar - initial version
@@ -701,8 +701,8 @@
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_O3"            ! FSCALYR
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - initial version
@@ -1011,7 +1011,7 @@
       USE TRACERID_MOD,  ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD,  ONLY : IDTSO4
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1143,7 +1143,7 @@
 !
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1199,8 +1199,8 @@
       USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1
       USE TIME_MOD,          ONLY : GET_MONTH,     GET_YEAR
 
-#     include "CMN_SIZE"                         ! Size parameters
-#     include "CMN_O3"            ! FSCALYR
+#     include "F77_CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_O3"            ! FSCALYR
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1372,7 +1372,7 @@
 !
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1428,7 +1428,7 @@
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTSO4
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1540,7 +1540,7 @@
 !
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
 
-#     include "CMN_SIZE"                         ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1598,7 +1598,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"        ! Size parameters
+#     include "F77_CMN_SIZE"        ! Size parameters
 !
 ! !REMARKS:
 !     temporary mask: same as EPA 99
@@ -1721,7 +1721,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCff
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !REMARKS:
 !    VOC are not scaled, however scale factors are available (see
@@ -1795,7 +1795,7 @@
 !
 ! !USES:
 ! 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1921,7 +1921,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LNEI05
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !EOP

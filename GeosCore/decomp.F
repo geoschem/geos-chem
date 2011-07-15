@@ -14,7 +14,7 @@
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h"
 C
 C *********************************************************************

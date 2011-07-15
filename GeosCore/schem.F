@@ -36,7 +36,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"        ! Size parameters
+#     include "F77_CMN_SIZE"        ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version

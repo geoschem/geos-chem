@@ -38,7 +38,7 @@
 
       IMPLICIT NONE
 
-#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
+#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"     ! ODMDUST, PJ
 !
 ! !INPUT PARAMETERS: 
@@ -70,7 +70,7 @@
 !  (5 ) Add OPTDUST as a local variable -- make OPTDUST private for
 !        the parallel DO-loop, since it stores 1 column of aerosol optical
 !        depth for each dust type (bmy, rvm, 10/2/00)
-!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "CMN_SIZE".  Therefore we 
+!  (6 ) For now, LPAR in "cmn_fj.h" = LGLOB in "F77_CMN_SIZE".  Therefore we 
 !        assume that we are always doing global runs. (bmy, 10/2/00)
 !  (7 ) Removed obsolete code from 10/2/00 (bmy, 12/21/00)
 !  (8 ) Replace {IJL}GLOB w/ IIPAR,JJPAR,LLPAR everywhere.  Also YLMID(NLAT)

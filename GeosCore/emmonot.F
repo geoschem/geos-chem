@@ -17,9 +17,9 @@
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"              ! Size parameters
-#     include "CMN_VEL"               ! XYLAI, IJREG, IJLAND, IJUSE
-#     include "CMN_MONOT"             ! BASEMONOT
+#     include "F77_CMN_SIZE"              ! Size parameters
+#     include "F77_CMN_VEL"               ! XYLAI, IJREG, IJLAND, IJUSE
+#     include "F77_CMN_MONOT"             ! BASEMONOT
 !
 ! !INPUT PARAMETERS: 
 !
@@ -34,11 +34,11 @@
 ! !REMARKS:
 !  Important Common Block Variables:
 !  ============================================================================
-!  (1 ) XYLAI     (CMN_VEL ) : Leaf Area Index of land type for current MONTH
-!  (2 ) IJREG     (CMN_VEL ) : Number of Olson land types per grid box
-!  (3 ) IJLAND+1  (CMN_VEL ) : Olson land type index
-!  (4 ) IJUSE     (CMN_VEL ) : Olson land type fraction per box (in mils)
-!  (5 ) BASEMONOT (CMN_ISOP) : Baseline MONOTERPENE emissions [kg C/box/step]
+!  (1 ) XYLAI     (F77_CMN_VEL ) : Leaf Area Index of land type for current MONTH
+!  (2 ) IJREG     (F77_CMN_VEL ) : Number of Olson land types per grid box
+!  (3 ) IJLAND+1  (F77_CMN_VEL ) : Olson land type index
+!  (4 ) IJUSE     (F77_CMN_VEL ) : Olson land type fraction per box (in mils)
+!  (5 ) BASEMONOT (F77_CMN_ISOP) : Baseline MONOTERPENE emissions [kg C/box/step]
 ! 
 ! !REVISION HISTORY: 
 !  04 Sep 2001 - Y. H. Wang, B. Field, R. Yantosca  - Initial version

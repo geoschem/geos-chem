@@ -20,8 +20,8 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_ISOP"  ! SOPCOEFF
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_ISOP"  ! SOPCOEFF
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2001 - Y. H. Wang, R. Yantosca - Initial version
