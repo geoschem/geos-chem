@@ -806,6 +806,7 @@ C  NKDRY    = reaction numbers of dry deposition reactions
          IF (NOUSE(NCS) .EQ. 0) THEN
             NK                 = NRATCUR(NCS)
             IF (SPECL(1).EQ.'Q') NKO3PHOT(NCS)=NK !Flag O3 photolysis
+            IF (SPECL(1).EQ.'QB') NKO3PHOTH2(NCS)=NK !Flag O3 photolysis (bhh, jmao, eam, 7/18/11)
             IF (SPECL(1).EQ.'T') NKHNO4(NCS)  =NK !Flag HNO4 photolysis (gcc)
             IF (SPECL(1).EQ.'I') NKHOROI(NCS) = NK !Flag CH2O-producing branch in EP photolysis
             IF (SPECL(1).EQ.'J') NKHOROJ(NCS) = NK !Flag GLYC-producing branch in EP photolysis

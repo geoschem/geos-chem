@@ -58,6 +58,7 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
+!  (19) Added NKO3PHOTH2 (bhh, jmao, eam, 7/18/11)
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -388,12 +389,14 @@ C
       ! Add NKN2O5 to /CHEM4/ to flag N2O5 hydrolysis rxn (mje, bmy, 8/7/03)
       ! Add NKHO2 to /CHEM4/ to flag HO2 aerosol uptake (jaegle 02/26/09)
       ! Add NNADDF, NNADDH, NKHOROI and NKHOROJ to /CHEM4/ for HOC2H4O rxns
+      ! Add NKO3PHOTH2 to account for the H2 reaction of O1D (bhh, jmao, eam, 7/18/11)
       ! (tmf, 3/6/09)
       !Added NKGLYC and NKHAC NKMCO3
       ! (hotp 7/31/09)
       INTEGER ::         NNADD1,      NNADDA,      NNADDB
       INTEGER ::         NNADDC,      NNADDD,      NNADDK
-      INTEGER ::         NNADDV,      NNADDZ,      NKO3PHOT
+      INTEGER ::         NNADDV,      NNADDZ
+      INTEGER ::         NKO3PHOT,    NKO3PHOTH2  
       INTEGER ::         NNADDG,      NEMIS,       NDRYDEP
       INTEGER ::         NKHNO4,      NKN2O5,      NKHO2
       INTEGER ::         NNADDF,      NNADDH
@@ -402,12 +405,13 @@ C
       INTEGER ::         NKMCO3
       COMMON /CHEM4/     NNADD1,      NNADDA(ICS), NNADDB(  ICS), 
      &                   NNADDC(ICS), NNADDD(ICS), NNADDK(  ICS), 
-     &                   NNADDV(ICS), NNADDZ,      NKO3PHOT(ICS),
+     &                   NNADDV(ICS), NNADDZ,
      &                   NNADDG(ICS), NEMIS( ICS), NDRYDEP( ICS),
      &                   NNADDF(ICS), NNADDH(ICS), 
      &                   NKHOROI(ICS),NKHOROJ(ICS),
      &                   NKHNO4(ICS), NKN2O5,      NKHO2,
-     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3)
+     &                   NKGLYC(ICS,2), NKHAC(ICS,2), NKMCO3(ICS,3),
+     &                   NKO3PHOT(ICS), NKO3PHOTH2(ICS)
 
       INTEGER ::         IH2O,        IOXYGEN,   MB1,      MB2
       COMMON /SPECIES/   IH2O,        IOXYGEN,   MB1,      MB2

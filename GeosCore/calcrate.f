@@ -63,6 +63,8 @@
 !       574nm, so we don't need to add the 1e-5 to the JHNO4 rate anymore.
 !       (jmao, bmy, 10/27/09)
 !  (18) Add change yield for HAC. Make CONSTC a parameter. (fp, 2/2/10)
+!  (10) Updated O3 photolysis reaction rate and DMS oxidation reaction rates. 
+!       See http://wiki.seas.harvard.edu/geos-chem/index.php/Updating_standard_chemistry_with_JPL_10-6. (bhh, jmao, eam, 7/18/11)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -74,7 +76,9 @@
       USE DIAG_MOD,        ONLY : AD22,   LTJV, AD52
       USE DRYDEP_MOD,      ONLY : DEPSAV, NUMDEP, DEPNAME
       ! Add CHECK_VALUE (jaegle 2/26/09)
-      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP,CHECK_VALUE
+      USE ERROR_MOD,       ONLY : ERROR_STOP, GEOS_CHEM_STOP,
+     &                            CHECK_VALUE,
+     &                            DEBUG_MSG
       USE GRID_MOD,        ONLY : GET_YMID
       ! Add GET_PBL_TOP_L (jaegle 02/26/09)
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP,GET_PBL_TOP_L
@@ -84,7 +88,7 @@
       USE DAO_MOD,         ONLY : IS_ICE
       ! KPP interface (phs,ks,dhk, 09/15/09)
       USE GCKPP_GLOBAL,    ONLY : IND
-      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
+      USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP, LPRT ! (Lin, 03/31/09)
 
 
       IMPLICIT NONE
@@ -99,10 +103,13 @@
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
+      INTEGER :: NKNH2O, NKNH2    ! (bhh, jmao, eam, 7/18/11)
+      LOGICAL :: LJO1DH2, LJO1DH2O, LPCELL     ! (bhh, jmao, eam, 7/18/11)
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
       INTEGER :: PHOTVAL,KSUN
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
+      REAL*8  :: RO1D, RO1DplH2O, RO1DplH2   ! (bhh, jmao, eam, 7/18/11)
 C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       ! CONSTC declared as a parameter by FP (hotp 7/31/09)
       REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
@@ -140,6 +147,7 @@ C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       ! (bmy, 7/28/03) 
       REAL*8           :: ABSHUMK(KBLOOP), DENAIR(KBLOOP)
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
+      REAL*8           :: CONCH2(KBLOOP)     ! (bhh, jmao, eam, 7/18/11)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
 C FP_ISOP
@@ -228,6 +236,10 @@ C
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
+            ! Added H2 concentration (bhh, jmao, eam, 7/18/11)
+            ! Seasonal variability of H2 may be important, 
+            ! but not included in this update (bhh, jmao, eam, 7/18/11)
+            CONCH2(KLOOP)     = 0.5000d-6 * DENAIR(KLOOP) 
 C
 C   Check if sun is up anywhere in this block of grid-boxes.
 C   IFSUN gets used in CALCRATE
@@ -708,8 +720,10 @@ C
          DO I          = 1,NNADDG(NCS)
             NK         = NKSPECG( I,NCS )
             DO KLOOP   = 1, KTLOOP
+               ! Changed reaction rate calculation from concO2 to 0.2095d0
+               ! (bhh, jmao, eam, 7/18/11)
                RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/
-     &              (1.d0+RRATE(KLOOP,NK+1)*CONCO2(KLOOP))
+     &              (1.d0+RRATE(KLOOP,NK+1)*0.2095d0)
             ! SMVGEARII doesn't have structure to multiply rate(nk+1) by [O2]
             ENDDO
          ENDDO
@@ -1091,17 +1105,27 @@ C
          !
          ! Add NCS index to NKHNO4 for SMVGEAR II (gcc, bmy, 4/1/03)
          !==============================================================
-         IF ( NKO3PHOT(NCS) > 0 ) THEN
-
+         ! Now also consider O3 + hv --> HO2 + OH (bhh, jmao, eam, 7/18/11)
+         IF ( (NKO3PHOT(NCS) > 0)  .OR. (NKO3PHOTH2(NCS) > 0) ) THEN
             ! Put J(O3) in correct spot for SMVGEAR II
-            PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
-            NKN     = NKNPHOTRT(PHOTVAL,NCS)
+            LJO1DH2 = .false.
+            LJO1DH2O = .false.
+            IF ( NKO3PHOT(NCS) > 0 ) THEN
+              PHOTVAL = NKO3PHOT(NCS) - NRATES(NCS)
+              NKNH2O     =  NKNPHOTRT(PHOTVAL,NCS)
+              LJO1DH2O = .true.
+            ENDIF            
+            IF ( NKO3PHOTH2(NCS) > 0 ) THEN
+              PHOTVAL = NKO3PHOTH2(NCS) - NRATES(NCS)
+              NKNH2     =  NKNPHOTRT(PHOTVAL,NCS)
+              LJO1DH2 = .true.
+            ENDIF
 
             DO KLOOP = 1, KTLOOP
 
                ! Save old value of J-O3 in a diagnostic array 
                ! (gcc, bmy, 4/1/03)
-               DUMMY(KLOOP) = RRATE(KLOOP,NKN)
+               DUMMY(KLOOP) = RRATE(KLOOP,NKNH2O)
 
                !========================================================
                ! Change rate of O(1D)+ N2 to be 3.1e-11 at 298K rather
@@ -1117,11 +1141,25 @@ C
                ! (mje 4/5/04)
                !========================================================
 c Updated from JPL2006, the difference is pretty small.(jmao,02/26/2009)
-               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
-     $            1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
-     $          ( 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
-     $            2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)    +
-     $            3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
+C Additional update from JPL 10-6 for reaction of O3 + hv --> HO2 + OH and 
+C O1D + H2:
+C Includes calculation of k[O3], where
+C k[O3]  = J[O3]*1.2e-10/k[O1D], where
+C k[O1D] = ([O1D]*[H2]+[O1D]*[H2O])/([O1D]*[H2]+[O1D]*[H2O]+[O1D][N2]+[O1D][O2]) (bhh, jmao, eam, 7/18/11)
+               RO1DplH2O = 1.63d-10 * EXP( 60.d0*T3I(KLOOP)) *
+     $                     CBLK(KLOOP,IH2O)
+               RO1DplH2 = 1.2e-10 * CONCH2(KLOOP)
+               RO1D = (RO1DplH2O + RO1DplH2 +
+     $             2.15d-11 * EXP(110.d0*T3I(KLOOP)) * CONCN2(KLOOP)   +
+     $             3.30d-11 * EXP( 55.d0*T3I(KLOOP)) * CONCO2(KLOOP))
+               IF (LJO1DH2O) THEN
+                  RRATE(KLOOP,NKNH2O) = RRATE(KLOOP,NKNH2O) *
+     $                                 RO1DplH2O / RO1D
+               ENDIF
+               IF (LJO1DH2) THEN
+                  RRATE(KLOOP,NKNH2) = RRATE(KLOOP,NKNH2) *
+     $                                  RO1DplH2 / RO1D
+               ENDIF
 c               RRATE(KLOOP,NKN) = RRATE(KLOOP,NKN) *
 c     $            1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) /
 c     $          ( 1.45d-10 * EXP( 89.d0*T3I(KLOOP)) * CBLK(KLOOP,IH2O) +
