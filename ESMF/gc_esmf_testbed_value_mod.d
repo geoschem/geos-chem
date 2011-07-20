@@ -1,2 +1,0 @@
-gc_esmf_testbed_value_mod.d : gc_esmf_testbed_value_mod.F90
-gc_esmf_testbed_value_mod.o : gc_esmf_testbed_value_mod.F90
