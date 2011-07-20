@@ -99,7 +99,7 @@
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE LINOZ_MOD,   ONLY : DO_LINOZ
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -192,8 +192,8 @@
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
       
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_GCTM"       ! Rdg0
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_GCTM"       ! Rdg0
 !
 ! !REMARKS:
 !  Reference:
@@ -209,7 +209,7 @@
 ! 
 ! !REVISION HISTORY:
 !  13 Dec 1999 - Q. Li, R. Martin - Initial version
-!  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
+!  (1 ) The parameter Rdg0 from "F77_CMN_GCTM" = R / g0 = 28.97. 
 !  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
 !  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
 !  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
@@ -222,7 +222,7 @@
 !                                                                             .
 !  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
 !        cosmetic changes. (bmy, 6/28/01)
-!  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
+!  (6 ) Now reference F77_CMN_SETUP for LSPLIT.  Also store strat O3 into
 !        tracer #11 for multi-tracer Ox run. (amf, bmy, 7/3/01)
 !  (7 ) Removed IREF, JREF -- these are obsolete.  Also T(IREF,JREF,L) is
 !        now T(I,J,L). (bmy, 9/27/01)
@@ -526,7 +526,7 @@
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -847,8 +847,8 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHD, IDTH2
       
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Rdg0
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! Rdg0
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 

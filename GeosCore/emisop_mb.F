@@ -15,13 +15,13 @@
 !
 !  Important Common Block Variables:
 !  ============================================================================
-!  (1 ) XYLAI     (CMN_VEL ) : Leaf Area Index of land type for current MONTH
-!  (2 ) IJREG     (CMN_VEL ) : Number of Olson land types per grid box
-!  (3 ) IJLAND+1  (CMN_VEL ) : Olson land type index
-!  (4 ) IJUSE     (CMN_VEL ) : Olson land type fraction per box (in mils)
-!  (5 ) SOPCOEFF  (CMN_ISOP) : 2nd order polynomial coeffs for light correction
-!  (6 ) BASEISOP  (CMN_ISOP) : Baseline ISOPRENE emissions    [kg C/box/step]
-!  (7 ) BASEMB    (CMN_ISOP) : Baseline METHYL BUT. emissions [kg C/box/step]
+!  (1 ) XYLAI     (F77_CMN_VEL ) : Leaf Area Index of land type for current MONTH
+!  (2 ) IJREG     (F77_CMN_VEL ) : Number of Olson land types per grid box
+!  (3 ) IJLAND+1  (F77_CMN_VEL ) : Olson land type index
+!  (4 ) IJUSE     (F77_CMN_VEL ) : Olson land type fraction per box (in mils)
+!  (5 ) SOPCOEFF  (F77_CMN_ISOP) : 2nd order polynomial coeffs for light correction
+!  (6 ) BASEISOP  (F77_CMN_ISOP) : Baseline ISOPRENE emissions    [kg C/box/step]
+!  (7 ) BASEMB    (F77_CMN_ISOP) : Baseline METHYL BUT. emissions [kg C/box/step]
 !
 !  NOTES:
 !  (1 ) Now use F90 syntax.  Use "D" exponents to force double precision.
@@ -31,8 +31,8 @@
 !        ISOP from grasslands based on 400 Tg C/yr from biogenic ISOP, which 
 !        is what we get from GEOS-STRAT. (mje, bdf, djj, 9/10/02)
 !  (4 ) Now pass I, J via the arg list.  Now reference CLDFRC directly from
-!        "dao_mod.f" instead of referencing CFRAC from "CMN_DEP".  Now 
-!        remove reference to CMN_DEP. (bmy, 12/9/03)
+!        "dao_mod.f" instead of referencing CFRAC from "F77_CMN_DEP".  Now 
+!        remove reference to F77_CMN_DEP. (bmy, 12/9/03)
 !  (5 ) Now scale ISOP emissions to 400 Tg C/yr for GEOS-4 (bmy, 3/5/04)
 !  (6 ) Now force ISOP totals to be the same for GEOS-3 and GEOS-4 met fields
 !        for the year 2001.  This will facilitate cross-model intercomparison.
@@ -45,9 +45,9 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_VEL"   ! IJREG, IJLAND, IJUSE
-#     include "CMN_ISOP"  ! SOPCOEFF, BASEISOP, BASEMB
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_VEL"   ! IJREG, IJLAND, IJUSE
+#     include "F77_CMN_ISOP"  ! SOPCOEFF, BASEISOP, BASEMB
 
       ! Arguments
       INTEGER, INTENT(IN) :: IJLOOP,        I,    J

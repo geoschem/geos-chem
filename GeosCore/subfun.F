@@ -11,7 +11,7 @@
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! SMVGEAR II arrays
 C
 C *********************************************************************

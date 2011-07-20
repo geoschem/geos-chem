@@ -19,8 +19,8 @@
       IMPLICIT NONE
       PRIVATE
 
-#     include "CMN_SIZE"           ! Size parameters
-#     include "CMN_GCTM"           ! Physical constants
+#     include "F77_CMN_SIZE"           ! Size parameters
+#     include "F77_CMN_GCTM"           ! Physical constants
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -229,7 +229,7 @@
 !  (33) Remove obsolete SUNCOSB array (bmy, 4/28/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
-!  18 Aug 2010 - R. Yantosca - Move CMN_SIZE, CMN_DIAG to top of module
+!  18 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE, F77_CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
 !EOP
 !------------------------------------------------------------------------------
@@ -371,7 +371,7 @@
 !        layer.  In FORTRAN, the best efficiency is obtained when the leftmost 
 !        array index corresponds to the innermost loop.
 !  (5 ) Remove PTOP from the arg list.  PTOP is now a parameter in 
-!      "CMN_SIZE".  Also updated comments. (bmy, 2/22/00)
+!      "F77_CMN_SIZE".  Also updated comments. (bmy, 2/22/00)
 !  (6 ) Replace IM, JM, LM with IIPAR, JJPAR, LLPAR as loop boundaries.
 !        This ensures that all quantities get defined up to the top of
 !        the atmosphere. (bmy, 6/15/00)
@@ -793,7 +793,7 @@
 !        (bmy, 4/4/01)
 !  (2 ) For 4x5 data, regridded albedo field can cause small inaccuracies
 !        near the poles (bmy, 4/4/01)
-!  (3 ) Add references to CMN_SIZE and CMN, so that we can use the JYEAR
+!  (3 ) Add references to F77_CMN_SIZE and CMN, so that we can use the JYEAR
 !        variable to get the current year.  Also, for 1998, we need to compute
 !        if is a land box or not from the surface albedo, since for this
 !        year the LWI/SURFTYPE field is not given.  For other years than 1998,
@@ -891,7 +891,7 @@
 !        (bmy, 4/4/01)
 !  (2 ) For 4x5 data, regridded albedo field can cause small inaccuracies
 !        near the poles (bmy, 4/4/01)
-!  (3 ) Add references to CMN_SIZE and CMN, so that we can use the JYEAR
+!  (3 ) Add references to F77_CMN_SIZE and CMN, so that we can use the JYEAR
 !        variable to get the current year.  Also, for 1998, we need to compute
 !        if is an ocean box or not from the surface albedo, since for this
 !        year the LWI/SURFTYPE field is not given.  For other years than 1998,
@@ -1466,9 +1466,9 @@
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
 !  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
-!  (3 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
+!  (3 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
 !        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
-!  (4 ) Use IM and JM (in CMN_SIZE) as loop limits.
+!  (4 ) Use IM and JM (in F77_CMN_SIZE) as loop limits.
 !  (5 ) Include Harvard CTM common blocks and rename variables where needed.  
 !  (6 ) Use SUNCOS(MAXIJ) instead of a 2D array, in order for compatibility
 !        with the Harvard CTM subroutines.  SUNCOS loops over J, then I.

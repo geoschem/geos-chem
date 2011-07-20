@@ -71,10 +71,10 @@
 
       IMPLICIT NONE
  
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! Diagnostic switches & arrays
-#     include "CMN_NOX"              ! GEMISNOX2
-#     include "CMN_DEP"              ! CANOPYNOX
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_DIAG"             ! Diagnostic switches & arrays
+#     include "F77_CMN_NOX"              ! GEMISNOX2
+#     include "F77_CMN_DEP"              ! CANOPYNOX
 #     include "commsoil.h"           ! Soil pulsing & wetness variables
 
       ! Arguments

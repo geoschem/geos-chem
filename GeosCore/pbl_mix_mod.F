@@ -160,8 +160,8 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Scale height
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! Scale height
 
       ! Local variables
       INTEGER               :: I,     J,      L,    LTOP
@@ -394,7 +394,7 @@
 !  (7 ) Now pass TCVV and NCONV for the mass flux diagnostics.  Also
 !        updated comments and cleaned up a few things. (bey, bmy, 11/10/99)
 !  (8 ) Remove PTOP and XNUMOL from the arg list.  PTOP is now a parameter 
-!        in "CMN_SIZE".  XNUMOL is no longer used in TURBDAY. (bmy, 2/10/00)
+!        in "F77_CMN_SIZE".  XNUMOL is no longer used in TURBDAY. (bmy, 2/10/00)
 !  (9 ) Also removed obsolete ND63 diagnostics and updated comments.
 !        (bmy, 4/12/00)
 !  (10) Now use NTRC instead of NNPAR to dimension variables TC, TCVV, DTC, 
@@ -426,7 +426,7 @@
 !        time regardless of SUNCOS.  Updated comments, cosmetic changes.
 !        (bmy, 2/11/03)
 !  (20) Now can handle PBL field in meters for GEOS-4/fvDAS.  Also the
-!        atmospheric scale height from CMN_GCTM. (bmy, 6/23/03)
+!        atmospheric scale height from F77_CMN_GCTM. (bmy, 6/23/03)
 !  (21) Now bundled into "pbl_mix_mod.f".  Broke off the part which computes
 !        PBL height and related quantities into COMPUTE_PBL_HEIGHT. 
 !        (bmy, 2/15/05)
@@ -438,8 +438,8 @@
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TIME_MOD,       ONLY : GET_TS_CONV
 
-#     include "CMN_SIZE"       ! Size parameters    
-#     include "CMN_DIAG"       ! ND15
+#     include "F77_CMN_SIZE"       ! Size parameters    
+#     include "F77_CMN_DIAG"       ! ND15
 
       ! Arguments
       INTEGER,  INTENT(IN)    :: NTRC
@@ -600,7 +600,7 @@
 !  NOTES: 
 !******************************************************************************
 !
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -637,7 +637,7 @@
 !  NOTES:  
 !******************************************************************************
 !
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -812,7 +812,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER :: AS

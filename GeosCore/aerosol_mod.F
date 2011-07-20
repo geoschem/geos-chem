@@ -127,7 +127,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! AD, AVG, WTAIR, other SMVGEAR variables
 
       ! Argumetns
@@ -306,7 +306,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE. 
@@ -551,9 +551,9 @@
 
       IMPLICIT NONE
 
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
+#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"   ! ODAER, QAA, RAA, QAA_AOD (clh)
-#     include "CMN_DIAG"   ! ND21, LD21
+#     include "F77_CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTLOOP
 
       ! Arguments
@@ -1341,7 +1341,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 
       ! Local variables
       INTEGER :: AS

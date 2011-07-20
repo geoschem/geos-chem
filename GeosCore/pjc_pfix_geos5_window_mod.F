@@ -183,8 +183,8 @@
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! Physical constants
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_GCTM"    ! Physical constants
 
       ! Arguments
       REAL*8,  INTENT(IN)  :: D_DYN
@@ -269,7 +269,7 @@
 !
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, NTRACE, LPRT, LWINDO
 
       ! Arguments
@@ -378,15 +378,15 @@
 !    geofac_pc : special geometrical factor (geofac) for Polar cap
 !  
 !  NOTES:
-!  (1 ) Now reference PI from "CMN_GCTM" for consistency.  Also force
+!  (1 ) Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
 !        double-precision with the "D" exponent. (bmy, 5/6/03)
 !  (2 ) New definition for the geometric factor. (lzh, ccc, 8/3/10)
 !******************************************************************************
 !
       implicit none
 
-#     include "CMN_SIZE"
-#     include "CMN_GCTM"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_GCTM"
 
       !----------------------
       !Argument declarations.
@@ -1157,8 +1157,8 @@ c     --------------------------------------
 !
       implicit none
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_GCTM" ! Re, PI
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_GCTM" ! Re, PI
  
       !----------------------
       !Argument declarations.
@@ -1342,8 +1342,8 @@ c     --------------------------------------
 !
       implicit none
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_GCTM" ! Re, Pi
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_GCTM" ! Re, Pi
 
       !----------------------
       !Argument declarations.
@@ -1691,8 +1691,8 @@ c     --------------------------------------
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Re, PI, etc...
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"  ! Re, PI, etc...
 
       ! Local variables
       INTEGER :: AS, I, J, L

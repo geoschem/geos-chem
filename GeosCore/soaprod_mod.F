@@ -82,8 +82,8 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_TAU
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! TRCOFFSET
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! TRCOFFSET
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
@@ -244,14 +244,14 @@
 !  (2 ) STT    : Tracer array (kg)         dim=(IIPAR,JJPAR,LLPAR,NNPAR)
 !  (3 ) TCVV   : Air MW / Tracer MW array, dim=(NNPAR)
 !
-!  Passed via CMN_DIAG:
+!  Passed via F77_CMN_DIAG:
 !  ============================================================================
 !  (1 ) TRCOFFSET : Offset for special tracers (like Rn, HCN, etc)
 ! 
 !  NOTES:
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
-!  (2 ) Now pass LFORCE, LSPLIT via CMN_SETUP. (bmy, 11/4/99)
+!  (2 ) Now pass LFORCE, LSPLIT via F77_CMN_SETUP. (bmy, 11/4/99)
 !  (3 ) Cosmetic changes, added comments (bmy, 3/17/00)
 !  (4 ) Now use function NYMD_STRING from "time_mod.f" to generate a
 !        Y2K compliant string for all data sets. (bmy, 6/22/00)
@@ -287,8 +287,8 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! TRCOFFSET
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! TRCOFFSET
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -449,7 +449,7 @@
       ! Arguments
       INTEGER, INTENT(IN) :: NI, NJ, NL
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
@@ -498,7 +498,7 @@
       USE CARBON_MOD, ONLY : APROD, GPROD, NNOX,
      &                       PRODPERCOFSTT, NPROD
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       REAL*8           :: ATEMP, GTEMP
@@ -700,7 +700,7 @@
       USE CARBON_MOD, ONLY : APROD, GPROD, NNOX, NPROD,
      &                       PRODPERCOFSTT, MHC
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER          :: IPR, NOX, JHC
@@ -747,7 +747,7 @@
      &                       PRODPERCOFSTT, NPROD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"   ! Size params
+#     include "F77_CMN_SIZE"   ! Size params
 
       ! Arguments
       CHARACTER(LEN=255) :: INFILE, OUTFILE

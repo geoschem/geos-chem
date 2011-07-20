@@ -19,7 +19,7 @@
 !
       IMPLICIT NONE
 
-#     include "cmn_fj.h"  ! CMN_SIZE  
+#     include "cmn_fj.h"  ! F77_CMN_SIZE  
 #     include "comode.h"  ! SMVGEAR II arrays
 
       ! Local variables

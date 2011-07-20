@@ -22,12 +22,12 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DEP"       ! FRCLND, IREG, ILAND, IUSE
-#     include "CMN_VEL"       ! IJREG, IJLAND, IJUSE
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DEP"       ! FRCLND, IREG, ILAND, IUSE
+#     include "F77_CMN_VEL"       ! IJREG, IJLAND, IJUSE
 !
 ! !REMARKS:
-!  Common-block variables from header file "CMN_DEP":
+!  Common-block variables from header file "F77_CMN_DEP":
 !  ============================================================================
 !  (1 ) FRCLND(I,J)        : Land fraction (0.0 - 1.0)
 !  (2 ) IREG(I,J)          : Number of landtypes in each grid box
@@ -35,7 +35,7 @@
 !  (4 ) IUSE(I,J,LDT)      : Fraction (per mil) of gridbox area occupied by 
 !                             land type element LDT
 !                                                                             .
-!  Common-block variables from header file "CMN_VEL":
+!  Common-block variables from header file "F77_CMN_VEL":
 !  ============================================================================
 !  (1 ) IJREG(IJLOOP)      : 2-D (I*J, LDT) version of IJREG  (for DEPVEL)
 !  (2 ) IJLAND(IJLOOP,LDT) : 2-D (I*J, LDT) version of IJLAND (for DEPVEL)

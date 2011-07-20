@@ -109,7 +109,7 @@
 !******************************************************************************
 !
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACE 
@@ -266,7 +266,7 @@
 !        via the argument list.  Add comments. (bmy, 12/13/05)
 !******************************************************************************
 !
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
       
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -425,8 +425,8 @@
       USE DAO_MOD,      ONLY : AD
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG" 
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG" 
   
       ! Arguments
       INTEGER, INTENT(IN)    :: J

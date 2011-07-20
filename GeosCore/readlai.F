@@ -22,9 +22,9 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DEP"    ! IREG, ILAND, IUSE
-#     include "CMN_VEL"    ! XLAI, XLAI2
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DEP"    ! IREG, ILAND, IUSE
+#     include "F77_CMN_VEL"    ! XLAI, XLAI2
 !
 ! !INPUT PARAMETERS:
 !

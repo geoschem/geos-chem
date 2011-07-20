@@ -20,7 +20,7 @@
       ! BB species (hotp 7/31/09)
       ! NBIOTRCE is the number for a given simulation and
       ! set of tracers
-      ! NBIOMAX in CMN_SIZE (FP)
+      ! NBIOMAX in F77_CMN_SIZE (FP)
       USE BIOMASS_MOD,  ONLY : BIOTRCE !     NBIOMAX
       USE BIOFUEL_MOD,  ONLY : NBFTRACE,    BFTRACE
       USE DIAG_MOD,     ONLY : AD01,        AD02,        AD05    
@@ -118,10 +118,10 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! IFLX, LPAUSE
-#     include "CMN_DIAG"     ! Diagnostic switches & arrays
-#     include "CMN_O3"       ! FMOL, XNUMOL
+#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
+#     include "F77_CMN_O3"       ! FMOL, XNUMOL
 #     include "comode.h"     ! IDEMS
 ! 
 ! !REVISION HISTORY: 
@@ -225,7 +225,7 @@
 !        steps. (ccc, 7/20/09)
 !  (87) Add diagnostics 19, 58 and 60 for methane. (kjw, 8/18/09)
 !  (88) Account for 3D AD13_NH3_an now (phs, 10/22/09)
-!  (89) NBIOMAX is now in CMN_SIZE (hotp 7/31/09)
+!  (89) NBIOMAX is now in F77_CMN_SIZE (hotp 7/31/09)
 !  (90) Add SOA5 to ND07_HC, add AD57 for potential temperature. (fp, 2/3/10)
 !  (91) Modify ND44 for tracers with several deposition tracers. (ccc, 2/3/10)
 !  (92) Add aromatics to ND43. (dkh, 06/21/07)

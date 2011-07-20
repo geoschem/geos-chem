@@ -110,7 +110,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
@@ -268,9 +268,9 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_DIAG"       ! ND02 
-#     include "CMN_DEP"        ! FRCLND
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_DIAG"       ! ND02 
+#     include "F77_CMN_DEP"        ! FRCLND
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -278,14 +278,14 @@
 !  (2 ) Now trap I/O errors with subroutine IOERROR (bmy, 5/28/99)
 !  (3 ) Eliminate obsolete code and ND63 diagnostic (bmy, 4/12/00)
 !  (4 ) Now reference TS from "dao_mod.f" instead of from common block
-!        header file "CMN_TS". (bmy, 6/23/00)
+!        header file "F77_CMN_TS". (bmy, 6/23/00)
 !  (5 ) Cosmetic changes (bmy, 7/12/00)
 !  (6 ) Now use IOS /= 0 criterion to trap both I/O errors and EOF 
 !        condition. (bmy, 9/13/00)
 !  (7 ) Added to module "RnPbBe_mod.f".  Also updated comments and made
 !        cosmetic changes. (bmy, 6/14/01)
 !  (8 ) Replace PW(I,J) with P(I,J) (bmy, 10/3/01)
-!  (9 ) Now reference DATA_DIR from "CMN_SETUP".  Added FILENAME variable.
+!  (9 ) Now reference DATA_DIR from "F77_CMN_SETUP".  Added FILENAME variable.
 !        Now read "7Be.Lal" file from DATA_DIR/RnPbBe_200203/ directory.
 !        (bmy, 3/29/02)
 !  (10) Add diagnostics for Rn/Be emissions.  Also cleaned up some old code
@@ -556,8 +556,8 @@
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_DIAG"       ! ND01, ND02
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_DIAG"       ! ND01, ND02
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version

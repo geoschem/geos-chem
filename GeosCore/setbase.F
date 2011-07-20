@@ -6,7 +6,7 @@
 !  ISOPRENE, MONOTERPENES, GRASSLAND ISOPRENE, and METHYL BUTENOL.
 !  (bdf, bmy, 8/1/01, 2/11/03)
 !
-!  Baseline emissions are stored in arrays (from CMN_ISOP and CMN_MONOT)
+!  Baseline emissions are stored in arrays (from F77_CMN_ISOP and F77_CMN_MONOT)
 !  BASEISOP, BASEMONOT, BASEGRASS, BASEMB.  Units are [kg C/box/step].
 !
 !  Arguments as Input:
@@ -17,7 +17,7 @@
 !  NOTES:
 !  (1 ) Now use F90 syntax.  Updated comments, cosmetic changes.  Moved 
 !        everything to within one I-J loop.  Also removed reference to
-!        CMN_O3, which is no longer needed. (bdf, bmy, 8/1/01)
+!        F77_CMN_O3, which is no longer needed. (bdf, bmy, 8/1/01)
 !  (2 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
 !  (3 ) Now replace DXYP(JREF)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
@@ -30,11 +30,11 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters 
+#     include "F77_CMN_SIZE"  ! Size parameters 
 #     include "CMN"       ! NSRCE
-#     include "CMN_VEL"   ! IJREG, IJUSE, IJLAND
-#     include "CMN_ISOP"  ! BASEISOP, BASEGRASS, BASEMB
-#     include "CMN_MONOT" ! BASEMONOT
+#     include "F77_CMN_VEL"   ! IJREG, IJUSE, IJLAND
+#     include "F77_CMN_ISOP"  ! BASEISOP, BASEGRASS, BASEMB
+#     include "F77_CMN_MONOT" ! BASEMONOT
 
       ! Arguments
       REAL*8, INTENT(IN) :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)

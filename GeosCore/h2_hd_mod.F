@@ -131,9 +131,9 @@
       USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
-#     include "CMN_DIAG"     ! Diagnostic arrays & switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
+#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -155,7 +155,7 @@
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
       INTEGER, SAVE          :: LASTYEAR = -999, LASTMONTH = -999
 
-      ! For now these are defined in CMN_O3
+      ! For now these are defined in F77_CMN_O3
       !REAL*4                 :: EMISTCO(IIPAR,JJPAR)
       !REAL*4                 :: FLIQCO2(IIPAR,JJPAR)
 
@@ -675,9 +675,9 @@
       USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DEP"      ! FRCLND
-#     include "CMN_DIAG"     ! ND65
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DEP"      ! FRCLND
+#     include "F77_CMN_DIAG"     ! ND65
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -1285,7 +1285,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1378,7 +1378,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 !      USE GRID_MOD,      ONLY : GET_YMID
 
-#     include "CMN_SIZE"                 ! Size parameters
+#     include "F77_CMN_SIZE"                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1449,7 +1449,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version

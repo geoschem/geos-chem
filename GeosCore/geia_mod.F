@@ -85,7 +85,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -176,7 +176,7 @@
 
 
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -255,7 +255,7 @@
 !  (3 ) Now use IOS /= 0 to trap both I/O errors and EOF (bmy, 9/13/00)
 !  (4 ) Now read files directly from DATA_DIR/fossil_200104 subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
 !  (5 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -272,7 +272,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -462,7 +462,7 @@
 !        ASCII merge file (bmy, 4/23/01)
 !  (5 ) Now read files directly from DATA_DIR/fossil_obsolete subdirectory.
 !        Also echo the file name to stdout.  Now reference DATA_DIR from
-!        the "CMN_SETUP" header file. (bmy, 4/3/02)
+!        the "F77_CMN_SETUP" header file. (bmy, 4/3/02)
 !  (6 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Also deleted
 !        obsolete code from April 2002 (bmy, 6/27/02)
 !  (7 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
@@ -473,7 +473,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -593,7 +593,7 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -829,7 +829,7 @@
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_C3H8(IIPAR,JJPAR) 
@@ -1017,7 +1017,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER,           INTENT(IN) :: IX, JX, LX

@@ -23,7 +23,7 @@
       
       IMPLICIT NONE
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 #     include "commsoil.h" ! Soil variables
 !
 ! !REMARKS:

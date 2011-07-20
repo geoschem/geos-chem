@@ -35,8 +35,8 @@ C Wang et al.: [1998] JGR vol. 103 p10713-10725                       *
 C                                                                     *
 C**********************************************************************
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DEP"     ! CANOPYNOX
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DEP"     ! CANOPYNOX
 #     include "commsoil.h"  ! Soil pulsing & wetness variables
 
       INTEGER I,J,IREF,JREF,M,NN,K,IJLOOP

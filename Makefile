@@ -109,6 +109,18 @@ cleantomas:
 hg:
 	@$(MAKE) -C $(GEOSDIR) allhg
 
+#=============================================================================
+# Targets for ESMF linking (msl, 7/12/11)
+#=============================================================================
+
+.PHONY: esmf esma
+
+esmf esma:
+	@$(MAKE) -C $(GEOSDIR) ESMF=yes all
+
+esmf_testbed:
+	@$(MAKE) -C $(GEOSDIR) ESMF=yes ESMF_TESTBED=yes all
+
 #EOC
 
 

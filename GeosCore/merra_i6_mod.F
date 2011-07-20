@@ -266,8 +266,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-#     include "CMN_SIZE"                             ! Size parameters
-#     include "CMN_DIAG"                             ! NDxx flags
+#     include "F77_CMN_SIZE"                             ! Size parameters
+#     include "F77_CMN_DIAG"                             ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !

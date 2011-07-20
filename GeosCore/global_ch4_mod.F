@@ -172,7 +172,7 @@
 !  NOTES:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry and
 !        placed into module "global_ch4_mod.f" by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_AVGTP is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_AVGTP is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Removed duplicate definition for NTDT, NMIN (bmy, 11/15/01)
 !  (4 ) Removed PS from argument list.  Now use P(I,J)+PTOP instead of
@@ -195,7 +195,7 @@
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER             :: NTDT, NMIN
@@ -320,13 +320,13 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) EMISSCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) EMISSCH4 is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) GLOBASEAEMIS, GLOBSEAEMIS are diagnostics by jsw.
 !  (4 ) Do not multiply CO emissions by 1.28 anymore (jsw, bmy, 2/12/01)
 !  (5 ) Renamed input files to CH4_monthly.geos.{RES} and 
 !        CH4_aseasonal.geos.{RES}. (bmy, 2/12/01)
-!  (6 ) Add reference to "CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
+!  (6 ) Add reference to "F77_CMN_SETUP" for the DATA_DIR variable (bmy, 2/13/01)
 !  (7 ) Removed references to "biofuel_mod.f" and "biomass_mod.f"; these
 !        weren't necessary (bmy, 3/20/01)
 !  (8 ) Now reference IU_FILE and IOERROR from "file_mod.f".  Now use IU_FILE
@@ -363,8 +363,8 @@
       USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
       
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, I0, IREF, J, J0, JREF, N
@@ -643,8 +643,8 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE DIAG_MOD,      ONLY : AD60, AD58
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       INTEGER :: I, J, L      
       INTEGER :: GM, YEAR      
@@ -966,8 +966,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH,     GET_YEAR
       USE TIME_MOD,         ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, J, MM, MM1, YYYY, YYYY1
@@ -1191,8 +1191,8 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I,J
@@ -1309,8 +1309,8 @@
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, J, YYYY
@@ -1408,8 +1408,8 @@
       USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
       USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
@@ -1533,8 +1533,8 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE LOGICAL_MOD,   ONLY : LSOABS,       LOTNAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches
 
       ! Local Variables
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
@@ -1614,10 +1614,10 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CHEMCH4 is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CHEMCH4 is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
-!  (4 ) LD43 is already declared in CMN_DIAG; don't redefine it (bmy, 11/15/01)
+!  (4 ) LD43 is already declared in F77_CMN_DIAG; don't redefine it (bmy, 11/15/01)
 !  (5 ) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
 !        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
 !  (6 ) Now reference AD from "dao_mod.f".  Now reference GEOS_CHEM_STOP from
@@ -1645,9 +1645,9 @@
       USE TRACER_MOD,    ONLY : STT
       USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! LPAUSE
-#     include "CMN_DIAG"     ! ND43, AD43
+#     include "F77_CMN_DIAG"     ! ND43, AD43
 
       ! Local variables
       LOGICAL                :: FIRSTCHEM = .TRUE.
@@ -1906,7 +1906,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (6/8/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) READ_COPROD is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) READ_COPROD is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) ARRAY needs to be dimensioned (1,JJPAR,LGLOB) (bmy, 9/26/01)
 !  (4 ) Remove obsolete code from 9/01 (bmy, 10/24/01)
@@ -1925,7 +1925,7 @@
         
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
 
       ! Local variables
@@ -2027,7 +2027,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_DECAY is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_DECAY is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Now use function GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
 !  (4 ) Now references STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -2039,9 +2039,9 @@
       USE TRACER_MOD, ONLY : STT
       USE DIAG_MOD,   ONLY : AD19    	      
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
-#     include "CMN_DIAG"       ! ND19
+#     include "F77_CMN_DIAG"       ! ND19
 
       ! Local variables
       LOGICAL          :: FIRST_DECAY=.TRUE.
@@ -2152,7 +2152,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_OHSAVE is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_OHSAVE is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Now call DO_DIAG_OH_CH4 to pass OH diagnostic info to the
 !        "diag_oh_mod.f" (bmy, 7/20/04)
@@ -2161,7 +2161,7 @@
       ! References to F90 modules
       USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! LPAUSE
 
       ! Local variables
@@ -2236,7 +2236,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_STRAT is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_STRAT is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Removed LMN from the arg list and made it a local variable.  Now use 
 !        functions GET_MONTH and GET_TS_CHEM from "time_mod.f" (bmy, 3/27/03)
@@ -2248,7 +2248,7 @@
       USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD, ONLY : STT
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
 
       ! Local variables
@@ -2341,7 +2341,7 @@
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_BUDGET is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_BUDGET is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/13/01)
 !  (4 ) Renamed XLABEL to LABEL so as not to conflict w/ "CMN"
@@ -2360,7 +2360,7 @@
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
       USE TRACER_MOD, ONLY : STT
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! STT, LPAUSE
  
       ! Local variables
@@ -2869,12 +2869,12 @@ C Sources
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
 !        James Wang (7/00).  Inserted into module "global_ch4_mod.f" 
 !        by Bob Yantosca. (bmy, 1/16/01)
-!  (2 ) CH4_BUDGET is independent of "CMN_OH", "CMN_CO", and "CMN_CO_BUDGET".
+!  (2 ) CH4_BUDGET is independent of "F77_CMN_OH", "F77_CMN_CO", and "F77_CMN_CO_BUDGET".
 !        (bmy, 1/16/01)
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
 !******************************************************************************
 !    
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 #     include "CMN"            ! LPAUSE
 
       ! Arguments
@@ -2960,7 +2960,7 @@ C Sources
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
    
       !Arguments
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
@@ -3007,8 +3007,8 @@ C Sources
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
-#     include "CMN_DIAG"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_DIAG"
       
       ! Local variables
       INTEGER :: AS

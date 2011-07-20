@@ -75,7 +75,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
 
-#     include "CMN_SIZE"                 ! Size parameters
+#     include "F77_CMN_SIZE"                 ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -321,7 +321,7 @@
       USE BPCH2_MOD,    ONLY : READ_BPCH2
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-#     include "CMN_SIZE"                 ! Size parameters
+#     include "F77_CMN_SIZE"                 ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -402,7 +402,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"

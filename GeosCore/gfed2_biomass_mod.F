@@ -334,7 +334,7 @@
       USE TIME_MOD,       ONLY : GET_DAY, GET_HOUR, GET_DAY_OF_YEAR
       USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       ! Arguments 
       INTEGER,            INTENT(IN)    :: THIS_YYYY
@@ -672,7 +672,7 @@
       USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBSO2 
       USE TRACERID_MOD, ONLY : IDBNH3,  IDBBC,   IDBOC 
 
-#     include "CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR,N_SPEC)
@@ -775,7 +775,7 @@
       ! References to F90 modules
       USE GRID_MOD,   ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYY, MM
@@ -853,7 +853,7 @@
       USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Local variables
       INTEGER                :: AS, IOS, M, N, NDUM
@@ -1114,7 +1114,7 @@
 ! Created: FP (6/2009)
 !******************************************************************************
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       REAL*8,  INTENT(IN)     :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
       REAL*8,  INTENT(OUT)    :: BIOM_OUTM(IIPAR,JJPAR,NBIOMAX) !+1 from CO2

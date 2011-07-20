@@ -428,7 +428,7 @@
       USE TRACERID_MOD,  ONLY : ID_Hg0, ID_Hg2, ID_Hg_tot
       USE TIME_MOD,      ONLY : GET_CT_DYN, GET_CT_CHEM
     
-#     include "CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_SIZE"          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -548,7 +548,7 @@
       USE TRACERID_MOD,  ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,  ONLY : ID_Hg0,      ID_Hg2
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !INPUT PARAMETERS:
 !
@@ -789,7 +789,7 @@
 ! !USES:
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !INPUT PARAMETERS:
 !
@@ -858,7 +858,7 @@
       USE LOGICAL_MOD,  ONLY : LGTMM
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !

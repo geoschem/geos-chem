@@ -19,8 +19,8 @@
       IMPLICIT NONE
       PRIVATE
 
-#     include "CMN_SIZE"              ! Dimensions of arrays
-#     include "CMN_DIAG"              ! Diagnostic parameters
+#     include "F77_CMN_SIZE"              ! Dimensions of arrays
+#     include "F77_CMN_DIAG"              ! Diagnostic parameters
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -71,8 +71,8 @@
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
 !        hdf_mod. (amv, bmy, 12/1/09)
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
-!                              #include "CMN_DIAG" to the top of module
+!  03 Aug 2010 - R. Yantosca - Now move the #include "F77_CMN_SIZE" and
+!                              #include "F77_CMN_DIAG" to the top of module
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
 !  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
@@ -96,7 +96,7 @@
       !--------------------------------------------------------------------
       ! Prior to 8/3/10:
       ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
+      ! parameters in F77_CMN_DIAG.  This will prevent out-of bounds errors
       ! when these parameters are extended to add more tracers.
       ! (psk, bmy, 8/3/10)
       !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
@@ -538,8 +538,8 @@
             NAME_NEW = 'PROD' // C
             
             ! Write tracers [kg] to "tracerinfo.dat"
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
-     &                        1,        1e0,      'kg/kg', N )
+            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  real(1e0,4), 
+     &                        1,        real(1e0,4),      'kg/kg', N )
          ENDDO
 
       ENDIF

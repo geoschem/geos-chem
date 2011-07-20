@@ -193,10 +193,10 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-#     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
+#     include "cmn_fj.h"        ! FAST-J stuff, includes F77_CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER, QAA, QAA_AOD (clh)
-#     include "CMN_O3"		! Pure O3, SAVENO2
-#     include "CMN_GCTM"        ! XTRA2
+#     include "F77_CMN_O3"		! Pure O3, SAVENO2
+#     include "F77_CMN_GCTM"        ! XTRA2
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -1410,7 +1410,7 @@
      &               TAU,          TAU,          RESERVED,  
      &               ND49_NI,      ND49_NJ,      GMNL,  
      &               ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
-     &               REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL) ) )
+     &               REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
       ENDDO
             
       !=================================================================
@@ -1575,7 +1575,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_SIZE"         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1629,7 +1629,7 @@
       USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

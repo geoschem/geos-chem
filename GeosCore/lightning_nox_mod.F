@@ -85,7 +85,7 @@
 !        * Allow option of mid-level scaling to match global avg ann flash
 !           rate between G-C and OTD-LIS 11-year climatology (new function)
 !        * Local Redist now a la Murray et al, 2007 in preparation (monthly)
-!        * Replace GEMISNOX (from CMN_NOX) with module variable EMIS_LI_NOx
+!        * Replace GEMISNOX (from F77_CMN_NOX) with module variable EMIS_LI_NOx
 !  (5 ) Added MFLUX, PRECON redistribution options (ltm, bmy, 11/29/07)
 !  (6 ) Updated OTD/LIS scaling for GEOS-5 to get more realistic totals
 !        (ltm, bmy, 2/20/08)
@@ -161,8 +161,8 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Physical constants
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! Physical constants
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
@@ -843,7 +843,7 @@
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
 
-#     include "CMN_SIZE"                        ! Size parameters
+#     include "F77_CMN_SIZE"                        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1525,7 +1525,7 @@
       USE TIME_MOD,      ONLY : GET_TAU
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"                ! Size parameters
+#     include "F77_CMN_SIZE"                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1632,8 +1632,8 @@
       USE DAO_MOD,  ONLY : BXHEIGHT
       USE DIAG_MOD, ONLY : AD32_li
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_DIAG"         ! ND32
+#     include "F77_CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_DIAG"         ! ND32
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1643,14 +1643,14 @@
 ! !REVISION HISTORY: 
 !  09 Oct 1997 - R. Yantosca - Initial version
 !  (1 ) Remove IOFF, JOFF from the argument list.  Also remove references
-!        to header files "CMN_O3" and "comtrid.h" (bmy, 3/16/00)
+!        to header files "F77_CMN_O3" and "comtrid.h" (bmy, 3/16/00)
 !  (2 ) Now use allocatable array for ND32 diagnostic (bmy, 3/16/00)  
 !  (3 ) Now reference BXHEIGHT from "dao_mod.f".  Updated comments, cosmetic
 !        changes.  Replace LCONVM with the parameter LLCONVM. (bmy, 9/18/02)
 !  (4 ) Removed obsolete reference to "CMN".  Now bundled into 
 !        "lightning_mod.f" (bmy, 4/14/04)
 !  (5 ) Renamed from EMLIGHTNING_NL to EMLIGHTNING.  Now replace GEMISNOX
-!        (from CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
+!        (from F77_CMN_NOX) with module variable EMIS_LI_NOx. (ltm, bmy, 10/3/07)
 !  10 Nov 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1924,7 +1924,7 @@
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  14 Apr 2004 - R. Yantosca - Initial version

@@ -113,16 +113,16 @@
  
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 !------------------------------------------------------------------------------
 ! Prior to 2/25/10:
 ! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
 !#     include "CMN"          ! IEBD1, IEBD2, JEBD1, JEBD2
 !------------------------------------------------------------------------------
-#     include "CMN_DIAG"     ! Diagnostic arrays and switches
-#     include "CMN_O3"       ! Emissions arrays
-#     include "CMN_NOX"      ! GEMISNOX2
-#     include "CMN_MONOT"    ! Monoterpenes
+#     include "F77_CMN_DIAG"     ! Diagnostic arrays and switches
+#     include "F77_CMN_O3"       ! Emissions arrays
+#     include "F77_CMN_NOX"      ! GEMISNOX2
+#     include "F77_CMN_MONOT"    ! Monoterpenes
 #     include "comode.h"     ! IVERT?
 
       ! Local variables

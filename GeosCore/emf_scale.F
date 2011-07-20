@@ -28,8 +28,8 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
-#     include "CMN_O3"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_O3"
 #     include "comode.h"
 !
 ! !INPUT PARAMETERS: 

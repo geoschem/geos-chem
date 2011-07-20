@@ -18,19 +18,19 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h"                    ! IDEMS, NEMIS, NCS
-#     include "CMN_O3"                      ! EMISRR, EMISRRN
-#     include "CMN_DIAG"                    ! ND15
+#     include "F77_CMN_O3"                      ! EMISRR, EMISRRN
+#     include "F77_CMN_DIAG"                    ! ND15
 
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      PUBLIC :: IIPAR, JJPAR, LLPAR         ! from "CMN_SIZE"
+      PUBLIC :: IIPAR, JJPAR, LLPAR         ! from "F77_CMN_SIZE"
       PUBLIC :: IDEMS, NEMIS, NCS, NDRYDEP  ! from "comode.h"
-      PUBLIC :: EMISRR, EMISRRN             ! from "CMN_O3"
-      PUBLIC :: ND15, ND44                  ! from "CMN_DIAG"
+      PUBLIC :: EMISRR, EMISRRN             ! from "F77_CMN_O3"
+      PUBLIC :: ND15, ND44                  ! from "F77_CMN_DIAG"
       PUBLIC :: emis_save
 
       ! Make sure MAXTRACERS >= N_TRACERS

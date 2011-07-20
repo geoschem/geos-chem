@@ -1,9 +1,10 @@
+#if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geos_chem 
+! !PROGRAM: geos_chem 
 !
 ! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
 !  GEOS-Chem model of atmospheric chemistry and composition.
@@ -167,9 +168,9 @@
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
-#     include "CMN_GCTM"          ! Physical constants
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_DIAG"          ! Diagnostic switches, NJDAY
+#     include "F77_CMN_GCTM"          ! Physical constants
 #     include "comode.h"          ! SMVGEAR common blocks
 !
 ! !REMARKS:
@@ -1487,7 +1488,7 @@
 ! file buffers to disk. 
 !\\
 !\\
-! CTM FLUSH should normally be called after each diagnostic output, so that 
+! CTM_FLUSH should normally be called after each diagnostic output, so that 
 ! in case the run dies, the output files from the last diagnostic timestep 
 ! will not be lost.  
 !\\
@@ -1553,4 +1554,4 @@
       END SUBROUTINE DISPLAY_END_TIME
 !EOC
       END PROGRAM GEOS_CHEM
-
+#endif

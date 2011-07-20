@@ -118,7 +118,7 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"                 ! Size parameters
+#     include "F77_CMN_SIZE"                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -222,7 +222,7 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_SIZE"                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -325,9 +325,9 @@
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
 
-#     include "CMN_SIZE"                  ! Size parameters
-#     include "CMN_DEP"                   ! FRCLND
-#     include "CMN_DIAG"                  ! ND11
+#     include "F77_CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_DEP"                   ! FRCLND
+#     include "F77_CMN_DIAG"                  ! ND11
 !
 ! !INPUT PARAMETERS: 
 !
@@ -676,9 +676,9 @@
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"                              ! Size parameters 
-#     include "CMN_DIAG"                              ! ND11
-#     include "CMN_DEP"                               ! FRCLND 
+#     include "F77_CMN_SIZE"                              ! Size parameters 
+#     include "F77_CMN_DIAG"                              ! ND11
+#     include "F77_CMN_DEP"                               ! FRCLND 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -686,7 +686,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  14 Sep 2001 - B. Field    - Initial version
-!  (1 ) Remove references to CMN_UV10M and CMN_LWI -- these are now
+!  (1 ) Remove references to F77_CMN_UV10M and F77_CMN_LWI -- these are now
 !        obsolete in GEOS-CHEM versions 4.18 and higher (bmy, 9/5/01)
 !  (2 ) Now compute u = SQRT( U10M^2 + V10M^2 ) as SQRT( SFCWINDSQR(I,J) ).
 !        This is necessary since U10M and V10M are missing for 1996, and
@@ -884,9 +884,9 @@
       USE GRID_MOD, ONLY : GET_YMID
       USE TIME_MOD, ONLY : GET_TS_EMIS
 
-#     include "CMN_SIZE"                  ! Size parameters
-#     include "CMN_MONOT"                 ! BASEMONOT
-#     include "CMN_DIAG"                  ! ND11
+#     include "F77_CMN_SIZE"                  ! Size parameters
+#     include "F77_CMN_MONOT"                 ! BASEMONOT
+#     include "F77_CMN_DIAG"                  ! ND11
 !
 ! !INPUT PARAMETERS: 
 !

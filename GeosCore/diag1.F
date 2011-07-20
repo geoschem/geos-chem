@@ -34,10 +34,10 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic arrays & parameters
-#     include "CMN_O3"    ! FRACO3
-#     include "CMN_GCTM"  ! Physical constants
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic arrays & parameters
+#     include "F77_CMN_O3"    ! FRACO3
+#     include "F77_CMN_GCTM"  ! Physical constants
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)
@@ -76,7 +76,7 @@
 !  (20) Now replace DXYP(J) with routine GET_AREA_M2 from "grid_mod.f"
 !        (bmy, 2/4/03)
 !  (21) Now compute PBL top for ND67 for GEOS-4/fvDAS.  Also now include
-!        SCALE_HEIGHT from header file "CMN_GCTM". (bmy, 6/23/03)
+!        SCALE_HEIGHT from header file "F77_CMN_GCTM". (bmy, 6/23/03)
 !  (22) Now references N_TRACERS, STT, and ITS_A_FULLCHEM_SIM from
 !        "tracer_mod.f" (bmy, 7/20/04)
 !  (23) Fixed ND67 PS-PBL for GCAP and GEOS-5 met fields (swu, bmy, 6/9/05)

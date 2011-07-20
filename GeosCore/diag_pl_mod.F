@@ -101,7 +101,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "comode.h"     ! SMVGEAR II arrays
 
 !
@@ -197,7 +197,7 @@
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h"
 ! 
 ! !REMARKS:
@@ -559,8 +559,8 @@
 !
       USE COMODE_MOD, ONLY : CSPEC, JLOP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! LD65
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! LD65
 #     include "comode.h"  ! SMVGEAR II arrays
 ! 
 ! !REVISION HISTORY:
@@ -667,8 +667,8 @@
       USE TRACER_MOD,    ONLY : STT,           XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! LD65
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! LD65
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -853,8 +853,8 @@
       USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! LD65
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -1227,8 +1227,8 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! ND65,    LD65
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! ND65,    LD65
 #     include "comode.h"   ! LFAMILY, NFAMILIES
 !
 ! !INPUT PARAMETERS: 

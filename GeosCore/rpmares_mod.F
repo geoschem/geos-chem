@@ -108,7 +108,7 @@
       USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -1858,7 +1858,7 @@
       ! F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER :: AS

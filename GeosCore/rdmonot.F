@@ -20,7 +20,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -30,7 +30,7 @@
 ! !REVISION HISTORY: 
 !  06 Jul 2001 - B. Field    - Initial version
 !  (1 ) Now read updated file "monotemis.v4-13.table" (bdf, bmy, 6/6/01)
-!  (2 ) Now reference DATA_DIR from "CMN_SETUP. (bmy, 6/6/01)
+!  (2 ) Now reference DATA_DIR from "F77_CMN_SETUP. (bmy, 6/6/01)
 !  (3 ) Now use IOERROR to trap I/O errors (bmy, 6/6/01)
 !  (4 ) IUNIT=65 is now a parameter (bmy, 7/6/01)
 !  (5 ) Now read file "monotemis.v4-13.table" from the 

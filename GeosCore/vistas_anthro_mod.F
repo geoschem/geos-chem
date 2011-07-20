@@ -166,8 +166,8 @@
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_O3"            ! FSCALYR
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -344,7 +344,7 @@
 ! 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -399,7 +399,7 @@
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTNOX
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -489,7 +489,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version

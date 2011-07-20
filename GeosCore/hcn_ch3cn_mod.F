@@ -144,7 +144,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -213,7 +213,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -296,8 +296,8 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU
       
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND09
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND09
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -495,9 +495,9 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
 
-#     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN_DIAG"     ! ND09
-#     include "CMN_DEP"      ! FRCLND 
+#     include "F77_CMN_SIZE"     ! Size parameters 
+#     include "F77_CMN_DIAG"     ! ND09
+#     include "F77_CMN_DEP"      ! FRCLND 
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -797,7 +797,7 @@
       USE GEIA_MOD,      ONLY : READ_TODX
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Local variables
       REAL*4              :: ARRAY(IIPAR,JJPAR,1)
@@ -844,7 +844,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

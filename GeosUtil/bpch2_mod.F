@@ -444,7 +444,7 @@
 !  (5 ) Use IOS /= 0 criterion to also check for EOF condition (bmy, 9/12/00)
 !  (6 ) TEMPARRAY now dimensioned to be of global size (bmy, 10/12/00) 
 !  (7 ) Removed obsolete code from 10/12/00 (bmy, 12/18/00)
-!  (8 ) Now make TEMPARRAY independent of CMN_SIZE parameters (bmy, 4/17/01)
+!  (8 ) Now make TEMPARRAY independent of F77_CMN_SIZE parameters (bmy, 4/17/01)
 !  (9 ) Removed old commented-out code (bmy, 4/20/01)
 !  (10) Now reference IU_FILE and IOERROR from "file_mod.f".  Now call 
 !        OPEN_BPCH2_FOR_READ to open the binary punch file.  Now use IU_FILE
@@ -622,7 +622,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !RETURN VALUE:
 !

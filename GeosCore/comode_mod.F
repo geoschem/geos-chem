@@ -115,7 +115,7 @@
       USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
       
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h" 
 ! 
 ! !REVISION HISTORY: 

@@ -109,12 +109,12 @@
       USE WETSCAV_MOD,  ONLY : H2O2s
       USE WETSCAV_MOD,  ONLY : SO2s
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic flags
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic flags
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
-!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
+!  08 Feb 2007 - R. Yantosca - Now reference "F77_CMN_SIZE".  Now references 
 !                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
 !                              we can pass either GEOS-5 or GEOS-3 meteorology
 !                              to NFCLDMX. 
@@ -370,8 +370,8 @@
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! ND37, LD37 
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_DIAG"          ! ND37, LD37 
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -563,8 +563,8 @@
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, GET_PCENTER
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
 
-#     include "CMN_SIZE"         ! Size parameters
-#     include "CMN_DIAG"         ! ND37, LD37 
+#     include "F77_CMN_SIZE"         ! Size parameters
+#     include "F77_CMN_DIAG"         ! ND37, LD37 
 !
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -765,8 +765,8 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches & arrays
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
 !
 ! !INPUT PARAMETERS: 
 !

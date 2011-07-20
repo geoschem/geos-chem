@@ -14,7 +14,7 @@
 !        declare these allocatable in "comode_mod.f".  This allows us to only 
 !        allocate these if we are doing a fullchem run.  Now also references
 !        routines from "diag_mod.f", "drydep_mod.f", "error_mod", and 
-!        "planeflight_mod.f".  Also, CMN_SAV has now been eliminated. 
+!        "planeflight_mod.f".  Also, F77_CMN_SAV has now been eliminated. 
 !        Also modified ND22 FAST-J diagnostics accordingly for SMVGEAR II. 
 !        Now added special rxn for DMS+OH+O2.  Force double precision with
 !        "D" exponents. (gcc, bdf, bmy, 4/1/03)
@@ -89,13 +89,13 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, etc
 #     include "comode.h"  ! SMVGEAR II arrays
       ! added LD52 and ND52 (jaegle 2/26/09)
-#     include "CMN_DIAG"  ! ND22, LD22, ND52, LD52
+#     include "F77_CMN_DIAG"  ! ND22, LD22, ND52, LD52
       ! added FRCLND (jaegle 02/26/09)
-#     include "CMN_DEP"  ! FRCLND
+#     include "F77_CMN_DEP"  ! FRCLND
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J

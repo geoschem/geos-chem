@@ -29,7 +29,7 @@ C SOILFERT  = Ferterlizers                                            *
 C UNITCONV  = Convert from NG_N/(M^2*S) to MOLECULES/CM^2/S           *
 C**********************************************************************
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "commsoil.h"
 
       INTEGER I,J,M,NN

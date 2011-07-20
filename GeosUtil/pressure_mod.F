@@ -115,7 +115,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"              ! Size parameters
+#     include "F77_CMN_SIZE"              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -153,7 +153,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"              ! Size parameters
+#     include "F77_CMN_SIZE"              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -194,7 +194,7 @@
 !
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
   
 !
 ! !INPUT PARAMETERS: 
@@ -254,7 +254,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"   ! PTOP
+#     include "F77_CMN_SIZE"   ! PTOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -315,7 +315,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"   ! PTOP
+#     include "F77_CMN_SIZE"   ! PTOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -366,7 +366,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! LLPAR, PTOP
+#     include "F77_CMN_SIZE"  ! LLPAR, PTOP
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 

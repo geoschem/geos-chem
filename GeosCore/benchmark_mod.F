@@ -65,7 +65,7 @@
 !  (2 ) Bundled into "benchmark_mod.f" (bmy, 7/20/04)
 !  (3 ) Now expand date tokens in the filename (bmy, 1/31/05)
 !  (4 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag
-!        value for GEOS or GCAP grids .  Also removed references to CMN_DIAG
+!        value for GEOS or GCAP grids .  Also removed references to F77_CMN_DIAG
 !        and TRCOFFSET. (bmy, 6/28/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !******************************************************************************
@@ -80,7 +80,7 @@
       USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LBEGIN 

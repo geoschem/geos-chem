@@ -330,7 +330,7 @@
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Local variables
       INTEGER              :: I,    J,    L
@@ -481,7 +481,7 @@
       USE TRACER_MOD,     ONLY : N_TRACERS,       ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
  
-#     include "CMN_SIZE"     ! Size parameters 
+#     include "F77_CMN_SIZE"     ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -662,9 +662,9 @@
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_GCTM"      ! g0
+#     include "F77_CMN_DIAG"      ! ND44
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -922,9 +922,9 @@
       USE TRACERID_MOD,   ONLY : IDTDMS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_DIAG"     ! ND05, LD05
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! AIRMW
+#     include "F77_CMN_DIAG"     ! ND05, LD05
 
       ! Local variables
       LOGICAL                :: IS_FULLCHEM
@@ -1174,9 +1174,9 @@
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
-#     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "CMN_GCTM"       ! AIRMW
-#     include "CMN_DIAG"       ! ND44
+#     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, F77_CMN_SIZE
+#     include "F77_CMN_GCTM"       ! AIRMW
+#     include "F77_CMN_DIAG"       ! ND44
       
       ! Local variables
       LOGICAL                 :: FIRST     = .TRUE.
@@ -1442,9 +1442,9 @@
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! AIRMW
-#     include "CMN_DIAG"    ! LD05, ND05, ND44
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_GCTM"    ! AIRMW
+#     include "F77_CMN_DIAG"    ! LD05, ND05, ND44
 
       ! Local variables
       LOGICAL               :: IS_OFFLINE
@@ -1980,12 +1980,12 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE DAO_MOD,         ONLY : AIRVOL
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !---------------------------------------------------------------
 ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
-!#     include "CMN_DIAG"  ! ND19
+!#     include "F77_CMN_DIAG"  ! ND19
 !---------------------------------------------------------------
-#     include "CMN_GCTM"  ! AIRMW
+#     include "F77_CMN_GCTM"  ! AIRMW
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L 
@@ -2550,8 +2550,8 @@
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Local variables
       INTEGER               :: I,      J,      L,        N,     N_ND44
@@ -2984,9 +2984,9 @@
       USE TRACERID_MOD,   ONLY : IDTMSA
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! AIRMW
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Local variables
       INTEGER               :: I,      J,    L,        PBL_MAX
@@ -3153,8 +3153,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Local variables
       INTEGER :: I,      J,        L,    PBL_MAX
@@ -3310,8 +3310,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND44
 
       ! Local variables
       INTEGER :: I,      J,    L,        PBL_MAX
@@ -3453,8 +3453,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND44
 
       ! Local variables
       INTEGER :: I,      J,     L,        PBL_MAX
@@ -3612,8 +3612,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Local variables
       INTEGER :: I,        J,     L,    N,     N_ND44, PBL_MAX
@@ -3848,7 +3848,7 @@
 !  (5 ) Now use functions GET_SEASON and GET_MONTH from the new "time_mod.f"
 !        (bmy, 3/27/03)
 !  (6 ) Added first-time printout message (bmy, 4/6/04)
-!  (7 ) Now references CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
+!  (7 ) Now references F77_CMN_SETUP.  Now read ship SO2 if LSHIPSO2=T.  Also
 !        references ITS_A_NEW_MONTH from "time_mod.f". (bec, bmy, 5/20/04)
 !  (8 ) Now references STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f".  
 !        Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
@@ -3875,7 +3875,7 @@
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
@@ -4092,7 +4092,7 @@
 !  (2 ) Now replace DXYP(J) with routine GET_AREA_M2 of "grid_mod.f"
 !        Now use routine GET_TS_EMIS from the new "time_mod.f". (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
 !        for PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Remove reference to "pressure_mod.f".  Now reference GET_FRAC_OF_PBL
 !        and GET_PBL_TOP_L from "pbl_mix_mod.f". (bmy, 2/22/05)
@@ -4108,9 +4108,9 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD,   ONLY : IDTDMS ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND13 (for now)
+#     include "F77_CMN_GCTM"     ! SCALE_HEIGHT
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4302,10 +4302,10 @@
 !  (2 ) Now use routines GET_TS_EMIS and GET_DAY_OF_YEAR from the new 
 !        "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references AD13_SO2_sh array from "diag_mod.f".  Also references
-!        LSHIPSO2 from "CMN_SETUP" (bec, bmy, 5/20/04) 
+!        LSHIPSO2 from "F77_CMN_SETUP" (bec, bmy, 5/20/04) 
 !  (5 ) Now references LSHIPSO2 from "logical_mod.f" (bmy, 7/20/04)
 !  (6 ) Now references routines GET_EPA_ANTHRO and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references GET_AREA_CM2 from "grid_mod.f".  
@@ -4357,9 +4357,9 @@
       USE TRACER_MOD,     ONLY : XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13, LD13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND13, LD13 (for now)
+#     include "F77_CMN_GCTM"     ! SCALE_HEIGHT
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -4896,7 +4896,7 @@
 !        It is converted to [kg/box/timestep] here.  
 !  (2 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (3 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (4 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references AD13_SO4_bf from "diag_mod.f".  Now 
@@ -4934,9 +4934,9 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND13 (for now)
+#     include "F77_CMN_GCTM"     ! SCALE_HEIGHT
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5172,13 +5172,13 @@
 !        when partitioning by level into the STT array. (rjp, bmy, 3/23/03)
 !  (3 ) Now use routine GET_TS_EMIS from the new "time_mod.f" (bmy, 3/27/03)
 !  (4 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the barometric law.
-!        Now references SCALE_HEIGHT from "CMN_GCTM".  Added BLTHIK variable
+!        Now references SCALE_HEIGHT from "F77_CMN_GCTM".  Added BLTHIK variable
 !        to hold PBL thickness in [hPa]. (bmy, 1/15/04)
 !  (5 ) Now references GET_EPA_ANTHRO, GET_EPA_BIOFUEL, and GET_USA_MASK from 
 !        "epa_nei_mod.f".  Now references GET_DAY_OF_WEEK from "time_mod.f".  
 !        Now references LNEI99 from "logical_mod.f".  Now references 
 !        GET_AREA_CM2 from "grid_mod.f".  Now references IDTNH3 from 
-!        "tracerid_mod.f".  Now references XNUMOL from CMN_O3.  Now can 
+!        "tracerid_mod.f".  Now references XNUMOL from F77_CMN_O3.  Now can 
 !        overwrite the anthro & biofuel NH3 emissions over the continental US 
 !        if LNEI99=T.  Now references IDTNH3 from "tracerid_mod.f". 
 !        (rjp, rch, bmy, 11/16/04)
@@ -5210,9 +5210,9 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND13
+#     include "F77_CMN_GCTM"     ! SCALE_HEIGHT
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5443,7 +5443,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5532,7 +5532,7 @@
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDOH
  
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5586,7 +5586,7 @@
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5700,7 +5700,7 @@
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDNO3
       
-#     include "CMN_SIZE"  ! Size parameters 
+#     include "F77_CMN_SIZE"  ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5751,7 +5751,7 @@
       USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDO3
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J, L
@@ -5839,7 +5839,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -5954,7 +5954,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -6109,8 +6109,8 @@
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! FSCALYR
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_O3"               ! FSCALYR
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH, NSEASON
@@ -6410,7 +6410,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters 
+#     include "F77_CMN_SIZE"  ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -6479,7 +6479,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: THISMONTH, THISYEAR
@@ -6576,7 +6576,7 @@
 !        Now replace MONTH with the argument THISMONTH.  Now call READ_BPCH2
 !        with QUIET=.TRUE. (bmy, 3/27/03)
 !  (4 ) Now references DATA_DIR from "directory_mod.f".  Also removed
-!        references to CMN and CMN_SETUP. (bmy, 7/20/04)
+!        references to CMN and F77_CMN_SETUP. (bmy, 7/20/04)
 !  (5 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both "logical_mod.f" and "time_mod.f".
 !        Now reads SO2 biomass emissions directly rather than computing
@@ -6609,7 +6609,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -6713,7 +6713,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
                                     
       ! Local variables             
       INTEGER                       :: I, J
@@ -6774,7 +6774,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -6930,7 +6930,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters 
+#     include "F77_CMN_SIZE"             ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7140,7 +7140,7 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7254,7 +7254,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -7325,7 +7325,7 @@
 !  (4 ) Now use ENCODE statement for PGI/F90 on Linux (bmy, 9/29/03)
 !  (5 ) Changed cpp switch name from LINUX to LINUX_PGI (bmy, 12/2/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f".  Now references LBBSEA
-!        from "logical_mod.f".  Removed references to CMN and CMN_SETUP.
+!        from "logical_mod.f".  Removed references to CMN and F77_CMN_SETUP.
 !        (bmy, 7/20/04)
 !  (7 ) Now can read either seasonal or interannual biomass burning emissions.
 !        Now references routines from both and "time_mod.f".  Now reads SO2 
@@ -7357,7 +7357,7 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7456,7 +7456,7 @@
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Local variables
       INTEGER                       :: I, J
@@ -7517,7 +7517,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: MONTH
@@ -7617,8 +7617,8 @@
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -7783,7 +7783,7 @@
       USE LOGICAL_MOD,   ONLY : LDRYD
       USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

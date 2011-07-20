@@ -95,9 +95,9 @@
       PRIVATE
 
       ! ... except these variables
-      ! FP: NBIOMAX now specified in CMN_SIZE and is the max
+      ! FP: NBIOMAX now specified in F77_CMN_SIZE and is the max
       ! number of BB species allowed, used for array allocation (hotp 7/30/09)
-      ! if additional BB species are added, increase NBIOMAX in CMN_SIZE
+      ! if additional BB species are added, increase NBIOMAX in F77_CMN_SIZE
       !PUBLIC :: NBIOMAX
       !PUBLIC :: NBIOMAX_GAS ! no longer needed (hotp 8/3/09)
       !FP_ISOP
@@ -133,7 +133,7 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      ! FP Removed hard-wired IDBxxx and move NBIOMAX to CMN_SIZE (hotp 7/30/09)      ! Parameters
+      ! FP Removed hard-wired IDBxxx and move NBIOMAX to F77_CMN_SIZE (hotp 7/30/09)      ! Parameters
 !      INTEGER, PARAMETER   :: NBIOMAX     = 24
 !      INTEGER, PARAMETER   :: NBIOMAX_GAS = 19
 !      INTEGER, PARAMETER   :: IDBNOX      = 1
@@ -145,7 +145,7 @@
 !      INTEGER, PARAMETER   :: IDBOC       = 14
 !      INTEGER, PARAMETER   :: IDBCO2      = 24
       
-#     include "CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 
       !FP_ISOP
       ! FP: NBIOTRCE is number of biomass burning tracers (hotp 7/30/09)
@@ -220,8 +220,8 @@
       USE TRACERID_MOD,      ONLY : IDBCO2
 
 
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! Diagnostic flags
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_DIAG"          ! Diagnostic flags
 
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
@@ -544,7 +544,7 @@
       IF ( NBIOTRCE .GE. NBIOMAX ) THEN
           CALL ERROR_STOP ( 'NBIOTRCE too large!', '(biomass_mod)' )
           ! If you get this error, an appropriate fix is to increase
-          ! NBIOMAX in CMN_SIZE (hotp 7/31/09)
+          ! NBIOMAX in F77_CMN_SIZE (hotp 7/31/09)
       ENDIF
 
       ! Echo biomass burning tracer information
@@ -580,7 +580,7 @@
       ! References to F90 modules
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
@@ -621,7 +621,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LBIOMASS
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 
       INTEGER              :: AS
 

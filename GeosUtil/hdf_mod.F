@@ -98,7 +98,7 @@
       USE GRID_MOD, ONLY : GET_XMID
       USE GRID_MOD, ONLY : GET_YMID
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

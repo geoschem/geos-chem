@@ -18,9 +18,9 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"
-#     include "CMN_DEP"
-#     include "CMN_VEL"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_DEP"
+#     include "F77_CMN_VEL"
 !
 ! !INPUT PARAMETERS:
 !

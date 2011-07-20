@@ -94,7 +94,7 @@
 !
       USE TRACER_MOD, ONLY : STT
 
-#     include "CMN_SIZE"           ! Size parameters
+#     include "F77_CMN_SIZE"           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -150,8 +150,8 @@
       USE DIAG_PL_MOD                                      !dbj
       USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
            
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! LD65
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_DIAG" ! LD65
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -309,9 +309,9 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_GCTM"       ! SCALE_HEIGHT
-#     include "CMN_DIAG"       ! ND44, ND65, LD65
+#     include "F77_CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_GCTM"       ! SCALE_HEIGHT
+#     include "F77_CMN_DIAG"       ! ND44, ND65, LD65
 !
 ! !INPUT PARAMETERS: 
 !
@@ -327,7 +327,7 @@
 !  19 Aug 2003 - A. Fiore - Initial version
 !  (1 ) Updated from the old routine "chemo3_split.f" (rch, bmy, 8/20/03)
 !  (2 ) For GEOS-4, convert PBL from [m] to [hPa] w/ the hydrostatic law.
-!        Now references SCALE_HEIGHT from "CMN_GCTM". (bmy, 1/15/04)
+!        Now references SCALE_HEIGHT from "F77_CMN_GCTM". (bmy, 1/15/04)
 !  (3 ) Now uses model levels instead of pressure in order to delineate
 !        between PBL, MT, and UT regions (amf, rch, bmy, 5/27/04)
 !  (4 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f".  Now remove
@@ -520,8 +520,8 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44, ND65, LD65
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND44, ND65, LD65
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -762,8 +762,8 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! ND44, ND65, LD65
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! ND44, ND65, LD65
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version

@@ -175,8 +175,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! Physical constants
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_GCTM"    ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -291,7 +291,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! STT, NTRACE, LPRT, LWINDO
 !
 ! !INPUT PARAMETERS: 
@@ -415,8 +415,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_GCTM"   ! Physical constants
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_GCTM"   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -440,7 +440,7 @@
 !   Philip Cameron-Smith and John Tannahill, GMI project @ LLNL (2003)
 ! 
 ! !REMARKS:
-!   Now reference PI from "CMN_GCTM" for consistency.  Also force
+!   Now reference PI from "F77_CMN_GCTM" for consistency.  Also force
 !   double-precision with the "D" exponent. (bmy, 5/6/03)
 !
 ! !REVISION HISTORY: 
@@ -1193,8 +1193,8 @@ c     --------------------------------------
 !
 ! !USES:
 !
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_GCTM" ! Re, PI
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_GCTM" ! Re, PI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1373,8 +1373,8 @@ c     --------------------------------------
 !
 ! !USES:
 !
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_GCTM" ! Re, Pi
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_GCTM" ! Re, Pi
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1911,8 +1911,8 @@ c     --------------------------------------
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Re, PI, etc...
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"  ! Re, PI, etc...
 ! 
 !
 ! !AUTHOR:

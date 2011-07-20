@@ -120,8 +120,8 @@
 !        (bmy, 8/9/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_GCTM"             ! Physical constants
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_GCTM"             ! Physical constants
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)  :: UNIT
@@ -259,7 +259,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
       
       ! Arguments
       INTEGER,          INTENT(IN)  :: L1x1
@@ -299,7 +299,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
       
       ! Arguments
       INTEGER,          INTENT(IN)  :: L1x1
@@ -339,7 +339,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
       
       ! Arguments
       REAL*4,           INTENT(IN)  :: INDATA(I1x1,J1x1,1)
@@ -384,7 +384,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
       
       ! Arguments
       REAL*8,           INTENT(IN)  :: INDATA(I1x1,J1x1,1)
@@ -429,7 +429,7 @@
 !  (1 ) Added #if block for 1 x 1.25 grid (bdf, bmy, 8/2/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
       
       ! Arguments
       INTEGER,          INTENT(IN)  :: L1x1
@@ -620,7 +620,7 @@
 !  (1 ) Updated nested grid limits for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER,          INTENT(IN) :: L05x0666
@@ -692,7 +692,7 @@
 !  (1 ) Updated nested grid limits for EU & NA grids (amv, bmy, 12/18/09)
 !******************************************************************************
 !
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER,          INTENT(IN) :: L05x0666
@@ -769,7 +769,7 @@
 !******************************************************************************
 !  
 
-#     include "CMN_SIZE"             ! Size parameters IIPAR, JJPAR
+#     include "F77_CMN_SIZE"             ! Size parameters IIPAR, JJPAR
 
       ! Arguments
       INTEGER,          INTENT(IN) :: I1, J1, L1
@@ -783,7 +783,7 @@
       
 #if defined( NESTED_CH ) 
 
-      ! These parameters are taken from CMN_SIZE
+      ! These parameters are taken from F77_CMN_SIZE
       INTEGER, PARAMETER           :: II_NEST = 81  !total lon box
       INTEGER, PARAMETER           :: JJ_NEST = 67  !total lat box
       INTEGER, PARAMETER           :: I1_NEST = 251 !1st 1x1 lon box
@@ -2207,8 +2207,8 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"  ! Physical constants
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"  ! Physical constants
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

@@ -8,8 +8,8 @@ C===============================================
 C* BIOFIT and SUNPARAM were written by Y.H. Wang.  See comment
 C* in subroutine DEPVEL on what these subroutines do.
 C*************************************************************
-#     include "CMN_SIZE"
-#     include "CMN_DEP"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_DEP"
       INTEGER KK
       PARAMETER (KK=4)
       REAL*8 COEFF1(NPOLY),TERM(KK),REALTERM(NPOLY)

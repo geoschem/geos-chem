@@ -88,7 +88,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "CMN_SIZE"                        ! Size parameters
+#     include "F77_CMN_SIZE"                        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,7 +333,7 @@
       USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"                       ! Size parameters
+#     include "F77_CMN_SIZE"                       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -346,7 +346,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
@@ -491,7 +491,7 @@
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -640,7 +640,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -719,7 +719,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -785,8 +785,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "CMN_SIZE"                       ! Size parameters
-#     include "CMN_DIAG"                       ! ND67
+#     include "F77_CMN_SIZE"                       ! Size parameters
+#     include "F77_CMN_DIAG"                       ! ND67
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1523,7 +1523,7 @@
 !
       USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
 
-#     include "CMN_SIZE"                    ! Size parameters
+#     include "F77_CMN_SIZE"                    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

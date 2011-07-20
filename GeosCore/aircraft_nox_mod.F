@@ -51,7 +51,7 @@
 !        Also deleted obsolete code from various routines (bmy, 10/15/02)
 !  (8 ) Now references "grid_mod.f" and "time_mod.f" (bmy, 2/11/03)
 !  (9 ) Now references "directory_mod.f" (bmy, 7/19/04)
-!  (10) Replace GEMISNOX (from CMN_NOX) with a module variable (bmy, 10/3/07)
+!  (10) Replace GEMISNOX (from F77_CMN_NOX) with a module variable (bmy, 10/3/07)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -111,7 +111,7 @@
 !  (yhw, bmy, 7/5/01, 2/11/03)
 !
 !  NOTES: 
-!  (1 ) Now reference DATA_DIR from include file "CMN_SETUP".  Also reference
+!  (1 ) Now reference DATA_DIR from include file "F77_CMN_SETUP".  Also reference
 !        routine GET_RES_EXT from BPCH2_MOD. (bmy, 7/5/01)
 !  (2 ) Now also use F90 syntax for declarations.  Also use IOERROR to trap
 !        I/O errors.  Use D exponent to force REAL*8 precision. Also updated 
@@ -139,7 +139,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
@@ -242,7 +242,7 @@
 !  (6 ) Now reference BXHEIGHT from "dao_mod.f". (bmy, 9/18/02)
 !  (7 ) I0 and J0 are now local variables.  Now use functions GET_XOFFSET
 !        and GET_YOFFSET from "grid_mod.f" (bmy, 2/11/03)
-!  (8 ) Replace GEMISNOX (from "CMN_NOX") with module variable EMIS_AC_NOx
+!  (8 ) Replace GEMISNOX (from "F77_CMN_NOX") with module variable EMIS_AC_NOx
 !        in order to avoid common block errors. (ltm, bmy, 10/3/07)
 !******************************************************************************
 !
@@ -252,9 +252,9 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "CMN"       ! PTOP, SIGE, AVP
-#     include "CMN_DIAG"  ! Diagnostic switches
+#     include "F77_CMN_DIAG"  ! Diagnostic switches
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -384,7 +384,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
       
       ! Local variables
       INTEGER :: AS

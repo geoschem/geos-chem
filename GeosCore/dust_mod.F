@@ -92,7 +92,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -194,9 +194,9 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -401,8 +401,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -497,7 +497,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -594,9 +594,9 @@
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND06
-#     include "CMN_GCTM"      ! g0
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND06
+#     include "F77_CMN_GCTM"      ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -861,9 +861,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND19, LD13 (for now)
-#     include "CMN_GCTM"  ! g0
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND19, LD13 (for now)
+#     include "F77_CMN_GCTM"  ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1106,9 +1106,9 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-#     include "cmn_fj.h"      ! LPAR, CMN_SIZE
+#     include "cmn_fj.h"      ! LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"      ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "CMN_DIAG"      ! ND21, LD21
+#     include "F77_CMN_DIAG"      ! ND21, LD21
 #     include "comode.h"      ! NTTLOOP
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1321,9 +1321,9 @@
 
       IMPLICIT NONE
 
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
+#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "CMN_DIAG"   ! ND21, LD21
+#     include "F77_CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTTLOOP
 !
 ! !INPUT PARAMETERS: 
@@ -1337,7 +1337,7 @@
 !        binary files is pretty fast.  And it's only done once a month.
 !  (3 ) Now references punch file utility routines from F90 module
 !        "bpch2_mod.f".  Also reference variable DATA_DIR from the
-!         header file "CMN_SETUP". (bmy, 9/30/00) 
+!         header file "F77_CMN_SETUP". (bmy, 9/30/00) 
 !  (4 ) Now selects proper GEOS-STRAT dust field for 1996 or 1997.
 !        Also need to pass THISYEAR thru the arg list. (rvm, bmy, 11/21/00)
 !  (5 ) CONC is now declared as REAL*8 (rvm, bmy, 12/15/00)
@@ -1596,7 +1596,7 @@
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version

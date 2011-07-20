@@ -85,7 +85,7 @@
       USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
       USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h"
 !
 ! !REMARKS:
@@ -159,7 +159,7 @@
       USE COMODE_MOD,     ONLY : CSPEC,  CSPEC_FULL
       USE COMODE_MOD,     ONLY : IXSAVE, IYSAVE, IZSAVE
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 #     include "comode.h"
 !
 ! !REMARKS:
@@ -232,7 +232,7 @@
       USE DAO_MOD,       ONLY : TROPP
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 #     include "CMN"           ! LPAUSE, for backwards compatibility
 ! 
 ! !REVISION HISTORY: 
@@ -302,7 +302,7 @@
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 #     include "CMN"           ! LPAUSE, for backwards compatibility
 ! 
 ! !REVISION HISTORY: 
@@ -514,7 +514,7 @@
       USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -729,8 +729,8 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic switches
 !
 ! !REMARKS:
 !  For GEOS-4, GEOS-5, 'MERRA', we use the tropopause pressure from the met 
@@ -933,7 +933,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 ! 
 ! !REVISION HISTORY: 
 !  10 Feb 2005 - R. Yantosca - Initial version

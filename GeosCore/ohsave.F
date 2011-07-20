@@ -25,7 +25,7 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "comode.h"     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
 !
 ! !INPUT PARAMETERS: 

@@ -91,7 +91,7 @@
 !        (surface water concentration should not exceed 8 ng/L)
 !  (2 ) CH3I emissions from rice and wetlands use Fung's CH4 emission
 !        inventory scaled with a constant factor from BIBLE observations.
-!  (3 ) Added "CMN_SETUP" so that the proper path name to the /data/ctm
+!  (3 ) Added "F77_CMN_SETUP" so that the proper path name to the /data/ctm
 !        directories can be supplied. (bmy, 3/18/99)
 !  (4 ) Trap I/O errors with subroutine IOERROR (bmy, 5/27/99)
 !  (5 ) OCDATA now holds the aqueous CH3I in [ng/L], as read from disk.
@@ -123,7 +123,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
@@ -290,7 +290,7 @@
 !  (11) Fixed bugs in the expressions for H and FLUX (mgs, bmy, 5/15/99)
 !  (12) Now uses bilinear correlation with NPP and RADSWG for ocean source
 !       (before only NPP)   (mgs, 16 Jun 1999
-!  (13) FRCLND removed as argument, because CMN_DEP now included 
+!  (13) FRCLND removed as argument, because F77_CMN_DEP now included 
 !       (mgs, 06/16/99)
 !  (14) Ocean emissions now differetn parametrizations for 3 latitude regions.
 !        Emissions protocolled in more detail.
@@ -346,9 +346,9 @@
       USE TRACERID_MOD, ONLY : IDBFCO
 
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DEP"     ! RADIAT, FRCLND
-#     include "CMN_DIAG"    ! Diagnostic switches
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DEP"     ! RADIAT, FRCLND
+#     include "F77_CMN_DIAG"    ! Diagnostic switches
 
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -937,8 +937,8 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND36
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND36
 #     include "comode.h"     ! SPECNAME
 
       ! Local variables

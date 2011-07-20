@@ -347,7 +347,7 @@
       USE FILE_MOD,   ONLY : IU_FILE,   IOERROR
       USE TRACER_MOD, ONLY : N_TRACERS, ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 #     include "comode.h"  ! NAMEGAS, NSPEC
 
       ! Local variables
@@ -743,7 +743,7 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 #     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
@@ -819,7 +819,7 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 #     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
@@ -893,7 +893,7 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 #     include "comode.h" ! NSPEC, NAMEGAS, NCS
 
       ! Local variables
@@ -990,7 +990,7 @@
       
       IMPLICIT NONE
       
-#     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
+#     include "cmn_fj.h"   ! FAST-J parameters (includes F77_CMN_SIZE)
 #     include "jv_cmn.h"   ! ODAER, QAA, QAA_AOD
 #     include "comode.h"   ! CSPEC, etc.
       
@@ -1362,7 +1362,7 @@
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -1511,8 +1511,8 @@
       USE COMODE_MOD, ONLY : IXSAVE, IYSAVE, IZSAVE
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND40 switch
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND40 switch
 #     include "comode.h"  ! RRATE, JLOOPLO, KBLOOP
  
       ! Arguments 
@@ -1660,7 +1660,7 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR, GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IU_FILE,   IOERROR
 
-#     include "CMN_SIZE" ! Size Parameters
+#     include "F77_CMN_SIZE" ! Size Parameters
 #     include "comode.h" ! ITLOOP
 
       ! Local variables 

@@ -105,7 +105,7 @@
 !        area in cm2.  Remove references to DXYP.  Use routines GET_MONTH
 !        and GET_TS_EMIS from "time_mod.f".  Remove MONTH from call to
 !        BIOBURN. (bmy, 2/11/03)
-!  (5 ) Now replace CMN_SETUP w/ references from "logical_mod.f" and
+!  (5 ) Now replace F77_CMN_SETUP w/ references from "logical_mod.f" and
 !        "directory_mod.f".  Now references STT from "tracer_mod.f".
 !        Replace LFOSSIL with LANTHRO (bmy, 7/20/04)
 !  (6 ) Now make sure all USE statements are USE, ONLY.  Also eliminate 
@@ -131,10 +131,10 @@
       USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 #     include "CMN"          ! STT, etc.
-#     include "CMN_O3"       ! EMISTC2H6
-#     include "CMN_DIAG"     ! Diagnostic arrays & switches
+#     include "F77_CMN_O3"       ! EMISTC2H6
+#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -329,7 +329,7 @@
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,    ONLY : N_TRACERS, STT
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -418,7 +418,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       INTEGER :: AS

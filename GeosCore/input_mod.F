@@ -772,7 +772,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : TRACERID
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1382,8 +1382,8 @@
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! FSCALYR
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_O3"        ! FSCALYR
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1945,8 +1945,8 @@
       USE LOGICAL_MOD, ONLY : LCHEMCO2     
       USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_O3"      ! FSCALYR
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_O3"      ! FSCALYR
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2308,7 +2308,7 @@
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2799,8 +2799,8 @@
 !
       USE FILE_MOD, ONLY : IU_GEOS, IOERROR
       
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! NJDAY
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_DIAG" ! NJDAY
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2889,8 +2889,8 @@
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! NDxx flags
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! NDxx flags
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2916,7 +2916,7 @@
 !        (phs, 11/18/08)
 !  (12) Now set TINDEX with PD45=NNPAR+1 tracers instead of N_TRACERS.
 !        (tmf, 2/10/09)
-!  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
+!  (13) NBIOMAX now in F77_CMN_SIZE (fp, 6/2009)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
 !                              set N_TMP = N_TRACERS, or else wetdep tracers 
@@ -3511,8 +3511,8 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TMAX, TINDEX
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! TMAX, TINDEX
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3641,8 +3641,8 @@
       USE ERROR_MOD,       ONLY : ERROR_STOP
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
 
-#     include "CMN_SIZE"        ! MAXFAM
-#     include "CMN_DIAG"        ! ND40
+#     include "F77_CMN_SIZE"        ! MAXFAM
+#     include "F77_CMN_DIAG"        ! ND40
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3844,7 +3844,7 @@
       USE DIAG49_MOD, ONLY : INIT_DIAG49
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4087,8 +4087,8 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51_HDF
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"    ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4227,8 +4227,8 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51b_HDF
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"    ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
@@ -4367,8 +4367,8 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
       USE LOGICAL_MOD, ONLY : LKPP
 
-#     include "CMN_SIZE"    ! MAXFAM
-#     include "CMN_DIAG"    ! ND65
+#     include "F77_CMN_SIZE"    ! MAXFAM
+#     include "F77_CMN_DIAG"    ! ND65
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4384,7 +4384,7 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      !FP_ISOP moved to CMN_SIZE (6/2009)
+      !FP_ISOP moved to F77_CMN_SIZE (6/2009)
       !INTEGER, PARAMETER   :: MAXMEM=10
       INTEGER              :: F, M, N, NFAM
       INTEGER              :: FAM_NMEM(MAXFAM)
@@ -5618,8 +5618,8 @@
       USE JULDAY_MOD, ONLY : JULDAY
       USE TIME_MOD,   ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! NJDAY
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! NJDAY
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version

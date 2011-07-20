@@ -110,8 +110,8 @@
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_DIAG"        ! NDxx flags
+#     include "F77_CMN_SIZE"        ! Size parameters
+#     include "F77_CMN_DIAG"        ! NDxx flags
 #     include "comode.h"        ! NPHOT
 !
 ! !REVISION HISTORY: 
@@ -129,7 +129,7 @@
 !        (rjp, bec, bmy, 4/20/04)
 !  (7 ) Now references "logical_mod.f" & "tracer_mod.f".  Now references
 !        AEROSOL_CONC, AEROSOL_RURALBOX, and RDAER from "aerosol_mod.f".  
-!        Now includes "CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
+!        Now includes "F77_CMN_DIAG" and "comode.h".  Also call READER, READCHEM, 
 !        and INPHOT to initialize the FAST-J arrays so that we can save out !
 !        AOD's to the ND21 diagnostic for offline runs. (bmy, 7/20/04)
 !  (8 ) Now call routine CHEMMERCURY from "mercury_mod.f" for an offline
