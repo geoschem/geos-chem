@@ -1,41 +1,23 @@
-! $Id: partition.f,v 1.2 2009/10/15 17:46:24 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: partition
+!
+! !DESCRIPTION: Subroutine PARTITION separates each GEOS-Chem tracer into 
+!  its individual constituent chemistry species before each SMVGEAR or KPP 
+!  chemistry timestep.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE PARTITION( NTRACER, STT, XNUMOL ) 
 !
-!******************************************************************************
-!  Subroutine PARTITION separates GEOS-CHEM tracers into its individual
-!  constituent chemistry species before each SMVGEAR chemistry timestep.
-!  (bdf, bmy, 4/1/03, 1/7/09)
+! !USES:
 !
-!  Warning: 
-!  ========
-!  Partition was written assuming NOx tracer is before Ox tracer
-!  in the tracer declaration in input.geos. If you want to change this
-!  order, you need to adjust the code.
-!
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NTRACER (INTEGER) : Number of tracers
-!  (2 ) STT     (REAL*8 ) : Tracer concentrations [kg/box]
-!  (3 ) XNUMOL  (REAL*8 ) : Array of molecules tracer / kg tracer 
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) STT     (REAL*8 ) : Updated tracer concentrations [molec/cm3/box]
-!
-!  NOTES:
-!  (1 ) Now make CSAVE a local dynamic array.  Updated comments, cosmetic 
-!        changes (bmy, 4/24/03)
-!  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
-!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Resize CSAVE to save local memory, for SUN compiler. (bmy, 7/14/06)
-!  (6 ) Now do safe division to eliminate FP errors (phs, bmy, 2/26/08)
-!  (7 ) Now change error stop 30000 into a warning (phs, ccc, bmy, 1/7/09)
-!******************************************************************************
-!
-      ! References to F90 modules 
       USE COMODE_MOD,   ONLY : CSPEC,     JLOP,       VOLUME
+      USE COMODE_MOD,   ONLY : JLOP_PREVIOUS
       USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP, SAFE_DIV
       USE TRACERID_MOD, ONLY : IDTOX,     IDTNOX,     IDTRMB
       USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
@@ -46,19 +28,59 @@
 #     include "CMN_SIZE"
 #     include "comode.h"
 
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
+      ! # of tracers
       INTEGER, INTENT(IN)    :: NTRACER
-      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
-      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
 
-      ! Local variables
-      INTEGER                :: I, J, L, N, JLOOP, IPL, JJ, KK
-      INTEGER                :: CSAVEID(IGAS)
-      INTEGER                :: CSAVEID_JJ(IGAS)
-      INTEGER                :: CS, IDNUM, AS  
-      REAL*8                 :: CONCTMP, CONCNOX, SUM, SUM1
-      REAL*8                 :: CSAVE( ITLOOP, NTRACER )
-      REAL*8                 :: QTEMP
+      ! Conversion factor: molecules tracer / kg tracer 
+      REAL*8,  INTENT(IN)    :: XNUMOL(NTRACER)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! Updated tracer concentrations [molec/cm3/box]
+      REAL*8,  INTENT(INOUT) :: STT(IIPAR,JJPAR,LLPAR,NTRACER)
+!
+! !REMARKS:
+!  Warning: 
+!  ========
+!  Partition was written assuming NOx tracer is before Ox tracer
+!  in the tracer declaration in input.geos. If you want to change this
+!  order, you need to adjust the code.
+! 
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2003 - B. Field, R. Yantosca - Initial version, based on older code
+!  (1 ) Now make CSAVE a local dynamic array.  Updated comments, cosmetic 
+!        changes (bmy, 4/24/03)
+!  (2 ) Add OpenMP parallelization commands (bmy, 8/1/03)
+!  (3 ) Now dimension args XNUMOL, STT w/ NTRACER and not NNPAR (bmy, 7/20/04)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Resize CSAVE to save local memory, for SUN compiler. (bmy, 7/14/06)
+!  (6 ) Now do safe division to eliminate FP errors (phs, bmy, 2/26/08)
+!  (7 ) Now change error stop 30000 into a warning (phs, ccc, bmy, 1/7/09)
+!  27 Jun 2011 - D. Henze, J. Koo - Fix to variable tropopause by Daven Henze.
+!                                   When initializing CSAVE, search downward
+!                                   in the column until we find a grid box
+!                                   that was in the troposphere on the previous
+!                                   timestep.
+!  27 Jun 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, N, JLOOP, IPL, JJ, KK
+      INTEGER :: CSAVEID(IGAS)
+      INTEGER :: CSAVEID_JJ(IGAS)
+      INTEGER :: CS, IDNUM, AS 
+      INTEGER :: LTEST
+      INTEGER :: JLOOP_P 
+      REAL*8  :: CONCTMP, CONCNOX, SUM, SUM1
+      REAL*8  :: CSAVE( ITLOOP, NTRACER )
+      REAL*8  :: QTEMP
 
       !=================================================================
       ! PARTITION begins here!
@@ -98,19 +120,72 @@
       ! Loop over tracer members and boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, JLOOP )
+!$OMP+PRIVATE( I, J, L, N, JLOOP, JLOOP_P, LTEST )
 !$OMP+SCHEDULE( DYNAMIC )
       DO N = 1, IDNUM
       DO L = 1, NPVERT
       DO J = 1, NLAT
       DO I = 1, NLONG
 
-         ! 1-D SMVGEAR grid box index
+         ! 1-D index for SMVGEAR/KPP arrays corresponding to 
+         ! grid box (I,J,L) @ current chemistry timestep
          JLOOP = JLOP(I,J,L)
+
+         ! Exit if grid box (I,J,L) is in the stratosphere 
+         ! at the current chemistry timestep
          IF ( JLOOP == 0 ) CYCLE
 
-         ! Store into CSAVE
-         CSAVE(JLOOP,N) = CSPEC(JLOOP,CSAVEID_JJ(N))
+         ! 1-D index for SMVGEAR/KPP arrays corresponding to 
+         ! grid box (I,J,L) @ previous chemistry timestep
+	 JLOOP_P = JLOP_PREVIOUS(I,J,L)
+
+         ! If the grid box (I,J,L) was in the stratosphere 
+         ! at the  previous timestep, then  ...
+         IF ( JLOOP_P == 0 ) THEN
+
+            ! Start with the current vertical level
+            LTEST = L
+
+            ! Search downward in the column (I,J,:) until we find a grid box 
+            ! that was in the troposphere @ the previous chemistry timestep
+            DO WHILE ( JLOOP_P == 0 )
+
+               ! Try the next lowest grid box in the column
+               LTEST = LTEST - 1
+
+               ! Error: exit if we reach the surface without finding
+               ! any boxes in the troposphere.  This should never happen!
+               IF ( LTEST == 0 ) THEN
+!$OMP CRITICAL
+                  CALL ERROR_STOP( 'could no find trop box',
+     &				   'partition.f' )
+!$OMP END CRITICAL
+               ENDIF
+
+               ! Test if this next lowest grid box (I,J,LTEST) was in the
+               ! troposphere at the previous chemistry timestep.  If so,
+               ! this will terminate the search.  Save the index JLOOP_P,
+               ! which corresponds to (I,J,LTEST), for use below.
+               JLOOP_P = JLOP_PREVIOUS(I,J,LTEST)
+
+            ENDDO
+            
+         ENDIF
+		    
+!------------------------------------------------------------------------------
+! Prior to 6/27/11:
+! Bug fix: we need to use index CSPEC with JLOOP_P and CSAVE with JLOOP here.
+! (dkh, bmy, 6/27/11)
+!         ! Store into CSAVE
+!         CSAVE(JLOOP,N) = CSPEC(JLOOP,CSAVEID_JJ(N))
+!------------------------------------------------------------------------------
+
+         ! Archive into the CSAVE array the concentration of each species
+         ! in the CSPEC array at the previous chemistry timestep at index
+         ! JLOOP_P.  JLOOP_P is guaranteed to be a tropopsheric box.  This
+         ! will ensure proper partitioning.
+         CSAVE(JLOOP,N) = CSPEC(JLOOP_P,CSAVEID_JJ(N))
+
       ENDDO
       ENDDO
       ENDDO
@@ -343,5 +418,5 @@
 !$OMP END PARALLEL DO
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE PARTITION
+!EOC

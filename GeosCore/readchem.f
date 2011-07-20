@@ -36,6 +36,9 @@
 !  (10) In "510 FORMAT", the format of 'B' in kinetic reactions section of 
 !        smv2.log does not match variable type and causes code to crash when 
 !        run with ifort -check all flag. (hotp, bmy, 6/1/10)
+!  13 Jun 2011 - R. Yantosca - Bug fix: prevent out-of-bounds errors in MAPPL
+!                              array.  Test species flags to make sure they
+!                              are nonzero before using them.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1215,16 +1218,68 @@ C
                   IF ( J == MAPPL(IFAM(N),NCS) ) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
-                  ! dkh 
-                  ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
-     &                     J == MAPPL(ILBRO2N,NCS) .or.
-     &                     J == MAPPL(ILTRO2H,NCS) .or.
-     &                     J == MAPPL(ILTRO2N,NCS) .or.
-     &                     J == MAPPL(ILXRO2H,NCS) .or.
-     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
-                     ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
-                     EXIT
+!------------------------------------------------------------------------------
+! Prior to 3/1/11:
+! These statements will cause an out-of-bounds error if any of the IL* indices 
+! are zero.  Bracket these out with separate IF statements (bmy, 3/1/11)
+!                  ! dkh 
+!                  ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
+!     &                     J == MAPPL(ILBRO2N,NCS) .or.
+!     &                     J == MAPPL(ILTRO2H,NCS) .or.
+!     &                     J == MAPPL(ILTRO2N,NCS) .or.
+!     &                     J == MAPPL(ILXRO2H,NCS) .or.
+!     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
+!                     ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+!                     EXIT
+!------------------------------------------------------------------------------
                   ENDIF
+
+                  ! Avoid out-of-bounds-errors by making sure that each
+                  ! IL* index is nonzero before doing the IF test for J. 
+                  ! (bmy, 6/13/11)
+                  IF ( ILBRO2H > 0 ) THEN 
+                     IF ( J == MAPPL(ILBRO2H,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
+
+                  IF ( ILBRO2N > 0 ) THEN 
+                     IF ( J == MAPPL(ILBRO2N,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF 
+                  ENDIF
+
+                  IF ( ILTRO2H > 0 ) THEN 
+                     IF ( J == MAPPL(ILTRO2H,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF 
+                  ENDIF
+
+                  IF ( ILTRO2N > 0 ) THEN 
+                     IF ( J == MAPPL(ILTRO2N,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF 
+                  ENDIF
+
+                  IF ( ILXRO2H > 0 ) THEN 
+                     IF ( J == MAPPL(ILXRO2H,NCS)  ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF 
+                  ENDIF
+
+                  IF ( ILXRO2N > 0 ) THEN 
+                     IF ( J == MAPPL(ILXRO2N,NCS) ) THEN
+                        ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
+                        EXIT
+                     ENDIF
+                  ENDIF
+
+
                ENDDO  
             ENDDO
          ENDDO
