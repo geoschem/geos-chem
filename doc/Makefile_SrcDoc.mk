@@ -51,7 +51,6 @@ SRC1 :=                              \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE                      \
 $(HDR)/CMN_DIAG                      \
-<<<<<<< HEAD
 $(CORE)/acetone_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
