@@ -38,6 +38,7 @@
 #  02 Dec 2010 - R. Yantosca - Added rdlight, rdland, rdsoil, emmonot
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_3.*"\
 #  21 Dec 2010 - R. Yantosca - Added comode_mod
+#  11 Jul 2011 - R. Yantosca - Added restart_mod
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #EOP
 #------------------------------------------------------------------------------
@@ -50,6 +51,7 @@ SRC1 :=                              \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE                      \
 $(HDR)/CMN_DIAG                      \
+<<<<<<< HEAD
 $(CORE)/acetone_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
@@ -90,7 +92,6 @@ $(CORE)/land_mercury_mod.F           \
 $(CORE)/lightning_nox_mod.F          \
 $(CORE)/linoz_mod.F                  \
 $(CORE)/logical_mod.F                \
-$(CORE)/main.F                       \
 $(CORE)/megan_mod.F                  \
 $(CORE)/meganut_mod.F                \
 $(CORE)/merra_a1_mod.F               \
@@ -136,7 +137,8 @@ $(CORE)/readlai.F                    \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \
 $(CORE)/sfcwindsqr.F                 \
-$(CORE)/tcorr.F            
+$(CORE)/tcorr.F                      \
+$(CORE)/main.F                       \
 
 
 # Output file names
