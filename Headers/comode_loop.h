@@ -39,12 +39,32 @@
 ! *********************************************************************
 !
 ! !REVISION HISTORY:
-!  17 Mar 2009 - R. Yantosca - Cleaned up, added ProTeX headers
-!  16 Apr 2010 - R. Yantosca - Now use MAX_SPECIES from smv_dimension.h
-!                              to set the value of the IGAS parameter
+!  22 Jul 2011 - R. Yantosca - Initial version, based on column code version
 !
 ! !DEFINED PARAMETERS:
 !
+!      !---------------------------------------------------------------
+!      ! Parameters for backwards compatibility with the older
+!      ! "comode.h" file.  These can be removed later.
+!      !---------------------------------------------------------------
+!
+!      INTEGER, PARAMETER :: ILAT    = JJPAR
+!      INTEGER, PARAMETER :: ILONG   = IIPAR
+!      INTEGER, PARAMETER :: IVERT   = LLTROP
+!      INTEGER, PARAMETER :: IPLUME  = 0
+!      INTEGER, PARAMETER :: IPVERT  = IVERT + IPLUME
+!      INTEGER, PARAMETER :: ITLOOP  = ILAT * ILONG * IPVERT
+!      INTEGER, PARAMETER :: IMLOOP  = ILAT * ILONG
+!      INTEGER, PARAMETER :: ILAYER  = IVERT + 1
+!      INTEGER, PARAMETER :: ILTLOOP = IMLOOP * ILAYER
+!      INTEGER, PARAMETER :: MAXDAYS = 1000
+!      INTEGER, PARAMETER :: MXBLOCK = 16 + ITLOOP/KBLOOP      
+!
+!      ! NEMPARA = max no. of anthropogenic emissions
+!      ! NEMPARB = max no. of biogenic emissions
+!      INTEGER IDEMS
+!      COMMON /JTRCID/ IDEMS(NEMPARA+NEMPARB)
+
       !---------------------------------------------------------------
       ! Physical constants 
       !---------------------------------------------------------------
@@ -102,10 +122,17 @@
       INTEGER, PARAMETER :: NCSALL   = NCSGAS
       INTEGER, PARAMETER :: NCSTRST  = NCSGAS
 
-      ! Counter for the chemistry slot (NOTE: this was a DO loop variable
-      ! in a common block, very bad coding style.  We'll just make this a
-      ! parameter and rewrite the code to remove the do loops.
-      INTEGER, PARAMETER :: NCS      = NCSURBAN
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! For now, restore the NCS common block until we can rewrite the source code 
+! to remove this from DO loops (bmy, 7/22/11)
+!      ! Counter for the chemistry slot (NOTE: this was a DO loop variable
+!      ! in a common block, very bad coding style.  We'll just make this a
+!      ! parameter and rewrite the code to remove the do loops.
+!      INTEGER, PARAMETER :: NCS      = NCSURBAN
+!------------------------------------------------------------------------------
+      INTEGER            :: NCS
+      COMMON /TMPNCS/       NCS
 
       ! Print species and reactions in readchem.f
       INTEGER, PARAMETER :: IOSPEC   = 1
@@ -121,47 +148,57 @@
       ! Small number tolerances
       !---------------------------------------------------------------
       
-      REAL*8,  PARAMETER :: SMAL1     = 1d-06 
-      !------------------------------------------------------
-      ! Prior to 6/4/10:
-      ! Reset SMAL2 to for REAL*4 precision (bmy, 6/4/10)
-      !REAL*8,  PARAMETER :: SMAL2     = 1.0d-99
-      !------------------------------------------------------
-      REAL*8,  PARAMETER :: SMAL2     = 1d-37
-      
-      ! SMAL3 is no longer used (bmy, 6/4/10)
-      !REAL*8,  PARAMETER :: SMAL3     = 1d-50
+      REAL*8,  PARAMETER :: SMAL1    = 1d-06 
+      REAL*8,  PARAMETER :: SMAL2    = 1.0d-99
+      REAL*8,  PARAMETER :: SMAL3    = 1d-50
 
       !---------------------------------------------------------------
       ! Placeholder parameters to size some common blocks
       !---------------------------------------------------------------
-
-      ! NOTE: KBLOOP has to be dimensioned as large as the max # 
-      ! of vertical levels in a column.  The parameter MAX_COLUMN
-      ! is contained w/in include file "smv_dimension.h"
-      INTEGER, PARAMETER :: KBLOOP   = MAX_COLUMN
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (KBLOOP=24) as in the current comode.h (bmy, 7/22/11)
+!      ! NOTE: KBLOOP has to be dimensioned as large as the max # 
+!      ! of vertical levels in a column.  The parameter MAX_COLUMN
+!      ! is contained w/in include file "smv_dimension.h"
+!      INTEGER, PARAMETER :: KBLOOP   = MAX_COLUMN
+!------------------------------------------------------------------------------
+      ! Number of individual grid boxes per grid block.  We pass this many 
+      ! grid boxes to each CPU.  The convergence criterion is computed
+      ! for the whole grid block (all KBLOOP grid boxes). (bmy, 7/22/11)
+      INTEGER, PARAMETER :: KBLOOP   = 24
 
       !---------------------------------------------------------------
       ! Gas-phase parameters
       !---------------------------------------------------------------
 
       ! Maximum number of gases, active + inactive 
-      !--------------------------------------------------------------------
-      ! Prior to 4/16/10:
-      ! Now use MAX_SPECIES in smv_dimension.h to set IGAS (bmy, 4/16/10)
-      !INTEGER, PARAMETER :: IGAS     = 125
-      !--------------------------------------------------------------------
-      INTEGER, PARAMETER :: IGAS     = MAX_SPECIES
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (IGAS=300) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: IGAS     = MAX_SPECIES
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: IGAS     = 300
 
       ! Maximum number of aqueous chemistry species 
       ! (set = 1 here since no aqueous chemistry is included)
       INTEGER, PARAMETER :: IAERTY   = 1  
 
       ! Maximum number of rates constants (max # reactions)
-      INTEGER, PARAMETER :: NMRATE   = 360
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (NMRATE=700) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: NMRATE   = 700
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NMRATE   = 700
 
       ! Maximum number of photo rates
-      INTEGER, PARAMETER :: IPHOT    = 60 
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (IPHOT=85) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: IPHOT    = 60
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: IPHOT    = 85
 
       ! Maximum number of kinetic + photo reactions
       INTEGER, PARAMETER :: NMTRATE  = NMRATE + IPHOT
@@ -177,20 +214,40 @@
       INTEGER, PARAMETER :: NMDEAD   = 100         
 
       ! Maximum number of gains / losses for each chemical species
-      INTEGER, PARAMETER :: MAXGL    = 430
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (MAXGL=1000) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: MAXGL    = 430
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: MAXGL    = 1000
 
       ! An array dimension smaller than MAXGL
-      INTEGER, PARAMETER :: MAXGL2   = 50          
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (MAXGL2=90) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: MAXGL2   = 50          
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: MAXGL2   = 90          
 
       ! An array dimension smaller than MAXGL2
-      ! NOTE: MAX_TRACERS is contained in include file "smv_dimension.h"
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (MAXGL3=NNPAR) as in the current comode.h (bmy, 7/22/11)
+!      ! NOTE: MAX_TRACERS is contained in include file "smv_dimension.h"
       INTEGER, PARAMETER :: MAXGL3   = MAX_TRACERS
+!------------------------------------------------------------------------------
+!      INTEGER, PARAMETER :: MAXGL3   = NNPAR
 
       ! An array dimension smaller than MAXGL2
       INTEGER, PARAMETER :: MAXGL4   = 10   
 
       ! Number OF TYPES OF CHEMISTRY (set to NCSGAS=1)
-      INTEGER, PARAMETER :: ICS      = NCSGAS
+!------------------------------------------------------------------------------
+! Prior to 7/22/11:
+! Use same value (ICS=3) as in the current comode.h (bmy, 7/22/11)
+!      INTEGER, PARAMETER :: ICS      = NCSGAS
+!------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: ICS      = 3
 
       ! Types of chemistry * 2 (one for day, one for night)
       INTEGER, PARAMETER :: ICP      = 2*ICS       
@@ -330,7 +387,7 @@
       INTEGER ::         ISCHAN,      NFDH3,     NFDL2,     NFDH2
       INTEGER ::         NFDL1,       NFDH1,     NFDREP,    NFDREP1   
       INTEGER ::         NFDL0,       NALLR 
-      COMMON /CHEM2A/    ISCHAN,      NFDH3,     NFDL2,     NFDH2,      &       
+      COMMON /CHEM2A/    ISCHAN,      NFDH3,     NFDL2,     NFDH2,      &      
      &                   NFDL1,       NFDH1,     NFDREP,    NFDREP1,    &
      &                   NFDL0,       NALLR
 
@@ -380,18 +437,18 @@
       INTEGER NKSPECY,NKSPECZ,NKSPECV,ISLOSSR,NKSPECA,NKSPECB,NKSPECC
       INTEGER NKSPECD,NKSPECK,NKSPECG
       COMMON /IDICS/                                                     &
-        NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),                      &
-        ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),    &
-        NSPEC(   ICS), NTRATES(ICS), ISGAINE( ICS),   NTLOOPNCS(ICS),    & 
-        NSPCSOLV(ICS), ISCHANG(ICS), NRATES(  ICS),   NM3BOD(   ICS),    &
-        ITWOR(   ICS), ITHRR(  ICS), INOREP(  ICS),   NRATCUR(  ICS),    &
-        NSURFACE(ICS), NPRESM( ICS), NMAIR(   ICS),   NMO2(     ICS),    &
-        NMN2(    ICS), NNEQ(   ICS), NARR(    ICS),   NABR(     ICS),    &
-        NACR(    ICS), NABC(   ICS), NKSPECW( ICS),   NKSPECX(  ICS),    &
-        NKSPECY( ICS), NKSPECZ(ICS), NKSPECV(MAXGL2,ICS),ISLOSSR(ICS),   &
-        NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),                    &
-        NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),     &
-        NKSPECG(MAXGL2,ICS)
+     &    NMOTH(   ICS), NTSPEC( ICS), JPHOTRAT(ICS),                    &
+     &    ISGAINR( ICS), ISPORL( ICS), NOGAINE( ICS),   NOUSE(    ICS),  &
+     &    NSPEC(   ICS), NTRATES(ICS), ISGAINE( ICS),   NTLOOPNCS(ICS),  & 
+     &    NSPCSOLV(ICS), ISCHANG(ICS), NRATES(  ICS),   NM3BOD(   ICS),  &
+     &    ITWOR(   ICS), ITHRR(  ICS), INOREP(  ICS),   NRATCUR(  ICS),  &
+     &    NSURFACE(ICS), NPRESM( ICS), NMAIR(   ICS),   NMO2(     ICS),  &
+     &    NMN2(    ICS), NNEQ(   ICS), NARR(    ICS),   NABR(     ICS),  &
+     &    NACR(    ICS), NABC(   ICS), NKSPECW( ICS),   NKSPECX(  ICS),  &
+     &    NKSPECY( ICS), NKSPECZ(ICS), NKSPECV(MAXGL2,ICS),ISLOSSR(ICS), &
+     &    NKSPECA(  MAXGL3,ICS), NKSPECB(  MAXGL3,ICS),                  &
+     &    NKSPECC(MAXGL3,ICS),NKSPECD(MAXGL3,ICS),NKSPECK(MAXGL3,ICS),   &
+     &    NKSPECG(MAXGL2,ICS)
 
       ! re-define some nkspec* arrays for harvard chem mechanism (bdf)
       INTEGER ::        NOLOSP,         NGNFRAC,         NOLOSRAT
@@ -443,23 +500,23 @@
 
       REAL*8 ARR,BRR,FCV,FCTEMP1,FCTEMP2
       COMMON /DNMTRATE/                                                  &
-        ARR(    NMTRATE, ICS),  BRR(    NMTRATE, ICS),                   &
-        FCV(    NMTRATE, ICS),  FCTEMP1(NMTRATE, ICS),                   &
-        FCTEMP2(NMTRATE, ICS)  
+     &   ARR(    NMTRATE, ICS),  BRR(    NMTRATE, ICS),                  &
+     &   FCV(    NMTRATE, ICS),  FCTEMP1(NMTRATE, ICS),                  &
+     &   FCTEMP2(NMTRATE, ICS)  
 
       INTEGER IAPROD,NOLOSRN,NRUSE,NRREP,NPRODUC,IALLOSN,NCEQUAT
       INTEGER NEWFOLD,NKONER,NKTWOR,NKTHRR,IRMA,IRMB,KCRR,LSKIP,IRMC
       INTEGER JPHOTNK,IUSED,NOLDFNEW
       COMMON /INMTRATE/                                                  &
-        IAPROD( NMTRATE,  ICS),  NOLOSRN( NMTRATE, ICS),                 &
-        NRUSE(  NMTRATE,  ICS),  NRREP(   NMTRATE, ICS),                 &
-        NPRODUC(NMTRATE,  ICS),  IALLOSN( MXRATE,  ICS),                 &
-        NCEQUAT(NMTRATE,  ICS),  NOLDFNEW(NMTRATE, ICS),                 &
-        NEWFOLD(NMTRATE*2,ICS),  NKONER(  NMTRATE, ICS),                 &
-        NKTWOR( NMTRATE,  ICS),  NKTHRR(  NMTRATE, ICS),                 &
-        KCRR(   NMTRATE,  ICS),  LSKIP(   MXRATE,  ICS),                 &
-        IRMC(   NMTRATE      ),  JPHOTNK( NMTRATE, ICS),                 &
-        IUSED(  MXRATE,   ICS)
+     &   IAPROD( NMTRATE,  ICS),  NOLOSRN( NMTRATE, ICS),                &
+     &   NRUSE(  NMTRATE,  ICS),  NRREP(   NMTRATE, ICS),                &
+     &   NPRODUC(NMTRATE,  ICS),  IALLOSN( MXRATE,  ICS),                &
+     &   NCEQUAT(NMTRATE,  ICS),  NOLDFNEW(NMTRATE, ICS),                &
+     &   NEWFOLD(NMTRATE*2,ICS),  NKONER(  NMTRATE, ICS),                &
+     &   NKTWOR( NMTRATE,  ICS),  NKTHRR(  NMTRATE, ICS),                &
+     &   KCRR(   NMTRATE,  ICS),  LSKIP(   MXRATE,  ICS),                &
+     &   IRMC(   NMTRATE      ),  JPHOTNK( NMTRATE, ICS),                &
+     &   IUSED(  MXRATE,   ICS)
 
       ! For COMPAQ, put IRMA, IRMB in /INMTRATE2/ (Q. Liang, bmy, 10/17/05)
       COMMON /INMTRATE2/                                                 &
@@ -475,14 +532,14 @@
       INTEGER NREACAIR,NREAC3B,NREACEQ,NREQOTH,NREACN2,NREACO2,NREACPM
       INTEGER LGAS3BOD,NKSURF,NCOATG
       COMMON /IMAXGL2/                     &
-        NREACOTH(MAXGL2,ICS), LGASBINO(MAXGL2,ICS),                      &
-        NKNLOSP( MAXGL3,ICS), LOSINACP(MAXGL3,ICS),                      &
-        IGNFRAC( MAXGL, ICS), NKGNFRAC(MAXGL, ICS),                      &
-        NREACAIR(MAXGL3,ICS), NREAC3B( MAXGL3,ICS),                      &
-        NREACEQ( MAXGL3,ICS), NREQOTH( MAXGL3,ICS),                      &
-        NREACN2( MAXGL3,ICS), NREACO2( MAXGL3,ICS),                      &
-        NREACPM( MAXGL3,ICS), LGAS3BOD(MAXGL3,ICS),                      &
-        NKSURF(  MAXGL4    ), NCOATG(  MAXGL4    ) 
+     &   NREACOTH(MAXGL2,ICS), LGASBINO(MAXGL2,ICS),                     &
+     &   NKNLOSP( MAXGL3,ICS), LOSINACP(MAXGL3,ICS),                     &
+     &   IGNFRAC( MAXGL, ICS), NKGNFRAC(MAXGL, ICS),                     &
+     &   NREACAIR(MAXGL3,ICS), NREAC3B( MAXGL3,ICS),                     &
+     &   NREACEQ( MAXGL3,ICS), NREQOTH( MAXGL3,ICS),                     &
+     &   NREACN2( MAXGL3,ICS), NREACO2( MAXGL3,ICS),                     &
+     &   NREACPM( MAXGL3,ICS), LGAS3BOD(MAXGL3,ICS),                     &
+     &   NKSURF(  MAXGL4    ), NCOATG(  MAXGL4    ) 
 
       INTEGER ::        MBCOMP,            MBTRACE
       COMMON /IIMASBAL/ MBCOMP(IMASBAL,2), MBTRACE(IMASBAL)
@@ -491,17 +548,17 @@
       REAL*8 CNEW,CEST,GLOSS,CHOLD,VDIAG,CBLK,DTLOS,EXPLIC,CONC
       REAL*8 RRATE,URATE,TRATE,CORIG
       COMMON /DKBLOOP2/              &
-        CNEW(   KBLOOP,  MXGSAER),                                       &
-        CEST(   KBLOOP,  MXGSAER),                                       &
-        GLOSS(  KBLOOP,  MXGSAER),                                       &
-        CHOLD(  KBLOOP,  MXGSAER),                                       &
-        VDIAG(  KBLOOP,  MXGSAER),  CBLK(  KBLOOP,MXGSAER),              &
-        DTLOS(  KBLOOP,  MXGSAER),  EXPLIC(KBLOOP,MXGSAER),              &
-        CONC(   KBLOOP,MXGSAER*7),                                       &
-        RRATE(  KBLOOP,  NMTRATE),                                       &
-        URATE(  KBLOOP,NMTRATE,3),                                       &
-        TRATE(  KBLOOP,NMTRATE*2),                                       &
-        CORIG(  KBLOOP,  MXGSAER)
+     &   CNEW(   KBLOOP,  MXGSAER),                                      &
+     &   CEST(   KBLOOP,  MXGSAER),                                      &
+     &   GLOSS(  KBLOOP,  MXGSAER),                                      &
+     &   CHOLD(  KBLOOP,  MXGSAER),                                      &
+     &   VDIAG(  KBLOOP,  MXGSAER),  CBLK(  KBLOOP,MXGSAER),             &
+     &   DTLOS(  KBLOOP,  MXGSAER),  EXPLIC(KBLOOP,MXGSAER),             &
+     &   CONC(   KBLOOP,MXGSAER*7),                                      &
+     &   RRATE(  KBLOOP,  NMTRATE),                                      &
+     &   URATE(  KBLOOP,NMTRATE,3),                                      &
+     &   TRATE(  KBLOOP,NMTRATE*2),                                      &
+     &   CORIG(  KBLOOP,  MXGSAER)
 
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
       REAL*8 ::         CC2
@@ -509,8 +566,8 @@
 
       INTEGER NKPHOTRAT,NPPHOTRAT,NKNPHOTRT
       COMMON /DIPHOT2/                                                   &
-        NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),                 &
-        NKNPHOTRT(IPHOT,ICS) 
+     &   NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),                &
+     &   NKNPHOTRT(IPHOT,ICS) 
 
       REAL*8 ::        FRACGAIN,              QBKCHEM
       COMMON /DIMXGS2/ FRACGAIN(MXGSAER,ICS), QBKCHEM( MXGSAER,ICS) 
@@ -519,15 +576,15 @@
       INTEGER IGAINR,IPORL,IGAINE,ISOLVSPC,INEWOLD,MAPPL,ISAPORL,NUMPORL
       INTEGER ISPARDER,JLOSST
       COMMON /IIMXGS2/                                                   &
-        NUMLOST( MXGSAER,    ICS), NUMGFRT( MXGSAER,        ICS),        &
-        NUMLOSS( MXGSAER,    ICP), JPORL(   MXGSAER,MAXGL,  ICS),        &
-        NUMGAINT(MXGSAER,    ICS), NGAINE(  MXGSAER,        ICS),        &
-        NUMGAIN( MXGSAER,    ICP), IGAINR(  MXGSAER,        ICS),        &
-        IPORL(   MXGSAER,    ICS), IGAINE(  MXGSAER,        ICS),        &
-        ISOLVSPC(MXGSAER,    ICS), INEWOLD( MXGSAER,        ICS),        &
-        MAPPL(   MXGSAER,    ICS), ISAPORL( MXGSAER            ),        &
-        NUMPORL( MXGSAER,    ICP), ISPARDER(MXGSAER,MXGSAER    ),        &
-        JLOSST(  MXGSAER,MAXGL,ICS)
+     &   NUMLOST( MXGSAER,    ICS), NUMGFRT( MXGSAER,        ICS),       &
+     &   NUMLOSS( MXGSAER,    ICP), JPORL(   MXGSAER,MAXGL,  ICS),       &
+     &   NUMGAINT(MXGSAER,    ICS), NGAINE(  MXGSAER,        ICS),       &
+     &   NUMGAIN( MXGSAER,    ICP), IGAINR(  MXGSAER,        ICS),       &
+     &   IPORL(   MXGSAER,    ICS), IGAINE(  MXGSAER,        ICS),       &
+     &   ISOLVSPC(MXGSAER,    ICS), INEWOLD( MXGSAER,        ICS),       &
+     &   MAPPL(   MXGSAER,    ICS), ISAPORL( MXGSAER            ),       &
+     &   NUMPORL( MXGSAER,    ICP), ISPARDER(MXGSAER,MXGSAER    ),       &
+     &   JLOSST(  MXGSAER,MAXGL,ICS)
 
       INTEGER JZILCH,KZILCH,MZILCH
       COMMON /IGMXGLS/                                                   &
@@ -536,13 +593,13 @@
       INTEGER LZERO,JARRAYPT,IZILCH,JARRDIAG,JLOZ1,JHIZ1,IJTLO
       INTEGER IJTHI,IMZTOT,IFREPRO,IZLO1,IZLO2,IZHI0,IZHI1
       COMMON /IGMXGS2/                                                   &
-        LZERO(   MXGSAER,MXGSAER), JARRAYPT(MXGSAER,MXGSAER),            &
-        IZILCH(  MXGSAER,MXGSAER), JARRDIAG(MXGSAER,   ICP),             &
-        JLOZ1(   MXGSAER,    ICP), JHIZ1(   MXGSAER,   ICP),             &
-        IJTLO(   MXGSAER,    ICP), IJTHI(   MXGSAER,   ICP),             &
-        IMZTOT(  MXGSAER,    ICP), IFREPRO( MXGSAER,MXRATE, ICS),        &
-        IZLO1( MXGSAER,ICP),                                             &
-        IZLO2( MXGSAER,ICP), IZHI0( MXGSAER,ICP), IZHI1( MXGSAER,ICP)    
+     &   LZERO(   MXGSAER,MXGSAER), JARRAYPT(MXGSAER,MXGSAER),           &
+     &   IZILCH(  MXGSAER,MXGSAER), JARRDIAG(MXGSAER,   ICP),            &
+     &   JLOZ1(   MXGSAER,    ICP), JHIZ1(   MXGSAER,   ICP),            &
+     &   IJTLO(   MXGSAER,    ICP), IJTHI(   MXGSAER,   ICP),            &
+     &   IMZTOT(  MXGSAER,    ICP), IFREPRO( MXGSAER,MXRATE, ICS),       &
+     &   IZLO1( MXGSAER,ICP),                                            &
+     &   IZLO2( MXGSAER,ICP), IZHI0( MXGSAER,ICP), IZHI1( MXGSAER,ICP)    
 
       REAL*8 ::        FRACNFR,           FRACPL
       COMMON /DMXCOUN/ FRACNFR(MXCOUNT4), FRACPL(MXCOUNT2) 
@@ -553,43 +610,43 @@
       INTEGER KZEROC,MZEROC,KZEROD,MZEROD,KZEROE,MZEROE,IPOSPD,IIALPD
       INTEGER NKPDTERM,IJVAL,IKZTOT,JSPNPL,NKNFR,JSPCNFR
       COMMON /IMXCOUN/                                                   &
-        JZERO( MXCOUNT3),  KZERO(  MXCOUNT3),  MZERO(   MXCOUNT3),       & 
-        IZEROK(MXCOUNT2),  JZEROA( MXCOUNT3),                            &
-        IKDECA(MXCOUNT3),  KJDECA( MXCOUNT3),  LOSSRA(  MXCOUNT4),       &
-        IKDECB(MXCOUNT3),  KJDECB( MXCOUNT3),  LOSSRB(  MXCOUNT4),       &
-        IKDECC(MXCOUNT3),  KJDECC( MXCOUNT3),  LOSSRC(  MXCOUNT4),       &
-        IKDECD(MXCOUNT3),  KJDECD( MXCOUNT3),  LOSSRD(  MXCOUNT4),       &
-        IKDECE(MXCOUNT3),  KJDECE( MXCOUNT3),  LOSSRE(  MXCOUNT4),       &
-        KZEROA(MXCOUNT4),  MZEROA( MXCOUNT4),                            &
-        KZEROB(MXCOUNT4),  MZEROB( MXCOUNT4),                            &
-        KZEROC(MXCOUNT4),  MZEROC( MXCOUNT4),                            &
-        KZEROD(MXCOUNT4),  MZEROD( MXCOUNT4),                            & 
-        KZEROE(MXCOUNT4),  MZEROE( MXCOUNT4),                            & 
-        IPOSPD(MXCOUNT2),  IIALPD( MXCOUNT2),  NKPDTERM(MXCOUNT2),       &
-        IJVAL( MXCOUNT3),  IKZTOT( MXCOUNT4),  JSPNPL(  MXCOUNT4),       &
-        NKNFR( MXCOUNT4),  JSPCNFR(MXCOUNT4) 
+     &   JZERO( MXCOUNT3),  KZERO(  MXCOUNT3),  MZERO(   MXCOUNT3),      & 
+     &   IZEROK(MXCOUNT2),  JZEROA( MXCOUNT3),                           &
+     &   IKDECA(MXCOUNT3),  KJDECA( MXCOUNT3),  LOSSRA(  MXCOUNT4),      &
+     &   IKDECB(MXCOUNT3),  KJDECB( MXCOUNT3),  LOSSRB(  MXCOUNT4),      &
+     &   IKDECC(MXCOUNT3),  KJDECC( MXCOUNT3),  LOSSRC(  MXCOUNT4),      &
+     &   IKDECD(MXCOUNT3),  KJDECD( MXCOUNT3),  LOSSRD(  MXCOUNT4),      &
+     &   IKDECE(MXCOUNT3),  KJDECE( MXCOUNT3),  LOSSRE(  MXCOUNT4),      &
+     &   KZEROA(MXCOUNT4),  MZEROA( MXCOUNT4),                           &
+     &   KZEROB(MXCOUNT4),  MZEROB( MXCOUNT4),                           &
+     &   KZEROC(MXCOUNT4),  MZEROC( MXCOUNT4),                           &
+     &   KZEROD(MXCOUNT4),  MZEROD( MXCOUNT4),                           & 
+     &   KZEROE(MXCOUNT4),  MZEROE( MXCOUNT4),                           & 
+     &   IPOSPD(MXCOUNT2),  IIALPD( MXCOUNT2),  NKPDTERM(MXCOUNT2),      &
+     &   IJVAL( MXCOUNT3),  IKZTOT( MXCOUNT4),  JSPNPL(  MXCOUNT4),      &
+     &   NKNFR( MXCOUNT4),  JSPCNFR(MXCOUNT4) 
 
       INTEGER IDH5,IDH4,IDH3,IDH2,IDH1,IDL5,IDL4,IDL3,IDL2,IDL1,KBH5
       INTEGER KBH4,KBH3,KBH2,KBH1,KBL5,KBL4,KBL3,KBL2,KBL1,MBH5,MBH4
       INTEGER MBH3,MBH2,MBH1,MBL5,MBL4,MBL3,MBL2,MBL1,NPH5,NPH4,NPH3
       INTEGER NPH2,NPH1,NPL5,NPL4,NPL3,NPL2,NPL1
       COMMON /IMXCOU2/                                                   &
-        IDH5(  MXCOUNT3),  IDH4(  MXCOUNT3),  IDH3(  MXCOUNT3),          &
-        IDH2(  MXCOUNT3),  IDH1(  MXCOUNT3),  IDL5(  MXCOUNT3),          &
-        IDL4(  MXCOUNT3),  IDL3(  MXCOUNT3),  IDL2(  MXCOUNT3),          &
-        IDL1(  MXCOUNT3),                                                &
-        KBH5(  MXCOUNT4),  KBH4(  MXCOUNT4),  KBH3(  MXCOUNT4),          &
-        KBH2(  MXCOUNT4),  KBH1(  MXCOUNT4),  KBL5(  MXCOUNT4),          &
-        KBL4(  MXCOUNT4),  KBL3(  MXCOUNT4),  KBL2(  MXCOUNT4),          &
-        KBL1(  MXCOUNT4),                                                & 
-        MBH5(  MXCOUNT4),  MBH4(  MXCOUNT4),  MBH3(  MXCOUNT4),          &
-        MBH2(  MXCOUNT4),  MBH1(  MXCOUNT4),  MBL5(  MXCOUNT4),          &
-        MBL4(  MXCOUNT4),  MBL3(  MXCOUNT4),  MBL2(  MXCOUNT4),          &
-        MBL1(  MXCOUNT4),                                                &
-        NPH5(  MXCOUNT4),  NPH4(  MXCOUNT4),  NPH3(  MXCOUNT4),          &
-        NPH2(  MXCOUNT4),  NPH1(  MXCOUNT4),  NPL5(  MXCOUNT4),          &
-        NPL4(  MXCOUNT4),  NPL3(  MXCOUNT4),  NPL2(  MXCOUNT4),          &
-        NPL1(  MXCOUNT4)  
+     &   IDH5(  MXCOUNT3),  IDH4(  MXCOUNT3),  IDH3(  MXCOUNT3),         &
+     &   IDH2(  MXCOUNT3),  IDH1(  MXCOUNT3),  IDL5(  MXCOUNT3),         &
+     &   IDL4(  MXCOUNT3),  IDL3(  MXCOUNT3),  IDL2(  MXCOUNT3),         &
+     &   IDL1(  MXCOUNT3),                                               &
+     &   KBH5(  MXCOUNT4),  KBH4(  MXCOUNT4),  KBH3(  MXCOUNT4),         &
+     &   KBH2(  MXCOUNT4),  KBH1(  MXCOUNT4),  KBL5(  MXCOUNT4),         &
+     &   KBL4(  MXCOUNT4),  KBL3(  MXCOUNT4),  KBL2(  MXCOUNT4),         &
+     &   KBL1(  MXCOUNT4),                                               & 
+     &   MBH5(  MXCOUNT4),  MBH4(  MXCOUNT4),  MBH3(  MXCOUNT4),         &
+     &   MBH2(  MXCOUNT4),  MBH1(  MXCOUNT4),  MBL5(  MXCOUNT4),         &
+     &   MBL4(  MXCOUNT4),  MBL3(  MXCOUNT4),  MBL2(  MXCOUNT4),         &
+     &   MBL1(  MXCOUNT4),                                               &
+     &   NPH5(  MXCOUNT4),  NPH4(  MXCOUNT4),  NPH3(  MXCOUNT4),         &
+     &   NPH2(  MXCOUNT4),  NPH1(  MXCOUNT4),  NPL5(  MXCOUNT4),         &
+     &   NPL4(  MXCOUNT4),  NPL3(  MXCOUNT4),  NPL2(  MXCOUNT4),         &
+     &   NPL1(  MXCOUNT4)  
 
       REAL*8 ::          WTMB
       COMMON /DIMASBAL2/ WTMB(IMASBAL,MXGSAER,2)
@@ -640,11 +697,5 @@
 !$OMP THREADPRIVATE( /DKBLOOP2/ )
 !$OMP THREADPRIVATE( /IGEAR2/   )
 !$OMP THREADPRIVATE( /IXYGD2/   )
-
-#if   defined( COMPAQ )
-! For COMPAQ, declare /INMTRATE2/ threadprivate (Q. Liang, bmy, 10/17/05)
-!$OMP THREADPRIVATE( /INMTRATE2/ )
-#endif
-
 !EOP
 !------------------------------------------------------------------------------
