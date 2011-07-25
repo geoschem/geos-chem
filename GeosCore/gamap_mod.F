@@ -538,8 +538,8 @@
             NAME_NEW = 'PROD' // C
             
             ! Write tracers [kg] to "tracerinfo.dat"
-            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  real(1e0,4), 
-     &                        1,        real(1e0,4),      'kg/kg', N )
+            CALL WRITE_TINFO( NAME_NEW, NAME_NEW,  1e0, 
+     &                        1,        1e0,      'kg/kg', N )
          ENDDO
 
       ENDIF

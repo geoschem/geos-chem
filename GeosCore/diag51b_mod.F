@@ -1853,7 +1853,7 @@
      &                  TAU0,         TAU1,         RESERVED,
      &                  ND51_NI,      ND51_NJ,      GMNL,
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
-     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
 #endif
          ELSE
             CALL BPCH2( IU_ND51b,     MODELNAME,    LONRES,   
@@ -1862,7 +1862,7 @@
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
      &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
-     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W),4))
+     &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
          ENDIF
       ENDDO
 
