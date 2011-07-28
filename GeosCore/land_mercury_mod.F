@@ -71,6 +71,7 @@
       USE DAO_MOD,          ONLY : SNOW, SNOMAS 
       USE DEPO_MERCURY_MOD, ONLY : WD_HGP, WD_HG2, DD_HGP, DD_HG2
       USE DAO_MOD,          ONLY : IS_ICE, IS_LAND
+      USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND ! jaf
 
 #     include "F77_CMN_SIZE"         ! Size parameters
 !
@@ -92,6 +93,7 @@
 !       (cdh, 8/19/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
@@ -99,7 +101,9 @@
 !
 ! !LOCAL VARIABLES:
 !  
-      REAL*8                :: DTSRCE, REEMFRAC, SNOW_HT
+      REAL*8                :: DTSRCE, REEMFRAC!, SNOW_HT - obsolete
+      REAL*8                :: FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND ! jaf
+      LOGICAL               :: IS_SNOW_OR_ICE, IS_LAND_OR_ICE ! jaf
       REAL*8, PARAMETER     :: SEC_PER_YR = 365.25d0 * 86400d0
       INTEGER               :: I,      J,      NN
 
@@ -113,36 +117,89 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, NN )
-!$OMP+PRIVATE( REEMFRAC, SNOW_HT )  
+!!$OMP+PRIVATE( REEMFRAC, SNOW_HT )  
+!$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND )  
+!$OMP+PRIVATE( IS_SNOW_OR_ICE, IS_LAND_OR_ICE                       )
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
       DO NN = 1, N_Hg_CATS
     
-#if   defined( GEOS_5 ) || defined( MERRA )
-         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
+!--jaf.start   
+      ! Restructure to use fractional land type information in MERRA
+      ! (jaf, 4/26/11)
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!         SNOW_HT = SNOMAS(I,J)
+!#else
+!         ! GEOS1-4 snow heigt (water equivalent) in mm
+!         SNOW_HT = SNOW(I,J)
+!#endif 
+!        
+!         ! If snow > 1mm on the ground, reemission fraction is 0.6,
+!         ! otherwise 0.2
+!         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+!         !IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
+!         IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) )THEN
+!            ! If snowpack model is on, then we don't do rapid reemission
+!            IF (LHGSNOW) THEN
+!               REEMFRAC=0d0
+!            ELSE
+!               REEMFRAC=0.6d0
+!            ENDIF 
+!         ELSE
+!            REEMFRAC=0.2d0
+!         ENDIF
+!         
+!
+!         IF ( IS_LAND(I,J) .OR. IS_ICE(I,J) ) THEN 
+
+         ! For versions prior to MERRA, have to set snow/land fractions
+         ! to 1 depending which type of box we are in.
+         ! Assume here default of land box with no snow. We will reset
+         ! fractions for MERRA here and for prior versions snow/ice boxes
+         ! below (jaf, 4/26/11)
+         FRAC_SNOW_OR_ICE = 0d0
+         FRAC_SNOWFREE_LAND  = 1d0
+
+#if   defined( MERRA )
+         ! Distinguish between ice/snow and snow-free land
+         FRAC_SNOW_OR_ICE =  
+     &        MIN(FRSNO(I,J) + FRSEAICE(I,J) + FRLANDIC(I,J), 1d0)
+         FRAC_SNOWFREE_LAND  = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+         ! Set this to FALSE in MERRA to avoid overwriting fractions
+         IS_SNOW_OR_ICE = .FALSE.
+         IS_LAND_OR_ICE = ( (FRAC_SNOWFREE_LAND > 0d0) .OR.
+     &                      (FRAC_SNOW_OR_ICE > 0d0) )
+#elif defined( GEOS_5 )
+         ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
+         IS_SNOW_OR_ICE = 
+     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOMAS(I,J)>10d0) )
+         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         SNOW_HT = SNOW(I,J)
+         IS_SNOW_OR_ICE =
+     &      ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW(I,J)>10d0) )
+         IS_LAND_OR_ICE = ( (IS_LAND(I,J)) .OR. (IS_ICE(I,J)) )
 #endif 
-        
-         ! If snow > 1mm on the ground, reemission fraction is 0.6,
-         ! otherwise 0.2
-         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-         !IF ( (SNOW_HT > 1D0) .OR. (IS_ICE(I,J)) ) THEN
-         IF ( (IS_ICE(I,J)) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) )THEN
-            ! If snowpack model is on, then we don't do rapid reemission
-            IF (LHGSNOW) THEN
-               REEMFRAC=0d0
-            ELSE
-               REEMFRAC=0.6d0
-            ENDIF 
-         ELSE
-            REEMFRAC=0.2d0
-         ENDIF
-         
 
-         IF ( IS_LAND(I,J) .OR. IS_ICE(I,J) ) THEN 
+         ! Reset land fractions if we are in a version prior to MERRA
+         ! and also in an ice- or snow-covered box (jaf, 4/26/11)
+         IF ( IS_SNOW_OR_ICE ) THEN
+            FRAC_SNOW_OR_ICE = 1d0
+            FRAC_SNOWFREE_LAND  = 0d0
+         ENDIF
+
+         ! If snow or ice on the ground, reemission fraction is 0.6,
+         ! otherwise 0.2
+         IF ( IS_LAND_OR_ICE ) THEN
+
+            IF (LHGSNOW) THEN
+               REEMFRAC = 0.2d0 * FRAC_SNOWFREE_LAND
+            ELSE
+               REEMFRAC = 0.2d0 * FRAC_SNOWFREE_LAND +
+     &                    0.6d0 * FRAC_SNOW_OR_ICE
+            ENDIF
+!--jaf.end
             
             ! Mass of emitted Hg(0), kg
             LFLUX(I,J,NN) =
@@ -289,7 +346,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      SUBROUTINE VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
 !
 ! !USES:
 !
@@ -303,7 +362,10 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,                INTENT(IN)  :: LGCAPEMIS
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      !LOGICAL,                INTENT(IN)  :: LGCAPEMIS
+      LOGICAL,                INTENT(IN)  :: LVEGEMIS
       REAL*8, DIMENSION(:,:), INTENT(IN)  :: EHg0_dist
 !
 ! !OUTPUT PARAMETERS:
@@ -363,7 +425,10 @@
       !=================================================================
 
       ! No emissions through transpiration if we use Bess' GCAP emissions
-      IF (LGCAPEMIS) THEN
+      ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+      ! (jaf, eds, 4/1/11)
+      !IF (LGCAPEMIS) THEN
+      IF (.NOT. LVEGEMIS) THEN
 
          EHg0_vg = 0D0
 
@@ -435,6 +500,7 @@
       USE TIME_MOD, ONLY : GET_TS_EMIS
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE DAO_MOD,  ONLY : SNOW, SNOMAS
+      USE DAO_MOD,  ONLY : FRSNO, FRLAND ! jaf
 
 #     include "F77_CMN_SIZE"     ! Size parameters
 #     include "F77_CMN_DEP"      ! FRCLND
@@ -476,6 +542,7 @@
 !  2 June 2010 - C. Carouge  - Solve  
 !  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  25 Aug 2010 - R. Yantosca - Treat MERRA in same way as GEOS-5
+!  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !  12 Apr 2011 - J. Fisher   - Bug fixes, add missing code from Holmes 2010
 !EOP
 !------------------------------------------------------------------------------
@@ -484,9 +551,11 @@
 ! !LOCAL VARIABLES:
 !     
       REAL*8             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
-      REAL*8             :: AREA_M2, DRYSOIL_HG, SNOW_HT
+      REAL*8             :: AREA_M2, DRYSOIL_HG!, SNOW_HT - obsolete
       INTEGER            :: I, J, JLOOP
       REAL*8             :: SUNCOSVALUE
+      REAL*8             :: FRAC_SNOWFREE_LAND ! jaf
+      LOGICAL            :: IS_SNOWFREE_LAND ! jaf
 !
 ! !DEFINED PARAMETERS:
 !
@@ -510,22 +579,44 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, SOIL_EMIS, JLOOP,      SNOW_HT              ) 
+!!$OMP+PRIVATE( I, J, SOIL_EMIS, JLOOP,      SNOW_HT              ) 
+!$OMP+PRIVATE( I,          J,    SOIL_EMIS, JLOOP                ) 
 !$OMP+PRIVATE( DRYSOIL_HG, TAUZ, LIGHTFRAC, AREA_M2, SUNCOSVALUE ) 
+!$OMP+PRIVATE( IS_SNOWFREE_LAND, FRAC_SNOWFREE_LAND              )
       DO J=1, JJPAR
       DO I=1, IIPAR
          
-#if   defined( GEOS_5 ) || defined( MERRA )
+!--jaf.start
+      ! Restructure to use fractional land area information in MERRA
+!      ! (jaf, 4/26/11)
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!         SNOW_HT = SNOMAS(I,J)
+!#else
+!         ! GEOS1-4 snow heigt (water equivalent) in mm
+!         SNOW_HT = SNOW(I,J)
+!#endif          
+!         
+!         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
+!         !IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
+!         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 10d0) ) THEN     
+
+         ! Except in MERRA, assume whole box is land if conditions met
+         ! (jaf, 4/26/11)
+         FRAC_SNOWFREE_LAND = 1d0
+#if   defined( MERRA )
+         FRAC_SNOWFREE_LAND = MAX(FRLAND(I,J) - FRSNO(I,J), 0d0)
+         IS_SNOWFREE_LAND = (FRAC_SNOWFREE_LAND > 0d0)
+#elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
+         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOMAS(I,J) < 10d0) )
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         SNOW_HT = SNOW(I,J)
+         IS_SNOWFREE_LAND = ( IS_LAND(I,J) .AND. (SNOW(I,J) < 10d0) )
 #endif          
-         
-         ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-         !IF ( IS_LAND(I,J) .AND. (SNOW_HT < 1d0) ) THEN     
-         IF ( IS_LAND(I,J) .AND. (SNOW_HT < 10d0) ) THEN     
+
+         IF ( IS_SNOWFREE_LAND ) THEN
+!--jaf.end
 
             ! 1-D grid box index for SUNCOS
             JLOOP = ( (J-1) * IIPAR ) + I
@@ -582,6 +673,11 @@
  
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1D-12 / ( 60D0 * 60D0 )
+
+!--jaf.start
+            ! Multiply by fractional land area
+            EHg0_so(I,J) = EHg0_so(I,J) * FRAC_SNOWFREE_LAND
+!--jaf.end
 
          ELSE
 

@@ -159,6 +159,8 @@
 !
       ! References to F90 modules
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT, LGCAPEMIS, LPOLARBR
+      ! Added LVEGEMIS, distinct from LGCAPEMIS (jaf, eds, 4/1/11)
+      USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
 !      USE OCEAN_MERCURY_MOD, ONLY : LHGSNOW,     LHg2HalfAerosol
       USE DEPO_MERCURY_MOD,  ONLY : LHGSNOW, ADD_HG2_SNOWPACK
@@ -253,7 +255,9 @@
       USE ERROR_MOD,     ONLY : DEBUG_MSG
       USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3
       USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
-      USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR_NEW
+      ! Renamed to GET_GLOBAL_BR
+      !USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR_NEW
+      USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR
       USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
       USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL !CDH added LNLPBL
       USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
@@ -288,7 +292,9 @@
          CALL GET_GLOBAL_O3( MONTH )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_O3' )
 
-         CALL GET_GLOBAL_BR_NEW( MONTH ) !CDH
+         ! Renamed to GET_GLOBAL_Br
+         !CALL GET_GLOBAL_BR_NEW( MONTH ) !CDH
+         CALL GET_GLOBAL_BR( MONTH ) !CDH
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
 
          ! CDH FOR REDUCTION
@@ -498,6 +504,8 @@
 
       USE DAO_MOD,      ONLY : AIRDEN, QL !CDH for reduction
       USE DAO_MOD,      ONLY : AD, CLDF !CDH for LWC
+      USE DAO_MOD,      ONLY : LWI ! cdh
+      USE DAO_MOD,      ONLY : FRSNO, FRLANDIC, FROCEAN ! jaf
 
 #     include "F77_CMN_SIZE"     ! Size parameters
 #     include "F77_CMN_DIAG"     ! ND44
@@ -513,7 +521,7 @@
       REAL*8                :: LWC,         AREA_CM2
       REAL*8                :: C_O3,        C_OH,        C_BR
       REAL*8                :: C_BRO
-      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO         
+      REAL*8                :: K_O3,        K_OH,        K_BR, K_BRO   
       REAL*8                :: K_OX,        K_RED       
       REAL*8                :: E_KOX_T,     E_KRED_T    
 
@@ -531,7 +539,9 @@
       REAL*8                :: DEP_HG0,     DEP_HG2
       REAL*8                :: DEP_HG2_DRY, DEP_HG2_SALT
       REAL*8                :: DEP_DRY_FLX
-      REAL*8                :: SNOW_HT
+!      REAL*8                :: SNOW_HT - obsolete
+      REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+      LOGICAL               :: ZERO_HG0_DEP !jaf 
 
       ! K for reaction Hg0 + O3  [cm3 /molecule /s] (Source: Hall 1995)
       REAL*8, PARAMETER     :: K_HG_O3  = 3.0d-20 !3.0d-20 (Gas phase)
@@ -588,7 +598,8 @@
 !$OMP+PRIVATE( HG0_BL,  HG2_BL,   HG0_FT,    HG2_FT               )
 !$OMP+PRIVATE( TMP_HG0, TMP_HG2,  TMP_OX                          )    
 !$OMP+PRIVATE( DEP_HG0, DEP_HG2,  DEP_HG2_DRY, DEP_HG2_SALT       )
-!$OMP+PRIVATE( DEP_DRY_FLX,      SNOW_HT                          )
+!!$OMP+PRIVATE( DEP_DRY_FLX,      SNOW_HT                          )
+!$OMP+PRIVATE( DEP_DRY_FLX,       ZERO_HG0_DEP, FRAC_NO_HG0_DEP   )
 !$OMP+PRIVATE( NET_OX,  GROSS_OX                                  )
 !$OMP+PRIVATE( GROSS_OX_OH,       GROSS_OX_O3, GROSS_OX_BR        )
       DO L = 1, LLPAR
@@ -749,28 +760,64 @@
             ENDIF
 
             K_DEP2 = K_DRYD2 + K_SALT
-            K_DEP0 = 0D0 ! Hg0 dep over ocean handled in ocean_mercury_mod
+            ! Now do this below (jaf, 4/26/11)
+            !K_DEP0 = 0D0 ! Hg0 dep over ocean handled in ocean_mercury_mod
 
          ELSE
             K_SALT = 0d0
 
             K_DEP2 = K_DRYD2 
-            K_DEP0 = K_DRYD0
+            ! Now do this below (jaf, 4/26/11)
+            !K_DEP0 = K_DRYD0
          ENDIF
          
-         ! Disable dry deposition of Hg(0) to ice because we do not have
-         ! an ice emission model. Perennial ice should have equal emission
-         ! and deposition averaged over multiple years. (cdh, 9/11/09)
-#if   defined( GEOS_5 ) || defined( MERRA )
+!--jaf.start
+         ! Restructure to allow use of fractional land area info in MERRA
+         ! jaf, 4/26/11
+!         ! Disable dry deposition of Hg(0) to ice because we do not have
+!         ! an ice emission model. Perennial ice should have equal emission
+!         ! and deposition averaged over multiple years. (cdh, 9/11/09)
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!         SNOW_HT = SNOMAS(I,J)
+!#else
+!         ! GEOS1-4 snow heigt (water equivalent) in mm
+!         SNOW_HT = SNOW(I,J)
+!#endif 
+!         IF ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) ) THEN
+!            K_DEP0 = 0D0
+!         ENDIF
+
+         ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
+         ! so disable deposition over water here.
+         ! Turn off Hg(0) deposition to snow and ice because we haven't yet
+         ! included emission from these surfaces and most field studies
+         ! suggest Hg(0) emissions exceed deposition during sunlit hours.
+            
+         ! Except in MERRA, we assume entire grid box is water or ice
+         ! if conditions are met (jaf, 4/26/11)
+         FRAC_NO_HG0_DEP = 1d0
+#if   defined( MERRA )
+         FRAC_NO_HG0_DEP =
+     &        MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0) 
+         ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+#elif defined( GEOS_5 )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         SNOW_HT = SNOMAS(I,J)
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. 
+     &                   (IS_ICE(I,J)) .OR.
+     &                   (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
 #else
          ! GEOS1-4 snow heigt (water equivalent) in mm
-         SNOW_HT = SNOW(I,J)
+         ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR.
+     &                   (IS_ICE(I,J)) .OR. 
+     &                   (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif 
-         IF ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT>10d0) ) THEN
-            K_DEP0 = 0D0
+
+         K_DEP0 = K_DRYD0
+         IF ( ZERO_HG0_DEP ) THEN
+            K_DEP0 = K_DEP0 * MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
          ENDIF
+!--jaf.end
 
          ! Precompute exponential factors [dimensionless]
          E_KOX_T   = EXP( -K_OX   * DTCHEM )
@@ -1978,7 +2025,10 @@
       
 !         EHg0_ln = EHg0_ln + EHg0_snow
       
-         CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+         ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
+         ! (jaf, eds, 4/1/11)
+         !CALL VEGEMIS( LGCAPEMIS, EHg0_dist, EHg0_vg )
+         CALL VEGEMIS( LVEGEMIS, EHg0_dist, EHg0_vg )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a VEGEMIS' )
       
          CALL SOILEMIS( EHg0_dist, EHg0_so )
@@ -5179,9 +5229,10 @@ c$$$      ENDIF
       ! Selin et al. 2008 (+bug fixes) if FALSE
       ! This is temporary
       ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
-      ! no Hg emitted through transpiration (VEGEMIS off)
       ! With these emissions, Bess found the best chemistry results
       LGCAPEMIS=.TRUE.
+      ! no Hg emitted through transpiration (VEGEMIS off)
+      LVEGEMIS=.FALSE.
 
       ! Switch adds bromine explosion in Northern springtime
       LPOLARBR=.TRUE.

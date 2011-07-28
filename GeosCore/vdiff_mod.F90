@@ -1792,6 +1792,7 @@ contains
     USE TRACERID_MOD, ONLY : IS_Hg0, IS_Hg2, IS_HgP
     USE LOGICAL_MOD,  ONLY : LDYNOCEAN, LGTMM !cdh
     USE DAO_MOD,      ONLY : LWI, IS_ICE, IS_LAND, SNOMAS, SNOW !cdh
+    USE DAO_MOD,      ONLY : FRSNO, FRLANDIC, FROCEAN ! jaf
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
     USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
@@ -1805,7 +1806,9 @@ contains
 !
     real*8, intent(inout) :: as2(IIPAR,JJPAR,LLPAR,N_TRACERS) ! advected species
 
-    REAL*8                :: SNOW_HT !cdh
+!    REAL*8                :: SNOW_HT !cdh - obsolete
+    REAL*8                :: FRAC_NO_HG0_DEP !jaf 
+    LOGICAL               :: ZERO_HG0_DEP !jaf 
 !
 ! !REVISION HISTORY:
 !
@@ -1821,6 +1824,7 @@ contains
 !                              to save on operations
 !  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
 !                              involve explicitly using "D" exponents
+!  26 Apr 2011 - J. Fisher   - Use MERRA land fraction information
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1954,7 +1958,8 @@ contains
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
-!$OMP PRIVATE( SNOW_HT )
+!!$OMP PRIVATE( SNOW_HT )
+!$OMP PRIVATE( FRAC_NO_HG0_DEP, ZERO_HG0_DEP )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
@@ -2096,36 +2101,72 @@ contains
              ENDIF
           endif
           
+!--jaf.start          
+          ! Restructure to use fractional land cover info available in
+          ! MERRA (jaf,4/26/11)
+!          ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
+!          ! so disable deposition over water here.
+!          ! LWI is exactly zero for water (includes some fresh water) 
+!          ! in GEOS-5. Note LWI is not exactly zero for earlier GEOS versions,
+!          ! but non-local PBL mixing is only defined for GEOS-5.
+!          ! ocean_mercury_mod defines ocean based on fraction 
+!          ! land, albedo and mixed layer depth. The difference with LWI is
+!          ! small. (cdh, 8/28/09) 
+!          IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
+!             DFLX(I,J,NN) = 0D0
+!          ENDIF
+!
+!          ! CDH (9/11/09)
+!          ! Turn off Hg(0) deposition to snow and ice because we haven't yet
+!          ! included emission from these surfaces and most field studies
+!          ! suggest Hg(0) emissions exceed deposition during sunlit hours.
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
+!          SNOW_HT = SNOMAS(I,J)
+!#else
+!          ! GEOS1-4 snow heigt (water equivalent) in mm
+!          SNOW_HT = SNOW(I,J)
+!#endif 
+!
+!          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
+!               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
+!             DFLX(I,J,NN) = 0D0
+!          ENDIF
+
           ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
           ! so disable deposition over water here.
-          ! LWI is exactly zero for water (includes some fresh water) 
-          ! in GEOS-5. Note LWI is not exactly zero for earlier GEOS versions,
-          ! but non-local PBL mixing is only defined for GEOS-5.
-          ! ocean_mercury_mod defines ocean based on fraction 
-          ! land, albedo and mixed layer depth. The difference with LWI is
-          ! small. (cdh, 8/28/09) 
-          IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
-             DFLX(I,J,NN) = 0D0
-          ENDIF
-
-          ! CDH (9/11/09)
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-#if   defined( GEOS_5 ) || defined( MERRA )
+
+          ! Except in MERRA, we assume entire grid box is water or ice
+          ! if conditions are met (jaf, 4/26/11)
+          FRAC_NO_HG0_DEP = 1d0
+#if   defined( MERRA )
+          FRAC_NO_HG0_DEP = &
+               MIN(FROCEAN(I,J) + FRSNO(I,J) + FRLANDIC(I,J), 1d0)
+          ZERO_HG0_DEP = ( FRAC_NO_HG0_DEP > 0d0 )
+#elif defined( GEOS_5 )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-          SNOW_HT = SNOMAS(I,J)
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
+                          (IS_ICE(I,J)) .OR.   &
+                          (IS_LAND(I,J) .AND. SNOMAS(I,J) > 10d0) )
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
-          SNOW_HT = SNOW(I,J)
+          ZERO_HG0_DEP = ( (LWI(I,J) == 0) .OR. &
+                          (IS_ICE(I,J)) .OR.   &
+                          (IS_LAND(I,J) .AND. SNOW(I,J) > 10d0) )
 #endif 
-
-          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
-               ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
-             DFLX(I,J,NN) = 0D0
+          
+          IF ( IS_Hg .AND. IS_HG0(NN) ) THEN
+             IF ( ZERO_HG0_DEP ) THEN
+                DFLX(I,J,NN) = DFLX(I,J,NN) * &
+                               MAX(1d0 - FRAC_NO_HG0_DEP,0d0)
+             ENDIF
           ENDIF
 
-          
+!--jaf.end
+
        enddo
 
        !----------------------------------------------------------------

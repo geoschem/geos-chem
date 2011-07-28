@@ -131,6 +131,7 @@
 !      PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
 !      PUBLIC :: SNOW_HG ! CDH snowpack
       PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      PUBLIC :: LVEGEMIS ! jaf
 !      PUBLIC :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       PUBLIC :: LRED_JNO2,   LGEOSLWC
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
@@ -181,6 +182,7 @@
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
       LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      LOGICAL   :: LVEGEMIS ! jaf
 !      LOGICAL   :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
       LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3
@@ -560,18 +562,25 @@ c$$$
 !  (3 ) Ocean parameterizations are rewritten entirely to account for actual
 !        processes in the ocean. Different subsurface conc. are included
 !        (anls, 20/10/09)
+!  (4 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !******************************************************************************
 !
       ! References to F90 modules
       ! Add reference to IS_WATER for Holmes et al. 2010 version (jaf, 4/11/11)
       USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
+!--jaf.start
+      USE DAO_MOD,       ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
+!--jaf.end
       USE DIAG03_MOD,    ONLY : AD03, ND03
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE GRID_MOD,      ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH 
       USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
+!--jaf.start
+      USE TIME_MOD,      ONLY : GET_YEAR 
+!--jaf.end
       USE TRACER_MOD,    ONLY : STT,             TRACER_MW_KG
       USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
       USE TRACERID_MOD,  ONLY : ID_Hg0,          N_Hg_CATS
@@ -588,10 +597,14 @@ c$$$
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
+      LOGICAL               :: IS_OCEAN_BOX ! jaf
       CHARACTER(LEN=255)    :: FILENAME
       INTEGER               :: I,         J,        NN, C
       INTEGER               :: N,         N_tot_oc
       INTEGER               :: NEXTMONTH, THISMONTH
+!--jaf.start
+      INTEGER               :: THISYEAR
+!--jaf.end
 
       REAL*8                :: A_M2,     DTSRCE,   MLDCM
       REAL*8                :: CHg0aq,   CHg0,     vi,       JorgC_kg           
@@ -678,8 +691,14 @@ c$$$
          ! Get current month
          THISMONTH = GET_MONTH()
 
+!--jaf.start
+         ! Get current year to check if leap year (jaf, 7/6/11)
+         THISYEAR = GET_YEAR()
+
          ! Read next month's MLD
-         CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+         !CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+         CALL GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
+!--jaf.end
          
       ENDIF
 
@@ -700,9 +719,19 @@ c$$$
          ! Grid box surface area [m2]
          A_M2 = GET_AREA_M2( J )
 
+!--jaf.start
+         ! Use fractional land type information in MERRA (jaf, 4/26/11)
+         ! FROCEAN is a constant, so to get correct ocean fraction we
+         ! need to subtract the sea ice fraction.
+#if   defined(MERRA)
+         NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * 
+     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+         A_ocean = A_ocean + A_M2 * 
+     &             ( FROCEAN(I,J) - FRSEAICE(I,J) )
+#else
          NPP_tot = NPP_tot+ NPP(I,J) * A_M2 * ( 1d0 - FRCLND(I,J))
-
          A_ocean = A_ocean + A_M2 * ( 1 - FRCLND(I,J) ) 
+#endif
 
       ENDDO
       ENDDO
@@ -722,6 +751,7 @@ c$$$
 !$OMP+PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  HgPaq_SUNK, OC_tot_kg  )
 !$OMP+PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE   )
 !$OMP+PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg   )
+!$OMP+PRIVATE( IS_OCEAN_BOX                   )
 !$OMP+SCHEDULE( DYNAMIC )
 
       DO J = 1, JJPAR
@@ -762,10 +792,28 @@ c$$$
          OLDMLD     = MLDav(I,J)
          MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
          MLDcm      = MLDav(I,J)
+!--jaf.start
+         ! Add error trap to prevent new MLD from being negative
+         ! (jaf, 7/6/11)
+         IF (MLDcm .LT. 0d0) MLDcm = 0d0
+!--jaf.end
 
          ! Get fractions of land and ocean in the grid box [unitless]
+         ! Use fractional land type information in MERRA. Also make sure
+         ! we do not use boxes that are mostly sea ice for consistency
+         ! FROCEAN is a constant, so to get correct ocean fraction we
+         ! need to subtract the sea ice fraction. Don't let the fraction
+         ! be less than zero (jaf, 4/26/11)
+#if   defined(MERRA)
+         FRAC_L     = FRLAND(I,J)
+         FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
+         IS_OCEAN_BOX = ((FRAC_O > 0d0) .and. (SEAICE00(I,J) > 0.5d0))
+#else
          FRAC_L     = FRCLND(I,J)
          FRAC_O     = 1d0 - FRAC_L
+         IS_OCEAN_BOX = ( IS_WATER(I,J) )
+#endif
+!--jaf.end
 
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes 
@@ -779,9 +827,12 @@ c$$$
 !         IF ( ( ALBD(I,J) <= 0.4d0 ) .and. 
 !     &        ( FRAC_L    <  0.8d0 ) .and.
 !     &        ( MLDCM     > 0.99d0 )      ) THEN
+!--jaf.start
           ! Use consistent criteria for Ocean/Land/Ice categories
           ! with snowpack and terrestrial emissions  !CDH 5/18/2010
-          IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
+          !IF ( ( IS_WATER(I,J) ) .AND. ( MLDCM > 0.99d0 ) ) THEN
+         IF ( (IS_OCEAN_BOX) .and. (MLDCM > 0.99d0) ) THEN
+!--jaf.end
 
             !===========================================================
             ! Reduction and oxidation coefficients
@@ -1584,7 +1635,8 @@ c$$$
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+!      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH )
+      SUBROUTINE GET_MLD_FOR_NEXT_MONTH( THISMONTH, THISYEAR )
 !
 !******************************************************************************
 !  Subroutine GET_MLD_FOR_NEXT_MONTH reads the mixed-layer depth (MLD) 
@@ -1593,31 +1645,51 @@ c$$$
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+!  (2 ) THISYEAR (INTEGER)  : Current year 
 !
 !  NOTES:
 !  (1 ) Now read files from DATA_DIR_1x1/mercury_200511 (bmy, 3/28/06)
+!  (2 ) Now use actual number of days in given month (jaf, 7/6/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+!--jaf.start
+      USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
+!--jaf.end
 
 #     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
+      INTEGER, INTENT(IN)    :: THISYEAR
 
       ! Local variables
       INTEGER                :: I, J, NEXTMONTH
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=255)     :: FILENAME
+!--jaf.start
+      INTEGER                :: DAYS_IN_MONTH
+      INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                                     31, 31, 30, 31, 30, 31 /)
+!--jaf.end
 
       !=================================================================
       ! GET_MLD_FOR_NEXT_MONTH begins here!
       !=================================================================
       
+!--jaf.start
+      ! Calculate days in this month (jaf, 7/6/11)
+      IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
+         DAYS_IN_MONTH = M(THISMONTH) + 1
+      ELSE
+         DAYS_IN_MONTH = M(THISMONTH)
+      ENDIF
+!--jaf.end
+
       ! MLD file name
       FILENAME = TRIM( DATA_DIR )       // 
      &           'mercury_201007/MLD_DReqDT.geos.' // GET_RES_EXT()      
@@ -1646,7 +1718,15 @@ c$$$
       ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24d0 * 30.5d0 )
+!--jaf.start
+         ! This calculation can result in negative values of MLD at the
+         ! end of the the month when there are more than 30.5 days in
+         ! the month. Now use actual number of days per month (jaf, 
+         ! 7/6/11)
+         !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24d0 * 30.5d0 )
+         dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
+     &               ( 3.6d3 *24d0 * DAYS_IN_MONTH )
+!--jaf.end
       ENDDO
       ENDDO
 
@@ -1674,6 +1754,7 @@ c$$$
 !  (4 ) MLDnew (REAL*8 ) : New ocean mixed layer depth [m]
 !
 !  NOTES:
+!  (1 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !******************************************************************************
 !
       ! Reference to fortran90 modules
@@ -1681,6 +1762,7 @@ c$$$
       USE LOGICAL_MOD,  ONLY : LSPLIT
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
+      USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
 
 #     include "F77_CMN_SIZE"     ! Size parameters
 #     include "F77_CMN_DEP"      ! FRCLND
@@ -1710,7 +1792,16 @@ c$$$
       A_M2   = GET_AREA_M2( J )
 
       ! Fraction of box that is ocean
+!--jaf.start
+      ! Use fractional land type information in MERRA (jaf, 4/26/11)
+      ! FROCEAN is a constant, so to get correct ocean fraction we
+      ! need to subtract the sea ice fraction.
+#if   defined(MERRA)
+      FRAC_O     = MAX(FROCEAN(I,J) - FRSEAICE(I,J), 0d0)
+#else
       FRAC_O = 1d0 - FRCLND(I,J)
+#endif
+!--jaf.end
       
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = TRACER_MW_KG(ID_Hg_tot)
@@ -2069,6 +2160,15 @@ c$$$
                ! Store ocean Hg(0) in Hg0aq array
                Hg0aq(:,:,NN)   = Hg_OCEAN(:,:,1)
                
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( Hg0aq(I,J,NN) .LT. 0 ) Hg0aq(I,J,NN) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
@@ -2084,6 +2184,15 @@ c$$$
                ! Store ocean Hg(II) in Hg2_aq array
                Hg2aq(:,:,NN)   = Hg_OCEAN(:,:,1)
 
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( Hg2aq(I,J,NN) .LT. 0 ) Hg2aq(I,J,NN) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
+
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
 
@@ -2095,6 +2204,15 @@ c$$$
 
                ! Particulate Hg
                HgPaq(:,:)        = Hg_OCEAN(:,:,1)
+
+!--jaf.start
+               ! Check for negative concentrations (jaf, 7/6/11)
+               DO I = 1, IIPAR
+               DO J = 1, JJPAR
+                  IF ( HgPaq(I,J) .LT. 0 ) HgPaq(I,J) = 0d0
+               ENDDO
+               ENDDO
+!--jaf.end
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1

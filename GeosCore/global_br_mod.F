@@ -35,7 +35,8 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      PUBLIC :: GET_GLOBAL_Br_NEW   
+      ! Remove obsolete routine
+      !PUBLIC :: GET_GLOBAL_Br_NEW   
       PUBLIC :: GET_GLOBAL_Br   
       PUBLIC :: INIT_GLOBAL_Br
       PUBLIC :: CLEANUP_GLOBAL_Br
@@ -53,16 +54,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_global_Br_new
+!  Rename to get_global_Br
+! !IROUTINE: get_global_Br
 !
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br\_NEW reads global Br from 
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from 
 !  binary punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br 
 !  data is needed as oxidant for mercury chemistry.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
+      ! Rename to GET_GLOBAL_Br
+      !SUBROUTINE GET_GLOBAL_Br_NEW( THISMONTH )
+      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
 !
 ! !USES:
 !
@@ -71,6 +75,7 @@
       USE BPCH2_MOD,      ONLY : GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0
       USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR ! cdh
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
@@ -107,14 +112,13 @@
       INTEGER                      :: TPL
  
       ! Location of archived Br
-      CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
-     &                                '/home/cdh/GC/Archived-Br/'
+      CHARACTER(LEN=255)           :: BR_DIR
 
       ! First time flag
       LOGICAL, SAVE                :: FIRST = .TRUE. 
 
       !=================================================================
-      ! GET_GLOBAL_BR_NEW begins here!
+      ! GET_GLOBAL_BR begins here!
       !=================================================================
 
       ! Allocate BR array, if this is the first call
@@ -125,6 +129,8 @@
 
       ! Get the TAU0 value for the start of the given month
       XTAU = GET_TAU0( THISMONTH, 1, 1985 ) !eds;  cdh-is this OK?
+
+      BR_DIR = TRIM( DATA_DIR ) // 'mercury_201007/'
 
       !-----------------------------------------------------------------
       ! Read Br from pTOMCAT biogenic bromocarbons
@@ -295,94 +301,95 @@
       ! Assign data from ARRAY2 to the module variable BR
       CALL TRANSFER_3D_TROP( ARRAY2, J_BrO )
 
-      END SUBROUTINE GET_GLOBAL_Br_NEW
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: get_global_Br
-!
-! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from binary 
-!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br data 
-!  is needed as oxidant for mercury chemistry.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
-!
-! !USES:
-!
-      USE BPCH2_MOD,    ONLY : GET_NAME_EXT
-      USE BPCH2_MOD,    ONLY : GET_RES_EXT
-      USE BPCH2_MOD,    ONLY : GET_TAU0
-      USE BPCH2_MOD,    ONLY : READ_BPCH2
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D
-
-#     include "F77_CMN_SIZE"                 ! Size parameters
-
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
-! 
-! !REVISION HISTORY: 
-!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
-!  (1 ) GET_GLOBAL_BR assumes that we are reading global Br data that occupies
-!        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
-!        regridding code which will produce the appropriate Br files.
-!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                      :: I, J, L
-      REAL*4                       :: ARRAY(IIPAR,JJPAR,LGLOB)
-      REAL*8                       :: XTAU
-      CHARACTER(LEN=255)           :: FILENAME
-
-      ! Location of archived Br
-      CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
-     &                                '/home/cdh/GC/Archived-Br/'
-
-      ! First time flag
-      LOGICAL,           SAVE      :: FIRST = .TRUE. 
-
-      !=================================================================
-      ! GET_GLOBAL_BR begins here!
-      !=================================================================
-
-      ! Allocate BR array, if this is the first call
-      IF ( FIRST ) THEN
-         CALL INIT_GLOBAL_BR
-         FIRST = .FALSE.
-      ENDIF
-
-      ! Filename
-      FILENAME = TRIM( BR_DIR ) // 'Br_3Dglobal.' 
-     &           // GET_NAME_EXT() // '.' // GET_RES_EXT()
-
-      ! Echo some information to the standard output
-      WRITE( 6, 110 ) TRIM( FILENAME )
- 110  FORMAT( '     - GET_GLOBAL_BR: Reading Br, BrO from: ', a )
-
-      ! Time stamp for data
-      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
-
-      ! Read BR data from the binary punch file
-      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
-     &                 XTAU,      IIPAR,     JJPAR,      
-     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
-
-      ! Assign data from ARRAY to the module variable BR
-      CALL TRANSFER_3D( ARRAY, BR_MERGE )
-
       END SUBROUTINE GET_GLOBAL_Br
 !EOC
+! This routine is now obsolete
+!!!!------------------------------------------------------------------------------
+!!!!          Harvard University Atmospheric Chemistry Modeling Group            !
+!!!!------------------------------------------------------------------------------
+!!!!BOP
+!!!!
+!!!! !IROUTINE: get_global_Br
+!!!!
+!!!! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from binary 
+!!!!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This Br data 
+!!!!  is needed as oxidant for mercury chemistry.
+!!!!\\
+!!!!\\
+!!!! !INTERFACE:
+!!!!
+!!!      SUBROUTINE GET_GLOBAL_Br( THISMONTH )
+!!!!
+!!!! !USES:
+!!!!
+!!!      USE BPCH2_MOD,    ONLY : GET_NAME_EXT
+!!!      USE BPCH2_MOD,    ONLY : GET_RES_EXT
+!!!      USE BPCH2_MOD,    ONLY : GET_TAU0
+!!!      USE BPCH2_MOD,    ONLY : READ_BPCH2
+!!!      USE TRANSFER_MOD, ONLY : TRANSFER_3D
+!!!
+!!!#     include "CMN_SIZE"                 ! Size parameters
+!!!
+!!!!
+!!!! !INPUT PARAMETERS: 
+!!!!
+!!!      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+!!!! 
+!!!! !REVISION HISTORY: 
+!!!!  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
+!!!!  (1 ) GET_GLOBAL_BR assumes that we are reading global Br data that occupies
+!!!!        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
+!!!!        regridding code which will produce the appropriate Br files.
+!!!!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!!!!EOP
+!!!!------------------------------------------------------------------------------
+!!!!BOC
+!!!!
+!!!! !LOCAL VARIABLES:
+!!!!
+!!!      INTEGER                      :: I, J, L
+!!!      REAL*4                       :: ARRAY(IGLOB,JGLOB,LGLOB)
+!!!      REAL*8                       :: XTAU
+!!!      CHARACTER(LEN=255)           :: FILENAME
+!!!
+!!!      ! Location of archived Br
+!!!      CHARACTER(LEN=30), PARAMETER :: BR_DIR = 
+!!!     &                                '/home/cdh/GC/Archived-Br/'
+!!!
+!!!      ! First time flag
+!!!      LOGICAL,           SAVE      :: FIRST = .TRUE. 
+!!!
+!!!      !=================================================================
+!!!      ! GET_GLOBAL_BR begins here!
+!!!      !=================================================================
+!!!
+!!!      ! Allocate BR array, if this is the first call
+!!!      IF ( FIRST ) THEN
+!!!         CALL INIT_GLOBAL_BR
+!!!         FIRST = .FALSE.
+!!!      ENDIF
+!!!
+!!!      ! Filename
+!!!      FILENAME = TRIM( BR_DIR ) // 'Br_3Dglobal.' 
+!!!     &           // GET_NAME_EXT() // '.' // GET_RES_EXT()
+!!!
+!!!      ! Echo some information to the standard output
+!!!      WRITE( 6, 110 ) TRIM( FILENAME )
+!!! 110  FORMAT( '     - GET_GLOBAL_BR: Reading Br, BrO from: ', a )
+!!!
+!!!      ! Time stamp for data
+!!!      XTAU = GET_TAU0( THISMONTH, 1, 1985 ) 
+!!!
+!!!      ! Read BR data from the binary punch file
+!!!      CALL READ_BPCH2( FILENAME, 'CHEM-L=$', 6,     
+!!!     &                 XTAU,      IGLOB,     JGLOB,      
+!!!     &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
+!!!
+!!!      ! Assign data from ARRAY to the module variable BR
+!!!      CALL TRANSFER_3D( ARRAY, BR_MERGE )
+!!!
+!!!      END SUBROUTINE GET_GLOBAL_Br
+!!!!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
