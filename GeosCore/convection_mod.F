@@ -1586,6 +1586,7 @@
 !  15 Oct 2010 - H. Amos     - Added scavenging below cloud base
 !  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
 !                              algorithm as in the wet deposition code.
+!  27 Jul 2011 - R. Yantosca - Declare CLDBASE as INTEGER to avoid PGI errors
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1600,7 +1601,14 @@
       LOGICAL           :: AER,         IS_Hg 
       INTEGER           :: IC,          ISTEP,    K,       KTOP
       INTEGER           :: NC,          NDT,      NLAY,    NS    
-      REAL*8            :: ALPHA,       ALPHA2,   CLDBASE, CMFMC_BELOW
+!-----------------------------------------------------------------------------
+! Prior to 7/27/11:
+! CLDBASE needs to be declared as an INTEGER, or else the PGI compiler
+! will choke at compile-time. (ganluo, bmy, 7/27/11)
+!      REAL*8            :: ALPHA,       ALPHA2,   CLDBASE, CMFMC_BELOW
+!-----------------------------------------------------------------------------
+      INTEGER           :: CLDBASE
+      REAL*8            :: CMFMC_BELOW, ALPHA,    ALPHA2
       REAL*8            :: CMOUT,       DELQ,     DQ,      DNS
       REAL*8            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
       REAL*8            :: SDT,         T0,       T0_SUM,  T1    

@@ -564,6 +564,8 @@ c$$$
 !        (anls, 20/10/09)
 !  (4 ) Now use MERRA land fraction information (jaf, 4/26/11)
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
+!  27 Jul 2011 - R. Yantosca - Use the D exponent in the defnition of KD_PART, 
+!                              or else the PGI compiler will crash
 !******************************************************************************
 !
       ! References to F90 modules
@@ -632,7 +634,13 @@ c$$$
       REAL*8, PARAMETER     :: k_radbase = 1.73d-6                     
       REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
       REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
-      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    
+!-----------------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use the D exponent in the defnition of KD_PART, or else the PGI compiler
+! will crash at compile-time. (ganluo, bmy, 7/27/11)
+!      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    
+!-----------------------------------------------------------------------------
+      REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
       REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
@@ -1331,7 +1339,13 @@ c$$$
 
                   HgPaq(I,J)   = HgPaq(I,J) - HgPaq_SUNK
 
-                  HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0.0 )                 
+!-----------------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use the D exponent in the defnition of KD_PART, or else the PGI compiler
+! will crash at compile-time. (ganluo, bmy, 7/27/11)
+!                  HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0.0 )                 
+!-----------------------------------------------------------------------------
+                  HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0d0 )                 
 
                   ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
