@@ -40,6 +40,7 @@
 #  21 Dec 2010 - R. Yantosca - Added comode_mod
 #  11 Jul 2011 - R. Yantosca - Added restart_mod
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
+#  29 Jul 2011 - R. Yantosca - Added planeflight_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -100,6 +101,7 @@ $(CORE)/merra_i6_mod.F               \
 $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/optdepth_mod.F               \
 $(CORE)/pjc_pfix_mod.F               \
+$(CORE)/planeflight_mod.F            \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
 $(CORE)/tagged_ox_mod.F              \
