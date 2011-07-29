@@ -176,6 +176,8 @@
 !  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
 !  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
 !  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
+!  27 Mar 2011 - R. Yantosca - Bug fix for GCAP leap year problem
+!  29 Jul 2011 - R. Yantosca - Add LEAP_YEAR_DAYS as a SAVEd module variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -200,6 +202,9 @@
       INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
       INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
       INTEGER           :: CT_A1
+
+      ! Number of leap years we have encountered since start of simulation
+      REAL*8            :: LEAP_YEAR_DAYS
 
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
@@ -227,6 +232,15 @@
       USE JULDAY_MOD, ONLY : JULDAY, CALDATE
 
 #     include "define.h"
+!
+! !REMARKS:
+!  The GEOS met fields are assimilated data, and therefore contain data on
+!  the leap-year days.  However, the GCAP met fields are climatological GCM
+!  output, and do not have data on the leap-year days.  SET_CURRENT_TIME
+!  computes the days according to the Astronomical Julian Date algorithms
+!  (in "julday_mod.f"), which contain leap-year days.  For GCAP, whenever a
+!  February 29th is encountered, we shall just skip ahead a day to March 1st
+!  and return the corresponding time & date values.
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2006 - R. Yantosca - Initial Version
@@ -237,25 +251,43 @@
 !  (3 ) Fix bug in case of GCAP fields for runs that start during leap year
 !       and after February 29 (phs, 9/27/06)  
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2011 - R. Yantosca - Bug fix: For GCAP, we need to skip over the
+!                              # of leap-year-days that have already occurred
+!                              when going from Julian date to Y/M/D date
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL :: IS_LEAPYEAR
-      REAL*4  :: TMP
-      REAL*8  :: JD0, JD1, JD_JAN_1
-      
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      REAL*4        :: TMP
+      REAL*8        :: JD0, JD1
+
       !=================================================================
       ! SET_CURRENT_TIME begins here!
       !=================================================================
+
+      ! Initialize LEAP_YEAR_DAYS
+      IF ( FIRST ) THEN 
+         LEAP_YEAR_DAYS = 0d0
+         FIRST          = .FALSE.
+      ENDIF
 
       ! JD0: Astronomical Julian Date at start of GEOS-Chem run
       JD0 = GET_JD( NYMDb, NHMSb )
 
       ! JD1: Astronomical Julian Date at current time
       JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440d0 )
+
+#if   defined( GCAP ) 
+      !-----------------------------------------------------------------
+      ! Special handling for GCAP met fields #1:
+      ! Force JD1 to skip ahead by the # of Feb 29ths that we have
+      ! already encountered since the start of the run. (bmy, 3/14/11)
+      !-----------------------------------------------------------------
+      JD1 = JD1 + LEAP_YEAR_DAYS
+#endif
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD1, NYMD, NHMS )
@@ -265,27 +297,29 @@
 
 #if   defined( GCAP ) 
 
-      !-------------------------------
-      ! GCAP met fields: no leapyears
-      !-------------------------------
+      !-----------------------------------------------------------------
+      ! Special handling for GCAP met fields #2:
+      ! If we should encounter a leap year day (Feb 29th), then 
+      ! force JD1 to skip ahead a day to March 1st and recompute the
+      ! corresponding date variables.  Also increment the counter of
+      ! leap year days that we have already encountered.
+      !-----------------------------------------------------------------
 
-      ! Special handling for leap years 
-      IF ( ITS_A_LEAPYEAR( YEAR, FORCE=.TRUE. ) ) THEN
+      ! If this is the leap-year day (Feb 29th) ...
+      IF ( MONTH == 2 .and. DAY == 29 .and. NHMS == 000000 ) THEN
 
-         ! Get Astronomical Julian Date on Jan 0th of this year
-         JD_JAN_1 = GET_JD( YEAR*10000 + 0101, 000000 )
+         ! Increment the # of leap year days we have encountered so far
+         LEAP_YEAR_DAYS = LEAP_YEAR_DAYS + 1d0
          
-         ! Skip directly from Feb 28 to Mar 1st 
-         IF (  ( JD1 - JD_JAN_1 >= 59d0 )  .and.
-     &         ( JD0 - JD_JAN_1 <= 59d0 ) ) THEN
-            JD1 = JD1 + 1d0
-         ENDIF
+         ! JD1 is for Feb 29th, we need to skip ahead to Mar 1st
+         JD1            = JD1            + 1d0
 
-         ! Call CALDATE to recompute YYYYMMDD and HHMMSS
+         ! Call CALDATE to recompute YYYYMMDD for Mar 1st
          CALL CALDATE( JD1, NYMD, NHMS )
-
-         ! Extract current year, month, day from NYMD
+            
+         ! Extract current year, month, day variables for Mar 1st
          CALL YMD_EXTRACT( NYMD, YEAR, MONTH, DAY )
+
       ENDIF
          
 #endif
@@ -326,7 +360,6 @@
             NSEASON = 4
       END SELECT
 
-      ! Return to calling program
       END SUBROUTINE SET_CURRENT_TIME
 !EOC
 !------------------------------------------------------------------------------
