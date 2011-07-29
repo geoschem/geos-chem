@@ -195,6 +195,7 @@
 !        for CO production from VOC's that are not explicitly carried in the 
 !        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
 !        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
+!  27 Jul 2011 - R. Yantosca - Make sure that IDBCO > 0 before using it
 !******************************************************************************
 !
       ! References to F90 modules
@@ -265,10 +266,15 @@
             ! explicitly carried in the chemistry mechanisms. This used
             ! to be done in gc_biomass_mod.f but then is not used for 
             ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
-               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            !
+            ! Now make sure IDBCO is defined before using it.  This will
+            ! avoid an out-of-bounds error. (bmy, 7/29/11)
+            IF ( IDBCO > 0 ) THEN
+               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+               ENDIF
             ENDIF
 
          !==============================================================
@@ -331,10 +337,15 @@
             ! explicitly carried in the chemistry mechanisms. This used
             ! to be done in gc_biomass_mod.f but then is not used for 
             ! GFED2, FLAMBE, etc. (jaf, mak, 2/6/09)
-            IF ( ITS_A_FULLCHEM_SIM() ) THEN
-            	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
-            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
-               	BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+            !
+            ! Now make sure IDBCO is defined before using it.  This will
+            ! avoid an out-of-bounds error. (bmy, 7/29/11)
+            IF ( IDBCO > 0 ) THEN
+               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+                  BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
+               ENDIF
             ENDIF
          ENDIF
 
