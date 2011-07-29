@@ -49,6 +49,9 @@
 ! !REMARKS:
 !   (1) NIT is available in the data file but not read here (it is not
 !        emitted in GEOS-Chem). 
+!   (2) The algorithms in routines EMISS_NEI2005_ANTHRO and 
+!        EMISS_NEI2005_ANTHRO_05x0666 may cause the code to die
+!        when running offline simulations.  We will add a fix later.
 !     
 ! !REVISION HISTORY:
 !  07 Oct 2009 - A. van Donkelaar - initial version
@@ -60,6 +63,7 @@
 !  11 Dec 2009 - L. Zhang, A. Van Donkelaar - Add seasonality for NH3 
 !  21 Dec 2009 - R. Yantosca - Added support for 0.5 x 0.666 nested grids
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  27 Jul 2011 - R. Yantosca - Removed typo in EMISS_NEI2005_ANTHRO_05x0666
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -710,6 +714,8 @@
 !                              in updated files (by Aaron van Donkelaar) to
 !                              fix a problem in the VOC emissions.
 !  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (leave for future use)
+!  27 Jul 2011 - R. Yantosca - Fixed typo: now *really* point to the NEI2005
+!                              data directory NEI2005_101007/
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -776,7 +782,14 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
+!-----------------------------------------------------------------------------
+! Prior to 7/27/11:
+! As in EMISS_NEI2005_ANTHRO, we should be reading data from the
+! from NEI2005_201007.  For some reason, we had noted this in the comments 
+! but not changed this in the source code. (lschiferl, bmy, 7/27/11)
+!         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
+!-----------------------------------------------------------------------------
+         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_201007/' //
      &            'NEI2005.' // TRIM( SNAME ) 
      &             // '.1t2x2t3.AVG.na.bpch'
 
