@@ -111,6 +111,7 @@
 !  (33) Remove depreciated lightning options (ltm, bmy, 1/24/11)
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1428,6 +1429,8 @@
 !  (30) Remove depreciated lightning options. (ltm, 1/25,11)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
+!  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
+!                             inadvertently during nested NA simulations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1697,8 +1700,17 @@
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-#if defined( GRID05x0666 ) || defined( NESTED_CH )
+!-----------------------------------------------------------------------------
+! Prior to 7/27/11:
+! Fix bug reported by Lin Zhang.  Remove #if defined( GRID05x0666 ) from 
+! the IF condition to avoid turning off CAC and BRAVO emissions for NA 
+! Nested Grid simulations. (lzh, bmy, 7/27/11)
+!#if defined( GRID05x0666 ) || defined( NESTED_CH )
+!-----------------------------------------------------------------------------
+#if   defined ( NESTED_CH )
 
+      ! Turn off emissions options that are
+      ! not appropriate for the Nested CH grid
       LEMEP    = .FALSE.
       LBRAVO   = .FALSE.
       LCAC     = .FALSE.
@@ -1708,15 +1720,19 @@
 
 #endif
 
-#if defined( NESTED_NA )
+#if   defined( NESTED_NA )
 
+      ! Turn off emissions options that are
+      ! not appropriate for the Nested NA grid
       LSTREETS = .FALSE.
       LEMEP    = .FALSE.
 
 #endif
 
-#if defined( NESTED_EU )
+#if   defined( NESTED_EU )
 
+      ! Turn off emissions options that are
+      ! not appropriate for the Nested EU grid
       LSTREETS = .FALSE.
       LEDGAR   = .FALSE.
       LBRAVO   = .FALSE.
