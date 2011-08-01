@@ -165,6 +165,8 @@
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
 !  (32) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -282,6 +284,12 @@
 !  (1 ) Wesely, M. L., 1989 
 !  (2 ) Jacob, D.J., and S.C. Wofsy, 1990
 !
+!  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
+!  in the Arctic are much higher than estimated from measured values (e.g., 
+!  Ibrahim et al. [1983]; Duan et al. [1988]; Nilsson and Rannik [2001]).  
+!  We will impose a dry deposition velocity of 0.03 cm/s for all aerosols 
+!  over snow and ice surfaces. (Jenny Fisher, 01 Aug 2011)
+!
 !  NOTES:
 !  (1 ) Remove SUNCOS, USTAR, AZO, OBK from the arg list; now reference these
 !        as well as AD and T from "dao_mod.f".  Cleaned up code and updated
@@ -306,6 +314,8 @@
 !  (7 ) Now dimension AZO for GEOS or GCAP met fields.  Remove obsolete
 !        variables. (swu, bmy, 5/25/05)
 !  (8 ) Remove reference to TRACERID_MOD, it's not needed (bmy, 10/3/05)
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -396,6 +406,15 @@
 
             ! Set minimum velocity for sulfate tracers
             DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
+
+            ! Set Vd for aerosol tracers over snow/ice (J. Fisher, 8/1/11)
+            IF ( ( AIROSOL(N)    ) .and. ( LSNOW(IJLOOP) )  .and. 
+     &           ( NN /= IDTSALA ) .and. ( NN /= IDTSALC )  .and.
+     &           ( NN /= IDTSO4s ) .and. ( NN /= IDTNITs )  .and.
+     &           ( NN /= IDTDST1 ) .and. ( NN /= IDTDST2 )  .and.
+     &           ( NN /= IDTDST3 ) .and. ( NN /= IDTDST4 ) ) THEN
+     &           DVZ = 3.0d-2
+            ENDIF
 
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.d0 ) / THIK
