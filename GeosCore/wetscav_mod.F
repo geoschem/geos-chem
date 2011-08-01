@@ -131,8 +131,8 @@
 !  20 Sep 2010 - H. Amos, R. Yantosca - Implement new algorithms for MERRA
 !  08 Oct 2010 - H. Amos - WASHFRAC_LIQ_GAS is now a subroutine
 !  08 Oct 2010 - H. Amos - Various other modifications in WETDEP_MERRA
-!  14 Jan 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
-!  14 Jan 2011 - H. Amos - Updated comments
+!  01 Aug 2011 - H. Amos - Bug fix for function WASHFRAC_LIQ_GAS
+!  01 Aug 2011 - H. Amos - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,7 +291,7 @@
       USE DAO_MOD,   ONLY : PREACC,  PRECON,   REEVAPLS
       USE ERROR_MOD, ONLY : ALLOC_ERR
       
-#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -393,7 +393,7 @@
 !  (4 ) MOISTQ is originally [g H2O/kg air/day], and is converted in
 !        READ_A6 to [kg H2O/kg air/s]. (bmy, 3/14/00)
 !  (5 ) Now reference PREACC, PRECON from "dao_mod.f" instead of from
-!        common block header file "F77_CMN_PRECIP" (bmy, 6/26/00)
+!        common block header file "CMN_PRECIP" (bmy, 6/26/00)
 !  (6 ) Now pass BXHEIGHT as an argument.  Also added to "dao_mod.f". 
 !        (bmy, 6/26/00)
 !  (7 ) Moved from "dao_mod.f" to "wetscav_mod.f".  Also made PREACC
@@ -709,7 +709,7 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -745,7 +745,7 @@
 !        in Eq. 10 from Jacob et al, 2000 to compute F. (hyl, bmy, 1/24/02)
 !  (8 ) Eliminated obsolete code from 1/02 (bmy, 2/27/02)
 !  (9 ) Now reference T from "dao_mod.f" instead of from "CMN".  Also reference
-!        BXHEIGHT from "dao_mod.f" instead of from "F77_CMN_NOX".  Now bundled
+!        BXHEIGHT from "dao_mod.f" instead of from "CMN_NOX".  Now bundled
 !        into "wetscav_mod.f".  Now references IDTHNO3, IDTH2O2, etc, from
 !        F90 module "tracerid_mod.f".  Added internal routines F_AEROSOL
 !        and GET_ISOL.  Rewritten so that we don't duplicate code for 
@@ -2124,7 +2124,7 @@
 !
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"               ! Size parameters
+#     include "F77_CMN_SIZE"           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2227,7 +2227,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3226,7 +3226,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3268,7 +3268,7 @@
 !        obsolete.  Updated comments. (bmy, 9/27/01)
 !  (5 ) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
 !  (6 ) Now reference BXHEIGHT, T from "dao_mod.f".  Also remove reference
-!        to "F77_CMN_NOX".  Updated comments.  Now bundled into "wetscav_mod.f".
+!        to "CMN_NOX".  Updated comments.  Now bundled into "wetscav_mod.f".
 !        Now also references "tracerid_mod.f".  Added internal routines
 !        WASHFRAC_AEROSOL and WASHFRAC_LIQ_GAS.  Also removed reference to
 !        CMN since we don't need to use NSRCX here. (bmy, 11/6/02)
@@ -3295,6 +3295,8 @@
 !                              I, J as input arguments and adding T, BXHEIGHT,
 !                              H2O2s, and SO4s and input arguments.
 !  14 Jan 2011 - H. Amos     - Don't pass AER to WASHFRAC_LIQ_GAS
+!  01 Aug 2011 - H. Amos     - WASHFRAC_LIQ_GAS is now a subroutine again,
+!                              so restore subroutine calls
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3337,16 +3339,27 @@
       !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,        
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! CH2O (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
+
 
       !------------------------------
       ! GLYX (liquid & gas phases)
@@ -3359,8 +3372,13 @@
          ! dependence for CH2O works well for glyoxal,
          !      so we use the same H298_R as CH2O
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
 
       !------------------------------
@@ -3372,8 +3390,13 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
          ! H298_R = -7.5d3 K
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! GLYC (liquid & gas phases)
@@ -3384,48 +3407,78 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
          ! H298_R = -4.6d3 K
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! MP (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTMP ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! MOBA (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMOBA ) THEN       
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! ISOPN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTISOPN ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,     DT,       F,      
+     &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! MMN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,     DT,       F,     
+     &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! PROPNN (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP,     DT,       F,      
+     &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! RIP (liquid phase only)
@@ -3433,24 +3486,39 @@
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! MAP   (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTMAP ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! IEPOX (liquid phase only)
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! SO2 (aerosol treatment)
@@ -3509,8 +3577,13 @@
       !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
-     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
+!     &                                F,      DZ,    TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP,     DT,       F,      
+     &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! NH4 and NH4aq (aerosol)
@@ -3560,24 +3633,39 @@
       !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
-     &                                F,       DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
+!     &                                F,       DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,     DT,       F,       
+     &                          DZ,      TK,   K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! LIMO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
-     &                                F,      DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
+!     &                                F,      DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,     DT,       F,      
+     &                          DZ,     TK,   K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! ALCO (liquid & gas phases)
       !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
-     &                                F,     DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
+!     &                                F,     DZ,   TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP,     DT,       F,     
+     &                          DZ,    TK,   K_WASH, WASHFRAC, AER )
 
       !---------------------------------
       ! SOG[1,2,3,4] (liq & gas phases)
@@ -3586,8 +3674,13 @@
      &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
      &          N == IDTSOG5                    ) THEN   
          AER      = .FALSE.
-         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
-     &                                F,      DZ,      TK, K_WASH )
+!------------------------------------------------------------------------------
+! Prior to 8/1/11:
+!         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
+!     &                                F,      DZ,      TK, K_WASH )
+!------------------------------------------------------------------------------
+         CALL WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP,     DT,       F,      
+     &                          DZ,     TK,      K_WASH, WASHFRAC, AER )
 
       !------------------------------
       ! SOA[1,2,3,4,5] (aerosol)
@@ -3624,14 +3717,16 @@
             ! according to Henry's law
             AER      = .FALSE.
 !---------------------------------------------------------------------------
-! Prior to 1/10/11:
-! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm
-! Ref: Lindqvist and Rhode, 1985
-!            WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d+14, -8.4d3, PP, DT, 
-!     &                                   F,        DZ,    TK, K_WASH )
+! Prior to 8/1/11:
+!            WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP, DT, 
+!     &                                   F,       DZ,    TK, K_WASH )
 !---------------------------------------------------------------------------
-            WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP, DT, 
-     &                                   F,       DZ,    TK, K_WASH )
+
+            ! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm
+            ! Ref: Lindqvist and Rhode, 1985
+            CALL WASHFRAC_LIQ_GAS( 1.4d+6,  -8.4d3, PP, DT,       
+     &                             F,        DZ,    TK, K_WASH, 
+     &                             WASHFRAC, AER )
 
          ENDIF
       
@@ -3716,16 +3811,16 @@
 !BOP
 !
 ! !IROUTINE: washfrac_liq_gas
-!
-! !DESCRIPTION: Function WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
+!!
+! !DESCRIPTION: Subroutine WASHFRAC\_LIQ\_GAS returns the fraction of soluble 
 !  liquid/gas phase tracer lost to washout.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION WASHFRAC_LIQ_GAS( Kstar298, H298_R, PP, DT, 
-     &                           F,        DZ,     TK, K_WASH ) 
-     &         RESULT( WASHFRAC ) 
+      SUBROUTINE WASHFRAC_LIQ_GAS( Kstar298,  H298_R, PP, DT,
+     &                             F,         DZ,     TK, K_WASH,
+     &                             WASHFRAC,  AER ) 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3741,9 +3836,11 @@
       REAL*8,  INTENT(IN)  :: TK         ! Temperature in grid box [K]
       REAL*8,  INTENT(IN)  :: K_WASH     ! 1st order washout rate const [1/cm]
 !
-! !FUNCTION VALUE:
+! !OUTPUT PARAMETERS:
 !
-      REAL*8               :: WASHFRAC   ! Fraction of tracer lost to washout
+      REAL*8,  INTENT(OUT) :: WASHFRAC   ! Fraction of tracer lost to washout
+      LOGICAL, INTENT(OUT) :: AER        ! T = washout like an aerosol
+                                         ! F = washout like a non-aerosol
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3752,6 +3849,9 @@
 !        the module and now pass all arguments explicitly (bmy, 7/20/04)
 !  16 Sep 2010 - R. Yantosca - Added ProTeX headers 
 !  10 Jan 2011 - H. Amos     - Remove AER from the argument list
+!  01 Aug 2011 - H. Amos     - Make WASHFRAC_LIQ_GAS a subroutine
+!  01 Aug 2011 - H. Amos     - Now compute AER and pass back to WASHOUT;
+!                              this corrects a long-standing error
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3764,6 +3864,10 @@
       ! WASHFRAC_LIQ_GAS begins here!
       !=================================================================
 
+      ! Start with the assumption of non-aerosol 
+      ! (H Amos, 03 Jun 2011)
+      AER = .FALSE.
+
       ! Suppress washout below 268 K
       IF ( TK >= 268d0 ) THEN
 
@@ -3775,7 +3879,7 @@
          ! (Eqs. 7, 8, and Table 1, Jacob et al, 2000)
          CALL COMPUTE_L2G( Kstar298, H298_R, TK, LP, L2G )
 
-         ! Washout fraction from Henry's law (Eq. 16, Jacob et al, 2000)
+         ! Washout fraction from Henry's law (Eq. 15, Jacob et al, 2000)
          WASHFRAC = L2G / ( 1d0 + L2G )
 
          ! Washout fraction / F from Eq. 14, Jacob et al, 2000
@@ -3783,14 +3887,17 @@
 
          ! Do not let the Henry's law washout fraction exceed
          ! ( washout fraction / F ) from Eq. 14 -- this is a cap
-         IF ( WASHFRAC > WASHFRAC_F_14 ) WASHFRAC = WASHFRAC_F_14
-            
+         IF ( WASHFRAC > WASHFRAC_F_14 ) THEN
+            WASHFRAC = WASHFRAC_F_14 * F
+            AER      = .TRUE.
+         ENDIF
+      
       ELSE
          WASHFRAC = 0d0
             
       ENDIF
 
-      END FUNCTION WASHFRAC_LIQ_GAS
+      END SUBROUTINE WASHFRAC_LIQ_GAS
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -3824,8 +3931,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! Diagnostic arrays and switches 
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! Diagnostic arrays and switches 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4417,9 +4524,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! Diagnostic arrays and switches 
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! Diagnostic arrays and switches 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5050,8 +5156,8 @@
       USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
       USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
-#     include "F77_CMN_DIAG"                               ! Diagnostic flags etc
+#     include "F77_CMN_SIZE"                           ! Size parameters
+#     include "F77_CMN_DIAG"                           ! Diagnostic flags etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5243,8 +5349,8 @@
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
-#     include "F77_CMN_DIAG"                               ! Diagnostic flags, etc
+#     include "F77_CMN_SIZE"                           ! Size parameters
+#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5616,8 +5722,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
-#     include "F77_CMN_DIAG"                               ! Diagnostic flags, etc
+#     include "F77_CMN_SIZE"                           ! Size parameters
+#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5749,8 +5855,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
-#     include "F77_CMN_DIAG"                               ! Diagnostic flags, etc
+#     include "F77_CMN_SIZE"                           ! Size parameters
+#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6385,7 +6491,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
-#     include "F77_CMN_SIZE"     ! Size Parameters
+#     include "F77_CMN_SIZE" ! Size Parameters
 !
 ! !RETURN VALUE:
 !
@@ -6592,7 +6698,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version
