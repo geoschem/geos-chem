@@ -22,6 +22,7 @@
 !
       PUBLIC :: DO_CHEMISTRY
       PUBLIC :: GCKPP_DRIVER
+      PUBLIC :: RECOMPUTE_OD
 !
 ! !REVISION HISTORY: 
 !  (1 ) Bug fix in DO_CHEMISTRY (bnd, bmy, 4/14/03)
@@ -43,6 +44,7 @@
 !  (15) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (16) For now, replace use RPMARES instead of ISORROPIA. (bmy, 4/2/08)
 !  (17) Added KPP chemistry driver subroutine (phs,ks,dhk, 09/15/09)
+!  (18) Added public member function recompute_OD (skim, 02/03/11)
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  28 Jan 2010 - C. Carouge, R. Yantosca - Modified for ISORROPIA II
 !EOP
@@ -162,7 +164,7 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER                  :: N_TROP
+      INTEGER                  :: N_TROP, MONTH, YEAR, WAVELENGTH
 
       !=================================================================
       ! DO_CHEMISTRY begins here!
@@ -260,8 +262,12 @@
              ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
              CALL AEROSOL_CONC
  
-             ! Compute AOD's and surface areas
-             CALL RDAER
+             ! Compute AOD's and surface areas at 999 nm
+             MONTH = 0
+             YEAR  = 0
+             WAVELENGTH = 0
+
+             CALL RDAER( MONTH, YEAR, WAVELENGTH )
  
              !*** AEROSOL THERMODYNAMIC EQUILIBRIUM ***
              IF ( LSSALT ) THEN
@@ -297,8 +303,10 @@
                 ! Do dust aerosol chemsitry
                 CALL CHEMDUST
  
+                WAVELENGTH = 0
+
                 ! Compute dust OD's & surface areas
-                CALL RDUST_ONLINE( SOILDUST )
+                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
              ENDIF
  
           !---------------------------------
@@ -483,7 +491,11 @@
       ! Suggested tolerance for Rosenbrock solvers
       DO i=1,NVAR
 !         RTOL(i) = 2.d-1
-         RTOL(i) = 1.d-1
+!         RTOL(i) = 1.d-1
+         ! skim, tighten the relative tolerance further to prevent crashing
+         RTOL(i) = 5.d-2
+!     Tighten the error tolerance to force convergence (skim, 02/06/11)
+!         RTOL(i) = 5.d-2
          ATOL(i) = 1.d-2
       END DO
 
@@ -663,5 +675,102 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: recompute_od
+!
+! !DESCRIPTION: Subroutine RECOMPUTE\_OD will update the optical depth values 
+!  before accumulating or writing the diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RECOMPUTE_OD
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
+      USE AEROSOL_MOD,     ONLY : RDAER, SOILDUST
+      USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
+      USE ERROR_MOD,       ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM, LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LPRT, LSSALT, LSULF,  LSOA
+      USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
+!
+! !REVISION HISTORY: 
+!  03 Fev 2011 - Adapted from chemdr.f by skim
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      INTEGER                  :: MONTH, YEAR, WAVELENGTH
+ 
+      !=================================================================
+      ! RECOMPUTE_OD begins here!
+      !=================================================================
+
+      ! Get month and year
+      MONTH = GET_MONTH()
+      YEAR  = GET_YEAR()
+
+      IF ( LCHEM ) THEN
+
+         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN
+            IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
+
+               ! Skip this section if all of these are turned off
+               CALL AEROSOL_CONC
+
+               !===============================================================
+               ! Call RDAER -- computes aerosol optical depths
+               !===============================================================
+
+               ! Calculate the AOD at the wavelength specified in jv_spec_aod
+               WAVELENGTH = 1
+
+               CALL RDAER( MONTH, YEAR, WAVELENGTH )
+
+               !### Debug
+               IF ( LPRT ) THEN 
+                  CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
+               ENDIF
+
+               !===============================================================
+               ! If LDUST is turned on, then we have online dust aerosol in
+               ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
+               ! compute aerosol optical depth for FAST-J, etc.
+               !
+               ! If LDUST is turned off, then we don't have online dust aerosol
+               ! in GEOS-CHEM...so read monthly-mean dust files from disk.
+               ! (rjp, tdf, bmy, 4/1/04)
+               !===============================================================
+               IF ( LDUST ) THEN
+                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
+               ELSE
+                  CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
+               ENDIF
+
+               !### Debug
+               IF ( LPRT ) THEN
+                  CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
+               ENDIF
+
+            ENDIF
+         ENDIF
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE RECOMPUTE_OD
 !EOC
       END MODULE CHEMISTRY_MOD

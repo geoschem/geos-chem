@@ -70,6 +70,9 @@
 !  (8 ) Bug fix in DIAG49 for diangostic output of SLP. (bmy, 10/13/09)
 !  (9 ) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
+!  (10) Now do not scale AOD output (now recalculated in RDAER and DUST_MOD)
+!       Minor bug fix with the accumulation of ODAER across RH bins
+!       (skim, 02/03/11)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -449,10 +452,12 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(1)+R-1) / QAA(4,IND(1)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -468,10 +473,12 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -487,10 +494,12 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,2*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,2*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -506,10 +515,12 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0 
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,3*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,3*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -525,10 +536,12 @@
             DO R = 1, NRH
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1) 
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = ODAER(I,J,L,4*NRH+R) * SCALEAODnm
+                  Q(L) = Q(L) + ODAER(I,J,L,4*NRH+R) * SCALEAODnm
                ENDDO
             ENDDO
 
@@ -544,10 +557,12 @@
             DO R = 1, NDUST
 
                ! Scaling factor for AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
+               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
                DO L = 1, K
-                  Q(L) = ODMDUST(I,J,L,R)* SCALEAODnm
+                  Q(L) = Q(L) + ODMDUST(I,J,L,R)* SCALEAODnm
                ENDDO
             ENDDO
 
@@ -563,7 +578,9 @@
             R = N - 114
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
-            SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1) 
+            ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+            ! We no longer need to scale by wavelength (skim, 02/03/11)
+            SCALEAODnm = 1.0 
 
             DO L = 1, K
                Q(L) = ODMDUST(I,J,L,R) * SCALEAODnm

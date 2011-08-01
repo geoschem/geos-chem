@@ -109,6 +109,8 @@
 !       (clh, 05/07/10)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
+!  03 Feb 2011 - S. Kim      - Now do not scale the AOD output
+!                              (recalculated in RDAER AND DUST_MOD)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -716,7 +718,9 @@
                DO H = 1, NRH
                   
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(4,IND(1)+H-1) 
+                  ! SCALEAODnm = QAA_AOD(IND(1)+H-1) / QAA(4,IND(1)+H-1) 
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -735,7 +739,9 @@
                   H          = NRH    + R
 
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(2)+R-1) / QAA(4,IND(2)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -754,7 +760,9 @@
                   H          = 2*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(3)+R-1) / QAA(4,IND(3)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
@@ -773,7 +781,9 @@
                   H          = 3*NRH  + R
 
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(4)+R-1) / QAA(4,IND(4)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -792,7 +802,9 @@
                   H          = 4*NRH + R
 
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(5)+R-1) / QAA(4,IND(5)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -808,7 +820,9 @@
                DO R = 1, NDUST 
 
                   ! Scaling factor to 400 nm
-                  SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+                  ! We no longer need to scale by wavelength (skim, 02/03/11)
+                  SCALEAODnm = 1.0                
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
@@ -824,7 +838,9 @@
                R = N - 114
 
                ! Scaling factor to AOD wavelength (clh, 05/09)
-               SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+               ! SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+               ! We no longer need to scale by wavelength (skim, 02/03/11)
+               SCALEAODnm = 1.0
 
                ! Accumulate
                Q(X,Y,K,W) = Q(X,Y,K,W) +
