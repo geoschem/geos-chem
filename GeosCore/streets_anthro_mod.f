@@ -443,6 +443,7 @@
       CHARACTER(LEN=3)           :: SOURCES(NSRCE)   !! 
       REAL*8                     :: ONOFF(NSRCE)     !! To switch off/on each sources
       REAL*8                     :: SCALE2020(NSRCE) !! To scale 2006 to 2020
+      REAL*8                     :: ONOFFNH3         !! NH3 Scalar
 
       ! to hold data and scale factors
       REAL*4                     :: SCALFAC( IIPAR, JJPAR )
@@ -473,6 +474,8 @@
          CH2O = 0D0
          ALD2 = 0D0
       ENDIF
+
+      ONOFFNH3 = 2.d0
 
       ! TAU0 values for 2000, 2004 and 2006
       TAU2000 = GET_TAU0( 1, 1, 2000 )
@@ -806,7 +809,7 @@
             CALL READ_STREETS( FILENAME, 'ANTHSRCE', 30, TAU2000, NH3 )
 
             ! switch and scale
-            NH3 = NH3 * ONOFF( 1 )
+            NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
 
 !         ENDIF
 
@@ -1159,6 +1162,7 @@
       CHARACTER(LEN=3)           :: SOURCES(NSRCE)   !! 
       REAL*8                     :: ONOFF(NSRCE)     !! To switch off/on each sources
       REAL*8                     :: SCALE2020(NSRCE) !! To scale 2006 to 2020
+      REAL*8                     :: ONOFFNH3         !! NH3 Scalar
 
       ! to hold temporary data and scale factors
       REAL*4                     :: SCALFAC( IIPAR, JJPAR )
@@ -1190,6 +1194,8 @@
          CH2O = 0D0
          ALD2 = 0D0
       ENDIF
+
+      ONOFFNH3 = 2.d0
 
       ! TAU0 values for 2000, 2004 and 2006
       TAU2000 = GET_TAU0( 1, 1, 2000 )
@@ -1521,15 +1527,17 @@
 
          !---------------------------------------------
          ! Read NH3 only if base year is 2000
+         ! always use 2000 NH3 (amv, 07/04/2011)
          !---------------------------------------------
-         IF ( IS_2006 ) THEN
+         !IF ( IS_2006 ) THEN
 
-            NH3 = -1D0
+         !   NH3 = -1D0
 
-         ELSE
+         !ELSE
             
             ! File name
-            FILENAME  = TRIM( STREETS_DIR ) // 
+            !FILENAME  = TRIM( STREETS_DIR ) // 
+            FILENAME = '/data2/ctm/GEOS_0.5x0.666_CH/Streets_200607/' // 
      &                  'Streets_NH3_FF_2000.geos5.05x0666'
 
             ! Old file has NH3 as tracer #30
@@ -1537,9 +1545,9 @@
      $                                 TAU2000,   NH3 )
 
             ! switch and scale
-            NH3 = NH3 * ONOFF( 1 )
+            NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
 
-         ENDIF
+         !ENDIF
 
             
 
