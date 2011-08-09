@@ -526,14 +526,14 @@
             ENDIF        
             
            !### Debug (FP 6/2009)
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### SETPL' )
-            WRITE(6,*) NAMEGAS(IFAM(N))
-            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
-     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
-            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
-     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
-      ENDIF
+!      IF ( LPRT ) THEN
+!         CALL DEBUG_MSG( '### SETPL' )
+!            WRITE(6,*) NAMEGAS(IFAM(N))
+!            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
+!     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
+!            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
+!     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
+!      ENDIF
 
          ENDDO             
       ENDDO
