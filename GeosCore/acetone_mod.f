@@ -632,11 +632,6 @@
       DTCHEM = GET_TS_CHEM() * 60d0
 
       ! Loop over grid boxes
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,  J, AREA_CM2, FOCEAN, HSTAR, U, TC, SC )   
-!$OMP+PRIVATE( KL600, KL, KG, KKL, CG, FLUX, OCEAN_ACET, PRE_ACET )
-!$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
 
          ! Grid box area in cm2
@@ -654,10 +649,6 @@
             !===========================================================
             IF ( FOCEAN > 0.5d0 .and. ALBD(I,J) <= 0.4d0 ) THEN
 
-!               ! Henry's law [unitless] using 32 M/atm Henry's law constant
-!               HSTAR = ( 1d0 / 792d0 ) * 
-!     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
-
                ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
                ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
 
@@ -671,8 +662,6 @@
 
                ! Now HENCONST = dimensionless H 
                ! [mass Acetone/volume air]/[mass Acetone/volume H2O]       
-
-
 
                ! Magnitude of surface wind [m/s]
                ! SFCWINDSQR(I,J) is needed since this will compute the 
@@ -693,9 +682,6 @@
 
                ! KG is conductance for mass transfer in gas phase (Asher 1997)
                ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-               !KG    = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U ) 
-               !KG    = KG * ( 360000d0 )
-
                ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
                ! USTAR = friction velocity (U* in Johnson [2010]
                USTAR  = SQRT(6.1d-4 + U*6.3d-5)*U
@@ -718,11 +704,6 @@
 
                ! FLUX is the air-to-sea flux of acetone in [kg C/cm2/s].
                FLUX  = KKL * CG / HSTAR    
-
-               ! Multiply FLUX by OCEANSINK_SCALE, which is the optimized 
-               ! BETA value (= 0.15) found from Emily Jin's analysis.
-               !FLUX  = FLUX * OCEANSINK_SCALE
-
                !========================================================
                ! Ocean loss of acetone consists of the following terms:
                !
@@ -767,7 +748,6 @@
             ENDIF
          ENDDO
       ENDDO
-!$OMP END PARALLEL DO
 
       END SUBROUTINE OCEAN_SINK_ACET
 !EOC
