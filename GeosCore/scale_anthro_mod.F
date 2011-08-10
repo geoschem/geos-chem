@@ -37,6 +37,8 @@
 !        renamed to GET_ANNUAL_SCALAR_05x0666 (amv, 10/29/2009)
 !  18 Dec 2009 - Aaron van D - Updated scale factors thru 2006  
 !  18 Dec 2009 - Aaron van D - Updated routine GET_ANNUAL_SCALAR_05x0666_NESTED
+!  10 Aug 2011 - D. Millet   - Now use updated scale factor file for CO, which
+!                              corrects a problem over Botswana/S. Africa
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -143,6 +145,8 @@
 !                              changed to new, directory, reset year limits
 !  18 Dec 2009 - Aaron van D - Reformated scale factors to a single file for 
 !                              all years, made necessary input changes
+!  10 Aug 2011 - D. Millet   - Now use updated scale factor file for CO, which
+!                              corrects a problem over Botswana/S. Africa
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -187,7 +191,13 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &          'CO-AnnualScalar.geos.1x1'
+!-----------------------------------------------------------------------------
+! Prior to 8/10/11:
+! This file had an error over Botswana.  We now use the corrected file from 
+! Dylan Millet. (dbm, bmy, 8/10/11).
+!     &          'CO-AnnualScalar.geos.1x1'
+!-----------------------------------------------------------------------------
+     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
@@ -228,7 +238,13 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-     &          'CO-AnnualScalar.geos.1x1'
+!-----------------------------------------------------------------------------
+! Prior to 8/10/11:
+! This file had an error over Botswana.  We now use the corrected file from 
+! Dylan Millet. (dbm, bmy, 8/10/11).
+!     &          'CO-AnnualScalar.geos.1x1'
+!-----------------------------------------------------------------------------
+     &           'CO-AnnualScalar.201105-Fix.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
 
