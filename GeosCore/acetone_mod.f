@@ -411,153 +411,6 @@
       REAL*8,  PARAMETER     :: A2 =  2.20642d0
       REAL*8,  PARAMETER     :: A3 = -0.01410642d0
 
-      !=================================================================
-      ! Since the algorithm below was developed for the 4x5 GEOS-STRAT
-      ! model, we need to scale the emissions to the A Posterioris in 
-      ! Jacob et al 2002 = 16.74 Tg C/yr.
-      !
-      ! This scaling is necessary in order (1) to account for variations
-      ! in surface temperature and wind speed between the different
-      ! GEOS met field versions and (2) to account for the different
-      ! surface areas between the 1x1, 2x2.5 and 4x5 grid boxes.
-      !=================================================================
-#if   defined( MERRA ) && defined( GRID4x5 ) 
-
-      !-----------------------------------------------------------------
-      ! %%% MERRA, 4 x 5, global %%%
-      !
-      ! Acetone produced : 17.0919 Tg C
-      ! Scale factor     : 16.74 / 17.0919 = 0.979411
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.979411d0
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !-----------------------------------------------------------------
-      ! %%% MERRA, 2 x 2.5, global %%%
-      !
-      ! %%% SCALING NEEDS TO BE DONE WHEN MET IS FINALLY AVAILABLE %%%
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 4 x 5, global %%%
-      !
-      ! Acetone produced : 17.5272 Tg C
-      ! Scale factor     : 16.74 / 17.5272 = 0.9551
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR =   0.9551d0
-
-#elif defined( GEOS_5 ) && defined( GRID2x25 ) 
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 75.6781 Tg C
-      ! Scale factor     : 16.74 / 75.6781 = 0.2212
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_CH )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED CHINA %%%     (May Fu, Dan Chen)
-      !
-      ! ACET; 4x5 BC region      : 2.16838 Tg C
-      ! ACET; 0.5 x 0.666 region : 134.757 Tg C
-      ! Scale factor             : 0.9551*(2.16838/134.757) = 0.01537
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
-
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_NA )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED N. AMERICA %%%   (van Donkelaar)
-      !
-      ! ACET; 2x25 BC region     : 1.6794 Tg C
-      ! ACET; 0.5 x 0.666 region : 1.724  Tg C
-      ! Scale factor             : 0.015369*(1.6794/1.724) = 0.01497
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01497d0
- 
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_EU )
-
-      !-----------------------------------------------------------------
-      ! %%% GEOS-5, 0.5 x 0.666, NESTED EUROPE %%%       (van Donkelaar)
-      !
-      ! ACET; 2x25 BC region     : 0.2868 Tg C
-      ! ACET; 0.5 x 0.666 region : 0.2689 Tg C
-      ! Scale factor             : 0.015369*(0.2868/0.2689) = 0.01639
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01639d0
-
-#elif defined( GEOS_4 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 4 x 5, global %%%
-      !
-      ! Acetone produced : 19.0973 Tg C
-      ! Scale factor     : 16.74 / 19.0973 = 0.8765
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.8765d0
- 
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 80.2888 Tg C
-      ! Scale factor     : 16.74 / 80.2888 = 0.2085
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
- 
-#elif defined( GEOS_4 ) && defined( GRID1x125 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-4, 1 x 1.25, global %%%                    (Lok Lamsal)
-      !
-      ! Acetone produced : 290.4233 Tg C
-      ! Scale factor     : 16.74 / 290.4233 = 0.05764
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05764d0
- 
-#elif  defined( GEOS_3 ) && defined( GRID4x5 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 4 x 5, global %%%
-      !
-      ! Acetone produced : 20.16 Tg C
-      ! Scale factor     : 16.74 / 20.16 =  0.83
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.83d0
- 
-#elif defined( GEOS_3 ) && defined( GRID2x25 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 2 x 2.5, global %%%
-      !
-      ! Acetone produced : 80.76 Tg C
-      ! Scale factor     : 16.74 / 80.76  = 0.2075
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2075d0
- 
-#elif defined( GEOS_3 ) && defined( GRID1x1 )
- 
-      !-----------------------------------------------------------------
-      ! %%% GEOS-3, 1 x 1, NESTED ?? %%%
-      ! Acetone produced : 334.8 Tg C
-      ! Scale factor     : 16.74 / 334.8  = 0.05
-      !-----------------------------------------------------------------
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
- 
-#else
-      
-      ! Otherwise set to 1
-      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
- 
-#endif
 
       !=================================================================
       ! OCEAN_SOURCE_ACET begins here!
@@ -578,10 +431,6 @@
       ! 50% of the box is covered by water (mje, bdf, bmy, 11/26/01)
       !=================================================================
       IF ( FOCEAN > 0.5d0 ) THEN 
-
-         ! Henry's law [unitless] using 32 M/atm Henry's law constant
-!         HSTAR    = ( 1d0 / 730d0 ) *
-!     &        EXP( -5500d0 * ( 298d0 - TS(I,J) ) / ( TS(I,J) * 298d0 ) )
 
          ! Updated Henry's Law to 27 M/atm following Benkelberg et al. [1995],
          ! Johnson [2010], and Zhou and Mopper [1990](evf, 5/11/11)
@@ -617,8 +466,6 @@
 
          ! KG is conductance for mass transfer in gas phase (Asher 1997)
          ! Multiply KG by 360000 to convert from [m/s] to [cm/hr]
-         !KG       = SQRT( 18d0 / 58d0 ) * ( 5.2d-5 + 3.2d-3 * U )   
-         !KG       = KG * 360000d0
 
          ! Updated KG to the Johnson [2010] parameterization (evf, 5/13/2011)
          ! USTAR = friction velocity (U* in Johnson [2010]
@@ -639,30 +486,6 @@
          ! Turn off ocean uptake over snow/ice (ALBEDO > 0.4)
          IF ( ALBD(I,J) > 0.4d0 ) KKL = 0d0
       
-         !==============================================================
-         ! The acetone ocean source [kg C] includes the following terms:
-         !
-         !   (1) OCEAN_SCALE = 3.63e11 [kg C s^2/cm].  
-         !
-         !   (2) J(O1D), which is a proxy for the UV-B flux [s^-1].  
-         !
-         !       The product of J(O1D) and OCEAN_SCALE reflect the 
-         !       photoproduction of acetone by microbes in the ocean
-         !       microlayer.
-         !
-         !   (3) KKL, the air-to-sea transfer velocity [cm/s], which
-         !       represents uptake of acetone by microbes in the ocean
-         !       microlayer.  This term is a net loss.
-         !
-         !   (4) FOCEAN, the fraction of the grid box that is ocean.
-         !
-         ! The units of the ocean source (stored in OCEAN_ACET) are:
-         !
-         !      1     |   kg C   | s^2 | 1 | cm       kg C   | 
-         !  ----------+----------+-----+---+---- = ----------+----------
-         !  emission  | grid box | cm  | s | s      grid box | emission 
-         !  time step                                          time step
-         !==============================================================
          !===============================================================
          !(evf, 5/11/11)
          ! Remove photochemical acetone source hypothesized by Jacob.
@@ -689,14 +512,8 @@
          OCEAN_ACET  = OCEAN_ACET * DTSRCE * AREA_CM2
 
          ! Convert to kg C / box / step (evf, 5/11/11)
-         OCEAN_ACET  = OCEAN_ACET * 36d0/58.08d0       
-
-         !OCEAN_ACET = OCEAN_SCALE * JO1D(I,J) * KKL * FOCEAN 
-         
-         ! Apply further scale factor to account for variations in surface 
-         ! temperature wind speed between GEOS met fields -- and also 
-         ! surface area between 1x1, 2x2.5, and 4x5 grids. (bmy, 3/15/04)
-         !OCEAN_ACET = OCEAN_ACET * SCALE_FACTOR
+         OCEAN_ACET  = OCEAN_ACET * 36d0/58.08d0
+        
 
       ELSE
 
