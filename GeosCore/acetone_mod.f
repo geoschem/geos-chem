@@ -968,9 +968,6 @@
 !\\
 ! !INTERFACE:
 !
-!      SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
-!     &                          EMIS, EMMB, GRASS, ACETONE )
-
 !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
       SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, SUNCOS, Q_DIR,
      &                          Q_DIFF, XNUMOL_C, EMIS, EMMB, GRASS,
@@ -1158,22 +1155,7 @@
       ! emissions (5/25/2011) Direct Emission now includes emission
       ! from grasses and emission from dry leaf matter
       ! 
-      ! With communication with Singh we have a direct acetone emission 
-      ! source of 18 Tg acet/yr that scales to the isoprene emissions.
       !=================================================================
-
-      ! Compute [atoms C/box/step] for ACET, using yield from ISOP
-      ! evf, removed when using MEGAN Acetone emissions
-      !YIELD_ISOP   = 0.0282d0
-      !ACET_ISOP    = EMIS * YIELD_ISOP
-
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      !DIRECT_SCALE = 1.06d0
-      !ACET_ISOP    = ACET_ISOP * DIRECT_SCALE
-
-      ! Convert isoprene yield to [atoms C/box/s] and 
-      ! add to the total biogenic acetone emissions
-      !ACETONE      = ACETONE + ( ACET_ISOP / DTSRCE )
 
       !evf, edits to use MEGAN biogenic acetone emissions (5/25/2011)
       ! Acetone Emissions from MEGAN (atoms C / box / step)         
@@ -1186,13 +1168,6 @@
 
       ! Add MEGAN Acetone Emissions to total biogenic acetone emissions (evf, 5/25/2011)
       ACETONE     = ACETONE +  EMISS_MEGAN
-
-
-      ! Diagnostics -- save ACETONE from DIRECT EMISSION [atoms C/cm2/s]
-!      !IF ( ND11 > 0 ) THEN
-!      !   AD11(I,J,3) = AD11(I,J,3) + 
-!     !&                 ( ACET_ISOP / ( AREA_CM2 * DTSRCE ) )
-!     ! ENDIF
 
       ! Save MEGAN Acetone Emissions to DIRECT EMISSIONS diag [atoms C/cm2/s]
       IF ( ND11 > 0 ) THEN
@@ -1208,35 +1183,6 @@
       !emissions from dry leaf matter and dead plants
       ! Diagnostic Acetdl = 0 (5/25/2011)
 
-      !
-      ! According to Warneke et al. 1999, 1 g C of dry leaf matter 
-      ! produces at least 10^-4 g C in acetone.  We use this lower limit 
-      ! as our g C -> g C yield.  The monthly values of dry leaf matter 
-      ! comes from estimates of resp, heterotrophic respiration, from 
-      ! Parvada Suntharalingham.  XRESP is in units of g C/m2/s.
-      !=================================================================
-
-      ! Convert from [g C in dry leaves/m2/s] to [g C in ACETONE/m2/s]
-      !YIELD_RESP = 1d-4
-      !ACET_RESP  = XRESP(I,J) * YIELD_RESP
-
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      !DP_SCALE   = 0.23d0
-      !ACET_RESP  = ACET_RESP * DP_SCALE
-
-      ! Convert [g C in acetone/m2/s] to [atoms C/box/s] 
-      ! and add to the total biogenic ACETONE emissions
-      ! The 1000 is for changing [g C] to [kg C]
-      !ACETONE    = ACETONE + 
-      !!&             ( ACET_RESP * AREA_M2 * XNUMOL_C / 1000d0 )
-
-      ! Diagnostics -- save ACETONE from DRY LEAF MATTER in [atoms C/cm2/s]
-      ! the 1000 is for [g C] to [kg C], the 1d4 is for [m-2] to [cm-2]
-      !IF ( ND11 > 0 ) THEN
-      !   AD11(I,J,4) = AD11(I,J,4) + 
-      !! &                 ( ACET_RESP * XNUMOL_C / ( 1000 * 1D4 ) )
-      !! ENDIF
-
       !=================================================================
       ! (5) BIOGENIC ACETONE FROM GRASSLANDS
       ! !evf, removed obsolete code for emissions from grasses, 
@@ -1244,28 +1190,7 @@
       !emissions from grasses
       ! Diagnostic Acetgr = 0 (5/25/2011) 
       !
-      ! Direct grass emissions should be about 5 TgC/yr from 
-      ! Kirstine et al 1998
       !=================================================================
-
-      ! Compute from [atoms C/box/step] of acetone from grass
-      ! for all VOC emissions acetone is about 15%
-      !YIELD_GRASS = 0.15d0  
-      !ACET_GRASS  = GRASS * YIELD_GRASS
-
-      ! Scale to a posteriori source from Jacob et al 2001 (bdf, 9/5/01)
-      !GRASS_SCALE = 1.61d0 
-      !ACET_GRASS  = ACET_GRASS * GRASS_SCALE
-
-      ! Convert grassland acetone yield to [atoms C/box/s] 
-      ! and add to the total biogenic acetone emissions
-      !ACETONE     = ACETONE + ( ACET_GRASS / DTSRCE )
-
-      ! Diagnostics -- save ACETONE from GRASSLANDS in [atoms C/cm2/s]
-      !IF ( ND11 > 0 ) THEN
-      !   AD11(I,J,5) = AD11(I,J,5) + 
-      !&                 ( ACET_GRASS / ( AREA_CM2 * DTSRCE ) )
-      !ENDIF
 
       END SUBROUTINE EMISS_BIOACET
 !EOC
