@@ -71,6 +71,7 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  20 June 2011 - E. Fischer - Updated Ocean exchange, MEGAN biogenic emiss.
+!  10 Aug 2011 - E. Fischer - Removed obsolete code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -379,6 +380,14 @@
 !  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
 !  04 Nov 2010 - R. Yantosca - Cleaned up #if statements for clarity
+!  Summer 2011 - E. Fischer - Updated ocean source and sink terms to be 
+!  different than Jacob et al. [2002].  Ocean mixed layer is now set to 
+!  a constant concentration of acetone (15 nM).  Fluxes are now calculated
+!  using a direct application of the standard two-film model described by
+!  Liss and Slater [1974].  The fluxes are calculated using an updated
+!  Henry's law coefficient and transfer velocities have been updated following
+!  Johnson [2010].  The model now reproduces aircraft measurements over the
+!  remote oceans well.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1019,6 +1028,12 @@
 !        GET_TS_EMIS from "time_mod.f".  Remove reference to CMN header
 !        file. (bmy, 2/11/03)
 !  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  10 Aug 2011 - E. Fischer - Direct biogenic emissions of acetone from
+!  metabolism and decay are now calculated using the MEGAN biogenic emission
+!  model [Guenther et al., 2006].  The code assumes the fraction of emissions
+!  that are light-independent is 0.20, and the temperature response factor
+!  (beta) is 0.10 as recommended by Alex Guenther.  The dependency on GEIA
+!  has been removed.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
