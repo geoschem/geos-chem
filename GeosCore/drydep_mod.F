@@ -316,6 +316,7 @@
 !  (8 ) Remove reference to TRACERID_MOD, it's not needed (bmy, 10/3/05)
 !  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
 !                            over snow and ice based on Nilsson & Rannik, 2001
+!  15 Aug 2011 - R. Yantosca - Now reference IDTxxx flags from tracerid_mod.f
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -323,6 +324,8 @@
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
+      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
+      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
 #     include "F77_CMN_SIZE" ! Size parameters
 #     include "F77_CMN_DIAG" ! ND44
@@ -413,7 +416,7 @@
      &           ( NN /= IDTSO4s ) .and. ( NN /= IDTNITs )  .and.
      &           ( NN /= IDTDST1 ) .and. ( NN /= IDTDST2 )  .and.
      &           ( NN /= IDTDST3 ) .and. ( NN /= IDTDST4 ) ) THEN
-     &           DVZ = 3.0d-2
+               DVZ = 3.0d-2
             ENDIF
 
             ! Dry deposition frequency [1/s]
