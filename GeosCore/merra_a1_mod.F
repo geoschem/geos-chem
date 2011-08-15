@@ -451,6 +451,7 @@
 ! !REVISION HISTORY: 
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
+!  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1067,7 +1068,7 @@
       !=================================================================
       IF ( ND67 > 0 ) THEN
          AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
-         AD67(:,:,2 ) = AD67(:,:,2 ) + LWGNT    ! Net LW rad @ sfc [W/m2]
+         AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Net LW rad @ sfc [W/m2]
          AD67(:,:,3 ) = AD67(:,:,3 ) + PRECTOT  ! Tot prec @ sfc [kg/m2/s]
          AD67(:,:,4 ) = AD67(:,:,4 ) + PRECCON  ! CV prec @ sfc [kg/m2/s]
          AD67(:,:,5 ) = AD67(:,:,5 ) + T2M      ! T @ 2m height [K]
