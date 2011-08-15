@@ -452,6 +452,7 @@
 !  19 Aug 2010 - R. Yantosca - Initial version, based on a3_read_mod.f
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) from disk
 !  15 Aug 2011 - R. Yantosca - Now save SWGDN in 2nd slot of ND67 diagnostic
+!  25 Mar 2011 - R. Yantosca - Bug fix: make local SWGDN array for ND67 diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -464,7 +465,8 @@
       CHARACTER(LEN=16) :: STAMP
 
       ! Arrays
-      REAL*4            :: Q2(IIPAR,JJPAR)
+      REAL*4            :: Q2   (IIPAR,JJPAR)
+      REAL*4            :: SWGDN(IIPAR,JJPAR)
 
       !=================================================================
       ! READ_A1 begins here!      
@@ -999,12 +1001,24 @@
                ENDIF 
 
             !-------------------------------------
-            ! Skip over these fields for now:
-            ! LWTUP, QV2M, SWGDN, SW
+            ! Save SWGDN locally for ND67 diag
             !-------------------------------------
-            CASE ( 'LWTUP',  'QV2M', 'SWGDN'  )
+            CASE ( 'SWGDN' )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:44' )
+             
+               IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
+                  SWGDN  = Q2
+                  NFOUND = NFOUND + 1
+               ENDIF
+
+            !-------------------------------------
+            ! Skip over these fields for now:
+            ! LWTUP, QV2M
+            !-------------------------------------
+            CASE ( 'LWTUP',  'QV2M'  )
+               READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:45' )
              
                IF ( XYMD == NYMD .and. XHMS == NHMS ) THEN
                   NFOUND = NFOUND + 1
@@ -1016,7 +1030,7 @@
             CASE DEFAULT
                WRITE ( 6, 200 )
                READ( IU_A1, IOSTAT=IOS ) XYMD, XHMS, Q2
-               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:45' )
+               IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A1, 'read_a1:46' )
 
          END SELECT
             
@@ -1068,7 +1082,7 @@
       !=================================================================
       IF ( ND67 > 0 ) THEN
          AD67(:,:,1 ) = AD67(:,:,1 ) + HFLUX    ! Sensible heat flux [W/m2]
-         AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Net LW rad @ sfc [W/m2]
+         AD67(:,:,2 ) = AD67(:,:,2 ) + SWGDN    ! Incident SW rad @ sfc [W/m2]
          AD67(:,:,3 ) = AD67(:,:,3 ) + PRECTOT  ! Tot prec @ sfc [kg/m2/s]
          AD67(:,:,4 ) = AD67(:,:,4 ) + PRECCON  ! CV prec @ sfc [kg/m2/s]
          AD67(:,:,5 ) = AD67(:,:,5 ) + T2M      ! T @ 2m height [K]
