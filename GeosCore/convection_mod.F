@@ -59,6 +59,7 @@
 !  29 Sep 2010 - R. Yantosca - Added modifications for MERRA
 !  05 Oct 2010 - R. Yantosca - Added ND14 and ND38 diagnostics to 
 !                              DO_MERRA_CONVECTION routine
+!  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1589,8 +1590,12 @@
 !  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
 !                              algorithm as in the wet deposition code.
 !  27 Jul 2011 - R. Yantosca - Declare CLDBASE as INTEGER to avoid PGI errors
-!  16 Aug 2011 - R. Yantosca - Bug fix: use IS_Hg2() and IS_HgP to test if 
+!  16 Aug 2011 - J. Fisher   - Bug fix: use IS_Hg2() and IS_HgP to test if 
 !                              a tracer is Hg2 or HgP (for tagged species)
+!  16 Aug 2011 - J. Fisher   - Now use WETLOSS instead of T0_SUM in the ND38 
+!                              diagnostic below the cloud.  Using T0_SUM leads 
+!                              us to over-count the tracer scavenged out of 
+!                              the column.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2247,7 +2252,15 @@
                   !------------------------------------------------------------
                   IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
-     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
+!------------------------------------------------------------------------------
+! Prior to 8/16/11:
+! Now use WETLOSS instead of T0_SUM in the ND38 diagnostic below the cloud
+! base.  WETLOSS is the loss in this level, but T0_SUM is the loss summed
+! over the entire column.  Using T0_SUM leads us to over-count the tracer
+! scavenged out of the column. (jaf, hamos, bmy, 8/16/11)
+!     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
+!------------------------------------------------------------------------------
+     &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
                   ENDIF
                 
                   ! CHECK for infinity (added by hma, 20101117)
