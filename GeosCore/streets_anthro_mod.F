@@ -1002,11 +1002,18 @@
 !  (1) UNIT argument in DO_REGRID_... is 'kg/yr' for VOCs
 !        because 'atom C/yr' and 'molec/yr' are not recognized. The result is
 !        still correct.
+!  02 Mar 2011 - J. Fisher   - Added seasonality for NH3 emissions
+!  02 Mar 2011 - R. Yantosca - Added ProTeX headers
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,      ONLY : GET_TAU0,      READ_BPCH2
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
+      USE TIME_MOD,       ONLY : GET_MONTH
+      USE TRACERID_MOD,   ONLY : IDTNH3
 
 #     include "F77_CMN_SIZE"        ! Size parameters
   
@@ -1022,7 +1029,17 @@
       REAL*8            :: GEN_1x1(I1x1,J1x1-1)
       REAL*8            :: GEOS_1x1(I1x1,J1x1,1)
       CHARACTER(LEN=50) :: THISUNIT
-      
+
+      ! Variables for seasonal scaling of NH3 (jaf, 3/2/11)
+      REAL*4            :: SCALAR_1x1(I1x1,J1x1-1,1)
+      REAL*8            :: TAU1995
+      INTEGER           :: RATIOID
+      CHARACTER(LEN=250):: FILENAME_S
+
+      !=================================================================
+      ! Read emission data from diskR
+      !=================================================================
+
       ! Echo info                     
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - EMISS_STREETS_ANTHRO: Reading ', a )
@@ -1037,11 +1054,46 @@
          THISUNIT = 'kg/yr'
       ENDIF
       
-      
       ! Read data
       CALL READ_BPCH2( FILENAME,  CATEGORY,  TRACERN, 
      &                 TAU,       I1x1,      J1x1-1,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
+
+      !=================================================================
+      ! Apply seasonal variation to NH3 based on seasonality from 
+      ! Lex Bouwman.  Follow methodology in emep_mod.f (jaf, 3/2/11)
+      !=================================================================
+
+      ! Get TAU value for 1995, since the data is timestamped w/ this
+      TAU1995 = GET_TAU0( GET_MONTH(), 1, 1995 )
+
+      ! For NH3 only ...
+      IF ( TRACERN == IDTNH3 ) THEN
+
+         ! File name containing scaling factors
+         FILENAME_S = TRIM( DATA_DIR_1x1 ) // 
+     &        'Streets_200607/NH3-Streets-SeasonalScalar.generic.1x1'
+
+         ! Tracer number for scale factor data
+         RATIOID = 74
+
+         ! Echo info
+         WRITE( 6, 101 ) TRIM( FILENAME_S )
+101      FORMAT( '     - READ_STREETS: Reading ', a )
+
+         ! Read scaling factors
+         CALL READ_BPCH2( FILENAME_S, 'RATIO-2D',  RATIOID,
+     &                    TAU1995,     I1x1,       J1x1-1,
+     &                    1,           SCALAR_1x1, QUIET=.TRUE. )
+
+         ! Apply seasonal scalar to NH3 emissions
+         ARRAY(:,:,1) = ARRAY(:,:,1) * SCALAR_1x1(:,:,1)
+
+      ENDIF
+
+      !=================================================================
+      ! Regrid from 1x1 to model resolution
+      !=================================================================
 
       ! Cast to REAL*8 before regridding
       GEN_1x1(:,:) = ARRAY(:,:,1)
