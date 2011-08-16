@@ -1503,6 +1503,8 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
       USE MERCURY_MOD,      ONLY : PARTITIONHg
+      USE TRACERID_MOD,     ONLY : IS_Hg2
+      USE TRACERID_MOD,     ONLY : IS_HgP 
       USE WETSCAV_MOD,      ONLY : WASHOUT
       USE WETSCAV_MOD,      ONLY : LS_K_RAIN
       USE WETSCAV_MOD,      ONLY : LS_F_PRIME
@@ -1587,6 +1589,8 @@
 !  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
 !                              algorithm as in the wet deposition code.
 !  27 Jul 2011 - R. Yantosca - Declare CLDBASE as INTEGER to avoid PGI errors
+!  16 Aug 2011 - R. Yantosca - Bug fix: use IS_Hg2() and IS_HgP to test if 
+!                              a tracer is Hg2 or HgP (for tagged species)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1601,12 +1605,6 @@
       LOGICAL           :: AER,         IS_Hg 
       INTEGER           :: IC,          ISTEP,    K,       KTOP
       INTEGER           :: NC,          NDT,      NLAY,    NS    
-!-----------------------------------------------------------------------------
-! Prior to 7/27/11:
-! CLDBASE needs to be declared as an INTEGER, or else the PGI compiler
-! will choke at compile-time. (ganluo, bmy, 7/27/11)
-!      REAL*8            :: ALPHA,       ALPHA2,   CLDBASE, CMFMC_BELOW
-!-----------------------------------------------------------------------------
       INTEGER           :: CLDBASE
       REAL*8            :: CMFMC_BELOW, ALPHA,    ALPHA2
       REAL*8            :: CMOUT,       DELQ,     DQ,      DNS
@@ -2272,7 +2270,12 @@
             !--------------------------------------
             ! Hg2 
             !--------------------------------------
-            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/16/11:
+! Now use IS_Hg2 array to test for Hg2 tagged tracers (jaf, bmy, 8/16/11)
+!            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
+!------------------------------------------------------------------------------
+            IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
                WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
@@ -2288,7 +2291,12 @@
             !--------------------------------------
             ! HgP
             !--------------------------------------
-            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
+!------------------------------------------------------------------------------
+! Prior to 8/16/11:
+! Now use IS_HgP array to test for HgP tagged tracers (jaf, bmy, 8/16/11)
+!            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
+!------------------------------------------------------------------------------
+            IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]
                WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
