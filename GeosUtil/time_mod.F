@@ -118,6 +118,10 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+![eml
+      PUBLIC  :: SET_HISTYR
+      PUBLIC  :: GET_HISTYR
+!eml]
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
@@ -189,6 +193,9 @@
       INTEGER           :: HOUR,       MINUTE,      SECOND
       INTEGER           :: NSEASON,    DAY_OF_YEAR, ELAPSED_MIN
       INTEGER           :: NDIAGTIME
+![eml
+      INTEGER           :: HISTYRA
+!eml]
       REAL*8            :: TAU,        TAUb,        TAUe  
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
@@ -1532,6 +1539,29 @@
       THISYEAR = YEAR
 
       END FUNCTION GET_YEAR
+
+![eml
+      SUBROUTINE SET_HISTYR( YEARIN )
+      
+      INTEGER, INTENT(IN) :: YEARIN
+      
+      HISTYRA = YEARIN
+      
+      END SUBROUTINE SET_HISTYR
+
+      FUNCTION GET_HISTYR() RESULT( HISTYEAR )
+!******************************************************************************
+!  Function GET_HISTYR returns the year stored in HISTYR w/o needing to 
+!  include the CMN_O3 common block (eml, 8/20/08)
+!******************************************************************************
+
+      !Function value
+      INTEGER :: HISTYEAR
+      HISTYEAR = HISTYRA
+
+      END FUNCTION GET_HISTYR
+!eml]
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

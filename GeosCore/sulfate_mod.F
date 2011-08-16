@@ -4356,6 +4356,9 @@
       USE TIME_MOD,       ONLY : GET_DAY_OF_WEEK
       USE TRACER_MOD,     ONLY : XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO2
+![eml
+      USE LOGICAL_MOD,    ONLY : LHIST
+!eml]
 
 #     include "F77_CMN_SIZE"     ! Size parameters
 #     include "F77_CMN_DIAG"     ! ND13, LD13 (for now)
@@ -4669,7 +4672,9 @@
             !-----------------------------------------------------------
             ! If we are using EPA/NEI99 over the USA (anthro + biofuel)
             !-----------------------------------------------------------
-            IF ( LNEI99 ) THEN
+![eml Don't overwrite US if historical
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
             
                ! Read EPA/NEI99 SO2 emissions in [molec/cm2/s]
@@ -4692,7 +4697,9 @@
             !-----------------------------------------------------------
             ! If we are using BRAVO emissions over Mexico (anthro)
             !-----------------------------------------------------------
-            IF ( LBRAVO )  THEN 
+![eml
+            IF ( LBRAVO .and. .not. LHIST )  THEN 
+!eml]
             IF ( GET_BRAVO_MASK( I, J ) > 0d0 )  THEN
             
                ! Read BRAVO SO2 emissions in [molec/cm2/s]
@@ -4722,7 +4729,9 @@
             !-----------------------------------------------------------
             ! If we are using CAC emissions over Canada ...
             !-----------------------------------------------------------
-            IF ( LCAC ) THEN
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
                ! Read CAC SO2 emissions in [molec/cm2/s]
@@ -4755,7 +4764,9 @@
             ! Must be called after CAC and BRAVO to simply overwrite
             ! where they overlap
             !-----------------------------------------------------------  
-            IF ( LNEI05 ) THEN
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
             IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 
                ! Read USA SO2 emissions in [molec/cm2/s]
@@ -4933,6 +4944,9 @@
       USE TIME_MOD,           ONLY : GET_DAY_OF_WEEK, GET_TS_EMIS
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
+![eml
+      USE LOGICAL_MOD,        ONLY : LHIST
+!eml]
 
 #     include "F77_CMN_SIZE"     ! Size parameters
 #     include "F77_CMN_DIAG"     ! ND13 (for now)
@@ -5009,7 +5023,9 @@
             
             !-----------------------------------------------------------
             ! If we are using EPA/NEI99 emissions and over the USA
-            IF ( LNEI99 ) THEN
+![eml don't overwrite if historical
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_USA_MASK( I, J ) > 0d0 )  THEN
             
                   ! Read SO4 emissions in [molec/cm2/s]
@@ -5031,7 +5047,9 @@
 
             !-----------------------------------------------------------
             ! If we are using CAC emissions and over CANADA ...
-            IF ( LCAC ) THEN
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_CANADA_MASK( I, J) > 0d0 ) THEN
 
                ! Read SO4 emissions in [molec/cm2/s]
@@ -5060,7 +5078,9 @@
 
             !-----------------------------------------------------------
             ! If we are using BRAVO emissions and over MEXICO ...
-            IF ( LBRAVO ) THEN
+![eml
+            IF ( LBRAVO .and. .not. LHIST ) THEN
+!eml]
             IF ( GET_BRAVO_MASK( I, J) > 0d0 ) THEN
 
                ! Read SO4 emissions in [molec/cm2/s]
@@ -5091,7 +5111,9 @@
             ! If we are using NEI 2005 over the USA ...
             ! Must be called after CAC and BRAVO to simply overwrite
             ! where they overlap
-            IF ( LNEI05 ) THEN
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
                IF ( NEI05_MASK( I, J) < 0d0 ) THEN
 
                   ! Read SO4 emissions in [molec/cm2/s]
@@ -6108,6 +6130,10 @@
       USE TRACERID_MOD,         ONLY : IDTSO2, IDTSO4
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST
+      USE TIME_MOD,             ONLY : GET_HISTYR
+!eml]
 
 #     include "F77_CMN_SIZE"             ! Size parameters
 #     include "F77_CMN_O3"               ! FSCALYR
@@ -6176,8 +6202,9 @@
                EDG_SO2 = GET_EDGAR_ANTH_SO2( I, J, KG_S=.TRUE. ) 
 
                ! If we are using David Streets' emissions ...
-               IF ( LSTREETS ) THEN
-
+![eml Not if historical
+               IF ( LSTREETS .and. .not. LHIST ) THEN
+!eml]
                   ! If we are over the SE Asia region ...
                   IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
@@ -6192,7 +6219,9 @@
                ENDIF
 
                ! If we are using EMEP over Europe...
-               IF ( LEMEP ) THEN
+![eml
+               IF ( LEMEP .and. .not. LHIST ) THEN
+!eml]
 
                   IF (GET_EUROPE_MASK(I,J) > 0d0) THEN
 
@@ -6608,7 +6637,12 @@
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
-      
+![eml
+      USE LOGICAL_MOD,          ONLY : LHIST
+      USE TIME_MOD,             ONLY : GET_HISTYR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
+!eml]
+
 #     include "F77_CMN_SIZE"             ! Size parameters
                                     
       ! Arguments                   
@@ -6621,7 +6655,14 @@
       REAL*8                        :: XTAU
       CHARACTER(LEN=4  )            :: CYEAR
       CHARACTER(LEN=255)            :: FILENAME
-                                    
+![eml
+      CHARACTER(LEN=4  )            :: CHISTYR
+      CHARACTER(LEN=255)            :: DATADIR
+      REAL*4                        :: ESO2_GEN(I1x1,J1x1-1)
+      REAL*8                        :: ESO2_GEN8(I1x1,J1x1-1)
+      REAL*8                        :: ESO2_GEO(I1x1,J1x1,1)
+      REAL*8                        :: TEMP_ED(IIPAR,JJPAR,1)
+!eml]
       ! Days per month              
       REAL*8 :: NMDAY(12) = (/ 31d0, 28d0, 31d0, 30d0, 31d0, 30d0, 
      &                         31d0, 31d0, 30d0, 31d0, 30d0, 31d0/)
@@ -6637,50 +6678,74 @@
       !=================================================================
       
       ! File name for biofuel burning file
-      FILENAME = TRIM( DATA_DIR )          // 
-     &           'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
-     &           '.'                       // GET_RES_EXT()
+![eml
+      IF(.not. LHIST) THEN
+!eml]
+         FILENAME = TRIM( DATA_DIR )          // 
+     &              'biofuel_200202/biofuel.' // GET_NAME_EXT_2D() //
+     &              '.'                       // GET_RES_EXT()
 
-      ! Echo info
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - READ_BIOFUEL_SO2: Reading ', a )
+         ! Echo info
+         WRITE( 6, 100 ) TRIM( FILENAME )
+ 100     FORMAT( '     - READ_BIOFUEL_SO2: Reading ', a )
 
-      ! Get TAU0 value (use generic year 1985)
-      XTAU = GET_TAU0( 1, 1, 1985 )
+         ! Get TAU0 value (use generic year 1985)
+         XTAU = GET_TAU0( 1, 1, 1985 )
 
-      ! Read Biofuel burning of CO [kg/yr]
-      CALL READ_BPCH2( FILENAME, 'BIOFSRCE',    4, 
-     &                 XTAU,      IIPAR,        JJPAR,     
-     &                 1,         ARRAY(:,:,1), QUIET=.TRUE.  ) 
+         ! Read Biofuel burning of CO [kg/yr]
+         CALL READ_BPCH2( FILENAME, 'BIOFSRCE',    4, 
+     &                    XTAU,      IIPAR,        JJPAR,     
+     &                    1,         ARRAY(:,:,1), QUIET=.TRUE.  ) 
 
-      ! Cast from REAL*4 to REAL*8
-      CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
+         ! Cast from REAL*4 to REAL*8
+         CALL TRANSFER_2D( ARRAY(:,:,1), BIOCO )
 
-      !=================================================================
-      ! Unit conversion to [kg SO2/s]
-      !=================================================================
+         !=================================================================
+         ! Unit conversion to [kg SO2/s]
+         !=================================================================
   
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J )
-      ! Loop over longitudes
-      DO J = 1, JJPAR
+         ! Loop over longitudes
+         DO J = 1, JJPAR
 
-         ! Loop over latitudes
-         DO I = 1, IIPAR
+            ! Loop over latitudes
+            DO I = 1, IIPAR
 
-            ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
-            ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
-     &                     ( 28d-3 * 86400.d0 * 365.25d0 ) )
+               ! Convert biofuel SO2 from [kg CO/yr] to [kg SO2/s]
+               ESO2_bf(I,J) = ( BIOCO(I,J) * 64d-3 * 0.0015d0 /
+     &                        ( 28d-3 * 86400.d0 * 365.25d0 ) )
 
-            ! Apply future emissions to biofuel SO2, if necessary
-            IF ( LFUTURE ) THEN
-               ESO2_bf(I,J) = ESO2_bf(I,J) * 
-     &                        GET_FUTURE_SCALE_SO2bf( I, J )
-            ENDIF
+               ! Apply future emissions to biofuel SO2, if necessary
+               IF ( LFUTURE ) THEN
+                  ESO2_bf(I,J) = ESO2_bf(I,J) * 
+     &                           GET_FUTURE_SCALE_SO2bf( I, J )
+               ENDIF
+            ENDDO
          ENDDO
-      ENDDO
 !$OMP END PARALLEL DO
+![eml
+      ELSE
+         WRITE(CHISTYR,'(I4)') GET_HISTYR()
+         DATADIR ='/home/eml/data/EMISSIONS/SO2/proper/'
+         FILENAME=TRIM(DATADIR)//'EDGAR.BCSO2.'//CHISTYR//'generic.1x1'
+         
+         XTAU = GET_TAU0( 1, 1, GET_HISTYR() )
+         WRITE( 6, 101 ) TRIM( FILENAME )
+ 101     FORMAT( '     - READ_EDGAR_NOx: Reading ', a )
+         CALL READ_BPCH2( TRIM(FILENAME), 'EDGAR-2D', 26,
+     &                    XTAU,           I1x1,       J1x1-1,
+     &                    1,              ESO2_GEN,   QUIET=.TRUE. )
+
+         ESO2_GEN8 = ESO2_GEN
+
+         CALL DO_REGRID_G2G_1x1( 'kg/yr', ESO2_GEN8, ESO2_GEO(:,:,1) )
+         CALL DO_REGRID_1x1(1, 'kg/yr', ESO2_GEO, TEMP_ED )
+         ! Convert from kg SO2/yr to kg SO2/s
+         ESO2_bf = TEMP_ED(:,:,1) / (365.25d0 * 86400.d0)
+      ENDIF
+!eml]
 
       ! Return to calling program
       END SUBROUTINE READ_BIOFUEL_SO2

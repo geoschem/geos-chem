@@ -210,6 +210,11 @@
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
+![eml 
+      USE LOGICAL_MOD,          ONLY : LHIST
+      USE TIME_MOD,             ONLY : GET_HISTYR
+      USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1,DO_REGRID_G2G_1x1
+!eml]
 
       IMPLICIT NONE
       
@@ -227,6 +232,14 @@
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
       REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
       CHARACTER(LEN=255)            :: FILENAME 
+![eml
+      CHARACTER(LEN=4  )            :: CHISTYR
+      CHARACTER(LEN=255)            :: ED_FILENAME
+      REAL*4                        :: generic_1x1(I1x1,J1x1-1)
+      REAL*8                        :: generic8_1x1(I1x1,J1x1-1)
+      REAL*8                        :: geos_1x1(I1x1,J1x1,1)
+      REAL*8                        :: TEMP_ED(IGLOB,JGLOB,1), HIST_TAU
+!eml]
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
@@ -307,13 +320,35 @@
                !----------------
 
                ! Read biofuel NOx emissions in [kg/box/yr] -- tracer #1
-               CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 1 , 
-     &                          0d0,       IIPAR,     JJPAR,     
-     &                          1,         ARRAY,     QUIET=.TRUE. ) 
-                         
-               ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
-               CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
+![eml
+               IF ( LHIST ) THEN
+                  WRITE(CHISTYR, '(I4)') GET_HISTYR()
+                  HIST_TAU = GET_TAU0(1,1,GET_HISTYR())
+                  ED_FILENAME ='/home/eml/data/EMISSIONS/NOX/proper/'//
+     &                         'EDGAR.BCNOX.'//CHISTYR//'generic.1x1'
+
+                  CALL READ_BPCH2(ED_FILENAME, 'EDGAR-2D', 1,
+     &                            HIST_TAU,    I1x1,       J1x1-1,
+     &                            1,           generic_1x1,QUIET=.TRUE.)
+
+                  generic8_1x1=generic_1x1
+                  !Convert to GEOS-Chem grid
+                  CALL DO_REGRID_G2G_1x1('kg/yr',generic8_1x1,
+     &                                   geos_1x1(:,:,1) )
+                  ! Regrid to current resolution
+                  CALL DO_REGRID_1x1(1, 'kg/yr', geos_1x1, TEMP_ED )
+                  BIOFUEL_KG(N,:,:) = TEMP_ED(:,:,1)
+               ELSE
+                  CALL READ_BPCH2( FILENAME, 'EDGAR-2D', 1 , 
+     &                             0d0,       IIPAR,     JJPAR,     
+     &                             1,         ARRAY,     QUIET=.TRUE. ) 
+                          
+                  ! Cast from REAL*4 to REAL*8, resize to (IIPAR,JJPAR)
+                  CALL TRANSFER_2D( ARRAY(:,:,1), BIOFUEL_KG(N,:,:) )
                
+               ENDIF
+!eml]
+     
                ! Compute future NOx emissions (if necessary)
                IF ( LFUTURE ) THEN
                   CALL SCALE_FUTURE( 'NOxbf', BIOFUEL_KG(N,:,:) )
@@ -785,40 +820,41 @@
             ! so we are forced to take the biofuel emissions over the
             ! USA from the NEI99 inventory.  (bmy, 2/7/11)
             !-----------------------------------------------------------
-            
-            ! If EPA/NEI99 emissions are turned on....
-            IF ( LNEI99 .or. LNEI05 ) THEN
+![eml Not if historical or not NOx
+            IF( .not. LHIST .or. BFTRACE(N) .ne. IDTNOX ) THEN
+               ! If EPA/NEI99 emissions are turned on....
+               IF ( LNEI99 .or. LNEI05 ) THEN
 
-               ! If we are over the USA ...
-               IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
+                  ! If we are over the USA ...
+                  IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
   
-                  ! Get GEOS-CHEM tracer number
-                  NN      = BFTRACE(N)
+                     ! Get GEOS-CHEM tracer number
+                     NN      = BFTRACE(N)
 
-                  ! We do not have EPA/NEI biofuel emission.  
-                  ! Use default emission for the newly added species. 
-                  ! (tmf, 1/8/08) 
-                  IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
-     &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
-     &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
-     &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.             
-     &                 (NN /= IDTHAC ) ) THEN
+                     ! We do not have EPA/NEI biofuel emission.  
+                     ! Use default emission for the newly added species. 
+                     ! (tmf, 1/8/08) 
+                     IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
+     &                    (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
+     &                    (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
+     &                    (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.          
+     &                    (NN /= IDTHAC ) ) THEN
 
-                     ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
-                     EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
+                        ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
+                        EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
 
-                     ! Convert [molec/cm2/s] to [molec/cm3/s]
-                     BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
+                        ! Convert [molec/cm2/s] to [molec/cm3/s]
+                        BIOFUEL(N,I,J) = EPA_NEI / BXHEIGHT_CM
                   
+                     ENDIF
                   ENDIF
                ENDIF
-            ENDIF
 
-            !-----------------------------------------------------------
-            ! If we are over SE ASIA and are using Streets 2006 (that is
-            ! emission year is GE 2006), set BIOFUEL to zero since they
-            ! are already accounted for (phs, 3/17/08)
-            !-----------------------------------------------------------
+               !-----------------------------------------------------------
+               ! If we are over SE ASIA and are using Streets 2006 (that is
+               ! emission year is GE 2006), set BIOFUEL to zero since they
+               ! are already accounted for (phs, 3/17/08)
+               !-----------------------------------------------------------
 !------------------------------------------------------------------------------
 ! Prior to 2/18/11:
 ! NOTE from Claire Carouge (2/18/11):
@@ -831,23 +867,24 @@
 ! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
 !            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
 !------------------------------------------------------------------------------
-            IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
+               IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
 
-               ! If we are over the SE Asia region
-               IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
+                  ! If we are over the SE Asia region
+                  IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
-                  BIOFUEL(N,I,J) = 0.d0
+                     BIOFUEL(N,I,J) = 0.d0
 
+                  ENDIF
                ENDIF
+            
+               ! move below so that BIOFUEL array is complete before
+               ! archiving diagnostic info (hotp 11/23/09)
+!              ! ND34 -- archive biofuel burning species [molec/cm2/s]
+!              IF ( DO_ND34 ) THEN
+!                  AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
+!     &                                          BXHEIGHT_CM )
+!               ENDIF 
             ENDIF
-
-            ! move below so that BIOFUEL array is complete before
-            ! archiving diagnostic info (hotp 11/23/09)
-!            ! ND34 -- archive biofuel burning species [molec/cm2/s]
-!            IF ( DO_ND34 ) THEN
-!               AD34(I,J,N) = AD34(I,J,N) + ( BIOFUEL(N,I,J) * 
-!     &                                       BXHEIGHT_CM )
-!            ENDIF
          ENDDO  
 
          ! ND29 -- CO source diagnostics [molec/cm2/s]

@@ -44,7 +44,9 @@
       USE TRACERID_MOD,       ONLY : IDTOX,  IDTCO,    IDTHNO3
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
-
+![eml
+      USE LOGICAL_MOD,        ONLY : LHIST
+!eml]
       IMPLICIT NONE
 
 #     include "F77_CMN_SIZE"               ! Size parameters
@@ -223,8 +225,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EMEP ...
-            IF ( LEMEP ) THEN
-
+![eml Don't apply regional overwrites of NOx over global historical emissions
+            IF ( LEMEP .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the European region ...
                IF ( GET_EUROPE_MASK( I, J ) > 0d0 ) THEN 
 
@@ -255,7 +258,9 @@
             !-----------------------------------------------------------
 
             ! If we are using EPA/NEI emissions
-            IF ( LNEI99 ) THEN
+![eml 
+            IF ( LNEI99 .and. .not. LHIST ) THEN
+!eml]
 
                ! If we are over the USA ...               
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN 
@@ -282,8 +287,9 @@
                ENDIF
             ENDIF
 
-            IF ( LVISTAS ) THEN
-
+![eml
+            IF ( LVISTAS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
 
@@ -312,8 +318,9 @@
             !-----------------------------------------------------------
 
             ! If we are using David Streets' emissions
-            IF ( LSTREETS ) THEN
-
+![eml
+            IF ( LSTREETS .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
@@ -346,8 +353,9 @@
             !-----------------------------------------------------------
 
             ! If we are using BRAVO ...
-            IF ( LBRAVO ) THEN
-
+![eml
+            IF ( LBRAVO .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the Mexican region ...
                IF ( GET_BRAVO_MASK( I, J ) > 0d0 ) THEN 
 
@@ -386,8 +394,9 @@
             !-----------------------------------------------------------
 
             ! If we are using CAC emissions
-            IF ( LCAC ) THEN
-
+![eml
+            IF ( LCAC .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the SE Asia region
                IF ( GET_CANADA_MASK( I, J ) > 0d0 ) THEN
 
@@ -428,8 +437,9 @@
                ENDIF
             ENDIF
 
-            IF ( LNEI05 ) THEN
-
+![eml
+            IF ( LNEI05 .and. .not. LHIST ) THEN
+!eml]
                ! If we are over the USA and CAN/MEX
                IF ( NEI05_MASK( I, J ) > 0d0 ) THEN
 

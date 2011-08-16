@@ -675,7 +675,6 @@
       ! CLEANUP_BIOMASS begins here!
       !=================================================================
       IF ( ALLOCATED( BIOMASS ) ) DEALLOCATE( BIOMASS )
-
       ! Return to calling program
       END SUBROUTINE CLEANUP_BIOMASS
 

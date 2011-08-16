@@ -1382,6 +1382,10 @@
       USE LOGICAL_MOD, ONLY : LMODISLAI , LPECCA  !(mpb,2009)
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
+![eml 
+      USE LOGICAL_MOD, ONLY : LHIST
+      USE TIME_MOD,    ONLY : SET_HISTYR
+!eml]
 
 #     include "F77_CMN_SIZE"      ! Size parameters
 #     include "F77_CMN_O3"        ! FSCALYR
@@ -1431,6 +1435,8 @@
 !  27 Aug 2010 - R. Yantosca - Added warning msg for MERRA
 !  29 Jul 2011 - L. Zhang    - Fix bug that turns off CAC/BRAVO emissions
 !                             inadvertently during nested NA simulations
+!  11 Aug 2011 - E. Leibensperger - Added flag for historical emissions and base
+!                                  year
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1439,7 +1445,9 @@
 !
       INTEGER            :: N
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG, LOC
-
+![eml
+      INTEGER            :: HISTYR
+!eml]
       !=================================================================
       ! READ_EMISSIONS_MENU begins here!
       !=================================================================
@@ -1623,8 +1631,19 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LMODISLAI
 
-      ! Separator line
+![eml
+      ! Use historical emissions (EDGAR NOx/SO2 and Bond BC/OC) for 
+      ! 1890-2000?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      READ( SUBSTRS(1:N), * ) LHIST
+      
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
+      READ( SUBSTRS(1:N), * ) HISTYR
+      CALL SET_HISTYR( HISTYR )
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:46' )
+!eml]
 
       !=================================================================
       ! Error check logical flags
@@ -1662,6 +1681,14 @@
          !LEDGARSHIP = .TRUE.  ! This is read in now (phs, 12/17/08)
          LEDGARSOx  = .TRUE.
       ENDIF
+
+![eml
+      ! If using historical emissions, make sure EDGAR NOx/SO2 are used
+      IF ( LHIST ) THEN
+         LEDGARNOx = .TRUE.
+         LEDGARSOx = .TRUE.
+      ENDIF
+!eml]
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%% Bug fix!  If LEMEPSHIP is turned on but LEMEP is turned %%%
@@ -1920,6 +1947,9 @@
       WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
       WRITE( 6, 100     ) 'Turn on MODIS-derived LAI?  : ', LMODISLAI
+![eml
+      WRITE( 6, 100     ) 'Turn on historical emiss?   : ', LHIST
+!eml]
 
       ! FORMAT statements
  100  FORMAT( A, L5 )

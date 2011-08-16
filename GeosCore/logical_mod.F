@@ -143,6 +143,9 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
+![eml
+      LOGICAL :: LHIST           ! Use historical emissions?
+!eml]
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?
