@@ -58,15 +58,15 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.f) and compile it. 
+# will find the corresponding source code file (*.F) and compile it. 
 #=============================================================================
 
 # List of source files
-SRC = $(wildcard *.f) $(wildcard *.f90)
+SRC = $(wildcard *.F) $(wildcard *.F90)
 
-# Replace .f and .f90 extensions with *.o
-TMP = $(SRC:.f=.o)
-OBJ = $(TMP:.f90=.o)
+# Replace .F and .F90 extensions with *.o
+TMP = $(SRC:.F=.o)
+OBJ = $(TMP:.F90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -91,7 +91,7 @@ help:
 # correct order of compilation (so we don't have to do that ourselves!)
 #=============================================================================
 
-isoropiaIIcode.o:  isoropiaIIcode.f  isrpia.inc
+isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
 	$(F90) $(R8) -c $<
 #EOC
 

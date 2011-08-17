@@ -23,12 +23,13 @@
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_2.*"
+#  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # List of source code files
-SRC3 := ./intro.util $(wildcard $(UTIL)/*.f)
+SRC3 := ./intro.util $(wildcard $(UTIL)/*.F)
 
 
 # Output file names

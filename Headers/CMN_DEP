@@ -19,12 +19,12 @@
       COMMON /DEPSV6/ IREG(IGLOB,JGLOB),                                &
      &                ILAND(IGLOB,JGLOB,NTYPE),                         &
      &                IUSE(IGLOB,JGLOB,NTYPE),                          &
-     &                FRCLND(IIPAR,JJPAR)
+     &                FRCLND(IGLOB,JGLOB)
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
       REAL*8 XLAI
-      COMMON /DEPSV7/ XLAI(IGLOB,JGLOB,NTYPE)
+      COMMON /DEPSV7/ XLAI(IIPAR,JJPAR,NTYPE)
 
       ! XLAI2   - Leaf Area Index of land type for following MONTH
       REAL*8 XLAI2
-      COMMON /DEPSV5/ XLAI2(IGLOB,JGLOB,NTYPE)
+      COMMON /DEPSV5/ XLAI2(IIPAR,JJPAR,NTYPE)

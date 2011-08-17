@@ -127,6 +127,13 @@ LINK += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
 LHG  += -L$(H5L) -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lsz -lz -lm
 endif
 
+ifeq ($(ESMF),yes)
+LINK += -lESMF $(LIB_CHEM_BASE) $(LIB_CHEM_SHARED) $(LIB_PILGRIM) \
+               $(LIB_MAPL_BASE) $(LIB_CFIO) $(LIB_GFIO) $(LIB_MPEU) \
+               $(LIB_ESMF) $(LIB_SDF) \
+               $(LIB_SYS) $(LIB_MPI) $(ESMF_LDFLAGS) -lmpi_cxx -lstdc++ -limf -lrt -ldl
+LHG  += -lESMF
+endif
 
 #==============================================================================
 # IFORT compilation options (default)
@@ -176,6 +183,16 @@ INCLUDE  = -I$(HDR) -module $(MOD)
 # Also append HDF5 include commands if necessary
 ifeq ($(HDF5),yes)
 INCLUDE += -DUSE_HDF5 -I$(H5I)
+endif
+
+# Also add ESMF linking option
+ifeq ($(ESMF),yes)
+FFLAGS  += -DESMF_
+endif
+
+ifeq ($(ESMF_TESTBED),yes)
+FFLAGS += -DESMF_TESTBED_
+INCLUDE += -I$(HDR)
 endif
 
 CC       =

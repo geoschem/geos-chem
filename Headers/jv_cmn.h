@@ -107,7 +107,7 @@
 
 !-----------------------------------------------------------------------
 ! These common blocks MUST be held local for the parallelization (bmy, 5/2/00)
-      COMMON /ATMOS/TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       &
+      COMMON /ATMOS/TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       
      &              AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
       COMMON /JVLOC/zj
       COMMON /WLLOC/FFF(NW,lpar),VALJ(NS)
