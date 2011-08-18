@@ -69,6 +69,16 @@
 !  (9 ) logical_mod.f             : Module w/ GEOS-CHEM logical switches
 !  (10) time_mod.f                : Module w/ routines for computing time/ date
 !
+!  References:
+!  ============================================================================
+!
+!  (1 ) Andreae, M.O., and P. Merlet, "Emissions of trace gases and aerosols
+!        from biomass burning", Global Biogeochemical Cycles, Vol 15, pp
+!        955-966, 2001.
+!  (2 ) Hays, M.D., C.D. Geron, K.J. Linna, N.D. Smith, and J.J. Schauer, 
+!        "Speciation of gas-phase and fine particle emissions from burning of
+!        foliar fuels", Environ. Sci. Technol., Vol 36, pp 2281-2295, 2002.
+!
 !  NOTES:  
 !  (1 ) Rewrote so that all 15 biomass species (from either GFED2 or Duncan
 !        et al 2001) are contained in the BIOMASS array.  Also removed the
@@ -82,6 +92,8 @@
 !        transfered from gc_biomass_mod.f (jaf, mak, 2/6/09)
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
+!  (8 ) Updates for Havala's SOA + semivol POA code. Add NAP and POA1 biomass
+!       burning emissions. (mpayer, 7/6/11)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -183,6 +195,11 @@
 !  (1 ) YEAR  (INTEGER) : Current year  
 !  (2 ) MONTH (INTEGER) : Current month (1-12)
 !
+!  References (see above for full citations):
+!  ===========================================================================
+!  (1 ) Hayes et al, 2002
+!  (2 ) Andreae & Merlet, 2001
+!
 !  NOTES:
 !  (1 ) Now store all biomass species in BIOMASS, from GFED2 or Duncan et al 
 !        2001.  Also remove obsolete BIOMASS_SAVE array. (bmy, 9/28/06)
@@ -195,6 +212,7 @@
 !        for CO production from VOC's that are not explicitly carried in the 
 !        chemistry mechanisms. This used to be done in gc_biomass_mod.f but 
 !        then is not used for GFED2, FLAMBE, etc. (jaf, mak, 11/6/09)
+!  (6 ) Add IDTPOA1, IDBNAP, NAPEMISS (hotp, mpayer, 7/6/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -204,6 +222,7 @@
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_CO2
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_NH3
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
+      USE GC_BIOMASS_MOD,    ONLY : TOTAL_BIOMASS_TG  ! (dkh, mpayer, 7/6/11)
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
       USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
@@ -218,6 +237,11 @@
       USE TRACERID_MOD,      ONLY : IDBBC, IDBNH3, IDBOC, IDBSO2
       USE TRACERID_MOD,      ONLY : IDBCO, IDBNOx
       USE TRACERID_MOD,      ONLY : IDBCO2
+      USE TRACERID_MOD,      ONLY : IDBXYLE, IDBTOLU, IDBBENZ ! hotp for debug
+      ! for POA and NAP emissions (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD,      ONLY : IDTPOA1
+      USE TRACERID_MOD,      ONLY : IDBNAP
+      USE LOGICAL_MOD,       ONLY : NAPEMISS
 
 
 #     include "CMN_SIZE"          ! Size parameters
@@ -232,6 +256,9 @@
       LOGICAL, SAVE              :: USE_GFED
       INTEGER                    :: I,       J,       N,      N_BIOB
       REAL*8                     :: BXHT_CM, DTSRCE
+
+      ! scale up total NAP emiss (hotp, mpayer, 7/6/11)
+      REAL*8, PARAMETER          :: NAPTOTALSCALE = 66.09027d0
       
       !=================================================================
       ! COMPUTE_BIOMASS_EMISSIONS begins here!
@@ -319,10 +346,17 @@
                ENDIF
 
                ! Get biomass BC & OC [molec/cm2/s]
-               IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
+               !---------------------------------------------------------------
+               ! Prior to 7/6/11:
+               ! Changed IF to option for OCPO or POA1 (hotp, mpayer, 7/6/11) 
+               ! IF ( IDTBCPO > 0 .and. IDTOCPO > 0 ) THEN
+               !---------------------------------------------------------------
+               IF ( IDTBCPO > 0 ) THEN
+                  IF ( IDTOCPO > 0 .or. IDTPOA1 > 0 ) THEN
                   CALL GC_READ_BIOMASS_BCOC( YEAR, MONTH,
      &                                       BIOMASS(:,:,IDBBC), 
      &                                       BIOMASS(:,:,IDBOC) ) 
+                  ENDIF
                ENDIF
             ENDIF
 
@@ -338,6 +372,44 @@
             ENDIF
          ENDIF
 
+         !==============================================================
+         ! Add NAP EMISSIONS (hotp, mpayer, 7/6/11)
+         !==============================================================
+
+         IF ( IDBNAP > 0 ) THEN
+            
+            ! Emmision ratio NAP/CO = 0.0602d-3 [mole/mole]
+            ! NAP emiss = 0.0253 g NAP/kg DM (Table 4, Hays et al, 2002)
+            ! CO  emiss =     92 g CO /kg DM (Table 1, Andreae & Merlet, 2001)
+            ! NAP has 10 carbons
+            BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBCO) * 0.0602d-3 * 10d0
+            
+            ! Scale up total
+            BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPTOTALSCALE
+
+            ! Set NAP emissions according to input.geos
+            BIOMASS(:,:,IDBNAP ) = BIOMASS(:,:,IDBNAP) * NAPEMISS
+
+         ENDIF
+
+         IF ( IDBBENZ > 0 )
+     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ) * 2592000d0, ! s in jun
+     &                             12d-3, 'BENZ' )
+
+
+         IF ( IDBTOLU > 0 ) 
+     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU) * 2592000d0, ! s in jun
+     &                             12d-3, 'TOLU' )
+
+         IF ( IDBXYLE > 0 )
+     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE) * 2592000d0, ! s in jun
+     &                             12d-3, 'XYLE' )
+
+         IF ( IDBNAP > 0 ) THEN        
+            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0, ! s in jun
+     &                             12d-3, 'NAP ' )
+         ENDIF
+      
          !==============================================================
          ! Do the following on every timestep:
          !
@@ -389,6 +461,7 @@
 !  tracers in input.geos (FP 6/2009, hotp 7/30/09)
 !
 !  NOTES:
+!  (1 ) Add NAP emissions (hotp, mpayer, 7/6/11) 
 !******************************************************************************
 
 !FP_ISOP
@@ -409,6 +482,8 @@
       ! Add dicarbonyls
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4
       USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
+      ! Add NAP emissions (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD, ONLY : IDBNAP
 
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET 
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
@@ -418,6 +493,9 @@
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE
       USE TRACERID_MOD, ONLY : IDTHAC, IDTGLYC, IDTMGLY, IDTGLYX
       USE TRACERID_MOD, ONLY : IDTC2H2, IDTC2H4
+      ! Add NAP and POA1 (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD, ONLY : IDTNAP
+      USE TRACERID_MOD, ONLY : IDTPOA1
 
       !=================================================================
       ! SET_BIOTRCE begins here!
@@ -454,6 +532,7 @@
       IF ( IDBC2H2  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBGLYC  /= 0 ) NBIOTRCE = NBIOTRCE + 1 
       IF ( IDBHAC   /= 0 ) NBIOTRCE = NBIOTRCE + 1 
+      IF ( IDBNAP   /= 0 ) NBIOTRCE = NBIOTRCE + 1  ! (hotp, mpayer, 7/6/11)
 
       ! Fill BIOTRCE w/ appropriate TRACER ID #'s
       IF ( IDBNOX   /= 0 ) BIOTRCE(IDBNOX ) = IDTNOX
@@ -475,6 +554,7 @@
       ! depending on if POA is semivolatile (hotp 8/23/09)
       IF ( IDBOC    /= 0 ) THEN 
           IF ( IDTOCPI  /= 0 ) BIOTRCE(IDBOC) = IDTOCPI
+          IF ( IDTPOA1  /= 0 ) BIOTRCE(IDBOC) = IDTPOA1 ! (hotp,mpayer,7/6/11)
       ENDIF
 
       IF ( IDBXYLE  /= 0 ) BIOTRCE(IDBXYLE) = IDTXYLE 
@@ -487,8 +567,8 @@
       IF ( IDBC2H4  /= 0 ) BIOTRCE(IDBC2H4) = IDTC2H4
       IF ( IDBC2H2  /= 0 ) BIOTRCE(IDBC2H2) = IDTC2H2
       IF ( IDBGLYC  /= 0 ) BIOTRCE(IDBGLYC) = IDTGLYC
-      IF ( IDBHAC   /= 0 ) BIOTRCE(IDBHAC)  = IDTHAC
-
+      IF ( IDBHAC   /= 0 ) BIOTRCE(IDBHAC)  = IDTHAC      
+      IF ( IDBNAP   /= 0 ) BIOTRCE(IDBNAP)  = IDTNAP  ! (hotp, mpayer, 7/6/11)
 
       ! Set T/F of BIOBGAS() (hotp 8/3/09)
       ! BIOBGAS(IDBxx) is true if IDBxx should be handled by
@@ -516,6 +596,8 @@
       IF ( IDBXYLE  /= 0 ) BIOBGAS(IDBXYLE) = .TRUE. 
       IF ( IDBTOLU  /= 0 ) BIOBGAS(IDBTOLU) = .TRUE.
       IF ( IDBBENZ  /= 0 ) BIOBGAS(IDBBENZ) = .TRUE.
+      ! NAP handled by setemis (hotp, mpayer, 7/6/11)
+      IF ( IDBNAP   /= 0 ) BIOBGAS(IDBNAP)  = .TRUE.
 
       ! Dicarbonyls handled by setemis
       IF ( IDBGLYX  /= 0 ) BIOBGAS(IDBGLYX) = .TRUE.
@@ -524,7 +606,6 @@
       IF ( IDBC2H2  /= 0 ) BIOBGAS(IDBC2H2) = .TRUE.
       IF ( IDBGLYC  /= 0 ) BIOBGAS(IDBGLYC) = .TRUE.
       IF ( IDBHAC   /= 0 ) BIOBGAS(IDBHAC ) = .TRUE.
-
 
 
       !FP_ISOP

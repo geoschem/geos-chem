@@ -77,6 +77,8 @@
 !       (bmy, 2/25/10)
 !  (32) Add a NOx fertilizer switch and a scaling factor for ISOP emissions
 !       (fp, 6/09)
+!  27 Jul 2011 - M. Payer    -  Update MEGAN biogenics for hotp's SOA + semivol
+!                                POA updates.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -94,6 +96,7 @@
       USE LOGICAL_MOD,       ONLY : LFERTILIZERNOX
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
+      USE LOGICAL_MOD,       ONLY : LSVPOA ! (mpayer, 7/27/11)
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
@@ -104,7 +107,8 @@
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
       USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
       USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
-      USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009) 
+      USE MEGAN_MOD,         ONLY : GET_EMMONOG_MEGAN !(mpb,2009)
+      USE MEGAN_MOD,         ONLY : GET_EMTERP_MEGAN  !(hotp, mpayer, 7/27/11)
       USE MEGAN_MOD,         ONLY : ACTIVITY_FACTORS  !(mpb,2009)
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
@@ -159,6 +163,8 @@
        REAL*8                 :: GAMMA_P
        REAL*8                 :: GAMMA_T
        REAL*8                 :: GAMMA_SM
+      ! SOAupdate: Add sesquiterpenes, other mtp (hotp, mpayer, 7/27/11)
+      REAL*8                   :: FARN, BCAR, OSQT, OMTP
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -345,40 +351,109 @@
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
      &                                      PDR, PDF, XNUMOL_C )
 
-                  ! ------------------------------------------
-                  ! Aplha Pinene emissions
-                  APINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'APINE' )
-                  ! ------------------------------------------
-                  ! Beta Pinene emissions
-                  BPINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'BPINE' )
-                  ! ------------------------------------------
-                  ! Limonene emissions 
-                  LIMON = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'LIMON' )
-                  ! ------------------------------------------
-                  ! Sabinene emissions
-                  SABIN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'SABIN' )               
-                  ! ------------------------------------------
-                  ! Mycrene emissions
-                  MYRCN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'MYRCN' )
-                  ! ------------------------------------------
-                  ! 3-Carene emissions
-                  CAREN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
-     &                       PDR , PDF , XNUMOL_C , 'CAREN' )
-                  ! ------------------------------------------
-                  ! Ocimene emissions
-                  OCIMN = GET_EMMONOG_MEGAN( I , J , SC , TMMP ,  
-     &                       PDR , PDF , XNUMOL_C , 'OCIMN' )
-                  ! ------------------------------------------
+                  ! SOAupdate: Add switch for SOA + semivolatile POA or 
+                  !  traditional SOA simulation (mpayer, 7/27/11)
+                  IF ( LSVPOA ) THEN
 
-                  ! Total monoterpenes = sum of individual
-                  EMMO = APINE + BPINE + LIMON + SABIN + 
-     &                   MYRCN + CAREN + OCIMN
+                     !===========================================
+                     ! SOA + semivolatile POA
+                     !===========================================
 
+                     ! ------------------------------------------
+                     ! Aplha Pinene emissions
+                     APINE = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'APINE' )
+                     ! ------------------------------------------
+                     ! Beta Pinene emissions
+                     BPINE = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'BPINE' )
+                     ! ------------------------------------------
+                     ! Limonene emissions
+                     LIMON = GET_EMTERP_MEGAN( I , J , SC, TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'LIMON' )
+                     ! ------------------------------------------
+                     ! Sabinene emissions
+                     SABIN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'SABIN' )               
+                     ! ------------------------------------------
+                     ! Mycrene emissions
+                     MYRCN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'MYRCN' )
+                     ! ------------------------------------------
+                     ! 3-Carene emissions
+                     CAREN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'CAREN' )
+                     ! ------------------------------------------
+                     ! Ocimene emissions,
+                     OCIMN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,   
+     &                          PDR , PDF , XNUMOL_C , 'OCIMN' )
+                     ! ------------------------------------------
+
+                     ! Total monoterpenes = sum of individual
+                     EMMO = APINE + BPINE + LIMON + SABIN + 
+     &                      MYRCN + CAREN + OCIMN
+
+                     ! SOAupdate: Sesquiterpenes, OMTP (hotp, mpayer, 7/27/11) 
+                     ! (not actually used here)
+                     ! ------------------------------------------
+                     ! a-Farnesene emissions
+                     FARN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                         PDR , PDF , XNUMOL_C , 'FARNE' )
+                     ! ------------------------------------------
+                     ! b-Caryophyllene emissions
+                     BCAR = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
+     &                         PDR , PDF , XNUMOL_C , 'BCARE' )
+                     ! ------------------------------------------
+                     ! Other sesquiterpene emissions
+                     OSQT = GET_EMTERP_MEGAN( I , J , SC, TMMP ,   
+     &                         PDR , PDF , XNUMOL_C , 'OSQTE' )
+                     ! ------------------------------------------
+                     ! Other monoterpene emissions
+                     OMTP = GET_EMTERP_MEGAN( I , J , SC, TMMP ,   
+     &                         PDR , PDF , XNUMOL_C , 'OMTPE' )
+                     ! ------------------------------------------
+
+                  ELSE
+
+                     !===========================================
+                     ! Traditional SOA
+                     !===========================================
+
+                     ! ------------------------------------------
+                     ! Aplha Pinene emissions
+                     APINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'APINE' )
+                     ! ------------------------------------------
+                     ! Beta Pinene emissions
+                     BPINE = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'BPINE' )
+                     ! ------------------------------------------
+                     ! Limonene emissions 
+                     LIMON = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'LIMON' )
+                     ! ------------------------------------------
+                     ! Sabinene emissions
+                     SABIN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'SABIN' )               
+                     ! ------------------------------------------
+                     ! Mycrene emissions
+                     MYRCN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'MYRCN' )
+                     ! ------------------------------------------
+                     ! 3-Carene emissions
+                     CAREN = GET_EMMONOG_MEGAN( I , J , SC , TMMP , 
+     &                          PDR , PDF , XNUMOL_C , 'CAREN' )
+                     ! ------------------------------------------
+                     ! Ocimene emissions
+                     OCIMN = GET_EMMONOG_MEGAN( I , J , SC , TMMP ,  
+     &                          PDR , PDF , XNUMOL_C , 'OCIMN' )
+                     ! ------------------------------------------
+
+                     ! Total monoterpenes = sum of individual
+                     EMMO = APINE + BPINE + LIMON + SABIN + 
+     &                      MYRCN + CAREN + OCIMN
+
+                  ENDIF ! LSVPOA (mpayer, 7/27/11)
 
                ELSE  
 
@@ -437,7 +512,15 @@
                EMISS_BVOC( I , J , 7 ) =  SABIN  / AREA_CM2 / DTSRCE     
                EMISS_BVOC( I , J , 8 ) =  MYRCN  / AREA_CM2 / DTSRCE
                EMISS_BVOC( I , J , 9 ) =  CAREN  / AREA_CM2 / DTSRCE  
-               EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE 
+               EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE
+               IF ( LSVPOA ) THEN ! (mpayer, 7/27/11)
+               ! SOAupdate: sesquiterpenes, other mtp (hotp, mpayer, 7/27/11)
+               EMISS_BVOC( I , J , 11) =  FARN   / AREA_CM2 / DTSRCE
+               EMISS_BVOC( I , J , 12) =  BCAR   / AREA_CM2 / DTSRCE  
+               EMISS_BVOC( I , J , 13) =  OSQT   / AREA_CM2 / DTSRCE 
+               EMISS_BVOC( I , J , 14) =  OMTP   / AREA_CM2 / DTSRCE
+               ENDIF
+               
 
 !-----------------------------------------------------------------------------
 ! BIOGENIC ACETONE EMISSIONS
@@ -668,6 +751,21 @@
 
                ! Ocimene emissions [atoms C/cm2/s] -- tracer #12
               AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
+
+               IF ( LSVPOA ) THEN ! (mpayer, 7/27/11)
+               ! SOAupdate: Sesquiterpenes 14-16 (hotp, mpayer, 7/27/11)
+               ! Farnesene emissions [atoms C/cm2/s] -- tracer #14
+               AD46(I,J,14) = AD46(I,J,14) + ( FARN / AREA_CM2 / DTSRCE)
+
+               ! b-caryophyllene emissions [atoms C/cm2/s] -- tracer #15
+               AD46(I,J,15) = AD46(I,J,15) + ( BCAR / AREA_CM2 / DTSRCE)
+
+               ! Other SQT emissions [atoms C/cm2/s] -- tracer #16
+               AD46(I,J,16) = AD46(I,J,16) + ( OSQT / AREA_CM2 / DTSRCE)
+ 
+               ! Other MTP emissions [atoms C/cm2/s] -- tracer #17
+               AD46(I,J,17) = AD46(I,J,17) + ( OMTP / AREA_CM2 / DTSRCE)
+               ENDIF
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++
                

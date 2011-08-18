@@ -293,11 +293,13 @@
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Now add contribution from SOA4 into Hydrophilic OC (dkh, bmy, 5/18/06)
 !  (3 ) Now set OCF=2.1 to be consistent w/ "carbon_mod.f" (tmf, 2/10/09)
+!  (4 ) Update for SOA + semivolatile POA tracers (hotp, mpayer, 7/13/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,      ONLY : AIRVOL
       USE LOGICAL_MOD,  ONLY : LCARB,   LDUST,   LSOA,    LSSALT, LSULF
+      USE LOGICAL_MOD,  ONLY : LSVPOA ! (mpayer, 7/25/11)
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO, IDTDST1, IDTDST2
       USE TRACERID_MOD, ONLY : IDTDST3, IDTDST4, IDTNH4,  IDTNIT  
@@ -305,6 +307,13 @@
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, IDTSOA4
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
+      ! SOAupdate: Add SOA+semivol tracers (hotp, mpayer, 7/13/11)
+      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2
+      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2 !IDTSOA6
+      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD, ONLY : IDTTSOA0 
+      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -315,7 +324,10 @@
       ! We carry carbon mass only in OC and here need to multiply by
       ! 1.4 to account for the mass of the other chemical components
       ! (rjp, bmy, 7/15/04)
-      REAL*8,  PARAMETER :: OCF = 2.1d0
+      REAL*8,  PARAMETER :: OCF     = 2.1d0
+      ! Add OCFs for POA and OPOA (hotp, mpayer, 7/13/11)
+      REAL*8,  PARAMETER :: OCFPOA  = 1.4d0
+      REAL*8,  PARAMETER :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
 
       ! For SOAG, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
@@ -384,22 +396,70 @@
             ! Hydrophobic BC [kg/m3]
             BCPO(I,J,L) = STT(I,J,L,IDTBCPO) / AIRVOL(I,J,L)
 
-            ! Hydrophobic OC [kg/m3] 
-            OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+            ! Hydrophobic OC [kg/m3]
+            ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
+            ! (hotp, mpayer, 7/13/11)
+            IF ( IDTPOA1 > 0 ) THEN
+               OCPO(I,J,L) = STT(I,J,L,IDTPOA1) * OCFPOA / AIRVOL(I,J,L)
+     &                     + STT(I,J,L,IDTPOA2) * OCFPOA / AIRVOL(I,J,L)
+            ELSE
+               OCPO(I,J,L) = STT(I,J,L,IDTOCPO) * OCF / AIRVOL(I,J,L)
+            ENDIF
 
             IF ( LSOA ) THEN
 
-               ! Hydrophilic primary OC plus SOA [kg/m3A.  We need
+               ! Hydrophilic primary OC plus SOA [kg/m3].  We need
                ! to multiply by OCF to account for the mass of other 
                ! components which are attached to the OC aerosol.
                ! (rjp, bmy, 7/15/04)
-               ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
-               OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
-     &                     +   STT(I,J,L,IDTSOA1)
-     &                     +   STT(I,J,L,IDTSOA2)
-     &                     +   STT(I,J,L,IDTSOA3)
-     &                     +   STT(I,J,L,IDTSOA4)
-     &                     +   STT(I,J,L,IDTSOA5) ) / AIRVOL(I,J,L)
+
+               ! SOAupdate: Add option for trad. or new SOA (mpayer, 7/14/11)
+               IF ( LSVPOA ) THEN
+
+                  !-----------------------------------------------------
+                  ! SOA + semivolatile POA (hotp, mpayer, 7/14/11)
+                  !-----------------------------------------------------
+                  ! for new mtp and isop (hotp 5/20/10)
+                  OCPI(I,J,L) = ( STT(I,J,L,IDTTSOA1)
+     &                         +  STT(I,J,L,IDTTSOA2)
+     &                         +  STT(I,J,L,IDTTSOA3)
+     &                         +  STT(I,J,L,IDTTSOA0)
+     &                         +  STT(I,J,L,IDTISOA1)
+     &                         +  STT(I,J,L,IDTISOA2)
+     &                         +  STT(I,J,L,IDTISOA3) ) / AIRVOL(I,J,L) 
+
+                  IF ( IDTOPOA1 > 0 ) THEN
+                     OCPI(I,J,L) = OCPI(I,J,L) 
+     &               + ( STT(I,J,L,IDTOPOA1) * OCFOPOA / AIRVOL(I,J,L) )
+     &               + ( STT(I,J,L,IDTOPOA2) * OCFOPOA / AIRVOL(I,J,L) )
+                  ENDIF
+
+                  IF ( IDTOCPI > 0 ) THEN
+                    OCPI(I,J,L) = OCPI(I,J,L)                                  
+     &               + ( STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L) )
+                  ENDIF
+
+                  ! LUMPAROMIVOC (always present) hotp 7/28/10
+                  OCPI(I,J,L) = OCPI(I,J,L) +
+     &                     ( (  STT(I,J,L,IDTASOAN) 
+     &                        + STT(I,J,L,IDTASOA1)
+     &                        + STT(I,J,L,IDTASOA2)
+     &                        + STT(I,J,L,IDTASOA3) ) / AIRVOL(I,J,L) )
+
+               ELSE
+         
+                  !-----------------------------------------------------
+                  ! Traditional SOA
+                  !-----------------------------------------------------
+                  ! (clh, 05/19/10) bug corrected SOA5 missing from OCPI
+                  OCPI(I,J,L) = ( STT(I,J,L,IDTOCPI) * OCF 
+     &                        +   STT(I,J,L,IDTSOA1)
+     &                        +   STT(I,J,L,IDTSOA2)
+     &                        +   STT(I,J,L,IDTSOA3)
+     &                        +   STT(I,J,L,IDTSOA4)
+     &                        +   STT(I,J,L,IDTSOA5) ) / AIRVOL(I,J,L)
+
+               ENDIF  ! LSVPOA
  
                ! Check to see if we are simulating SOAG and SOAM (tmf, 1/7/09)
                IF ( IDTSOAG > 0 ) THEN
@@ -419,7 +479,7 @@
                ! (rjp, bmy, 7/15/04)
                OCPI(I,J,L) = STT(I,J,L,IDTOCPI) * OCF / AIRVOL(I,J,L)
                   
-            ENDIF
+            ENDIF ! LSOA
 
             ! Now avoid division by zero (bmy, 4/20/04)
             BCPI(I,J,L) = MAX( BCPI(I,J,L), 1d-35 )
@@ -427,7 +487,7 @@
             BCPO(I,J,L) = MAX( BCPO(I,J,L), 1d-35 )
             OCPO(I,J,L) = MAX( OCPO(I,J,L), 1d-35 )
          
-         ENDIF
+         ENDIF ! LCARB
             
          !===========================================================
          ! M I N E R A L   D U S T   A E R O S O L S

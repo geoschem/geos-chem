@@ -36,6 +36,16 @@
 !  (9 ) tracerid_mod.f     : Module w/ pointers to tracers & emissions 
 !  (10) transfer_mod.f     : Module w/ routines to cast & resize arrays
 !
+!  References:
+!  ============================================================================
+!
+!  (1 ) Andreae, M.O., and P. Merlet, "Emissions of trace gases and aerosols
+!        from biomass burning", Global Biogeochemical Cycles, Vol 15, pp
+!        955-966, 2001.
+!  (2 ) Hays, M.D., C.D. Geron, K.J. Linna, N.D. Smith, and J.J. Schauer, 
+!        "Speciation of gas-phase and fine particle emissions from burning of
+!        foliar fuels", Environ. Sci. Technol., Vol 36, pp 2281-2295, 2002.
+!
 !  NOTES:
 !  (1 ) Now account for extra production of CO from VOC's for Tagged CO
 !        and CO-OH simulations (bmy, 1/3/01)
@@ -76,6 +86,8 @@
 !  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
 !        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
+!  (22) Updated for Havala's SOA + semivol POA code. Added for gas phase NAP
+!       chemistry and NAP biofuel emissions. (mpayer, 7/6/11)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -103,7 +115,13 @@
       !=================================================================     
       ! MODULE VARIABLES
       !=================================================================
-      INTEGER, PARAMETER  :: NBFMAX = 19
+
+      !-----------------------------------------------------------------
+      ! Prior to 7/6/11:
+      ! Increase NMFMAX from 19 to 20 for NAP (hotp, mpayer, 7/6/11)
+      ! INTEGER, PARAMETER  :: NBFMAX = 19
+      !-----------------------------------------------------------------
+      INTEGER, PARAMETER  :: NBFMAX = 20
 
       INTEGER             :: NBFTRACE
       INTEGER             :: BFTRACE(NBFMAX) 
@@ -127,6 +145,11 @@
 !
 !  Biofuel emissions are based on estimates by Rose Yevich and Jennifer
 !  Logan (reference TBA).
+!
+!  References (see above for full citations):
+!  ===========================================================================
+!  (1 ) Hayes et al, 2002
+!  (2 ) Andreae & Merlet, 2001
 !
 !  NOTES:
 !  (1 ) Renamed array that held biofuel emissions from TWOODIJ to BIOFUEL,
@@ -179,7 +202,8 @@
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
 !        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
-!  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09) 
+!  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
+!  (25) Add IDTNAP, NAMEMISS, and IDBFNAP (hotp, mpayer, 7/6/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -205,6 +229,12 @@
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
+      ! for gas phase NAP chemistry, NAP biofuel emiss (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD,         ONLY : IDTNAP
+      USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
+      USE TRACER_MOD,           ONLY : ITS_A_TAGCO_SIM
+      USE LOGICAL_MOD,          ONLY : NAPEMISS
+      USE TRACERID_MOD,         ONLY : IDBFNAP
 
       IMPLICIT NONE
       
@@ -221,12 +251,16 @@
       REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
       REAL*8,  SAVE                 :: MOLWT(NBFMAX)
       REAL*8                        :: TOTAL, BXHEIGHT_CM, EPA_NEI
+      REAL*8                        :: COSCALEDOWN  ! (hotp, mpayer, 7/6/11)
       CHARACTER(LEN=255)            :: FILENAME 
       
       ! External functions
       REAL*8,  EXTERNAL             :: BOXVL
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
+      
+      ! Scale up NAP emiss (hotp, mpayer, 7/6/11)
+      REAL*8, PARAMETER             :: NAPTOTALSCALE = 66.09027d0
 
       !=================================================================
       !   B i o f u e l   B u r n i n g   B e g i n s   H e r e !!
@@ -262,12 +296,23 @@
          !      C3H8      8          19        [kg C   /box/year]
          !      CH2O      9          20        [kg CH2O/box/year]
          !      C2H6      10         21        [kg C   /box/year]
+         !      GLYX                           [kg     /box/year]
+         !      MGLY                           [kg     /box/year]
+         !      BENZ                           [kg C   /box/year]
+         !      TOLU                           [kg C   /box/year]
+         !      XYLE                           [kg C   /box/year]
+         !      C2H4                           [kg C   /box/year]
+         !      C2H2                           [kg C   /box/year]
+         !      GLYC                           [kg     /box/year]
+         !      HAC                            [kg     /box/year]
+         !      ! (hotp, mpayer, 7/6/11)
+         !      NAP                            [kg C   /box/year]
          !
          ! These emissions are converted to [molec/cm3/s] (or 
          ! [molec C/cm3/s] for hydrocarbons), since the chemistry
          ! requires these units.
          !
-         ! There are NBFMAX=10 maximum allowed biofuel species, but 
+         ! There are NBFMAX=20 maximum allowed biofuel species, but 
          ! only NBFTRACE of these are actually emitted.  Species are 
          ! turned off/on with the switches in the "tracer.dat" file.
          !
@@ -719,6 +764,47 @@
                ! Define MOLWT for use below
                MOLWT(N) = 74d-3
 
+            ELSE IF ( NN == IDTNAP ) THEN
+
+               !----------------
+               ! Biofuel NAP (hotp, mpayer, 7/6/11)
+               !----------------
+
+               ! Scale down CO to account for VOC oxidation
+               COSCALEDOWN = 1d0   ! default value
+
+               ! Scale based on simulation type
+               IF ( ITS_A_FULLCHEM_SIM() ) THEN
+                   COSCALEDOWN = 1d0/1.086d0
+               ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+                   COSCALEDOWN = 1d0/1.189d0
+               ENDIF
+
+               ! Emmision ratio NAP/CO = 0.0701d-3 [mole/mole]
+               ! NAP emiss =  0.025 g NAP/kg DM (Table 4, Hays et al, 2002)
+               ! CO  emiss =     78 g CO /kg DM (Table 1,Andreae & Merlet,2001)
+               ! Scale emissions down if appropriate using COSCALEDOWN
+               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(IDBFCO,:,:) * 0.0701d-3 
+     &                             * 120d0 / 28d0 * COSCALEDOWN ! [kg C/box/yr]
+
+               ! Scale up total
+               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPTOTALSCALE
+
+               ! Set NAP emissions according to input.geos
+               BIOFUEL_KG(N,:,:) = BIOFUEL_KG(N,:,:) * NAPEMISS
+
+               ! Compute future NAP emissions (if necessary)
+               IF ( LFUTURE ) THEN
+                  CALL SCALE_FUTURE( 'CO', BIOFUEL_KG(N,:,:) )
+               ENDIF 
+
+               ! Compute total NAP
+               TOTAL = SUM( BIOFUEL_KG(N,:,:) ) * 1d-9
+               WRITE( 6, 120 ) 'NAP ', TOTAL, '[Tg C/yr]'
+               
+               ! Define MOLWT for use below
+               MOLWT(N) = 12d-3
+
             ENDIF
          ENDDO
 
@@ -792,11 +878,12 @@
                   ! We do not have EPA/NEI biofuel emission.  
                   ! Use default emission for the newly added species. 
                   ! (tmf, 1/8/08) 
+                  ! Add NAP (hotp, mpayer, 7/6/11)
                   IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
      &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
      &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
      &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.             
-     &                 (NN /= IDTHAC ) ) THEN
+     &                 (NN /= IDTHAC ) .and. (NN /= IDTNAP ) ) THEN
 
                      ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
                      EPA_NEI = GET_EPA_BIOFUEL( I, J, NN, WEEKDAY )
@@ -923,6 +1010,13 @@
                   IF ( IDBFHAC > 0 ) THEN
                      BIOFUEL(IDBFHAC,I,J) = 
      &                  BIOFUEL(IDBFCO,I,J) * 3.31d-3             
+                  ENDIF
+
+                  ! NAP (hotp, mpayer, 7/6/11)
+                  IF ( IDBFNAP > 0 ) THEN
+                  BIOFUEL(IDBFNAP,I,J) = 
+     &                 BIOFUEL(IDBFCO,I,J) * 0.0701d-3 * 10.d0 *
+     &                  NAPTOTALSCALE * NAPEMISS
                   ENDIF
 
                ENDIF ! USA_MASK
@@ -1145,6 +1239,7 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (2 ) Add IDTNAP, IDBFNAP (mpayer, 7/6/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1160,6 +1255,10 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
+      ! for gas phase NAP chemistry, NAP biofuel emiss (hotp, mpayer, 7/6/11)
+      USE TRACERID_MOD, ONLY : IDTNAP
+      USE TRACERID_MOD, ONLY : IDBFNAP
+
       !=================================================================
       ! SET_BFTRACE begins here!
       !=================================================================
@@ -1187,6 +1286,7 @@
       IF ( IDBFC2H2 /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFGLYC /= 0 ) NBFTRACE = NBFTRACE + 1 
       IF ( IDBFHAC  /= 0 ) NBFTRACE = NBFTRACE + 1 
+      IF ( IDBFNAP  /= 0 ) NBFTRACE = NBFTRACE + 1  ! (hotp, mpayer, 7/6/11)
 
       ! Fill BFTRACE w/ appropriate TRACER ID #'s
       IF ( IDBFNOX  /= 0 ) BFTRACE(IDBFNOX ) = IDTNOX
@@ -1208,6 +1308,7 @@
       IF ( IDBFC2H2 /= 0 ) BFTRACE(IDBFC2H2) = IDTC2H2
       IF ( IDBFGLYC /= 0 ) BFTRACE(IDBFGLYC) = IDTGLYC
       IF ( IDBFHAC  /= 0 ) BFTRACE(IDBFHAC ) = IDTHAC
+      IF ( IDBFNAP  /= 0 ) BFTRACE(IDBFNAP ) = IDTNAP  ! (hotp, mpayer, 7/6/11)
 
       ! Echo biofuel tracer information
       WRITE( 6, 100 ) BFTRACE( 1:NBFTRACE )

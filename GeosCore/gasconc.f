@@ -31,6 +31,8 @@
 !       the READ_CSPEC value. (hotp, 2/26/09)
 !  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
 !       (dkh, 03/12/10)
+!  27 Jul 2011 - M. Payer    -  Zero out ILISOPNO3, ILNRO2H, ILNRO2N as part of
+!                                hotp's SOA + semivolatile POA updates
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -325,6 +327,19 @@ C
       ENDIF 
 C
 C *********************************************************************
+C *         ZERO OUT ISOPRENE-NO3 OXIDATION COUNTER SPECIES
+C *               SOAupdate (hotp, mpayer, 7/27/11)  
+C *********************************************************************
+C LISOPNO3  = Dummy species for tracking loss of isoprene due to rxn w/ NO3
+C ILISOPNO3 = Location of LISOPNO3 in CSPEC (tracerid_mod.f)
+C
+      IF ( ILISOPNO3 > 0 ) THEN
+         DO JLOOP = 1, NTLOOP
+            CSPEC(JLOOP,ILISOPNO3) = 0d0
+         ENDDO
+      ENDIF 
+C
+C *********************************************************************
 C *           zero out aromatic oxidation counter species
 C *            (dkh, 10/06/06)  
 C *********************************************************************
@@ -340,7 +355,8 @@ C ILTRO2H Location of LTRO2H in CSPEC
 C ILTRO2N Location of LTRO2N in CSPEC
 C ILXRO2H Location of LXRO2H in CSPEC
 C ILXRO2N Location of LXRO2N in CSPEC
-C
+C ILLNRO2H Location of LNRO2H in CSPEC ! SOAupdate (hotp, mpayer, 7/27/11)
+C ILLNRO2N Location of LNRO2N in CSPEC ! SOAupdate (hotp, mpayer, 7/27/11)
 
       ! Check if we have 2dy organic aerosols
       IF ( LSOA ) THEN
@@ -362,6 +378,17 @@ C
                CSPEC(JLOOP,ILXRO2H) = 0d0
                CSPEC(JLOOP,ILXRO2N) = 0d0
             ENDDO
+
+            ! SOAupdate: allow NAP to be present or not in reactions
+            ! (hotp, mpayer, 7/27/11)
+            IF ( ILNRO2H > 0 .and.
+     &           ILNRO2N > 0 ) THEN
+               DO JLOOP      = 1, NTLOOP
+               ! add NAP species
+               CSPEC(JLOOP,ILNRO2H) = 0d0
+               CSPEC(JLOOP,ILNRO2N) = 0d0
+               ENDDO
+            ENDIF
 
          ! Exit with an error message if it is not. 
          ELSE

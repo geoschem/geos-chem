@@ -16,6 +16,9 @@
 !
 ! !USES:
 !
+      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE FILE_MOD,  ONLY : IOERROR
+
       IMPLICIT NONE
 
 #     include "cmn_fj.h"
@@ -23,8 +26,9 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,            INTENT(IN) :: NJ1      ! Unit # of file to open
-      CHARACTER(LEN=255), INTENT(IN) :: NAMFIL   ! Name of file to open
+      INTEGER,          INTENT(IN) :: NJ1      ! Unit # of file to open
+!      CHARACTER(LEN=255), INTENT(IN) :: NAMFIL   ! Name of file to open
+      CHARACTER(LEN=*), INTENT(IN) :: NAMFIL   ! Name of file to open
 !
 ! !REMARKS:
 !  The jv_spec_aod.dat file contains the optical properties for aerosols 
@@ -54,20 +58,29 @@
 !
 ! !REVISION HISTORY: 
 !  10 May 2010 - C. Heald - Initial version
+!  06 Aug 2010 - C. Carouge  - Add an error check when opening the file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER :: I, J, K, NAA2
+      INTEGER :: I, IOS, J, K, NAA2
 
       !================================================================
       ! RD_AOD begins here!
       !================================================================
 
       ! open file
-      OPEN( NJ1, FILE=TRIM( NAMFIL ) )
+      OPEN( NJ1, FILE=TRIM( NAMFIL ), STATUS='OLD', IOSTAT=IOS )
+
+      ! Error check
+      IF ( IOS /= 0 ) THEN
+         WRITE(6,100) trim(NAMFIL)
+ 100     FORMAT('Error opening filename=', a )
+         CALL FLUSH(6)
+         CALL IOERROR( IOS, NJ1, 'RD_AOD:1')
+      ENDIF
 
       ! Read header lines
       READ(  NJ1,'(A)'    ) TITLE0

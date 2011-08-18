@@ -141,6 +141,8 @@
 !     NEI 2005 (amv, 10/9/09)
 !  (73) AD13_NH3_an is 3D now (phs, 10/22/09)
 !  (74) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
+!  27 Jul 2011 - M. Payer    - Increase dimension of AD07_HC for hotp's SOA +
+!                               semivolatile POA simulation
 !******************************************************************************
 !
       ! References to F90 modules
@@ -205,6 +207,7 @@
       USE TRACER_MOD,      ONLY : N_TRACERS
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
+      USE LOGICAL_MOD,     ONLY : LSVPOA ! (mpayer, 7/27/11)
 
       IMPLICIT NONE
 
@@ -306,7 +309,15 @@
          ALLOCATE( AD07_OC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
-         ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+         ! SOAupdate: Add switch for SOA + semivolatile POA or traditional SOA
+         ! (mpayer, 7/27/11)
+         IF ( LSVPOA ) THEN
+            ! Increase dimension for POA, OPOA, OPOG, NAP/IVOC
+            ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
+            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
+         ELSE
+            ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 5 ), STAT=AS )
+         ENDIF
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )

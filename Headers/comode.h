@@ -58,6 +58,9 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
+!  (19) Added ILISOPNO3 to /SPECIE4/. Added ILNRO2H and ILNRO2N to /SPECIE5/
+!       for SOA. (hotp, mpayer, 6/28/11)
+!
 !******************************************************************************
 !
 C         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
@@ -421,15 +424,17 @@ C
       COMMON /SPECIE3/   C3090S,      C0030S,    C0030N,   C3090N
 
       ! Added for tracking oxidation of ISOP by OH (dkh, bmy, 6/1/06)
-      INTEGER ::         ILISOPOH
-      COMMON /SPECIE4/   ILISOPOH
+      ! Added for tracking oxidation of ISOP by NO3 (hotp, mpayer, 6/28/11)
+      INTEGER ::         ILISOPOH, ILISOPNO3
+      COMMON /SPECIE4/   ILISOPOH, ILISOPNO3
 
       ! Added for tracking oxidation of aromatic RO2s (dkh, 10/06/06)  
-      ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)  
+      ! bug fix: change to INTEGER (dbm, dkh, 06/26/07)
+      ! Added ILNRO2H and ILNRO2N (hotp, mpayer, 6/28/11) 
       INTEGER ::         ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N
-      INTEGER ::         ILXRO2H,    ILXRO2N
+      INTEGER ::         ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
       COMMON /SPECIE5/   ILBRO2H,    ILBRO2N,   ILTRO2H,  ILTRO2N,
-     &                   ILXRO2H,    ILXRO2N
+     &                   ILXRO2H,    ILXRO2N,   ILNRO2H,  ILNRO2N
 
       INTEGER ::         IOUT,        KGLC,      KCPD,     IO93
       COMMON /FILES/     IOUT,        KGLC,      KCPD,     IO93

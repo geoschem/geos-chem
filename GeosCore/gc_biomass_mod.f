@@ -178,6 +178,7 @@
       PUBLIC :: GC_READ_BIOMASS_CO2
       PUBLIC :: GC_READ_BIOMASS_NH3
       PUBLIC :: GC_READ_BIOMASS_SO2
+      PUBLIC :: TOTAL_BIOMASS_TG    ! SOAupdate (hotp, mpayer, 7/27/11)
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -1299,6 +1300,7 @@
 !  NOTES:
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
+!  (2 ) Add POA1 for SOA + semivolatile POA simulation (hotp, mpayer, 7/27/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1312,6 +1314,7 @@
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR 
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,         IDTOCPO
+      USE TRACERID_MOD,         ONLY : IDTPOA1 ! SOAupdate(hotp,mpayer,7/27/11)
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -1337,7 +1340,8 @@
       !=================================================================
 
       ! Make sure BCPO, OCPO tracers are defined
-      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 ) THEN
+      ! SOAupdate: Add IDTPOA1 for semivolatile POA (hotp, mpayer, 7/27/11)
+      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 .and. IDTPOA1 == 0 ) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
          RETURN
@@ -1456,7 +1460,12 @@
 
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
-            BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
+            ! SOAupdate: add POA option (hotp, mpayer, 7/27/11)
+            IF ( IDTOCPO > 0 ) THEN
+              BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
+            ELSEIF ( IDTPOA1 > 0 ) THEN
+              BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTPOA1) * CONV
+            ENDIF
 
             ! Scale to IPCC future scenario (if necessary)
             IF ( LFUTURE ) THEN

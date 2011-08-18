@@ -384,7 +384,7 @@ diag41_mod.o                : diag41_mod.f            pbl_mix_mod.o
 diag42_mod.o                : diag42_mod.f                                   \
                               dao_mod.o               diag_mod.o             \
                               logical_mod.o           tracerid_mod.o         \
-                              tracer_mod.o  
+                              tracer_mod.o            carbon_mod.o
 
 diag48_mod.o                : diag48_mod.f                                   \
                               dao_mod.o               pbl_mix_mod.o          \

@@ -392,8 +392,14 @@
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 #else
       ! increase NNPAR to 100 (FP 8/2009)
-      INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
-      !INTEGER, PARAMETER :: NNPAR   = 100
+      ! Restore NNPAR to 100 for SOA (hotp, mpayer, 6/28/11)
+!-----------------------------------------------------------------------
+!     Prior to 6/28/11:
+!     Increased NNPAR from 75 to 100 for SOA (mpayer, 6/28/11)
+!      INTEGER, PARAMETER :: NNPAR   = 75    ! for non-TOMAS simulations
+!-----------------------------------------------------------------------
+      INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS with SOA
+
 #endif
 
       ! Nempara increased to 26. (fp, 2/8/10)
@@ -458,7 +464,8 @@
       !NBIOMAX -- biomass burning
       ! increase NBIOMAX to 20 (hotp 7/31/09)
       ! increase NBIOMAX to 24 for dicarbonyls (ccc, 2/02/10)
-      INTEGER, PARAMETER :: NBIOMAX = 24
+      ! increase NBIOMAX to 25 to include napthalene (hotp, mpayer, 6/28/11)
+      INTEGER, PARAMETER :: NBIOMAX = 25 
 
 #if   defined( TOMAS )
 
@@ -536,5 +543,6 @@
 !  25 Jan 2010 - R. Yantosca - Define TOMASBIN and TOMASSPEC for TOMAS sims
 !  08 Feb 2010 - F. Paulot   - Increase NNPAR, NEMPARA and NEMPARB
 !  08 Feb 2010 - F. Paulot   - Move MAXMEM and MAXPL from diag_pl_mod.
+!  28 Jun 2011 - M. Payer    - Increase NNPAR, NBIOMAX for SOA  
 !EOP
 !------------------------------------------------------------------------------

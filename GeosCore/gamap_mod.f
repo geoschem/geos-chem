@@ -93,6 +93,7 @@
 !        hdf_mod. (amv, bmy, 12/1
 !******************************************************************************
 !
+
       IMPLICIT NONE
 
       !=================================================================
@@ -703,8 +704,13 @@
 !        to "PEDGE-$" (bmy, 11/16/07)
 !  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
 !  (6 ) Add potential temperature category. (fp, 2/26/10)
+!  26 Jul 2011 - M. Payer    -  Add OC-MTPA and OC-MTPO to diagnostics as part 
+!                                of hotp's SOA + semivolatile POa updates
 !******************************************************************************
 !
+      ! Reference to F90 modules
+      USE LOGICAL_MOD, ONLY : LSVPOA
+
       ! Local variables 
       INTEGER :: N
 
@@ -964,15 +970,19 @@
 !      DESCRIPT(N) = 'SOA APROD restart'
 !      OFFSET(N)   = SPACING * 6
 !-------------------------------------------------
-      N           = N + 1
-      CATEGORY(N) = 'SOAGPROD'
-      DESCRIPT(N) = 'SOA GPROD restart'
-      OFFSET(N)   = SPACING * 6
 
-      N           = N + 1
-      CATEGORY(N) = 'SOAAPROD'
-      DESCRIPT(N) = 'SOA APROD restart'
-      OFFSET(N)   = SPACING * 6
+      ! GPROD and APROD not used in SOA + semivol POA (hotp, mpayer, 8/10/11)
+      IF ( .NOT. LSVPOA ) THEN
+         N           = N + 1
+         CATEGORY(N) = 'SOAGPROD'
+         DESCRIPT(N) = 'SOA GPROD restart'
+         OFFSET(N)   = SPACING * 6
+
+         N           = N + 1
+         CATEGORY(N) = 'SOAAPROD'
+         DESCRIPT(N) = 'SOA APROD restart'
+         OFFSET(N)   = SPACING * 6
+      ENDIF
 
       N           = N + 1
       CATEGORY(N) = 'PEDGE-$'
@@ -1139,30 +1149,49 @@
       DESCRIPT(N) = 'Biogenic OC emission'
       OFFSET(N)   = SPACING * 33
 
-      N           = N + 1
-      CATEGORY(N) = 'OC-ALPH'
-      DESCRIPT(N) = 'Biogenic ALPH emission'
-      OFFSET(N)   = SPACING * 33
+      ! ALPH not used in SOA + semivol POA (hotp, mpayer, 8/10/11)
+      IF ( .NOT. LSVPOA ) THEN
+         N           = N + 1
+         CATEGORY(N) = 'OC-ALPH'
+         DESCRIPT(N) = 'Biogenic ALPH emission'
+         OFFSET(N)   = SPACING * 33
+      ENDIF
 
       N           = N + 1
       CATEGORY(N) = 'OC-LIMO'
       DESCRIPT(N) = 'Biogenic ALPH emission'
       OFFSET(N)   = SPACING * 33
 
-      N           = N + 1
-      CATEGORY(N) = 'OC-TERP'
-      DESCRIPT(N) = 'Biogenic TERP emission'
-      OFFSET(N)   = SPACING * 33
+      ! TERP and ALCO not used in SOA + semivol POA (hotp, mpayer, 8/10/11)
+      IF ( .NOT. LSVPOA ) THEN
+         N           = N + 1
+         CATEGORY(N) = 'OC-TERP'
+         DESCRIPT(N) = 'Biogenic TERP emission'
+         OFFSET(N)   = SPACING * 33
 
-      N           = N + 1
-      CATEGORY(N) = 'OC-ALCO'
-      DESCRIPT(N) = 'Biogenic ALCO emission'
-      OFFSET(N)   = SPACING * 33
+         N           = N + 1
+         CATEGORY(N) = 'OC-ALCO'
+         DESCRIPT(N) = 'Biogenic ALCO emission'
+         OFFSET(N)   = SPACING * 33
+      ENDIF
 
       N           = N + 1
       CATEGORY(N) = 'OC-SESQ'
       DESCRIPT(N) = 'Biogenic SESQ emission'
       OFFSET(N)   = SPACING * 33
+
+      ! MTPA and MTPO used only in SOA + semivol POA (hotp, mpayer, 8/10/11)
+      IF ( LSVPOA ) THEN
+         N           = N + 1
+         CATEGORY(N) = 'OC-MTPA'
+         DESCRIPT(N) = 'Biogenic MTPA emission'
+         OFFSET(N)   = SPACING * 33
+
+         N           = N + 1
+         CATEGORY(N) = 'OC-MTPO'
+         DESCRIPT(N) = 'Biogenic MTPO emission'
+         OFFSET(N)   = SPACING * 33
+      ENDIF
 
       N           = N + 1
       CATEGORY(N) = 'PL-BC=$'
@@ -1171,7 +1200,12 @@
 
       N           = N + 1
       CATEGORY(N) = 'PL-OC=$'
-      DESCRIPT(N) = 'H-philic from H-phobic OC'
+      IF ( LSVPOA ) THEN
+         ! update name for SOA + semivol POA (hotp, mpayer, 7/26/11)
+         DESCRIPT(N) = 'Philic OC prod/SOA prod'
+      ELSE
+         DESCRIPT(N) = 'H-philic from H-phobic OC'
+      ENDIF
       OFFSET(N)   = SPACING * 33
 
       N           = N + 1
@@ -1329,6 +1363,8 @@
 !  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
 !  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  26 Jul 2011 - M. Payer    -  Add hotp's SOA + semivolatile POA tracers to
+!                                ND07, ND42, ND46, and full chemistry sim
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1368,12 +1404,21 @@
       USE TRACERID_MOD, ONLY : IDBXYLE, IDBBENZ, IDBTOLU
       USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
       USE TRACERID_MOD, ONLY : IDBGLYC, IDBHAC
+      USE TRACERID_MOD, ONLY : IDBNAP   ! (hotp, mpayer, 7/26/11)
       USE TRACERID_MOD, ONLY : IDTNOX,  IDTCO,   IDTALK4, IDTACET
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTALD2, IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6
       USE TRACERID_MOD, ONLY : IDTSO2,  IDTNH3
       USE TRACERID_MOD, ONLY : IDTBCPI,   IDTOCPI
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTBENZ, IDTTOLU
+      ! SOAupdate: Add IDTs for SOA + semivol POA (hotp, mpayer, 7/26/11)
+      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTISOA1, IDTASOA1
+      USE TRACERID_MOD, ONLY : IDTPOA1
+      USE TRACERID_MOD, ONLY : IDTNAP
+      USE TRACERID_MOD, ONLY : IDTOPOA1,  IDTOPOG1
+      USE TRACERID_MOD, ONLY : IDTASOAN
+      USE LOGICAL_MOD, ONLY  : LSVPOA ! (mpayer, 7/26/11)
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -1706,15 +1751,122 @@
             MOLC (T,07) = 1
             MWT  (T,07) = 12e-3
             SCALE(T,07) = 1e0
+
             ! Get name, long-name, tracern umber
-            SELECT CASE( T )
+            IF ( LSVPOA ) THEN
+
+               !------------------------------
+               ! SOA + semivolatile POA
+               !------------------------------
+
+               SELECT CASE( T )
+
                CASE( 1 )
                   NAME (T,07) = 'BLKC'
                   FNAME(T,07) = 'Black (Elemental) Carbon'
                   INDEX(T,07) = IDTBCPI + ( SPACING * 33 )
+                  UNIT (T,07) = 'kgC' ! SOAupdate (hotp, mpayer, 7/26/11)
                CASE( 2 )
                   NAME (T,07) = 'ORGC'
                   FNAME(T,07) = 'Organic Carbon'
+                  UNIT (T,07) = 'kgC' ! SOAupdate (hotp, mpayer, 7/26/11)
+                  INDEX(T,07) = IDTPOA1 + ( SPACING * 33 )
+               CASE( 3 )
+                  NAME (T,07) = 'MTPA'
+                  FNAME(T,07) = 'lumped ALPH'
+                  INDEX(T,07) = IDTMTPA + ( SPACING * 33 )
+                  MWT  (T,07) = 136e-3
+               CASE( 4 )
+                  NAME (T,07) = 'LIMO'
+                  FNAME(T,07) = 'Limonene'
+                  MWT  (T,07) = 136e-3
+                  INDEX(T,07) = IDTLIMO + ( SPACING * 33 )
+               CASE( 5 )
+                  NAME (T,07) = 'MTPO'
+                  FNAME(T,07) = 'lumped other mtp'
+                  INDEX(T,07) = IDTMTPO + ( SPACING * 33 )
+                  MWT  (T,07) = 136e-3
+               CASE( 6 )
+                  NAME (T,07) = 'SESQ'
+                  FNAME(T,07) = 'Sesqterpene'
+                  MWT  (T,07) = 204e-3
+                  INDEX(T,07) = IDTLIMO + 3 + ( SPACING * 33 )
+               CASE( 7 )
+                  NAME (T,07) = 'TSOA'
+                  FNAME(T,07) = 'mono+sesq aerosol'
+                  INDEX(T,07) = IDTTSOA1 + ( SPACING * 33 )
+               CASE( 8 )
+                  NAME (T,07) = 'ISOA'
+                  FNAME(T,07) = 'isoprene aerosol'
+                  INDEX(T,07) = IDTISOA1 + ( SPACING * 33 )
+               CASE( 9 )
+                  NAME (T,07) = 'ASOA'
+                  FNAME(T,07) = 'BTX + IVOC aerosol'
+                  INDEX(T,07) = IDTASOA1 + ( SPACING * 33 )
+               CASE( 10 )
+                  NAME (T,07) = 'OPOA'
+                  FNAME(T,07) = 'OPOA production'
+                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IDTOPOA1 + ( SPACING * 33 )
+                  ELSE
+                     INDEX(T,07) = 80 + (SPACING * 33 )
+                  ENDIF
+                  UNIT (T,07) = 'kgC'
+               CASE( 11 )
+                  NAME (T,07) = 'OPOG'
+                  FNAME(T,07) = 'POG + OH reaction'
+                  IF ( IDTOPOA1 > 0 ) THEN ! hotp 6/8/10
+                     INDEX(T,07) = IDTOPOG1 + ( SPACING * 33 )
+                  ELSE
+                     INDEX(T,07) = 81 + (SPACING * 33 )
+                  ENDIF
+                  UNIT (T,07) = 'kgC'
+
+               CASE( 13 )
+                  NAME (T,07) = 'SOAG'
+                  FNAME(T,07) = 'SOAG production in aq. aerosol'
+                  MWT  (T,07) = 58e-3
+                  INDEX(T,07) = IDTSOAG + ( SPACING * 33 )
+
+               CASE( 14 )
+                  NAME (T,07) = 'SOAM'
+                  FNAME(T,07) = 'SOAM production in aq. aerosol'
+                  MWT  (T,07) = 72e-3
+                  INDEX(T,07) = IDTSOAM + ( SPACING * 33 )
+
+               CASE( 15 )
+                  NAME (T,07) = 'SOAG'
+                  FNAME(T,07) = 'SOAG production in clouds'
+                  MWT  (T,07) = 58e-3
+                  INDEX(T,07) = 91 + ( SPACING * 33 )
+
+               CASE( 16 )
+                  NAME (T,07) = 'SOAM'
+                  FNAME(T,07) = 'SOAM production in clouds'
+                  MWT  (T,07) = 72e-3
+                  INDEX(T,07) = 92 + ( SPACING * 33 )
+
+               CASE DEFAULT
+                  ! Nothing
+
+               END SELECT
+
+            ELSE
+
+               !------------------------------
+               ! Traditional SOA
+               !------------------------------
+            SELECT CASE( T )
+
+               CASE( 1 )
+                  NAME (T,07) = 'BLKC'
+                  FNAME(T,07) = 'Black (Elemental) Carbon'
+                  INDEX(T,07) = IDTBCPI + ( SPACING * 33 )
+                  UNIT (T,07) = 'kg'
+               CASE( 2 )
+                  NAME (T,07) = 'ORGC'
+                  FNAME(T,07) = 'Organic Carbon'
+                  UNIT (T,07) = 'kg'
                   INDEX(T,07) = IDTOCPI + ( SPACING * 33 )
                CASE( 3 )
                   NAME (T,07) = 'ALPH'
@@ -1766,6 +1918,7 @@
                   NAME (T,07) = 'SOA5'
                   FNAME(T,07) = 'Aerosol prod of AROM ox'
                   INDEX(T,07) = IDTSOA5 + ( SPACING * 33 )
+
                CASE( 13 )
                   NAME (T,07) = 'SOAG'
                   FNAME(T,07) = 'SOAG production in aq. aerosol'
@@ -1792,7 +1945,10 @@
 
                CASE DEFAULT
                   ! Nothing
+
             END SELECT
+
+            ENDIF ! LSVPOA (mpayer, 7/26/11)
 
          ENDDO
       ENDIF
@@ -2348,9 +2504,14 @@
             ! Full-chemistry simulation
             !---------------------------
 
-            ! Number of tracers
-            ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            NTRAC(28) = 23
+            IF ( LSVPOA ) THEN
+               ! add NAP (hotp, mpayer, 7/26/11)
+               NTRAC(28) = 24
+            ELSE
+               ! Number of tracers
+               ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
+               NTRAC(28) = 23
+            ENDIF
 
             ! Loop over tracers
             DO T = 1, NTRAC(28)
@@ -2450,7 +2611,12 @@
 
                ELSEIF( T == IDBOC ) THEN
                   NAME (T,28) = 'OC'
-                  INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+                     ! SOAupdate: allow non-vol or semi-vol POA 
+                     ! (hotp, mpayer, 7/26/11)
+                     IF (IDTOCPI > 0) 
+     &                 INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
+                     IF (IDTPOA1  > 0 )
+     &                 INDEX(T,28) = IDTPOA1  + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
@@ -2517,6 +2683,14 @@
                   MWT  (T,28) = 74e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
+
+               ! SOAupdate: add NAP (hotp, mpayer, 7/26/11)
+               ELSEIF( T == IDBNAP ) THEN
+                     NAME (T,28) = 'NAP'
+                     INDEX(T,28) = IDTNAP + ( SPACING * 45 )
+                     MWT  (T,28) = 12e-3
+                     MOLC (T,28) = 1
+                     UNIT (T,28) = 'atoms C/cm2/s' 
 
                ENDIF
 
@@ -2678,7 +2852,80 @@
          DO T = 1, NTRAC(42)
 
             ! Get name, long name, unit, and mol wt for each field
+
+            IF ( LSVPOA ) THEN
+
+               !------------------------------
+               ! SOA + semivolatile POA
+               !------------------------------
+
             SELECT CASE( T )
+
+               CASE( 1 )
+                  NAME (T,42) = 'TSOA'
+                  FNAME(T,42) = 'Aer prods of terpene ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 2 )
+                  NAME (T,42) = 'ISOA'
+                  FNAME(T,42) = 'Aer prods of isoprene ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 3 )
+                  NAME (T,42) = 'ASOA'
+                  FNAME(T,42) = 'Aer prods of arom+IVOC ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 4 )
+                  NAME (T,42) = 'POA'
+                  FNAME(T,42) = 'Aer from SVOCs'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 5 )
+                  NAME (T,42) = 'OPOA'
+                  FNAME(T,42) = 'Aer prods of pog ox'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 6 )
+                  NAME (T,42) = 'sumOA'
+                  FNAME(T,42) = 'all organic aerosol'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 150e-3
+               CASE( 7 )
+                  NAME (T,42) = 'sumOC'
+                  FNAME(T,42) = 'all organic carbon'
+                  UNIT (T,42) = 'ugC/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 8 )
+                  NAME (T,42) = 'biogOA'
+                  FNAME(T,42) = 'all biogenic OA'
+                  UNIT (T,42) = 'ug/m3'
+                  MWT  (T,42) = 1e-6
+               CASE( 9 )
+                  NAME (T,42) = 'BNO'
+                  FNAME(T,42) = 'NO branching ratio: betaNO'
+                  UNIT (T,42) = 'dimless'
+                  MWT  (T,42) = 1e-6
+               CASE( 10 )
+                  NAME (T,42) = 'POA'
+                  FNAME(T,42) = 'Aer from SVOCs'
+                  UNIT (T,42) = 'ugC/m3'
+                  MWT  (T,42) = 12e-3
+               CASE( 11 )
+                  NAME (T,42) = 'OPOA'
+                  FNAME(T,42) = 'Aer prods of pog ox'
+                  UNIT (T,42) = 'ugC/m3'
+                  MWT  (T,42) = 12e-3
+            END SELECT
+
+            ELSE
+
+               !------------------------------
+               ! Traditional SOA
+               !------------------------------
+
+            SELECT CASE( T )
+
                CASE( 1 )
                   NAME (T,42) = 'SOA1'
                   FNAME(T,42) = 'Aer prods of ALPH+LIMO+TERP ox'
@@ -2735,6 +2982,12 @@
                   FNAME(T,42) = 'Sum of organic aerosol'
                   UNIT (T,42) = 'ug/sm3'
                   MWT  (T,42) = 1e-6
+            END SELECT
+
+            ENDIF ! LSVPOA
+
+            SELECT CASE( T )
+
                CASE( 12 )
                   NAME (T,42) = 'OC'
                   FNAME(T,42) = 'OCPI + OCPO'
@@ -2799,8 +3052,7 @@
                   NAME (T,42) = 'SOAS-Cstp'
                   FNAME(T,42) = 'SOA1-4 + SOAM + SOAG at STP'
                   UNIT (T,42) = 'ug C/m3'
-                  MWT  (T,42) = 1e-6
-                  
+                  MWT  (T,42) = 1e-6                  
                   
                CASE DEFAULT
                   ! Nothing
@@ -2982,64 +3234,155 @@
       !-------------------------------------      
       IF ( ND46 > 0 ) THEN 
 
-         ! Number of tracers
-         NTRAC(46) = 13 ! was 6 (mpb,2009)
+         ! SOAupdate: Add option for SOA + semivol POA or traditional SOA
+         ! simulation (mpayer, 8/10/11)
+         IF ( LSVPOA ) THEN
 
-         ! Loop over tracers
-         DO T = 1, NTRAC(46)
+            !--------------------------------------------------------
+            ! SOA + semivolatile POA
+            !--------------------------------------------------------
 
-            ! Get name and unit for each met field
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME(T,46) = 'ISOP'
-                  MOLC(T,46) = 5
-               CASE( 2 )
-                  NAME(T,46) = 'ACET'
-                  MOLC(T,46) = 3
-               CASE( 3 )
-                  NAME(T,46) = 'PRPE'
-                  MOLC(T,46) = 3
-               CASE( 4 )
-                  NAME(T,46) = 'MONOT'
-                  MOLC(T,46) = 10
-               CASE( 5 )
-                  NAME(T,46) = 'MBO'
-                  MOLC(T,46) = 5
-               CASE( 6 )
-                  NAME(T,46) = 'C2H4'
-                  MOLC(T,46) = 2
-               CASE( 7 )
-                  NAME(T,46) = 'APINE'
-                  MOLC(T,46) = 10
-               CASE( 8 )
-                  NAME(T,46) = 'BPINE'
-                  MOLC(T,46) = 10
-               CASE( 9 )
-                  NAME(T,46) = 'LIMON'
-                  MOLC(T,46) = 10
-               CASE( 10)
-                  NAME(T,46) = 'SABIN'
-                  MOLC(T,46) = 10
-               CASE( 11)
-                  NAME(T,46) = 'MYRCN'
-                  MOLC(T,46) = 10
-               CASE( 12)
-                  NAME(T,46) = 'CAREN'
-                  MOLC(T,46) = 10
-               CASE( 13)
-                  NAME(T,46) = 'OCIMN'
-                  MOLC(T,46) = 10
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
+            ! Number of tracers
+            NTRAC(46) = 17  ! SOAupdate (hotp, mpayer, 7/26/11)
 
-            ! Define the rest of the quantities
-            INDEX(T,46) = T + ( SPACING * 21 )
-            FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
-            UNIT (T,46) = 'atoms C/cm2/s'
-            MWT  (T,46) = 12e-3
-            SCALE(T,46) = 1e0
-         ENDDO
+            ! Loop over tracers
+            DO T = 1, NTRAC(46)
+
+               ! Get name and unit for each met field
+               SELECT CASE( T )
+                  CASE( 1 )
+                     NAME(T,46) = 'ISOP'
+                     MOLC(T,46) = 5
+                  CASE( 2 )
+                     NAME(T,46) = 'ACET'
+                     MOLC(T,46) = 3
+                  CASE( 3 )
+                     NAME(T,46) = 'PRPE'
+                     MOLC(T,46) = 3
+                  CASE( 4 )
+                     NAME(T,46) = 'MONOT'
+                     MOLC(T,46) = 10
+                  CASE( 5 )
+                     NAME(T,46) = 'MBO'
+                     MOLC(T,46) = 5
+                  CASE( 6 )
+                     NAME(T,46) = 'C2H4'
+                     MOLC(T,46) = 2
+                  CASE( 7 )
+                     NAME(T,46) = 'APINE'
+                     MOLC(T,46) = 10
+                  CASE( 8 )
+                     NAME(T,46) = 'BPINE'
+                     MOLC(T,46) = 10
+                  CASE( 9 )
+                     NAME(T,46) = 'LIMON'
+                     MOLC(T,46) = 10
+                  CASE( 10)
+                     NAME(T,46) = 'SABIN'
+                     MOLC(T,46) = 10
+                  CASE( 11)
+                     NAME(T,46) = 'MYRCN'
+                     MOLC(T,46) = 10
+                  CASE( 12)
+                     NAME(T,46) = 'CAREN'
+                     MOLC(T,46) = 10
+                  CASE( 13)
+                     NAME(T,46) = 'OCIMN'
+                     MOLC(T,46) = 10
+                  ! Biogenic emissions from sesq (hotp, mpayer,7/26/11)
+                  ! MOLC is #C/molecule (10 for mono, 15 for sesq)
+                  CASE( 14)
+                     NAME(T,46) = 'FARN'
+                     MOLC(T,46) = 15 ! hotp 5/10/10
+                  CASE( 15)              
+                     NAME(T,46) = 'BCAR'
+                     MOLC(T,46) = 15 ! hotp 5/10/10
+                  CASE( 16)              
+                     NAME(T,46) = 'OSQT'
+                     MOLC(T,46) = 15 ! hotp 5/10/10
+                  CASE( 17)              
+                     NAME(T,46) = 'OMTP' ! 3/5/10
+                     MOLC(T,46) = 10 ! hotp 5/10/10
+                  CASE DEFAULT
+                     ! Nothing
+               END SELECT
+
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+
+            END DO
+
+         ELSE
+
+            !--------------------------------------------------------
+            ! Traditional SOA
+            !--------------------------------------------------------
+
+            ! Number of tracers
+            NTRAC(46) = 13 ! was 6 (mpb,2009)
+
+            ! Loop over tracers
+            DO T = 1, NTRAC(46)
+
+               ! Get name and unit for each met field
+               SELECT CASE( T )
+                  CASE( 1 )
+                     NAME(T,46) = 'ISOP'
+                     MOLC(T,46) = 5
+                  CASE( 2 )
+                     NAME(T,46) = 'ACET'
+                     MOLC(T,46) = 3
+                  CASE( 3 )
+                     NAME(T,46) = 'PRPE'
+                     MOLC(T,46) = 3
+                  CASE( 4 )
+                     NAME(T,46) = 'MONOT'
+                     MOLC(T,46) = 10
+                  CASE( 5 )
+                     NAME(T,46) = 'MBO'
+                    MOLC(T,46) = 5
+                  CASE( 6 )
+                     NAME(T,46) = 'C2H4'
+                     MOLC(T,46) = 2
+                  CASE( 7 )
+                     NAME(T,46) = 'APINE'
+                     MOLC(T,46) = 10
+                  CASE( 8 )
+                     NAME(T,46) = 'BPINE'
+                     MOLC(T,46) = 10
+                  CASE( 9 )
+                     NAME(T,46) = 'LIMON'
+                     MOLC(T,46) = 10
+                  CASE( 10)
+                     NAME(T,46) = 'SABIN'
+                     MOLC(T,46) = 10
+                  CASE( 11)
+                     NAME(T,46) = 'MYRCN'
+                     MOLC(T,46) = 10
+                  CASE( 12)
+                     NAME(T,46) = 'CAREN'
+                     MOLC(T,46) = 10
+                  CASE( 13)
+                     NAME(T,46) = 'OCIMN'
+                     MOLC(T,46) = 10
+                  CASE DEFAULT
+                     ! Nothing
+               END SELECT
+
+               ! Define the rest of the quantities
+               INDEX(T,46) = T + ( SPACING * 21 )
+               FNAME(T,46) = TRIM( NAME(T,46) ) // ' emissions'
+               UNIT (T,46) = 'atoms C/cm2/s'
+               MWT  (T,46) = 12e-3
+               SCALE(T,46) = 1e0
+            ENDDO
+
+         ENDIF ! LSVPOA (mpayer, 8/10/11)
+
       ENDIF
 
       !-------------------------------------      

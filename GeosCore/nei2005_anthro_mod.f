@@ -363,15 +363,15 @@
 ! !USES:
 ! 
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
-      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1 
-      USE LOGICAL_MOD,       ONLY : LFUTURE
+      USE DIRECTORY_MOD,     ONLY : DATA_DIR_1x1  
       USE REGRID_1x1_MOD,    ONLY : DO_REGRID_1x1
+      USE LOGICAL_MOD,       ONLY : LFUTURE,  LSVPOA
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_O3"            ! FSCALYR
@@ -379,7 +379,8 @@
 ! !REVISION HISTORY: 
 !    7 Oct 2009 - A. van Donkelaar - initial version
 !   20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
-!
+!    1 Aug 2011 - M. Payer    - Re-define SPECIES_ID for LSVPOA option, which
+!                               renames OCPI to POA1
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -425,12 +426,23 @@
       SNAME = 'GEOS3'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     $                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     $                IDTOCPI, IDTBCPI,
-     $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     $     /)
+      IF ( LSVPOA ) THEN
+
+         ! list of ID of available species: SOA + semivolatile POA
+         SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ELSE
+
+         ! list of ID of available species: Standard chemistry
+         SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ENDIF
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
@@ -543,7 +555,9 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
+         !ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, OC )
             CALL DO_REGRID_1x1( 5, 'kg/yr',
@@ -692,20 +706,21 @@
 !
       USE BPCH2_MOD,         ONLY : GET_TAU0,      READ_BPCH2
       USE DIRECTORY_MOD,     ONLY : DATA_DIR
-      USE LOGICAL_MOD,       ONLY : LFUTURE
+      USE LOGICAL_MOD,       ONLY : LFUTURE,  LSVPOA
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
       USE TRACERID_MOD, ONLY : IDTNOx,  IDTCO,   IDTSO2,  IDTNH3
-      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI
+      USE TRACERID_MOD, ONLY : IDTSO4,  IDTOCPI, IDTBCPI, IDTPOA1
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_O3"            ! FSCALYR
 !
 ! !REVISION HISTORY:
 !   03 Nov 2009 - A. van Donkelaar - initial version
-!
+!    1 Aug 2011 - M. Payer    - Re-define SPECIES_ID for LSVPOA option, which
+!                               renames OCPI to POA1
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -751,12 +766,23 @@
       SNAME = 'GEOS3'
 #endif
 
-      ! list of ID of available species
-      SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, IDTNH3,
-     $                IDTACET, IDTALK4, IDTC2H6, IDTC3H8,
-     $                IDTOCPI, IDTBCPI,
-     $                IDTALD2, IDTCH2O, IDTPRPE, IDTMEK
-     $     /)
+      IF ( LSVPOA ) THEN
+
+         ! list of ID of available species: SOA + semivolatile POA
+         SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ELSE
+
+         ! list of ID of available species: Standard chemistry
+         SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
+     &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
+     &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
+     &                   IDTCH2O, IDTPRPE, IDTMEK            /)
+
+      ENDIF
 
       ! Loop over species
       DO KLM = 1, SIZE( SPECIES_ID )
@@ -864,7 +890,9 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
+         !ELSEIF ( SNo .eq. IDTOCPI ) THEN
+         ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             OC(:,:,:) = GEOS_05x0666
             OC_WKEND(:,:,:) = GEOS_05x0666 * ARRAY(:,:,:)

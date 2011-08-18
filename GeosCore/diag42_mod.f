@@ -26,12 +26,20 @@
 !  (5 ) pressure_mod.f : Module w/ routines to compute P(I,J,L)
 !  (6 ) time_mod.f     : Module w/ routines to compute date & time
 !
+!  References:
+!  ============================================================================
+!  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
+!        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
+!        4377-4401, 2010.
+!
 !  NOTES:
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
 !  (3 ) Add diagnostics for SOAG and SOAM (tmf, 1/7/09)
 !  (4 ) Increase PD42 to 24. (fp, hotp, 2/3/10)
+!  (5 ) Add diagnostics for TSOA,ISOA,ASOA,POA,OPOA to be used for SOA + 
+!       semivolatile POA simulation (hotp, mpayer, 7/8/11)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -60,6 +68,10 @@
       ! SUM(SOA1-5+SOAG+SOAM+OC)
       !INTEGER, PARAMETER   :: PD42 = 14
       INTEGER, PARAMETER   :: PD42 = 24
+      ! Add ratio of OM/OC (see pp 4382 & 4386, Pye & Seinfeld, 2010)
+      ! (hotp, mpayer, 7/8/11)
+      REAL*8, PARAMETER    :: OCFPOA = 1.4d0
+      REAL*8, PARAMETER    :: OCFOPOA = 1.4d0*1.5d0  ! 2.1
 
       ! Arrays
       REAL*4,  ALLOCATABLE :: AD42(:,:,:,:)
@@ -79,6 +91,9 @@
 !
 !  NOTES:
 !  (1 ) Now use ratio of 2.1 instead of 1.4 for SOA4 (dkh, bmy, 3/29/07)
+!  (2 ) Add logical flags for all tracers to avoid out-of-bounds errors
+!       when using either traditional SOA or Havala's SOA + semivolatile POA 
+!       (mpayer, 7/12/11) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -93,7 +108,16 @@
       ! consider additional species (hotp 10/26/07)
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
-
+      ! add SOA + semivol POA species (hotp, mpayer, 7/8/11)
+      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2
+      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2
+      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3, IDTTSOA0
+      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
+      ! NO branching ratio diagnostic (hotp, mpayer, 7/8/11)
+      USE CARBON_MOD,   ONLY : BETANOSAVE
+      ! Switch for Havala's SOA + semivol POA simulation (mpayer, 7/8/11)
+      USE LOGICAL_MOD,  ONLY : LSVPOA
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -104,24 +128,67 @@
 
       ! Factor for computing standard volume
       REAL*8, PARAMETER     :: STD_VOL_FAC = 1013.25d0 / 273.15d0
+
+      ! Temp. variables for SOA+semivol POA diagnostics (hotp, mpayer, 7/8/11)
+      REAL*8                :: TEMP6, TEMP7
+
+      ! Add logical SOA tracer flags (mpayer, 7/12/11)
+      LOGICAL               :: IS_SOA1,  IS_SOA2,  IS_SOA3,  IS_SOA4
+      LOGICAL               :: IS_SOA5,  IS_SOA1to5
+      LOGICAL               :: IS_OC,    IS_BC,    IS_SO4,   IS_NH4
+      LOGICAL               :: IS_NIT,   IS_SAL,   IS_SOAG,  IS_SOAM
+      LOGICAL               :: IS_TSOA,  IS_ISOA,  IS_ASOA
+      LOGICAL               :: IS_POA,   IS_OPOA 
      
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
 
-      ! Error check
-      IF ( IDTSOA1 == 0 ) RETURN
-      IF ( IDTSOA2 == 0 ) RETURN
-      IF ( IDTSOA3 == 0 ) RETURN
-      IF ( IDTSOA4 == 0 ) RETURN
-      IF ( IDTSOA5 == 0 ) RETURN
-      IF ( IDTOCPO == 0 ) RETURN
-      IF ( IDTOCPI == 0 ) RETURN
+!-----------------------------------------------------------------------
+! Prior to 7/11/11:
+! Removed because of SOA + semivol POA simulation, now use logical flags
+!      ! Error check
+!!      IF ( IDTSOA1 == 0 ) RETURN
+!!      IF ( IDTSOA2 == 0 ) RETURN
+!!      IF ( IDTSOA3 == 0 ) RETURN
+!!      IF ( IDTSOA4 == 0 ) RETURN
+!!      IF ( IDTSOA5 == 0 ) RETURN
+!!      IF ( IDTOCPO == 0 ) RETURN
+!!      IF ( IDTOCPI == 0 ) RETURN
+!-----------------------------------------------------------------------
+        
+      ! Define logical flags to decide whether or not to archive
+      ! into AD42 array.  This will prevent out-of-bounds errors. 
+      ! (mpayer, 7/12/11)
+      IS_SOA1    = ( IDTSOA1  > 0 )
+      IS_SOA2    = ( IDTSOA2  > 0 )
+      IS_SOA3    = ( IDTSOA3  > 0 )
+      IS_SOA4    = ( IDTSOA4  > 0 )
+      IS_SOA5    = ( IDTSOA5  > 0 )
+      IS_SOA1to5 = ( IDTSOA1  > 0 .AND. IDTSOA2  > 0 .AND. IDTSOA3  > 0
+     &         .AND. IDTSOA4  > 0 .AND. IDTSOA5  > 0 )
+      IS_OC      = ( IDTOCPI  > 0 .AND. IDTOCPO  > 0 )
+      IS_BC      = ( IDTBCPI  > 0 .AND. IDTBCPO  > 0 )
+      IS_SO4     = ( IDTSO4   > 0 )
+      IS_NH4     = ( IDTNH4   > 0 )
+      IS_NIT     = ( IDTNIT   > 0 )
+      IS_SAL     = ( IDTSALA  > 0 .AND. IDTSALC  > 0 )
+      IS_SOAG    = ( IDTSOAG  > 0 )
+      IS_SOAM    = ( IDTSOAM  > 0 )
+      IS_TSOA    = ( IDTTSOA1 > 0 .AND. IDTTSOA2 > 0 .AND. IDTTSOA3 > 0
+     &         .AND. IDTTSOA0 > 0 )
+      IS_ISOA   = ( IDTISOA1 > 0 .AND. IDTISOA2 > 0 .AND. IDTISOA3 > 0 )
+      IS_ASOA    = ( IDTASOAN > 0 .AND. IDTASOA1 > 0 .AND. IDTASOA2 > 0 
+     &         .AND. IDTASOA3 > 0 )
+      IS_POA     = ( IDTPOA1  > 0 .AND. IDTPOA2  > 0 )
+      IS_OPOA    = ( IDTOPOA1 > 0 .AND. IDTOPOA2 > 0 )
 
-      ! Loop over grid boxes     
+      ! Loop over grid boxes
+      ! Add TEMPs and make private (hotp, mpayer, 7/8/11)
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, FACTOR, PRES )  
+!$OMP+PRIVATE( TEMP6, TEMP7 )
       DO L = 1, LD42  
       DO J = 1, JJPAR 
       DO I = 1, IIPAR
@@ -133,131 +200,176 @@
          ! Conversion factor from [kg] --> [ug/m3]
          FACTOR        = 1d9 / AIRVOL(I,J,L)
 
+         ! Add logical IF statements to all tracers (mpayer, 7/12/11)
          ! SOA1 [ug/m3]
-         AD42(I,J,L,1) = AD42(I,J,L,1)        + 
-     &                   ( STT(I,J,L,IDTSOA1) * FACTOR )
+         IF ( IS_SOA1 ) THEN 
+            AD42(I,J,L,1) = AD42(I,J,L,1)        + 
+     &                      ( STT(I,J,L,IDTSOA1) * FACTOR )
+         ENDIF
  
          ! SOA2 [ug/m3]
-         AD42(I,J,L,2) = AD42(I,J,L,2)        + 
-     &                   ( STT(I,J,L,IDTSOA2) * FACTOR )
+         IF ( IS_SOA2 ) THEN
+            AD42(I,J,L,2) = AD42(I,J,L,2)        + 
+     &                      ( STT(I,J,L,IDTSOA2) * FACTOR )
+         ENDIF
 
          ! SOA3 [ug/m3]
-         AD42(I,J,L,3) = AD42(I,J,L,3)        + 
-     &                   ( STT(I,J,L,IDTSOA3) * FACTOR )
+         IF ( IS_SOA3 ) THEN
+            AD42(I,J,L,3) = AD42(I,J,L,3)        + 
+     &                      ( STT(I,J,L,IDTSOA3) * FACTOR )
+         ENDIF
 
          ! SOA4 [ug/m3]
-         AD42(I,J,L,4) = AD42(I,J,L,4)        + 
-     &                   ( STT(I,J,L,IDTSOA4) * FACTOR )
+         IF ( IS_SOA4 ) THEN
+            AD42(I,J,L,4) = AD42(I,J,L,4)        + 
+     &                      ( STT(I,J,L,IDTSOA4) * FACTOR )
+         ENDIF
 
          ! SOA5 [ug/m3]
-         AD42(I,J,L,5) = AD42(I,J,L,5)        + 
-     &                   ( STT(I,J,L,IDTSOA5) * FACTOR )
+         IF ( IS_SOA5 ) THEN
+            AD42(I,J,L,5) = AD42(I,J,L,5)        + 
+     &                      ( STT(I,J,L,IDTSOA5) * FACTOR )
+         ENDIF
 
          ! Sum of original 3 SOA types [ug/m3]
-         AD42(I,J,L,6) = AD42(I,J,L,6)        + 
-     &                   ( STT(I,J,L,IDTSOA1) + 
-     &                     STT(I,J,L,IDTSOA2) +  
-     &                     STT(I,J,L,IDTSOA3) ) * FACTOR
+         IF ( IS_SOA1 .AND. IS_SOA2 .AND. IS_SOA3 ) THEN
+            AD42(I,J,L,6) = AD42(I,J,L,6)        + 
+     &                      ( STT(I,J,L,IDTSOA1) + 
+     &                        STT(I,J,L,IDTSOA2) +  
+     &                        STT(I,J,L,IDTSOA3) ) * FACTOR
+         ENDIF
 
          ! Sum of all biogenic SOA [ug/m3] 
-         AD42(I,J,L,7) = AD42(I,J,L,7)        + 
-     &                   ( STT(I,J,L,IDTSOA1) + 
-     &                     STT(I,J,L,IDTSOA2) + 
-     &                     STT(I,J,L,IDTSOA3) + 
-     &                     STT(I,J,L,IDTSOA4) ) * FACTOR
+         IF ( IS_SOA1 .AND. IS_SOA2 .AND. IS_SOA3 .AND. IS_SOA4 ) THEN
+            AD42(I,J,L,7) = AD42(I,J,L,7)        + 
+     &                      ( STT(I,J,L,IDTSOA1) + 
+     &                        STT(I,J,L,IDTSOA2) + 
+     &                        STT(I,J,L,IDTSOA3) + 
+     &                        STT(I,J,L,IDTSOA4) ) * FACTOR
+         ENDIF
 
-         ! Sum of all SOA [ug/m3] 
-         AD42(I,J,L,8) = AD42(I,J,L,8)        +
-     &                   ( STT(I,J,L,IDTSOA1) + 
-     &                     STT(I,J,L,IDTSOA2) + 
-     &                     STT(I,J,L,IDTSOA3) + 
-     &                     STT(I,J,L,IDTSOA4) + 
-     &                     STT(I,J,L,IDTSOA5) ) * FACTOR
+         ! Sum of all SOA [ug/m3]
+         IF ( IS_SOA1to5 ) THEN
+            AD42(I,J,L,8) = AD42(I,J,L,8)        +
+     &                      ( STT(I,J,L,IDTSOA1) + 
+     &                        STT(I,J,L,IDTSOA2) + 
+     &                        STT(I,J,L,IDTSOA3) + 
+     &                        STT(I,J,L,IDTSOA4) + 
+     &                        STT(I,J,L,IDTSOA5) ) * FACTOR
+         ENDIF
 
 
          ! Sum of primary OC + SOA1 to SOA4 [ug C/m3] 
          ! Use higher ratio (2.1) of molecular weight of
          ! organic mass per carbon mass accounting for non-carbon
          ! components attached to OC [Turpin and Lim, 2001] 
-         AD42(I,J,L,9) = AD42(I,J,L,9)          +
-     &                   ( ( STT(I,J,L,IDTSOA1) + 
-     &                       STT(I,J,L,IDTSOA2) + 
-     &                       STT(I,J,L,IDTSOA3) + 
-     &                       STT(I,J,L,IDTSOA4) +
-     &                       STT(I,J,L,IDTSOA5))   / 2.1d0
-     &                   + ( STT(I,J,L,IDTOCPO) + 
-     &                       STT(I,J,L,IDTOCPI) ) ) * FACTOR
+         IF ( IS_SOA1to5 .AND. IS_OC ) THEN
+            AD42(I,J,L,9) = AD42(I,J,L,9)          +
+     &                      ( ( STT(I,J,L,IDTSOA1) + 
+     &                          STT(I,J,L,IDTSOA2) + 
+     &                          STT(I,J,L,IDTSOA3) + 
+     &                          STT(I,J,L,IDTSOA4) +
+     &                          STT(I,J,L,IDTSOA5))   / 2.1d0
+     &                      + ( STT(I,J,L,IDTOCPO) + 
+     &                          STT(I,J,L,IDTOCPI) ) ) * FACTOR
 
-         ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/sm3] at STP
-         PRES          = GET_PCENTER( I, J, L )
-         AD42(I,J,L,10) = AD42(I,J,L,9) * STD_VOL_FAC * T(I,J,L) / PRES
+            ! Sum of PRIMARY OC + SOA1 to SOA4 [ug C/sm3] at STP
+            PRES           = GET_PCENTER( I, J, L )
+            AD42(I,J,L,10) = AD42(I,J,L,9) * STD_VOL_FAC * T(I,J,L) 
+     &                       / PRES
 
-         ! Sum of all OA in ug/m3
-         AD42(I,J,L,11) = AD42(I,J,L,11)        +
-     &                    ( STT(I,J,L,IDTSOA1) + 
-     &                      STT(I,J,L,IDTSOA2) + 
-     &                      STT(I,J,L,IDTSOA3) + 
-     &                      STT(I,J,L,IDTSOA4) + 
-     &                      STT(I,J,L,IDTSOA5) +
-     &                    ( STT(I,J,L,IDTOCPO) +
-     &                      STT(I,J,L,IDTOCPI) ) * 2.1d0 )
-     &                    * FACTOR
+            ! Sum of all OA in ug/m3
+            AD42(I,J,L,11) = AD42(I,J,L,11)       +
+     &                       ( STT(I,J,L,IDTSOA1) + 
+     &                         STT(I,J,L,IDTSOA2) + 
+     &                         STT(I,J,L,IDTSOA3) + 
+     &                         STT(I,J,L,IDTSOA4) + 
+     &                         STT(I,J,L,IDTSOA5) +
+     &                       ( STT(I,J,L,IDTOCPO) +
+     &                         STT(I,J,L,IDTOCPI) ) * 2.1d0 )
+     &                       * FACTOR
+         ENDIF
 
 !-------------------------------------------
 ! additional aerosol tracers (hotp 10/26/07)
 !-------------------------------------------
          ! OC [ugC/m3]
-         AD42(I,J,L,12) = AD42(I,J,L,12)       + 
-     &                    ( STT(I,J,L,IDTOCPI) + 
-     &                      STT(I,J,L,IDTOCPO) ) * FACTOR
+         ! Add POA (mpayer, 7/12/11)
+         IF ( IS_OC ) THEN
+            AD42(I,J,L,12) = AD42(I,J,L,12)       + 
+     &                       ( STT(I,J,L,IDTOCPI) + 
+     &                         STT(I,J,L,IDTOCPO) ) * FACTOR
+         ENDIF
+
+         IF ( IS_POA ) THEN
+            AD42(I,J,L,12) = AD42(I,J,L,12)       + 
+     &                     ( ( STT(I,J,L,IDTPOA1) +
+     &                         STT(I,J,L,IDTPOA2) ) * FACTOR )
+         ENDIF
 
          ! BC [ugC/m3]
-         AD42(I,J,L,13) = AD42(I,J,L,13)        + 
-     &                   ( STT(I,J,L,IDTBCPI)   +
-     &                     STT(I,J,L,IDTBCPO)   ) * FACTOR 
+         IF ( IS_BC ) THEN
+            AD42(I,J,L,13) = AD42(I,J,L,13)       + 
+     &                       ( STT(I,J,L,IDTBCPI) +
+     &                         STT(I,J,L,IDTBCPO) ) * FACTOR 
+         ENDIF
 
          ! SO4 [ug/m3]
-         AD42(I,J,L,14) = AD42(I,J,L,14)        + 
-     &                   ( STT(I,J,L,IDTSO4)   * FACTOR )
+         IF ( IS_SO4 ) THEN
+            AD42(I,J,L,14) = AD42(I,J,L,14)      + 
+     &                       ( STT(I,J,L,IDTSO4) * FACTOR )
+         ENDIF
 
          ! NH4 [ug/m3]
-         AD42(I,J,L,15) = AD42(I,J,L,15)        + 
-     &                   ( STT(I,J,L,IDTNH4)   * FACTOR )
+         IF ( IS_NH4 ) THEN
+            AD42(I,J,L,15) = AD42(I,J,L,15)      + 
+     &                       ( STT(I,J,L,IDTNH4) * FACTOR )
+         ENDIF
 
          ! NIT [ug/m3]
-         AD42(I,J,L,16) = AD42(I,J,L,16)        + 
-     &                   ( STT(I,J,L,IDTNIT)   * FACTOR )
+         IF ( IS_NIT ) THEN
+            AD42(I,J,L,16) = AD42(I,J,L,16)      + 
+     &                       ( STT(I,J,L,IDTNIT) * FACTOR )
+         ENDIF
 
          ! SAL [ug/m3]
-         AD42(I,J,L,17) = AD42(I,J,L,17)        + 
-     &                   ( STT(I,J,L,IDTSALA)   +
-     &                     STT(I,J,L,IDTSALC)   ) * FACTOR 
+         IF ( IS_SAL ) THEN
+            AD42(I,J,L,17) = AD42(I,J,L,17)       + 
+     &                       ( STT(I,J,L,IDTSALA) +
+     &                        STT(I,J,L,IDTSALC) ) * FACTOR 
+         ENDIF
 
          ! total aerosol [ug/m3]
-         AD42(I,J,L,18) = AD42(I,J,L,18)        +
-     &                    ( STT(I,J,L,IDTSOA1)  +
-     &                     STT(I,J,L,IDTSOA2)   +
-     &                     STT(I,J,L,IDTSOA3)   +
-     &                     STT(I,J,L,IDTSOA4)   +
-     &                     STT(I,J,L,IDTSOA5)   +
-     &                     STT(I,J,L,IDTSO4)    +
-     &                     STT(I,J,L,IDTNH4)    +
-     &                     STT(I,J,L,IDTNIT)    +
-     &                     STT(I,J,L,IDTBCPI)   +
-     &                     STT(I,J,L,IDTBCPO)   +
-     &                    ( STT(I,J,L,IDTOCPO)  +
-     &                      STT(I,J,L,IDTOCPI) ) * 2.1 )
-     &                    * FACTOR
+         IF ( IS_SOA1to5 .AND. IS_SO4 .AND. IS_NH4 .AND. IS_NIT .AND. 
+     &        IS_BC      .AND. IS_OC ) THEN
+            AD42(I,J,L,18) = AD42(I,J,L,18)        +
+     &                       ( STT(I,J,L,IDTSOA1)  +
+     &                        STT(I,J,L,IDTSOA2)   +
+     &                        STT(I,J,L,IDTSOA3)   +
+     &                        STT(I,J,L,IDTSOA4)   +
+     &                        STT(I,J,L,IDTSOA5)   +
+     &                        STT(I,J,L,IDTSO4)    +
+     &                        STT(I,J,L,IDTNH4)    +
+     &                        STT(I,J,L,IDTNIT)    +
+     &                        STT(I,J,L,IDTBCPI)   +
+     &                        STT(I,J,L,IDTBCPO)   +
+     &                       ( STT(I,J,L,IDTOCPO)  +
+     &                         STT(I,J,L,IDTOCPI) ) * 2.1 )
+     &                       * FACTOR
+         ENDIF
 
 !--------------------------------------------------------
 ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
 ! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
 ! Test if SOAG and SOAM are simulated (ccc, 12/18/08)
 !--------------------------------------------------------
-         IF ( IDTSOAG /= 0 .AND. IDTSOAM /=0 ) THEN
+         !IF ( IDTSOAG /= 0 .AND. IDTSOAM /=0 ) THEN ! remove (mpayer,7/12/11)
+         IF ( IS_SOAG .AND. IS_SOAM ) THEN
+
             ! SOAG [ug total mass /m3]
             AD42(I,J,L,19) = AD42(I,J,L,19)        + 
      &                      ( STT(I,J,L,IDTSOAG) * 1.d0 * FACTOR )
+
 
             ! SOAM [ug total mass /m3]
             AD42(I,J,L,20) = AD42(I,J,L,20)        + 
@@ -265,41 +377,196 @@
 
 
             ! Sum of SOA1 to SOA4, SOAG, SOAM (tmf, 1/31/07)
-            AD42(I,J,L,21) = AD42(I,J,L,21)        + 
-     &                      ( STT(I,J,L,IDTSOA1) + 
-     &                        STT(I,J,L,IDTSOA2) + 
-     &                        STT(I,J,L,IDTSOA3) + 
-     &                        STT(I,J,L,IDTSOA4)  +
-     &                        STT(I,J,L,IDTSOA5)  +
-     &                      ( STT(I,J,L,IDTSOAG) * 1.d0 ) +
-     &                      ( STT(I,J,L,IDTSOAM) * 1.d0 )) * FACTOR 
+            IF ( IS_SOA1to5 ) THEN
+               AD42(I,J,L,21) = AD42(I,J,L,21)       + 
+     &                          ( STT(I,J,L,IDTSOA1) + 
+     &                            STT(I,J,L,IDTSOA2) + 
+     &                            STT(I,J,L,IDTSOA3) + 
+     &                            STT(I,J,L,IDTSOA4) +
+     &                            STT(I,J,L,IDTSOA5) +
+     &                          ( STT(I,J,L,IDTSOAG) * 1.d0 ) +
+     &                          ( STT(I,J,L,IDTSOAM) * 1.d0 )) * FACTOR
+            ENDIF
+
 
             ! Sum of SOA1 to SOA4, SOAG, SOAM in carbon (tmf, 1/31/07) 
             ! Except SOAG is 0.41 carbon, SOAM is 0.5 carbon
-            AD42(I,J,L,22) = AD42(I,J,L,22)          +
-     &                      ( ( STT(I,J,L,IDTSOA1) + 
-     &                          STT(I,J,L,IDTSOA2) + 
-     &                          STT(I,J,L,IDTSOA3) + 
-     &                          STT(I,J,L,IDTSOA4) + 
-     &                          STT(I,J,L,IDTSOA5) )   / 2.1d0 +
-     &                         ( STT(I,J,L,IDTSOAG) * 0.41D0 ) +
-     &                         ( STT(I,J,L,IDTSOAM) * 0.50D0 ) +
-     &                        ( STT(I,J,L,IDTOCPO) + 
-     &                          STT(I,J,L,IDTOCPI) ) ) * FACTOR
+            IF ( IS_SOA1to5 .AND. IS_OC ) THEN
+               AD42(I,J,L,22) = AD42(I,J,L,22)         +
+     &                          ( ( STT(I,J,L,IDTSOA1) + 
+     &                              STT(I,J,L,IDTSOA2) + 
+     &                              STT(I,J,L,IDTSOA3) + 
+     &                              STT(I,J,L,IDTSOA4) + 
+     &                              STT(I,J,L,IDTSOA5) )   / 2.1d0 +
+     &                            ( STT(I,J,L,IDTSOAG) * 0.41D0 ) +
+     &                            ( STT(I,J,L,IDTSOAM) * 0.50D0 ) +
+     &                            ( STT(I,J,L,IDTOCPO) + 
+     &                              STT(I,J,L,IDTOCPI) ) ) * FACTOR 
+            ENDIF
+          
 
             ! Sum of SOA1 to SOA4, SOAG, SOAM at STP [ug/sm3 STP] (tmf, 1/31/07)  
-            PRES          = GET_PCENTER( I, J, L )
-            AD42(I,J,L,23) = AD42(I,J,L,21) * STD_VOL_FAC * T(I,J,L) 
-     &                       / PRES
+            IF ( IS_SOA1to5 ) THEN            
+               PRES           = GET_PCENTER( I, J, L )
+               AD42(I,J,L,23) = AD42(I,J,L,21) * STD_VOL_FAC * T(I,J,L) 
+     &                          / PRES
+            ENDIF
 
             ! Sum of all OC [ug C/sm3] at STP (including SOAG, SOAM)
+            IF ( IS_SOA1to5 .AND. IS_OC ) THEN
             AD42(I,J,L,24) = AD42(I,J,L,22) * STD_VOL_FAC * T(I,J,L) 
      &                       / PRES
+            ENDIF
+
          ENDIF
+
+!--------------------------------------------------------
+! For SOA + semivolatile POA simulation 
+! (hotp, mpayer, 7/12/11)
+!--------------------------------------------------------
+         IF ( LSVPOA ) THEN
+
+            ! TSOA (terpene SOA) [ug/m3] (hotp 5/24/10)
+            IF ( IS_TSOA ) THEN
+               AD42(I,J,L,25) = AD42(I,J,L,25) + 
+     &                    ( ( STT(I,J,L,IDTTSOA1) +
+     &                        STT(I,J,L,IDTTSOA2) +
+     &                        STT(I,J,L,IDTTSOA3) +
+     &                        STT(I,J,L,IDTTSOA0)  ) * FACTOR )
+            ENDIF
+
+            ! ISOA (isoprene SOA) [ug/m3] (hotp 5/24/10)
+            IF ( IS_ISOA ) THEN
+               AD42(I,J,L,26) = AD42(I,J,L,26) + 
+     &                    ( ( STT(I,J,L,IDTISOA1) +
+     &                        STT(I,J,L,IDTISOA2) +
+     &                        STT(I,J,L,IDTISOA3)  ) * FACTOR )
+            ENDIF
+
+            ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) [ug/m3] (hotp 5/24/10)
+            IF ( IS_ASOA ) THEN
+               AD42(I,J,L,27) = AD42(I,J,L,27) + 
+     &                    ( ( STT(I,J,L,IDTASOAN) +
+     &                        STT(I,J,L,IDTASOA1) +
+     &                        STT(I,J,L,IDTASOA2) +
+     &                        STT(I,J,L,IDTASOA3)  ) * FACTOR )
+            ENDIF
+
+            ! POA or OC [ug/m3]
+            IF ( IS_POA ) THEN
+               AD42(I,J,L,28) = AD42(I,J,L,28) + 
+     &                    ( ( STT(I,J,L,IDTPOA1) +
+     &                        STT(I,J,L,IDTPOA2)  ) * OCFPOA  * FACTOR )
+            ENDIF
+
+            IF ( IS_OC ) THEN
+               AD42(I,J,L,28) = AD42(I,J,L,28) + 
+     &                    ( ( STT(I,J,L,IDTOCPI) +
+     &                        STT(I,J,L,IDTOCPO)  ) * OCFOPOA * FACTOR )
+            ENDIF
+
+            ! OPOA [ug/m3]
+            IF ( IS_OPOA ) THEN
+               AD42(I,J,L,29) = AD42(I,J,L,29) + 
+     &                   ( ( STT(I,J,L,IDTOPOA1) +
+     &                       STT(I,J,L,IDTOPOA2)  ) * OCFOPOA * FACTOR )
+            ENDIF
+
+            ! sum of all OA [ug/m3] (hotp 5/24/10)
+            IF ( IS_TSOA .AND. IS_ISOA .AND. IS_ASOA ) THEN
+               TEMP6 = STT(I,J,L,IDTTSOA1) +
+     &                 STT(I,J,L,IDTTSOA2) + 
+     &                 STT(I,J,L,IDTTSOA3) + 
+     &                 STT(I,J,L,IDTTSOA0) + 
+     &                 STT(I,J,L,IDTISOA1) + 
+     &                 STT(I,J,L,IDTISOA2) + 
+     &                 STT(I,J,L,IDTISOA3) + 
+     &                 STT(I,J,L,IDTASOAN) + 
+     &                 STT(I,J,L,IDTASOA1) + 
+     &                 STT(I,J,L,IDTASOA2) + 
+     &                 STT(I,J,L,IDTASOA3) 
+ 
+               IF ( IS_POA ) THEN
+                  TEMP6 = TEMP6 + STT(I,J,L,IDTPOA1) * OCFPOA +
+     &                            STT(I,J,L,IDTPOA2) * OCFPOA
+               ENDIF
+          
+               IF ( IS_OPOA ) THEN
+                  TEMP6 = TEMP6 + STT(I,J,L,IDTOPOA1) * OCFOPOA +
+     &                            STT(I,J,L,IDTOPOA2) * OCFOPOA
+               ENDIF
+
+               IF ( IS_OC ) THEN
+                  TEMP6 = TEMP6 + STT(I,J,L,IDTOCPI) * OCFOPOA +
+     &                            STT(I,J,L,IDTOCPO) * OCFOPOA
+               ENDIF
+
+               AD42(I,J,L,30) = AD42(I,J,L,30)  + ( TEMP6 * FACTOR )
+
+
+            ! sum of all OC [ugC/m3] (hotp 5/24/10)
+               TEMP7 = (  STT(I,J,L,IDTTSOA1) +
+     &                    STT(I,J,L,IDTTSOA2) + 
+     &                    STT(I,J,L,IDTTSOA3) + 
+     &                    STT(I,J,L,IDTTSOA0) + 
+     &                    STT(I,J,L,IDTISOA1) + 
+     &                    STT(I,J,L,IDTISOA2) + 
+     &                    STT(I,J,L,IDTISOA3) + 
+     &                    STT(I,J,L,IDTASOAN) + 
+     &                    STT(I,J,L,IDTASOA1) + 
+     &                    STT(I,J,L,IDTASOA2) + 
+     &                    STT(I,J,L,IDTASOA3)  ) / 2.1d0
+               IF ( IS_POA ) THEN
+                  TEMP7 = TEMP7 + STT(I,J,L,IDTPOA1) +
+     &                            STT(I,J,L,IDTPOA2) 
+               ENDIF
+          
+               IF ( IS_OPOA ) THEN
+                  TEMP7 = TEMP7 + STT(I,J,L,IDTOPOA1) +
+     &                            STT(I,J,L,IDTOPOA2)
+               ENDIF
+
+               IF ( IS_OC ) THEN
+                  TEMP7 = TEMP7 + STT(I,J,L,IDTOCPI) +
+     &                            STT(I,J,L,IDTOCPO)
+               ENDIF
+
+               AD42(I,J,L,31) = AD42(I,J,L,31)  +
+     &                    ( TEMP7 * FACTOR )
+
+            ENDIF
+
+            ! sum of biogenic OC [ug/m3] (hotp 5/24/10)
+            IF ( IS_TSOA .AND. IS_ISOA ) THEN
+               AD42(I,J,L,32) = AD42(I,J,L,32)  +
+     &                    ( ( STT(I,J,L,IDTTSOA1) +
+     &                        STT(I,J,L,IDTTSOA2) +
+     &                        STT(I,J,L,IDTTSOA3) +
+     &                        STT(I,J,L,IDTTSOA0) +
+     &                        STT(I,J,L,IDTISOA1) +
+     &                        STT(I,J,L,IDTISOA2) +
+     &                        STT(I,J,L,IDTISOA3)  ) * FACTOR )
+            ENDIF
+          
+            ! NO branching ratio (hotp 5/24/10)
+            ! will have zero or junk values if not in troposphere
+            AD42(I,J,L,33) = AD42(I,J,L,33) + BETANOSAVE(I,J,L)
+
+
+            ! OPOA [ug C/m3] (hotp 7/28/10)
+            IF ( IS_OPOA ) THEN
+               AD42(I,J,L,34) = AD42(I,J,L,34) + 
+     &                    ( ( STT(I,J,L,IDTOPOA1) +
+     &                        STT(I,J,L,IDTOPOA2)  ) * FACTOR )
+            ENDIF
+
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO
-!$OMP END PARALLEL DO 
+!$OMP END PARALLEL DO
+
 
       ! Return to calling program
       END SUBROUTINE DIAG42
@@ -351,6 +618,7 @@
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems  on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Use TS_DIAG for scaling instead of TS_DYN. (ccc, 8/18/09)
+!  (3 ) Update units for SOA + semivol POA tracers (hotp, mpayer, 7/12/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -410,13 +678,16 @@
          CATEGORY = 'IJ-SOA-$'
 
          ! Pick proper unit
+         ! Update for SOA + semivol POA (hotp, mpayer, 7/12/11)
          SELECT CASE ( N )
             CASE( 10, 24 )
                UNIT = 'ug C/sm3'
-            CASE( 9, 12, 13, 22 )
+            CASE( 9, 12, 13, 22, 31, 34 )
                UNIT = 'ug C/m3'
             CASE( 23 )
                UNIT = 'ug/sm3'
+            CASE( 33 )
+               UNIT = 'dimless'
             CASE DEFAULT
                UNIT = 'ug/m3'
          END SELECT

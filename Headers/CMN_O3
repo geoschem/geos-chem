@@ -11,6 +11,8 @@
 ! (3 ) Add anthropgenic emission species: BENZ, TOLU, XYLE, C2H2, C2H4. 
 !      (tmf, 1/7/09)
 ! (4 ) Add EMISS_BVOC for VOC emissions (mpb, ccc, 11/19/09)
+! (5 ) Added sesquiterpenes to EMISS_BVOC. Also added NAP emissions.
+!      (hotp, mpayer, 6/28/11) 
 !
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
@@ -34,6 +36,7 @@
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
 ! New biogenic VOC emissions (mpb,2009) 
+! Added sesquiterpenes (#11-14) (hotp, mpayer, 6/28/11)
 !
 !     ---------------------------
 !     Species            | Order 
@@ -48,11 +51,18 @@
 !     Mycrene            = 8
 !     3-Carene           = 9
 !     Ocimene            = 10
-!     ---------------------------	
+!     Farnesene          = 11
+!     b-Caryophyllene    = 12
+!     Other sesquiterp   = 13
+!     Other monoterpenes = 14
 
-      ! Define common block	
+      ! Define common block
       REAL*8 EMISS_BVOC
-      COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10)
+!-------------------------------------------------------------------------
+!     COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10) ! Removed--now 14 
+!                                                  (hotp, mpayer, 6/28/11)
+!-------------------------------------------------------------------------
+      COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,14)
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -62,9 +72,13 @@
 ! NOTE: ALD2 is not emitted in GEIA so we don't need an array for
 !       it below...but it is emitted in EMEP.  It will be saved
 !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
+! Added naphthalene emissions (hotp, mpayer, 6/28/11)
+
       REAL*4 EMISTNOX,EMISTCO,EMISTETHE,EMISTPRPE,EMISTC2H6,            &
      &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX,           &
-     &       EMISTBENZ,EMISTTOLU,EMISTXYLE,EMISTC2H4,EMISTC2H2
+     &       EMISTBENZ,EMISTTOLU,EMISTXYLE,EMISTC2H4,EMISTC2H2,         &
+     &       EMISTNAP
+
       COMMON/EMIS4/                                                     &
      &  EMISTNOX (IGLOB,JGLOB,4,2), EMISTETHE(IGLOB,JGLOB    ),         &
      &  EMISTCO  (IGLOB,JGLOB    ), EMISTPRPE(IGLOB,JGLOB    ),         &
@@ -73,7 +87,8 @@
      &  EMISTACET(IGLOB,JGLOB    ), EMISTMEK (IGLOB,JGLOB    ),         &
      &  EMISTBENZ(IGLOB,JGLOB    ), EMISTTOLU(IGLOB,JGLOB    ),         &
      &  EMISTXYLE(IGLOB,JGLOB    ), EMISTC2H4(IGLOB,JGLOB    ),         & 
-     &  EMISTC2H2(IGLOB,JGLOB    )
+     &  EMISTC2H2(IGLOB,JGLOB    ), EMISTNAP (IGLOB,JGLOB    )
+
 ! Time of day and weekday/weekend scale factors
 ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
       REAL*8         TODH,    TODN,    TODB,    SCNR89

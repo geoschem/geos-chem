@@ -191,6 +191,7 @@
 !  (13) Change the timestamp for the filename when closing (ccc, 8/12/09)
 !  (14) Add outputs for EMISS_BVOC (10 tracers), TS, PARDR, PARDF and ISOLAI
 !        (mpb, 11/19/09)
+!  (15) Add farnesene emissions (hotp, mpayer, 7/12/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -216,6 +217,7 @@
       USE TRACERID_MOD, ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE LOGICAL_MOD,  ONLY : LSVPOA ! (mpayer, 7/29/11)
 
 #     include "cmn_fj.h"        ! FAST-J stuff, includes CMN_SIZE
 #     include "jv_cmn.h"        ! ODAER, QAA, QAA_AOD (clh)
@@ -835,7 +837,10 @@
 !$OMP END PARALLEL DO
             ENDDO
 
-         ELSE IF (N > 114) THEN
+         ! For traditional SOA keep original numbering (115-121 for DUST OPTD)
+         ! (mpayer, 7/29/11)
+         !ELSE IF (N > 114) THEN
+         ELSE IF (N > 114 .AND. ( .NOT. LSVPOA ) ) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
@@ -847,6 +852,41 @@
             GMTRC     = 21+(N-115)
 
             R = N - 114
+
+            ! Scaling factor for AOD wavelength (clh, 05/09)
+            SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+               DO K = 1, ND49_NL
+                  L = LOFF + K
+               DO Y = 1, ND49_NJ
+                  J = JOFF + Y
+               DO X = 1, ND49_NI
+                  I = GET_I( X )
+                  Q(X,Y,K) = Q(X,Y,K) + ODMDUST(I,J,L,R) * SCALEAODnm
+               ENDDO
+               ENDDO
+               ENDDO
+!$OMP END PARALLEL DO
+
+         ! For SOA + semivol POA 115 is FARN emissions (mpayer, 7/29/11)
+         ! Move DUST OPTD to 116-122
+         ELSE IF (N > 115 .AND. LSVPOA ) THEN
+
+            !--------------------------------------
+            ! DUST OPTD BINS1-7 @ jv_spec_aod.dat wavelength[unitless]
+            ! NOTE: Only archive at chem timestep
+            !--------------------------------------
+            CATEGORY  = 'OD-MAP-$'
+            UNIT      = 'unitless'
+            GMNL      = ND49_NL
+            !GMTRC     = 21+(N-115) ! increase to 116 (mpayer, 7/29/11)
+            GMTRC     = 21+(N-116)
+
+            !R = N - 114 ! increase to 115 (mpayer, 7/29/11)
+            R = N - 115
 
             ! Scaling factor for AOD wavelength (clh, 05/09)
             SCALEAODnm = QAA_AOD(IND(6)+R-1) / QAA(4,IND(6)+R-1)
@@ -1383,6 +1423,31 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+         ELSE IF ( N == 115 .AND. LSVPOA ) THEN
+            
+            !-----------------------------------
+            ! Farnesene EMISSIONS  (hotp, mpayer, 7/12/11)
+            ! [atom C/cm2/s]
+            !-----------------------------------
+            CATEGORY = 'BIOGSRCE'
+            UNIT     = 'atomC/cm2/s'     
+            GMNL     = ND49_NL
+            GMTRC    = 14
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, X, Y )
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               Q(X,Y,1) = EMISS_BVOC( I , J , 11 )
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+
+         ! can add 12-14: BCARYO, OSQT, OMTP if desired (hotp 7/25/10)
 
          ELSE
 

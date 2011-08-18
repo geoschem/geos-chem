@@ -113,6 +113,7 @@
 !  (93) Add ND57 for potential temperature. (fp, 2/3/10)
 !  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
+!  27 Jul 2011 - M. Payer    - Add hotp's SOA + semivolatile POA updates
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -212,7 +213,14 @@
       USE TRACERID_MOD, ONLY : IDTSOAG,     IDTSOAM
       USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO, IDTC2H4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
-      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
+      USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD
+      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/27/11)
+      USE TRACERID_MOD, ONLY : IDTMTPA,     IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTTSOA1,    IDTISOA1, IDTASOA1
+      USE TRACERID_MOD, ONLY : IDTPOA1
+      USE TRACERID_MOD, ONLY : IDTOPOA1,    IDTOPOG1
+      USE TRACERID_MOD, ONLY : IDTASOAN
+      USE LOGICAL_MOD,  ONLY : LSVPOA
 
       IMPLICIT NONE
 
@@ -468,6 +476,9 @@
       IF ( ND07 > 0 .and. LCARB ) THEN
 
          ! Unit
+         ! SOAupdate: OC and BC in kg C, SOA in kg (assign below)
+         ! (hotp, mpayer, 7/27/11)
+         !UNIT = 'kgC' ! keep old (mpayer, 8/11/11)
          UNIT = 'kg'
          
          !-------------------
@@ -529,7 +540,9 @@
          ! OC ANTHRO source
          !------------------------------ 
          CATEGORY     = 'OC-ANTH'
-         N            = IDTOCPI
+         ! SOAupdate: use POA or OCPI (hotp, mpayer, 7/27/11)
+         IF ( IDTOCPI > 0 ) N = IDTOCPI
+         IF ( IDTPOA1 > 0 ) N = IDTPOA1
          ARRAY(:,:,1) = AD07(:,:,4) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -542,7 +555,7 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         N            = IDTOCPI
+         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -555,7 +568,7 @@
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-         N            = IDTOCPI
+         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -568,7 +581,7 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-         N            = IDTOCPI
+         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -580,65 +593,125 @@
          !------------------------------ 
          ! H-philic OC from H-phobic OC
          !------------------------------
-         CATEGORY     = 'PL-OC=$'
-         N            = IDTOCPI
+         ! SOAupdate: This only exists with OCPI/OCPO (hotp, mpayer, 7/27/11)
+         IF ( IDTOCPI > 0 ) THEN
+            CATEGORY     = 'PL-OC=$'
+            N            = IDTOCPI
 
-         DO L = 1, LD07
-            ARRAY(:,:,L) = AD07_OC(:,:,L) 
-         ENDDO
+            DO L = 1, LD07
+               ARRAY(:,:,L) = AD07_OC(:,:,L) 
+            ENDDO
          
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     LD07,     IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+         ENDIF ! OCPI
 
          ! Only save extra SOA diagnostics if LSOA=T
          IF ( LSOA ) THEN
 
+            ! SOAupdate: add units (hotp, mpayer, 7/27/11)
+            UNIT = 'kg'
+
             !------------------------------
             ! NVOC SOURCE diagnostics
             !------------------------------
-            DO N = 8, 12
 
-               SELECT CASE ( N )
+            ! SOAupdate: Add switch for SOA + semivolatile POA or traditional 
+            ! SOA simulation (mpayer, 7/27/11)
+            IF ( LSVPOA ) THEN
 
-                  ! ALPH
-                  CASE ( 8 )
-                     CATEGORY = 'OC-ALPH'
-                     NN       = IDTALPH
+               !---------------------------------
+               ! SOA + semivolatile POA
+               !---------------------------------
 
-                  ! LIMO
-                  CASE ( 9 )
-                     CATEGORY = 'OC-LIMO'
-                     NN       = IDTLIMO
+               ! SOAupdate: only 11 for SOA + semivol POA (hotp,mpayer,7/27/11)
+               DO N = 8, 11
 
-                  ! TERP
-                  CASE ( 10 )
-                     CATEGORY = 'OC-TERP'
-                     NN       = IDTLIMO + 1
+                  SELECT CASE ( N )
 
-                  ! ALCO
-                  CASE ( 11 )
-                     CATEGORY = 'OC-ALCO'
-                     NN       = IDTLIMO + 2
+                     ! MTPA
+                     CASE ( 8 )
+                        CATEGORY = 'OC-MTPA'
+                        NN       = IDTMTPA
 
-                  ! SESQ
-                  CASE ( 12 )
-                     CATEGORY = 'OC-SESQ'
-                     NN       = IDTLIMO + 3
+                     ! LIMO
+                     CASE ( 9 )
+                        CATEGORY = 'OC-LIMO'
+                        NN       = IDTLIMO
 
-               END SELECT
+                     ! MTPO
+                     CASE ( 10 )
+                        CATEGORY = 'OC-MTPO'
+                        NN       = IDTMTPO
 
-               ARRAY(:,:,1) = AD07(:,:,N)
+                     ! SESQ
+                     CASE ( 11 )
+                        CATEGORY = 'OC-SESQ'
+                        NN       = IDTLIMO + 3
+
+                  END SELECT
+
+                  ARRAY(:,:,1) = AD07(:,:,N)
                   
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     1,        IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     1,        IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
-            ENDDO
+               ENDDO
+
+            ELSE
+
+               !---------------------------------
+               ! Traditional SOA
+               !---------------------------------
+
+               DO N = 8, 12
+
+                  SELECT CASE ( N )
+
+                     ! ALPH
+                     CASE ( 8 )
+                        CATEGORY = 'OC-ALPH'
+                        NN       = IDTALPH
+
+                     ! LIMO
+                     CASE ( 9 )
+                        CATEGORY = 'OC-LIMO'
+                        NN       = IDTLIMO
+
+                     ! TERP
+                     CASE ( 10 )
+                        CATEGORY = 'OC-TERP'
+                        NN       = IDTLIMO + 1
+
+                     ! ALCO
+                     CASE ( 11 )
+                        CATEGORY = 'OC-ALCO'
+                        NN       = IDTLIMO + 2
+
+                     ! SESQ
+                     CASE ( 12 )
+                        CATEGORY = 'OC-SESQ'
+                        NN       = IDTLIMO + 3
+
+                  END SELECT
+
+                  ARRAY(:,:,1) = AD07(:,:,N)
+                  
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     1,        IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1) )
+
+               ENDDO
+
+            ENDIF ! LSVPOA (mpayer, 7/27/11)
 
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
@@ -647,33 +720,85 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            ! (hotp 5/25/09) add SO5
-            !DO N = 1, 4
-            DO N = 1, 5
+            ! SOAupdate: Add switch for SOA + semivolatile POA or traditional 
+            ! SOA simulation (mpayer, 7/27/11)
+            IF ( LSVPOA ) THEN
 
-               ! hotp 7/31/08 units
-               UNIT = 'kg'
+               !---------------------------------
+               ! SOA + semivolatile POA
+               !---------------------------------
 
-               IF ( N == 1 ) NN = IDTSOA1
-               IF ( N == 2 ) NN = IDTSOA2
-               IF ( N == 3 ) NN = IDTSOA3
-               IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
-               IF ( N == 5 ) NN = IDTSOA5
+               DO N = 1, 6 
 
-               ! Check to make sure the tracer exists (hotp 8/23/09)
-               IF ( NN > 0 ) THEN
-                  DO L = 1, LD07
-                     ARRAY(:,:,L) = AD07_HC(:,:,L,N)
-                  ENDDO
+                  ! SOAupdate: units diff for POA (hopt, mpayer, 7/27/11)
+                  ! now correspond to JSV
+                  IF     ( N == 1 ) THEN
+                     NN = IDTTSOA1
+                  ELSEIF ( N == 2 ) THEN
+                     NN = IDTISOA1
+                  ELSEIF ( N == 3 ) THEN
+                     NN = IDTASOA1
+                  ELSEIF ( N == 4 ) THEN
+                     NN = IDTPOA1
+                     UNIT = 'kgC'
+                  ELSEIF ( N == 5 ) THEN
+                     NN = IDTOPOA1
+                     UNIT = 'kgC'
+                  ELSEIF ( N == 6 ) THEN
+                     NN = IDTOPOG1
+                     UNIT = 'kgC'
+                  ENDIF
 
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     LD07,     IFIRST,
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
-               ENDIF ! NN
+                  ! Check to make sure the tracer exists (hotp 8/23/09)
+                  IF ( NN > 0 ) THEN
+                     DO L = 1, LD07
+                        ARRAY(:,:,L) = AD07_HC(:,:,L,N)
+                     ENDDO
 
-            ENDDO
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+                  ENDIF ! NN
+
+               ENDDO
+
+            ELSE
+
+               !---------------------------------
+               ! Traditional SOA
+               !---------------------------------
+
+               ! (hotp 5/25/09) add SO5
+               !DO N = 1, 4
+               DO N = 1, 5
+
+                  ! hotp 7/31/08 units
+                  UNIT = 'kg'
+
+                  IF ( N == 1 ) NN = IDTSOA1
+                  IF ( N == 2 ) NN = IDTSOA2
+                  IF ( N == 3 ) NN = IDTSOA3
+                  IF ( N == 4 ) NN = IDTSOA4  ! (tmf, bmy, 3/20/07)
+                  IF ( N == 5 ) NN = IDTSOA5
+
+                  ! Check to make sure the tracer exists (hotp 8/23/09)
+                  IF ( NN > 0 ) THEN
+                     DO L = 1, LD07
+                        ARRAY(:,:,L) = AD07_HC(:,:,L,N)
+                     ENDDO
+
+                  CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                        HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
+                  ENDIF ! NN
+
+               ENDDO
+
+            ENDIF ! LSVPOA (mpayer, 7/27/11)
 
             !-----------------------------------------------
             ! SOA Production from GLYX and MGLY [kg]
@@ -3000,6 +3125,14 @@
             IF ( N == 2 .and. IDTACET == 0 ) CYCLE
             IF ( N == 3 .and. IDTPRPE == 0 ) CYCLE
             IF ( N == 6 .and. IDTC2H4 == 0 ) CYCLE
+
+            ! No FARN, BCAR, OSQT, OMTP for traditional SOA (mpayer, 8/12/11)
+            IF ( .NOT. LSVPOA ) THEN
+               IF ( N == 14 ) CYCLE
+               IF ( N == 15 ) CYCLE
+               IF ( N == 16 ) CYCLE
+               IF ( N == 17 ) CYCLE
+            ENDIF
             
             ARRAY(:,:,1) = AD46(:,:,N) / SCALESRCE
                
