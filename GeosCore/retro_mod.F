@@ -7,6 +7,9 @@
 !***********************************************************************
 !  Module RETRO_MOD reads emissions from the RETRO emissions inventory
 !  (wfr 3/8/11)
+!
+!  22 Aug 2011 - D. Millet   - Partition ketones into 25% MEK and 75% ACET
+!  22 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
 !***********************************************************************
 
       IMPLICIT NONE
@@ -73,8 +76,6 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-
-         print*,'### RETRO: initializing'
 
          ! Allocate arrays
          CALL INIT_RETRO
@@ -293,8 +294,12 @@
 
       BASEYEAR=2000
 
-      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
-      ALK4(:,:) = ALK4(:,:) * SC(:,:)
+!------------------------------------------------------------------------------
+! Prior to 8/18/11:
+! This shouldn't be here (dbm, 8/18/2011)
+!      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
+!      ALK4(:,:) = ALK4(:,:) * SC(:,:)
+!------------------------------------------------------------------------------
 
       ! Return to calling program
       END SUBROUTINE READ_RETRO
@@ -446,6 +451,9 @@
 
 !***********************************************************************
 !  Returns the monthly avg anthropogenic emissions at (I,J)
+!
+!  18 Aug 2011 - D. Millet - Partition RETRO ketones into 75% acetone 
+!                            and 25% MEK
 !***********************************************************************
 
       ! References to F90 modules
@@ -468,10 +476,17 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
+!------------------------------------------------------------------------------
+!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
+!      ELSE IF ( N == IDTACET ) THEN
+!         RETRO = RETRO_ACET(I,J)
+!      ELSE IF ( N == IDTMEK )  THEN
+!         RETRO = RETRO_MEK(I,J)
+!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
-         RETRO = RETRO_ACET(I,J)
+         RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN
-         RETRO = RETRO_MEK(I,J)
+         RETRO = 0.25d0*RETRO_MEK(I,J)   ! RETRO ketones --> 25% MEK 
       ELSE IF ( N == IDTALD2 ) THEN
          RETRO = RETRO_ALD2(I,J)
       ELSE IF ( N == IDTPRPE ) THEN

@@ -184,6 +184,9 @@
 !                              emissions, get biofuels from EPA/NEI99 over USA
 !  18 Feb 2011 - C. Carouge  - Bug fix to avoid double-counting biofuel
 !                              emissions over Asia.
+!  18 Aug 2011 - D. Millet   - RETRO anthropogenic emissions include 
+!                              residential biofuel, so we need to zero out the
+!                              biofuel contributions to avoid double-counting
 !******************************************************************************
 !
       ! References to F90 modules
@@ -194,6 +197,7 @@
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
+      USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
       USE LOGICAL_MOD,          ONLY : LNEI05
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
@@ -777,6 +781,25 @@
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
+
+            !-----------------------------------------------------------
+            ! RETRO anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using RETRO for anthro VOCs
+            ! (dbm, 8/18/2011)
+            !-----------------------------------------------------------
+            IF ( LRETRO ) THEN
+               IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
 
             !-----------------------------------------------------------
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
