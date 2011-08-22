@@ -144,6 +144,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -250,6 +252,8 @@
       USE TIME_MOD,      ONLY : EXPAND_DATE, GET_NYMD, ITS_A_NEW_DAY
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
 #     include "define.h"     ! Size parameters
 
@@ -348,7 +352,7 @@
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
@@ -523,7 +527,7 @@
       USE TRACER_MOD, ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO2x25
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
@@ -648,7 +652,7 @@
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 #     include "define.h"
 
       ! Local variables
@@ -763,7 +767,7 @@
       USE TIME_MOD,   ONLY : GET_TAU, TIMESTAMP_STRING
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD ! Size parameters
 
       ! Local variables
       INTEGER           :: I,      IOS,     J,         L      
@@ -888,8 +892,8 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NTRACE
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_MOD        ! NTRACE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I_1x1, J_1x1, L_1x1, N_1x1
@@ -1034,8 +1038,8 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! NTRACE
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_MOD        ! NTRACE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I_1x1, J_1x1, L_1x1, N_1x1
@@ -1205,7 +1209,7 @@
       USE LOGICAL_MOD,   ONLY : LWINDO2x25
       USE TRACER_MOD,    ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 #     include "define.h"
 
       ! Arguments

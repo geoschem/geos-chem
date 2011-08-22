@@ -33,6 +33,8 @@
 !******************************************************************************
 !  
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -109,7 +111,7 @@
 !******************************************************************************
 !
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NTRACE 
@@ -266,7 +268,7 @@
 !        via the argument list.  Add comments. (bmy, 12/13/05)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -425,8 +427,8 @@
       USE DAO_MOD,      ONLY : AD
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG" 
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD 
   
       ! Arguments
       INTEGER, INTENT(IN)    :: J

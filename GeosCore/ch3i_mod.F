@@ -58,6 +58,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -123,7 +125,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
@@ -346,9 +348,9 @@
       USE TRACERID_MOD, ONLY : IDBFCO
 
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_DEP"     ! RADIAT, FRCLND
-#     include "F77_CMN_DIAG"    ! Diagnostic switches
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! Diagnostic switches
+      USE CMN_DEP_MOD     ! RADIAT, FRCLND
 
       ! Local common blocks (shared with OPEN_CH3I_FILES)
       REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
@@ -937,9 +939,9 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : STT, N_TRACERS
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND36
-#     include "comode.h"     ! SPECNAME
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! SPECNAME
+      USE CMN_DIAG_MOD     ! ND36
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.

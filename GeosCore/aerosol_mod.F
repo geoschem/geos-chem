@@ -62,6 +62,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -127,8 +129,8 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! AD, AVG, WTAIR, other SMVGEAR variables
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! AD, AVG, WTAIR, other SMVGEAR variables
 
       ! Argumetns
       INTEGER, INTENT(OUT) :: N_TROP
@@ -306,7 +308,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE. 
@@ -556,12 +558,17 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"   ! ODAER, QAA, RAA, QAA_AOD (clh)
-#     include "F77_CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTLOOP
+      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR, JJPAR, LLTROP
+      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM, NEMPARA, NEMPARB, LGLOB
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
+      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD   ! NTLOOP
+      USE CMN_DIAG_MOD   ! ND21, LD21
+
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR, WAVELENGTH
@@ -1394,7 +1401,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 
       ! Local variables
       INTEGER :: AS

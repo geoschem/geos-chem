@@ -28,9 +28,12 @@ C                 LEGND0 (X,PL,N)
 C                 MATIN4 (A)
 C                 GAUSSP (N,XPT,XWT)
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+      USE JV_MIE_MOD
 
-#     include "jv_mie.h"
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 
       integer i, id, im
       real*8  cmeq1

@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -100,8 +102,8 @@
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_A3
       USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! TINDEX
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! TINDEX
 !
 ! !REMARKS:
 !   # : Field    : Description              : Units          : Scale factor
@@ -196,7 +198,7 @@
 !
       USE ERROR_MOD,    ONLY : ALLOC_ERR
    
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2006 - R. Yantosca - Initial version

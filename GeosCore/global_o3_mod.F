@@ -17,6 +17,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -70,9 +72,11 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
+      USE CMN_SIZE_MOD                      ! Size parameters
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -259,7 +263,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  13 Jul 2004 - R. Yantosca - Initial version

@@ -18,6 +18,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -175,8 +177,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_GCTM"    ! Physical constants
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_GCTM_MOD    ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -291,8 +293,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, NTRACE, LPRT, LWINDO
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_MOD       ! STT, NTRACE, LPRT, LWINDO
 !
 ! !INPUT PARAMETERS: 
 !
@@ -415,8 +417,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_GCTM"   ! Physical constants
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1193,8 +1195,8 @@ c     --------------------------------------
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_GCTM" ! Re, PI
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_GCTM_MOD ! Re, PI
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1373,8 +1375,8 @@ c     --------------------------------------
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_GCTM" ! Re, Pi
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_GCTM_MOD ! Re, Pi
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1911,8 +1913,8 @@ c     --------------------------------------
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_GCTM"  ! Re, PI, etc...
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD  ! Re, PI, etc...
 ! 
 !
 ! !AUTHOR:

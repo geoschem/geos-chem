@@ -4,8 +4,12 @@ C-----------------------------------------------------------------------
 C  Solves the block tri-diagonal system:
 C               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 C-----------------------------------------------------------------------
+      USE JV_MIE_MOD
+
       IMPLICIT NONE
-#     include "jv_mie.h"
+#     include "define.h"
+#     include "define.h"
+
       integer i, j, k, id
       real*8  sum
 C-----------UPPER BOUNDARY ID=1

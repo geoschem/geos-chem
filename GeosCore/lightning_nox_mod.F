@@ -17,6 +17,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -161,8 +163,8 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
       USE TIME_MOD,     ONLY : GET_MONTH, GET_YEAR
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! Physical constants
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_GCTM_MOD     ! Physical constants
 !
 ! !REMARKS:
 !  Output Lightning NOX [molec/cm3/s] is stored in the EMIS_NOX_LI array.
@@ -843,7 +845,7 @@
       USE GRID_MOD,      ONLY : GET_YMID
       USE TIME_MOD,      ONLY : GET_MONTH
 
-#     include "F77_CMN_SIZE"                        ! Size parameters
+      USE CMN_SIZE_MOD                        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1525,7 +1527,7 @@
       USE TIME_MOD,      ONLY : GET_TAU
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"                ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1632,8 +1634,8 @@
       USE DAO_MOD,  ONLY : BXHEIGHT
       USE DIAG_MOD, ONLY : AD32_li
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_DIAG"         ! ND32
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND32
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1924,7 +1926,7 @@
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE LOGICAL_MOD,   ONLY : LOTDLOC
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  14 Apr 2004 - R. Yantosca - Initial version

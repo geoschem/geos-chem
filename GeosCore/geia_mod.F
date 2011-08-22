@@ -50,7 +50,9 @@
 !  (16) Modifications for reading data on GEOS-4 1 x 1.25 grids (bmy, 1/13/10)
 !******************************************************************************
 !
-      IMPLICIT NONE 
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h" 
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -85,7 +87,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -176,7 +178,7 @@
 
 
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: SCALEYEAR
@@ -272,7 +274,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT) :: TODH(6), TODN(6), TODB(6), SCNR89(3,3)
@@ -473,7 +475,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -593,7 +595,7 @@
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_NOX (IIPAR,JJPAR,4,2)
@@ -829,7 +831,7 @@
       USE BPCH2_MOD
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT), OPTIONAL :: E_C3H8(IIPAR,JJPAR) 
@@ -1017,7 +1019,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER,           INTENT(IN) :: IX, JX, LX

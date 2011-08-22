@@ -17,6 +17,8 @@
 !******************************************************************************
 ! 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN) :: G, H

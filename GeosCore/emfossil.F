@@ -45,12 +45,16 @@
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD               ! IHOUR
+      USE CMN_O3_MOD                 ! EMISR, EMISRR, etc...
+      USE CMN_DIAG_MOD               ! Diagnostic switches & arrays
 
-#     include "F77_CMN_SIZE"               ! Size parameters
-#     include "F77_CMN_DIAG"               ! Diagnostic switches & arrays
-#     include "F77_CMN_O3"                 ! EMISR, EMISRR, etc...
-#     include "comode.h"               ! IHOUR
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
+
 !
 ! !INPUT PARAMETERS: 
 !

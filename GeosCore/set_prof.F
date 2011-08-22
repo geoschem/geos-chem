@@ -66,10 +66,13 @@
       USE TOMS_MOD, ONLY : TOMS, DTOMS1, DTOMS2
       USE TIME_MOD, ONLY : GET_YEAR
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"  ! IPAR, JPAR, LPAR, JPPJ, JPNL
-#     include "jv_cmn.h"  ! NDUST, NAER, PJ
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! IPAR, JPAR, LPAR, JPPJ, JPNL
+      USE JV_CMN_MOD            !, ONLY : NDUST, NAER, PJ
+
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Argument
       INTEGER, INTENT(IN)    :: DAY, MONTH,  NLAT, NLON

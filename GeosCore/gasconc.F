@@ -46,10 +46,11 @@
       USE ERROR_MOD,      ONLY : ERROR_STOP ! (dkh, 10/06/06)  
       USE LOGICAL_MOD,    ONLY : LSOA ! (dkh, 10/06/06)  
       
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE COMODE_LOOP_MOD       ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "comode.h"       ! SMVGEAR II arrays
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       LOGICAL, INTENT(IN)     :: FIRSTCHEM

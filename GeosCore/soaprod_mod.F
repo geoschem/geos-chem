@@ -34,6 +34,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -82,8 +84,8 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE, GET_TAU
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! TRCOFFSET
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! TRCOFFSET
 
       ! Arguments
       INTEGER, INTENT(IN)  :: YYYYMMDD, HHMMSS
@@ -287,8 +289,8 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! TRCOFFSET
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! TRCOFFSET
 
       ! Arguments
       INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -446,10 +448,10 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
+      USE CMN_SIZE_MOD
+
       ! Arguments
       INTEGER, INTENT(IN) :: NI, NJ, NL
-
-#     include "F77_CMN_SIZE"
 
       !=================================================================
       ! CHECK_DIMENSIONS begins here!
@@ -498,7 +500,7 @@
       USE CARBON_MOD, ONLY : APROD, GPROD, NNOX,
      &                       PRODPERCOFSTT, NPROD
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       REAL*8           :: ATEMP, GTEMP
@@ -700,7 +702,7 @@
       USE CARBON_MOD, ONLY : APROD, GPROD, NNOX, NPROD,
      &                       PRODPERCOFSTT, MHC
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER          :: IPR, NOX, JHC
@@ -747,7 +749,7 @@
      &                       PRODPERCOFSTT, NPROD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"   ! Size params
+      USE CMN_SIZE_MOD   ! Size params
 
       ! Arguments
       CHARACTER(LEN=255) :: INFILE, OUTFILE

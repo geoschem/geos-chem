@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -88,7 +90,7 @@
       ! References to F90 modules
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2005 - R. Yantosca - Initial version
@@ -154,8 +156,8 @@
       USE TIME_MOD,     ONLY : GET_CT_CHEM  ! CDH for sea salt loss rate
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! TINDEX
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! TINDEX
 !
 ! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
@@ -468,7 +470,7 @@
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE TRACERID_MOD, ONLY : N_Hg_CATS
    
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  21 Jan 2005 - R. Yantosca - Initial version

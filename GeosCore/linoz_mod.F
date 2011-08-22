@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -95,7 +97,7 @@
 !
       USE TIME_MOD
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -149,8 +151,8 @@
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
   
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -374,8 +376,8 @@
       USE TIME_MOD,       ONLY : GET_MONTH
       USE PRESSURE_MOD                   
 
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -539,7 +541,7 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !DEFINED PARAMETERS:
 !
@@ -776,7 +778,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
       USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !REMARKS:
 !  LINOZ_READ is called from "main.f" at the start of the simulation.
@@ -956,8 +958,8 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       USE TRACERID_MOD 
       USE TRACER_MOD   
 
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -1004,7 +1006,7 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2009 - R. Yantosca - Initial version

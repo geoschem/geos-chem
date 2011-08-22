@@ -172,6 +172,8 @@
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
@@ -327,10 +329,10 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_DIAG" ! ND44
-#     include "F77_CMN_DEP"  ! IREG, ILAND, IUSE, etc.
-#     include "F77_CMN_GCTM" ! Physical constants
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_DIAG_MOD ! ND44
+      USE CMN_GCTM_MOD ! Physical constants
+      USE CMN_DEP_MOD  ! IREG, ILAND, IUSE, etc.
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -462,7 +464,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-#     include "F77_CMN_SIZE"   ! Size parameters!
+      USE CMN_SIZE_MOD   ! Size parameters!
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -568,8 +570,8 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! Physical constants
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_GCTM_MOD     ! Physical constants
 
       ! Arguments
       LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
@@ -705,9 +707,9 @@
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "comode.h"   ! CSPEC
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD   ! CSPEC
+      USE CMN_DIAG_MOD   ! Diagnostic switches & arrays
 
       ! Local variables
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
@@ -843,9 +845,9 @@
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! ND44
-#     include "F77_CMN_DEP"   ! Dry deposition variables
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! ND44
+      USE CMN_DEP_MOD   ! Dry deposition variables
 
       ! Local variables
       INTEGER             :: I, J, L, PBL_MAX, N, NN
@@ -967,11 +969,11 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
       
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "F77_CMN_VEL"   ! IJLAND
-#     include "F77_CMN_DEP"   ! Dry deposition variables
-#     include "commsoil.h" ! Soil pulsing & wetness variables
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! Diagnostic switches & arrays
+      USE CMN_VEL_MOD   ! IJLAND
+      USE CMN_DEP_MOD   ! Dry deposition variables
+      USE COMMSOIL_MOD ! Soil pulsing & wetness variables
 
       ! Local variables
       INTEGER     :: I, J, L, N, NN, M, PBL_MAX
@@ -1339,9 +1341,9 @@ C Returned:
 C     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
 C***********************************************************************       
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_VEL"
-#     include "commsoil.h"
+      USE CMN_SIZE_MOD
+      USE CMN_VEL_MOD
+      USE COMMSOIL_MOD
 
       INTEGER NPTS
       REAL*8  RADIAT(MAXIJ),TEMP(MAXIJ),SUNCOS(MAXIJ)
@@ -2147,9 +2149,11 @@ C** Load array DVEL
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -2257,10 +2261,12 @@ C** Load array DVEL
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-      IMPLICIT NONE
-      
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+      
       ! Local variables
       INTEGER            :: I, IOS
       CHARACTER(LEN=80)  :: DUM
@@ -3388,7 +3394,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       LOGICAL :: IS_Hg

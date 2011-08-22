@@ -19,10 +19,13 @@
       USE ERROR_MOD, ONLY : ERROR_STOP
       USE FILE_MOD,  ONLY : IOERROR
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

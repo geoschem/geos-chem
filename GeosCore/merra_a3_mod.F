@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -136,7 +138,7 @@
       USE FILE_MOD,      ONLY : IOERROR
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -252,7 +254,7 @@
       USE DAO_MOD, ONLY : T,       TAUCLI,   TAUCLW,   UWND
       USE DAO_MOD, ONLY : VWND
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -354,8 +356,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
       USE TRANSFER_MOD, ONLY : TRANSFER_G5_PLE
 
-#     include "F77_CMN_SIZE"                                    ! Size parameters
-#     include "F77_CMN_DIAG"                                    ! ND66, LD66, ND67
+      USE CMN_SIZE_MOD                                    ! Size parameters
+      USE CMN_DIAG_MOD                                    ! ND66, LD66, ND67
 !
 ! !INPUT PARAMETERS: 
 !

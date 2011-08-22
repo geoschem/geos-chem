@@ -41,11 +41,14 @@ c     POMEGA   Scattering phase function
 c     FMEAN    Mean actinic flux at desired levels
 c
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
-#     include "jv_mie.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+      USE JV_MIE_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
       integer jndlev(lpar),jaddlv(nc),jaddto(nc+1)
       integer KW,km,i,j,k,l,ix,j1

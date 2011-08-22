@@ -17,6 +17,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -85,7 +87,7 @@
       USE TIME_MOD,      ONLY : EXPAND_DATE
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"                    ! Size parameters
+      USE CMN_SIZE_MOD                    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -279,7 +281,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  14 Jul 2003 - R. Yantosca - Initial version

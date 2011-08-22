@@ -49,11 +49,14 @@
       USE EDGAR_MOD,           ONLY : READ_C2H4_05x0666
       USE EDGAR_MOD,           ONLY : READ_C2H2_05x0666
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD               ! IDEMS
+      USE CMN_O3_MOD                 ! EMIST, EMISR, EMISRR, etc.
 
-#     include "F77_CMN_SIZE"               ! Size parameters
-#     include "F77_CMN_O3"                 ! EMIST, EMISR, EMISRR, etc.
-#     include "comode.h"               ! IDEMS
+      IMPLICIT NONE
+#     include "define.h"
+
+
 !
 ! !INPUT PARAMETERS: 
 !

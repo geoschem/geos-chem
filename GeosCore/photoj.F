@@ -42,10 +42,14 @@
 !  (2 ) We don't need to pass "P" via the arg list (bmy, 2/13/07)
 !******************************************************************************
 !
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, JPNL, JPPJ
-#     include "jv_cmn.h"     ! ZJ, ZPJ
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL, ZPJ
+      USE JV_CMN_MOD, ONLY : ZJ, ZPJ, U0, SZA, SZAMAX
+
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: DAY,   DAY_OF_YR, MONTH

@@ -4,9 +4,12 @@ C-----------------------------------------------------------------------
 C  Generates coefficient matrices for the block tri-diagonal system:
 C               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+      USE JV_MIE_MOD
 
-#     include "jv_mie.h"
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 
       integer id, id0, id1, im, i, j, k, mstart
       real*8  sum0, sum1, sum2, sum3

@@ -39,10 +39,13 @@ c        (tmf, 1/7/09)
 c  (2 ) Added a pressure-dependancy function selector 'pdepf'. 
 c        (tmf, ccc, 1/7/09)
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
       integer i, j, k, iw, nk, nqqq, nwww, nj1
       character*7  lpdep(7)

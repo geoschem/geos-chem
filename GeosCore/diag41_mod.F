@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -65,7 +67,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  17 Feb 2005 - R. Yantosca - Initial version
@@ -132,8 +134,8 @@
       USE TIME_MOD,  ONLY : GET_DIAGb
       USE TIME_MOD,  ONLY : GET_DIAGe
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! TINDEX
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! TINDEX
 !
 ! !REMARKS:
 !  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
@@ -240,7 +242,7 @@
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_m
       USE TIME_MOD,    ONLY : GET_LOCALTIME
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  18 Nov 1999 - A. Fiore, S. Wu - Initial version
@@ -349,7 +351,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  17 Feb 2005 - R. Yantosca - Initial version

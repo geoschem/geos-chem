@@ -17,11 +17,14 @@
 !
       USE DIAG_MOD, ONLY: AD43, LTNO, LTOH, LTNO2, LTHO2, LTNO3
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_O3_MOD    ! SAVEOH, SAVENO
+      USE CMN_DIAG_MOD  ! Diagnostic switches & arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "F77_CMN_O3"    ! SAVEOH, SAVENO
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 ! 
 ! !REVISION HISTORY: 
 !  01 May 1998 - R. Yantosca - Initial version

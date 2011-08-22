@@ -17,12 +17,14 @@
 ! !USES:
 !
       USE GC_TYPE_MOD
+      USE SMV_ERRCODE_MOD
+      USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 
-#     include "smv_errcode.h"
-#     include "smv_physconst.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -110,8 +112,8 @@
       USE WETSCAV_MOD,  ONLY : H2O2s
       USE WETSCAV_MOD,  ONLY : SO2s
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic flags
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic flags
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -371,8 +373,8 @@
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! ND37, LD37 
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! ND37, LD37 
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -564,8 +566,8 @@
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, GET_PCENTER
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_DIAG"         ! ND37, LD37 
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND37, LD37 
 !
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -764,10 +766,13 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

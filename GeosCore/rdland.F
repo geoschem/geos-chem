@@ -20,11 +20,13 @@
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
       USE LOGICAL_MOD,   ONLY : LAVHRRLAI
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_VEL_MOD       ! IJREG, IJLAND, IJUSE
+      USE CMN_DEP_MOD       ! FRCLND, IREG, ILAND, IUSE
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DEP"       ! FRCLND, IREG, ILAND, IUSE
-#     include "F77_CMN_VEL"       ! IJREG, IJLAND, IJUSE
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !REMARKS:
 !  Common-block variables from header file "F77_CMN_DEP":

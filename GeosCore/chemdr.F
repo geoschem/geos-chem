@@ -40,14 +40,17 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD             ! SMVGEAR variables
+      USE CMN_O3_MOD               ! EMISRRN, EMISRR
+      USE CMN_DIAG_MOD             ! ND40
+      USE CMN_NOX_MOD              ! SLBASE
+      USE CMN_DEP_MOD              ! FRCLND
 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN_O3"               ! EMISRRN, EMISRR
-#     include "F77_CMN_NOX"              ! SLBASE
-#     include "comode.h"             ! SMVGEAR variables
-#     include "F77_CMN_DEP"              ! FRCLND
-#     include "F77_CMN_DIAG"             ! ND40
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":

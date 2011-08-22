@@ -18,6 +18,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS
@@ -101,7 +103,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -265,7 +267,7 @@
       USE TRACER_MOD,  ONLY : TRACER_NAME
       USE TRACER_MOD,  ONLY : TRACER_MW_G
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -464,7 +466,7 @@
       USE CHARPAK_MOD, ONLY : TRANUC
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -544,7 +546,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -615,7 +617,7 @@
       USE DAO_MOD,    ONLY : AD
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
       
-#     include "F77_CMN_SIZE"                               ! Size parameters
+      USE CMN_SIZE_MOD                               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -691,7 +693,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -815,9 +817,9 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TIME_MOD,    ONLY : GET_TAU
 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "CMN"                      ! TAU , NSRCX, LSOILNOX
-#     include "comode.h"                 ! IGAS
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD                 ! IGAS
+      USE CMN_MOD                      ! TAU , NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1003,9 +1005,9 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"            ! Size parameters
-#     include "CMN"	                ! LPRT, NSRCX, LSOILNOX
-#     include "comode.h"                ! ITLOOP, IGAS
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE COMODE_LOOP_MOD                ! ITLOOP, IGAS
+      USE CMN_MOD	                ! LPRT, NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
 !

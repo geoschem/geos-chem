@@ -116,13 +116,16 @@
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! IDEMS
+      USE CMN_O3_MOD       ! FMOL, XNUMOL
+      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
+      USE CMN_MOD          ! IFLX, LPAUSE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! IFLX, LPAUSE
-#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
-#     include "F77_CMN_O3"       ! FMOL, XNUMOL
-#     include "comode.h"     ! IDEMS
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 ! 
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic

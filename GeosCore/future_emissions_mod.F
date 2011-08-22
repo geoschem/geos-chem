@@ -93,6 +93,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -357,7 +359,7 @@
       USE FILE_MOD,             ONLY : FILE_EXISTS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       INTEGER,          INTENT(IN)  :: TRACER
       CHARACTER(LEN=*), INTENT(IN)  :: SPECIES
@@ -1278,7 +1280,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       INTEGER            :: AS

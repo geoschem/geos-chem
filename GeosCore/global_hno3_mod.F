@@ -36,6 +36,8 @@
 !******************************************************************************
 !     
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -82,7 +84,7 @@
       USE DAO_MOD,    ONLY : AD, AIRVOL
       USE TRACER_MOD, ONLY : TCVV
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -136,9 +138,11 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D,  TRANSFER_3D
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -237,7 +241,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! Size parameters 
+      USE CMN_SIZE_MOD  ! Size parameters 
 
       ! Local variables
       INTEGER             :: AS

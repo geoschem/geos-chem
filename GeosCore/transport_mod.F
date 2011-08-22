@@ -17,6 +17,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -112,7 +114,7 @@
       USE GRID_MOD,      ONLY : ITS_A_NESTED_GRID
       USE TPCORE_BC_MOD, ONLY : INIT_TPCORE_BC
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -206,9 +208,9 @@
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "F77_CMN_SIZE"         ! Size parameters        
-#     include "F77_CMN_GCTM"         ! Physical constants
-#     include "F77_CMN_DIAG"         ! NDxx flags
+      USE CMN_SIZE_MOD         ! Size parameters        
+      USE CMN_DIAG_MOD         ! NDxx flags
+      USE CMN_GCTM_MOD         ! Physical constants
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -454,9 +456,9 @@
       USE TPCORE_MOD,       ONLY : TPCORE
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_GCTM"         ! Physical constants
-#     include "F77_CMN_DIAG"         ! NDxx flags
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! NDxx flags
+      USE CMN_GCTM_MOD         ! Physical constants
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -596,9 +598,9 @@
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_GCTM"         ! Physical constants
-#     include "F77_CMN_DIAG"         ! NDxx flags
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! NDxx flags
+      USE CMN_GCTM_MOD         ! Physical constants
 ! 
 ! !REVISION HISTORY: 
 !  30 Oct 2007 - R. Yantosca - Initial version
@@ -856,9 +858,9 @@
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
       USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
-#     include "F77_CMN_GCTM"                  ! Physical constants
-#     include "F77_CMN_DIAG"                  ! NDxx flags
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_DIAG_MOD                  ! NDxx flags
+      USE CMN_GCTM_MOD                  ! Physical constants
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -1054,8 +1056,8 @@
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
       USE TRACER_MOD,        ONLY : STT, N_TRACERS
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_GCTM"          ! Re
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_GCTM_MOD          ! Re
 ! 
 ! !REVISION HISTORY: 
 !  07 Aug 2003 - Y. Wang & R. Yantosca - Initial version
@@ -1152,8 +1154,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"               ! Size parameters
-#     include "F77_CMN_GCTM"               ! g0_100
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_GCTM_MOD               ! g0_100
 !
 ! !INPUT PARAMETERS:
 !
@@ -1246,8 +1248,8 @@
       USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
       USE TRACER_MOD,       ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_GCTM"         ! Re
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_GCTM_MOD         ! Re
 ! 
 ! !REVISION HISTORY: 
 !  10 Mar 2003 - R. Yantosca - Initial version
@@ -1377,8 +1379,8 @@
       USE TPCORE_GEOS5_WINDOW_MOD, ONLY : INIT_GEOS5_WINDOW
       USE TRACER_MOD,              ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"                ! Size parameters
-#     include "F77_CMN_GCTM"                ! Re
+      USE CMN_SIZE_MOD                ! Size parameters
+      USE CMN_GCTM_MOD                ! Re
 ! 
 ! !REVISION HISTORY: 
 !  06 Jun 2008 - D. Chen & R. Yantosca - Initial version

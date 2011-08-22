@@ -2,6 +2,8 @@ C $Id: sunparam.f,v 1.1 2009/09/16 14:06:02 bmy Exp $
       SUBROUTINE SUNPARAM(X)
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
 C===============================================
 C the sequence is lai,suncos,cloud fraction

@@ -16,11 +16,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_GCTM_MOD           ! Physical constants
+
       IMPLICIT NONE
+#     include "define.h"
+
       PRIVATE
 
-#     include "F77_CMN_SIZE"           ! Size parameters
-#     include "F77_CMN_GCTM"           ! Physical constants
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -1465,7 +1468,9 @@
 ! !REVISION HISTORY: 
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
-!  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
+!  (2 ) Use IMPLICIT NONE
+#     include "define.h"
+#     include "define.h" to declare all variables explicitly.                
 !  (3 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
 !        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
 !  (4 ) Use IM and JM (in F77_CMN_SIZE) as loop limits.

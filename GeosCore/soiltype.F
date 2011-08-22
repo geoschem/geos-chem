@@ -18,7 +18,11 @@ C**********************************************************************
       ! References to F90 modules (bmy, 2/11/03)
       USE TIME_MOD, ONLY : GET_MONTH, GET_DAY_OF_YEAR
 
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
+
       IMPLICIT NONE
+#     include "define.h"
 
 C**********************************************************************
 C  SOILTYPE DETERMINES WHETHER SOIL IS DRY OR WET                     *
@@ -40,8 +44,6 @@ C NLAND     = Total number of land boxes                              *
 C SOILPULS  = Tracking of wet/dry & three types of pulsing (Y&L, 94)  *
 C**********************************************************************
 C
-#     include "F77_CMN_SIZE"
-#     include "commsoil.h"
 
       ! Now make JDAY, MONTH local variables
       INTEGER :: JDAY, MONTH

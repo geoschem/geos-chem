@@ -41,6 +41,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -87,10 +89,12 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
     
-      IMPLICIT NONE
-
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
    
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
       ! Arguments
       INTEGER, INTENT(IN)    :: MM
 
@@ -196,10 +200,12 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
      
-      IMPLICIT NONE
-
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
    
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
       ! Arguments
       INTEGER, INTENT(IN)    :: MM , YYYY
 
@@ -470,9 +476,11 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD       ! Size parameters
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)     :: MM
@@ -582,7 +590,7 @@
       USE TIME_MOD,   ONLY : ITS_A_LEAPYEAR
       USE LOGICAL_MOD, ONLY : LMODISLAI ! Include sensor (mpb,2009)
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
    
       ! Arguments
       INTEGER, INTENT(IN) :: JDAY, MONTH, YEAR ! Include year (mpb,2009)
@@ -667,7 +675,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY    : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local Variables
       INTEGER               :: AS

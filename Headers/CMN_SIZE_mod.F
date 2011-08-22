@@ -8,8 +8,14 @@
 ! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
 !\\
 !\\
+      MODULE CMN_SIZE_MOD
+
 ! !USES:
 !
+
+      IMPLICIT NONE
+      SAVE
+      PUBLIC
       ! C Preprocessor #define statements for conditional compilation
 #     include "define.h"
 !
@@ -512,3 +518,4 @@
 !                              the Cpp switch GRIDREDUCED is not set).
 !EOP
 !------------------------------------------------------------------------------
+      END MODULE CMN_SIZE_MOD

@@ -127,6 +127,8 @@ MODULE Tpcore_FvDas_Mod
 ! !USES:
 ! 
   IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:

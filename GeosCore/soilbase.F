@@ -15,7 +15,11 @@ C Be sure to force double precision with the DBLE function            *
 C and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
 C**********************************************************************
 
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
+
       IMPLICIT NONE
+#     include "define.h"
 
 C**********************************************************************
 C SOILBASE  = Emissions                                               *
@@ -29,8 +33,6 @@ C SOILFERT  = Ferterlizers                                            *
 C UNITCONV  = Convert from NG_N/(M^2*S) to MOLECULES/CM^2/S           *
 C**********************************************************************
 
-#     include "F77_CMN_SIZE"
-#     include "commsoil.h"
 
       INTEGER I,J,M,NN
       REAL*8  PULSE,UNITCONV

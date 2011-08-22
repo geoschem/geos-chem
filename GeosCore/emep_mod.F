@@ -35,6 +35,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -309,8 +311,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_O3"         ! SCALEYEAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! SCALEYEAR
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version
@@ -531,8 +533,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_O3"         ! SCALEYEAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! SCALEYEAR
 !
 ! !REVISION HISTORY:
 !  23 Oct 2006 - A. v. Donkelaar - Initial version, modified from EMISS_EMEP
@@ -709,7 +711,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !REVISION HISTORY:
 !  30 May 2006 - S. Wu & R. Yantosca - Initial version
@@ -789,7 +791,7 @@
       USE TRACERID_MOD, ONLY : IDTALD2, IDTPRPE, IDTC2H6, IDTSO2
       USE TRACERID_MOD, ONLY : IDTNH3
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -946,7 +948,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -1012,7 +1014,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY:
 !  18 Oct 2006 - R. Yantosca - Initial version
@@ -1074,8 +1076,8 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_O3"         ! SCALEYEAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1255,8 +1257,8 @@
       USE TRACERID_MOD,   ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
       USE GRID_MOD,       ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_O3"         ! SCALEYEAR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! SCALEYEAR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1441,7 +1443,7 @@
       USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
       USE LOGICAL_MOD, ONLY : LEMEP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2005 - B. Field, R. Yantosca - Initial version

@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -195,10 +197,10 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-#     include "cmn_fj.h"        ! FAST-J stuff, includes F77_CMN_SIZE
-#     include "jv_cmn.h"        ! ODAER, QAA, QAA_AOD (clh)
-#     include "F77_CMN_O3"		! Pure O3, SAVENO2
-#     include "F77_CMN_GCTM"        ! XTRA2
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ        ! FAST-J stuff, includes F77_CMN_SIZE
+      USE JV_CMN_MOD        ! ODAER, QAA, QAA_AOD (clh)
+      USE CMN_O3_MOD		! Pure O3, SAVENO2
+      USE CMN_GCTM_MOD        ! XTRA2
 !
 ! !REVISION HISTORY: 
 !  09 Apr 1999 - I. Bey, R. Martin, R. Yantosca - Initial version
@@ -1593,7 +1595,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1647,7 +1649,7 @@
       USE GRID_MOD,  ONLY : ITS_A_NESTED_GRID
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

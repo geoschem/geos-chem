@@ -87,15 +87,18 @@
       USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
 
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD  ! ND22, LD22, ND52, LD52
+      USE CMN_MOD       ! STT, etc
+      USE CMN_DEP_MOD  ! FRCLND
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, etc
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
       ! added LD52 and ND52 (jaegle 2/26/09)
-#     include "F77_CMN_DIAG"  ! ND22, LD22, ND52, LD52
       ! added FRCLND (jaegle 02/26/09)
-#     include "F77_CMN_DEP"  ! FRCLND
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
@@ -1418,6 +1421,8 @@ C *********************************************************************
       
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM

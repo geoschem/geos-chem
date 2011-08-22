@@ -6,10 +6,13 @@ C-----------------------------------------------------------------------
 c     MX       Number of different types of aerosol to be considered
 c     MIEDX    Index of aerosol types in jv_spec.dat - hardwire in here
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
       integer i
 c

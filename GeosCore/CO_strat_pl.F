@@ -35,9 +35,11 @@
       USE TRACERID_MOD,   ONLY : IDTCO,           IDTCH2O
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, GET_MIN_TPAUSE_LEVEL
 
+      USE CMN_SIZE_MOD   ! Size parameters
+
       IMPLICIT NONE
-     
-#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)

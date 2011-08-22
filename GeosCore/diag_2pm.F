@@ -46,10 +46,13 @@
       USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
       USE TIME_MOD,       ONLY : GET_TS_DIAG
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! HR_OH1, HR_OH2, etc.
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! HR_OH1, HR_OH2, etc.
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 !
 ! !REVISION HISTORY:
 !  26 Mar 1999 - R. Yantosca - Initial version

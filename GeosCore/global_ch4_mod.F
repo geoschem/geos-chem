@@ -101,6 +101,8 @@
 !******************************************************************************
 !     
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       PUBLIC
 
@@ -195,7 +197,7 @@
       USE PRESSURE_MOD, ONLY : GET_PCENTER
       USE TIME_MOD,     ONLY : GET_TS_DYN, GET_TS_CHEM, GET_ELAPSED_MIN
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       INTEGER             :: NTDT, NMIN
@@ -363,8 +365,8 @@
       USE LOGICAL_MOD,   ONLY : LNLPBL    ! (ccc, 08/31/09)
       
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, I0, IREF, J, J0, JREF, N
@@ -643,8 +645,8 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE DIAG_MOD,      ONLY : AD60, AD58
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       INTEGER :: I, J, L      
       INTEGER :: GM, YEAR      
@@ -966,8 +968,8 @@
       USE TIME_MOD,         ONLY : GET_MONTH,     GET_YEAR
       USE TIME_MOD,         ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, J, MM, MM1, YYYY, YYYY1
@@ -1191,8 +1193,8 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I,J
@@ -1309,8 +1311,8 @@
       USE TIME_MOD,       ONLY : EXPAND_DATE
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       INTEGER                :: I, J, YYYY
@@ -1408,8 +1410,8 @@
       USE LOGICAL_MOD,   ONLY : LGAO,         LCOL,         LLIV
       USE LOGICAL_MOD,   ONLY : LWAST,        LOTANT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
@@ -1533,8 +1535,8 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE LOGICAL_MOD,   ONLY : LSOABS,       LOTNAT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches
 
       ! Local Variables
       REAL*4                 :: ARRAY(IIPAR,JJPAR)      
@@ -1645,9 +1647,9 @@
       USE TRACER_MOD,    ONLY : STT
       USE LOGICAL_MOD,   ONLY : LSPLIT, LCH4BUD
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! LPAUSE
-#     include "F77_CMN_DIAG"     ! ND43, AD43
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND43, AD43
+      USE CMN_MOD          ! LPAUSE
 
       ! Local variables
       LOGICAL                :: FIRSTCHEM = .TRUE.
@@ -1923,9 +1925,11 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
         
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
 
       ! Local variables
@@ -2039,9 +2043,9 @@
       USE TRACER_MOD, ONLY : STT
       USE DIAG_MOD,   ONLY : AD19    	      
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "CMN"            ! STT, LPAUSE
-#     include "F77_CMN_DIAG"       ! ND19
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND19
+      USE CMN_MOD            ! STT, LPAUSE
 
       ! Local variables
       LOGICAL          :: FIRST_DECAY=.TRUE.
@@ -2161,8 +2165,8 @@
       ! References to F90 modules
       USE DIAG_OH_MOD, ONLY : DO_DIAG_OH_CH4
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! LPAUSE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_MOD       ! LPAUSE
 
       ! Local variables
       INTEGER          :: I, J, L
@@ -2248,8 +2252,8 @@
       USE TIME_MOD,   ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD, ONLY : STT
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "CMN"            ! STT, LPAUSE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_MOD            ! STT, LPAUSE
 
       ! Local variables
       INTEGER             :: I, J, L, LMN
@@ -2360,8 +2364,8 @@
       USE TIME_MOD,   ONLY : GET_DIAGb,   GET_CT_DYN
       USE TRACER_MOD, ONLY : STT
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "CMN"            ! STT, LPAUSE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_MOD            ! STT, LPAUSE
  
       ! Local variables
       INTEGER                :: I, J, K, L, M, NERROR, UD, LMN
@@ -2874,8 +2878,8 @@ C Sources
 !  (3 ) Updated comments (jsw, bmy, 2/12/01)
 !******************************************************************************
 !    
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "CMN"            ! LPAUSE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_MOD            ! LPAUSE
 
       ! Arguments
       INTEGER, INTENT(IN) :: I1, I2, J1, J2, L1, L2
@@ -2958,10 +2962,12 @@ C Sources
       USE TRACER_MOD,    ONLY : STT, N_TRACERS
       USE ERROR_MOD,     ONLY : SAFE_DIV
 
-      IMPLICIT NONE
-
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
    
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
       !Arguments
       REAL*8                 :: PREVCH4(IIPAR, JJPAR, LLPAR)
 
@@ -3007,8 +3013,8 @@ C Sources
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_DIAG"
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
       
       ! Local variables
       INTEGER :: AS

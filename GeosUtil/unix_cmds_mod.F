@@ -17,6 +17,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC DATA MEMBERS:

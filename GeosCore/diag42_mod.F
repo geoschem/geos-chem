@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -88,8 +90,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4, IDTNIT, IDTNH4, IDTSALA, IDTSALC
       USE TRACERID_MOD, ONLY : IDTBCPI, IDTBCPO
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! NDxx flags
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -367,8 +369,8 @@
       USE TIME_MOD,     ONLY : GET_DIAGb
       USE TIME_MOD,     ONLY : GET_DIAGe
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! TINDEX
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! TINDEX
 !
 ! !REMARKS:
 !   # : Field    : Description                 : Units    : Scale factor
@@ -486,7 +488,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LSOA
 
-#     include "F77_CMN_SIZE"    ! Size parameters 
+      USE CMN_SIZE_MOD    ! Size parameters 
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version

@@ -52,6 +52,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -115,7 +117,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -269,7 +271,7 @@
       USE FILE_MOD,      ONLY : IU_I6, IOERROR, FILE_EXISTS, IU_TP
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -586,7 +588,7 @@
 !  (3 ) Increase # of I-6 fields to 5 for GEOS-5 (bmy, 1/17/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD
@@ -650,7 +652,7 @@
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -722,8 +724,8 @@
       USE TIME_MOD,       ONLY : SET_CT_I6,       TIMESTAMP_STRING
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D,     TRANSFER_3D
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! NDxx flags
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! NDxx flags
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

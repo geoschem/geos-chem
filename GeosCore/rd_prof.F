@@ -3,10 +3,13 @@ C $Id: rd_prof.f,v 1.1 2009/09/16 14:06:14 bmy Exp $
 C-----------------------------------------------------------------------
 c  Routine to input T and O3 reference profiles
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
       integer ia, i, m, l, lat, mon, ntlats, ntmons, n216, nj2
       real*8  ofac,ofak

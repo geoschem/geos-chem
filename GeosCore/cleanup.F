@@ -84,6 +84,8 @@
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
 
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
 #     include "define.h"
 !

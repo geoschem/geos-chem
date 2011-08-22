@@ -15,10 +15,13 @@ c     XL      Slant path between points
 c     AMF     Air mass factor for slab between level and level above
 c
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
       integer i, j, k, ii
       real*8 airmas, gmu, xmu1, xmu2, xl, diff

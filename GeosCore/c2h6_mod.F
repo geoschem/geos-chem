@@ -54,7 +54,9 @@
 !  (7 ) Now modified 
 !******************************************************************************
 !
-      IMPLICIT NONE 
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h" 
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -131,10 +133,10 @@
       USE TRACERID_MOD,  ONLY : IDBFC2H6, IDEC2H6
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! STT, etc.
-#     include "F77_CMN_O3"       ! EMISTC2H6
-#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_O3_MOD       ! EMISTC2H6
+      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
+      USE CMN_MOD          ! STT, etc.
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -329,7 +331,7 @@
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TS_CHEM
       USE TRACER_MOD,    ONLY : N_TRACERS, STT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -418,7 +420,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS

@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -116,8 +118,8 @@
       USE TRACER_MOD, ONLY : ITS_AN_AEROSOL_SIM
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
       
-#     include "F77_CMN_SIZE"
-#     include "comode.h" 
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  31 Aug 2000 - R. Yantosca - Initial version

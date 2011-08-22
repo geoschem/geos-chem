@@ -52,6 +52,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -102,7 +104,7 @@
       ! References to F90 modules
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
       
       ! Local variables
       INTEGER            :: I, J, L, L2
@@ -214,7 +216,7 @@
 !        problems with OpenMP for some compilers. (bmy, 12/13/05)
 !******************************************************************************
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSTEP, NTRACE             
@@ -343,7 +345,7 @@
 !        (bmy, 3/28/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J, NTRACE
@@ -539,7 +541,7 @@
 !        conserve mixing ratio (swu, bmy, 6/27/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
       INTEGER, INTENT(IN)  :: J 
@@ -763,8 +765,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,           ONLY : SNOMAS, SNOW 
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! ND38, LD38, ND14, LD14
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! ND38, LD38, ND14, LD14
 
       ! Arguments
       INTEGER, INTENT(IN)        :: J

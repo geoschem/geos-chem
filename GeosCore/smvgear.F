@@ -36,10 +36,13 @@
       USE COMODE_MOD, ONLY : ERRMX2, IXSAVE, IYSAVE, IZSAVE
       USE ERROR_MOD, ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
 
+#     include "define.h"
+
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+
       IMPLICIT NONE
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
 C
 C *********************************************************************
 C ************        WRITTEN BY MARK JACOBSON (1993)      ************

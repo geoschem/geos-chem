@@ -24,6 +24,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -183,8 +185,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
       USE TIME_MOD,         ONLY : GET_YEAR
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_O3"           ! 
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_O3_MOD           ! 
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -351,7 +353,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !REVISION HISTORY:
 !  30 May 2006 - S. Wu & R. Yantosca - Initial version
@@ -412,7 +414,7 @@
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACERID_MOD, ONLY : IDTNOX, IDTCO, IDTSO2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -516,7 +518,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1,   DO_REGRID_G2G_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version
@@ -585,7 +587,7 @@
       USE GRID_MOD,    ONLY : GET_XMID, GET_YMID
       USE LOGICAL_MOD, ONLY : LBRAVO
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  22 Jun 2006 - R. Park, F. Boersma, R. Yantosca - Initial version

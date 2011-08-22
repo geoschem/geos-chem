@@ -63,70 +63,78 @@
 !        warnings on IFORT 9 (ccarouge, bmy, 8/20/09)
 !  (14) Add new optical variables for AOD calculation (clh, 05/06/10)
 !-----------------------------------------------------------------------------
+      MODULE JV_CMN_MOD
+
+#     include "define.h"
+
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
+      USE CMN_FJ_MOD,   ONLY : JPMAX, LPAR, IPAR, JPAR
+
+      IMPLICIT NONE
+
+      PUBLIC
+!      SAVE
+
       INTEGER      NB, NC, NS, NW, NP, MX
       PARAMETER   (NB=LPAR+1, NC=2*NB, NS=51, NW=15, NP=56, MX=35)
       CHARACTER*20 TITLEA(NP)
       CHARACTER*78 TITLE0
       CHARACTER*7  TITLEJ(3,NS), jlabel(JPMAX)
-      INTEGER jind(JPMAX),jadsub(nc)
-      INTEGER NJVAL,NW1,NW2,MIEDX,NAA,NLBATM,npdep,jpdep(NS)
-      REAL*8 TJ,PJ,DM,DO3,Z,AER,AMF,RAD,RFLECT,SZA,U0,TANHT,ZZHT
-      REAL*8 WBIN,WL,FL,QO2,QO3,Q1D,QQQ,QRAYL,TQQ,FFF,VALJ,WAA,QAA,PAA
-      REAL*8 RAA,SSA,TREF,OREF,BREF,QBC,DBC,zpdep(NW,7)
-      REAL*8 WAA_AOD,QAA_AOD,PAA_AOD,RAA_AOD,SSA_AOD
-      REAL*8 dtaumax,szamax,zj(LPAR,JPMAX),jfacta(JPMAX)
-      REAL*8 dtausub,dsubdiv
-      REAL*8 ODMDUST,ODAER
 
 !-----------------------------------------------------------------------
 ! These common blocks MUST NOT be held local (bmy, 5/2/00)
-      COMMON /TITLS/TITLE0,TITLEJ,TITLEA
-      COMMON /CCWVL/WBIN(NW+1),WL(NW),FL(NW),QO2(NW,3),QO3(NW,3),       
+
+      REAL*8  ::    WBIN(NW+1),WL(NW),FL(NW),QO2(NW,3),QO3(NW,3),       
      &              Q1D(NW,3),QQQ(NW,2,NS-3),QRAYL(NW),TQQ(3,NS),       
      &              WAA(4,NP),QAA(4,NP),                                 
-     &              PAA(8,4,NP),RAA(4,NP),SSA(4,NP),QBC(NW),            
-     &              NJVAL,NW1,NW2,NAA,NLBATM,                           
-     &              WAA_AOD(NP),QAA_AOD(NP),PAA_AOD(8,NP),              
+     &              PAA(8,4,NP),RAA(4,NP),SSA(4,NP),QBC(NW)
+            
+      INTEGER ::    NJVAL,NW1,NW2,NAA,NLBATM                                 
+
+      REAL*8  ::    WAA_AOD(NP),QAA_AOD(NP),PAA_AOD(8,NP),              
      &              RAA_AOD(NP),SSA_AOD(NP)
-      COMMON /CLIM/ TREF(51,18,12),OREF(51,18,12),BREF(51),             
+
+      REAL*8  ::    TREF(51,18,12),OREF(51,18,12),BREF(51),             
      &              ODMDUST(IPAR,JPAR,LPAR,NDUST),                      
      &              ODAER(IPAR,JPAR,LPAR,NAER*NRH)
 
-      COMMON /JVALS/jfacta,zpdep,npdep,jpdep,jind,jlabel
+      REAL*8  ::    jfacta(JPMAX),zpdep(NW,7)
+      INTEGER ::    npdep,jpdep(NS),jind(JPMAX)
 
-      COMMON /JVIDX/MIEDX(MX)
+      INTEGER ::    MIEDX(MX)
 
 !-----------------------------------------------------------------------
 ! Split off GLYX-chemistry specific arrays into separate common blocks
 ! (ccarouge, bmy, 8/20/09)
       INTEGER PDEPF(7)
-      COMMON /JGLY1/ pdepf
 
       REAL*8 MGLYPDEP(NW, 3)
-      COMMON /JGLY2/ mglypdep
 
 !-----------------------------------------------------------------------
 ! These common blocks MUST be held local for the parallelization (bmy, 5/2/00)
-      COMMON /ATMOS/TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       
+      REAL*8   ::   TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       
      &              AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
-      COMMON /JVLOC/zj
-      COMMON /WLLOC/FFF(NW,lpar),VALJ(NS)
-      COMMON /JVSUB/jadsub
+      REAL*8   ::   zj(LPAR,JPMAX)
+      REAL*8   ::   FFF(NW,lpar),VALJ(NS)
+      INTEGER  ::   jadsub(NC)
 
       !=================================================================
       ! Declare the following common blocks as THREADPRIVATE for the
       ! OpenMP parallelization on all platforms (bmy, 3/23/03)
       !=================================================================
-!$OMP THREADPRIVATE( /ATMOS/ )
-!$OMP THREADPRIVATE( /JVLOC/ )
-!$OMP THREADPRIVATE( /WLLOC/ )
-!$OMP THREADPRIVATE( /JVSUB/ )
+!$OMP THREADPRIVATE( TJ, PJ, DM, DO3, DBC, Z)           
+!$OMP THREADPRIVATE( AER, AMF, RFLECT, SZA, U0, TANHT)
+!$OMP THREADPRIVATE( zj )
+!$OMP THREADPRIVATE( FFF, VALJ )
+!$OMP THREADPRIVATE( jadsub )
 !-----------------------------------------------------------------------
 ! Parameters for FAST-J 
-      PARAMETER ( RAD     = 6375.d5 )
-      PARAMETER ( ZZHT    = 5.d5    )
-      PARAMETER ( dtaumax = 1.d0    )
-      PARAMETER ( dtausub = 1.d0    )
-      PARAMETER ( dsubdiv = 10.d0   )
-      PARAMETER ( szamax  = 98.0d0  )
+      REAL*8, PARAMETER :: RAD     = 6375.d5 
+      REAL*8, PARAMETER :: ZZHT    = 5.d5
+      REAL*8, PARAMETER :: dtaumax = 1.d0
+      REAL*8, PARAMETER :: dtausub = 1.d0
+      REAL*8, PARAMETER :: dsubdiv = 10.d0
+      REAL*8, PARAMETER :: szamax  = 98.0d0
 !-----------------------------------------------------------------------
+      END MODULE JV_CMN_MOD
+

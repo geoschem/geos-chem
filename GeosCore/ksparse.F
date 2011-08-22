@@ -14,10 +14,12 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
+#     include "define.h"
+
 C
 C *********************************************************************
 C ************        WRITTEN BY MARK JACOBSON (1993)      ************
@@ -582,11 +584,19 @@ C
       IF (IFDID.EQ.0) THEN 
        IFDID = 1 
 C
+! TMP FIX FOR F77/F90 CONFLICT - MSL 8/5/11
        ! Now force double-precision with "D" exponents (bmy, 4/18/03)
-       DATA PERTST / 
-     1  2.0d0, 4.5d0, 7.333d0, 10.42d0,   13.7d0,    17.15d0,     1.0d0,
-     3  3.0d0, 6.0d0, 9.167d0, 12.5d0,    15.98d0,    1.0d0,      1.0d0,
-     5  1.0d0, 1.0d0, 0.5d0,    0.1667d0,  0.04133d0, 0.008267d0, 1.0d0/ 
+       PERTST(:,1) = (/ 
+     &  2.0d0, 4.5d0, 7.333d0, 10.42d0,  13.7d0,   17.15d0,     1.0d0/)
+       PERTST(:,2) = (/ 
+     &  3.0d0, 6.0d0, 9.167d0, 12.5d0,   15.98d0,   1.0d0,      1.0d0/)
+       PERTST(:,3) = (/ 
+     &  1.0d0, 1.0d0, 0.5d0,   0.1667d0, 0.04133d0, 0.008267d0, 1.0d0/)
+
+!       DATA PERTST / 
+!     1  2.0d0, 4.5d0, 7.333d0, 10.42d0,   13.7d0,    17.15d0,     1.0d0,
+!     3  3.0d0, 6.0d0, 9.167d0, 12.5d0,    15.98d0,    1.0d0,      1.0d0,
+!     5  1.0d0, 1.0d0, 0.5d0,    0.1667d0,  0.04133d0, 0.008267d0, 1.0d0/ 
 
 C
 C ADAMS-MOULTON COEFFICIENTS

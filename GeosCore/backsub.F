@@ -10,10 +10,12 @@
 !        w/ a profiling run. (bmy, 7/9/03)
 !******************************************************************************
 !
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Local variables
       INTEGER IJ,I,KZT,KL5,KH5,KL4,KH4,KL3,KH3,KL2,KH2,KL1,KH1,KC

@@ -35,11 +35,13 @@
       USE FILE_MOD,  ONLY : IU_FILE, IU_CHEMDAT, IU_SMV2LOG
       USE TIME_MOD,  ONLY : GET_TS_CHEM
 
+#     include "define.h"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_GCTM_MOD  ! Re, PI
+
       IMPLICIT NONE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
-#     include "F77_CMN_GCTM"  ! Re, PI
 C
 C *********************************************************************
 C *  THIS SUBROUTINE OPENS ALL DATA FILES AND READS DATA FROM m.dat ***

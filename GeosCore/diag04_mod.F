@@ -17,6 +17,8 @@
 ! !USES:
 !     
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PUBLIC 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -75,7 +77,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  26 Jul 2005 - R. Yantosca - Initial version
@@ -122,8 +124,8 @@
       USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! TINDEX
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! TINDEX
 !
 ! !REMARKS:
 !   # : Field     : Description                  : Units       : Scale factor
@@ -256,7 +258,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 !
 ! !REVISION HISTORY: 
 !  26 Jul 2005 - R. Yantosca - Initial version

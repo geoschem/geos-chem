@@ -16,11 +16,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD              ! Dimensions of arrays
+      USE CMN_DIAG_MOD              ! Diagnostic parameters
+
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 
-#     include "F77_CMN_SIZE"              ! Dimensions of arrays
-#     include "F77_CMN_DIAG"              ! Diagnostic parameters
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !

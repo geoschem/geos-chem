@@ -3265,11 +3265,12 @@ C
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE TIME_MOD, ONLY : GET_TS_DYN
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_GCTM_MOD  ! g0_100
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic switches
-#     include "F77_CMN_GCTM"  ! g0_100
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -3550,9 +3551,11 @@ C
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4204,6 +4207,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4320,6 +4325,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID
 !%%% Remove LSP, LNP, LEW from arg list (bmy, 3/10/03)
@@ -4519,6 +4526,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: ID, JD, IM, JM
@@ -4617,11 +4626,12 @@ C
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TRACER_MOD,     ONLY : TCVV, ITS_A_CH4_SIM
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! Diagnostic switches
+      USE CMN_GCTM_MOD      ! g0_100
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! Diagnostic switches
-#     include "F77_CMN_GCTM"      ! g0_100
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT, Jmax

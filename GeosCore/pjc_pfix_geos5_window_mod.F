@@ -87,6 +87,8 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -181,10 +183,11 @@
 !  (2 ) Now define P2_TMP array for passing to ADJUST_PRESS (yxw, bmy, 3/5/07)
 !******************************************************************************
 !
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_GCTM_MOD    ! Physical constants
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_GCTM"    ! Physical constants
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN)  :: D_DYN
@@ -267,10 +270,13 @@
 !  NOTES:
 !******************************************************************************
 !
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_MOD       ! STT, NTRACE, LPRT, LWINDO
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, NTRACE, LPRT, LWINDO
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 
       ! Arguments
       REAL*8, INTENT(IN)  :: XMASS(IIPAR,JJPAR,LLPAR)
@@ -383,10 +389,10 @@
 !  (2 ) New definition for the geometric factor. (lzh, ccc, 8/3/10)
 !******************************************************************************
 !
-      implicit none
+      USE CMN_SIZE_MOD
+      USE CMN_GCTM_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_GCTM"
+      implicit none
 
       !----------------------
       !Argument declarations.
@@ -1155,11 +1161,11 @@ c     --------------------------------------
 !
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_GCTM_MOD ! Re, PI
+ 
       implicit none
 
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_GCTM" ! Re, PI
- 
       !----------------------
       !Argument declarations.
       !----------------------
@@ -1340,10 +1346,10 @@ c     --------------------------------------
 !  
 !******************************************************************************
 !
-      implicit none
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_GCTM_MOD ! Re, Pi
 
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_GCTM" ! Re, Pi
+      implicit none
 
       !----------------------
       !Argument declarations.
@@ -1691,8 +1697,8 @@ c     --------------------------------------
       USE ERROR_MOD,    ONLY : ALLOC_ERR,   ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_AP,      GET_BP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_GCTM"  ! Re, PI, etc...
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD  ! Re, PI, etc...
 
       ! Local variables
       INTEGER :: AS, I, J, L

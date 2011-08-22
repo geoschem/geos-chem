@@ -69,13 +69,14 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE, LSOILNOX, LFERTILIZERNOX
       USE MEGANUT_MOD,          ONLY : XLTMMP
 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! Diagnostic switches & arrays
+      USE CMN_NOX_MOD              ! GEMISNOX2
+      USE CMN_DEP_MOD              ! CANOPYNOX
+      USE COMMSOIL_MOD           ! Soil pulsing & wetness variables
+
       IMPLICIT NONE
- 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN_DIAG"             ! Diagnostic switches & arrays
-#     include "F77_CMN_NOX"              ! GEMISNOX2
-#     include "F77_CMN_DEP"              ! CANOPYNOX
-#     include "commsoil.h"           ! Soil pulsing & wetness variables
+#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN)            :: SUNCOS(MAXIJ)

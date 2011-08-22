@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -622,7 +624,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !RETURN VALUE:
 !

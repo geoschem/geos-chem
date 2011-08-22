@@ -16,10 +16,13 @@ c     odcol    Optical depth at each model level
 c     odsum    Column optical depth
 c     nlbatm   Level of lower photolysis boundary - usually surface
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
 C=============== INPUT PARAMETERS ======================================
       REAL*8, INTENT(INOUT) :: ODCOL(LPAR)

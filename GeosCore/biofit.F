@@ -1,15 +1,17 @@
 C $Id: biofit.f,v 1.1 2009/09/16 14:06:40 bmy Exp $
       REAL*8 FUNCTION BIOFIT(COEFF1,XLAI1,SUNCOS1,CFRAC1)
 
+      USE CMN_SIZE_MOD
+      USE CMN_DEP_MOD
+
       IMPLICIT NONE
+#     include "define.h"
 C===============================================
 C Calculate the light correction
 C===============================================
 C* BIOFIT and SUNPARAM were written by Y.H. Wang.  See comment
 C* in subroutine DEPVEL on what these subroutines do.
 C*************************************************************
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_DEP"
       INTEGER KK
       PARAMETER (KK=4)
       REAL*8 COEFF1(NPOLY),TERM(KK),REALTERM(NPOLY)

@@ -79,7 +79,9 @@
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
-      IMPLICIT NONE 
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h" 
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -144,7 +146,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -213,7 +215,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Local variables
       INTEGER              :: I, J
@@ -296,8 +298,8 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE TIME_MOD,      ONLY : GET_MONTH,       GET_TS_CHEM,  GET_TAU
       
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! ND09
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND09
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -495,9 +497,9 @@
       USE LOGICAL_MOD,   ONLY : LSPLIT
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH, ITS_A_NEW_MONTH
 
-#     include "F77_CMN_SIZE"     ! Size parameters 
-#     include "F77_CMN_DIAG"     ! ND09
-#     include "F77_CMN_DEP"      ! FRCLND 
+      USE CMN_SIZE_MOD     ! Size parameters 
+      USE CMN_DIAG_MOD     ! ND09
+      USE CMN_DEP_MOD      ! FRCLND 
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N_TRACERS
@@ -797,7 +799,7 @@
       USE GEIA_MOD,      ONLY : READ_TODX
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Local variables
       REAL*4              :: ARRAY(IIPAR,JJPAR,1)
@@ -844,7 +846,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

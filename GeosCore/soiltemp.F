@@ -15,7 +15,11 @@ C Be sure to force double precision with the DBLE function            *
 C and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
 C**********************************************************************
 
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
+
       IMPLICIT NONE
+#     include "define.h"
 
 C**********************************************************************
 C Yienger and Levy [1995] JGR 100, 11447-11464                        *
@@ -29,9 +33,6 @@ C             soil temperature                                        *
 C SOILTB    = Coefficient used to convert from surface temperture to  *
 C             soil temperature                                        *
 C**********************************************************************
-
-#     include "F77_CMN_SIZE"
-#     include "commsoil.h"
 
       INTEGER I,J,M,NN
       REAL*8  TMMP0,TMMP

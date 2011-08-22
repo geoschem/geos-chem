@@ -20,6 +20,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -119,7 +121,7 @@
       USE TRACERID_MOD,    ONLY : IDTSALA, IDTSO4
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
 
-#     include "F77_CMN_SIZE"        ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -753,7 +755,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
  
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version

@@ -17,7 +17,12 @@ C and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
 C Updated comments (bmy, 1/24/03)                                     *
 C**********************************************************************
 
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DEP_MOD     ! CANOPYNOX
+      USE COMMSOIL_MOD  ! Soil pulsing & wetness variables
+
       IMPLICIT NONE
+#     include "define.h"
 
 C**********************************************************************
 C SOILEXC   = Canopy wind extinction coeff.                           *
@@ -35,9 +40,6 @@ C Wang et al.: [1998] JGR vol. 103 p10713-10725                       *
 C                                                                     *
 C**********************************************************************
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_DEP"     ! CANOPYNOX
-#     include "commsoil.h"  ! Soil pulsing & wetness variables
 
       INTEGER I,J,IREF,JREF,M,NN,K,IJLOOP
 

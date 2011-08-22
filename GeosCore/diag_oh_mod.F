@@ -18,6 +18,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -66,8 +68,8 @@
       USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
       USE TRACERID_MOD, ONLY : IDOH
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! NPVERT, NLAT, NLONG
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! NPVERT, NLAT, NLONG
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
@@ -276,7 +278,7 @@
       USE LOGICAL_MOD, ONLY : LCHEM
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_CH4_SIM
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version

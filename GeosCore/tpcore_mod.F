@@ -2882,11 +2882,12 @@ C
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE TIME_MOD, ONLY : GET_TS_DYN
 
-      IMPLICIT NONE 
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_GCTM_MOD  ! g0_100
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic switches
-#     include "F77_CMN_GCTM"  ! g0_100
+      IMPLICIT NONE
+#     include "define.h" 
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NDT, J1
@@ -3129,9 +3130,11 @@ C
       USE GRID_MOD,     ONLY : GET_AREA_M2, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_BP
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J1 
@@ -3710,6 +3713,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       LOGICAL, INTENT(IN)    :: LSP,LNP,LEW
@@ -3811,6 +3816,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       
       ! Arguments
       LOGICAL, INTENT(IN)    :: LSP, LNP, LEW
@@ -3974,6 +3981,8 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: ID, JD, IM, JM
@@ -4082,11 +4091,12 @@ C
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TRACER_MOD,     ONLY : ITS_A_CH4_SIM, TCVV
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! Diagnostic switches
+      USE CMN_GCTM_MOD      ! g0_100
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! Diagnostic switches
-#     include "F77_CMN_GCTM"      ! g0_100
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT

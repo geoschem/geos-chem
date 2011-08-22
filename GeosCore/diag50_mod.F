@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -223,11 +225,11 @@
       USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "cmn_fj.h"  ! includes F77_CMN_SIZE
-#     include "jv_cmn.h"  ! ODAER, QAA, QAA_OUT
-#     include "F77_CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "F77_CMN_GCTM"  ! SCALE_HEIGHT
-#     include "comode.h"  ! NPVERT
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! includes F77_CMN_SIZE
+      USE JV_CMN_MOD  ! ODAER, QAA, QAA_OUT
+      USE COMODE_LOOP_MOD  ! NPVERT
+      USE CMN_O3_MOD    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
+      USE CMN_GCTM_MOD  ! SCALE_HEIGHT
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -811,7 +813,7 @@
       INTEGER(HID_T)      :: IU_ND50_HDF
 #endif
 
-#     include "F77_CMN_SIZE"  ! Size Parameters
+      USE CMN_SIZE_MOD  ! Size Parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1294,7 +1296,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1353,7 +1355,7 @@
       USE TIME_MOD,   ONLY : GET_TAUb
       USE TRACER_MOD, ONLY : N_TRACERS
   
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !

@@ -1,8 +1,13 @@
-! $Id: CMN_O3,v 1.2 2009/11/30 19:57:55 ccarouge Exp $
-
-!-----COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)-----
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-! NOTES:
+! !MODULE: CMN_O3_MOD
+!
+! !DESCRIPTION: COMMON BLOCKS FOR ANTHRO EMISSIONS (via SMVGEAR!)
+!
+! REMARKS:
 ! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
 !       compilation.  Also added & continuation characters in column 73
 !       to allow header files to be included in F90 freeform files.
@@ -15,21 +20,38 @@
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
 !           NEMPARB = max no. of biogenic emissions
+!\\
+!\\
+! !INTERFACE: 
+!
+      MODULE CMN_O3_MOD
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+
+      IMPLICIT NONE
+!     PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
+!
+      PUBLIC
+	SAVE
+! !DEFINED PARAMETERS: 
+!
 !
 ! Rural Emissions: EMISRN = NOx (1:NOXLEVELS), EMISR = all other tracers
 ! Total Emissions: EMISTN = NOx (1:NOXLEVELS), EMIST = all other tracers
-      REAL*8 EMISR, EMISRN, EMIST, EMISTN
-      COMMON /EMIS/                                                     
+      REAL*8 ::
      &   EMISR(IIPAR,JJPAR,NEMPARA),  EMISRN(IIPAR,JJPAR,NOXLEVELS),   
      &   EMIST(IIPAR,JJPAR,NEMPARA),  EMISTN(IIPAR,JJPAR,NOXLEVELS)
 
 ! Rural Emissions:
 ! EMISRRN = NOx emissions into sigma levels L=1,NOXEXTENT
 ! EMISRR  = All other tracer emissions into sigma level L=1
-      REAL*8 EMISRR, EMISRRN
-      COMMON /EMIS2/                                                    
+      REAL*8 :: 
      &   EMISRR (IIPAR,JJPAR,NEMPARA+NEMPARB),                          
-     &   EMISRRN(IIPAR,JJPAR,NOXEXTENT        )
+     &   EMISRRN(IIPAR,JJPAR,NOXEXTENT      )
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !
@@ -51,51 +73,40 @@
 !     ---------------------------	
 
       ! Define common block	
-      REAL*8 EMISS_BVOC
-      COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10)
+      REAL*8 EMISS_BVOC(IIPAR,JJPAR,10)
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
- 
 ! Arrays to read emissions from updated merge file : 
 !        NOx, CO, PRPE, C3H8, ALK4, C2H6, ACET, MEK
 ! NOTE: ALD2 is not emitted in GEIA so we don't need an array for
 !       it below...but it is emitted in EMEP.  It will be saved
 !       into the EMISRR array for SMVGEAR. (bdf, bmy, 11/1/05)
-      REAL*4 EMISTNOX,EMISTCO,EMISTETHE,EMISTPRPE,EMISTC2H6,            
-     &       EMISTC3H8,EMISTALK4,EMISTACET,EMISTMEK,EMISTSOX,           
-     &       EMISTBENZ,EMISTTOLU,EMISTXYLE,EMISTC2H4,EMISTC2H2
-      COMMON/EMIS4/                                                     
-     &  EMISTNOX (IIPAR,JJPAR,4,2), EMISTETHE(IIPAR,JJPAR    ),         
-     &  EMISTCO  (IIPAR,JJPAR    ), EMISTPRPE(IIPAR,JJPAR    ),         
-     &  EMISTC3H8(IIPAR,JJPAR    ), EMISTALK4(IIPAR,JJPAR    ),         
-     &  EMISTC2H6(IIPAR,JJPAR    ), EMISTSOX (IIPAR,JJPAR,4,2),         
-     &  EMISTACET(IIPAR,JJPAR    ), EMISTMEK (IIPAR,JJPAR    ),         
-     &  EMISTBENZ(IIPAR,JJPAR    ), EMISTTOLU(IIPAR,JJPAR    ),         
-     &  EMISTXYLE(IIPAR,JJPAR    ), EMISTC2H4(IIPAR,JJPAR    ),          
+      REAL*4 
+     &  EMISTNOX (IIPAR,JJPAR,4,2), EMISTETHE(IIPAR,JJPAR    ),         &
+     &  EMISTCO  (IIPAR,JJPAR    ), EMISTPRPE(IIPAR,JJPAR    ),         &
+     &  EMISTC3H8(IIPAR,JJPAR    ), EMISTALK4(IIPAR,JJPAR    ),         &
+     &  EMISTC2H6(IIPAR,JJPAR    ), EMISTSOX (IIPAR,JJPAR,4,2),         &
+     &  EMISTACET(IIPAR,JJPAR    ), EMISTMEK (IIPAR,JJPAR    ),         &
+     &  EMISTBENZ(IIPAR,JJPAR    ), EMISTTOLU(IIPAR,JJPAR    ),         &
+     &  EMISTXYLE(IIPAR,JJPAR    ), EMISTC2H4(IIPAR,JJPAR    ),         & 
      &  EMISTC2H2(IIPAR,JJPAR    )
 ! Time of day and weekday/weekend scale factors
 ! NOTE: Now SCNR89 is (3,3) because of the weekday scale factor!!!
-      REAL*8         TODH,    TODN,    TODB,    SCNR89
-      COMMON /PLUAD/ TODH(6), TODN(6), TODB(6), SCNR89(3,3)
+      REAL*8 TODH(6), TODN(6), TODB(6), SCNR89(3,3)
 
 ! IFSCLYR = Year to use for scaling fossil fuel emissions (1985 = no scaling!)
       INTEGER         FSCALYR
-      COMMON /FSCAL1/ FSCALYR
 
 ! FTOTCO2 = yearly scale factors based on Total  Fuel CO2 emissions 
 ! FLIQCO2 = yearly scale factors based on Liquid Fuel CO2 emissions
-      REAL*4          FTOTCO2,              FLIQCO2
-      COMMON /FSCAL2/ FTOTCO2(IIPAR,JJPAR), FLIQCO2(IIPAR,JJPAR)
+      REAL*4  FTOTCO2(IIPAR,JJPAR), FLIQCO2(IIPAR,JJPAR)
 
 ! FRACO3, FRACNO          = fractions of O3, NO
 ! SAVEOH, SAVENO, SAVENO3 = array to save OH, NO, & NO3 fields 
 ! SAVENO2                 = array to save NO2 fields (rvm, 5/9/00)
 ! FRACNO2                 = fraction of NO2 (rvm, bmy, 2/27/02)
 ! SAVEHO2                 = array to save HO2 fields (rvm, bmy, 2/27/02)
-      REAL*8 FRACO3, SAVEOH, FRACNO, SAVENO, SAVENO2, SAVENO3 
-      REAL*8 FRACNO2, SAVEHO2
-      COMMON /FRO3/                                                     
+      REAL*8 ::
      &   FRACO3(IIPAR,JJPAR,LLPAR),                                     
      &   SAVEOH(IIPAR,JJPAR,LLPAR),                                     
      &   FRACNO(IIPAR,JJPAR,LLPAR),                                     
@@ -105,4 +116,4 @@
      &   FRACNO2(IIPAR,JJPAR,LLPAR),                                    
      &   SAVEHO2(IIPAR,JJPAR,LLPAR)
 
-
+	END MODULE CMN_O3_MOD

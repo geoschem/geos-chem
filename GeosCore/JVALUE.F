@@ -19,10 +19,13 @@ c     XQO2   Absorption cross-section of O2
 c     XQO3   Absorption cross-section of O3
 c
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 
 C=============== INPUT PARAMETERS ======================================
       REAL*8, INTENT(IN) :: SA

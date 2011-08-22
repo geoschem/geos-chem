@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -274,7 +276,7 @@
       USE DAO_MOD, ONLY : TS,       TSKIN,    U10M,     USTAR
       USE DAO_MOD, ONLY : V10M,     Z0 
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -395,8 +397,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "F77_CMN_SIZE"                             ! Size parameters
-#     include "F77_CMN_DIAG"                             ! ND67 flag
+      USE CMN_SIZE_MOD                             ! Size parameters
+      USE CMN_DIAG_MOD                             ! ND67 flag
 !
 ! !INPUT PARAMETERS: 
 !

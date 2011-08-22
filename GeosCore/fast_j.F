@@ -36,10 +36,15 @@
       USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
       USE TOMS_MOD,     ONLY : READ_TOMS
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"     ! ODMDUST, PJ
+      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST, MAXIJ, NAER, NRH
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ     ! IPAR, JPAR, LPAR, F77_CMN_SIZE
+      USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
+
+      IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !

@@ -23,10 +23,11 @@
       USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
       USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
 
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
+      IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS: 

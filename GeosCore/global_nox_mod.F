@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -79,7 +81,7 @@
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD
       USE UNIX_CMDS_MOD, ONLY : ZIP_SUFFIX
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
+      USE CMN_SIZE_MOD                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -199,7 +201,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  28 Jul 2000 - R. Yantosca - Initial version

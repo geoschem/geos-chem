@@ -12,10 +12,13 @@
 !        w/ a profiling run. (bmy, 7/9/03)
 !******************************************************************************
 !
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
+      IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
+
 C
 C *********************************************************************
 C ************        WRITTEN BY MARK JACOBSON (1993)      ************

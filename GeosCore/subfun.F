@@ -9,10 +9,11 @@
 !  (1 ) Now force double-precision with the "D" exponent (bmy, 4/18/03)
 !******************************************************************************
 !
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
 C
 C *********************************************************************
 C ************        WRITTEN BY MARK JACOBSON (1993)      ************

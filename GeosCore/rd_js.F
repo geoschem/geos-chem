@@ -10,10 +10,14 @@ c     jlabel    Reference label identifying appropriate J-value to use
 c     ipr       Photolysis reaction counter - should total 'jppj'
 c
 C-----------------------------------------------------------------------
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : RNAMES, BRANCH
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
+#     include "define.h"
 c
       integer nj1, ipr, i
       character*6  namfil

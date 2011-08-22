@@ -16,6 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -266,8 +268,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_3D
 
-#     include "F77_CMN_SIZE"                             ! Size parameters
-#     include "F77_CMN_DIAG"                             ! NDxx flags
+      USE CMN_SIZE_MOD                             ! Size parameters
+      USE CMN_DIAG_MOD                             ! NDxx flags
 !
 ! !INPUT PARAMETERS: 
 !
