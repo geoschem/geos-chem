@@ -38,7 +38,9 @@
 # R8         Specifies the c
 #
 # !REVISION HISTORY: 
-#  21 Dec 2009 - C. Carouge   - Initial version
+#  21 Dec 2009 - C. Carouge  - Initial version
+#  22 Aug 2011 - R. Yantosca - Add "-fp-model source" flag for IFORT compiler,
+#                              which prevents random numerical noise
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -92,6 +94,11 @@ help:
 #=============================================================================
 
 isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
+ifeq ($(COMPILER),ifort)
+	$(F90) $(R8) -fp-model source -c $<
+
+else
 	$(F90) $(R8) -c $<
+endif
 #EOC
 
