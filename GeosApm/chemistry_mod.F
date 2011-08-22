@@ -115,8 +115,8 @@
       USE TRACERID_MOD,    ONLY : IDTSO4
 #endif
 
-#     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_DIAG"        ! NDxx flags
+#     include "F77_CMN_SIZE"        ! Size parameters
+#     include "F77_CMN_DIAG"        ! NDxx flags
 #     include "comode.h"        ! NPHOT
 !
 ! !REVISION HISTORY: 

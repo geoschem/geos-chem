@@ -1,3 +1,4 @@
+#if !defined(ESMF_)
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -181,9 +182,9 @@
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"          ! Size parameters
-#     include "CMN_DIAG"          ! Diagnostic switches, NJDAY
-#     include "CMN_GCTM"          ! Physical constants
+#     include "F77_CMN_SIZE"          ! Size parameters
+#     include "F77_CMN_DIAG"          ! Diagnostic switches, NJDAY
+#     include "F77_CMN_GCTM"          ! Physical constants
 #     include "comode.h"          ! SMVGEAR common blocks
 !
 ! !REMARKS:
@@ -1610,4 +1611,4 @@
       END SUBROUTINE DISPLAY_END_TIME
 !EOC
       END PROGRAM GEOS_CHEM
-
+#endif

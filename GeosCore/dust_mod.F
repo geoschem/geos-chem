@@ -1123,10 +1123,12 @@
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!  (4 ) Include wavelength argument to determine the wavelength at which the
-!        AOD should be computed. This will set the optical properties that are
-!        used for the calculation of the AOD. The ND21 diagnostic should only
-!        be updated when WAVELENGTH = 1. (skim, 02/03/11)
+!  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are
+!                              used for the calculation of the AOD. The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1185,15 +1187,15 @@
 
          IF ( WAVELENGTH > 0 ) THEN
 
-         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                      DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                     ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
          ELSE
 
-         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                      DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                     ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
          ENDIF
 
@@ -1407,11 +1409,13 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!  (23) Include third input argument to determine the wavelength at which
-!        the AOD should be computed. This will set the optical properties
-!        that are used for the calculation of the AOD. The ND21 diagnostic
-!        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Feb 2011 - S. Kim      - Include third input argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are 
+!                              used for the calculation of the AOD.  The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1503,15 +1507,15 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
             ELSE
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
             ENDIF
 

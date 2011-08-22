@@ -166,6 +166,8 @@
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
 !  (32) Increase MAXDEP to 51 for dicarbonyls simulation. (ccc, 10/8/10)
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -289,6 +291,12 @@
 !  (1 ) Wesely, M. L., 1989 
 !  (2 ) Jacob, D.J., and S.C. Wofsy, 1990
 !
+!  NOTE: Modeled aerosol dry deposition velocities over snow and ice surfaces 
+!  in the Arctic are much higher than estimated from measured values (e.g., 
+!  Ibrahim et al. [1983]; Duan et al. [1988]; Nilsson and Rannik [2001]).  
+!  We will impose a dry deposition velocity of 0.03 cm/s for all aerosols 
+!  over snow and ice surfaces. (Jenny Fisher, 01 Aug 2011)
+!
 !  NOTES:
 !  (1 ) Remove SUNCOS, USTAR, AZO, OBK from the arg list; now reference these
 !        as well as AD and T from "dao_mod.f".  Cleaned up code and updated
@@ -314,6 +322,9 @@
 !        variables. (swu, bmy, 5/25/05)
 !  (8 ) Remove reference to TRACERID_MOD, it's not needed (bmy, 10/3/05)
 !  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
+!  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
+!                            over snow and ice based on Nilsson & Rannik, 2001
+!  15 Aug 2011 - R. Yantosca - Now reference IDTxxx flags from tracerid_mod.f
 !******************************************************************************
 !
       ! Reference to F90 modules
@@ -321,14 +332,16 @@
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
+      USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
+      USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 #if   defined( APM ) 
       USE APM_INIT_MOD, ONLY : NSO4, NSEA, NDSTB
 #endif
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "CMN_DIAG" ! ND44
-#     include "CMN_DEP"  ! IREG, ILAND, IUSE, etc.
-#     include "CMN_GCTM" ! Physical constants
+#     include "F77_CMN_SIZE" ! Size parameters
+#     include "F77_CMN_DIAG" ! ND44
+#     include "F77_CMN_DEP"  ! IREG, ILAND, IUSE, etc.
+#     include "F77_CMN_GCTM" ! Physical constants
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -411,6 +424,15 @@
 
             ! Set minimum velocity for sulfate tracers
             DVZ  = DVZ_MINVAL( NN, LSNOW(IJLOOP), DVZ )
+
+            ! Set Vd for aerosol tracers over snow/ice (J. Fisher, 8/1/11)
+            IF ( ( AIROSOL(N)    ) .and. ( LSNOW(IJLOOP) )  .and. 
+     &           ( NN /= IDTSALA ) .and. ( NN /= IDTSALC )  .and.
+     &           ( NN /= IDTSO4s ) .and. ( NN /= IDTNITs )  .and.
+     &           ( NN /= IDTDST1 ) .and. ( NN /= IDTDST2 )  .and.
+     &           ( NN /= IDTDST3 ) .and. ( NN /= IDTDST4 ) ) THEN
+               DVZ = 3.0d-2
+            ENDIF
 
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,N) = ( DVZ / 100.d0 ) / THIK
@@ -508,7 +530,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-#     include "CMN_SIZE"   ! Size parameters!
+#     include "F77_CMN_SIZE"   ! Size parameters!
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -614,8 +636,8 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! Physical constants
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! Physical constants
 
       ! Arguments
       LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
@@ -751,8 +773,8 @@
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! Diagnostic switches & arrays
 #     include "comode.h"   ! CSPEC
 
       ! Local variables
@@ -889,9 +911,9 @@
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
-#     include "CMN_DEP"   ! Dry deposition variables
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND44
+#     include "F77_CMN_DEP"   ! Dry deposition variables
 
       ! Local variables
       INTEGER             :: I, J, L, PBL_MAX, N, NN
@@ -1013,10 +1035,10 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
       
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "CMN_VEL"   ! IJLAND
-#     include "CMN_DEP"   ! Dry deposition variables
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
+#     include "F77_CMN_VEL"   ! IJLAND
+#     include "F77_CMN_DEP"   ! Dry deposition variables
 #     include "commsoil.h" ! Soil pulsing & wetness variables
 
       ! Local variables
@@ -1385,8 +1407,8 @@ C Returned:
 C     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
 C***********************************************************************       
 
-#     include "CMN_SIZE"
-#     include "CMN_VEL"
+#     include "F77_CMN_SIZE"
+#     include "F77_CMN_VEL"
 #     include "commsoil.h"
 
       INTEGER NPTS
@@ -2195,7 +2217,7 @@ C** Load array DVEL
       
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -2305,7 +2327,7 @@ C** Load array DVEL
 
       IMPLICIT NONE
       
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER            :: I, IOS
@@ -4016,7 +4038,7 @@ C** Load array DVELBIN
       USE APM_INIT_MOD, ONLY : NSO4, NSEA, NDSTB
 #endif
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL :: IS_Hg

@@ -5,7 +5,7 @@
 !
 ! !MODULE: a3_read_mod
 !
-! !DESCRIPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
+! !DESCRPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
 !  read the GEOS-Chem A3 (avg 3-hour) met fields from disk. 
 !\\
 !\\
@@ -88,7 +88,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "CMN_SIZE"                        ! Size parameters
+#     include "F77_CMN_SIZE"                        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,7 +333,7 @@
       USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"                       ! Size parameters
+#     include "F77_CMN_SIZE"                       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -494,7 +494,7 @@
       USE DAO_MOD, ONLY : PBL0a, PBL0b
 #endif
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -657,7 +657,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"            ! Size parameters
+#     include "F77_CMN_SIZE"            ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -736,7 +736,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 !
 ! !INPUT PARAMETERS: 
 !
@@ -802,8 +802,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "CMN_SIZE"                       ! Size parameters
-#     include "CMN_DIAG"                       ! ND67
+#     include "F77_CMN_SIZE"                       ! Size parameters
+#     include "F77_CMN_DIAG"                       ! ND67
 !
 ! !INPUT PARAMETERS: 
 !
@@ -912,7 +912,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: I, IJLOOP, IOS, J, N_A3, NFOUND 
-      REAL*4            :: Q2(IGLOB,JGLOB)
+      REAL*4            :: Q2(IIPAR,JJPAR)
       CHARACTER(LEN=8)  :: NAME
       CHARACTER(LEN=16) :: STAMP
       INTEGER           :: XYMD, XHMS
@@ -1540,7 +1540,7 @@
 !
       USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
 
-#     include "CMN_SIZE"                    ! Size parameters
+#     include "F77_CMN_SIZE"                    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

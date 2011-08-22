@@ -122,7 +122,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -326,7 +326,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/19/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A6 
@@ -348,7 +348,7 @@
       USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -473,7 +473,7 @@
 !  (2 ) NHMS (INTEGER) :  and HHMMSS of A-6 fields to be read from disk
 !
 !  NOTES:
-!  (1 ) CFRAC has been removed from CMN_DEP.  Now use CLDFRC(I,J) from
+!  (1 ) CFRAC has been removed from F77_CMN_DEP.  Now use CLDFRC(I,J) from
 !        "dao_mod.f" (bmy, 12/9/03)
 !  (2 ) Now pass CLDTOPS to READ_A6 for GEOS-4 (bmy, 3/4/04)
 !  (3 ) Now modified for GEOS-5 and GCAP met fields (swu, bmy, 5/25/05)
@@ -531,7 +531,7 @@
       USE DAO_MOD, ONLY : ZMMD0b,    ZMMU0b
 #endif
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -868,8 +868,8 @@
       ! References to F90 modules
       USE DIAG_MOD, ONLY : AD67
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! ND67
+#     include "F77_CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_DIAG"   ! ND67
 
       ! Arguments
       REAL*8, INTENT(IN)  :: CLDF(LLPAR,IIPAR,JJPAR)
@@ -923,7 +923,7 @@
 !  (3 ) Increase number of A-6 fields for GEOS-5 to 21 (bmy, 5/15/07)
 !******************************************************************************
 !
-#     include "CMN_SIZE" 
+#     include "F77_CMN_SIZE" 
 
       ! Function value
       INTEGER :: N_A6
@@ -976,7 +976,7 @@
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -1064,7 +1064,7 @@
 !  (3 ) Now compute CLDTOPS using ZMMU for GEOS-4 (bmy, 3/4/04)
 !  (4 ) Now modified for GEOS-5 and GCAP fields.  Added DETRAINE, 
 !        DETRAINN, DNDE, DNDN, ENTRAIN, UPDE, UPDN as optional arguments.
-!        Now references "CMN_DIAG". (swu, bmy, 5/25/05)
+!        Now references "F77_CMN_DIAG". (swu, bmy, 5/25/05)
 !  (5 ) Bug fix in ND66 diagnostic for GEOS-4 (bmy, 2/1/06)
 !  (6 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (7 ) Now set negative SPHU to a small positive # (1d-32) instead of zero, 
@@ -1088,9 +1088,9 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_DIAG"             ! ND66, ND67
-#     include "CMN_GCTM"             ! g0
+#     include "F77_CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_DIAG"             ! ND66, ND67
+#     include "F77_CMN_GCTM"             ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
@@ -1136,8 +1136,8 @@
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
       INTEGER                        :: IOS, NFOUND, N_A6
-      REAL*4                         :: D(IGLOB,JGLOB,LGLOB)       
-      REAL*4                         :: D1(IGLOB,JGLOB,LGLOB+1)       
+      REAL*4                         :: D(IIPAR,JJPAR,LGLOB)       
+      REAL*4                         :: D1(IIPAR,JJPAR,LGLOB+1)       
       REAL*8                         :: C1, C2
       REAL*8                         :: TAUCLD(LLPAR,IIPAR,JJPAR)
       REAL*8                         :: CLDTOT(LLPAR,IIPAR,JJPAR)

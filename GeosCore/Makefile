@@ -701,7 +701,7 @@ input_mod.o                 : input_mod.F                                    \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o  	      diag48_mod.o           \
-                               diag49_mod.o  	      diag50_mod.o           \
+                              diag49_mod.o  	      diag50_mod.o           \
 			      diag51_mod.o  	      diag51b_mod.o          \
 			      diag56_mod.o  	      diag_oh_mod.o          \
 			      diag_pl_mod.o 	      drydep_mod.o           \

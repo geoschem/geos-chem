@@ -149,7 +149,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-#     include "CMN_SIZE"     ! Size parameters 
+#     include "F77_CMN_SIZE"     ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -264,9 +264,9 @@
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_GCTM"      ! g0
+#     include "F77_CMN_DIAG"      ! ND44
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -480,9 +480,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -566,9 +566,9 @@
       USE APM_INIT_MOD, ONLY : NCTSEA
       USE APM_INIT_MOD, ONLY : IDTCTSEA
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_GCTM"      ! g0
+#     include "F77_CMN_DIAG"      ! ND44
 
       ! Argumetns
       REAL*8,INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
@@ -738,9 +738,9 @@
       USE APM_INIT_MOD, ONLY : NSO4,NCTSEA
       USE APM_INIT_MOD, ONLY : IDTCTSEA
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
@@ -861,7 +861,7 @@
       USE APM_INIT_MOD, ONLY : IDTSEABIN1
 #endif
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -994,9 +994,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND44, ND08
-#     include "CMN_GCTM"      ! PI
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND44, ND08
+#     include "F77_CMN_GCTM"      ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -1218,9 +1218,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE APM_INIT_MOD,  ONLY : DFMSALT9  ! kg m-2 s-1
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND44, ND08
-#     include "CMN_GCTM"      ! PI
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND44, ND08
+#     include "F77_CMN_GCTM"      ! PI
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NSALTBIN)
@@ -1519,7 +1519,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+#     include "F77_CMN_SIZE"
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

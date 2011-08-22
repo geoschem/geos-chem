@@ -93,7 +93,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -209,9 +209,9 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -416,8 +416,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -512,7 +512,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -614,9 +614,9 @@
       USE APM_INIT_MOD,  ONLY : IDTDSTBIN1
 #endif
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND06
-#     include "CMN_GCTM"      ! g0
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_DIAG"      ! ND06
+#     include "F77_CMN_GCTM"      ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -809,6 +809,14 @@
 
             ! Snow height [m H2O]
 #if   defined( GEOS_5 ) || defined( MERRA )
+            !--------------------------------------------------------------
+            ! Prior to 9/3/10:
+            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
+            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
+            ! units of liquid-equivalent mm H2O.  Therefore, we need to
+            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
+            !SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -894,9 +902,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND19, LD13 (for now)
-#     include "CMN_GCTM"  ! g0
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_DIAG"  ! ND19, LD13 (for now)
+#     include "F77_CMN_GCTM"  ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1139,9 +1147,9 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-#     include "cmn_fj.h"      ! LPAR, CMN_SIZE
+#     include "cmn_fj.h"      ! LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"      ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "CMN_DIAG"      ! ND21, LD21
+#     include "F77_CMN_DIAG"      ! ND21, LD21
 #     include "comode.h"      ! NTTLOOP
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1381,9 +1389,9 @@
 
       IMPLICIT NONE
 
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
+#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
 #     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "CMN_DIAG"   ! ND21, LD21
+#     include "F77_CMN_DIAG"   ! ND21, LD21
 #     include "comode.h"   ! NTTLOOP
 !
 ! !INPUT PARAMETERS: 
@@ -1457,7 +1465,7 @@
 !
       INTEGER             :: I, J, JLOOP, L, N
       INTEGER, SAVE       :: MONTH_LAST = -999
-      REAL*4              :: TEMP(IGLOB,JGLOB,LGLOB)
+      REAL*4              :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL*8              :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL*8              :: MSDENS(NDUST), XTAU
       CHARACTER (LEN=255) :: FILENAME
@@ -1496,7 +1504,7 @@
          ! dust type from the binary punch file
          DO N = 1, NDUST 
             CALL READ_BPCH2( FILENAME, 'MDUST-$', N,     XTAU,
-     &                       IGLOB,     JGLOB,    LGLOB, TEMP, 
+     &                       IIPAR,     JJPAR,    LGLOB, TEMP, 
      &                       QUIET=.TRUE. )
 
             CALL TRANSFER_3D( TEMP, DUST(:,:,:,N) )
@@ -1700,9 +1708,9 @@
       USE APM_INIT_MOD, ONLY : NCTDST,NDSTB,DENDST,RDST
       USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_GCTM"     ! g0
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8, DIMENSION(IIPAR,JJPAR,LLPAR) :: MASS0, MASS1
@@ -1939,8 +1947,8 @@
       USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
       USE DRYDEP_MOD,   ONLY : DEPSAVSIZE
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8, DIMENSION(IIPAR,JJPAR) :: MASS0, MASS
@@ -2075,7 +2083,7 @@
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_SIZE"    ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version

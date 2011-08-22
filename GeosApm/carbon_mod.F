@@ -288,7 +288,7 @@
 !  (1 ) Added code from the Caltech group for SOA chemistry.  Also now 
 !        reference "global_oh_mod.f", "global_o3_mod.f", "global_no3_mod.f".
 !        (rjp, bmy, 7/8/04)
-!  (2 ) Now reference LSOA and LEMIS from CMN_SETUP.  Now only call OHNO3TIME
+!  (2 ) Now reference LSOA and LEMIS from F77_CMN_SETUP.  Now only call OHNO3TIME
 !        if it hasn't been done before w/in EMISSCARBON. (rjp, bmy, 7/15/04)
 !  (3 ) Now reference LSOA, LEMIS, LPRT from "logical_mod.f".  Now reference
 !        STT and ITS_AN_AEROSOL_SIM from "tracer_mod.f" (bmy, 7/20/04)
@@ -318,7 +318,7 @@
       USE APM_INIT_MOD,   ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
 #endif
 
-#     include "CMN_SIZE"       ! Size parameters
+#     include "F77_CMN_SIZE"       ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
@@ -564,7 +564,7 @@
 !  (1 ) TC (REAL*8) : Array of hydrophobic BC tracer 
 !
 !  NOTES:
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP 
 !        from "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -581,8 +581,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -737,7 +737,7 @@
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -753,8 +753,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -914,7 +914,7 @@
 !  (1 ) TC (REAL*8) : Array of hydrophobic OC tracer [kg]
 !
 !  NOTES:
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
@@ -930,8 +930,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1086,7 +1086,7 @@
 !  (1 ) TC (REAL*8) : Array of hydrophilic BC tracer 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to "CMN", it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to "F77_CMN", it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
@@ -1103,8 +1103,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1276,7 +1276,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1382,7 +1382,7 @@
       USE TRACERID_MOD, ONLY : IDTBCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1487,7 +1487,7 @@
       USE TRACERID_MOD, ONLY : IDTOCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1594,7 +1594,7 @@
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1709,9 +1709,9 @@
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! XNUMOL
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 #     include "comode.h"     ! AD, WTAIR, other SMVGEAR variables
 
 
@@ -1909,9 +1909,9 @@
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! XNUMOL
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 #     include "comode.h"     ! AD, WTAIR, other SMVGEAR variables
 
 
@@ -2180,9 +2180,9 @@
       USE TRACERID_MOD, ONLY : IDTMSA
 #endif
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! XNUMOL
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -3693,7 +3693,7 @@ c
       USE TRACERID_MOD, ONLY : IDTISOP
 #endif
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L
@@ -3906,7 +3906,7 @@ c
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE"     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -4043,8 +4043,8 @@ c
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
 
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"    ! ND44, ND07, LD07
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -4433,7 +4433,7 @@ c
 !  (3 ) TRID  (INTEGER) : GEOS-CHEM tracer number 
 ! 
 !  NOTES:
-!  (1 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
+!  (1 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
 !  (2 ) Replace PBLFRAC from "drydep_mod.f" with  GET_FRAC_UNDER_PBLTOP from 
 !        "pbl_mix_mod.f" (bmy, 2/17/05)
 !  (3 ) Bug fix: Add BL_FRAC to the PRIVATE list (mak, bmy, 10/3/05)
@@ -4450,8 +4450,8 @@ c
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : XNUMOL
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4579,7 +4579,7 @@ c
 !  and the CARBONACEOUS AEROSOL emissions (rjp, bmy, 1/24/02, 9/25/06)
 !
 !  NOTES:
-!  (1 ) Now references LSOA from "CMN_SETUP".  Also now call OHNO3TIME since
+!  (1 ) Now references LSOA from "F77_CMN_SETUP".  Also now call OHNO3TIME since
 !        biogenic emissions also have a diurnal variation. (rjp, bmy, 7/15/04)
 !  (2 ) Now references LSOA and LPRT from "logical_mod.f".  Now references
 !        STT from "tracer_mod.f" (bmy, 7/20/04)
@@ -4623,8 +4623,8 @@ c
       USE TRACERID_MOD, ONLY : IDTBCPI,IDTBCPO,IDTOCPI,IDTOCPO
 #endif
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND07
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"    ! ND07
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -4974,12 +4974,12 @@ c
       USE DAO_MOD,       ONLY : PARDF, PARDR
       USE MEGANUT_MOD,   ONLY : XLTMMP
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I, J, IJLOOP, THISMONTH
-      REAL*4                 :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: CONVERT(NVEGTYPE)
       REAL*8                 :: GMONOT(NVEGTYPE)
       REAL*8                 :: FD2D(IIPAR,JJPAR)
@@ -5092,7 +5092,7 @@ c
 
             ! Read NVOC emission in kg/month
             CALL READ_BPCH2( FILENAME, 'NVOCSRCE', 35, 
-     &                       XTAU,      IGLOB,     JGLOB,     
+     &                       XTAU,      IIPAR,     JJPAR,     
      &                       1,         ARRAY,     QUIET=.TRUE. ) 
 
             ! Cast to REAL*8 and resize
@@ -5324,14 +5324,14 @@ c
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
       INTEGER                       :: I, J
-      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
       REAL*8                        :: STEPS_PER_MON
       REAL*8                        :: FD2D(IIPAR,JJPAR)
@@ -5371,7 +5371,7 @@ c
 
       ! Read BLCK emission
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5405,7 +5405,7 @@ c
       ! ANTH_ORGC.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5449,7 +5449,7 @@ c
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
-     &                 XTAU,      IGLOB,     JGLOB,
+     &                 XTAU,      IIPAR,     JJPAR,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5484,7 +5484,7 @@ c
       !=================================================================
       
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. )
 
       ! Cast to REAL*8 and resize
@@ -5553,14 +5553,14 @@ c
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
 
       ! Local variables
       INTEGER                       :: I, J
-      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_MON, FUT_SCL
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
@@ -5606,7 +5606,7 @@ c
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 34, 
-     &                 XTAU,      IGLOB,     JGLOB,
+     &                 XTAU,      IIPAR,     JJPAR,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5640,7 +5640,7 @@ c
       ! Overwrite the contents of ANTH_ORGC over North America below.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'ANTHSRCE', 35, 
-     &                 XTAU,      IGLOB,     JGLOB,
+     &                 XTAU,      IIPAR,     JJPAR,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5687,7 +5687,7 @@ c
 
       ! Read data
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 34, 
-     &                 XTAU,      IGLOB,     JGLOB,
+     &                 XTAU,      IIPAR,     JJPAR,
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5724,7 +5724,7 @@ c
       ! Overwrite the contents of BIOF_ORGC over North America below.
       !=================================================================
       CALL READ_BPCH2( FILENAME, 'BIOFSRCE', 35, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5784,11 +5784,11 @@ c
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters 
+#     include "F77_CMN_SIZE"             ! Size parameters 
 
       ! Local variables
       INTEGER                       :: I, J
-      REAL*4                        :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4                        :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                        :: XTAU, STEPS_PER_YR, FUT_SCL
       REAL*8                        :: FD2D(IIPAR,JJPAR)
       CHARACTER(LEN=255)            :: FILENAME
@@ -5823,7 +5823,7 @@ c
       ! convert to [kg C/timestep] and store in BIOB_BLKC.
       !=================================================================  
       CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 34, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5857,7 +5857,7 @@ c
       ! BIOF_BLKC.
       !=================================================================  
       CALL READ_BPCH2( FILENAME, 'BIOBSRCE', 35, 
-     &                 XTAU,      IGLOB,     JGLOB,     
+     &                 XTAU,      IIPAR,     JJPAR,     
      &                 1,         ARRAY,     QUIET=.TRUE. ) 
 
       ! Cast to REAL*8 and resize
@@ -5908,7 +5908,7 @@ c
 !  emissions are hydrophilic (soluble) and the rest are hydrophobic.
 !
 !  NOTES:
-!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed CMN,
+!  (1 ) Now references DATA_DIR from "directory_mod.f".  Also removed F77_CMN,
 !        it's obsolete. (bmy, 7/20/04)
 !  (2 ) Now read data from "carbon_200411" subdir of DATA_DIR (bmy, 11/15/04)
 !  (3 ) Now read BCPO, OCPO biomass burning data directly from files instead
@@ -5935,7 +5935,7 @@ c
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"             ! Size parameters
 
       !-------------------
       ! Local variables
@@ -6049,7 +6049,7 @@ c
       USE TRACERID_MOD, ONLY  : IDTALPH, IDTLIMO, IDTALCO
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
@@ -6198,7 +6198,7 @@ c
       USE SULFATE_MOD,  ONLY : ESO2_ac
       USE TIME_MOD,     ONLY : GET_TS_EMIS
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRCF(IIPAR,JJPAR,2)
@@ -6322,8 +6322,8 @@ c
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_GCTM"
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -6459,7 +6459,7 @@ c
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6556,8 +6556,8 @@ c
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+#     include "F77_CMN_SIZE"  ! Size parameters
+#     include "F77_CMN"       ! NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6679,7 +6679,7 @@ c
       USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE TRACERID_MOD,  ONLY : IDO3
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6786,8 +6786,8 @@ c
       USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTBENZ, IDTTOLU, IDTXYLE
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! XNUMOL
+#     include "F77_CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_O3"        ! XNUMOL
 #     include "comode.h"      ! ILx
 
       ! Arguments
@@ -6966,7 +6966,7 @@ c
       USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
       USE TRACERID_MOD,  ONLY : IDTISOP
 
-#     include "CMN_SIZE"      ! Size parameters
+#     include "F77_CMN_SIZE"      ! Size parameters
 #     include "comode.h"      ! ILISOPOH   (dkh, 05/29/06)  
 
       ! Arguments
@@ -7059,7 +7059,7 @@ c
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "F77_CMN_SIZE"   ! Size parameters
 
       ! Local variables
       INTEGER              :: I,    J,    L
@@ -7188,8 +7188,8 @@ c
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -7270,6 +7270,9 @@ c
          ! Get liquid water content within cloud [g/m3] directly from met
          ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+
+         !%%% NOTE: Someone should investigate effect of dividing LWC by the
+         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
 
 #else
          !---------------------------------------------
@@ -7387,8 +7390,8 @@ c
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+#     include "F77_CMN_SIZE"    ! Size parameters
+#     include "F77_CMN_DIAG"     ! ND44, ND07, LD07
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -7584,7 +7587,7 @@ c
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
-!#     include "CMN_SIZE"   ! Size parameters
+!#     include "F77_F77_CMN_SIZE"   ! Size parameters
 !
 !      ! Arguments
 !      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -7692,7 +7695,7 @@ c
 !      USE FILE_MOD,   ONLY : IU_FILE
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
-!#     include "CMN_SIZE"   ! Size parameters      
+!#     include "F77_CMN_SIZE"   ! Size parameters      
 !
 !      ! Arguments
 !      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -7760,8 +7763,8 @@ c
 !
 !  NOTES:
 !  (1 ) Also added arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  (2 ) Remove reference to CMN, it's obsolete (bmy, 7/20/04)
-!  (3 ) Now reference LSOA from "logical_mod.f" not CMN_SETUP.  Now call
+!  (2 ) Remove reference to F77_CMN, it's obsolete (bmy, 7/20/04)
+!  (3 ) Now reference LSOA from "logical_mod.f" not F77_CMN_SETUP.  Now call
 !        GET_BOUNDING_BOX from "grid_mod.f" to compute the indices I1_NA,
 !        I2_NA, J1_NA, J2_NA which define the N. America region. (bmy, 12/1/04)
 !  (4 ) Now call READ_GPROD_APROD to read GPROD & APROD from disk. 
@@ -7781,7 +7784,7 @@ c
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
       USE TRACERID_MOD, ONLY : IDTSOA5
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

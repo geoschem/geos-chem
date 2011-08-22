@@ -19,8 +19,8 @@
       IMPLICIT NONE
       PRIVATE
 
-#     include "CMN_SIZE"           ! Size parameters
-#     include "CMN_GCTM"           ! Physical constants
+#     include "F77_CMN_SIZE"           ! Size parameters
+#     include "F77_CMN_GCTM"           ! Physical constants
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
