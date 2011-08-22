@@ -92,12 +92,14 @@
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
 #  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
+#  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
 ROOTDIR := ..
+APM     := $(ROOTDIR)/GeosApm
 BIN     := $(ROOTDIR)/bin
 BPCH    := $(ROOTDIR)/GeosBpch
 DOC     := $(ROOTDIR)/doc
@@ -188,10 +190,11 @@ exe:
 	cp -f $(EXE) $(BIN)
 
 clean:
-	rm -f *.o *.mod geos
+	rm -f *.o *.mod geos geosapm geostomas
 
 realclean:
 	@$(MAKE) clean
+	@$(MAKE) -C $(APM) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
 	@$(MAKE) -C $(TOM) clean

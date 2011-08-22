@@ -73,6 +73,7 @@
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
 #  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
+#  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,6 +163,11 @@ ifeq ($(TOMAS),yes)
 FFLAGS  += -DTOMAS
 endif
 
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
+endif
+
 # Add special IFORT optimization commands
 ifdef IPO
 FFLAGS  += -ipo -static
@@ -230,6 +236,11 @@ ifeq ($(TOMAS),yes)
 FFLAGS  += -DTOMAS
 endif
 
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
+endif
+
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS  += -C
@@ -279,6 +290,11 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS  += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
 endif
 
 # Add option for "array out of bounds" checking
@@ -335,6 +351,11 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS  += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
 endif
 
 # Add option for "array out of bounds" checking

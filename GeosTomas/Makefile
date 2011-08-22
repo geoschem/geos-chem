@@ -70,6 +70,7 @@
 
 # Define variables
 ROOTDIR = ..
+APM     = $(ROOTDIR)/APM
 BIN     = $(ROOTDIR)/bin
 BPCH    = $(ROOTDIR)/GeosBpch
 CORE    = $(ROOTDIR)/GeosCore

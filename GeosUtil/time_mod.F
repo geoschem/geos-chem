@@ -118,6 +118,9 @@
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
       PUBLIC  :: GET_NYMD_DIAG
+#if   defined( APM )
+      PUBLIC  :: ITS_TIME_FOR_A6UPDATE
+#endif
 !
 ! !REVISION HISTORY:
 !  21 Jun 2000 - R. Yantosca - Initial version
@@ -178,6 +181,7 @@
 !  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
 !  27 Mar 2011 - R. Yantosca - Bug fix for GCAP leap year problem
 !  29 Jul 2011 - R. Yantosca - Add LEAP_YEAR_DAYS as a SAVEd module variable
+!  17 Feb 2011 - R. Yantosca - Added ITS_TIME_FOR_A6UPDATE for APM (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2591,14 +2595,24 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+#if   defined( APM )
+
+      ! For APM, return the time 6h (360m) from now
+      DATE = GET_TIME_AHEAD( 360 )
+
+#else
 
       ! Return the time 3h (180m) from now, since there is a 3-hour 
       ! offset between the actual time when the A-6 fields are read
       ! and the time that the A-6 fields are stamped with.
       DATE = GET_TIME_AHEAD( 180 )      
+
+#endif
 
       END FUNCTION GET_A6_TIME
 !EOC
@@ -3204,6 +3218,7 @@
 !  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3214,16 +3229,37 @@
 
 #if   defined( GCAP )
 
+      !-----------------------------------------------------------------
+      ! For GCAP met only 
+      !-----------------------------------------------------------------
+
       ! For GCAP data: We need to read A-6 fields when it 00, 06, 
       ! 12, 18 GMT.  DATE is the current time -- test below.
       DATE = GET_TIME_AHEAD( 0 )
 
 #else
 
+      !-----------------------------------------------------------------
+      ! For all other types of met data (except MERRA)
+      !-----------------------------------------------------------------
+
+#if   defined( APM )
+
+      ! %%% WITH APM MICROPHYSICS %%%
+
+      ! A-6 fields need to be interpolated for APM simulation
+      DATE = GET_TIME_AHEAD( 360 )
+
+#else
+
+      ! %%% WITHOUT APM MICROPHYSICS %%%
+
       ! For all GEOS data: We need to read A-6 fields when it is 03, 
       ! 09, 15, 21 GMT.  DATE is the time 3 hours from now -- test below.
       DATE = GET_TIME_AHEAD( 180 )
      
+#endif
+
 #endif
 
       ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
@@ -3232,6 +3268,80 @@
 
       END FUNCTION ITS_TIME_FOR_A6
 !EOC
+#if   defined( APM )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_a6update
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6UPDATE returns TRUE if it is time 
+!  to update the A6 (average 6-hr fields) for APM microphysics, and FALSE
+!  otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_A6UPDATE() RESULT( FLAG )
+!
+! !USES:
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+!
+! !REMARKS:
+!  This subroutine will only be compiled if you build GEOS-Chem with the
+!  APM=yes makefile option.
+! 
+! !REVISION HISTORY: 
+!  21 Mar 2003 - R. Yantosca - Initial Version
+!  (1 ) Now compute when it's time to read in GEOS-4 A-6 fields. (bmy, 6/26/03)
+!  (2 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
+!  (3 ) Now modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: DATE(2)
+
+#if   defined( GCAP )
+
+      !-----------------------------------------------------------------
+      ! For GCAP met only 
+      !-----------------------------------------------------------------
+
+      ! For GCAP data: We need to read A-6 fields when it 00, 06, 
+      ! 12, 18 GMT.  DATE is the current time -- test below.
+      DATE = GET_TIME_AHEAD( 0 )
+
+#else
+
+      !-----------------------------------------------------------------
+      ! For all other types of met data (except MERRA)
+      !-----------------------------------------------------------------
+
+      ! For all GEOS data: We need to read A-6 fields when it is 03, 
+      ! 09, 15, 21 GMT.  DATE is the time 3 hours from now
+      ! below.
+      DATE = GET_TIME_AHEAD( 180 )
+     
+#endif
+
+      ! Test if DATE corresponds to 00, 06, 12, 18 GMT.  
+      ! If so, then it is time to read A-6 fields from disk.
+      FLAG = ( MOD( DATE(2), 060000 ) == 0 ) 
+
+      ! Return to calling program
+      END FUNCTION ITS_TIME_FOR_A6UPDATE
+
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------

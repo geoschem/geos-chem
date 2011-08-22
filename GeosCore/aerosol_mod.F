@@ -539,6 +539,7 @@
 !        the AOD should be computed. This will set the optical properties
 !        that are used for the calculation of the AOD. The ND21 diagnostic
 !        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
+!  09 Mar 2011 - R. Yantosca - Set MSDENS(2) = 1800 for APM (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -920,7 +921,11 @@
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
+#if   defined( APM )
+      MSDENS(2) = 1800.0d0    !BC 
+#else
       MSDENS(2) = 1000.0d0    !BC 
+#endif
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)

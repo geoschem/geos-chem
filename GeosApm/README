@@ -1,0 +1,55 @@
+README -- describes contents of GeosApm directory
+11 Mar 2011
+Bob Yantosca
+geos-chem-support@as.harvard.edu
+
+
+The following files are lightly touched by the APM microphysics code and
+therefore can be kept in the GeosCore/ directory:
+
+aerosol_mod.f
+chemdr.f
+cleanup.f
+convection_mod.f
+diag1.f
+diag3.f
+diag_mod.f
+initialize.f
+input_mod.f
+isoropiaII_mod.f
+ndxx_setup.f
+rpmares_mod.f
+tpcore_bc_mod.f
+tracer_mod.f
+tracerid_mod.f
+transport_mod.f
+
+
+However, these files contain major modifications for APM and are better
+isolated in the GeosApm directory for the time being:
+
+a3_read_mod.f
+a6_read_mod.f
+apm_coag_mod.f
+apm_driv_mod.f
+apm_grow_mod.f
+apm_init_mod.f
+apm_nucl_mod.f
+apm_phys_mod.f
+apm_wets_mod.f
+carbon_mod.f
+chemistry_mod.f
+dao_mod.f
+drydep_mod.f
+dust_dead_mod.f
+dust_mod.f
+main.f
+restart_mod.f
+seasalt_mod.f
+sulfate_mod.f
+wetscav_mod.f
+
+
+In the future, we will work towards achieving a more clean separation of 
+APM code from GEOS-Chem code.  This will be a necessary step for creating
+the 1-D column GEOS-Chem mode.

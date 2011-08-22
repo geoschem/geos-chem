@@ -174,6 +174,7 @@
 !  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !  (20) Updates for mercury simulation (ccc, 5/17/10)
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -343,6 +344,7 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -377,8 +379,12 @@
       ! NNNTRID is used in this module to dimension some arrays
       ! NNNTRID should be the same as NNPAR in F77_CMN_SIZE
       IF ( NNNTRID .NE. NNPAR ) THEN
+#if   defined( APM )
+         write(*,*)'NNNTRID .NE. NNPAR!',NNNTRID,NNPAR
+#else
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
      &                                     'tracerid_mod,F77_CMN_SIZE' )
+#endif
          ! If you get this error, an appropriate fix is to increase 
          ! either NNNTRID (in tracerid_mod) or NNPAR (in F77_CMN_SIZE) so
          ! they are the same and greater than or equal to the number 

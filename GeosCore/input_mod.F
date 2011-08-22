@@ -112,6 +112,7 @@
 !  25 Aug 2010 - R. Yantosca - Added modifications for MERRA
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  29 Jul 2011 - R. Yantosca - Bug fix in READ_EMISSIONS_MENU for nested NA
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,6 +233,11 @@
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
             CALL READ_AEROSOL_MENU              
+
+#if   defined( APM )
+         ELSE IF ( INDEX( LINE, 'APM MENU'         ) > 0 ) THEN
+            CALL READ_APM_MENU
+#endif
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
             CALL READ_EMISSIONS_MENU              
@@ -704,7 +710,6 @@
       !=================================================================
       ! Call setup routines from other GEOS-CHEM modules
       !=================================================================
-
       ! Set start time of run in "time_mod.f"
       CALL SET_BEGIN_TIME( NYMDb, NHMSb )
 
@@ -816,7 +821,7 @@
          CALL ERROR_STOP( 'Error: N_TRACERS > NNPAR!', 
      &                    'read_tracer_menu (input_mod.f)' )
       ENDIF
-      
+     
       ! Initialize tracer arrays in tracer_mod.f
       CALL INIT_TRACER
 
@@ -2646,6 +2651,9 @@
       USE TRACER_MOD,  ONLY : ITS_A_MERCURY_SIM, ITS_A_TAGCO_SIM
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
       USE WETSCAV_MOD, ONLY : WETDEPID
+#if   defined( APM )
+      USE APM_WETS_MOD, ONLY : WETDEPBINID
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2655,6 +2663,7 @@
 !  (3 ) Remove references to obsolete CO_OH simulation (bmy, 6/24/05)
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2732,6 +2741,11 @@
 
       ! Initialize wet deposition tracers
       IF ( LWETD .or. LCONV ) CALL WETDEPID
+
+#if   defined( APM )
+      ! Initialize wet deposition tracers for APM
+      IF ( LWETD .or. LCONV ) CALL WETDEPBINID
+#endif
 
       ! FORMAT strings
  120  FORMAT( /, 'All tagged Hg2 tracers have the same dep velocity '
@@ -5222,6 +5236,97 @@
  100  FORMAT( A, L5  )
 
       END SUBROUTINE READ_CH4_MENU
+!EOC
+#if   defined( APM ) 
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_apm_menu
+!
+! !DESCRIPTION: Subroutine READ\_APM\_MENU reads the APM MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_APM_MENU
+!
+! !USES:
+!
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_G
+      USE APM_INIT_MOD,  ONLY : APMTRACER_MW_Kg
+      USE APM_INIT_MOD,  ONLY : IFNUCL
+      USE APM_INIT_MOD,  ONLY : FE0
+      USE APM_INIT_MOD,  ONLY : LAPM
+      USE TRACER_MOD,    ONLY : N_APMTRA
+      USE TRACER_MOD,    ONLY : N_TRACERS
+      USE TRACER_MOD,    ONLY : TCVV
+      USE TRACER_MOD,    ONLY : XNUMOL
+!
+! !REMARKS:
+!  This subroutine is only compiled when you build GEOS-Chem with the
+!  APM=yes makefile option.
+!
+! !REVISION HISTORY: 
+!  30 Sep 2008 - G. Luo, F. Yu - Initial version
+!  16 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: N,               N_APMTRAC1, T
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM), MSG
+
+      !=================================================================
+      ! READ_APM_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_APM_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! Nucleation scheme
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:1' )
+      READ( SUBSTRS(1:N), * ) IFNUCL
+
+      ! Primary sulfate fraction
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:2' )
+      READ( SUBSTRS(1:N), * ) FE0
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_apm_menu:3' )
+
+      ! Increment the TCVV and XNUMOL arrays for APM tracers
+      DO T = 1, N_APMTRA
+         TCVV(N_TRACERS+T)   = 28.97d0   / APMTRACER_MW_G(T)
+         XNUMOL(N_TRACERS+T) = 6.022d+23 / APMTRACER_MW_KG(T) 
+      ENDDO
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'APM MENU'
+      WRITE( 6, '(  a)' ) '----------------'
+      WRITE( 6, 100     ) 'Turn on APM and add tracers?: ', LAPM
+      WRITE( 6, 110     ) '# of additional APM tracers : ', N_APMTRA
+      WRITE( 6, 110     ) 'Nucleation Scheme           : ', IFNUCL
+      WRITE( 6, 120     ) 'Primary Sulfate Fraction    : ', FE0
+
+      ! FORMATs
+ 100  FORMAT( A, L5 )
+ 110  FORMAT( A, I5 )
+ 120  FORMAT( A, F7.3 )
+
+      END SUBROUTINE READ_APM_MENU
+!EOC
+#endif
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !

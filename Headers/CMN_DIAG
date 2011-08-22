@@ -46,6 +46,7 @@
 !  03 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  03 Aug 2010 - P. Kasibhatla & R. Yantosca - Now set MAX_TRACER to NNPAR+6 
 !                                              to match ND09 diagnostic
+!  09 Mar 2011 - R. Yantosca - Updated MAX_TRACER for APM (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -216,7 +217,9 @@
 ! Variables for printing out selected tracers in diagnostic output
       INTEGER, PARAMETER :: MAX_DIAG   = 70
 #if   defined( TOMAS )
-      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1  ! For TOMAS (win, 1/25/10)
+      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+1   ! For TOMAS (win, 1/25/10)
+#elif defined( APM ) 
+      INTEGER, PARAMETER :: MAX_TRACER = NNPAR+100 ! For APM (G. Luo 3/8/11)
 #else
       !------------------------------------------------------------------------
       ! Prior to 8/3/10:

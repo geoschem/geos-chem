@@ -58,6 +58,7 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Now added XNUMOL, XNUMOLAIR as module variables (bmy, 10/25/05)
 !  (6 ) Added public routine ITS_A_H2HD_SIM (phs, 9/18/07)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       !=================================================================
@@ -67,6 +68,9 @@
       ! Scalars
       INTEGER                        :: SIM_TYPE
       INTEGER                        :: N_TRACERS
+#if   defined( APM )
+      INTEGER                        :: N_APMTRA
+#endif
       ! N_MEMBERS increased from 10 to 15 (FP 8/2009)
       INTEGER,           PARAMETER   :: N_MEMBERS = 15
       REAL*8,            PARAMETER   :: XNUMOLAIR =  6.022d+23 / 
@@ -475,11 +479,18 @@
 
       ! Local variables
       LOGICAL                      :: LNEG, LNAN, LINF
-      INTEGER                      :: I,    J,    L,   N
+      INTEGER                      :: I,    J,    L,   N, N_TOT_TRC
       
       !=================================================================
       ! CHECK_STT begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Initialize
       LNEG = .FALSE.
@@ -490,7 +501,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+!---------------------------------
+! Prior to 2/16/11:
+!      DO N = 1, N_TRACERS
+!---------------------------------
+      DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -557,15 +572,56 @@
 !
 !  NOTES:
 !  (1 ) Now allocate XNUMOL (bmy, 10/25/05)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
+#if   defined( APM ) 
+      USE APM_INIT_MOD,  ONLY : APM_NTRACERS
+#endif
 
 #     include "F77_CMN_SIZE"
 
       ! Local variables
-      INTEGER :: AS
+      INTEGER :: AS, N_TOT_TRC
+
+#if   defined( APM ) 
+      INTEGER :: N_APMTRAC1
+
+      !=================================================================
+      ! We are using APM microphysics!
+      !=================================================================
+
+      ! Force LAPM=T if we compile with APM=yes makefile option
+      ! NOTE: LAPM is somewhat superfluous, since we now can use the
+      ! C-preprocessor switch to activate the code for APM simulations
+      ! (bmy, 2/17/11)
+      LAPM      = .TRUE.
+
+      ! Add additional tracers for APM
+      CALL APM_NTRACERS( N_TRACERS, N_APMTRAC1 )
+      N_APMTRA  = N_APMTRAC1  
+ 
+      ! N_TOT_TRC is the total # of G-C advected tracers + APM tracers
+      N_TOT_TRC = N_TRACERS + N_APMTRA 
+      
+#else
+
+      !=================================================================
+      ! We are not using APM microphysics
+      !=================================================================
+
+      ! Force LAPM=F
+      LAPM      = .FALSE.
+
+      ! No additional tracers for APM
+      N_APMTRA  = 0           
+
+      ! N_TOT_TRC is the total # of G-C advected tracers only
+      N_TOT_TRC = N_TRACERS
+
+#endif
 
       !=================================================================
       ! Allocate arrays 
@@ -578,7 +634,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_EMITTED' )
       ID_EMITTED = 0
 
-      ALLOCATE( TCVV( N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+! Prior to 2/16/11:
+!      ALLOCATE( TCVV( N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+      ALLOCATE( TCVV( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCVV' )
       TCVV = 0d0
 
@@ -606,11 +666,19 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
 
-      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+! Prior to 2/16/11:
+!      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
       STT = 0d0      
 
-      ALLOCATE( XNUMOL( N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+! Prior to 2/16/11:
+!      ALLOCATE( XNUMOL( N_TRACERS ), STAT=AS )
+!-----------------------------------------------------------------------------
+      ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0
 

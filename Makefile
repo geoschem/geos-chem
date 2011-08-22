@@ -31,6 +31,7 @@
 #                              the Makefile in the GeosCore sub-directory
 #  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
 #  25 Jan 2010 - R. Yantosca - Added Makefile targets for TOMAS microphysics
+#  16 Feb 2011 - R. Yantosca - Added Makefile targets for APM microphysics
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -39,6 +40,7 @@
 include ./Makefile_header.mk
 
 # Define variables
+GEOSAPM = GeosApm
 GEOSDIR = GeosCore
 GEOSTOM = GeosTomas
 GTMM = GTMM
@@ -99,6 +101,24 @@ exetomas:
 
 cleantomas:
 	@$(MAKE) -C $(GEOSTOM) TOMAS=yes clean
+
+#=============================================================================
+# Targets for APM aerosol microphysics code (bmy, 2/16/11)
+#=============================================================================
+
+.PHONY: apm libapm exeapm cleanapm
+
+apm:
+	@$(MAKE) -C $(GEOSAPM) APM=yes all
+
+libapm:
+	@$(MAKE) -C $(GEOSAPM) APM=yes lib
+
+exeapm:
+	@$(MAKE) -C $(GEOSAPM) APM=yes exe
+
+cleanapm:
+	@$(MAKE) -C $(GEOSAPM) APM=yes clean
 
 #=============================================================================
 # Targets for mercury simulation (ccc, 6/7/10)

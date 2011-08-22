@@ -82,6 +82,9 @@
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
+#if   defined( APM )
+      USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+#endif
 
       IMPLICIT NONE
 
@@ -170,6 +173,7 @@
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -247,6 +251,9 @@
       CALL CLEANUP_VISTAS_ANTHRO
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
+#if   defined( APM )
+      CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+#endif
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 

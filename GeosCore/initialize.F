@@ -67,6 +67,9 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCRYST
       USE TIME_MOD
+#if   defined( APM )
+      USE DIAG_MOD,    ONLY : AD07_OM
+#endif
 
       IMPLICIT NONE
 
@@ -230,12 +233,14 @@
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
          IF ( ND07 > 0 ) THEN
-            AD07     = 0e0
-            AD07_BC  = 0e0
-            AD07_OC  = 0e0
-            AD07_HC  = 0e0
+            AD07       = 0e0
+            AD07_BC    = 0e0
+            AD07_OC    = 0e0
+            AD07_HC    = 0e0
             AD07_SOAGM = 0e0
-
+#if   defined( APM )
+            AD07_OM    = 0e0
+#endif
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)

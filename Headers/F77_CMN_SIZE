@@ -361,6 +361,8 @@
       ! increase NNPAR and NEMPARA an extra amount (hotp 7/31/09)
 #if   defined( TOMAS )
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
+#elif defined( APM )
+      INTEGER, PARAMETER :: NNPAR   = 154   ! For APM (G. Luo, 3/8/11)
 #else
       ! increase NNPAR to 100 (FP 8/2009)
       INTEGER, PARAMETER :: NNPAR   = 75    ! For non-TOMAS simulations
@@ -510,5 +512,6 @@
 !  30 Nov 2010 - R. Yantosca - Increase LLTROP (from 38 to 40) for GEOS-5 and 
 !                              MERRA for the full 72-layer grids (i.e. when
 !                              the Cpp switch GRIDREDUCED is not set).
+!  09 Mar 2011 - R. Yantosca - Updated NNPAR for APM (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
