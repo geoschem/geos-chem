@@ -54,7 +54,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-!  Rename to get_global_Br
 ! !IROUTINE: get_global_Br
 !
 ! !DESCRIPTION: Subroutine GET\_GLOBAL\_Br reads global Br from 

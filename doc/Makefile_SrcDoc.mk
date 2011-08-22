@@ -41,6 +41,7 @@
 #  11 Jul 2011 - R. Yantosca - Added restart_mod
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #  29 Jul 2011 - R. Yantosca - Added planeflight_mod
+#  22 Aug 2011 - R. Yantosca - Added retro_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -52,6 +53,7 @@ SRC1 :=                              \
 $(HDR)/define.h                      \
 $(HDR)/CMN_SIZE                      \
 $(HDR)/CMN_DIAG                      \
+$(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
@@ -102,6 +104,7 @@ $(CORE)/nei2005_anthro_mod.F         \
 $(CORE)/optdepth_mod.F               \
 $(CORE)/pjc_pfix_mod.F               \
 $(CORE)/planeflight_mod.F            \
+$(CORE)/retro_mod.F                  \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
 $(CORE)/tagged_ox_mod.F              \
@@ -138,8 +141,7 @@ $(CORE)/readlai.F                    \
 $(CORE)/ruralbox.F                   \
 $(CORE)/setemis.F                    \
 $(CORE)/sfcwindsqr.F                 \
-$(CORE)/tcorr.F                      \
-$(CORE)/main.F                       \
+$(CORE)/tcorr.F
 
 
 # Output file names
