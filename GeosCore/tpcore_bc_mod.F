@@ -141,6 +141,7 @@
 !        Added multi-boundary condition output (NA, EU, CH and Custom region).
 !        Unternally defined boundary condition regions for NA, EU and CH.
 !        (amv, bmy, 12/18/09)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -337,6 +338,7 @@
 !        value for GEOS or GCAP grids (bmy, 6/28/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Can now save files to different directories (amv, bmy, 12/18/09)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -347,6 +349,9 @@
       USE TRACER_MOD, ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO_CU, LWINDO_NA
       USE LOGICAL_MOD, ONLY : LWINDO_CH, LWINDO_EU
+#if   defined( APM )
+      USE TRACER_MOD, ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE" ! Size parameters
 
@@ -354,7 +359,7 @@
       LOGICAL, SAVE      :: FIRST     = .TRUE.
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180 =  1
-      INTEGER            :: I, IOS, J, L, N, IC
+      INTEGER            :: I, IOS, J, L, N, IC, N_TOT_TRC
       REAL*4             :: LONRES, LATRES
       REAL*4             :: ARRAY(IIPAR,JJPAR,LLPAR)
       REAL*8             :: TAU
@@ -367,6 +372,13 @@
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Return if it's not time to write data to disk
       IF ( .not. ITS_TIME_FOR_BC() ) RETURN
@@ -389,7 +401,11 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+            DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
@@ -417,7 +433,11 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+            DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
@@ -446,7 +466,11 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+            DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
@@ -475,7 +499,11 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!            DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+            DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
                DO L = 1, LLPAR
@@ -517,21 +545,32 @@
 !  NOTES:
 !  (1 ) Now references N_TRACERS and STT from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now can use 2 x 2.5 BC's (amv, bmy, 12/18/09)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
       USE TRACER_MOD, ONLY : N_TRACERS, STT
       USE LOGICAL_MOD, ONLY : LWINDO2x25
+#if   defined( APM )
+      USE TRACER_MOD, ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE" ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: I, J, L, N
+      INTEGER       :: I, J, L, N, N_TOT_TRC
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Either zero BC's or read them from disk
       IF ( CLEAN_BC ) THEN
@@ -553,7 +592,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
 
            ! First loop over all latitudes (WINDOW REGION)
@@ -592,7 +635,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
 
            ! First loop over all latitudes (WINDOW REGION)
@@ -641,27 +688,43 @@
 !  NOTES:
 !  (1 ) Now references N_TRACERS from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now zeroes the arrays for the different regions (amv, bmy, 12/18/09)
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
       USE TRACER_MOD, ONLY : N_TRACERS
       USE LOGICAL_MOD,   ONLY : LWINDO_NA, LWINDO_EU
       USE LOGICAL_MOD,   ONLY : LWINDO_CH, LWINDO_CU
+#if   defined( APM )
+      USE TRACER_MOD, ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"  ! Size parameters
 #     include "define.h"
 
       ! Local variables
-      INTEGER :: I, J, L, N
+      INTEGER :: I, J, L, N, N_TOT_TRC
 
       !=================================================================
       ! CLEAN_WINDOW_TPCORE_BC begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
+
 #if   defined(NESTED_CH) || defined(NESTED_NA) || defined(NESTED_EU)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC
          DO I = 1, IM_BC
@@ -677,7 +740,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC
          DO I = 1, IM_BC
@@ -693,7 +760,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_NA
          DO I = 1, IM_BC_NA
@@ -709,7 +780,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_EU
          DO I = 1, IM_BC_EU
@@ -725,7 +800,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!        DO N = 1, N_TRACERS
+!------------------------------------------------------------------------------
+         DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_CH
          DO I = 1, IM_BC_CH

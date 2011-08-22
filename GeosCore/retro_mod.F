@@ -57,7 +57,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TIME_MOD,             ONLY : EXPAND_DATE, GET_MONTH
 
-#     include "CMN_SIZE"             ! Size parameters
+#     include "F77_CMN_SIZE"         ! Size parameters
       
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
@@ -173,8 +173,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! FSCLYR
+#     include "F77_CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_O3"       ! FSCLYR
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -316,7 +316,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -454,7 +454,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
 
-#     include "CMN_SIZE"     ! Size parameters
+#     include "F77_CMN_SIZE" ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, N
@@ -511,7 +511,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LRETRO
 
-#     include "CMN_SIZE"  ! Size parameters
+#     include "F77_CMN_SIZE"  ! Size parameters
 
       ! Local variables
       INTEGER :: AS

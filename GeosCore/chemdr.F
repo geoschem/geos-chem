@@ -395,9 +395,15 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
-      
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                    FRCLND,                 IT_EXISTS )
          ELSE 
 
             ! Use restart values 
@@ -405,15 +411,29 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+            CALL GASCONC( .FALSE.,                 N_TRACERS, 
+     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                     FRCLND,                 IT_EXISTS )
 
          ENDIF 
 
       ELSE 
-               
-         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                 IT_EXISTS )
+
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                 IT_EXISTS )
+!------------------------------------------------------------------------------
+         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
+     &                  FRCLND,                 IT_EXISTS )
 
       ENDIF 
       IT_EXISTS = .FALSE.
@@ -498,7 +518,14 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-      CALL LUMP( N_TRACERS, XNUMOL, STT )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!      CALL LUMP( N_TRACERS, XNUMOL, STT )
+!------------------------------------------------------------------------------
+      CALL LUMP( N_TRACERS, 
+     &           XNUMOL(1:N_TRACERS),
+     &           STT(:,:,:,1:N_TRACERS) )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
@@ -507,9 +534,20 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
-     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-     &                SAVENO,    SAVENO2, SAVENO3 )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
+!     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+!     &                SAVENO,    SAVENO2, SAVENO3 )
+!------------------------------------------------------------------------------
+         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
+     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
+     &                FRACNO,                 FRACNO2, 
+     &                SAVEOH,                 SAVEHO2, 
+     &                SAVENO,                 SAVENO2, 
+     &                SAVENO3 )
+
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
       ENDIF

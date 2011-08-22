@@ -205,6 +205,9 @@
       USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+#if   defined( APM )
+      USE TRACER_MOD,       ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"         ! Size parameters        
 #     include "F77_CMN_GCTM"         ! Physical constants
@@ -219,13 +222,14 @@
 !        concentrations when doing the computation (ccc, bmy, 2/17/09)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, L2, N, N_DYN
+      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL*8  :: A_DIFF, D_DYN, TR_DIFF
       REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -233,7 +237,11 @@
       REAL*8  :: P_TP2(IIPAR,JJPAR)
       REAL*8  :: P_TEMP(IIPAR,JJPAR)
       REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
-      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#if   defined( APM )
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)  ! With APM
+#else
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)           ! W/o APM
+#endif
       REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
@@ -245,6 +253,13 @@
       !=================================================================
       ! GEOS4_GEOS5_GLOBAL_ADV begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -299,7 +314,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+!--------------------------------
+! Prior to 2/16/11:
+!     DO N = 1, N_TRACERS
+!--------------------------------
+      DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -351,7 +370,11 @@
       ! (ccc, 3/8/10)
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
-     &                   MG,       N_TRACERS, Ap,       Bp,
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!     &                   MG,       N_TRACERS, Ap,       Bp,
+!------------------------------------------------------------------------------
+     &                   MG,       N_TOT_TRC, Ap,       Bp,
      &                   UTMP,     VTMP,      P_TP1,    P_TP2,
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
      &                   IORD,     JORD,      KORD,     N_ADJ,     
@@ -376,7 +399,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TRACERS
+!----------------------------
+! Prior to 2/16/11:
+!      DO N = 1, N_TRACERS
+!----------------------------
+      DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
          SUMADA = 0.d0
@@ -453,6 +480,9 @@
       USE TPCORE_BC_MOD,    ONLY : SAVE_GLOBAL_TPCORE_BC
       USE TPCORE_MOD,       ONLY : TPCORE
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+#if   defined( APM )
+      USE TRACER_MOD,       ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"         ! Size parameters
 #     include "F77_CMN_GCTM"         ! Physical constants
@@ -464,13 +494,14 @@
 !        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: I, J, L, N_DYN
+      INTEGER            :: I, J, L, N_DYN, N_TOT_TRC
       REAL*8             :: A_DIFF, D_DYN, TR_DIFF
       REAL*8             :: P_TP1(IIPAR,JJPAR)
       REAL*8             :: P_TP2(IIPAR,JJPAR)
@@ -487,6 +518,13 @@
       !=================================================================
       ! GEOS3_GLOBAL_ADV begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Save boundary conditions (global grid) for future nested run
       IF ( LWINDO ) CALL SAVE_GLOBAL_TPCORE_BC
@@ -552,7 +590,11 @@
       ! L=1 is atm top, so flip in the vertical. (bmy, 10/30/07)
       CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
      &             P_TP1, P_TP2, UTMP, VTMP,  WW,    
-     &             N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!     &             N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
+!------------------------------------------------------------------------------
+     &             N_DYN, IORD,  JORD, KORD,  N_TOT_TRC, 
      &             IIPAR, JJPAR, J1,   LLPAR, Ap,   
      &             Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
 
@@ -595,6 +637,9 @@
       USE TIME_MOD,         ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD, ONLY : TPCORE_FVDAS
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
+#if   defined( APM )
+      USE TRACER_MOD,       ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"         ! Size parameters
 #     include "F77_CMN_GCTM"         ! Physical constants
@@ -608,13 +653,14 @@
 !        concentrations when doing the computation (ccc, bmy, 2/17/09)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I, J, L, L2, N, N_DYN
+      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL*8  :: A_DIFF, D_DYN, TR_DIFF
       REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -622,7 +668,11 @@
       REAL*8  :: P_TP2(IIPAR,JJPAR)
       REAL*8  :: P_TEMP(IIPAR,JJPAR)
       REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+#if   defined( APM )
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+#else
       REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
       REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR) 
@@ -634,6 +684,13 @@
       !=================================================================
       ! GCAP_GLOBAL_ADV begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Dynamic timestep [s]
       N_DYN = GET_TS_DYN() * 60
@@ -693,7 +750,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+!----------------------------
+! Prior to 2/16/11:
+!      DO N = 1, N_TRACERS
+!----------------------------
+      DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -744,7 +805,11 @@
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
-     &                   MG,       N_TRACERS, Ap,       Bp,
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!     &                   MG,       N_TRACERS, Ap,       Bp,
+!------------------------------------------------------------------------------
+     &                   MG,       N_TOT_TRC, Ap,       Bp,
      &                   UTMP,     VTMP,      P_TP1,    P_TP2,
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
      &                   IORD,     JORD,      KORD,     N_ADJ,     
@@ -770,7 +835,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-      DO N = 1, N_TRACERS
+!-----------------------------
+! Prior to 2/16/11:
+!      DO N = 1, N_TRACERS
+!-----------------------------
+      DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
          SUMADA = 0.d0
@@ -855,6 +924,9 @@
       USE TPCORE_WINDOW_MOD,         ONLY : TPCORE_WINDOW
       USE TPCORE_GEOS5_WINDOW_MOD,   ONLY : TPCORE_GEOS5_WINDOW
       USE TRACER_MOD,                ONLY : N_TRACERS, STT, TCVV
+#if   defined( APM )
+      USE TRACER_MOD,                ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"                  ! Size parameters
 #     include "F77_CMN_GCTM"                  ! Physical constants
@@ -865,6 +937,7 @@
 
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -872,7 +945,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I0,J0
-      INTEGER :: I, J, L, L2, N, N_DYN
+      INTEGER :: I, J, L, L2, N, N_DYN, N_TOT_TRC
       REAL*8  :: A_DIFF, D_DYN, TR_DIFF
       REAL*8  :: AD_A(IIPAR,JJPAR,LLPAR)
       REAL*8  :: AD_B(IIPAR,JJPAR,LLPAR)
@@ -880,7 +953,11 @@
       REAL*8  :: P_TP2(IIPAR,JJPAR)
       REAL*8  :: P_TEMP(IIPAR,JJPAR)
       REAL*8  :: TR_A(IIPAR,JJPAR,LLPAR)
+#if   defined( APM )
+      REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA) 
+#else
       REAL*8  :: TR_B(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
       REAL*8  :: UTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: VTMP(IIPAR,JJPAR,LLPAR)
       REAL*8  :: XMASS(IIPAR,JJPAR,LLPAR)
@@ -889,6 +966,13 @@
       !=================================================================
       ! DO_GEOS5_FVDAS_WINDOW_TRANSPORT begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -947,7 +1031,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-      DO N = 1, N_TRACERS
+!------------------------------
+! Prior to 2/16/11:
+!      DO N = 1, N_TRACERS
+!------------------------------
+      DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1001,7 +1089,11 @@
       ! Do the advection
       CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
-     &                          MG,       N_TRACERS, Ap,       Bp,
+!---------------------------------------------------------------------------
+! Prior to 2/16/11:
+!     &                          MG,       N_TRACERS, Ap,       Bp,
+!---------------------------------------------------------------------------
+     &                          MG,       N_TOT_TRC, Ap,       Bp,
      &                          UTMP,     VTMP,      P_TP1,    P_TP2,
      &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
      &                          IORD,     JORD,      KORD,     N_ADJ,
@@ -1053,6 +1145,9 @@
       USE TPCORE_BC_MOD,     ONLY : DO_WINDOW_TPCORE_BC
       USE TPCORE_WINDOW_MOD, ONLY : TPCORE_WINDOW
       USE TRACER_MOD,        ONLY : STT, N_TRACERS
+#if   defined( APM )
+      USE TRACER_MOD,        ONLY : N_APMTRA
+#endif
 
 #     include "F77_CMN_SIZE"          ! Size parameters
 #     include "F77_CMN_GCTM"          ! Re
@@ -1066,13 +1161,14 @@
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: I, I0, J, J0, N_DYN
+      INTEGER             :: I, I0, J, J0, N_DYN, N_TOT_TRC
       REAL*8              :: P_TP1(IIPAR,JJPAR)
       REAL*8              :: P_TP2(IIPAR,JJPAR)
       REAL*8              :: UTMP(IIPAR,JJPAR,LLPAR)
@@ -1087,6 +1183,13 @@
       !=================================================================
       ! DO_WINDOW_TRANSPORT begins here!
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers only
+#endif
 
       ! Get nested-grid lon/lat offsets [# boxes]
       I0    = GET_XOFFSET( GLOBAL=.TRUE. )
@@ -1117,7 +1220,11 @@
       ! dynamic timestep (P = PS-PTOP; P_TEMP = PSC2-PTOP).
       CALL TPCORE_WINDOW( IGD,   STT,       P_TP1, P_TP2,  UTMP,  
      &                    VTMP,  WW,        N_DYN, IORD,   JORD,   
-     &                    KORD,  N_TRACERS, IIPAR, JJPAR,  J1,    
+!-----------------------------------------------------------------------
+! Prior to 2/16/11:
+!     &                    KORD,  N_TRACERS, IIPAR, JJPAR,  J1,    
+!-----------------------------------------------------------------------
+     &                    KORD,  N_TOT_TRC, IIPAR, JJPAR,  J1,    
      &                    I0,    J0,        I0_W,  J0_W,   I1_W,  
      &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  
      &                    IGZD,  LLPAR,     AP,    BP,     PTOP,  

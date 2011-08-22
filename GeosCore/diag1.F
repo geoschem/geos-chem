@@ -31,6 +31,9 @@
       USE TRACER_MOD,     ONLY : XNUMOLAIR
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+#if   defined( APM )
+      USE TRACER_MOD,     ONLY : N_APMTRA
+#endif
 
       IMPLICIT NONE
 
@@ -91,6 +94,7 @@
 !  (30) Use LTO3 for O3 in ND45. (ccc, 7/20/09)
 !  (31) Add potential temperature diagnostic in ND57 (fp, 2/3/10)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  15 Feb 2011 - R. Yantosca - Added modifications for APM from G. Luo
 !
 ! !REMARKS:
 !  For a complete list of GEOS-Chem diagnostics, please see this web page:
@@ -101,19 +105,30 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
-      REAL*8             :: FDTT, XLOCTM, AREA_M2
-      REAL*8             :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      LOGICAL :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
+      INTEGER :: I, J, K, L, N, NN, IREF, JREF, LN45, N_TRC
+      REAL*8  :: FDTT, XLOCTM, AREA_M2
+#if   defined( APM ) 
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+#else
+      REAL*8  :: STT_VV(IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif 
 
       !FOR ND57
       ! For FP potential temperature (hotp 7/31/09)
-      REAL*8             :: P0
+      REAL*8  :: P0
 
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
       
+      ! Pick the proper # of tracers for diagnostics
+#if   defined( APM )
+      N_TRC = N_TRACERS + N_APMTRA    ! G-C advected tracers + APM tracers
+#else 
+      N_TRC = N_TRACERS               ! G-C advected tracers
+#endif
+
       ! Is it a fullchem run?
       IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
       IS_CHEM     = ITS_TIME_FOR_CHEM()
@@ -123,7 +138,11 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+! Prior to 2/15/11:
+!         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+         DO N = 1, N_TRC
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -177,7 +196,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+! Prior to 2/15/11:
+!         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+         DO N = 1, N_TRC
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -229,7 +252,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+! Prior to 2/15/11:
+!         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+         DO N = 1, N_TRC
             DO L = 1, LD45  
             DO J = 1, JJPAR 
             DO I = 1, IIPAR
@@ -246,8 +273,14 @@
                DO L = 1, LD45
                DO J = 1, JJPAR
                DO I = 1, IIPAR
+#if   defined( APM )
+                  AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) = 
+     &            AD45(I,J,L,(N_TRACERS+N_APMTRA+1)) +
+     &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
+#else
                   AD45(I,J,L,N_TRACERS+1) = AD45(I,J,L,N_TRACERS+1) +
      &                 ( STT_VV(I,J,L,N) * FRACO3(I,J,L) * LTO3(I,J) )
+#endif
                ENDDO            
                ENDDO            
                ENDDO            
@@ -266,7 +299,11 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+! Prior to 2/15/11:
+!         DO N = 1, N_TRACERS
+!-----------------------------------------------------------------------------
+         DO N = 1, N_TRC
             DO L = 1, LD47
             DO J = 1, JJPAR
             DO I = 1, IIPAR
@@ -320,20 +357,17 @@
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-         P0=GET_PEDGE(I,J,1)
+            P0          = GET_PEDGE(I,J,1)
 
-         AD57(I,J,L)= AD57(I,J,L)
-     &       + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
+            AD57(I,J,L) = AD57(I,J,L)
+     &                  + T(I,J,L)*(P0/GET_PCENTER( I, J, L ))**0.286
 
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-
       ENDIF
-          
-          
+
       !=================================================================  
       ! ND67: Store PBL top pressure [hPa]
       !=================================================================  
