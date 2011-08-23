@@ -46,6 +46,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -115,7 +116,7 @@
       USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST
 #endif
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -1887,7 +1888,7 @@
       ! F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS

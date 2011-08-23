@@ -18,6 +18,7 @@
       USE EPA_NEI_MOD, ONLY : GET_USA_MASK
 
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -166,8 +167,8 @@
       USE TIME_MOD,          ONLY : GET_YEAR, GET_MONTH
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_O3"            ! FSCALYR
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_O3_MOD            ! FSCALYR
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -344,7 +345,7 @@
 ! 
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - A. v. Donkelaar, P. Le Sager - Initial Version
@@ -399,7 +400,7 @@
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTNOX
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -489,7 +490,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LVISTAS
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version

@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -110,7 +111,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  07 Aug 2002 - H. Liu - Initial version
@@ -268,9 +269,9 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_DIAG"       ! ND02 
-#     include "F77_CMN_DEP"        ! FRCLND
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND02 
+      USE CMN_DEP_MOD        ! FRCLND
 ! 
 ! !REVISION HISTORY: 
 !  28 May 1999 - I. Bey - Initial version
@@ -556,8 +557,8 @@
       USE TRACER_MOD,     ONLY : STT, N_TRACERS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_DIAG"       ! ND01, ND02
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND01, ND02
 ! 
 ! !REVISION HISTORY:
 !  31 Oct 1999 - H. Liu - Initial version

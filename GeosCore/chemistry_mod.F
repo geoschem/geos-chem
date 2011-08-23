@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -112,9 +113,9 @@
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
-#     include "F77_CMN_SIZE"        ! Size parameters
-#     include "F77_CMN_DIAG"        ! NDxx flags
-#     include "comode.h"        ! NPHOT
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE COMODE_LOOP_MOD        ! NPHOT
+      USE CMN_DIAG_MOD        ! NDxx flags
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -201,7 +202,7 @@
                 IF ( LSSALT ) THEN
                 
                    ! ISOROPIA takes Na+, Cl- into account
-                   CALL DO_ISOROPIAII
+!                   CALL DO_ISOROPIAII
                 
                 ELSE
  
@@ -273,7 +274,7 @@
              IF ( LSSALT ) THEN
              
                 ! ISOROPIA takes Na+, Cl- into account
-                CALL DO_ISOROPIAII
+!                CALL DO_ISOROPIAII
              
              ELSE
  

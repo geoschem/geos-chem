@@ -26,9 +26,21 @@
 !  (12) Increase species name length. (fp, 2/2/10)
 !
 !          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !******************************************************************************
 !
-#     include "CMN_SIZE"
+      MODULE CMN_FJ_MOD
+
+#     include "define.h"
+
+      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
+
+      IMPLICIT NONE
+      
+      PUBLIC
+!      SAVE
 
       ! Global array sizes in longitude, latitude, altitude
       INTEGER, PARAMETER :: IPAR = IIPAR
@@ -42,24 +54,21 @@
 
       ! Variables for number of layers and number of photolysis rxns
       INTEGER            :: JPNL, JPPJ       
-      COMMON /FJ_INTEG/     JPNL, JPPJ
 
       ! Branches for photolysis species
-      INTEGER            :: BRANCH        
-      COMMON /FJ_BRANCH/    BRANCH(JPMAX)
+      INTEGER            :: BRANCH(JPMAX)
 
       ! Names of photolysis species
       ! FP increased length of RNAMES for species indistinguishable
       ! with only 4 characters (hotp 7/31/09)
       ! used in jv_index and rd_js.f
       !CHARACTER (LEN=4)  :: RNAMES
-      CHARACTER (LEN=7)  :: RNAMES
-      COMMON /FJ_NAME/      RNAMES(JPMAX)
+      CHARACTER (LEN=7)  :: RNAMES(JPMAX)
 
       ! Mapping array from Harvard species names to UCI species names
-      INTEGER            :: RINDEX                
-      COMMON /FJ_INDX/      RINDEX(JPMAX)
+      INTEGER            :: RINDEX(JPMAX)
 
       ! Output J-values
-      REAL*8             :: ZPJ        
-      COMMON /FJ_VALUE/     ZPJ(LPAR,JPMAX,IPAR,JPAR)
+      REAL*8             :: ZPJ(LPAR,JPMAX,IPAR,JPAR)
+
+      END MODULE CMN_FJ_MOD

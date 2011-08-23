@@ -4,13 +4,15 @@
       ! References to F90 modules (bmy, 10/19/00)
       USE COMODE_MOD, ONLY : IXSAVE, IYSAVE, JLOP
 
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+
       IMPLICIT NONE
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
+#     include "define.h"
 
       INTEGER   I,J,K,JLOOP,IJWINDOW,IX,IY
       REAL*8    SUNCOS(MAXIJ)
-C
+!
 *** see if photolysis should be considered.
 c  Get the right index for SUNCOS, which is calculated
 c  outside of chemistry module.

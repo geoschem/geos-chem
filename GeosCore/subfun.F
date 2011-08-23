@@ -9,75 +9,76 @@
 !  (1 ) Now force double-precision with the "D" exponent (bmy, 4/18/03)
 !******************************************************************************
 !
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
-C ***                         (650) 723-6836                        *** 
-C *********************************************************************
-C
-C      SSSSSSS  U     U  BBBBBBB  FFFFFFF  U     U  N     N  
-C      S        U     U  B     B  F        U     U  NN    N 
-C      SSSSSSS  U     U  BBBBBBB  FFF      U     U  N  N  N 
-C            S  U     U  B     B  F        U     U  N    NN
-C      SSSSSSS  UUUUUUU  BBBBBBB  F        UUUUUUU  N     N 
-C
-C *********************************************************************
-C *  THIS SUBROUTINE EVALUATES THE FIRST DERIVATIVE OF EACH ORDINARY  *  
-C *                  DIFFERENTIAL EQUATION (ODE)                      * 
-C *                                                                   *
-C * HOW TO CALL SUBROUTINE:                                           *
-C * ----------------------                                            *
-C *  CALL SUBFUN.F FROM SMVGEAR.F WITH                                * 
-C *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
-C *     NCSP = NCS        FOR DAYTIME   GAS CHEM                      *  
-C *     NCSP = NCS   +ICS FOR NIGHTTIME GAS CHEM                      *  
-C *********************************************************************
-C
-C EXAMPLE
-C -------
-C
-C SPECIES:         A,   B,   C
-C CONCENTRATIONS: [A], [B], [C]
-C
-C REACTIONS:    1) A           --> B      J 
-C               2) A  + B      --> C      K1 
-C               3  A  + B + C  --> D      K2  
-C
-C FIRST         d[A] / dt  =  -J[A] - K1[A][B] - K2[A][B][C]
-C DERIVATIVES:  d[B] / dt  =  +J[A] - K1[A][B] - K2[A][B][C]
-C               d[C] / dt  =        + K1[A][B] - K2[A][B][C]
-C               d[D] / dt  =                   + K2[A][B][C]
-C
-C *********************************************************************
-C
-C CONCMULT  = PRODUCT OF CONCENTRATIONS IN A RATE. IF TWO  
-C             CONSECUTIVE REACTIONS HAVE THE SAME SPECIES REACTING
-C             (EG A + B --> C AND A + B --> D + E) THEN USE THE 
-C             SAME VALUE OF CONCMULT FOR BOTH REACTIONS.
-C CNEW      = INIT (AND FINAL) SPECIES CONC (# CM-3-AIR OR MOLES L-1-H2O)
-C GLOSS     = FIRST DERIVATIVE = SUM OF PROD. MINUS LOSS RATES FOR A SPECIES
-C IRMA,B,C  = LOCATES REORDERED ACTIVE SPECIES NUMBERS  
-C ISCHAN    = NUMBER OF ODES.
-C LOSSRA..  = REAORDERED REACTION RATE NUMBERS FOR EACH LOSS (AND PROD) TERM
-C KTLOOP    = NUMBER OF GRID-CELLS IN A GRID-BLOCK
-C NSUBFUN   = COUNTS THE NUMBER OF TIMES THIS ROUTINE IS CALLED
-C RRATE     = FORWARD RATE COEFFICIENT 
-C           = S-1                                 FOR RATES WITH 1 REACTANT
-C           = L-H2O MOLE-1 S-1  OR CM**3 #-1 S-1  FOR RATES WITH 2 REACTANTS 
-C           = L**2-H2O M-2 S-1  OR CM**6 #-2 S-1  FOR RATES WITH 3 REACTANTS 
-C TRATE     = REACTION RATE  MOLES L-1 -H2O S-1 OR # CM-3 S-1 
-C 
-C *********************************************************************
-C *                      SET RATES OF REACTION                        *
-C *********************************************************************
-C
-C
+      IMPLICIT NONE
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
+! ***                         (650) 723-6836                        *** 
+! *********************************************************************
+!
+!      SSSSSSS  U     U  BBBBBBB  FFFFFFF  U     U  N     N  
+!      S        U     U  B     B  F        U     U  NN    N 
+!      SSSSSSS  U     U  BBBBBBB  FFF      U     U  N  N  N 
+!            S  U     U  B     B  F        U     U  N    NN
+!      SSSSSSS  UUUUUUU  BBBBBBB  F        UUUUUUU  N     N 
+!
+! *********************************************************************
+! *  THIS SUBROUTINE EVALUATES THE FIRST DERIVATIVE OF EACH ORDINARY  *  
+! *                  DIFFERENTIAL EQUATION (ODE)                      * 
+! *                                                                   *
+! * HOW TO CALL SUBROUTINE:                                           *
+! * ----------------------                                            *
+! *  CALL SUBFUN.F FROM SMVGEAR.F WITH                                * 
+! *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
+! *     NCSP = NCS        FOR DAYTIME   GAS CHEM                      *  
+! *     NCSP = NCS   +ICS FOR NIGHTTIME GAS CHEM                      *  
+! *********************************************************************
+!
+! EXAMPLE
+! -------
+!
+! SPECIES:         A,   B,   C
+! CONCENTRATIONS: [A], [B], [C]
+!
+! REACTIONS:    1) A           --> B      J 
+!               2) A  + B      --> C      K1 
+!               3  A  + B + C  --> D      K2  
+!
+! FIRST         d[A] / dt  =  -J[A] - K1[A][B] - K2[A][B][C]
+! DERIVATIVES:  d[B] / dt  =  +J[A] - K1[A][B] - K2[A][B][C]
+!               d[C] / dt  =        + K1[A][B] - K2[A][B][C]
+!               d[D] / dt  =                   + K2[A][B][C]
+!
+! *********************************************************************
+!
+! CONCMULT  = PRODUCT OF CONCENTRATIONS IN A RATE. IF TWO  
+!             CONSECUTIVE REACTIONS HAVE THE SAME SPECIES REACTING
+!             (EG A + B --> C AND A + B --> D + E) THEN USE THE 
+!             SAME VALUE OF CONCMULT FOR BOTH REACTIONS.
+! CNEW      = INIT (AND FINAL) SPECIES CONC (# CM-3-AIR OR MOLES L-1-H2O)
+! GLOSS     = FIRST DERIVATIVE = SUM OF PROD. MINUS LOSS RATES FOR A SPECIES
+! IRMA,B,C  = LOCATES REORDERED ACTIVE SPECIES NUMBERS  
+! ISCHAN    = NUMBER OF ODES.
+! LOSSRA..  = REAORDERED REACTION RATE NUMBERS FOR EACH LOSS (AND PROD) TERM
+! KTLOOP    = NUMBER OF GRID-CELLS IN A GRID-BLOCK
+! NSUBFUN   = COUNTS THE NUMBER OF TIMES THIS ROUTINE IS CALLED
+! RRATE     = FORWARD RATE COEFFICIENT 
+!           = S-1                                 FOR RATES WITH 1 REACTANT
+!           = L-H2O MOLE-1 S-1  OR CM**3 #-1 S-1  FOR RATES WITH 2 REACTANTS 
+!           = L**2-H2O M-2 S-1  OR CM**6 #-2 S-1  FOR RATES WITH 3 REACTANTS 
+! TRATE     = REACTION RATE  MOLES L-1 -H2O S-1 OR # CM-3 S-1 
+! 
+! *********************************************************************
+! *                      SET RATES OF REACTION                        *
+! *********************************************************************
+!
+!
       ! Local variables
       INTEGER NKN,JA,JB,JC,NH,K,NK2,NH2,JSPC,NPL,NL5,NH5,NL4,NH4,NL3,NH3
       INTEGER NL2,NL1,NH1,NC,NK0,NK1,NK3,NK4,N
@@ -86,11 +87,11 @@ C
 
       NSUBFUN        = NSUBFUN + 1
       NFDH1          = NFDH2 + IONER(NCSP) 
-C
-C *********************************************************************
-C *     FIRST DERIVATIVES FOR RATES WITH THREE ACTIVE LOSS TERMS      *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *     FIRST DERIVATIVES FOR RATES WITH THREE ACTIVE LOSS TERMS      *
+! *********************************************************************
+!
 
       DO 102 NKN     = 1, NFDH3  
        JA            = IRMA(NKN)
@@ -103,11 +104,11 @@ C
  100   CONTINUE
  102  CONTINUE
 
-C
-C *********************************************************************
-C *     FIRST DERIVATIVES FOR RATES WITH TWO ACTIVE LOSS TERMS        *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *     FIRST DERIVATIVES FOR RATES WITH TWO ACTIVE LOSS TERMS        *
+! *********************************************************************
+!
 
       DO 152 NKN     = NFDL2, NFDREP
        JA            = IRMA(NKN)
@@ -119,13 +120,13 @@ C
  150   CONTINUE 
  152  CONTINUE 
 
-C
-C *********************************************************************
-C *     FIRST DERIVATIVES FOR RATES WITH TWO ACTIVE LOSS TERMS AND    *
-C *     WHERE THE SUBSEQUENT REACTION HAS THE SAME REACTANTS BUT A    *
-C *     DIFFERENT RATE.                                               *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *     FIRST DERIVATIVES FOR RATES WITH TWO ACTIVE LOSS TERMS AND    *
+! *     WHERE THE SUBSEQUENT REACTION HAS THE SAME REACTANTS BUT A    *
+! *     DIFFERENT RATE.                                               *
+! *********************************************************************
+!
       DO 202 NKN     = NFDREP1, NFDH2, 2
        JA            = IRMA(NKN)
        JB            = IRMB(NKN)
@@ -141,11 +142,11 @@ C
  200   CONTINUE 
  202  CONTINUE 
 
-C
-C *********************************************************************
-C *     FIRST DERIVATIVES FOR RATES WITH ONE ACTIVE LOSS TERM         *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *     FIRST DERIVATIVES FOR RATES WITH ONE ACTIVE LOSS TERM         *
+! *********************************************************************
+!
       DO 252 NKN     = NFDL1, NFDH1
        JA            = IRMA(NKN)
        NH            = NKN + NALLR
@@ -155,11 +156,11 @@ C
  250   CONTINUE 
  252  CONTINUE 
 
-C
-C *********************************************************************
-C *                  INITIALIZE FIRST DERIVATIVE = 0                  *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *                  INITIALIZE FIRST DERIVATIVE = 0                  *
+! *********************************************************************
+!
 
       DO 302 JSPC      = 1, ISCHAN
        DO 300 K        = 1, KTLOOP
@@ -167,13 +168,13 @@ C
  300   CONTINUE
  302  CONTINUE
 
-C
-C *********************************************************************
-C * SUM NET (NOT REPRODUCED) KINETIC AND PHOTO GAINS AND LOSSES FOR   *
-C * EACH SPECIES.                                                     *
-C *********************************************************************
-C SUM 1,2,3,4, OR 5 TERMS AT A TIME TO IMPROVE VECTORIZATION.
-C
+!
+! *********************************************************************
+! * SUM NET (NOT REPRODUCED) KINETIC AND PHOTO GAINS AND LOSSES FOR   *
+! * EACH SPECIES.                                                     *
+! *********************************************************************
+! SUM 1,2,3,4, OR 5 TERMS AT A TIME TO IMPROVE VECTORIZATION.
+!
       DO 554 NPL       = NPLLO(NCSP), NPLHI(NCSP)
        JSPC            = JSPNPL(NPL)
        NL5             = NPL5(  NPL)
@@ -186,9 +187,9 @@ C
        NH2             = NPH2(  NPL)
        NL1             = NPL1(  NPL)
        NH1             = NPH1(  NPL)
-C
-C ***********************  SUM 5 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 5 TERMS AT A TIME  ********************* 
+!
        DO 352 NC       = NL5, NH5
         NK0            = LOSSRA(NC)
         NK1            = LOSSRB(NC)
@@ -202,9 +203,9 @@ C
  350    CONTINUE
  352   CONTINUE
 
-C
-C ***********************  SUM 4 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 4 TERMS AT A TIME  ********************* 
+!
        DO 402 NC       = NL4, NH4 
         NK0            = LOSSRA(NC)
         NK1            = LOSSRB(NC)
@@ -216,9 +217,9 @@ C
      2                 - TRATE(K,NK3)  
  400    CONTINUE
  402   CONTINUE
-C
-C ***********************  SUM 3 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 3 TERMS AT A TIME  ********************* 
+!
        DO 452 NC       = NL3, NH3  
         NK0            = LOSSRA(NC)
         NK1            = LOSSRB(NC)
@@ -228,9 +229,9 @@ C
      1                 - TRATE(K,NK1)  - TRATE(K,NK2)
  450    CONTINUE
  452   CONTINUE
-C
-C ***********************  SUM 2 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 2 TERMS AT A TIME  ********************* 
+!
        DO 502 NC       = NL2, NH2   
         NK0            = LOSSRA(NC)
         NK1            = LOSSRB(NC)
@@ -239,9 +240,9 @@ C
      1                 - TRATE(K,NK1)      
  500    CONTINUE
  502   CONTINUE
-C
-C ***********************  SUM 1 TERM AT A TIME  ********************** 
-C
+!
+! ***********************  SUM 1 TERM AT A TIME  ********************** 
+!
        DO 552 NC       = NL1, NH1    
         NK0            = LOSSRA(NC)
         DO 550 K       = 1, KTLOOP
@@ -249,11 +250,11 @@ C
  550    CONTINUE
  552   CONTINUE
  554  CONTINUE
-C
-C *********************************************************************
-C *  SUM PRODUCTION TERM FOR REACTIONS WHERE PRODUCTS FRACTIONATED    *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *  SUM PRODUCTION TERM FOR REACTIONS WHERE PRODUCTS FRACTIONATED    *
+! *********************************************************************
+!
       DO 802 N         = NFRLO(NCSP), NFRHI(NCSP)
        JSPC            = JSPCNFR(N)
        NKN             = NKNFR(  N)
@@ -263,10 +264,10 @@ C
  800   CONTINUE 
  802  CONTINUE 
 
-C
-C *********************************************************************
-C **********************  END OF SUBROUTINE SUBFUN  *******************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! **********************  END OF SUBROUTINE SUBFUN  *******************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE SUBFUN

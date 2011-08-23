@@ -127,7 +127,8 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
-      IMPLICIT NONE 
+      IMPLICIT NONE
+#     include "define.h" 
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -203,7 +204,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
@@ -285,7 +286,7 @@
       ! References to F90 modules
       USE GRID_MOD, ONLY : GET_XMID, GET_YMID
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       INTEGER, INTENT(OUT) :: REGION(IIPAR,JJPAR)
@@ -439,11 +440,13 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDBFCO,        IDECO,          IDBCO
       
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
+      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO, EMISRR
-#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
+      IMPLICIT NONE
+#     include "define.h"
+
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE.
@@ -849,8 +852,8 @@
       USE TRACER_MOD,     ONLY : N_TRACERS,       STT
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND65
 
       ! Local variables
       LOGICAL, SAVE          :: FIRSTCHEM = .TRUE.
@@ -1506,7 +1509,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE TRANSFER_MOD,  ONLY : TRANSFER_ZONAL
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1632,7 +1635,7 @@
 !  (6 ) Removed reference to CMN, it's not needed (bmy, 7/20/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: IS_PROD
@@ -1689,7 +1692,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments 
       INTEGER, INTENT(IN) :: THISMONTH
@@ -1777,7 +1780,7 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_H2HD_SIM
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS, I, J, IJLOOP

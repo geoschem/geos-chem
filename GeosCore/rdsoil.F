@@ -21,10 +21,12 @@
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_MONTH
       
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMMSOIL_MOD ! Soil variables
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "commsoil.h" ! Soil variables
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !REMARKS:
 !  RDSOIL is one of the original GEOS-CHEM subroutines, and has its origins

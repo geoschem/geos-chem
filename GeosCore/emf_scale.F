@@ -26,11 +26,13 @@
       USE TRACERID_MOD, ONLY : IDTMEK,  IDTC2H2, IDTC2H4, IDTACET
       USE TRACERID_MOD, ONLY : IDTBENZ, IDTTOLU, IDTXYLE, IDTC2H6
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+      USE CMN_O3_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_O3"
-#     include "comode.h"
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

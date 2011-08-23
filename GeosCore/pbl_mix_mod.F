@@ -49,6 +49,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -160,8 +161,8 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! Scale height
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_GCTM_MOD     ! Scale height
 
       ! Local variables
       INTEGER               :: I,     J,      L,    LTOP
@@ -438,8 +439,8 @@
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TIME_MOD,       ONLY : GET_TS_CONV
 
-#     include "F77_CMN_SIZE"       ! Size parameters    
-#     include "F77_CMN_DIAG"       ! ND15
+      USE CMN_SIZE_MOD       ! Size parameters    
+      USE CMN_DIAG_MOD       ! ND15
 
       ! Arguments
       INTEGER,  INTENT(IN)    :: NTRC
@@ -600,7 +601,7 @@
 !  NOTES: 
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -637,7 +638,7 @@
 !  NOTES:  
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -812,7 +813,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS

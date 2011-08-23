@@ -22,9 +22,13 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"  
+      USE CMN_SIZE_MOD
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : ZPJ, RINDEX
+
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER,           INTENT(IN) :: I, J, L, NREAC, BRCH

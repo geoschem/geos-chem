@@ -15,6 +15,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -54,7 +55,7 @@
 !
       USE DAO_MOD, ONLY : TS
       
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -108,7 +109,7 @@
 !
       USE DAO_MOD, ONLY : PARDR 
       
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS 
 !
@@ -155,7 +156,7 @@
 !
       USE DAO_MOD, ONLY : PARDF 
       
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS 
 !

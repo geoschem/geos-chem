@@ -21,6 +21,8 @@ MODULE VDIFF_MOD
   USE ERROR_MOD,     ONLY : DEBUG_MSG
   
   IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
   
   PRIVATE
 !
@@ -2480,6 +2482,8 @@ contains
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
 
     IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !

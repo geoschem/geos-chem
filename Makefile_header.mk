@@ -119,8 +119,8 @@ H5L = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib
 
 # Link to library files created from code in the various subdirs
 # NOTE: -lGeosUtil should always be last!
-LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil
-LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil
+LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
 
 # Add the HDF5 library link commands if necessary
 ifeq ($(HDF5),yes) 
@@ -148,7 +148,7 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -check all
 else
 FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif

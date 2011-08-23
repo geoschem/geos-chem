@@ -162,6 +162,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -289,7 +290,7 @@
       USE LOGICAL_MOD,   ONLY : LFUTURE
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR,  GET_TAU
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments 
       INTEGER, INTENT(IN)    :: YEAR, MONTH
@@ -607,7 +608,7 @@
       USE TRACERID_MOD, ONLY : IDBXYLE, IDBC2H4, IDBC2H2, IDBGLYC
       USE TRACERID_MOD, ONLY : IDBHAC
      
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)  :: FILENAME
@@ -1106,7 +1107,7 @@
       ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LBBSEA, LTOMSAI
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR)
@@ -1145,7 +1146,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
 
-#     include "F77_CMN_SIZE"               ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR)
@@ -1228,7 +1229,7 @@
       ! References to F90 modules
       USE GRID_MOD,            ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(IN) :: BBARRAY(IIPAR,JJPAR) 
@@ -1314,7 +1315,7 @@
       USE TRACERID_MOD,         ONLY : IDTBCPO,         IDTOCPO
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER                       :: YEAR, MONTH
@@ -1511,7 +1512,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: YEAR, MONTH
@@ -1673,7 +1674,7 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: YEAR, MONTH
@@ -1827,7 +1828,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_CO2_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: YEAR, MONTH
@@ -1967,7 +1968,7 @@
 !  (5 ) Now dimension arrays (I,J,N) instead of (N,I,J) (bmy, 4/5/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments 
       REAL*8,  INTENT(INOUT) :: BIOMASS_ANN(IIPAR,JJPAR,NBIOMAX)
@@ -2045,7 +2046,7 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_TAU, GET_YEAR
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
   
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J

@@ -17,6 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -357,8 +358,8 @@
       USE TRACER_MOD, ONLY : N_TRACERS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"      ! NAMEGAS, NSPEC
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD      ! NAMEGAS, NSPEC
 ! 
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -795,8 +796,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "comode.h"       ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
 ! 
 ! !REVISION HISTORY: 
 !  01 Aug 2003 - M. Evans    - Initial version
@@ -891,8 +892,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "comode.h"       ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
 ! 
 ! !REVISION HISTORY: 
 !  01 Jun 2009 - F. Paulot   - Initial version
@@ -979,8 +980,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "comode.h"       ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD       ! NSPEC, NAMEGAS, NCS
 ! 
 ! !REVISION HISTORY:
 !  04 Jan 2010 - F. Paulot   - Initial version
@@ -1072,9 +1073,9 @@
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
 
-#     include "cmn_fj.h"     ! FAST-J parameters (includes CMN_SIZE)
-#     include "jv_cmn.h"     ! ODAER, QAA, QAA_AOD
-#     include "comode.h"     ! CSPEC, etc.
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ     ! FAST-J parameters (includes CMN_SIZE)
+      USE JV_CMN_MOD     ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD     ! CSPEC, etc.
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1490,7 +1491,7 @@
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "F77_CMN_SIZE"          ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1663,9 +1664,9 @@
       USE COMODE_MOD, ONLY : IZSAVE
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"               ! Size parameters
-#     include "F77_CMN_DIAG"               ! ND40 switch
-#     include "comode.h"                   ! RRATE, JLOOPLO, KBLOOP
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD                   ! RRATE, JLOOPLO, KBLOOP
+      USE CMN_DIAG_MOD               ! ND40 switch
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1834,8 +1835,8 @@
       USE FILE_MOD,  ONLY : IU_FILE
       USE FILE_MOD,  ONLY : IOERROR
 
-#     include "F77_CMN_SIZE"   ! Size Parameters
-#     include "comode.h"       ! ITLOOP
+      USE CMN_SIZE_MOD   ! Size Parameters
+      USE COMODE_LOOP_MOD       ! ITLOOP
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version

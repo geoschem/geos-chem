@@ -104,6 +104,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -590,8 +591,8 @@ c$$$
       USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
  
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DEP"       ! FRCLND
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DEP_MOD       ! FRCLND
 
       ! Arguments 
       REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
@@ -1525,7 +1526,7 @@ c$$$
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1, DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
@@ -1674,7 +1675,7 @@ c$$$
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
 !--jaf.end
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
@@ -1778,8 +1779,8 @@ c$$$
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
       
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J 
@@ -2072,7 +2073,7 @@ c$$$
       USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
@@ -2327,7 +2328,7 @@ c$$$
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TRACERS, NCOUNT(NNPAR)
@@ -2395,7 +2396,7 @@ c$$$
       USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments           
       INTEGER, INTENT(IN)   :: NYMD, NHMS
@@ -2556,7 +2557,7 @@ c$$$
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2741,7 +2742,7 @@ c$$$
       USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2852,7 +2853,7 @@ c$$$
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2968,7 +2969,7 @@ c$$$
       USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)            
@@ -3060,7 +3061,7 @@ c$$$
       USE TRACERID_MOD, ONLY : N_Hg_CATS
       USE LOGICAL_MOD,  ONLY : LPREINDHG
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE

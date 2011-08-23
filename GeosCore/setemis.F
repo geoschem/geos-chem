@@ -41,12 +41,14 @@
       ! NOx emissions scaling FP 15/12/09
       USE EMISSIONS_MOD,     ONLY : NOx_SCALING
 
+#     include "define.h"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! IDEMS, NEMIS
+      USE CMN_DIAG_MOD  ! Diagnostic flags
+      USE CMN_NOX_MOD   ! GEMISNOX2
+
       IMPLICIT NONE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_NOX"   ! GEMISNOX2
-#     include "F77_CMN_DIAG"  ! Diagnostic flags
-#     include "comode.h"  ! IDEMS, NEMIS
 !
 ! !INPUT PARAMETERS:
 !

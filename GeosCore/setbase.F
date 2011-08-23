@@ -28,13 +28,14 @@
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_EMIS
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters 
+      USE CMN_MOD       ! NSRCE
+      USE CMN_ISOP_MOD  ! BASEISOP, BASEGRASS, BASEMB
+      USE CMN_MONOT_MOD ! BASEMONOT
+      USE CMN_VEL_MOD   ! IJREG, IJUSE, IJLAND
 
-#     include "F77_CMN_SIZE"  ! Size parameters 
-#     include "CMN"       ! NSRCE
-#     include "F77_CMN_VEL"   ! IJREG, IJUSE, IJLAND
-#     include "F77_CMN_ISOP"  ! BASEISOP, BASEGRASS, BASEMB
-#     include "F77_CMN_MONOT" ! BASEMONOT
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN) :: CONVERT(NVEGTYPE), GMONOT(NVEGTYPE)

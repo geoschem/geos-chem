@@ -3,12 +3,25 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !INCLUDE: smv_physconst.h
+! !MODULE: smv_physconst_mod.F
 !
 ! !DESCRIPTION: This include file contains physical constants for the
 !  GEOS-Chem column chemistry code. 
 !\\
 !\\
+! !INTERFACE: 
+!
+      MODULE SMV_PHYSCONST_MOD
+!
+! !USES:
+!
+      IMPLICIT NONE
+!      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
+!
+      PUBLIC
+	SAVE
 ! !DEFINED PARAMETERS: 
 !
       ! Molecular weight of air [28.97e-3 kg/mol]
@@ -52,5 +65,7 @@
 !
 ! !REVISION HISTORY: 
 !  14 Dec 2009 - R. Yantosca - Initial version, adapted from CMN_GCTM
+!  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !EOP
+	END MODULE SMV_PHYSCONST_MOD
 !------------------------------------------------------------------------------

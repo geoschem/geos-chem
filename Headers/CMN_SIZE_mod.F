@@ -6,10 +6,20 @@
 ! !INCLUDE: CMN_SIZE
 !
 ! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !\\
 !\\
+      MODULE CMN_SIZE_MOD
+
 ! !USES:
 !
+
+      IMPLICIT NONE
+      SAVE
+      PUBLIC
       ! C Preprocessor #define statements for conditional compilation
 #     include "define.h"
 !
@@ -517,3 +527,4 @@
 !  09 Mar 2011 - R. Yantosca - Updated NNPAR for APM (G. Luo)
 !EOP
 !------------------------------------------------------------------------------
+      END MODULE CMN_SIZE_MOD

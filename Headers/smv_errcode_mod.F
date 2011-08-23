@@ -3,12 +3,24 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !INCLUDE: smv_errcode.h
+! !MODULE: smv_errcode_mod.F
 !
 ! !DESCRIPTION: This include file contains the various success or failure
 !  parameters for the GEOS-Chem column chemistry code.
 !\\
 !\\
+! !INTERFACE: 
+!
+      MODULE SMV_ERRCODE_MOD
+!
+! !USES:
+!
+      IMPLICIT NONE
+!
+! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
+!
+      PUBLIC
+	SAVE
 ! !DEFINED PARAMETERS: 
 !
       ! Return w/ success
@@ -46,5 +58,7 @@
 !  01 Feb 2010 - R. Yantosca - Added error code for ISORROPIA ATE code
 !  06 May 2010 - R. Yantosca - Deleted redundant error codes
 !  03 Jun 2010 - R. Yantosca - Deleted error codes for SCHEM routines
+!  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !EOP
+	END MODULE SMV_ERRCODE_MOD
 !------------------------------------------------------------------------------

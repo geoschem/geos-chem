@@ -1,11 +1,11 @@
-C $Id: SPHERE.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+! $Id: SPHERE.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
       SUBROUTINE SPHERE
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Calculation of spherical geometry; derive tangent heights, slant path
 c  lengths and air mass factor for each layer. Not called when
 c  SZA > 98 degrees.  Beyond 90 degrees, include treatment of emergent
 c  beam (where tangent height is below altitude J-value desired at).
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c
 c     GMU     MU, cos(solar zenith angle)
 c     RZ      Distance from centre of Earth to each point (cm)
@@ -14,11 +14,13 @@ c     TANHT   Tangent height for the current SZA
 c     XL      Slant path between points
 c     AMF     Air mass factor for slab between level and level above
 c
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       integer i, j, k, ii
       real*8 airmas, gmu, xmu1, xmu2, xl, diff

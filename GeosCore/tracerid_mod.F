@@ -178,6 +178,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)
@@ -361,8 +362,8 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "comode.h"    ! IDEMS
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE COMODE_LOOP_MOD    ! IDEMS
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -1327,8 +1328,8 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "comode.h"   ! NAMEGAS
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD   ! NAMEGAS
 
       ! Local variabales
       INTEGER             :: I, J, T, C

@@ -170,6 +170,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LnoUSAemis,  LBROCHEM
 
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -267,7 +268,7 @@
       USE TIME_MOD,      ONLY : ITS_TIME_FOR_A3 !cdh for seasalt aerosol
       USE DRYDEP_MOD,    ONLY : DRYHg0, DRYHg2, DRYHgP
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -507,8 +508,8 @@
       USE DAO_MOD,      ONLY : LWI ! cdh
       USE DAO_MOD,      ONLY : FRSNO, FRLANDIC, FROCEAN ! jaf
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
       REAL*8, INTENT(IN)    :: V_DEP_Hg2(IIPAR,JJPAR)
@@ -1797,7 +1798,7 @@
       USE TRACER_MOD,   ONLY : STT,       XNUMOL
       USE TRACERID_MOD, ONLY : ID_HgP,    N_Hg_CATS
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN) :: V_DEP_HgP(IIPAR,JJPAR)
@@ -1883,8 +1884,8 @@
       USE TRACERID_MOD,      ONLY : IS_HgP
       USE LOGICAL_MOD,ONLY : LNLPBL
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! ND44 
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! ND44 
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L, N
@@ -1976,7 +1977,7 @@
       USE LAND_MERCURY_MOD,  ONLY : GTMM_DR
       USE TRACERID_MOD,      ONLY : ID_Hg_tot, ID_Hg0
 
-#     include "F77_CMN_SIZE"          ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: FIRST = .TRUE. 
@@ -2119,7 +2120,7 @@
 !      USE DAO_MOD,       ONLY : IS_ICE, IS_LAND
 !
 !
-!#     include "F77_CMN_SIZE"      ! Size parameters
+!      USE CMN_SIZE_MOD      ! Size parameters
 !
 !      ! Arguments 
 !      REAL*8,  INTENT(OUT)  :: LFLUX(IIPAR,JJPAR,N_Hg_CATS)
@@ -2222,8 +2223,8 @@
 !      USE TIME_MOD,       ONLY: GET_TS_EMIS
 !      USE GRID_MOD,       ONLY: GET_AREA_CM2
 !
-!#     include "F77_CMN_SIZE"     ! Size parameters
-!#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
+!      USE CMN_SIZE_MOD     ! Size parameters
+!      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
 !
 !      ! Local variables
 !      REAL*8                 :: DTSRCE, E_CO, AREA_CM2
@@ -2327,8 +2328,8 @@
 !      USE TIME_MOD,       ONLY: GET_TS_EMIS
 !      USE GRID_MOD,       ONLY: GET_AREA_M2
 !
-!#     include "F77_CMN_SIZE"     ! Size parameters
-!#     include "F77_CMN_DEP"      ! FRCLND
+!      USE CMN_SIZE_MOD     ! Size parameters
+!      USE CMN_DEP_MOD      ! FRCLND
 !
 !      ! Local Variables
 !      REAL*8             :: DRYSOIL_HG, SOILWATER_HG, AREA_M2, VEG_EMIS
@@ -2436,8 +2437,8 @@
 !      USE GRID_MOD,       ONLY: GET_AREA_M2
 !      USE DAO_MOD,        ONLY: SNOW, SNOMAS
 !
-!#     include "F77_CMN_SIZE"     ! Size parameters
-!#     include "F77_CMN_DEP"      ! FRCLND
+!      USE CMN_SIZE_MOD     ! Size parameters
+!      USE CMN_DEP_MOD      ! FRCLND
 !
 !      ! Local variables
 !      REAL*8             :: SOIL_EMIS, DIMLIGHT, TAUZ, LIGHTFRAC
@@ -2561,7 +2562,7 @@
 !      USE BPCH2_MOD,      ONLY : GET_TAU0,   READ_BPCH2
 !      USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 !
-!#     include "F77_CMN_SIZE"      ! Size parameters
+!      USE CMN_SIZE_MOD      ! Size parameters
 !
 !      ! Local variables
 !      INTEGER             :: I, J, L, MONTH, N
@@ -2676,8 +2677,8 @@
       USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
       USE TRACERID_MOD, ONLY : ID_Hg0
       
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
 
       ! Local variables
       INTEGER               :: I,      J,    L,        N,    PBL_MAX
@@ -2995,7 +2996,7 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       INTEGER               :: I,      J,        L,    N,   PBL_MAX
@@ -3090,7 +3091,7 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS 
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_HgP
 
-#     include "F77_CMN_SIZE"     ! Size paramters
+      USE CMN_SIZE_MOD     ! Size paramters
 
       ! Local variables
       INTEGER               :: I,      J,        L,    N,   PBL_MAX
@@ -3189,7 +3190,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
       USE GRID_MOD,       ONLY : GET_XMID,    GET_YMID
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       INTEGER                 :: NYMD, I, J
@@ -3773,7 +3774,7 @@
       USE DAO_MOD,       ONLY : AD
       USE GLOBAL_O3_MOD, ONLY : O3
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3816,7 +3817,7 @@
       USE GLOBAL_OH_MOD, ONLY : OH
       USE TIME_MOD,      ONLY : GET_TS_CHEM
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -3888,8 +3889,8 @@
       USE DAO_MOD,       ONLY : LWI, GET_OBK, IS_ICE
       USE PRESSURE_MOD,  ONLY : GET_PCENTER
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DEP"   ! FRCLND
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DEP_MOD   ! FRCLND
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -4220,8 +4221,8 @@ c$$$      ENDIF
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_GCTM"  ! Physical constants
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD  ! Physical constants
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -4365,7 +4366,7 @@ c$$$      ENDIF
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
       USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       INTEGER               :: I, J
@@ -4568,7 +4569,7 @@ c$$$
 !!      USE OCEAN_MERCURY_MOD, ONLY : SNOW_HG
 !      USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
 !
-!#     include "F77_CMN_SIZE"      ! Size parameters
+!      USE CMN_SIZE_MOD      ! Size parameters
 !
 !      ! Arguments 
 !      REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
@@ -4670,8 +4671,8 @@ c$$$
       USE FILE_MOD, ONLY    : IU_FILE
       USE RNPBBE_MOD, ONLY  : SLQ
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
 
       ! Local variables
       REAL*8                :: U10M, S
@@ -4763,9 +4764,10 @@ c$$$
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! Size parameters
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)  :: THISMONTH
@@ -4848,8 +4850,8 @@ c$$$
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
       USE GRID_MOD,      ONLY : GET_YMID_R
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_GCTM"    ! Physical constants
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD    ! Physical constants
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -4933,7 +4935,7 @@ c$$$
       USE TRACERID_MOD, ONLY  : ID_HG2, ID_HGP
       USE TRACER_MOD, ONLY    : N_TRACERS
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       INTEGER, INTENT(IN)     :: DIRECTION
       REAL*8, INTENT(INOUT)   :: STT_COPY(IIPAR,JJPAR,LLPAR,N_TRACERS)
@@ -5035,8 +5037,8 @@ c$$$
       USE TRACERID_MOD, ONLY : N_Hg_CATS
       USE LAI_MOD,      ONLY : INIT_LAI
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
       INTEGER, INTENT(IN)   :: THIS_ANTHRO_Hg_YEAR

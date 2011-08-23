@@ -35,12 +35,14 @@
       USE TRACER_MOD,     ONLY : N_APMTRA
 #endif
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_O3_MOD    ! FRACO3
+      USE CMN_DIAG_MOD  ! Diagnostic arrays & parameters
+      USE CMN_GCTM_MOD  ! Physical constants
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic arrays & parameters
-#     include "F77_CMN_O3"    ! FRACO3
-#     include "F77_CMN_GCTM"  ! Physical constants
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !REVISION HISTORY:
 !  (1 ) This subroutine was reconstructed from gmg's version of (10/10/97)

@@ -472,7 +472,7 @@
       USE ERROR_MOD, ONLY : IT_IS_NAN
       USE ERROR_MOD, ONLY : IT_IS_FINITE
 
-#     include "F77_CMN_SIZE"           ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOCATION
@@ -581,7 +581,7 @@
       USE APM_INIT_MOD,  ONLY : APM_NTRACERS
 #endif
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS, N_TOT_TRC

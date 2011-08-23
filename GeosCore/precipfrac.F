@@ -44,9 +44,10 @@
       USE DAO_MOD,  ONLY : PREACC, PRECON
       USE GRID_MOD, ONLY : GET_YOFFSET
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! JJPAR
 
-#     include "F77_CMN_SIZE"   ! JJPAR
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J

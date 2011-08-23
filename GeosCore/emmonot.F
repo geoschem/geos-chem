@@ -15,11 +15,13 @@
 !
 ! !USES:
 !
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_MONOT_MOD             ! BASEMONOT
+      USE CMN_VEL_MOD               ! XYLAI, IJREG, IJLAND, IJUSE
 
-#     include "F77_CMN_SIZE"              ! Size parameters
-#     include "F77_CMN_VEL"               ! XYLAI, IJREG, IJLAND, IJUSE
-#     include "F77_CMN_MONOT"             ! BASEMONOT
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

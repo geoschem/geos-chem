@@ -25,7 +25,8 @@
 !**********************************************************************
 !
 ! header file for soil NOx emissions
-      
+#     include "define.h"
+
       ! The defined soil types
       INTEGER, PARAMETER :: NSOIL = 11
 

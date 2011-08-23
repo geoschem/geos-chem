@@ -21,10 +21,13 @@
       USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
 
+#     include "define.h"
+
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE COMODE_LOOP_MOD       ! NPVERT
+
       IMPLICIT NONE
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "comode.h"       ! NPVERT
 !
 ! !INPUT PARAMETERS: 
 !

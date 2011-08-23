@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -183,7 +184,7 @@
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 ! 
 ! !REMARKS:
 !  NOTE FROM HONGYU LIU (hyl@nianet.org) -- 3/5/08
@@ -291,7 +292,7 @@
       USE DAO_MOD,   ONLY : PREACC,  PRECON,   REEVAPLS
       USE ERROR_MOD, ONLY : ALLOC_ERR
       
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -709,7 +710,7 @@
       USE TRACERID_MOD, ONLY : IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 
 
-#     include "F77_CMN_SIZE"                         ! Size parameters
+      USE CMN_SIZE_MOD                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2054,7 +2055,7 @@
 !
       USE DAO_MOD, ONLY : BXHEIGHT
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2124,7 +2125,7 @@
 !
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"           ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2227,7 +2228,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3226,7 +3227,7 @@
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
-#     include "F77_CMN_SIZE"               ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3931,8 +3932,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4524,8 +4525,8 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! Diagnostic arrays and switches 
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! Diagnostic arrays and switches 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5156,8 +5157,8 @@
       USE ERROR_MOD,   ONLY : IT_IS_NAN                ! Test for NaN
       USE LOGICAL_MOD, ONLY : LGTMM                    ! Use GTMM for Hg sim?
 
-#     include "F77_CMN_SIZE"                           ! Size parameters
-#     include "F77_CMN_DIAG"                           ! Diagnostic flags etc
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE CMN_DIAG_MOD                           ! Diagnostic flags etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5349,8 +5350,8 @@
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
       USE ERROR_MOD,    ONLY : IT_IS_NAN               ! Check for NaN 
 
-#     include "F77_CMN_SIZE"                           ! Size parameters
-#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5722,8 +5723,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-#     include "F77_CMN_SIZE"                           ! Size parameters
-#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -5855,8 +5856,8 @@
       USE TRACERID_MOD, ONLY : IDTSO4                  ! ID flag for SO4
       USE LOGICAL_MOD,  ONLY : LGTMM                   ! Use GTMM w/ Hg sim?
 
-#     include "F77_CMN_SIZE"                           ! Size parameters
-#     include "F77_CMN_DIAG"                           ! Diagnostic flags, etc
+      USE CMN_SIZE_MOD                           ! Size parameters
+      USE CMN_DIAG_MOD                           ! Diagnostic flags, etc
 !
 ! !INPUT PARAMETERS: 
 !     
@@ -6041,7 +6042,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -6146,7 +6147,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN,  IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX,  IDTRIP,    IDTMAP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  08 Nov 2002 - R. Yantosca - Initial version
@@ -6491,7 +6492,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_RnPbBe_SIM,   ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM
 
-#     include "F77_CMN_SIZE" ! Size Parameters
+      USE CMN_SIZE_MOD ! Size Parameters
 !
 ! !RETURN VALUE:
 !
@@ -6698,7 +6699,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  23 Feb 2000 - R. Yantosca - Initial version

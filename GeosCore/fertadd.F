@@ -33,10 +33,11 @@
       USE TIME_MOD,     ONLY : GET_MONTH
       USE LOGICAL_MOD,  ONLY : LANTHRO
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMMSOIL_MOD   ! SOILFERT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "commsoil.h"   ! SOILFERT
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: J, M, NN

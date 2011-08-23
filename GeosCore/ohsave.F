@@ -23,10 +23,12 @@
       USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
       USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

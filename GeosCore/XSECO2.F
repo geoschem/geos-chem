@@ -1,12 +1,14 @@
-C $Id: XSECO2.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
+! $Id: XSECO2.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
       FUNCTION XSECO2(K,TTT)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Cross-sections for O2 interpolated across 3 temps; No S_R Bands yet!
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
       
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       integer k
       real*8 ttt, flint, xseco2

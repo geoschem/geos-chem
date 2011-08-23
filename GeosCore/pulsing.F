@@ -29,10 +29,11 @@
       ! References to F90 modules
       USE TIME_MOD, ONLY : GET_TS_EMIS
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   
+      USE COMMSOIL_MOD
 
-#     include "F77_CMN_SIZE"   
-#     include "commsoil.h"
+      IMPLICIT NONE
+#     include "define.h"
       
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, M

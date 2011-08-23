@@ -83,6 +83,7 @@
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -144,7 +145,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-#     include "F77_CMN_SIZE"     ! Size parameters 
+      USE CMN_SIZE_MOD     ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -246,9 +247,9 @@
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_GCTM"      ! g0
-#     include "F77_CMN_DIAG"      ! ND44
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND44
+      USE CMN_GCTM_MOD      ! g0
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -462,9 +463,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! g0
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_GCTM_MOD     ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -555,7 +556,7 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -675,9 +676,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! ND44, ND08
-#     include "F77_CMN_GCTM"      ! PI
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND44, ND08
+      USE CMN_GCTM_MOD      ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -1081,7 +1082,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

@@ -20,11 +20,13 @@
       USE LOGICAL_MOD,   ONLY : LAVHRRLAI
       USE LOGICAL_MOD,   ONLY : LMODISLAI ! (mpb,2009)
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_VEL_MOD    ! XLAI, XLAI2
+      USE CMN_DEP_MOD    ! IREG, ILAND, IUSE
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DEP"    ! IREG, ILAND, IUSE
-#     include "F77_CMN_VEL"    ! XLAI, XLAI2
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS:
 !

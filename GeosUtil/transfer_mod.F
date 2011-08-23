@@ -20,10 +20,12 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      IMPLICIT NONE
-      PRIVATE
+#     include "define.h"
+      USE CMN_SIZE_MOD              
 
-#     include "F77_CMN_SIZE"              
+      IMPLICIT NONE
+
+      PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !

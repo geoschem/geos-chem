@@ -84,7 +84,10 @@
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD               ! Size parameters
+
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -145,8 +148,6 @@
 !      INTEGER, PARAMETER   :: IDBOC       = 14
 !      INTEGER, PARAMETER   :: IDBCO2      = 24
       
-#     include "F77_CMN_SIZE"               ! Size parameters
-
       !FP_ISOP
       ! FP: NBIOTRCE is number of biomass burning tracers (hotp 7/30/09)
       INTEGER              :: NBIOTRCE
@@ -221,8 +222,8 @@
       USE TRACERID_MOD,      ONLY : IDBCO2
 
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! Diagnostic flags
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! Diagnostic flags
 
       ! Arguments
       INTEGER, INTENT(IN)        :: YEAR, MONTH
@@ -591,7 +592,7 @@
       ! References to F90 modules
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(INOUT) :: BBARRAY(IIPAR,JJPAR) 
@@ -632,7 +633,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LBIOMASS
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       INTEGER              :: AS
 

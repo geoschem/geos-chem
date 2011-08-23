@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -131,9 +132,9 @@
       USE TAGGED_CO_MOD,    ONLY : INIT_TAGGED_CO,  READ_ACETONE, EMACET
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_O3"       ! FSCALYR, SCNR89, TODH, EMISTCO
-#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_O3_MOD       ! FSCALYR, SCNR89, TODH, EMISTCO
+      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -675,9 +676,9 @@
       USE TAGGED_CO_MOD,  ONLY : GET_ALPHA_ISOP,    READ_PCO_LCO_STRAT
       USE TAGGED_CO_MOD,  ONLY : GET_PCO_LCO_STRAT
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
-#     include "F77_CMN_DIAG"     ! ND65
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND65
+      USE CMN_DEP_MOD      ! FRCLND
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
@@ -1285,7 +1286,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1378,7 +1379,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 !      USE GRID_MOD,      ONLY : GET_YMID
 
-#     include "F77_CMN_SIZE"                 ! Size parameters
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1449,7 +1450,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 ! 
 ! !REVISION HISTORY: 
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version

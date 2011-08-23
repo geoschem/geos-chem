@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !INCLUDE: smv_dimension.h
+! !MODULE: smv_dimension_mod.F
 !
 ! !DESCRIPTION: This include file contains the various placeholder parameters
 !  that are required to replace references to GEOS-Chem grid parameters.  
@@ -12,6 +12,19 @@
 !  for sizing those arrays properly.
 !\\
 !\\
+! !INTERFACE: 
+!
+      MODULE SMV_DIMENSION_MOD
+!
+! !USES:
+!
+      IMPLICIT NONE
+!      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
+!
+      PUBLIC
+	SAVE
 ! !DEFINED PARAMETERS: 
 !
       ! Locally defined replacement for GEOS-Chem parameter "LLPAR"
@@ -27,5 +40,7 @@
 ! !REVISION HISTORY: 
 !  24 Mar 2009 - R. Yantosca - Initial version
 !  16 Apr 2010 - R. Yantosca - Added MAX_SPECIES = 125
+!  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !EOP
+	END MODULE SMV_DIMENSION_MOD
 !------------------------------------------------------------------------------

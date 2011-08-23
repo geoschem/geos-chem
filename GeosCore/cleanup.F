@@ -88,8 +88,8 @@
 #endif
 
       IMPLICIT NONE
-
 #     include "define.h"
+
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version

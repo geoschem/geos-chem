@@ -71,10 +71,12 @@
       USE DIAG_MOD,    ONLY : AD07_OM
 #endif
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! NDxx flags
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_DIAG"    ! NDxx flags
+      IMPLICIT NONE
+#     include "define.h"
+
 
 !
 ! !INPUT PARAMETERS: 

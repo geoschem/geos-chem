@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -64,7 +65,7 @@
 !
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "F77_CMN_SIZE"                         ! Size parameters
+      USE CMN_SIZE_MOD                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -123,7 +124,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE BPCH2_MOD,     ONLY : GET_TAU0, READ_BPCH2
 
-#     include "F77_CMN_SIZE"                           ! Size parameters
+      USE CMN_SIZE_MOD                           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -293,7 +294,7 @@
 !
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !

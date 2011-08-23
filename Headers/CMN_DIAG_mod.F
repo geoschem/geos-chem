@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !INCLUDE: CMN_DIAG
+! !MODULE: CMN_DIAG_mod.F
 !
 ! !DESCRIPTION: This include file contains size parameters and common blocks
 !  for the GEOS-Chem diagnostic arrays.  This is mostly historical baggage.
@@ -47,9 +47,17 @@
 !  03 Aug 2010 - P. Kasibhatla & R. Yantosca - Now set MAX_TRACER to NNPAR+6 
 !                                              to match ND09 diagnostic
 !  09 Mar 2011 - R. Yantosca - Updated MAX_TRACER for APM (G. Luo)
+!  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      MODULE CMN_DIAG_MOD
+
+	USE CMN_SIZE_MOD
+
+	IMPLICIT NONE
+	PUBLIC
+	SAVE
 !
 ! !DEFINED PARAMETERS:
 !
@@ -187,11 +195,6 @@
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,	   &
      &   LD52, LD19, LD57, LD58, LD59, LD60, LD61
 
-      COMMON /CDIAG1/                                                      &
-     &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,       &
-     &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,	   &
-     &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,	   &
-     &   LD52, LD19, LD57, LD58, LD59, LD60, LD61
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                              &
@@ -204,15 +207,6 @@
      &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,       &
      &   ND71, ND72, ND73, ND74, ND75
 
-      COMMON /CDIAG2/                                                   &
-     &   ND01, ND02,             ND05, ND06, ND07, ND08, ND09, ND10,    &
-     &   ND11, ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20,    & 
-     &   ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29, ND30,    &
-     &   ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38, ND39, ND40,    &
-     &               ND43, ND44, ND45, ND46, ND47, ND48, ND49, ND50,    &
-     &   ND51, ND52, ND53, ND54, ND55,       ND57, ND58, ND59, ND60,    &
-     &   ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68, ND69, ND70,    &
-     &   ND71, ND72, ND73, ND74, ND75
 !----------------------------------------------------------------------------
 ! Variables for printing out selected tracers in diagnostic output
       INTEGER, PARAMETER :: MAX_DIAG   = 70
@@ -228,11 +222,9 @@
       !------------------------------------------------------------------------
       INTEGER, PARAMETER :: MAX_TRACER = NNPAR+6   ! For non-TOMAS simulations 
 #endif
-      INTEGER            :: TINDEX, TCOUNT, TMAX
-
-      COMMON /TR_INDEX/ TINDEX(MAX_DIAG,MAX_TRACER),			&
-     &                  TCOUNT(MAX_DIAG), 				&
-     &                  TMAX(MAX_DIAG)					
+      INTEGER            :: TINDEX(MAX_DIAG,MAX_TRACER),	          
+     &                      TCOUNT(MAX_DIAG), 				  
+     &                      TMAX(MAX_DIAG)					
 
       !=================================================================
       ! NO, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
@@ -241,9 +233,6 @@
       REAL*8           HR1_NO, HR2_NO, HR1_JV,  HR2_JV,                 &
      &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
 
-      COMMON /JVNO2OH/ HR1_NO, HR2_NO, HR1_JV,  HR2_JV,			&                 
-     &                 HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
-
 !EOC
-
+	END MODULE CMN_DIAG_MOD
 

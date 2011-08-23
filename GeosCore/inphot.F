@@ -31,10 +31,12 @@
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE FILE_MOD,     ONLY : IU_FASTJ
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"   
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER, INTENT(IN) :: NLAYER, NREACS

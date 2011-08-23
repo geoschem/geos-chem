@@ -79,6 +79,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -211,11 +212,13 @@
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_O3_MOD               ! FSCLYR
+      USE CMN_DIAG_MOD             ! ND29, ND32, ND34
+
       IMPLICIT NONE
+#     include "define.h"
       
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN_DIAG"             ! ND29, ND32, ND34
-#     include "F77_CMN_O3"               ! FSCLYR
       
       ! Local variables
       LOGICAL                       :: WEEKDAY
@@ -1016,7 +1019,7 @@
       ! References to F90 modules
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGCO_SIM
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -1064,7 +1067,7 @@
 !  (3 ) Deleted obsolete code from 9/01 (bmy, 11/15/01)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
       
       ! Arguments
       REAL*8, INTENT(INOUT) :: BFARRAY(IIPAR,JJPAR) 
@@ -1101,7 +1104,7 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NOxbf
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbf
 
-#     include "F77_CMN_SIZE"               ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(INOUT) :: BF(IIPAR,JJPAR)
@@ -1263,7 +1266,7 @@
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE LOGICAL_MOD,  ONLY : LBIOFUEL
 
-#     include "F77_CMN_SIZE"  ! Size parameters, etc
+      USE CMN_SIZE_MOD  ! Size parameters, etc
 
       ! Local variables
       INTEGER :: AS

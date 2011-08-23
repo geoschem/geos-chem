@@ -17,6 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -101,8 +102,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! SMVGEAR II arrays
 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -197,8 +198,8 @@
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
 ! 
 ! !REMARKS:
 !  At present, the ND65 diagnostic works only with SMVGEAR and not with
@@ -559,9 +560,9 @@
 !
       USE COMODE_MOD, ONLY : CSPEC, JLOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! LD65
-#     include "comode.h"  ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD  ! LD65
 ! 
 ! !REVISION HISTORY:
 !  16 Mar 2000 - I. Bey      - Initial version
@@ -667,8 +668,8 @@
       USE TRACER_MOD,    ONLY : STT,           XNUMOL
       USE TRACERID_MOD,  ONLY : IDTOX
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! LD65
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! LD65
 ! 
 ! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -853,8 +854,8 @@
       USE FILE_MOD,   ONLY : IU_ND20
       USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! LD65
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! LD65
 ! 
 ! !REVISION HISTORY:
 !  09 Jun 1999 - I. Bey      - Initial version
@@ -1227,9 +1228,9 @@
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! ND65,    LD65
-#     include "comode.h"   ! LFAMILY, NFAMILIES
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE COMODE_LOOP_MOD   ! LFAMILY, NFAMILIES
+      USE CMN_DIAG_MOD   ! ND65,    LD65
 !
 ! !INPUT PARAMETERS: 
 !

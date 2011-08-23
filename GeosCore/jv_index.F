@@ -17,10 +17,14 @@
 !  (6 ) Change "Harvard #" to "GEOS-Chem #" in output (bmy, 4/27/10)
 !******************************************************************************
 !
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"  ! F77_CMN_SIZE  
-#     include "comode.h"  ! SMVGEAR II arrays
+      USE CMN_SIZE_MOD
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! F77_CMN_SIZE  
+      USE CMN_FJ_MOD, ONLY : RINDEX, RNAMES, BRANCH
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+
+      IMPLICIT NONE
 
       ! Local variables
       INTEGER            :: I, IFNC, IBRCH, N, NK

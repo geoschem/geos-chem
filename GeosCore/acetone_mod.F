@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -118,7 +119,7 @@
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"                 ! Size parameters
+      USE CMN_SIZE_MOD                 ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -222,7 +223,7 @@
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
+      USE CMN_SIZE_MOD                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -325,9 +326,9 @@
       USE GRID_MOD,  ONLY : GET_AREA_CM2
       USE TIME_MOD,  ONLY : GET_TS_EMIS
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
-#     include "F77_CMN_DEP"                   ! FRCLND
-#     include "F77_CMN_DIAG"                  ! ND11
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_DIAG_MOD                  ! ND11
+      USE CMN_DEP_MOD                   ! FRCLND
 !
 ! !INPUT PARAMETERS: 
 !
@@ -676,9 +677,9 @@
       USE GRID_MOD, ONLY : GET_AREA_CM2
       USE TIME_MOD, ONLY : GET_TS_CHEM
 
-#     include "F77_CMN_SIZE"                              ! Size parameters 
-#     include "F77_CMN_DIAG"                              ! ND11
-#     include "F77_CMN_DEP"                               ! FRCLND 
+      USE CMN_SIZE_MOD                              ! Size parameters 
+      USE CMN_DIAG_MOD                              ! ND11
+      USE CMN_DEP_MOD                               ! FRCLND 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -884,9 +885,9 @@
       USE GRID_MOD, ONLY : GET_YMID
       USE TIME_MOD, ONLY : GET_TS_EMIS
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
-#     include "F77_CMN_MONOT"                 ! BASEMONOT
-#     include "F77_CMN_DIAG"                  ! ND11
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_DIAG_MOD                  ! ND11
+      USE CMN_MONOT_MOD                 ! BASEMONOT
 !
 ! !INPUT PARAMETERS: 
 !

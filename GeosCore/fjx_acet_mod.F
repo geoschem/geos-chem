@@ -26,6 +26,7 @@
 ! !USES:
 ! 
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -63,8 +64,8 @@
 !
 ! !USES
 !
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -106,8 +107,8 @@
 !
 ! !USES:
 !
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -151,8 +152,8 @@
 !
 ! !USES:
 !
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -198,8 +199,8 @@
 !
 ! !USES:
 !
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -252,8 +253,8 @@
 !
 ! !USES:
 !
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
 !
 ! !INPUT PARAMETERS: 
 !

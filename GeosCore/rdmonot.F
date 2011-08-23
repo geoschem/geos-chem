@@ -18,9 +18,11 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !OUTPUT PARAMETERS:
 !

@@ -41,10 +41,11 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
 
+      USE CMN_SIZE_MOD                               ! Size parameters
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -876,7 +877,7 @@
       USE TIME_MOD,   ONLY : GET_LOCALTIME
       USE GRID_MOD,   ONLY : GET_YMID  
 
-#     include "F77_CMN_GCTM"   ! Physical constants (why?!)
+      USE CMN_GCTM_MOD   ! Physical constants (why?!)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1205,7 +1206,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_GCTM"   ! Physical constants
+      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2441,6 +2442,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version

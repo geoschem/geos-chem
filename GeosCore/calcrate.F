@@ -87,15 +87,17 @@
       USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
 
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
+      USE CMN_DIAG_MOD  ! ND22, LD22, ND52, LD52
+      USE CMN_MOD       ! STT, etc
+      USE CMN_DEP_MOD  ! FRCLND
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! STT, etc
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
+#     include "define.h"
+
       ! added LD52 and ND52 (jaegle 2/26/09)
-#     include "F77_CMN_DIAG"  ! ND22, LD22, ND52, LD52
       ! added FRCLND (jaegle 02/26/09)
-#     include "F77_CMN_DEP"  ! FRCLND
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
@@ -103,7 +105,7 @@
       INTEGER :: PHOTVAL,KSUN
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
-C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
+!      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       ! CONSTC declared as a parameter by FP (hotp 7/31/09)
       REAL*8  :: RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       REAL*8  :: PBEG,PFIN,PBEGNEW,PFINNEW,TOFDAYB,TOFDAYE,HOURANGB
@@ -142,7 +144,7 @@ C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
       REAL*8           :: CONCO2(KBLOOP),  CONCN2(KBLOOP)
       REAL*8           :: T3I(KBLOOP),     TEMP1(KBLOOP)
       REAL*8           :: T3K(KBLOOP),     PRESSK(KBLOOP) 
-C FP_ISOP
+! FP_ISOP
       ! Variables from Fabien (hotp 7/31/09)
       REAL*8, PARAMETER :: ONE_SIXTY = 1d0 / 60d0
       REAL*8, PARAMETER :: ONE_SEVENTYTHREE = 1d0 / 73d0
@@ -161,56 +163,56 @@ C FP_ISOP
       TRATE = 0d0
       URATE = 0d0
       GLOSS = 0d0
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
-C ***                         (650) 723-6836                        *** 
-C *********************************************************************
-C
-C CCCCCCC     A     L       CCCCCCC  RRRRRRR     A     TTTTTTT  EEEEEEE
-C C          A A    L       C        R     R    A A       T     E 
-C C         A   A   L       C        RRRRRRR   A   A      T     EEEEEEE
-C C        AAAAAAA  L       C        R  R     AAAAAAA     T     E 
-C CCCCCCC A       A LLLLLLL CCCCCCC  R    R  A       A    T     EEEEEEE
-C
-C *********************************************************************
-C * THIS SUBROUTINE CALCULATES KINETIC REACTION AND PHOTORATES        *
-C * (S-1, CM3 S-1, OR CM6 S-2) AND PRESSURE AND TEMPERATURE-          *
-C * DEPENDENCE FOR GAS-PHASE CHEMICAL REACTIONS.                      *
-C *                                                                   *
-C * HOW TO CALL SUBROUTINE:                                           *
-C * ----------------------                                            *
-C *  CALL CALCRATE.F FROM PHYSPROC.F WITH                             * 
-C *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
-C *********************************************************************
-C
-C *********************************************************************
-C *********************  GAS-PHASE CHEMISTRY  *************************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
+! ***                         (650) 723-6836                        *** 
+! *********************************************************************
+!
+! CCCCCCC     A     L       CCCCCCC  RRRRRRR     A     TTTTTTT  EEEEEEE
+! C          A A    L       C        R     R    A A       T     E 
+! C         A   A   L       C        RRRRRRR   A   A      T     EEEEEEE
+! C        AAAAAAA  L       C        R  R     AAAAAAA     T     E 
+! CCCCCCC A       A LLLLLLL CCCCCCC  R    R  A       A    T     EEEEEEE
+!
+! *********************************************************************
+! * THIS SUBROUTINE CALCULATES KINETIC REACTION AND PHOTORATES        *
+! * (S-1, CM3 S-1, OR CM6 S-2) AND PRESSURE AND TEMPERATURE-          *
+! * DEPENDENCE FOR GAS-PHASE CHEMICAL REACTIONS.                      *
+! *                                                                   *
+! * HOW TO CALL SUBROUTINE:                                           *
+! * ----------------------                                            *
+! *  CALL CALCRATE.F FROM PHYSPROC.F WITH                             * 
+! *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
+! *********************************************************************
+!
+! *********************************************************************
+! *********************  GAS-PHASE CHEMISTRY  *************************
+! *********************************************************************
+!
       IF (NCS.LE.NCSGAS) THEN 
-C
-C *********************************************************************
-C *            CALCULATE CONCENTRATIONS OF FIXED SPECIES              *
-C *********************************************************************
-C AERSURF  = PARTICLE SURFACE AREA (CM2 CM-3)
-C KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
-C AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
-C AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
-C BOLTG    = BOLTZMANN'S CONSTANT (1.38054E-16 ERG K-1) 
-C RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
-C RSTARG   = BOLTG * AVG
-C DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTG) 
-C CONCO2   = OXYGEN CONCENTRATION   (# CM-3)
-C CONCN2   = NITROGEN CONCENTRATION (# CM-3)
-C RRATE    = RATE CONST (EITHER S-1, CM**3-AIR #-1 S-1, CM**6 #-2 S-1,
-C            OR CM**9 #-3 S-1.
-C PRESS3   = AIR PRESSURE AT VERTICAL CENTER OF LAYER (MB)
-C
-C --------------------------- AIR, O2, N2 -----------------------------
-C
+!
+! *********************************************************************
+! *            CALCULATE CONCENTRATIONS OF FIXED SPECIES              *
+! *********************************************************************
+! AERSURF  = PARTICLE SURFACE AREA (CM2 CM-3)
+! KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
+! AM       = MOLECULAR WEIGHT OF AIR (28.966 G MOLE-1)
+! AVG      = AVOGADRO'S NUMBER (6.02252E+23  # MOLE-1)
+! BOLTG    = BOLTZMANN'S CONSTANT (1.38054E-16 ERG K-1) 
+! RHO3     = DENSITY OF AIR         (G CM-3) = WTAIR*P(DYN CM-2)/(RSTARG*T) 
+! RSTARG   = BOLTG * AVG
+! DENAIR   = DENSITY OF AIR         (# CM-3) = P(DYNCM-2) / (T * BOLTG) 
+! CONCO2   = OXYGEN CONCENTRATION   (# CM-3)
+! CONCN2   = NITROGEN CONCENTRATION (# CM-3)
+! RRATE    = RATE CONST (EITHER S-1, CM**3-AIR #-1 S-1, CM**6 #-2 S-1,
+!            OR CM**9 #-3 S-1.
+! PRESS3   = AIR PRESSURE AT VERTICAL CENTER OF LAYER (MB)
+!
+! --------------------------- AIR, O2, N2 -----------------------------
+!
 
 !   be sure to check out these values!!!
          KSUN=0
@@ -228,12 +230,12 @@ C
             TEMP1(KLOOP)      = 300.d0    / T3K(KLOOP)
             CONCO2(KLOOP)     = 0.2095d0  * DENAIR(KLOOP)
             CONCN2(KLOOP)     = 0.7808d0  * DENAIR(KLOOP)
-C
-C   Check if sun is up anywhere in this block of grid-boxes.
-C   IFSUN gets used in CALCRATE
-C   Get the right index for SUNCOS, which is calculated
-C   outside of chemistry module.
-C
+!
+!   Check if sun is up anywhere in this block of grid-boxes.
+!   IFSUN gets used in CALCRATE
+!   Get the right index for SUNCOS, which is calculated
+!   outside of chemistry module.
+!
             IX                = IXSAVE(JLOOP)
             IY                = IYSAVE(JLOOP)
             IJWINDOW          = (IY-1)*IIPAR + IX
@@ -241,9 +243,9 @@ C
             IF(GMU .GT. 0.D0) KSUN = 1
  20      CONTINUE
          IFSUN = 2-KSUN
-C
-C ---------------------------     H2O     -----------------------------
-C
+!
+! ---------------------------     H2O     -----------------------------
+!
       IF (IH2O.GT.NGAS) THEN
          DO KLOOP      = 1, KTLOOP 
             TK               = T3K(KLOOP) 
@@ -253,19 +255,19 @@ C
             CBLK(KLOOP,IH2O) = ABSHUMK(KLOOP) * VPRESH2O  
          ENDDO
       END IF
-C
-C -----------------  SET O2 TO CONCO2 IF O2 INACTIVE ------------------
-C
+!
+! -----------------  SET O2 TO CONCO2 IF O2 INACTIVE ------------------
+!
       IF (IOXYGEN.GT.NGAS) THEN
          DO KLOOP          = 1, KTLOOP
             CBLK(KLOOP,IOXYGEN) = CONCO2(KLOOP)
          ENDDO
       ENDIF
-C
-C *********************************************************************
-C *     INTERANNUALLY-VARYING CH4 CONCENTRATION (bnd, bmy, 7/1/03)    *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *     INTERANNUALLY-VARYING CH4 CONCENTRATION (bnd, bmy, 7/1/03)    *
+! *********************************************************************
+!
       ! Test if CH4 is defined as an inert SMVGEAR II species
       IF ( ICH4 > NGAS ) THEN
 
@@ -294,19 +296,19 @@ C
             CBLK(KLOOP,ICH4) = CBLK(KLOOP,ICH4) *1d-9 * AIRDENS(JLOOP)
          ENDDO
       ENDIF
-C
-C *********************************************************************
-C *   CALCULATE KINETIC REACTION RATES USING ARRHENIUS PARAMETERS     * 
-C *********************************************************************
-C REACTION RATES HAVE THE FORM K = A * (300 / T)**B * EXP(C / T)
-C
-C NARR = NUMBER OF REACTIONS OF THE FORM K = A
-C NABR = NUMBER OF REACTIONS OF THE FORM K = A * (300 / T)**B
-C NACR = NUMBER OF REACTIONS OF THE FORM K = A                * EXP(C / T)
-C NABC = NUMBER OF REACTIONS OF THE FORM K = A * (300 / T)**B * EXP(C / T)
-C NKARR, NKBRR, NKACR, NKABC = REACTION RATE NUMBERS OF EACH
-C NARR,  NABR,  NACR,  NABC  REACTION 
-C
+!
+! *********************************************************************
+! *   CALCULATE KINETIC REACTION RATES USING ARRHENIUS PARAMETERS     * 
+! *********************************************************************
+! REACTION RATES HAVE THE FORM K = A * (300 / T)**B * EXP(C / T)
+!
+! NARR = NUMBER OF REACTIONS OF THE FORM K = A
+! NABR = NUMBER OF REACTIONS OF THE FORM K = A * (300 / T)**B
+! NACR = NUMBER OF REACTIONS OF THE FORM K = A                * EXP(C / T)
+! NABC = NUMBER OF REACTIONS OF THE FORM K = A * (300 / T)**B * EXP(C / T)
+! NKARR, NKBRR, NKACR, NKABC = REACTION RATE NUMBERS OF EACH
+! NARR,  NABR,  NACR,  NABC  REACTION 
+!
          DO 37 I           = 1, NARR(NCS)
             NK               = NKARR(I,NCS)
             ARRNK            = ARR(NK,NCS)
@@ -321,7 +323,7 @@ C
                RRATE(KLOOP,NK) = ARRNK * TEMP1(KLOOP)**BRR(NK,NCS)
  40         CONTINUE
  42      CONTINUE
-C
+!
          DO 47 I           = 1, NACR(NCS) 
             NK               = NKACR(I,NCS)
             ARRNK            = ARR(NK,NCS)  
@@ -329,7 +331,7 @@ C
                RRATE(KLOOP,NK) = ARRNK * EXP(KCRR(NK,NCS) / T3K(KLOOP)) 
  45         CONTINUE
  47      CONTINUE
-C
+!
          DO 52 I           = 1, NABC(NCS) 
             NK               = NKABC(I,NCS)
             ARRNK            = ARR(NK,NCS)  
@@ -339,20 +341,20 @@ C
  50         CONTINUE
  52      CONTINUE
 
-C
-C *********************************************************************
-C ******                   SET EMISSION RATES                    ******
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ******                   SET EMISSION RATES                    ******
+! *********************************************************************
+!
 ! Add option for non-local PBL mixing (Lin, 03/31/09)
 
       IF (LNLPBL) THEN
 
          DO I = 1,NEMIS(NCS)
-C get tracer number corresponding to emission species I
+! get tracer number corresponding to emission species I
             NN = IDEMS(I)
             IF (NN.NE.0) THEN
-C find reaction number for emission of tracer NN
+! find reaction number for emission of tracer NN
                NK = NTEMIS(NN,NCS)
                IF (NK.NE.0) THEN
                   DO KLOOP = 1,KTLOOP
@@ -380,10 +382,10 @@ C find reaction number for emission of tracer NN
       ELSE
 
          DO I = 1,NEMIS(NCS)
-C get tracer number corresponding to emission species I
+! get tracer number corresponding to emission species I
             NN = IDEMS(I)
             IF (NN.NE.0) THEN
-C find reaction number for emission of tracer NN
+! find reaction number for emission of tracer NN
                NK = NTEMIS(NN,NCS)
                IF (NK.NE.0) THEN
                   DO KLOOP = 1,KTLOOP
@@ -397,16 +399,16 @@ C find reaction number for emission of tracer NN
 
       ENDIF
 
-C
-C *********************************************************************
-C ******                SET DRY DEPOSITION RATES                 ******
-C ******                                                         ******
-C ******   NOTE: Now compute drydep throughout the mixed layer   ******
-C ******   (a.k.a. PBL) in order to prevent short-lived species  ******
-C ******   such as HNO3 from being depleted in the shallow       ******
-C ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ******                SET DRY DEPOSITION RATES                 ******
+! ******                                                         ******
+! ******   NOTE: Now compute drydep throughout the mixed layer   ******
+! ******   (a.k.a. PBL) in order to prevent short-lived species  ******
+! ******   such as HNO3 from being depleted in the shallow       ******
+! ******   surface layer. (rjp, bmy, 7/30/03)                    ******   
+! *********************************************************************
+!
 ! Add option for non-local PBL mixing (Lin, 03/31/09)
       IF (LNLPBL) THEN      
 
@@ -469,57 +471,57 @@ C
 
       ENDIF
 
-C
-C *********************************************************************
-C ********  MULTIPLY RATES BY CONSTANT SPECIES CONCENTRATIONS  ********
-C *       (EITHER M, O2, N2, OR ANY ACTIVE OR INACTIVE SPECIES)       *   
-C *********************************************************************
-C NMAIR    = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS 
-C              IS 'M' = 'O2 + N2'
-C NMO2     = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS O2 
-C NMN2     = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS N2 
-C NMOTH    = # OCCURENCES OF SPECIES IN THIRD POSITION THAN ARE NOT
-C              O2, N2, OR M, OR OF SPECIES IN ANY POSITION THAT ARE
-C              INACTIVE.
-C LGASBINO = JGAS (SET IN READCHEM AND GASCONC)
-C
+!
+! *********************************************************************
+! ********  MULTIPLY RATES BY CONSTANT SPECIES CONCENTRATIONS  ********
+! *       (EITHER M, O2, N2, OR ANY ACTIVE OR INACTIVE SPECIES)       *   
+! *********************************************************************
+! NMAIR    = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS 
+!              IS 'M' = 'O2 + N2'
+! NMO2     = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS O2 
+! NMN2     = # REACTIONS WHERE THE SPECIES IN THE THIRD POSITION IS N2 
+! NMOTH    = # OCCURENCES OF SPECIES IN THIRD POSITION THAN ARE NOT
+!              O2, N2, OR M, OR OF SPECIES IN ANY POSITION THAT ARE
+!              INACTIVE.
+! LGASBINO = JGAS (SET IN READCHEM AND GASCONC)
+!
          DO 72 I           = 1, NMAIR(NCS)   
             NK               = NREACAIR(I,NCS)
             DO 70 KLOOP      = 1, KTLOOP 
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * DENAIR(KLOOP) 
  70         CONTINUE
  72      CONTINUE
-C
+!
          DO 82 I           = 1, NMO2(NCS) 
             NK               = NREACO2(I,NCS)
             DO 80 KLOOP      = 1, KTLOOP 
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CONCO2(KLOOP) 
  80         CONTINUE
  82      CONTINUE
-C        
+!        
          DO 92 I           = 1, NMN2(NCS)  
             NK               = NREACN2(I,NCS)
             DO 90 KLOOP      = 1, KTLOOP 
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CONCN2(KLOOP) 
  90         CONTINUE
  92      CONTINUE
-C
-C *********************************************************************
-C *                   PRESSURE-DEPENDENT EFFECTS                      * 
-C * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE         *
-C * COEFFICIENTS. THE REACTIONS WERE READ IN IN PAIRS (LOW AND HIGH   *
-C * PRESSURE LIMITS) WITH THE SPECIFIC INDICATOR, 'P'  IN THE INPUT   *
-C * DATA SET. SEE DEMORE ET AL. (1990) JPL 90-1 FOR MORE DETAILS      *
-C *********************************************************************
-C NPRESM  = # PRESSURE DEPENDENT 3-BODY REACTIONS  
-C FCV     = CHARACTERIZES FALLOFF CURVE (SEE ATKINSON ET. AL (1992)
-C           J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6 
-C           HOWEVER, TWO TEMPERATURE-DEPENDENT EXPRESSIONS ARE ALSO USED: 
-C             FCV = EXP(-T/FCT1)  OR 
-C             FCV = EXP(-T/FCT1)+EXP(-FCT2/T)
-C RATE(NK)   = K(0,T)[M], WHERE K(0,T) = 3-BODY, LOW PRESSURE LIMIT COEF. 
-C RATE(NK+1) = K(INF,T) = 2-BODY, HIGH PRESSURE LIMIT COEF. 
-C
+!
+! *********************************************************************
+! *                   PRESSURE-DEPENDENT EFFECTS                      * 
+! * ADD THE THIRD BODY EFFECT FOR PRESSURE DEPENDENCE OF RATE         *
+! * COEFFICIENTS. THE REACTIONS WERE READ IN IN PAIRS (LOW AND HIGH   *
+! * PRESSURE LIMITS) WITH THE SPECIFIC INDICATOR, 'P'  IN THE INPUT   *
+! * DATA SET. SEE DEMORE ET AL. (1990) JPL 90-1 FOR MORE DETAILS      *
+! *********************************************************************
+! NPRESM  = # PRESSURE DEPENDENT 3-BODY REACTIONS  
+! FCV     = CHARACTERIZES FALLOFF CURVE (SEE ATKINSON ET. AL (1992)
+!           J. PHYS. CHEM. REF. DATA 21, P. 1145). USUALLY = 0.6 
+!           HOWEVER, TWO TEMPERATURE-DEPENDENT EXPRESSIONS ARE ALSO USED: 
+!             FCV = EXP(-T/FCT1)  OR 
+!             FCV = EXP(-T/FCT1)+EXP(-FCT2/T)
+! RATE(NK)   = K(0,T)[M], WHERE K(0,T) = 3-BODY, LOW PRESSURE LIMIT COEF. 
+! RATE(NK+1) = K(INF,T) = 2-BODY, HIGH PRESSURE LIMIT COEF. 
+!
          DO 165 I           = 1, NPRESM(NCS) 
             NK                = NREACPM(I,NCS)
             FCVNK             = FCV(    NK,NCS) 
@@ -551,20 +553,20 @@ C
  160           CONTINUE
             ENDIF
  165     CONTINUE
-C
-C *********************************************************************
-C * SET THE RATES OF ALL THERMALLY DISSOCIATING SPECIES. SEE DEMORE   *
-C * ET AL. (1990). CHEMICAL KINETICS AND PHOTOCHEMICAL DATA FOR USE   *
-C * IN STRATOSPHERIC MODELING. JPL. 90-1, P. 93. THE RATE HAS THE     *
-C * FORM Kf / [A EXP (C / T)], WHERE Kf IS THE REACTION IN THE        *
-C * REVERSE DIRECTION.                                                * 
-C *********************************************************************
-C NNEQ      = # THERMALLY DISSOCIATING EQUILIBRIUM REACTIONS. PREVIOUS
-C             EQUATION MUST BE PRESSURE-DEPENDENT. 
-C RATE(NK1) = CM3 MOLEC.-1 S-1 (BIMOLECULAR RATE FROM PRESSURE-DEPEND)
-C RATE(NK)  = CM3 MOLEC.-1 (EQUILIBRIUM CONSTANT) (BEFORE CALCULATION)
-C RATE(NK)  = S-1 (UNIMOLECULAR RATE AFTER CALCULATION) 
-C
+!
+! *********************************************************************
+! * SET THE RATES OF ALL THERMALLY DISSOCIATING SPECIES. SEE DEMORE   *
+! * ET AL. (1990). CHEMICAL KINETICS AND PHOTOCHEMICAL DATA FOR USE   *
+! * IN STRATOSPHERIC MODELING. JPL. 90-1, P. 93. THE RATE HAS THE     *
+! * FORM Kf / [A EXP (C / T)], WHERE Kf IS THE REACTION IN THE        *
+! * REVERSE DIRECTION.                                                * 
+! *********************************************************************
+! NNEQ      = # THERMALLY DISSOCIATING EQUILIBRIUM REACTIONS. PREVIOUS
+!             EQUATION MUST BE PRESSURE-DEPENDENT. 
+! RATE(NK1) = CM3 MOLEC.-1 S-1 (BIMOLECULAR RATE FROM PRESSURE-DEPEND)
+! RATE(NK)  = CM3 MOLEC.-1 (EQUILIBRIUM CONSTANT) (BEFORE CALCULATION)
+! RATE(NK)  = S-1 (UNIMOLECULAR RATE AFTER CALCULATION) 
+!
          DO 182 I           = 1, NNEQ(NCS) 
             NK                = NREACEQ(I,NCS)
             NK1               = NREQOTH(I,NCS)
@@ -572,12 +574,12 @@ C
                RRATE(KLOOP,NK)  = RRATE(KLOOP,NK1) / RRATE(KLOOP,NK)
  180        CONTINUE
  182     CONTINUE 
-C
-C *********************************************************************
-C     MULTIPLY RATE COEFFICIENT BY OTHER INACTIVE CONCENTRATIONS
-C *********************************************************************
-C THIS LOOP MUST OCCUR AFTER EQUILIBRIUM REACTIONS 
-C
+!
+! *********************************************************************
+!     MULTIPLY RATE COEFFICIENT BY OTHER INACTIVE CONCENTRATIONS
+! *********************************************************************
+! THIS LOOP MUST OCCUR AFTER EQUILIBRIUM REACTIONS 
+!
          DO 183 I          = 1, NMOTH(NCS) 
             NK               = NREACOTH(I,NCS)
             JOLD             = LGASBINO(I,NCS)
@@ -585,20 +587,20 @@ C
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) * CBLK(KLOOP,JOLD) 
  181        CONTINUE
  183     CONTINUE
-C
-C *********************************************************************
-C *                       SET SPECIAL RATES                           *
-C *********************************************************************
-C
-C ---  K = K1 + K2  ---- 
+!
+! *********************************************************************
+! *                       SET SPECIAL RATES                           *
+! *********************************************************************
+!
+! ---  K = K1 + K2  ---- 
          IF (NKSPECW(NCS).GT.0) THEN
             NK         = NKSPECW( I )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) + RRATE(KLOOP,NK+1)
             ENDDO
          ENDIF
-C
-C ---  K = K1*FYRNO3(K2,M,T)  ---   addition branch of RO2+NO
+!
+! ---  K = K1*FYRNO3(K2,M,T)  ---   addition branch of RO2+NO
          DO I          = 1, NNADDA(NCS)
             NK         = NKSPECA( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -606,8 +608,8 @@ C ---  K = K1*FYRNO3(K2,M,T)  ---   addition branch of RO2+NO
      +              FYRNO3(RRATE(KLOOP,NK+1),DENAIR(KLOOP),T3K(KLOOP))
             ENDDO
          ENDDO
-C
-C ---  K = K1*(1-FYRNO3(K2,M,T))  ---  abstraction branch of RO2+NO
+!
+! ---  K = K1*(1-FYRNO3(K2,M,T))  ---  abstraction branch of RO2+NO
          DO I          = 1, NNADDB(NCS)
             NK         = NKSPECB( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -616,8 +618,8 @@ C ---  K = K1*(1-FYRNO3(K2,M,T))  ---  abstraction branch of RO2+NO
      $              T3K(KLOOP)))
             ENDDO
          ENDDO
-C
-C ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
+!
+! ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
          DO I          = 1, NNADDC(NCS)
             NK         = NKSPECC( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -625,8 +627,8 @@ C ---  K = K1*([O2]+3.5D18)/(2*[O2]+3.5D18) --- HO2+2*CO branch of GLYX+OH/NO3
      +              (CONCO2(KLOOP)+3.5D18)/(2.D0*CONCO2(KLOOP)+3.5D18)
             ENDDO
          ENDDO
-C
-C ---  K = K1*[O2]/(2*[O2]+3.5D18)  --- GLCO3 branch of GLYX+OH/NO3
+!
+! ---  K = K1*[O2]/(2*[O2]+3.5D18)  --- GLCO3 branch of GLYX+OH/NO3
          DO I          = 1, NNADDD(NCS)
             NK         = NKSPECD( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -634,9 +636,9 @@ C ---  K = K1*[O2]/(2*[O2]+3.5D18)  --- GLCO3 branch of GLYX+OH/NO3
      +              (CONCO2(KLOOP))/(2.D0*CONCO2(KLOOP)+3.5D18)
             ENDDO
          ENDDO
-C Add branching ratio for HOC2H4O for C2H4 oxidation (tmf, 12/14/06) 
-C
-C ---  KF = K*(1-FYHORO(M,T))  ---  HOC2H4O ------> HO2 + 2CH2O 
+! Add branching ratio for HOC2H4O for C2H4 oxidation (tmf, 12/14/06) 
+!
+! ---  KF = K*(1-FYHORO(M,T))  ---  HOC2H4O ------> HO2 + 2CH2O 
          DO I          = 1, NNADDF(NCS)
             NK         = NKSPECF( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -644,8 +646,8 @@ C ---  KF = K*(1-FYHORO(M,T))  ---  HOC2H4O ------> HO2 + 2CH2O
      $              (1.D0 - FYHORO(DENAIR(KLOOP), T3K(KLOOP)))
             ENDDO
          ENDDO
-C
-C ---  KH = K*FYHORO(M,T)  ---  HOC2H4O --O2--> HO2 + GLYC
+!
+! ---  KH = K*FYHORO(M,T)  ---  HOC2H4O --O2--> HO2 + GLYC
          DO I          = 1, NNADDH(NCS)
             NK         = NKSPECH( I,NCS )
             DO KLOOP   = 1, KTLOOP
@@ -654,8 +656,8 @@ C ---  KH = K*FYHORO(M,T)  ---  HOC2H4O --O2--> HO2 + GLYC
 
             ENDDO
          ENDDO
-C
-C ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
+!
+! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
          IF (NKSPECX(NCS).GT.0) THEN
             NK               = NKSPECX(NCS)
             DO KLOOP     = 1, KTLOOP
@@ -664,20 +666,20 @@ C ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
      1           (1.D0 + RRATE2 / RRATE(KLOOP,NK+1))    
             ENDDO
          ENDIF
-C
-C ---    OH + CO: K = K0(1+0.6 Patm)  ------------ 
-C    CONSTC includes a factor to convert PRESS3 from (dyn cm-2) to (atm)
+!
+! ---    OH + CO: K = K0(1+0.6 Patm)  ------------ 
+!    CONSTC includes a factor to convert PRESS3 from (dyn cm-2) to (atm)
          IF (NKSPECY(NCS).GT.0) THEN
             NK           = NKSPECY(NCS)
             ! FP defined CONSTC = 9.871d-7 as a parameter (hotp 7/31/09)
-C            CONSTC       = 0.6D0 * 9.871D-07
+!            CONSTC       = 0.6D0 * 9.871D-07
             DO KLOOP     = 1, KTLOOP
                JLOOP           = LREORDER(JLOOPLO + KLOOP)
                RRATE(KLOOP,NK) = RRATE(KLOOP,NK) *
-C     1              (1.D0 + CONSTC*PRESS3(JLOOP))
+!     1              (1.D0 + CONSTC*PRESS3(JLOOP))
      1              (1.D0 + 0.6d0*CONSTC*PRESS3(JLOOP))
 c new OH+CO rate from JPL2006.
-C Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
+! Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
                KLO1=5.9D-33*(300*T3I(KLOOP))**(1.4D0) 
                KHI1=1.1D-12*(300*T3I(KLOOP))**(-1.3D0)
                XYRAT1=KLO1*DENAIR(KLOOP)/KHI1
@@ -694,16 +696,16 @@ C Watch out! KCO1 and KCO2 have different form!!!!!!!!!!!!!!!(jmao,02/26/09)
                RRATE(KLOOP,NK)=KCO
             ENDDO
          ENDIF
-C
-C ---    MCO3+MO2:  K = K1 / (1+K2)   ------------
-C  temperature-dependent branching ratio
+!
+! ---    MCO3+MO2:  K = K1 / (1+K2)   ------------
+!  temperature-dependent branching ratio
          DO I          = 1,NNADDV(NCS)
             NK         = NKSPECV( I,NCS )
             DO KLOOP   = 1, KTLOOP
                RRATE(KLOOP,NK)=RRATE(KLOOP,NK)/(1.d0+RRATE(KLOOP,NK+1))
             ENDDO
          ENDDO
-C
+!
          ! Add special reaction for DMS + OH + O2 (bdf, bmy, 4/18/03)
          DO I          = 1,NNADDG(NCS)
             NK         = NKSPECG( I,NCS )
@@ -713,9 +715,9 @@ C
             ! SMVGEARII doesn't have structure to multiply rate(nk+1) by [O2]
             ENDDO
          ENDDO
-C
-C ---  HO2/NO3 + HO2:  K = (K1 + K2)*(1+1.4E-21*[H2O]*EXP(2200/T))  --- 
-C  dependence of HO2/NO3 + HO2 on water vapor
+!
+! ---  HO2/NO3 + HO2:  K = (K1 + K2)*(1+1.4E-21*[H2O]*EXP(2200/T))  --- 
+!  dependence of HO2/NO3 + HO2 on water vapor
          IF (NKSPECZ(NCS).GT.0) THEN
             NK         = NKSPECZ(NCS)
             DO KLOOP   = 1, KTLOOP
@@ -724,8 +726,8 @@ C  dependence of HO2/NO3 + HO2 on water vapor
      +          (1.D0+1.4D-21*CBLK(KLOOP,IH2O)*EXP(2200.D0/T3K(KLOOP)))
             ENDDO
          ENDIF
-C FP_ISOP 
-C Change yield for HAC  
+! FP_ISOP 
+! Change yield for HAC  
 
          ! Questions for Fabien: (hotp 7/31/09)
          ! What are HAC, MCO3, and GLYC? Can you provide some comments for
@@ -936,16 +938,16 @@ C Change yield for HAC
       ENDDO
 
       ENDIF
-C     ENDIF NCS.EQ.1 OR 2
-C
-C *********************************************************************
-C *********************************************************************
-C *             REORDER RRATE ARRAY THEN CALL SOLVER                  * 
-C *                                                                   *
-C * NOTE: If after this point you want to reference a SMVGEAR rxn #,  *
-C * then you must use NOLDFNEW(NK,1) instead of NK. (bmy, 8/8/03)     *
-C *********************************************************************
-C
+!     ENDIF NCS.EQ.1 OR 2
+!
+! *********************************************************************
+! *********************************************************************
+! *             REORDER RRATE ARRAY THEN CALL SOLVER                  * 
+! *                                                                   *
+! * NOTE: If after this point you want to reference a SMVGEAR rxn #,  *
+! * then you must use NOLDFNEW(NK,1) instead of NK. (bmy, 8/8/03)     *
+! *********************************************************************
+!
       NFDH3              = ITHRR(NCS) 
       NFDL2              = NFDH3  + 1 
       NFDREP             = INOREP(NCS)
@@ -956,42 +958,42 @@ C
       NFDL0              = NFDH1  + 1 
       NALLR              = NALLRAT(NCS) 
 
-C
+!
       DO 730 NKN         = 1, NALLR
          NK                = NOLDFNEW(NKN,NCS)
          IRMA(NKN)         = IRM2(1,NK,NCS) 
          IRMB(NKN)         = IRM2(2,NK,NCS) 
          IRMC(NKN)         = IRM2(3,NK,NCS) 
  730  CONTINUE 
-C
-C *********************************************************************
-C                        REORDER RRATE ARRAY 
-C *********************************************************************
-C                 TRATE USED HERE AS A DUMMY ARRAY 
-C *********************************************************************
-C
-C
+!
+! *********************************************************************
+!                        REORDER RRATE ARRAY 
+! *********************************************************************
+!                 TRATE USED HERE AS A DUMMY ARRAY 
+! *********************************************************************
+!
+!
       DO 745 NK          = 1, NTRATES(NCS)
          DO 740 KLOOP      = 1, KTLOOP
             TRATE(KLOOP,NK)  = RRATE(KLOOP,NK)
  740     CONTINUE
  745  CONTINUE
-C
+!
       DO 755 NKN         = 1, NALLR
          NK                = NOLDFNEW(NKN,NCS)
          DO 750 KLOOP      = 1, KTLOOP
             RRATE(KLOOP,NKN) = TRATE(KLOOP,NK)
  750     CONTINUE
  755  CONTINUE
-C
-C *********************************************************************
-C REPLACE INACTIVE REACTION RATE COEFFICIENT ARRAY WITH NEW ARRAY 
-C THESE REACTIONS HAVE NO ACTIVE LOSS TERMS. PHOTORATE TERMS HERE
-C ARE REPLACED IN UPDATE.F .
-C *********************************************************************
-C                 TRATE USED HERE AS A REAL ARRAY 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! REPLACE INACTIVE REACTION RATE COEFFICIENT ARRAY WITH NEW ARRAY 
+! THESE REACTIONS HAVE NO ACTIVE LOSS TERMS. PHOTORATE TERMS HERE
+! ARE REPLACED IN UPDATE.F .
+! *********************************************************************
+!                 TRATE USED HERE AS A REAL ARRAY 
+! *********************************************************************
+!
       DO 765 NKN          = NFDL0, NALLR
          NH                 = NKN + NALLR
          DO 760 KLOOP       = 1, KTLOOP
@@ -999,15 +1001,15 @@ C
             TRATE(KLOOP,NH)   = -RRATE(KLOOP,NKN)
  760     CONTINUE
  765  CONTINUE
-C
-C *********************************************************************
-C              Photorates for Harvard Geos Code
-C *********************************************************************
-C PRATE           = PHOTORATE (SEC-1) IF SUN IS DOWN, PRATE = 0.
-C RRATE           = RATE COEFFICIENT (SEC-1)
-C NRATES          = NUMBER OF KINETIC REACTION RATES.
-C
-C
+!
+! *********************************************************************
+!              Photorates for Harvard Geos Code
+! *********************************************************************
+! PRATE           = PHOTORATE (SEC-1) IF SUN IS DOWN, PRATE = 0.
+! RRATE           = RATE COEFFICIENT (SEC-1)
+! NRATES          = NUMBER OF KINETIC REACTION RATES.
+!
+!
       IF(IFSUN.EQ.1) THEN
          DO I                = 1, JPHOTRAT(NCS)
             NK               = NRATES(NCS) + I
@@ -1206,20 +1208,20 @@ c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
             ENDDO
          ENDDO
       ENDIF
-C
-C *********************************************************************
-C                         RESET NCSP  
-C *********************************************************************
-C NCS       = 1..NCSGAS FOR GAS CHEMISTRY                           
-C NCSP      = NCS       FOR DAYTIME   GAS CHEM            
-C           = NCS + ICS FOR NIGHTTIME GAS CHEM           
-C
+!
+! *********************************************************************
+!                         RESET NCSP  
+! *********************************************************************
+! NCS       = 1..NCSGAS FOR GAS CHEMISTRY                           
+! NCSP      = NCS       FOR DAYTIME   GAS CHEM            
+!           = NCS + ICS FOR NIGHTTIME GAS CHEM           
+!
       NCSP            = (IFSUN - 1) * ICS + NCS
-C
-C *********************************************************************
-C                ARCHIVE FOR PLANE-FOLLOWING DIAGNOSTIC   
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                ARCHIVE FOR PLANE-FOLLOWING DIAGNOSTIC   
+! *********************************************************************
+!
       ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
       CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
 
@@ -1240,17 +1242,17 @@ C
          ENDDO
       ENDIF
       !********************************************
-C
-C *********************************************************************
-C                     RETURN TO CALLING PROGRAM
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                     RETURN TO CALLING PROGRAM
+! *********************************************************************
+!
       RETURN
-C
-C *********************************************************************
-C                       INTERNAL SUBROUTINES 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                       INTERNAL SUBROUTINES 
+! *********************************************************************
+!
       CONTAINS
 
       FUNCTION N2O5( AEROTYPE, TEMP, RH ) RESULT( GAMMA )
@@ -1383,7 +1385,7 @@ C
       ! Return to CALCRATE
       END FUNCTION N2O5
 
-C *********************************************************************
+! *********************************************************************
 
       FUNCTION HO2( RADIUS, TEMP, DENAIR, SQM, HO2DENS,
      &              AEROTYPE, CONTINENTAL_PBL ) RESULT( GAMMA )
@@ -1418,6 +1420,7 @@ C *********************************************************************
       
 
       IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       REAL*8,  INTENT(IN) :: RADIUS, TEMP, DENAIR, HO2DENS, SQM
@@ -1576,9 +1579,9 @@ C *********************************************************************
 
       ! Return to CALCRATE
       END FUNCTION HO2
-C
-C *********************************************************************
-C ******************** END OF SUBROUTINE CALCRATE *********************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ******************** END OF SUBROUTINE CALCRATE *********************
+! *********************************************************************
+!
       END SUBROUTINE CALCRATE

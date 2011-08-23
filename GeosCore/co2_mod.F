@@ -72,7 +72,8 @@
 !     
 ! !USES:
 !     
-      IMPLICIT NONE 
+      IMPLICIT NONE
+#     include "define.h" 
       PRIVATE 
 !     
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -185,7 +186,7 @@
       USE LOGICAL_MOD,  ONLY : LSHIPSCALE,  LPLANESCALE
       USE LOGICAL_MOD,  ONLY : LCHEMCO2
       
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !REMARKS:
 !  The initial condition for CO2 has to be at least 50 ppm or higher or else
@@ -728,7 +729,7 @@
       USE BPCH2_MOD,     ONLY : GET_TAU0,   READ_BPCH2
       USE TIME_MOD,      ONLY : GET_MONTH,  GET_YEAR
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REMARKS:
 ! 
@@ -805,7 +806,7 @@
       USE TIME_MOD,      ONLY : GET_YEAR, GET_MONTH
       USE LOGICAL_MOD,   ONLY : LGENFF, LANNFF, LMONFF, LCHEMCO2, LPLANE
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REMARKS:
 !  Original data provided by Robert Andres (CDIAC), personal communication
@@ -964,7 +965,7 @@
       USE TIME_MOD,       ONLY : GET_YEAR,GET_MONTH
       USE GRID_MOD,       ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REMARKS:
 !  Methane source distribution are read for the same purpose from 2004 data
@@ -1290,7 +1291,7 @@
       USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -1459,7 +1460,7 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE LOGICAL_MOD,   ONLY : LOCN1997, LOCN2009ANN, LOCN2009MON
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REMARKS:
 !  See References Above
@@ -1559,7 +1560,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REMARKS:
 !  References:
@@ -1635,7 +1636,7 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TIME_MOD,       ONLY : GET_YEAR
 	
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version
@@ -1762,7 +1763,7 @@
       USE GRID_MOD,       ONLY : GET_AREA_CM2
       USE TIME_MOD,       ONLY : GET_YEAR, GET_MONTH
 	
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REMARKS:
 !  This subroutine reads from bpch files at GEOS 1x1 (half-polar) resolution
@@ -1904,7 +1905,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH, GET_YEAR
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !REMARKS:
 !  This is a modified version of READ_AIRCRAFT_SO2 from:
@@ -2126,7 +2127,7 @@
       USE LOGICAL_MOD,    ONLY : LBIONETORIG,   LBIONETCLIM
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1 
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REMARKS:
 !  The two choices are:
@@ -2283,7 +2284,7 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
       USE TIME_MOD,      ONLY : GET_YEAR,        ITS_A_LEAPYEAR
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -2387,7 +2388,7 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D 
       USE TIME_MOD,      ONLY : GET_YEAR, ITS_A_LEAPYEAR
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -2502,7 +2503,7 @@
 !
       USE GRID_MOD, ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -2579,7 +2580,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2802,7 +2803,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2955,7 +2956,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3182,7 +3183,7 @@
       USE LOGICAL_MOD, ONLY : LSHIPTAG,    LPLANETAG
       USE TRACER_MOD,  ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 ! 
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version

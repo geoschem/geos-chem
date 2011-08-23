@@ -32,6 +32,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -82,7 +83,7 @@
       USE TIME_MOD,     ONLY : EXPAND_DATE
       USE UNIX_CMDS_MOD
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -205,7 +206,7 @@
       USE FILE_MOD,     ONLY : IU_PH, IOERROR, FILE_EXISTS
       USE TIME_MOD,     ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -334,7 +335,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -388,9 +389,9 @@
       USE TIME_MOD,     ONLY : TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_GCTM"   ! g0
-#     include "F77_CMN_DIAG"   ! ND67
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! ND67
+      USE CMN_GCTM_MOD   ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS
