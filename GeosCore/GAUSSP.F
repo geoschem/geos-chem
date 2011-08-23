@@ -1,8 +1,8 @@
-C $Id: GAUSSP.f,v 1.1 2009/09/16 14:06:48 bmy Exp $
+! $Id: GAUSSP.f,v 1.1 2009/09/16 14:06:48 bmy Exp $
       SUBROUTINE GAUSSP (N,XPT,XWT)
-C-----------------------------------------------------------------------
-C  Loads in pre-set Gauss points for 4 angles from 0 to +1 in cos(theta)=mu
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  Loads in pre-set Gauss points for 4 angles from 0 to +1 in cos(theta)=mu
+!-----------------------------------------------------------------------
       IMPLICIT NONE
 #     include "define.h"
       INTEGER N,I

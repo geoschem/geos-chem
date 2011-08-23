@@ -83,4 +83,4 @@
 !$OMP THREADPRIVATE( ZTAU,FZ,FJ,DD,RR,ZREFL,ZFLUX,RADIUS,ZU0 )
 !$OMP THREADPRIVATE( ND,N,M,MFIT )
 	END MODULE JV_MIE_MOD
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------

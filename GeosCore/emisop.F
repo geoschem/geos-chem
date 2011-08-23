@@ -1,4 +1,4 @@
-C $Id: emisop.f,v 1.2 2009/11/30 19:57:57 ccarouge Exp $      
+! $Id: emisop.f,v 1.2 2009/11/30 19:57:57 ccarouge Exp $      
       FUNCTION EMISOP( I, J, IJLOOP, SUNCOS, TMMP, XNUMOL )
 !
 !******************************************************************************

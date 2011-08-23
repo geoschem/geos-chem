@@ -20,67 +20,67 @@
       INTEGER IJ,I,KZT,KL5,KH5,KL4,KH4,KL3,KH3,KL2,KH2,KL1,KH1,KC
       INTEGER J0,IJ0,IJ1,IJ2,IJ3,IJ4,J1,J2,J3,J4,K,MZT,ML5,MH5,ML4,MH4
       INTEGER ML3,MH3,ML2,MH2,ML1,MH1,MC
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
-C ***                         (650) 723-6836                        *** 
-C *********************************************************************
-C
-C     BBBBBBB     A     CCCCCCC  K     K  SSSSSSS  U      U  BBBBBBB
-C     B     B    A A    C        K   K    S        U      U  B     B
-C     BBBBBBB   A   A   C        K K      SSSSSSS  U      U  BBBBBBB
-C     B     B  AAAAAAA  C        K   K          S  U      U  B     B
-C     BBBBBBB A       A CCCCCCC  K     K  SSSSSSS  UUUUUUUU  BBBBBBB
-C
-C *********************************************************************
-C ******* PERFORM BACK-SUBSTITUTIONS ON THE DECOMPOSED MATRIX   ******* 
-C *********************************************************************
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
+! ***                         (650) 723-6836                        *** 
+! *********************************************************************
+!
+!     BBBBBBB     A     CCCCCCC  K     K  SSSSSSS  U      U  BBBBBBB
+!     B     B    A A    C        K   K    S        U      U  B     B
+!     BBBBBBB   A   A   C        K K      SSSSSSS  U      U  BBBBBBB
+!     B     B  AAAAAAA  C        K   K          S  U      U  B     B
+!     BBBBBBB A       A CCCCCCC  K     K  SSSSSSS  UUUUUUUU  BBBBBBB
+!
+! *********************************************************************
+! ******* PERFORM BACK-SUBSTITUTIONS ON THE DECOMPOSED MATRIX   ******* 
+! *********************************************************************
 
-C *********************************************************************
-C * THIS SUBROUTINE SOLVES THE LINEAR SET OF EQUATIONS Ax = B FOR x,  *
-C * THE CORRECTION VECTOR, WHERE "A" IS THE L-U DECOMPOSTION OF THE   *
-C * ORIGINAL MATRIX,                                                  * 
-C *                                                                   *
-C *                       P = I - H x Bo x J,                         * 
-C *                                                                   *
-C * I = IDENTITY MATRIX, H = TIME-STEP, Bo = A COEFFICIENT THAT       * 
-C * DEPENDS ON THE ORDER OF THE INTEGRATION METHOD, AND J IS THE      * 
-C * MATRIX OF PARTIAL DERIVATIVES. B IS SENT FROM SMVGEAR AS A        * 
-C * CORRECTED VALUE OF THE FIRST DERIVATIVES OF THE ORDINARY DIFFER-  * 
-C * ENTIAL EQUATIONS. SUBROUTINE DECOMP.F SOLVED FOR "A", THE         * 
-C * DECOMPOSED MATRIX. SEE PRESS ET AL. (1992) NUMERICAL RECIPES.     *
-C * CAMBRIDGE UNIVERSITY PRESS, FOR A BETTER DESCRIPTION OF THE BACK- *
-C * SUBSTITUTION PROCESS.                                             *
-C *                                                                   *
-C * THIS BACK-SUBSTITUTION PROCESS USES SPARSE-MATRIX TECHNIQUES,     *
-C * VECTORIZES AROUND THE GRID-CELL DIMENSION, AND USES NO PARTIAL    *
-C * PIVOTING. TESTS BY SHERMAN & HINDMARSH (1980) LAWRENCE LIVERMORE  * 
-C * REP. UCRL-84102 AND BY US HAVE CONFIRMED THAT THE REMOVAL OF      *
-C * PARTIAL PIVOTING HAS LITTLE EFFECT ON RESULTS.                    *
-C *                                                                   *
-C * HOW TO CALL SUBROUTINE:                                           *
-C * ----------------------                                            *
-C *  CALL BACKSUB.F FROM SMVGEAR.F WITH                               * 
-C *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
-C *     NCSP = NCS        FOR DAYTIME   GAS CHEM                      *  
-C *     NCSP = NCS   +ICS FOR NIGHTTIME GAS CHEM                      *  
-C *********************************************************************
-C
-C *********************************************************************
-C *                        BACKSUB LOOP # 1                           *
-C * FIRST, ADJUST RIGHT SIDE OF Ax = B USING LOWER TRIANGULAR MATRIX  * 
-C *********************************************************************
-C SUM 1,2,3,4, OR 5 TERMS AT A TIME TO IMPROVE VECTORIZATION.
-C
-C KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
-C ISCHAN   = ORDER OF MATRIX
-C CC2      = ARRAY HOLDING VALUES OF DECOMPOSED MATRIX. 
-C GLOSS    = ARRAY INITIALLY HOLDING RIGHT SIDE OF EQUATION. THESE
-C            VALUES ARE CONVERTED TO THE SOLUTION DURING BACK-SUBSTITUTION.
-C KZEROA,..= ARRAYS IDENTIFYING TERMS IN GLOSS ARRAY 
-C
+! *********************************************************************
+! * THIS SUBROUTINE SOLVES THE LINEAR SET OF EQUATIONS Ax = B FOR x,  *
+! * THE CORRECTION VECTOR, WHERE "A" IS THE L-U DECOMPOSTION OF THE   *
+! * ORIGINAL MATRIX,                                                  * 
+! *                                                                   *
+! *                       P = I - H x Bo x J,                         * 
+! *                                                                   *
+! * I = IDENTITY MATRIX, H = TIME-STEP, Bo = A COEFFICIENT THAT       * 
+! * DEPENDS ON THE ORDER OF THE INTEGRATION METHOD, AND J IS THE      * 
+! * MATRIX OF PARTIAL DERIVATIVES. B IS SENT FROM SMVGEAR AS A        * 
+! * CORRECTED VALUE OF THE FIRST DERIVATIVES OF THE ORDINARY DIFFER-  * 
+! * ENTIAL EQUATIONS. SUBROUTINE DECOMP.F SOLVED FOR "A", THE         * 
+! * DECOMPOSED MATRIX. SEE PRESS ET AL. (1992) NUMERICAL RECIPES.     *
+! * CAMBRIDGE UNIVERSITY PRESS, FOR A BETTER DESCRIPTION OF THE BACK- *
+! * SUBSTITUTION PROCESS.                                             *
+! *                                                                   *
+! * THIS BACK-SUBSTITUTION PROCESS USES SPARSE-MATRIX TECHNIQUES,     *
+! * VECTORIZES AROUND THE GRID-CELL DIMENSION, AND USES NO PARTIAL    *
+! * PIVOTING. TESTS BY SHERMAN & HINDMARSH (1980) LAWRENCE LIVERMORE  * 
+! * REP. UCRL-84102 AND BY US HAVE CONFIRMED THAT THE REMOVAL OF      *
+! * PARTIAL PIVOTING HAS LITTLE EFFECT ON RESULTS.                    *
+! *                                                                   *
+! * HOW TO CALL SUBROUTINE:                                           *
+! * ----------------------                                            *
+! *  CALL BACKSUB.F FROM SMVGEAR.F WITH                               * 
+! *     NCS  = 1..NCSGAS FOR GAS CHEMISTRY                            *
+! *     NCSP = NCS        FOR DAYTIME   GAS CHEM                      *  
+! *     NCSP = NCS   +ICS FOR NIGHTTIME GAS CHEM                      *  
+! *********************************************************************
+!
+! *********************************************************************
+! *                        BACKSUB LOOP # 1                           *
+! * FIRST, ADJUST RIGHT SIDE OF Ax = B USING LOWER TRIANGULAR MATRIX  * 
+! *********************************************************************
+! SUM 1,2,3,4, OR 5 TERMS AT A TIME TO IMPROVE VECTORIZATION.
+!
+! KTLOOP   = NUMBER OF GRID-CELLS IN A GRID-BLOCK
+! ISCHAN   = ORDER OF MATRIX
+! CC2      = ARRAY HOLDING VALUES OF DECOMPOSED MATRIX. 
+! GLOSS    = ARRAY INITIALLY HOLDING RIGHT SIDE OF EQUATION. THESE
+!            VALUES ARE CONVERTED TO THE SOLUTION DURING BACK-SUBSTITUTION.
+! KZEROA,..= ARRAYS IDENTIFYING TERMS IN GLOSS ARRAY 
+!
       IJ            = 1 
       DO 310 KZT    = KZTLO(NCSP), KZTHI(NCSP)
          I            = IKZTOT(KZT)
@@ -94,9 +94,9 @@ C
          KH2          = KBH2(  KZT)
          KL1          = KBL1(  KZT)
          KH1          = KBH1(  KZT)
-C
-C ***********************  SUM 5 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 5 TERMS AT A TIME  ********************* 
+!
        DO 105 KC    = KL5, KH5
           IJ0         = IJ
           IJ1         = IJ + 1
@@ -118,9 +118,9 @@ C
      5                  - CC2(K,IJ4) * GLOSS(K,J4)
  100      CONTINUE
  105   CONTINUE
-C
-C ***********************  SUM 4 TERMS AT A TIME  ********************* 
-C     
+!
+! ***********************  SUM 4 TERMS AT A TIME  ********************* 
+!     
        DO 155 KC    = KL4, KH4 
           IJ0         = IJ
           IJ1         = IJ + 1
@@ -139,9 +139,9 @@ C
      4                  - CC2(K,IJ3) * GLOSS(K,J3)
  150      CONTINUE
  155   CONTINUE
-C
-C ***********************  SUM 3 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 3 TERMS AT A TIME  ********************* 
+!
        DO 205 KC    = KL3, KH3 
           IJ0         = IJ
           IJ1         = IJ + 1
@@ -157,9 +157,9 @@ C
      3                  - CC2(K,IJ2) * GLOSS(K,J2)
  200      CONTINUE
  205   CONTINUE
-C
-C ***********************  SUM 2 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 2 TERMS AT A TIME  ********************* 
+!
        DO 255 KC    = KL2, KH2 
           IJ0         = IJ
           IJ1         = IJ + 1
@@ -172,9 +172,9 @@ C
      2                  - CC2(K,IJ1) * GLOSS(K,J1)
  250      CONTINUE
  255   CONTINUE
-C
-C ***********************  SUM 1 TERM AT A TIME  ********************** 
-C
+!
+! ***********************  SUM 1 TERM AT A TIME  ********************** 
+!
        DO 305 KC    = KL1, KH1 
           IJ0         = IJ
           IJ          = IJ + 1         
@@ -185,15 +185,15 @@ C
  300      CONTINUE
  305   CONTINUE
  310  CONTINUE
-C
-C *********************************************************************
-C *                         BACKSUB LOOP # 2                          * 
-C * BACKSUBSTITE WITH UPPER TRIANGULAR MATRIX TO FIND SOLUTION        *
-C *********************************************************************
-C AGAIN, SUM UP SEVERAL TERMS AT A TIME TO IMPROVE VECTORIZATION.
-C VDIAG  = DIAGONAL TERM FROM L-U DECOMPOSTION.
-C GLOSS  = SOLUTION ON OUTPUT
-C
+!
+! *********************************************************************
+! *                         BACKSUB LOOP # 2                          * 
+! * BACKSUBSTITE WITH UPPER TRIANGULAR MATRIX TO FIND SOLUTION        *
+! *********************************************************************
+! AGAIN, SUM UP SEVERAL TERMS AT A TIME TO IMPROVE VECTORIZATION.
+! VDIAG  = DIAGONAL TERM FROM L-U DECOMPOSTION.
+! GLOSS  = SOLUTION ON OUTPUT
+!
       DO 710 I       = ISCHAN, 1, -1
          MZT           = IMZTOT(I,NCSP)  
          IF (MZT.GT.0) THEN
@@ -207,9 +207,9 @@ C
             MH2          = MBH2(  MZT)
             ML1          = MBL1(  MZT)
             MH1          = MBH1(  MZT)
-C
-C ***********************  SUM 5 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 5 TERMS AT A TIME  ********************* 
+!
             DO 405 MC    = ML5, MH5
                IJ0         = IJ
                IJ1         = IJ + 1
@@ -231,9 +231,9 @@ C
      5                       - CC2(K,IJ4) * GLOSS(K,J4)
  400           CONTINUE
  405        CONTINUE
-C
-C ***********************  SUM 4 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 4 TERMS AT A TIME  ********************* 
+!
             DO 455 MC    = ML4, MH4 
                IJ0         = IJ
                IJ1         = IJ + 1
@@ -252,9 +252,9 @@ C
      4                       - CC2(K,IJ3) * GLOSS(K,J3)
  450           CONTINUE
  455        CONTINUE
-C
-C ***********************  SUM 3 TERMS AT A TIME  ********************* 
-C
+!
+! ***********************  SUM 3 TERMS AT A TIME  ********************* 
+!
             DO 505 MC    = ML3, MH3 
                IJ0         = IJ
                IJ1         = IJ + 1
@@ -270,9 +270,9 @@ C
      3                       - CC2(K,IJ2) * GLOSS(K,J2)
  500           CONTINUE
  505        CONTINUE
-C     
-C ***********************  SUM 2 TERMS AT A TIME  ********************* 
-C
+!     
+! ***********************  SUM 2 TERMS AT A TIME  ********************* 
+!
             DO 555 MC    = ML2, MH2 
                IJ0         = IJ
                IJ1         = IJ + 1
@@ -285,9 +285,9 @@ C
      2                       - CC2(K,IJ1) * GLOSS(K,J1)
  550           CONTINUE
  555        CONTINUE
-C     
-C ***********************  SUM 1 TERM AT A TIME  ********************** 
-C
+!     
+! ***********************  SUM 1 TERM AT A TIME  ********************** 
+!
             DO 605 MC    = ML1, MH1 
                IJ0         = IJ
                IJ          = IJ + 1       
@@ -298,18 +298,18 @@ C
  600           CONTINUE
  605        CONTINUE
          ENDIF
-C      ENDIF MZT.GT.0
-C
-C ***************  ADJUST GLOSS WITH DIAGONAL ELEMENT  **************** 
-C
+!      ENDIF MZT.GT.0
+!
+! ***************  ADJUST GLOSS WITH DIAGONAL ELEMENT  **************** 
+!
          DO 700 K    = 1, KTLOOP
             GLOSS(K,I) = GLOSS(K,I) * VDIAG(K,I)
  700     CONTINUE
  710  CONTINUE
-C     
-C *********************************************************************
-C ******************** END OF SUBROUTINE BACKSUB **********************
-C *********************************************************************
-C
+!     
+! *********************************************************************
+! ******************** END OF SUBROUTINE BACKSUB **********************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE BACKSUB

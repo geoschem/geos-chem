@@ -63,20 +63,20 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE CntMat(str1,str2,imat)
-C
-C     Count the number of characters in str1 that match
-C     a character in str2.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C          LENTRIM                CharPak
-C
-C     DATE:   JAN. 6, 1995
-C     AUTHOR: R.D. STEWART
-C     COMMENTS: Revised slightly (2-5-1996) so that trailing
-C               blanks in str1 are ignored.  Revised again
-C               on 3-6-1996.
-C
+!
+!     Count the number of characters in str1 that match
+!     a character in str2.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!          LENTRIM                CharPak
+!
+!     DATE:   JAN. 6, 1995
+!     AUTHOR: R.D. STEWART
+!     COMMENTS: Revised slightly (2-5-1996) so that trailing
+!               blanks in str1 are ignored.  Revised again
+!               on 3-6-1996.
+!
       CHARACTER*(*) str1,str2
       INTEGER imat
       INTEGER L1,L2,i,j
@@ -106,21 +106,21 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE CopyTxt(col,str1,str2)
-C
+!
 c     PURPOSE: Write all of the characters in str1 into variable
-C              str2 beginning at column, col.  If the length of str1
-C              + col is longer than the number of characters str2
-C              can store, some characters will not be transfered to
-C              str2.  Any characters already existing in str2 will
-C              will be overwritten.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
-C     DATE:   DEC. 24, 1993
-C     AUTHOR: R.D. STEWART
-C
+!              str2 beginning at column, col.  If the length of str1
+!              + col is longer than the number of characters str2
+!              can store, some characters will not be transfered to
+!              str2.  Any characters already existing in str2 will
+!              will be overwritten.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
+!     DATE:   DEC. 24, 1993
+!     AUTHOR: R.D. STEWART
+!
       CHARACTER*(*) str2,str1
       INTEGER col,ilt1,i1,i,j,ic
 
@@ -145,18 +145,18 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE CSTRIP(text)
-C
-C     PURPOSE: Strip blanks and null characters for the variable TEXT.
-C
-C     COMMENTS: The original "text" is destroyed upon exit.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
-C      AUTHOR: Robert D. Stewart
-C        DATE: May 19, 1992
-C
+!
+!     PURPOSE: Strip blanks and null characters for the variable TEXT.
+!
+!     COMMENTS: The original "text" is destroyed upon exit.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
+!      AUTHOR: Robert D. Stewart
+!        DATE: May 19, 1992
+!
       CHARACTER*(*) TEXT
       INTEGER ilen,iasc,icnt,i
       CHARACTER*1 ch
@@ -167,13 +167,13 @@ C
         DO i=1,ilen
           iasc = ICHAR(text(i:i))
           IF ((iasc.GT.32).AND.(iasc.LT.255)) THEN
-C           Keep character
+!           Keep character
             ch = text(i:i)
             text(icnt:icnt) = ch
             icnt = icnt + 1
           ENDIF
         ENDDO
-C       Fill remainder of text with blanks
+!       Fill remainder of text with blanks
         DO i=icnt,ilen
           text(i:i) = ' '
         ENDDO
@@ -185,19 +185,19 @@ C       Fill remainder of text with blanks
 !------------------------------------------------------------------------------
 
       FUNCTION ISDIGIT( ch ) RESULT( LNUM )
-C
-C     Returned as true if ch is a numeric character (i.e., one of
-C     the numbers from 0 to 9).
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
-C     DATE:   NOV. 11, 1993
-C     AUTHOR: R.D. STEWART
-C
-C     NOTE: Changed name from ISNUM to ISDIGIT (bmy, 7/15/04)
-C  
+!
+!     Returned as true if ch is a numeric character (i.e., one of
+!     the numbers from 0 to 9).
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
+!     DATE:   NOV. 11, 1993
+!     AUTHOR: R.D. STEWART
+!
+!     NOTE: Changed name from ISNUM to ISDIGIT (bmy, 7/15/04)
+!  
       CHARACTER*1 ch
       INTEGER iasc
       LOGICAL lnum
@@ -368,19 +368,19 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE TRANLC(text)
-C
-C     PURPOSE: Tranlate a character variable to all lowercase letters.
-C              Non-alphabetic characters are not affected.
-C
-C    COMMENTS: The original "text" is destroyed.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
-C      AUTHOR: Robert D. Stewart
-C        DATE: May 19, 1992
-C
+!
+!     PURPOSE: Tranlate a character variable to all lowercase letters.
+!              Non-alphabetic characters are not affected.
+!
+!    COMMENTS: The original "text" is destroyed.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
+!      AUTHOR: Robert D. Stewart
+!        DATE: May 19, 1992
+!
       CHARACTER*(*) text
       INTEGER iasc,i,ilen
 
@@ -398,19 +398,19 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE TRANUC(text)
-C
-C     PURPOSE: Tranlate a character variable to all upper case letters.
-C              Non-alphabetic characters are not affected.
-C
-C    COMMENTS: The original "text" is destroyed.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
-C      AUTHOR: Robert D. Stewart
-C        DATE: May 19, 1992
-C
+!
+!     PURPOSE: Tranlate a character variable to all upper case letters.
+!              Non-alphabetic characters are not affected.
+!
+!    COMMENTS: The original "text" is destroyed.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
+!      AUTHOR: Robert D. Stewart
+!        DATE: May 19, 1992
+!
       CHARACTER*(*) text
       INTEGER iasc,i,ilen
 
@@ -428,24 +428,24 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE Txt2Inum(fmat,txt,Inum,iflg)
-C
-C     <Txt2Inum> attempts to convert the string of characters
-C     in txt into a integer number.  fmat is the
-C     VALID format specifier to use in the internal read
-C     statement.  iflg is returned as a status flag indicating
-C     the success or failure of the operation.  iflg <=0 if the
-C     operation was successful, and > 0 if it failed.
-C
-C     COMMENTS: Generally, the Fxx.0 format should be used to convert
-C               string of characters to a number.
-C
-C      AUTHOR: Robert D. Stewart
-C        DATE: DEC 24, 1992
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        N/A
-C
+!
+!     <Txt2Inum> attempts to convert the string of characters
+!     in txt into a integer number.  fmat is the
+!     VALID format specifier to use in the internal read
+!     statement.  iflg is returned as a status flag indicating
+!     the success or failure of the operation.  iflg <=0 if the
+!     operation was successful, and > 0 if it failed.
+!
+!     COMMENTS: Generally, the Fxx.0 format should be used to convert
+!               string of characters to a number.
+!
+!      AUTHOR: Robert D. Stewart
+!        DATE: DEC 24, 1992
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        N/A
+!
       CHARACTER*(*) txt,fmat
       INTEGER inum
       INTEGER iflg
@@ -458,86 +458,86 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE TxtExt(ch,text,col,word,iflg)
-C
-C     PURPOSE: TxtExt extracts a sequence of characters from
-C              text and transfers them to word.  The extraction
-C              procedure uses a set of character "delimiters"
-C              to denote the desired sequence of characters.
-C              For example if ch=' ', the first character sequence
-C              bracketed by blank spaces will be returned in word.
-C              The extraction procedure begins in column, col,
-C              of TEXT.  If text(col:col) = ch (any character in
-C              the character string), the text is returned beginning
-C              with col+1 in text (i.e., the first match with ch
-C              is ignored).
-C
-C              After completing the extraction, col is incremented to
-C              the location of the first character following the
-C              end of the extracted text.
-C
-C              A status flag is also returned with the following
-C              meaning(s)
-C
-C                 IF iflg = -1, found a text block, but no more characters
-C                               are available in TEXT
-C                    iflg = 0, task completed sucessfully (normal term)
-C                    iflg = 1, ran out of text before finding a block of
-C                              text.
-C
-C       COMMENTS: TxtExt is short for Text Extraction.  This routine
-C                 provides a set of powerful line-by-line
-C                 text search and extraction capabilities in
-C                 standard FORTRAN.
-C
-C     CODE DEPENDENCIES:
-C      Routine Name                  File
-C        CntMat                    CHARPAK.FOR
-C        TxtExt                    CHARPAK.FOR
-C        FillStr                   CHARPAK.FOR
-C        CopyTxt                   CHARPAK.FOR
-C
-C        other routines are indirectly called.
-C      AUTHOR: Robert D. Stewart
-C        DATE: Jan. 1st, 1995
-C
-C      REVISIONS: FEB 22, 1996.  Slight bug fix (introduced by a
-C        (recent = FLIB 1.04) change in the CntMat routine)
-C        so that TxtExt correctlyhandles groups of characters
-C        delimited by blanks).
-C
-C      MODIFICATIONS by Bob Yantosca (6/25/02)
-C        (1) Replace call to FILLSTR with F90 intrinsic REPEAT
-C
+!
+!     PURPOSE: TxtExt extracts a sequence of characters from
+!              text and transfers them to word.  The extraction
+!              procedure uses a set of character "delimiters"
+!              to denote the desired sequence of characters.
+!              For example if ch=' ', the first character sequence
+!              bracketed by blank spaces will be returned in word.
+!              The extraction procedure begins in column, col,
+!              of TEXT.  If text(col:col) = ch (any character in
+!              the character string), the text is returned beginning
+!              with col+1 in text (i.e., the first match with ch
+!              is ignored).
+!
+!              After completing the extraction, col is incremented to
+!              the location of the first character following the
+!              end of the extracted text.
+!
+!              A status flag is also returned with the following
+!              meaning(s)
+!
+!                 IF iflg = -1, found a text block, but no more characters
+!                               are available in TEXT
+!                    iflg = 0, task completed sucessfully (normal term)
+!                    iflg = 1, ran out of text before finding a block of
+!                              text.
+!
+!       COMMENTS: TxtExt is short for Text Extraction.  This routine
+!                 provides a set of powerful line-by-line
+!                 text search and extraction capabilities in
+!                 standard FORTRAN.
+!
+!     CODE DEPENDENCIES:
+!      Routine Name                  File
+!        CntMat                    CHARPAK.FOR
+!        TxtExt                    CHARPAK.FOR
+!        FillStr                   CHARPAK.FOR
+!        CopyTxt                   CHARPAK.FOR
+!
+!        other routines are indirectly called.
+!      AUTHOR: Robert D. Stewart
+!        DATE: Jan. 1st, 1995
+!
+!      REVISIONS: FEB 22, 1996.  Slight bug fix (introduced by a
+!        (recent = FLIB 1.04) change in the CntMat routine)
+!        so that TxtExt correctlyhandles groups of characters
+!        delimited by blanks).
+!
+!      MODIFICATIONS by Bob Yantosca (6/25/02)
+!        (1) Replace call to FILLSTR with F90 intrinsic REPEAT
+!
       CHARACTER*(*) ch,text,word
       INTEGER col,iflg
       INTEGER Tmax,T1,T2,imat
       LOGICAL again,prev
 
-C     Length of text
+!     Length of text
       Tmax = LEN(text)
 
-C     Fill Word with blanks
+!     Fill Word with blanks
       WORD = REPEAT( ' ', LEN( WORD ) )
       
       IF (col.GT.Tmax) THEN
-C       Text does not contain any characters past Tmax.
-C       Reset col to one and return flag = {error condition}
+!       Text does not contain any characters past Tmax.
+!       Reset col to one and return flag = {error condition}
         iflg = 1
         col = 1
       ELSEIF (col.EQ.Tmax) THEN
-C       End of TEXT reached
+!       End of TEXT reached
         CALL CntMat(ch,text(Tmax:Tmax),imat)
         IF (imat.EQ.0) THEN
-C         Copy character into Word and set col=1
+!         Copy character into Word and set col=1
           CALL CopyTxt(1,Text(Tmax:Tmax),Word)
           col = 1
           iflg = -1
         ELSE
-C         Same error condition as if col.GT.Tmax
+!         Same error condition as if col.GT.Tmax
           iflg = 1
         ENDIF
       ELSE
-C       Make sure column is not less than 1
+!       Make sure column is not less than 1
         IF (col.LT.1) col=1
         CALL CntMat(ch,text(col:col),imat)
         IF (imat.GT.0) THEN
@@ -550,48 +550,48 @@ C       Make sure column is not less than 1
 
         again = .true.
         DO WHILE (again)
-C         Check for a match with a character in ch
+!         Check for a match with a character in ch
           CALL CntMat(ch,text(T2:T2),imat)
           IF (imat.GT.0) THEN
-C           Current character in TEXT matches one (or more) of the
-C           characters in ch.
+!           Current character in TEXT matches one (or more) of the
+!           characters in ch.
             IF (prev) THEN
               IF (T2.LT.Tmax) THEN
-C               Keep searching for a block of text
+!               Keep searching for a block of text
                 T2=T2+1
                 T1=T2
               ELSE
-C               Did not find any text blocks before running
-C               out of characters in TEXT.
+!               Did not find any text blocks before running
+!               out of characters in TEXT.
                 again=.false.
                 iflg=1
               ENDIF
             ELSE
-C             Previous character did not match ch, so terminate.
-C             NOTE: This is "NORMAL" termination of the loop
+!             Previous character did not match ch, so terminate.
+!             NOTE: This is "NORMAL" termination of the loop
               again=.false.
               T2=T2-1
               iflg = 0
             ENDIF
           ELSEIF (T2.LT.Tmax) THEN
-C           Add a letter to the current block of text
+!           Add a letter to the current block of text
             prev = .false.
             T2=T2+1
           ELSE
-C           Reached the end of the characters in TEXT before reaching
-C           another delimiting character.  A text block was identified
-C           however.
+!           Reached the end of the characters in TEXT before reaching
+!           another delimiting character.  A text block was identified
+!           however.
             again=.false.
             iflg=-1
           ENDIF
         ENDDO
 
         IF (iflg.EQ.0) THEN
-C         Copy characters into WORD and set col for return
+!         Copy characters into WORD and set col for return
           CALL CopyTxt(1,Text(T1:T2),Word)
           col = T2+1
         ELSE
-C         Copy characters into WORD and set col for return
+!         Copy characters into WORD and set col for return
           CALL CopyTxt(1,Text(T1:T2),Word)
           col = 1
         ENDIF

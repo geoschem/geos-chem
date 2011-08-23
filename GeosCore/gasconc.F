@@ -60,36 +60,36 @@
       REAL*8,  INTENT(IN)     :: FRCLND(IIPAR,JJPAR)
       ! cspecrestart hotp 2/25/09
       LOGICAL, INTENT(IN)     :: READ_CSPEC
-C
-C *********************************************************************
-C ************       WRITTEN BY MARK JACOBSON (1991-4)     ************
-C ***            (C) COPYRIGHT, 1991-4 BY MARK Z. JACOBSON          *** 
-C ***                          (650) 723-6836                       *** 
-C *********************************************************************
-C
-C    GGGGGG      A       SSSSSS   CCCCCC   OOOOO   N     N   CCCCCC  
-C   G           A A     S        C        O     O  N N   N  C  
-C   G  GGGG    A   A    SSSSSSS  C        O     O  N  N  N  C   
-C   G     G   AAAAAAA         S  C        O     O  N   N N  C    
-C    GGGGGG  A       A  SSSSSS    CCCCCC   OOOOO   N     N   CCCCCC    
-C
-C *********************************************************************
-C ******       INITIALIZE GAS CONCENTRATIONS IN THE MODEL        ******
-C ***********       AND SET MISCELLANEOUS PARAMETERS         ********** 
-C *********************************************************************
-C
-C *********************************************************************
-C * SET THE CONCENTRATION  (# CM-3) OF ACTIVE AND INACTIVE GASES      *
-C *********************************************************************
-C
-C NTLOOP    = NUMBER OF GRID-CELLS IN THE ENTIRE GRID-DOMAIN
-C NTSPECGAS = NUMBER OF ACTIVE PLUS INACTIVE GASES
-C NVERT     = NUMBER OF VERTICAL LAYERS.  
-C
-C QBKGAS    = INITIAL BACKGROUND CONCENTRATION (VOL MIXING RATIO) 
-C RHO3      = G-AIR CM-3-AIR
-C C(GAS)    = GAS CONCENTRATION IN A GIVEN GRID-CELL (# CM-3)
-C
+!
+! *********************************************************************
+! ************       WRITTEN BY MARK JACOBSON (1991-4)     ************
+! ***            (C) COPYRIGHT, 1991-4 BY MARK Z. JACOBSON          *** 
+! ***                          (650) 723-6836                       *** 
+! *********************************************************************
+!
+!    GGGGGG      A       SSSSSS   CCCCCC   OOOOO   N     N   CCCCCC  
+!   G           A A     S        C        O     O  N N   N  C  
+!   G  GGGG    A   A    SSSSSSS  C        O     O  N  N  N  C   
+!   G     G   AAAAAAA         S  C        O     O  N   N N  C    
+!    GGGGGG  A       A  SSSSSS    CCCCCC   OOOOO   N     N   CCCCCC    
+!
+! *********************************************************************
+! ******       INITIALIZE GAS CONCENTRATIONS IN THE MODEL        ******
+! ***********       AND SET MISCELLANEOUS PARAMETERS         ********** 
+! *********************************************************************
+!
+! *********************************************************************
+! * SET THE CONCENTRATION  (# CM-3) OF ACTIVE AND INACTIVE GASES      *
+! *********************************************************************
+!
+! NTLOOP    = NUMBER OF GRID-CELLS IN THE ENTIRE GRID-DOMAIN
+! NTSPECGAS = NUMBER OF ACTIVE PLUS INACTIVE GASES
+! NVERT     = NUMBER OF VERTICAL LAYERS.  
+!
+! QBKGAS    = INITIAL BACKGROUND CONCENTRATION (VOL MIXING RATIO) 
+! RHO3      = G-AIR CM-3-AIR
+! C(GAS)    = GAS CONCENTRATION IN A GIVEN GRID-CELL (# CM-3)
+!
       ! Local variables
       INTEGER :: IX, IY, IZ, N, NK, JJ
       INTEGER :: JGAS,JLOOP,NGASMIX,JALTS,K,J,NM,L,JN,MLOOP,I
@@ -244,10 +244,10 @@ C
 
       IF ( LVARTROP .or. FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
 
-C  ********************************************************************
-C  *            Update starting concentrations for plumes             *
-C  ********************************************************************
-C
+!  ********************************************************************
+!  *            Update starting concentrations for plumes             *
+!  ********************************************************************
+!
 
 ! currently only partition species in full chemistry.
 !   should be added as needed to other chemistries.
@@ -256,10 +256,10 @@ C
       CALL PARTITION( NTRACER, STT, XNUMOL ) 
 !      endif
 
-C 
-C *********************************************************************
-C *              zero out dry deposition counter species              *
-C *********************************************************************
+! 
+! *********************************************************************
+! *              zero out dry deposition counter species              *
+! *********************************************************************
 
       ! Set NCS=NCSURBAN here since we have defined our tropospheric
       ! chemistry mechanism in the urban slot of SMVGEAR II
@@ -276,15 +276,15 @@ C *********************************************************************
  135     CONTINUE
  130  CONTINUE
 
-C
-C *********************************************************************
-C *           INITIALIZE H2O (# CM-3) IF H2O IS INACTIVE              *
-C *********************************************************************
-C VPRESH2O = SATURATION VAPOR PRESSURE OVER H2O (# CM-3)
-C ABSHUM   = ABSOLUTE HUMIDITY (molec cm^-3) [input] (ABSHUM)
-C ABSHUM   = RELATIVE HUMIDITY (FRACTION)    [output]
-C TK       = TEMPERATURE (K)
-C
+!
+! *********************************************************************
+! *           INITIALIZE H2O (# CM-3) IF H2O IS INACTIVE              *
+! *********************************************************************
+! VPRESH2O = SATURATION VAPOR PRESSURE OVER H2O (# CM-3)
+! ABSHUM   = ABSOLUTE HUMIDITY (molec cm^-3) [input] (ABSHUM)
+! ABSHUM   = RELATIVE HUMIDITY (FRACTION)    [output]
+! TK       = TEMPERATURE (K)
+!
       IF (IH2O.GT.NGAS) THEN
          DO 33 JLOOP    = 1, NTTLOOP
             TK            = T3(JLOOP)
@@ -292,18 +292,18 @@ C
      1           (TK - 35.86D0)
             VPRESH2O      = CONSVAP * EXP(CONSEXP) / TK 
             CSPEC(JLOOP,IH2O) = ABSHUM(JLOOP)
-C     then calculate R.H.
+!     then calculate R.H.
             ABSHUM(JLOOP) = CSPEC(JLOOP,IH2O) / VPRESH2O 
 !            write(297,*) 'in initgas',jloop,abshum(jloop)
  33      CONTINUE
       ENDIF
 
-C *********************************************************************
-C *           INITIALIZE O2 (# CM-3) IF O2 IS INACTIVE                *
-C *********************************************************************
-C AIRDENS = AIR DENSITY (G CM-3)
-C OXYCONS = (# G-1) CONVERSION OF O2 FROM G CM-3 TO # CM-3
-C
+! *********************************************************************
+! *           INITIALIZE O2 (# CM-3) IF O2 IS INACTIVE                *
+! *********************************************************************
+! AIRDENS = AIR DENSITY (G CM-3)
+! OXYCONS = (# G-1) CONVERSION OF O2 FROM G CM-3 TO # CM-3
+!
       IF (IOXYGEN.GT.NGAS) THEN
          OXYCONS           = 0.2095d0
          DO 260 JLOOP      = 1, NTLOOP
@@ -311,37 +311,37 @@ C
       ENDIF
  999  format(E10.3)
 
-C
-C *********************************************************************
-C *           ZERO OUT ISOPRENE OXIDATION COUNTER SPECIES
-C *                     (dkh, bmy, 6/1/06)  
-C *********************************************************************
-C LISOPOH  = Dummy variable for tracking loss of isoprene due to rxn w/ OH
-C ILISOPOH = Location of LISOPOH in CSPEC 
-C
+!
+! *********************************************************************
+! *           ZERO OUT ISOPRENE OXIDATION COUNTER SPECIES
+! *                     (dkh, bmy, 6/1/06)  
+! *********************************************************************
+! LISOPOH  = Dummy variable for tracking loss of isoprene due to rxn w/ OH
+! ILISOPOH = Location of LISOPOH in CSPEC 
+!
       IF ( ILISOPOH > 0 ) THEN
          DO JLOOP = 1, NTLOOP
             CSPEC(JLOOP,ILISOPOH) = 0d0
          ENDDO
       ENDIF 
-C
-C *********************************************************************
-C *           zero out aromatic oxidation counter species
-C *            (dkh, 10/06/06)  
-C *********************************************************************
-C LBRO2H  Counter for oxidation of BRO2 by HO2
-C LBRO2N  Counter for oxidation of BRO2 by NO
-C LTRO2H  Counter for oxidation of TRO2 by HO2
-C LTRO2N  Counter for oxidation of TRO2 by NO
-C LXRO2H  Counter for oxidation of XRO2 by HO2
-C LXRO2N  Counter for oxidation of XRO2 by NO
-C ILBRO2H Location of LBRO2H in CSPEC
-C ILBRO2N Location of LBRO2N in CSPEC
-C ILTRO2H Location of LTRO2H in CSPEC
-C ILTRO2N Location of LTRO2N in CSPEC
-C ILXRO2H Location of LXRO2H in CSPEC
-C ILXRO2N Location of LXRO2N in CSPEC
-C
+!
+! *********************************************************************
+! *           zero out aromatic oxidation counter species
+! *            (dkh, 10/06/06)  
+! *********************************************************************
+! LBRO2H  Counter for oxidation of BRO2 by HO2
+! LBRO2N  Counter for oxidation of BRO2 by NO
+! LTRO2H  Counter for oxidation of TRO2 by HO2
+! LTRO2N  Counter for oxidation of TRO2 by NO
+! LXRO2H  Counter for oxidation of XRO2 by HO2
+! LXRO2N  Counter for oxidation of XRO2 by NO
+! ILBRO2H Location of LBRO2H in CSPEC
+! ILBRO2N Location of LBRO2N in CSPEC
+! ILTRO2H Location of LTRO2H in CSPEC
+! ILTRO2N Location of LTRO2N in CSPEC
+! ILXRO2H Location of LXRO2H in CSPEC
+! ILXRO2N Location of LXRO2N in CSPEC
+!
 
       ! Check if we have 2dy organic aerosols
       IF ( LSOA ) THEN
@@ -373,26 +373,26 @@ C
          ENDIF
 
       ENDIF
-C
-C *********************************************************************
-C *             SUM UP INITIAL GAS MASSES OVER ENTIRE GRID            *
-C *********************************************************************
-C GQSUMINI(JGAS)  = INITIAL # MOLECULES, OVER THE ENTIRE GRID
-C QSUMINIT        = SUM OF ALL ME OR IM # OVER GRID
-C                    SUM OF ALL MEVF OR IMVF CM3 OVER GRID
-C GRIDVH          = VOLUME OF A GRID-CELL (CM**3)
-C
+!
+! *********************************************************************
+! *             SUM UP INITIAL GAS MASSES OVER ENTIRE GRID            *
+! *********************************************************************
+! GQSUMINI(JGAS)  = INITIAL # MOLECULES, OVER THE ENTIRE GRID
+! QSUMINIT        = SUM OF ALL ME OR IM # OVER GRID
+!                    SUM OF ALL MEVF OR IMVF CM3 OVER GRID
+! GRIDVH          = VOLUME OF A GRID-CELL (CM**3)
+!
 
 !       DO 800 JGAS      = 1, NTSPECGAS
 !        GQSUMINI(JGAS)  = 0. 
 !        DO 800 JLOOP    = 1, NTLOOP
 !         GQSUMINI(JGAS)=GQSUMINI(JGAS)+CSPEC(JLOOP,JGAS)*GRIDVH(JLOOP) 
 ! 800   CONTINUE
-C
-C *********************************************************************
-C *                    IDENTIFY GASES FOR PRINTING                    *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *                    IDENTIFY GASES FOR PRINTING                    *
+! *********************************************************************
+!
       NUMPRG            = 0 
       DO 290 JGAS       = 1, NTSPECGAS
        JST              = NAMEGAS(JGAS)
@@ -409,31 +409,31 @@ C
         LGNUM(NUMPRG)                   = JGAS 
        ENDIF
  290  CONTINUE
-C
+!
  370  FORMAT(25X,0PF6.4/) 
  380  FORMAT(A14,1X,1PE10.4,I5,I7)
-C
-C *********************************************************************
-C ****          PRINT OUT INITIAL CONCENTRATION INFORMATION        ****
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ****          PRINT OUT INITIAL CONCENTRATION INFORMATION        ****
+! *********************************************************************
+!
       NCS         =  1
-C
+!
       IF (ITESTGEAR.EQ.2) THEN
        WRITE(KCPD,810) 0.,0.,(NAMENCS(INEWOLD(I,NCS),NCS),
      1        CSPEC(LLOOP,INEWOLD(I,NCS)), I = 1, ISCHANG(NCS))
        WRITE(KCPD,820)
       ENDIF
-C
+!
  810  FORMAT('CONC (# CM-3) AT TIME=',1PE10.2,' SECONDS. ',  
      l       'STEP=',E10.2,' . RUN =',I3/3(A13,'=',E11.4,1X))
  820  FORMAT('END')
-C
-C *********************************************************************
-C ********** READ DATA FOR TESTING RESULTS FROM CHEMISTRY *************
-C *********************************************************************
-C CSPEC(), GEARCONC ARE # CM-3 FOR GASES
-C
+!
+! *********************************************************************
+! ********** READ DATA FOR TESTING RESULTS FROM CHEMISTRY *************
+! *********************************************************************
+! CSPEC(), GEARCONC ARE # CM-3 FOR GASES
+!
       IF (ITESTGEAR.EQ.1) THEN
        IPCOMPAR    = 0  
        JRUN        = 0 
@@ -457,26 +457,26 @@ C
          WRITE(6,460)(NAMENCS(INEWOLD(JNEW,NCS),NCS),
      1                GEARCONC(JNEW,JRUN,NCS), JNEW = 1, ISCHANG(NCS)) 
         ENDIF
-C
-C COMPARE INITIAL CONDITIONS OF GEAR DATA TO chem.dat DATA
-C
+!
+! COMPARE INITIAL CONDITIONS OF GEAR DATA TO chem.dat DATA
+!
         IF (JRUN.EQ.0) THEN
          IF (IPCOMPAR.EQ.1) WRITE(6,475)
-C
+!
          SUMRMS      = 0.d0
          SUMFRACS    = 0.d0
          NGCOUNT     = 0
-C
+!
          DO 485 JNEW = 1, ISCHANG(NCS)
           JOLD       = INEWOLD(JNEW,NCS)
           QNEW       = QBKCHEM(JOLD,NCS) 
           QACC       = GEARCONC(JNEW,0,NCS) 
-C
+!
           IF (QACC.EQ.0.AND.QNEW.NE.0.) THEN
            WRITE(6,465) NAMEGAS(JOLD) 
            STOP 
           ENDIF 
-C
+!
           IF (QNEW.GT.1.0d-20) THEN
            FRACDIF   = (QNEW - QACC)/QACC
            FRACABS   = ABS(FRACDIF)
@@ -492,14 +492,14 @@ C
      1    WRITE(6,495) NAMENCS(JOLD,NCS),QACC,QNEW,
      2                 FRACDIF*100, IAVG
  485     CONTINUE
-C
+!
          AVGERR      = 100.d0 * SUMFRACS     / NGCOUNT  
          RMSCUR      = 100.d0 * SQRT(SUMRMS  / NGCOUNT)
          WRITE(6,505) JRUN, AVGERR, NGCOUNT  
-C
+!
         ENDIF
-C       ENDIF JRUN.EQ.0
-C
+!       ENDIF JRUN.EQ.0
+!
         JRUN        = JRUN + 1
         IF (GRCONC1.EQ.0.) THEN 
          READ(KCPD,450) HEADING
@@ -511,7 +511,7 @@ C
         ENDIF
        ENDIF
       ENDIF
-C
+!
  475  FORMAT(4X,'SPECIES',5X,'GEARCONC     chem.dat    % ERROR IFAVG')
  495  FORMAT(A14,2(1X,1PE11.4),2X,0PF8.2,'%',3X,I1)
  505  FORMAT(I3,37X,F8.2,'%   AVERAGE OF ',I5,' SPECIES')
@@ -522,11 +522,11 @@ C
      2       'THE CONDITIONS FOR THIS RUN (ITESTGEAR = 1) ARE THE '/
      3       'SAME FOR THE CONDITIONS FOR THE RUN WITH ITESTGEAR=2. '/
      4       'OTHERWISE, TURN ITESTGEAR = 0 OR 2. ',A14)   
-C
-C *********************************************************************
-C ********************* END OF SUBROUTINE GASCONC *********************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ********************* END OF SUBROUTINE GASCONC *********************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE GASCONC
 

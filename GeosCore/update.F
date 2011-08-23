@@ -15,55 +15,55 @@
 
       IMPLICIT NONE
 
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***                        (650) 723-6836                         *** 
-C *********************************************************************
-C
-C        U     U  PPPPPPP  DDDDDD      A    TTTTTTT  EEEEEEE
-C        U     U  P     P  D     D    A A      T     E  
-C        U     U  PPPPPPP  D     D   A   A     T     EEEEEEE 
-C        U     U  P        D     D  AAAAAAA    T     E  
-C        UUUUUUU  P        DDDDDD  A       A   T     EEEEEEE
-C
-C *********************************************************************
-C * THIS SUBROUTINE UPDATES PHOTORATES AND ARB EMISSIONS RATES FOR    *
-C * EACH TIME-STEP. PHOTORATES ARE INCLUDED IN FIRST AND PARTIAL      *
-C * DERIVATIVE EQUATIONS WHILE EMISSIONS RATES ARE INCLUDED IN FIRST  *
-C * DERIVATE EQUATIONS ONLY. SINCE THE EMISSIONS RATES ARE CONSTANT   * 
-C * FOR A GIVEN TIME STEP AND LOCATION (ALTHOUGH THEY CHANGE EACH     *
-C * TIME STEP AND LOCATION, THEY ARE PUT INTO THE FIRST DERIVATIVE    *
-C * TERM OF SUBFUN.F ONLY (NOT INTO PARTIAL DERIVATIVE TERMS. EVERY   *
-C * INTEGRATION TIME-STEP, EMISSIONS ARE RECALCULATED.                * 
-C *********************************************************************
-C
-C *********************************************************************
-C * UPDATE PHOTO-RATES AND OTHER PARMETERS BECAUSE THE TIME CHANGED.  *
-C * NOTE THAT A TIME CHANGE COULD CORRESPOND TO EITHER A SUCCESSFUL   *
-C * OR FAILED STEP                                                    * 
-C *********************************************************************
-C RRATE    = PRATE1 + XELAPS * (PRATE - PRATE1) 
-C XELAPS   = ELAPSED TIME DURING INTERVAL  
-C IFPRAT   = 1: USE SCALED PHOTORATES FROM photrate.dat (ITESTGEAR.EQ.0) 
-C          = 0: USE PHOTORATES FROM globchem.dat (ITESTGEAR > 0)  
-C
-C *********************************************************************
-C **************          UPDATE PHOTORATES             *************** 
-C ****************** INTERPOLATE BETWEEN TWO VALUES *******************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***                        (650) 723-6836                         *** 
+! *********************************************************************
+!
+!        U     U  PPPPPPP  DDDDDD      A    TTTTTTT  EEEEEEE
+!        U     U  P     P  D     D    A A      T     E  
+!        U     U  PPPPPPP  D     D   A   A     T     EEEEEEE 
+!        U     U  P        D     D  AAAAAAA    T     E  
+!        UUUUUUU  P        DDDDDD  A       A   T     EEEEEEE
+!
+! *********************************************************************
+! * THIS SUBROUTINE UPDATES PHOTORATES AND ARB EMISSIONS RATES FOR    *
+! * EACH TIME-STEP. PHOTORATES ARE INCLUDED IN FIRST AND PARTIAL      *
+! * DERIVATIVE EQUATIONS WHILE EMISSIONS RATES ARE INCLUDED IN FIRST  *
+! * DERIVATE EQUATIONS ONLY. SINCE THE EMISSIONS RATES ARE CONSTANT   * 
+! * FOR A GIVEN TIME STEP AND LOCATION (ALTHOUGH THEY CHANGE EACH     *
+! * TIME STEP AND LOCATION, THEY ARE PUT INTO THE FIRST DERIVATIVE    *
+! * TERM OF SUBFUN.F ONLY (NOT INTO PARTIAL DERIVATIVE TERMS. EVERY   *
+! * INTEGRATION TIME-STEP, EMISSIONS ARE RECALCULATED.                * 
+! *********************************************************************
+!
+! *********************************************************************
+! * UPDATE PHOTO-RATES AND OTHER PARMETERS BECAUSE THE TIME CHANGED.  *
+! * NOTE THAT A TIME CHANGE COULD CORRESPOND TO EITHER A SUCCESSFUL   *
+! * OR FAILED STEP                                                    * 
+! *********************************************************************
+! RRATE    = PRATE1 + XELAPS * (PRATE - PRATE1) 
+! XELAPS   = ELAPSED TIME DURING INTERVAL  
+! IFPRAT   = 1: USE SCALED PHOTORATES FROM photrate.dat (ITESTGEAR.EQ.0) 
+!          = 0: USE PHOTORATES FROM globchem.dat (ITESTGEAR > 0)  
+!
+! *********************************************************************
+! **************          UPDATE PHOTORATES             *************** 
+! ****************** INTERPOLATE BETWEEN TWO VALUES *******************
+! *********************************************************************
+!
       ! Local variables
       INTEGER J,NKN,KLOOP,I,NK,NH,ISPC1,ISPC2,ISPC3
 
       REAL*8 TOFDAY,HOURANG,SINFUNC
-C
-C *********************************************************************
-C *      SET RATES WHERE PHOTOREACTION HAS NO ACTIVE LOSS TERM        *
-C *********************************************************************
-C JOLD = MAPPL(JOLD) FOR INACTIVE SPECIES 
-C
+!
+! *********************************************************************
+! *      SET RATES WHERE PHOTOREACTION HAS NO ACTIVE LOSS TERM        *
+! *********************************************************************
+! JOLD = MAPPL(JOLD) FOR INACTIVE SPECIES 
+!
       DO 80 I            = 1, NOLOSP(NCSP) 
          NK                = NKNLOSP(I,NCS)
          NKN               = NEWFOLD(NK,NCS) 
@@ -73,11 +73,11 @@ C
             TRATE(KLOOP,NH)  = -RRATE(KLOOP,NKN)
  79      CONTINUE
  80   CONTINUE
-C
-C *********************************************************************
-C *              PRINT OUT CHEMICAL RATES AND STOP                    *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *              PRINT OUT CHEMICAL RATES AND STOP                    *
+! *********************************************************************
+!
       IF (IPRATES.EQ.1) THEN
       if ( jlooplo == 744 ) then
        DO 90 I           = 1, NALLRAT(NCS)
@@ -97,11 +97,11 @@ C
        endif
       ENDIF
  95   FORMAT(I3,1X,I3,1X,I3,1X,3A15,1X,1PE13.6)
-C
-C *********************************************************************
-C ******************** END OF SUBROUTINE UPDATE.F *********************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ******************** END OF SUBROUTINE UPDATE.F *********************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE UPDATE
 

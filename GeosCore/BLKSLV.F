@@ -1,9 +1,9 @@
-C $Id: BLKSLV.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
+! $Id: BLKSLV.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
       SUBROUTINE BLKSLV
-C-----------------------------------------------------------------------
-C  Solves the block tri-diagonal system:
-C               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  Solves the block tri-diagonal system:
+!               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
+!-----------------------------------------------------------------------
       USE JV_MIE_MOD
 
       IMPLICIT NONE
@@ -11,7 +11,7 @@ C-----------------------------------------------------------------------
 
       integer i, j, k, id
       real*8  sum
-C-----------UPPER BOUNDARY ID=1
+!-----------UPPER BOUNDARY ID=1
       CALL GEN(1)
       CALL MATIN4 (B)
       DO I=1,N
@@ -25,7 +25,7 @@ C-----------UPPER BOUNDARY ID=1
          RR(I,1) = RR(I,1) + B(I,J)*H(J)
         ENDDO
       ENDDO
-C----------CONTINUE THROUGH ALL DEPTH POINTS ID=2 TO ID=ND-1
+!----------CONTINUE THROUGH ALL DEPTH POINTS ID=2 TO ID=ND-1
       DO ID=2,ND-1
         CALL GEN(ID)
         DO I=1,N
@@ -43,7 +43,7 @@ C----------CONTINUE THROUGH ALL DEPTH POINTS ID=2 TO ID=ND-1
           ENDDO
         ENDDO
       ENDDO
-C---------FINAL DEPTH POINT: ND
+!---------FINAL DEPTH POINT: ND
       CALL GEN(ND)
       DO I=1,N
         DO J=1,N
@@ -62,7 +62,7 @@ C---------FINAL DEPTH POINT: ND
         RR(I,ND) = RR(I,ND) + B(I,J)*H(J)
         ENDDO
       ENDDO
-C-----------BACK SOLUTION
+!-----------BACK SOLUTION
       DO ID=ND-1,1,-1
        DO I=1,N
         DO J=1,N
@@ -70,7 +70,7 @@ C-----------BACK SOLUTION
         ENDDO
        ENDDO
       ENDDO
-C----------MEAN J & H
+!----------MEAN J & H
       DO ID=1,ND,2
         FJ(ID) = 0.0d0
        DO I=1,N
@@ -83,7 +83,7 @@ C----------MEAN J & H
         FJ(ID) = FJ(ID) + RR(I,ID)*WT(I)*EMU(I)
        ENDDO
       ENDDO
-C Output fluxes for testing purposes
+! Output fluxes for testing purposes
 c      CALL CH_FLUX
 c
       RETURN

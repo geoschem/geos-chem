@@ -44,34 +44,34 @@
 
       IMPLICIT NONE
 
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
-C ***                         (650) 723-6836                        *** 
-C *********************************************************************
-C
-C PPPPPPP  H     H  Y     Y  SSSSSSS  PPPPPPP RRRRRRR  OOOOOOO  CCCCCCC
-C P     P  H     H   Y   Y   S        P     P R     R  O     O  C 
-C PPPPPPP  HHHHHHH     Y     SSSSSSS  PPPPPPP RRRRRRR  O     O  C 
-C P        H     H     Y           S  P       R  R     O     O  C 
-C P        H     H     Y     SSSSSSS  P       P    P   OOOOOOO  CCCCCCC
-C
-C *********************************************************************
-C * THIS SUBROUTINE CALLS CALCRATE.F AND SMVGEAR.F. TO SOLVE GAS-     *
-C * PHASE CHEMICAL EQUATIONS. THE ROUTINE DIVIDES THE GRID DOMAIN     *
-C * INTO GRID BLOCKS, AND THE CODE VECTORIZES AROUND THE NUMBER OF    *
-C * GRID CELLS IN EACH BLOCK.                                         *
-C *                                                                   *
-C *********************************************************************
-C
-C *********************************************************************
-C ****************         UPDATE 24-HOUR CLOCK        ****************
-C *********************************************************************
-C CHEMINTV = TIME INTERVAL FOR CHEMISTRY
-C IRCHEM   = COUNTS # CHEMINTV TIME-INTERVALS
-C
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
+! ***                         (650) 723-6836                        *** 
+! *********************************************************************
+!
+! PPPPPPP  H     H  Y     Y  SSSSSSS  PPPPPPP RRRRRRR  OOOOOOO  CCCCCCC
+! P     P  H     H   Y   Y   S        P     P R     R  O     O  C 
+! PPPPPPP  HHHHHHH     Y     SSSSSSS  PPPPPPP RRRRRRR  O     O  C 
+! P        H     H     Y           S  P       R  R     O     O  C 
+! P        H     H     Y     SSSSSSS  P       P    P   OOOOOOO  CCCCCCC
+!
+! *********************************************************************
+! * THIS SUBROUTINE CALLS CALCRATE.F AND SMVGEAR.F. TO SOLVE GAS-     *
+! * PHASE CHEMICAL EQUATIONS. THE ROUTINE DIVIDES THE GRID DOMAIN     *
+! * INTO GRID BLOCKS, AND THE CODE VECTORIZES AROUND THE NUMBER OF    *
+! * GRID CELLS IN EACH BLOCK.                                         *
+! *                                                                   *
+! *********************************************************************
+!
+! *********************************************************************
+! ****************         UPDATE 24-HOUR CLOCK        ****************
+! *********************************************************************
+! CHEMINTV = TIME INTERVAL FOR CHEMISTRY
+! IRCHEM   = COUNTS # CHEMINTV TIME-INTERVALS
+!
       ! Arguments
       REAL*8, INTENT(IN) :: SUNCOS(MAXIJ) !,  SUNCOSB(MAXIJ) (bmy, 4/28/10)
       
@@ -110,12 +110,12 @@ C
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, 100 ) STAMP
  100  FORMAT( '     - PHYSPROC: Trop chemistry at ', a )
-C                                                                       
-C *********************************************************************
-C *********************************************************************
-C NCS       = 1..NCSGAS --> DO GAS CHEMISTRY
-C LOREORD   = 1 IF REORDERING; = 2 IF NO REORDERING
-C
+!                                                                       
+! *********************************************************************
+! *********************************************************************
+! NCS       = 1..NCSGAS --> DO GAS CHEMISTRY
+! LOREORD   = 1 IF REORDERING; = 2 IF NO REORDERING
+!
 
 
       IF (IFREORD.EQ.1.AND.NTLOOP.GT.1) THEN
@@ -123,40 +123,40 @@ C
       ELSE 
        LOREORD   = 2
       ENDIF 
-C
+!
       ILNCS      = 1
       IHNCS      = NCSGAS 
-C
-C *********************************************************************
-C *         REORDER CELLS AND BLOCKS THEN SOLVE CHEMICAL ODES         *
-C *********************************************************************
-C ISREORD   = 1: THEN REORDER GRID CELLS AND GRID BLOCKS FOR CHEMISTY;
-C           = 2: SOLVE CHEMISTRY 
-C JREORDER  = GIVES ORIGINAL  GRID-CELL FROM RE-ORDERED GRID-CELL
-C LREORDER  = JREORDER
-C NBLOCKUSE = # OF ORIGINAL BLOCKS (ISREORD EQ LOREORD) OR
-C             # OF BLOCKS AFTER REORDERING (ISREORD NE LOREORD)
-C NCS       = 1..NCSGAS FOR GAS CHEMISTRY
-C NCSP      = NCS       FOR DAYTIME   GAS CHEM
-C           = NCS + ICS FOR NIGHTTIME GAS CHEM
-C
+!
+! *********************************************************************
+! *         REORDER CELLS AND BLOCKS THEN SOLVE CHEMICAL ODES         *
+! *********************************************************************
+! ISREORD   = 1: THEN REORDER GRID CELLS AND GRID BLOCKS FOR CHEMISTY;
+!           = 2: SOLVE CHEMISTRY 
+! JREORDER  = GIVES ORIGINAL  GRID-CELL FROM RE-ORDERED GRID-CELL
+! LREORDER  = JREORDER
+! NBLOCKUSE = # OF ORIGINAL BLOCKS (ISREORD EQ LOREORD) OR
+!             # OF BLOCKS AFTER REORDERING (ISREORD NE LOREORD)
+! NCS       = 1..NCSGAS FOR GAS CHEMISTRY
+! NCSP      = NCS       FOR DAYTIME   GAS CHEM
+!           = NCS + ICS FOR NIGHTTIME GAS CHEM
+!
       DO 860 NCS            = ILNCS, IHNCS
-C
+!
        DO 855 ISREORD       = LOREORD, 2
-C
+!
         !write(6,*) 'value of isreord= ',isreord
         IF (ISREORD.EQ.LOREORD) THEN
-C
-C *********************************************************************
-C                   DETERMINE BLOCK SIZES FOR CHEMISTRY
-C *********************************************************************
-C                CHEMISTRY IN ONE REGION OF THE ATMOSPHERE
-C *********************************************************************
-C IGLOBCHEM = -2 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF U/R/S SETS
-C           = -1 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF R/S SETS
-C           = 0  --> SOLVE ALL GAS CHEMISTRY WITH EITHER U, R, OR S SETS
-C           = 1  --> SOLVE EACH REGION SEPARATELY WITH U, R, OR S SET
-C
+!
+! *********************************************************************
+!                   DETERMINE BLOCK SIZES FOR CHEMISTRY
+! *********************************************************************
+!                CHEMISTRY IN ONE REGION OF THE ATMOSPHERE
+! *********************************************************************
+! IGLOBCHEM = -2 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF U/R/S SETS
+!           = -1 --> SOLVE ALL GAS CHEMISTRY WITH COMBINATION OF R/S SETS
+!           = 0  --> SOLVE ALL GAS CHEMISTRY WITH EITHER U, R, OR S SETS
+!           = 1  --> SOLVE EACH REGION SEPARATELY WITH U, R, OR S SET
+!
           IF (IGLOBCHEM.LE.0) THEN
             !NTLOOPUSE           = NTLOOPNCS(NCS)
 
@@ -164,20 +164,20 @@ C
             NTLOOPUSE          = NTLOOP  
            DO 320 JLOOP        = 1, NTLOOPUSE
  320        JREORDER(JLOOP)    = JLOOP
-C
+!
           ELSE
 
-C
-C *********************************************************************
-C        GLOBAL CHEMISTRY - ASSUME THREE REGIONS OF THE ATMOSPHERE
-C                   URBAN, TROPOSPHERIC, STRATOSPHERIC
-C *********************************************************************
-C NCS     = 1..NCSGAS FOR GAS CHEMISTRY
-C PRESS3  = MODEL VERTICAL LAYER CENTER PRESSURE (MB)
-C PLOURB  = PRES (MB), BELOW WHICH URBAN, URBAN/TROP, OR ALL CHEMISTRY OCCURS
-C PLOTROP = PRES (MB), BELOW WHICH TROP,  URBAN/TROP, OR ALL CHEMISTRY OCCURS
-C         =            ABOVE WHICH STRAT              OR ALL CHEMISTRY OCCURS
-C
+!
+! *********************************************************************
+!        GLOBAL CHEMISTRY - ASSUME THREE REGIONS OF THE ATMOSPHERE
+!                   URBAN, TROPOSPHERIC, STRATOSPHERIC
+! *********************************************************************
+! NCS     = 1..NCSGAS FOR GAS CHEMISTRY
+! PRESS3  = MODEL VERTICAL LAYER CENTER PRESSURE (MB)
+! PLOURB  = PRES (MB), BELOW WHICH URBAN, URBAN/TROP, OR ALL CHEMISTRY OCCURS
+! PLOTROP = PRES (MB), BELOW WHICH TROP,  URBAN/TROP, OR ALL CHEMISTRY OCCURS
+!         =            ABOVE WHICH STRAT              OR ALL CHEMISTRY OCCURS
+!
              IF (NCS.EQ.NCSURBAN) THEN
                 NTLOOPUSE          = NTLOOPNCS(NCS)
                 DO JLOOP        = 1, NTLOOPUSE
@@ -194,18 +194,18 @@ C
                    JREORDER(JLOOP)    = NCSLOOP(JLOOP,NCS)
                 ENDDO
              ENDIF
-C
+!
           ENDIF
-C         ENDIF IGLOBCHEM.EQ.0
-C
-C *********************************************************************
-C             DETERMINE ORIGINAL NUMBER OF GRID BLOCKS
-C *********************************************************************
-C NBLOCKUSE = ORIGINAL NUMBER OF GRID BLOCKS FOR PREDICTING STIFFNESS
-C IUSESIZE  = # OF GRID CELLS IN EACH GRID BLOCK
-C NBLOCKUSE = HERE, TOTAL NUMBER OF GRID CELLS FOR CHEMISTRY CALCULATIONS
-C JLOWVAR   = LOWEST GRID CELL NUMBER - 1 IN EACH GRID BLOCK
-C
+!         ENDIF IGLOBCHEM.EQ.0
+!
+! *********************************************************************
+!             DETERMINE ORIGINAL NUMBER OF GRID BLOCKS
+! *********************************************************************
+! NBLOCKUSE = ORIGINAL NUMBER OF GRID BLOCKS FOR PREDICTING STIFFNESS
+! IUSESIZE  = # OF GRID CELLS IN EACH GRID BLOCK
+! NBLOCKUSE = HERE, TOTAL NUMBER OF GRID CELLS FOR CHEMISTRY CALCULATIONS
+! JLOWVAR   = LOWEST GRID CELL NUMBER - 1 IN EACH GRID BLOCK
+!
           ! Comment out write statements for now (bmy, 4/1/03)
           !write(6,*) 'in physproc, iglobchem= ',iglobchem
           !write(6,*) 'val of ntloopuse= ',ntloopuse
@@ -213,10 +213,10 @@ C
           NBLOCKUSE          = 1 + NTLOOPUSE / (KULOOP    + 0.0001d0)
           IAVBLOK            = 1 + NTLOOPUSE / (NBLOCKUSE + 0.0001d0)
           IAVGSIZE           = MIN0(IAVBLOK,KULOOP)
-C
+!
           JLOOPLO            = 0
           IREMAIN            = NTLOOPUSE
-C
+!
           DO 200 KBLK        = 1, NBLOCKUSE
            IUSESIZE          = MIN(IAVGSIZE,MAX(IREMAIN,0))
            JLOWVAR(KBLK)     = JLOOPLO
@@ -237,29 +237,29 @@ C
              END DO
           ENDIF
 
-C
-C *********************************************************************
-C                  NUMBER OF GRID BLOCKS AFTER REORDERING 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                  NUMBER OF GRID BLOCKS AFTER REORDERING 
+! *********************************************************************
+!
          ELSE 
           NBLOCKUSE          = NREBLOCK
          ENDIF
-C        ENDIF ISREORD.EQ.LOREORD
-C
-C *********************************************************************
-C                          SET LREORDER ARRAY
-C *********************************************************************
-C LREORDER = GIVES ORIGINAL GRID CELL FROM RE-ORDERED CELL
-C
+!        ENDIF ISREORD.EQ.LOREORD
+!
+! *********************************************************************
+!                          SET LREORDER ARRAY
+! *********************************************************************
+! LREORDER = GIVES ORIGINAL GRID CELL FROM RE-ORDERED CELL
+!
 
          DO 340 JLOOPN      = 1, NTLOOPUSE
  340      LREORDER(JLOOPN)  = JREORDER(JLOOPN)
-C
-C *********************************************************************
-C                   START GRID BLOCK LOOP
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                   START GRID BLOCK LOOP
+! *********************************************************************
+!
 !--- Moved from chemdr.f (ccc, 12/9/09)
           IF ( LKPP) NTT = NTTLOOP
 
@@ -272,19 +272,19 @@ C
           KBLK              = KBLK2
           JLOOPLO           = JLOWVAR(KBLK)
           KTLOOP            = KTLPVAR(KBLK)
-C
+!
 
           IF (KTLOOP.EQ.0) GOTO 640
 
-C *********************************************************************
-C *  PLACE LARGE DOMAIN GAS ARRAY (# CM-3) INTO SMALLER BLOCK ARRAY   *
-C *********************************************************************
-C CINIT  = INITIAL CONC (MOLEC. CM-3), USED TO CALCULATE RATES IN CALCRATE
-C CORIG  = INITIAL CONC (MOLEC. CM-3), USED TO RESTART SMVGEAR IF A FAILURE
-C NTSPEC = NUMBER OF ACTIVE PLUS INACTIVE GASES.
-C MAPPL  = MAPS ORIGINAL SPECIES NUMBERS TO SPECIES NUMBERS
-C          RE-ORDERED FOR CHEMISTRY.
-C
+! *********************************************************************
+! *  PLACE LARGE DOMAIN GAS ARRAY (# CM-3) INTO SMALLER BLOCK ARRAY   *
+! *********************************************************************
+! CINIT  = INITIAL CONC (MOLEC. CM-3), USED TO CALCULATE RATES IN CALCRATE
+! CORIG  = INITIAL CONC (MOLEC. CM-3), USED TO RESTART SMVGEAR IF A FAILURE
+! NTSPEC = NUMBER OF ACTIVE PLUS INACTIVE GASES.
+! MAPPL  = MAPS ORIGINAL SPECIES NUMBERS TO SPECIES NUMBERS
+!          RE-ORDERED FOR CHEMISTRY.
+!
              DO 572 JOLD         = 1, NTSPEC(NCS)
                 JNEW               = MAPPL(JOLD,NCS)
                 DO 570 KLOOP       = 1, KTLOOP
@@ -293,18 +293,18 @@ C
                    CORIG(KLOOP,JNEW) = CSPEC(JLOOP,JOLD)
  570            CONTINUE
  572         CONTINUE
-C
-C *********************************************************************
-C *              CALCULATE REACTION RATE COEFFICIENTS                 *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *              CALCULATE REACTION RATE COEFFICIENTS                 *
+! *********************************************************************
+!
 
           CALL CALCRATE(SUNCOS)
-C
-C *********************************************************************
-C *                        SOLVE CHEMICAL ODES                        *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *                        SOLVE CHEMICAL ODES                        *
+! *********************************************************************
+!
 !--- Move call to KPP here from chemdr.f to save memory space
 !    (ccc, 12/9/09)
 !    NSPEC(1) is the # of active species for urban chemistry.
@@ -314,18 +314,18 @@ C
 
           ELSE
              CALL SMVGEAR
-C
-C *********************************************************************
-C * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *
-C *********************************************************************
-C ISREORD = 1: CALL CALCRATE TO FIND STIFFNESS OF EACH GRID-CELL     
-C ISREORD = 2: SET CHEMISTRY RATES AND SOLVE EQUATIONS                
-C GQSCHEM   = CHANGE IN (# OF MOLECULES) OVER THE ENTIRE GRID OF EACH 
-C             SPECIES AS A RESULT OF CHEMISTRY.
-C GRIDVH   = GRID CELL VOLUME (CM3) 
-C CNEW     = # CM-3
-C C        = # CM-3 
-C
+!
+! *********************************************************************
+! * REPLACE BLOCK CONCENTRATIONS (# CM-3) INTO DOMAIN CONCENTRATIONS  *
+! *********************************************************************
+! ISREORD = 1: CALL CALCRATE TO FIND STIFFNESS OF EACH GRID-CELL     
+! ISREORD = 2: SET CHEMISTRY RATES AND SOLVE EQUATIONS                
+! GQSCHEM   = CHANGE IN (# OF MOLECULES) OVER THE ENTIRE GRID OF EACH 
+!             SPECIES AS A RESULT OF CHEMISTRY.
+! GRIDVH   = GRID CELL VOLUME (CM3) 
+! CNEW     = # CM-3
+! C        = # CM-3 
+!
              IF (ISREORD.EQ.2) THEN
                 DO 620 JNEW         = 1, ISCHANG(NCS)
                    JOLD               = INEWOLD(JNEW,NCS)
@@ -335,7 +335,7 @@ C
  620            CONTINUE
              ENDIF
           ENDIF
-C
+!
           
  640      CONTINUE
 !$OMP END PARALLEL DO
@@ -576,10 +576,10 @@ C
 !------------------------------------------------------------------------------
  855   CONTINUE
  860  CONTINUE
-C
-C *********************************************************************
-C ********************* END OF SUBROUTINE PHYSPROC.F ******************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ********************* END OF SUBROUTINE PHYSPROC.F ******************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE PHYSPROC

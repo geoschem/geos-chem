@@ -1,15 +1,15 @@
-C $Id: rd_js.f,v 1.2 2010/03/15 19:33:22 ccarouge Exp $
+! $Id: rd_js.f,v 1.2 2010/03/15 19:33:22 ccarouge Exp $
       subroutine rd_js(nj1,namfil)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Reread the ratj.d file to map photolysis rate to reaction
 c  Read in quantum yield 'jfacta' and fastj label 'jlabel'
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c
 c     jfacta    Quantum yield (or multiplication factor) for photolysis
 c     jlabel    Reference label identifying appropriate J-value to use
 c     ipr       Photolysis reaction counter - should total 'jppj'
 c
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 #     include "define.h"
 
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
@@ -38,9 +38,9 @@ c                     Read in quantum yield jfacta and fastj label jlabel
          read(cline(79:83),'(f5.1)') jfacta(ipr)
          read(cline(86:92),'(a7)')   jlabel(ipr)
          jfacta(ipr)=jfacta(ipr)/100.d0
-C~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-C  Additional code to read reaction names and branch numbers
-C  (ppm, 6/98, bmy, 9/99)     
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!  Additional code to read reaction names and branch numbers
+!  (ppm, 6/98, bmy, 9/99)     
 !         read (cline(7:10),"(a4)") rnames(ipr)
 ! FP increase length of name (6/2009)
          read (cline(7:13),"(a7)") rnames(ipr)
@@ -49,7 +49,7 @@ C  (ppm, 6/98, bmy, 9/99)
          do i=1,ipr-1
             if (rnames(ipr) == rnames(i)) branch(ipr) = branch(i) + 1
          enddo
-C~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
          go to 10
       endif
  20   close(nj1)

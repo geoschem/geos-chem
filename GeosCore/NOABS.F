@@ -1,10 +1,10 @@
-C $Id: NOABS.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+! $Id: NOABS.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
       SUBROUTINE NOABS(XLO3,XLO2,XLRAY,BCAER,RFLECT)
-C-----------------------------------------------------------------------
-C  Zero out absorption terms to check scattering code. Leave a little
-C  Rayleigh to provide a minimal optical depth, and set surface albedo
-C  to unity.
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  Zero out absorption terms to check scattering code. Leave a little
+!  Rayleigh to provide a minimal optical depth, and set surface albedo
+!  to unity.
+!-----------------------------------------------------------------------
       IMPLICIT NONE
 #     include "define.h"
       real*8 XLO3,XLO2,XLRAY,BCAER,RFLECT

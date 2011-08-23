@@ -1,11 +1,11 @@
-C $Id: set_aer.f,v 1.1 2009/09/16 14:06:10 bmy Exp $
+! $Id: set_aer.f,v 1.1 2009/09/16 14:06:10 bmy Exp $
       subroutine set_aer
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Set aerosol/cloud types and define black carbon profile
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c     MX       Number of different types of aerosol to be considered
 c     MIEDX    Index of aerosol types in jv_spec.dat - hardwire in here
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 #     include "define.h"
 
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ

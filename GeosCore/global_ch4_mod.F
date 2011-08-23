@@ -2489,7 +2489,7 @@ c Sinks   jsw has checked correctness of code for sinks.
       WRITE(189,18)
       WRITE(189,30)
 
-C Sources
+! Sources
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1)
       SOURCES=NTP
 
@@ -2508,7 +2508,7 @@ C Sources
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1)
       WRITE(189,26) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
-Cjsw Following lines added by jsw.
+!jsw Following lines added by jsw.
       NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1)
       WRITE(189,35) NTP,NTP/SOURCES*100.D0,NTP/STTCONV
 
@@ -2712,7 +2712,7 @@ c Sinks
       WRITE(189,34)SINKS,SINKS/STTCONV
       WRITE(189,18)
       WRITE(189,30)
-C Sources
+! Sources
       NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1)
       NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0)
       SOURCES=NTQ+NTQ2

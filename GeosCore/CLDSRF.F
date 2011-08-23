@@ -1,21 +1,21 @@
-C $Id: CLDSRF.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
+! $Id: CLDSRF.f,v 1.1 2009/09/16 14:06:49 bmy Exp $
       SUBROUTINE CLDSRF( ODCOL, SA )
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Routine to set cloud and surface properties
-C-----------------------------------------------------------------------
-C  Add the following input variables for CTM interface (bmy, 9/13/99)
-C
-C  Variable  Type    Dimensn Units   Description
-C  --------  ----    ------- -----   -----------
-C  ODCOL     dble     [LPAR]   -     Vertical optical depth profile
-C  SA        dble       -      -     Surface Albedo
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  Add the following input variables for CTM interface (bmy, 9/13/99)
+!
+!  Variable  Type    Dimensn Units   Description
+!  --------  ----    ------- -----   -----------
+!  ODCOL     dble     [LPAR]   -     Vertical optical depth profile
+!  SA        dble       -      -     Surface Albedo
+!-----------------------------------------------------------------------
 c     rflect   Surface albedo (Lambertian)
 c     odmax    Maximum allowed optical depth, above which they are scaled
 c     odcol    Optical depth at each model level
 c     odsum    Column optical depth
 c     nlbatm   Level of lower photolysis boundary - usually surface
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 #     include "define.h"
 
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
@@ -23,11 +23,11 @@ C-----------------------------------------------------------------------
 
       IMPLICIT NONE
 
-C=============== INPUT PARAMETERS ======================================
+!=============== INPUT PARAMETERS ======================================
       REAL*8, INTENT(INOUT) :: ODCOL(LPAR)
       REAL*8, INTENT(IN)    :: SA
 
-C=============== LOCAL VARIABLES =======================================
+!=============== LOCAL VARIABLES =======================================
       integer i, j, k
       real*8  odsum, odmax, odtot
 c

@@ -20,38 +20,38 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993-4)    ************
-C ***            (C) COPYRIGHT, 1993-4 BY MARK Z. JACOBSON          *** 
-C ***               EXCEPT FOR DENOTED EXCERPTED PORTIONS           *** 
-C ***                         (650) 650-6836                        *** 
-C *********************************************************************
-C
-C SSSSSSS  EEEEEEE  TTTTTTT  M     M  OOOOOOO DDDDDD  EEEEEEE  L
-C S        E           T     M M M M  O     O D     D E        L
-C SSSSSSS  EEEEEEE     T     M  M  M  O     O D     D EEEEEEE  L
-C       S  E           T     M     M  O     O D     D E        L 
-C SSSSSSS  EEEEEEE     T     M     M  OOOOOOO DDDDDD  EEEEEEE  LLLLLLL
-C
-C *********************************************************************
-C *       THIS SUBROUTINE INITIALIZES METEOROLOGICAL PARAMETERS       *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993-4)    ************
+! ***            (C) COPYRIGHT, 1993-4 BY MARK Z. JACOBSON          *** 
+! ***               EXCEPT FOR DENOTED EXCERPTED PORTIONS           *** 
+! ***                         (650) 650-6836                        *** 
+! *********************************************************************
+!
+! SSSSSSS  EEEEEEE  TTTTTTT  M     M  OOOOOOO DDDDDD  EEEEEEE  L
+! S        E           T     M M M M  O     O D     D E        L
+! SSSSSSS  EEEEEEE     T     M  M  M  O     O D     D EEEEEEE  L
+!       S  E           T     M     M  O     O D     D E        L 
+! SSSSSSS  EEEEEEE     T     M     M  OOOOOOO DDDDDD  EEEEEEE  LLLLLLL
+!
+! *********************************************************************
+! *       THIS SUBROUTINE INITIALIZES METEOROLOGICAL PARAMETERS       *
+! *********************************************************************
+!
       ! Local variables
       INTEGER :: IAVBLOK, IAVGSIZE, IREMAIN, JADD
-C
-C *********************************************************************
-C *         DETERMINE HOW MANY BLOCKS OF GRID POINTS ARE NEEDED       *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *         DETERMINE HOW MANY BLOCKS OF GRID POINTS ARE NEEDED       *
+! *********************************************************************
+!
       KULOOP             = MIN(KULOOP,KBLOOP,NTLOOP) 
       NBLOCKS            = 1 + NTTLOOP / (KULOOP  + 0.0001d0)
       IAVBLOK            = 1 + NTTLOOP / (NBLOCKS + 0.0001d0)
       IAVGSIZE           = MIN0(IAVBLOK,KULOOP)
       JLOOPLO            = 0 
       IREMAIN            = NTTLOOP
-C
+!
       DO 260 KBLK        = 1, NBLOCKS 
          JADD            = MIN0(IAVGSIZE,IREMAIN)
          JLOFIXED(KBLK)  = JLOOPLO
@@ -59,18 +59,18 @@ C
          IREMAIN         = IREMAIN - JADD
          JLOOPLO         = JLOOPLO + JADD
  260  CONTINUE
-C
-C MAKE SURE MXBLOCK IS SUFFICIENTLY LARGE SINCE NBLOCKUSE CHANGES IN
-C PHYSPROC.F
-C
+!
+! MAKE SURE MXBLOCK IS SUFFICIENTLY LARGE SINCE NBLOCKUSE CHANGES IN
+! PHYSPROC.F
+!
       IF (NBLOCKS+15.GT.MXBLOCK) THEN
          WRITE(6,*)'READER: NBLOCKS+15>MXBLOCKS ',NBLOCKS+15, MXBLOCK 
          STOP
       ENDIF
-C
-C *********************************************************************
-C ******************** END OF SUBROUTINE SETMODEL.F *******************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ******************** END OF SUBROUTINE SETMODEL.F *******************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE SETMODEL

@@ -2,20 +2,20 @@
       REAL*8 FUNCTION SOILCRF(I,J,IREF,JREF,IJLOOP,M,NN,K,
      &                        WINDSQR,SUNCOS)
 
-C**********************************************************************
-C                                                                     *
-C  HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       *
-C  MODULE FOR SOIL NOx EMISSIONS                                      *
-C  by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               *
-C  (Release V2.1)                                                     *
-C                                                                     *
-C  Contact person: Bob Yantosca (bmy@io.harvard.edu)                  *
-C                                                                     *
-C**********************************************************************
-C Be sure to force double precision with the DBLE function            *
-C and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
-C Updated comments (bmy, 1/24/03)                                     *
-C**********************************************************************
+!**********************************************************************
+!                                                                     *
+!  HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       *
+!  MODULE FOR SOIL NOx EMISSIONS                                      *
+!  by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               *
+!  (Release V2.1)                                                     *
+!                                                                     *
+!  Contact person: Bob Yantosca (bmy@io.harvard.edu)                  *
+!                                                                     *
+!**********************************************************************
+! Be sure to force double precision with the DBLE function            *
+! and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
+! Updated comments (bmy, 1/24/03)                                     *
+!**********************************************************************
 
       USE CMN_SIZE_MOD    ! Size parameters
       USE CMN_DEP_MOD     ! CANOPYNOX
@@ -24,42 +24,42 @@ C**********************************************************************
       IMPLICIT NONE
 #     include "define.h"
 
-C**********************************************************************
-C SOILEXC   = Canopy wind extinction coeff.                           *
-C WINDSQR   = Wind speed squared                                      *
-C XLAI      = LAI of land type element K                              *
-C CANOPYNOX = Deposition rate constant for NOx                        *
-C NN        = Soil type                                               *
-C K         = Number in vegationtype of the grid                      *
-C VFNEW     = Ventilation rate constant for NOx                       *
-C SOILCRF   = Canopy reduction factor                                 *
-C SUNCOS    = Array of cosine( Solar zenith angle ) for grid boxes    *
-C**********************************************************************
-C                                                                     *
-C Wang et al.: [1998] JGR vol. 103 p10713-10725                       *
-C                                                                     *
-C**********************************************************************
+!**********************************************************************
+! SOILEXC   = Canopy wind extinction coeff.                           *
+! WINDSQR   = Wind speed squared                                      *
+! XLAI      = LAI of land type element K                              *
+! CANOPYNOX = Deposition rate constant for NOx                        *
+! NN        = Soil type                                               *
+! K         = Number in vegationtype of the grid                      *
+! VFNEW     = Ventilation rate constant for NOx                       *
+! SOILCRF   = Canopy reduction factor                                 *
+! SUNCOS    = Array of cosine( Solar zenith angle ) for grid boxes    *
+!**********************************************************************
+!                                                                     *
+! Wang et al.: [1998] JGR vol. 103 p10713-10725                       *
+!                                                                     *
+!**********************************************************************
 
 
       INTEGER I,J,IREF,JREF,M,NN,K,IJLOOP
 
       REAL*8  WINDSQR,VFDAY,VFNIGHT,VFNEW,SUNCOS(MAXIJ)
       
-C**********************************************************************
-C coefficient ALPHA (2.8E-2, 5.6E-3) day, night canopy ventilation    *
-C time of 1 hour day, 5 hour night                                    *
-C VFDAY,VFNIGHT - alpha scaled                                        *
-C**********************************************************************
+!**********************************************************************
+! coefficient ALPHA (2.8E-2, 5.6E-3) day, night canopy ventilation    *
+! time of 1 hour day, 5 hour night                                    *
+! VFDAY,VFNIGHT - alpha scaled                                        *
+!**********************************************************************
 
       DATA VFDAY,VFNIGHT /1.0D-2,0.2D-2/ !VENTILATION VEL. IN DAY&NIGHT M/S
         
-C For GEOS-CTM, RADIAT is a 3-hour average field.  Replace the test for 
-C RADIAT > 0 with a test for SUNCOS > 0.  SUNCOS is the cosine of the
-C solar zenith angle, so SUNCOS > 0 is day and SUNCOS < 0 is night.
-C In the GEOS model, SUNCOS is is computed every dynamic timestep 
-C (15 or 30 mins), and thus is a better indicator of where the
-C day-night terminator falls. (bmy, 10/20/99)
-C      IF (RADIAT(IJLOOP).GT.0D0) THEN
+! For GEOS-CTM, RADIAT is a 3-hour average field.  Replace the test for 
+! RADIAT > 0 with a test for SUNCOS > 0.  SUNCOS is the cosine of the
+! solar zenith angle, so SUNCOS > 0 is day and SUNCOS < 0 is night.
+! In the GEOS model, SUNCOS is is computed every dynamic timestep 
+! (15 or 30 mins), and thus is a better indicator of where the
+! day-night terminator falls. (bmy, 10/20/99)
+!      IF (RADIAT(IJLOOP).GT.0D0) THEN
       IF ( SUNCOS(IJLOOP) .GT. 0D0 ) THEN
          ! Day
          VFNEW=VFDAY

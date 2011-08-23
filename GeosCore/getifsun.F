@@ -12,7 +12,7 @@
 
       INTEGER   I,J,K,JLOOP,IJWINDOW,IX,IY
       REAL*8    SUNCOS(MAXIJ)
-C
+!
 *** see if photolysis should be considered.
 c  Get the right index for SUNCOS, which is calculated
 c  outside of chemistry module.
