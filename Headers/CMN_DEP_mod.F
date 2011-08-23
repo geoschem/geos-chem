@@ -12,6 +12,10 @@
 !       to &.  Changed comment character from C to !.  Added & continuation 
 !       characters in column 73 to allow header files to be included in 
 !       F90 freeform files. (bmy, 6/25/02)*
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!-----------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE: 

@@ -15,7 +15,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Local variables
       INTEGER IJ,I,KZT,KL5,KH5,KL4,KH4,KL3,KH3,KL2,KH2,KL1,KH1,KC

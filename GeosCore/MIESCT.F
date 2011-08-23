@@ -32,7 +32,6 @@ C-----------------------------------------------------------------------
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
 
       integer i, id, im

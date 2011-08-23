@@ -3555,7 +3555,6 @@ C
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4208,7 +4207,6 @@ C
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4325,7 +4323,6 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID
@@ -4526,7 +4523,6 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       ! Arguments

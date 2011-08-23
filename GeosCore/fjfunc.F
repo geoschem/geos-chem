@@ -29,7 +29,6 @@
       USE CMN_FJ_MOD, ONLY : ZPJ, RINDEX
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       INTEGER,           INTENT(IN) :: I, J, L, NREAC, BRCH

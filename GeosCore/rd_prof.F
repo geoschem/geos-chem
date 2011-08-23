@@ -9,7 +9,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer ia, i, m, l, lat, mon, ntlats, ntmons, n216, nj2
       real*8  ofac,ofak

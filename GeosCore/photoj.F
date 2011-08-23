@@ -49,7 +49,6 @@
       USE JV_CMN_MOD, ONLY : ZJ, ZPJ, U0, SZA, SZAMAX
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: DAY,   DAY_OF_YR, MONTH

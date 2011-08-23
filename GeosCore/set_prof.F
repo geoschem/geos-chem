@@ -72,7 +72,6 @@
       USE JV_CMN_MOD            !, ONLY : NDUST, NAER, PJ
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Argument
       INTEGER, INTENT(IN)    :: DAY, MONTH,  NLAT, NLON

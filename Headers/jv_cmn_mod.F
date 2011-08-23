@@ -62,6 +62,9 @@
 !  (13) Split off PDEPF and MGLYPDEP into separate common blocks to avoid
 !        warnings on IFORT 9 (ccarouge, bmy, 8/20/09)
 !  (14) Add new optical variables for AOD calculation (clh, 05/06/10)
+!
+! !REVISION HISTORY:
+!  23 Aug 2011 - M. Long     - Converted to Module from Header file
 !-----------------------------------------------------------------------------
       MODULE JV_CMN_MOD
 

@@ -39,7 +39,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
       REAL*4,  INTENT(IN) :: COPROD(JJPAR,LLPAR)

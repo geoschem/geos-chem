@@ -17,6 +17,9 @@
 !      (tmf, 1/7/09)
 ! (4 ) Add EMISS_BVOC for VOC emissions (mpb, ccc, 11/19/09)
 !
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
 !           NEMPARB = max no. of biogenic emissions

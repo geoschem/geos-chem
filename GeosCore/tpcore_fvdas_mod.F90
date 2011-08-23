@@ -220,7 +220,7 @@ CONTAINS
 !
 ! !USES:
 !
-#   include "CMN_GCTM"                ! Physical constants etc.
+    USE CMN_GCTM_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -388,7 +388,7 @@ CONTAINS
 ! !USES:
 !
     ! Include file w/ physical constants
-#   include "CMN_GCTM"
+    USE CMN_GCTM_MOD
 !
 ! !INPUT PARAMETERS: 
 !

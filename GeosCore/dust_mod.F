@@ -17,7 +17,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -1355,7 +1354,7 @@
       USE CMN_DIAG_MOD   ! ND21, LD21
 
       IMPLICIT NONE
-#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

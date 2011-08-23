@@ -84,7 +84,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 

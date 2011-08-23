@@ -5,6 +5,10 @@
 ! !MODULE: CMN_VEL_mod.F
 !
 ! !DESCRIPTION: COMMON BLOCKS FOR DEPVEL
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE: 

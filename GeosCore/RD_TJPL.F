@@ -45,7 +45,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer i, j, k, iw, nk, nqqq, nwww, nj1
       character*7  lpdep(7)

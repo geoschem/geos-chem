@@ -68,7 +68,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -2003,7 +2002,6 @@
 
 !      IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -2119,7 +2117,6 @@
 
 !      IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -2190,7 +2187,6 @@
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -2263,7 +2259,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 !      IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -2360,7 +2355,6 @@
 
 !      IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters
 
@@ -2422,7 +2416,6 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 !      IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       USE CMN_SIZE_MOD            ! Size parameters

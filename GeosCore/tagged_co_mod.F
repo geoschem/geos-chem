@@ -128,7 +128,6 @@
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h" 
 
       !=================================================================
@@ -446,7 +445,6 @@
       USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
 

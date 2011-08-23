@@ -6,6 +6,10 @@
 !
 ! !DESCRIPTION: This include file contains physical constants for the
 !  GEOS-Chem column chemistry code. 
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE: 

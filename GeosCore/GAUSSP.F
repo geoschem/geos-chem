@@ -5,7 +5,6 @@ C  Loads in pre-set Gauss points for 4 angles from 0 to +1 in cos(theta)=mu
 C-----------------------------------------------------------------------
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       INTEGER N,I
       REAL*8  XPT(N),XWT(N)
       REAL*8 GPT4(4),GWT4(4)

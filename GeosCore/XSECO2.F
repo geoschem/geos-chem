@@ -9,7 +9,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer k
       real*8 ttt, flint, xseco2

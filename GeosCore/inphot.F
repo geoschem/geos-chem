@@ -37,7 +37,6 @@
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: NLAYER, NREACS

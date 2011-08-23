@@ -178,7 +178,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)

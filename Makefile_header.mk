@@ -149,7 +149,7 @@ endif
 ifdef DEBUG
 FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -check all
 else
-FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0 -DGEOS_5 -DGRID4X5 -DGRIDREDUCED -DLINUX_IFORT
+FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
 
 # Turn on OpenMP parallelization

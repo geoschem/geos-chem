@@ -17,7 +17,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 c
       integer nj1, ipr, i
       character*6  namfil

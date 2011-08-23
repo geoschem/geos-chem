@@ -12,6 +12,9 @@
 ! allow freeform compilation.  Also convert PARAMETERS to F90 
 ! syntax. Updated comments, cosmetic changes. (bmy, 6/25/02)
 ! (2 ) Added atmospheric scale height (7.6 km) (bmy, 6/23/03)
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !=================================================================
 !\\
 !\\

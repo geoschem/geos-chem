@@ -57,7 +57,6 @@
       USE JV_CMN_MOD, ONLY : ZPJ
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Local variables
       INTEGER, INTENT(IN)    :: NCB ! Number of Cloud Blocks

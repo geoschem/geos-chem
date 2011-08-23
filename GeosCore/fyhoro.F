@@ -31,7 +31,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !

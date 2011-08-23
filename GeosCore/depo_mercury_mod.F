@@ -16,7 +16,6 @@
 ! 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:

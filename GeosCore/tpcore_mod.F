@@ -3134,7 +3134,6 @@ C
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: J1 
@@ -3714,7 +3713,6 @@ C
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
       LOGICAL, INTENT(IN)    :: LSP,LNP,LEW
@@ -3816,7 +3814,6 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
       
       ! Arguments
@@ -3981,7 +3978,6 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       ! Arguments

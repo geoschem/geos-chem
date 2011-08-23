@@ -59,7 +59,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 

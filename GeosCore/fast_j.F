@@ -44,7 +44,7 @@
       USE JV_CMN_MOD, ONLY : ODMDUST, PJ, NB, ODAER
 
       IMPLICIT NONE
-#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !

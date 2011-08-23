@@ -22,7 +22,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 
 !
@@ -770,7 +769,6 @@
       USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
 !

@@ -16,6 +16,9 @@
 ! (3 ) Now everything except GEMISNOX, GEMISNOX2 is in
 ! "lightning_mod.f" (bmy, 4/14/04)
 ! (4 ) Remove GEMISNOX from common block (ltm, bmy, 10/2/07)
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !=================================================================
 !\\
 !\\

@@ -26,6 +26,9 @@
 !  (12) Increase species name length. (fp, 2/2/10)
 !
 !          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !******************************************************************************
 !
       MODULE CMN_FJ_MOD

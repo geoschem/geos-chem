@@ -80,7 +80,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -218,7 +217,6 @@
       USE CMN_DIAG_MOD             ! ND29, ND32, ND34
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
       
       

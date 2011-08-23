@@ -18,7 +18,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -74,7 +73,6 @@
 
       USE CMN_SIZE_MOD                      ! Size parameters
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
 !

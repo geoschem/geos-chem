@@ -62,6 +62,9 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !******************************************************************************
 !
 !         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 

@@ -25,7 +25,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
 C=============== INPUT PARAMETERS ======================================
       REAL*8, INTENT(IN) :: SA

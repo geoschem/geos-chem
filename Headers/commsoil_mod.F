@@ -29,6 +29,9 @@
 ! (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
 ! (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
 ! (6 ) Set # of land boxes for GEOS-5 EUROPE nested grid (amv, 10/19/09)
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !**********************************************************************
 !
 ! header file for soil NOx emissions

@@ -6,6 +6,10 @@
 ! !INCLUDE: CMN_SIZE
 !
 ! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !\\
 !\\
       MODULE CMN_SIZE_MOD

@@ -25,7 +25,6 @@
       USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
       IMPLICIT NONE
-#     include "define.h"
 
       ! Local variables
       INTEGER            :: I, IFNC, IBRCH, N, NK

@@ -29,6 +29,9 @@
 ! (5 ) Fix for LINUX - remove & in column 73 (bmy, 6/27/03)
 ! (6 ) Remove obsolete variables and XTRA2 (bmy, 8/2/05)
 ! (7 ) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !================================================================= 
 !\\
 !\\

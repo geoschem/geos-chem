@@ -25,7 +25,7 @@
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
+
 !
 ! !INPUT PARAMETERS:
 !

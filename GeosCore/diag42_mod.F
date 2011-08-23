@@ -17,7 +17,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:

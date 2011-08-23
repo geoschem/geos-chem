@@ -24,7 +24,7 @@
       USE CMN_SIZE_MOD              
 
       IMPLICIT NONE
-#     include "define.h"
+
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:

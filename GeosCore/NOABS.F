@@ -7,7 +7,6 @@ C  to unity.
 C-----------------------------------------------------------------------
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       real*8 XLO3,XLO2,XLRAY,BCAER,RFLECT
       XLO3=0.d0
       XLO2=0.d0

@@ -173,7 +173,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
@@ -2153,7 +2152,6 @@ C** Load array DVEL
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -2264,7 +2262,6 @@ C** Load array DVEL
       USE CMN_SIZE_MOD  ! Size parameters
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
       
       ! Local variables

@@ -21,7 +21,6 @@ C-----------------------------------------------------------------------
       USE JV_CMN_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer i, j, k, ii
       real*8 airmas, gmu, xmu1, xmu2, xl, diff

@@ -48,7 +48,6 @@ C-----------------------------------------------------------------------
       USE JV_MIE_MOD
 
       IMPLICIT NONE
-#     include "define.h"
 
       integer jndlev(lpar),jaddlv(nc),jaddto(nc+1)
       integer KW,km,i,j,k,l,ix,j1

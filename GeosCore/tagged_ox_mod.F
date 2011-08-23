@@ -18,7 +18,6 @@
 !
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -524,7 +523,6 @@
       USE CMN_DIAG_MOD  ! ND44, ND65, LD65
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
 ! 

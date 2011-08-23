@@ -229,7 +229,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -4009,7 +4008,6 @@
 !                 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 !
 ! !INPUT PARAMETERS:

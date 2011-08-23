@@ -8,7 +8,6 @@ C-----------------------------------------------------------------------
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
 
       integer id, id0, id1, im, i, j, k, mstart

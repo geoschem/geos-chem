@@ -48,7 +48,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J

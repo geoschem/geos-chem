@@ -95,7 +95,6 @@
 
       IMPLICIT NONE
 #     include "define.h"
-#     include "define.h"
 
       ! added LD52 and ND52 (jaegle 2/26/09)
       ! added FRCLND (jaegle 02/26/09)
@@ -1421,7 +1420,6 @@ C *********************************************************************
       
 
       IMPLICIT NONE
-#     include "define.h"
 #     include "define.h"
 
       ! Arguments

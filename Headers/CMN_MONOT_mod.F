@@ -5,6 +5,10 @@
 ! !MODULE: CMN_MONOT_MOD
 !
 ! !DESCRIPTION: 
+!
+!  !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!------------------------------------------------------------------------------
 !\\
 !\\
 ! !INTERFACE: 
