@@ -273,7 +273,7 @@
              IF ( LSSALT ) THEN
              
                 ! ISOROPIA takes Na+, Cl- into account
-!                CALL DO_ISOROPIAII
+                CALL DO_ISOROPIAII
              
              ELSE
  
