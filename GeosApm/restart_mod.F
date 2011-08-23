@@ -18,6 +18,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS
@@ -104,7 +105,7 @@
       USE TRACER_MOD,  ONLY : N_APMTRA
 #endif
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -247,9 +248,8 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### MAKE_RESTART_FILE: wrote file' )
 
-      ! Return to calling program
       END SUBROUTINE MAKE_RESTART_FILE
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -267,15 +267,18 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_READ
       USE DAO_MOD,     ONLY : AD
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE FILE_MOD,    ONLY : IU_RST,      IOERROR
-      USE LOGICAL_MOD, ONLY : LSPLIT,      LPRT
+      USE FILE_MOD,    ONLY : IU_RST
+      USE FILE_MOD,    ONLY : IOERROR
+      USE LOGICAL_MOD, ONLY : LSPLIT
+      USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
-      USE TRACER_MOD,  ONLY : N_TRACERS,   STT
-      USE TRACER_MOD,  ONLY : TRACER_NAME, TRACER_MW_G
+      USE TRACER_MOD,  ONLY : N_TRACERS
+      USE TRACER_MOD,  ONLY : STT
+      USE TRACER_MOD,  ONLY : TRACER_NAME
+      USE TRACER_MOD,  ONLY : TRACER_MW_G
 #if   defined( APM )
       USE TRACER_MOD,   ONLY : N_APMTRA
       USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB,NBCOCT
@@ -292,7 +295,7 @@
       USE APM_INIT_MOD, ONLY : CEMITSULF2
 #endif
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -300,6 +303,7 @@
       INTEGER, INTENT(IN) :: HHMMSS     ! hh:mm:ss   GMT time
 ! 
 ! !REVISION HISTORY: 
+!  27 May 1999 - R. Yantosca - Initial version
 !  (1 ) Now check that N = NTRACER - TRCOFFSET is valid.  
 !        Also reorganize some print statements  (bmy, 10/25/99)
 !  (2 ) Now pass LFORCE, LSPLIT via F77_CMN_SETUP. (bmy, 11/4/99)
@@ -577,8 +581,7 @@
       USE CHARPAK_MOD, ONLY : TRANUC
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -657,7 +660,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -731,7 +734,7 @@
       USE TRACER_MOD, ONLY : N_APMTRA
 #endif
       
-#     include "F77_CMN_SIZE"                               ! Size parameters
+      USE CMN_SIZE_MOD                                     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -812,7 +815,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD                       ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -936,9 +939,9 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TIME_MOD,    ONLY : GET_TAU
 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN"                  ! TAU , NSRCX, LSOILNOX
-#     include "comode.h"                 ! IGAS
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE COMODE_LOOP_MOD                ! IGAS
+      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1124,9 +1127,9 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"            ! Size parameters
-#     include "F77_CMN"	                ! LPRT, NSRCX, LSOILNOX
-#     include "comode.h"                ! ITLOOP, IGAS
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
+      USE CMN_MOD	                ! LPRT, NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
 !

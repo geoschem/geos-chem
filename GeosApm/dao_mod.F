@@ -16,11 +16,13 @@
 !
 ! !USES:
 !
-      IMPLICIT NONE
-      PRIVATE
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_GCTM_MOD           ! Physical constants
 
-#     include "F77_CMN_SIZE"           ! Size parameters
-#     include "F77_CMN_GCTM"           ! Physical constants
+      IMPLICIT NONE
+#     include "define.h"
+
+      PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -615,6 +617,11 @@
 ! !INTERFACE:
 !
       SUBROUTINE INTERP( NTIME0, NTIME1, NTDT )
+!
+! !USES:
+!
+      USE GRID_MOD,    ONLY : GET_YEDGE
+      USE LOGICAL_MOD, ONLY : LVARTROP
 !
 ! !INPUT PARAMETERS: 
 !

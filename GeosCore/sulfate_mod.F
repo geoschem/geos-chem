@@ -663,9 +663,9 @@
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND44
-      USE CMN_GCTM_MOD      ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44
+      USE CMN_GCTM_MOD        ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -923,9 +923,9 @@
       USE TRACERID_MOD,   ONLY : IDTDMS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND05, LD05
-      USE CMN_GCTM_MOD     ! AIRMW
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND05, LD05
+      USE CMN_GCTM_MOD         ! AIRMW
 
       ! Local variables
       LOGICAL                :: IS_FULLCHEM
@@ -1176,9 +1176,9 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ       ! IPAR, JPAR, LPAR, F77_CMN_SIZE
-      USE CMN_DIAG_MOD       ! ND44
-      USE CMN_GCTM_MOD       ! AIRMW
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_GCTM_MOD         ! AIRMW
       
       ! Local variables
       LOGICAL                 :: FIRST     = .TRUE.
@@ -1444,9 +1444,9 @@
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! LD05, ND05, ND44
-      USE CMN_GCTM_MOD    ! AIRMW
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! LD05, ND05, ND44
+      USE CMN_GCTM_MOD          ! AIRMW
 
       ! Local variables
       LOGICAL               :: IS_OFFLINE
@@ -1982,10 +1982,10 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE DAO_MOD,         ONLY : AIRVOL
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
 !---------------------------------------------------------------
 ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
-!      USE CMN_DIAG_MOD  ! ND19
+!      USE CMN_DIAG_MOD          ! ND19
 !---------------------------------------------------------------
       USE CMN_GCTM_MOD  ! AIRMW
 
@@ -2552,8 +2552,8 @@
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND44
 
       ! Local variables
       INTEGER               :: I,      J,      L,        N,     N_ND44
@@ -2986,9 +2986,9 @@
       USE TRACERID_MOD,   ONLY : IDTMSA
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
-      USE CMN_GCTM_MOD     ! AIRMW
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_GCTM_MOD         ! AIRMW
 
       ! Local variables
       INTEGER               :: I,      J,    L,        PBL_MAX
@@ -3155,8 +3155,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,        L,    PBL_MAX
@@ -3312,8 +3312,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,    L,        PBL_MAX
@@ -3455,8 +3455,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,     L,        PBL_MAX
@@ -3614,8 +3614,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,        J,     L,    N,     N_ND44, PBL_MAX
@@ -3877,7 +3877,7 @@
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
@@ -4360,9 +4360,9 @@
       USE TRACER_MOD,     ONLY : XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO2
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND13, LD13 (for now)
-      USE CMN_GCTM_MOD     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND13, LD13 (for now)
+      USE CMN_GCTM_MOD         ! SCALE_HEIGHT
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -4937,9 +4937,9 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND13 (for now)
-      USE CMN_GCTM_MOD     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13 (for now)
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5213,9 +5213,9 @@
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND13
-      USE CMN_GCTM_MOD     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5446,7 +5446,7 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5535,7 +5535,7 @@
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDOH
  
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5703,7 +5703,7 @@
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDNO3
       
-      USE CMN_SIZE_MOD  ! Size parameters 
+      USE CMN_SIZE_MOD       ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -5754,7 +5754,7 @@
       USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDO3
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J, L
@@ -5842,7 +5842,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -5957,7 +5957,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -6112,8 +6112,8 @@
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_O3_MOD               ! FSCALYR
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_O3_MOD                 ! FSCALYR
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH, NSEASON
@@ -6413,7 +6413,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD  ! Size parameters 
+      USE CMN_SIZE_MOD        ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -6482,7 +6482,7 @@
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: THISMONTH, THISYEAR
@@ -6612,7 +6612,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -6716,7 +6716,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
                                     
       ! Local variables             
       INTEGER                       :: I, J
@@ -6777,7 +6777,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -6933,7 +6933,7 @@
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD             ! Size parameters 
+      USE CMN_SIZE_MOD               ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7143,7 +7143,7 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7257,7 +7257,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -7360,7 +7360,7 @@
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7459,7 +7459,7 @@
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Local variables
       INTEGER                       :: I, J
@@ -7520,7 +7520,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: MONTH
@@ -7620,7 +7620,7 @@
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_GCTM_MOD
 
       ! Local variables
@@ -7786,7 +7786,7 @@
       USE LOGICAL_MOD,   ONLY : LDRYD
       USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
-      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

@@ -180,12 +180,12 @@
       USE TRACER_MOD,        ONLY : N_APMTRA
 #endif
 
-      IMPLICIT NONE
-      
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! Diagnostic switches, NJDAY
-#     include "F77_CMN_GCTM"          ! Physical constants
-#     include "comode.h"          ! SMVGEAR common blocks
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
+      USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
+      USE CMN_GCTM_MOD            ! Physical constants
+
+      IMPLICIT NONE     
 !
 ! !REMARKS:
 !                                                                             .

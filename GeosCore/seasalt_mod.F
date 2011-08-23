@@ -247,9 +247,9 @@
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND44
-      USE CMN_GCTM_MOD      ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44
+      USE CMN_GCTM_MOD        ! g0
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -463,9 +463,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! ND44
-      USE CMN_GCTM_MOD     ! g0
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -556,7 +556,7 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -676,9 +676,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! ND44, ND08
-      USE CMN_GCTM_MOD      ! PI
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44, ND08
+      USE CMN_GCTM_MOD        ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N

@@ -4878,7 +4878,7 @@ c Fix up for negative argument, erf, etc.
       USE TIME_MOD,      ONLY : GET_MONTH,       ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       INTEGER               :: THISMONTH

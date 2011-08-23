@@ -307,7 +307,7 @@
       USE APM_INIT_MOD, ONLY : NDSTB
 #endif
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: LAT_IDX
@@ -924,7 +924,7 @@ ctdf        print *,' no mobilisation candidates'
 !  NOTES:
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: LAT_IDX
@@ -975,7 +975,7 @@ ctdf        print *,' no mobilisation candidates'
 !******************************************************************************
 !
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -1042,7 +1042,7 @@ ctdf        print *,' no mobilisation candidates'
 !  (1 ) Updated comments & cosmetic changes (bmy, 3/30/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! IIPAR
+      USE CMN_SIZE_MOD    ! IIPAR
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -1085,7 +1085,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE DAO_MOD, ONLY : TS
 
-#     include "F77_CMN_SIZE"   ! IIPAR
+      USE CMN_SIZE_MOD   ! IIPAR
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -1131,7 +1131,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE DAO_MOD, ONLY : GWETTOP
 
-#     include "F77_CMN_SIZE"   ! IIPAR
+      USE CMN_SIZE_MOD   ! IIPAR
 
       ! Arguments
       INTEGER, INTENT(IN)  :: J
@@ -1380,7 +1380,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE DAO_MOD, ONLY : IS_LAND, IS_WATER, IS_ICE
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       INTEGER, INTENT(OUT)  :: OROGRAPHY(IIPAR,JJPAR)
@@ -1441,7 +1441,7 @@ ctdf        print *,' no mobilisation candidates'
 !        (tdf, 10/27/03)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"   ! IIPAR
+      USE CMN_SIZE_MOD   ! IIPAR
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: FLG_MBL(IIPAR)
@@ -1538,7 +1538,7 @@ ctdf        print *,' no mobilisation candidates'
 !  NOTES:
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"  ! IIPAR
+      USE CMN_SIZE_MOD  ! IIPAR
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: FLG_MBL(IIPAR)
@@ -1758,7 +1758,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 3/30/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"  ! IIPAR
+      USE CMN_SIZE_MOD  ! IIPAR
 
       !----------------
       ! Arguments
@@ -1847,7 +1847,7 @@ ctdf        print *,' no mobilisation candidates'
       USE DAO_MOD,   ONLY : USTAR
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       !-----------------
       ! Arguments
@@ -2162,7 +2162,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       !-----------------
       ! Arguments
@@ -2399,7 +2399,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (bmy, 3/30/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       !----------------
       ! Arguments
@@ -2494,7 +2494,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (bmy, 3/30/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE" ! IIPAR
+      USE CMN_SIZE_MOD ! IIPAR
 
       !------------------
       ! Arguments
@@ -2642,7 +2642,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"   ! IIPAR
+      USE CMN_SIZE_MOD   ! IIPAR
 
       !----------------
       ! Arguments
@@ -2768,7 +2768,7 @@ ctdf        print *,' no mobilisation candidates'
 !  (1 ) Updated comments, cosmetic changes.
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN)  :: WND_FRC(IIPAR)
@@ -2821,7 +2821,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 3/30/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       !----------------
       ! Arguments
@@ -2908,7 +2908,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: FLG_MBL(IIPAR)
@@ -2990,7 +2990,7 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"   !  Size parameters
+      USE CMN_SIZE_MOD   !  Size parameters
 
       !-----------------
       ! Arguments
@@ -3084,7 +3084,7 @@ ctdf        print *,' no mobilisation candidates'
 !  (2 ) Now eliminate Owen effect (tdf, bmy, 1/25/07)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       !-------------------
       ! Arguments
@@ -3205,7 +3205,7 @@ ctdf        print *,' no mobilisation candidates'
       USE APM_INIT_MOD, ONLY : NDSTB
 #endif
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       !------------------
       ! Arguments
@@ -3393,7 +3393,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       !------------------
       ! Arguments
@@ -3489,7 +3489,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       !-----------------
       ! Arguments
@@ -3676,7 +3676,7 @@ ctdf        print *,' no mobilisation candidates'
       USE APM_INIT_MOD, ONLY : NDSTB
 #endif
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: FLG_MBL(IIPAR)
@@ -3786,8 +3786,8 @@ ctdf        print *,' no mobilisation candidates'
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "F77_CMN_GCTM"    ! PI
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_GCTM_MOD    ! PI
 
       !------------------
       ! Arguments
@@ -4045,7 +4045,7 @@ ctdf        print *,' no mobilisation candidates'
       USE APM_INIT_MOD, ONLY : NDSTB
 #endif
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
 #if   defined( APM )
@@ -4105,7 +4105,7 @@ ctdf        print *,' no mobilisation candidates'
 !        with "D" exponents. (tdf, bmy, 4/5/04)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: LAT_IDX
@@ -4727,7 +4727,7 @@ c Fix up for negative argument, erf, etc.
       USE APM_INIT_MOD,  ONLY : NDSTB
 #endif
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       INTEGER               :: I, IOS
@@ -4965,7 +4965,7 @@ c Fix up for negative argument, erf, etc.
       USE TIME_MOD,      ONLY : GET_MONTH,       ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       INTEGER               :: THISMONTH
@@ -5022,7 +5022,7 @@ c Fix up for negative argument, erf, etc.
       USE APM_INIT_MOD, ONLY : NDSTB, DEDGE
 #endif
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD  
 
       ! Local variables
       INTEGER :: AS, N, N_DST_BIN

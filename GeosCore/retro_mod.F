@@ -57,8 +57,8 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TIME_MOD,             ONLY : EXPAND_DATE, GET_MONTH
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-      
+      USE CMN_SIZE_MOD               ! Size parameters
+
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       INTEGER                       :: I, J, THISMONTH, YYYYMMDD
@@ -73,8 +73,6 @@
 
       ! First-time initialization
       IF ( FIRST ) THEN
-
-         print*,'### RETRO: initializing'
 
          ! Allocate arrays
          CALL INIT_RETRO
@@ -173,8 +171,8 @@
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_O3"       ! FSCLYR
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! FSCLYR
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
@@ -316,7 +314,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -454,7 +452,7 @@
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
 
-#     include "F77_CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, N
@@ -511,7 +509,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LRETRO
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Local variables
       INTEGER :: AS

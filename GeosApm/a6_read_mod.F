@@ -56,6 +56,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -122,7 +123,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -348,7 +349,7 @@
       USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -531,7 +532,7 @@
       USE DAO_MOD, ONLY : ZMMD0b,    ZMMU0b
 #endif
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -868,8 +869,8 @@
       ! References to F90 modules
       USE DIAG_MOD, ONLY : AD67
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! ND67
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! ND67
 
       ! Arguments
       REAL*8, INTENT(IN)  :: CLDF(LLPAR,IIPAR,JJPAR)
@@ -923,7 +924,7 @@
 !  (3 ) Increase number of A-6 fields for GEOS-5 to 21 (bmy, 5/15/07)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 
       ! Function value
       INTEGER :: N_A6
@@ -976,7 +977,7 @@
 !  (1 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -1088,9 +1089,9 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN_DIAG"             ! ND66, ND67
-#     include "F77_CMN_GCTM"             ! g0
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_DIAG_MOD               ! ND66, ND67
+      USE CMN_GCTM_MOD               ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

@@ -1223,10 +1223,10 @@
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD       ! XNUMOL
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD           ! XNUMOL
+      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
 
       ! Local variables
@@ -1423,10 +1423,10 @@
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE COMODE_LOOP_MOD     ! AD, WTAIR, other SMVGEAR variables
-      USE CMN_O3_MOD       ! XNUMOL
-      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD           ! XNUMOL
+      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
 
       ! Local variables
@@ -1684,9 +1684,9 @@
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
       USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_O3_MOD       ! XNUMOL
-      USE CMN_DIAG_MOD     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! XNUMOL
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.

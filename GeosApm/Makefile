@@ -39,6 +39,7 @@
 # !REVISION HISTORY: 
 #  13 Jan 2011 - R. Yantosca - Initial version
 #  22 Aug 2011 - R. Yantosca - Modified for v9-01-02
+#  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -173,39 +174,55 @@ wetscav_mod.o            xtra_read_mod.o         retro_mod.o
 all:
 	@$(MAKE) lib
 	@$(MAKE) exe
-ifeq ($(ESMF),yes)
-lib: libkpp libutil libiso libapm libesmf
-else ifeq ($(ESMF_TESBED),yes)
-lib: libkpp libutil libiso libapm libesmf_testbed
-else
-lib: libkpp libutil libiso libapm 
-endif
 
-libapm: $(OBJ)
+ifeq ($(ESMF),yes)                       
+lib:                                                 # Build for ESMF/GEOS-5
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf			     
+else ifeq ($(ESMF_TESBED),yes)            	     
+lib:                                                 # Build for ESMF/Testbed
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf_testbed		     
+else                                      	     
+lib:                                                 # Build normal GEOS-Chem
+	@$(MAKE) libgc				     
+endif						     
 
-libiso:
+libgc:                                               # Compile everything
+	@$(MAKE) libheaders         		     
+	@$(MAKE) libkpp             		     
+	@$(MAKE) libutil 			     
+	@$(MAKE) libiso 			     
+	@$(MAKE) libapm
+
+libapm: $(OBJ)                                       # Build code in GeosApm/
+
+libiso:                                              # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)
 
-libkpp: 
+libkpp:                                              # Build code in KPP/
 	@$(MAKE) -C $(KPP)
 
-libutil:
+libutil:                                             # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)
 
-libesmf:
+libheaders:                                          # Build code in Headers/ 
+	@$(MAKE) -C $(HDR)			     
+
+libesmf:                                             # Compile ESMF/GEOS-5
 	@$(MAKE) -C $(LESMF) ESMF=yes esmf
 
-libesmf_testbed:
+libesmf_testbed:                                     # Compile ESMF testbed
 	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf
 
-exe:
+exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:
-	rm -f *.o *.mod geos geosapm
+clean:                                               # Remove files here
+	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:
+realclean:                                           # Remove files everywhere
 	@$(MAKE) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
@@ -217,13 +234,13 @@ realclean:
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:
+doc:                                                 # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean: 
+docclean:                                            # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:
+help:                                                # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #=============================================================================

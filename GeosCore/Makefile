@@ -93,7 +93,7 @@
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
 #  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
 #  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
-#   5 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
+#  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC

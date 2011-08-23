@@ -328,10 +328,10 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-      USE CMN_SIZE_MOD ! Size parameters
-      USE CMN_DIAG_MOD ! ND44
-      USE CMN_GCTM_MOD ! Physical constants
-      USE CMN_DEP_MOD  ! IREG, ILAND, IUSE, etc.
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! Physical constants
+      USE CMN_DEP_MOD        ! IREG, ILAND, IUSE, etc.
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -463,7 +463,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-      USE CMN_SIZE_MOD   ! Size parameters!
+      USE CMN_SIZE_MOD       ! Size parameters!
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -569,8 +569,8 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_GCTM_MOD     ! Physical constants
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! Physical constants
 
       ! Arguments
       LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
@@ -706,9 +706,9 @@
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! CSPEC
-      USE CMN_DIAG_MOD   ! Diagnostic switches & arrays
+      USE CMN_DIAG_MOD      ! Diagnostic switches & arrays
 
       ! Local variables
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
@@ -844,9 +844,9 @@
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! ND44
-      USE CMN_DEP_MOD   ! Dry deposition variables
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND44
+      USE CMN_DEP_MOD       ! Dry deposition variables
 
       ! Local variables
       INTEGER             :: I, J, L, PBL_MAX, N, NN
@@ -968,11 +968,11 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
       
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches & arrays
-      USE CMN_VEL_MOD   ! IJLAND
-      USE CMN_DEP_MOD   ! Dry deposition variables
-      USE COMMSOIL_MOD ! Soil pulsing & wetness variables
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_VEL_MOD        ! IJLAND
+      USE CMN_DEP_MOD        ! Dry deposition variables
+      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
 
       ! Local variables
       INTEGER     :: I, J, L, N, NN, M, PBL_MAX
@@ -2148,7 +2148,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       IMPLICIT NONE
 #     include "define.h"
@@ -3391,7 +3391,7 @@
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       LOGICAL :: IS_Hg

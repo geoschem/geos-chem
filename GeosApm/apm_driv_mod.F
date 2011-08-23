@@ -185,7 +185,7 @@
       USE APM_INIT_MOD, ONLY : MAXSITE,MSITE,ISITES,JSITES,LOUT
       USE APM_INIT_MOD, ONLY : IFSITE,IFSITEOUT,IFQANN
 
-#     include "CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  8/2008 - 10/2010 - F. Yu & G. Luo  - Initial versions
@@ -483,7 +483,7 @@
       USE APM_INIT_MOD, ONLY : VDRY
       USE APM_INIT_MOD, ONLY : DENSULF
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  
@@ -551,7 +551,7 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE APM_NUCL_MOD, ONLY : IONRATE0
 
-#     include "CMN_SIZE"
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REVISION HISTORY: 
 !  17 Mar 2010 - F. Yu       - Initial version  
@@ -612,7 +612,7 @@
       USE TRACER_MOD,   ONLY : ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD, ONLY : IDOH
 
-#     include "CMN_SIZE"                    ! Size parameters
+      USE CMN_SIZE_MOD                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -717,7 +717,7 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR
       USE APM_INIT_MOD,ONLY : NSO4 , NSEA
 
-#     include "CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  28 Aug 2008 - F. Yu       - Initial version  

@@ -5,7 +5,7 @@
 !
 ! !MODULE: a3_read_mod
 !
-! !DESCRPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
+! !DESCRIPTION: Module A3\_READ\_MOD contains routines that unzip, open, and 
 !  read the GEOS-Chem A3 (avg 3-hour) met fields from disk. 
 !\\
 !\\
@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -88,7 +89,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "F77_CMN_SIZE"                        ! Size parameters
+      USE CMN_SIZE_MOD                        ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,7 +334,7 @@
       USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"                       ! Size parameters
+      USE CMN_SIZE_MOD                       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -346,7 +347,7 @@
 !  (1 ) Adapted from OPEN_MET_FIELDS of "dao_read_mod.f" (bmy, 6/13/03)
 !  (2 ) Now opens either zipped or unzipped files (bmy, 12/11/03)
 !  (3 ) Now skips past the GEOS-4 ident string (bmy, 12/12/03)
-!  (4 ) Now references "directory_mod.f" instead of CMN_SETUP.  Also now
+!  (4 ) Now references "directory_mod.f" instead of F77_CMN_SETUP.  Also now
 !        references LUNZIP from "logical_mod.f".  Also now prevents EXPAND_DATE
 !        from overwriting Y/M/D tokens in directory paths. (bmy, 7/20/04)
 !  (5 ) Now use FILE_EXISTS from "file_mod.f" to determine if file unit IU_A3
@@ -494,7 +495,7 @@
       USE DAO_MOD, ONLY : PBL0a, PBL0b
 #endif
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -657,7 +658,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -736,7 +737,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -802,8 +803,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "F77_CMN_SIZE"                       ! Size parameters
-#     include "F77_CMN_DIAG"                       ! ND67
+      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_DIAG_MOD                         ! ND67
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1540,7 +1541,7 @@
 !
       USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
 
-#     include "F77_CMN_SIZE"                    ! Size parameters
+      USE CMN_SIZE_MOD                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

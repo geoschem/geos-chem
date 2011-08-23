@@ -89,7 +89,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-      USE CMN_SIZE_MOD                        ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -334,7 +334,7 @@
       USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD                       ! Size parameters
+      USE CMN_SIZE_MOD                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -641,7 +641,7 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -786,8 +786,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-      USE CMN_SIZE_MOD                       ! Size parameters
-      USE CMN_DIAG_MOD                       ! ND67
+      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_DIAG_MOD                         ! ND67
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1524,7 +1524,7 @@
 !
       USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
 
-      USE CMN_SIZE_MOD                    ! Size parameters
+      USE CMN_SIZE_MOD                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -93,7 +94,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -209,9 +210,9 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! g0
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -416,8 +417,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -512,7 +513,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -614,9 +615,9 @@
       USE APM_INIT_MOD,  ONLY : IDTDSTBIN1
 #endif
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! ND06
-#     include "F77_CMN_GCTM"      ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND06
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -902,9 +903,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! ND19, LD13 (for now)
-#     include "F77_CMN_GCTM"  ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1147,10 +1148,11 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-#     include "cmn_fj.h"      ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"      ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "F77_CMN_DIAG"      ! ND21, LD21
-#     include "comode.h"      ! NTTLOOP
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+
+      USE CMN_DIAG_MOD        ! ND21, LD21
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1387,12 +1389,15 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
+#     include "define.h"
+
+      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD,   ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD    ! NTTLOOP
+      USE CMN_DIAG_MOD       ! ND21, LD21
+
       IMPLICIT NONE
 
-#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "F77_CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1708,9 +1713,9 @@
       USE APM_INIT_MOD, ONLY : NCTDST,NDSTB,DENDST,RDST
       USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! g0
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! g0
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Arguments
       REAL*8, DIMENSION(IIPAR,JJPAR,LLPAR) :: MASS0, MASS1
@@ -1947,8 +1952,9 @@
       USE APM_INIT_MOD, ONLY : IDTCTDST,IDTDSTBIN1
       USE DRYDEP_MOD,   ONLY : DEPSAVSIZE
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! g0
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Arguments
       REAL*8, DIMENSION(IIPAR,JJPAR) :: MASS0, MASS
@@ -2083,7 +2089,7 @@
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version

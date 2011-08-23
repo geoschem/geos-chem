@@ -346,7 +346,7 @@
       USE FILE_MOD,      ONLY : IU_A6, IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -831,9 +831,9 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND66, ND67
-      USE CMN_GCTM_MOD             ! g0
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_DIAG_MOD               ! ND66, ND67
+      USE CMN_GCTM_MOD               ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

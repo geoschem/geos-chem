@@ -184,7 +184,7 @@
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       !==================================================================
       ! DO_WETDEPBIN begins here!
@@ -278,7 +278,7 @@
       USE DAO_MOD,   ONLY : AIRDEN, BXHEIGHT, MOISTQ, PREACC, PRECON
       USE ERROR_MOD, ONLY : ALLOC_ERR
       
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: LS
@@ -595,19 +595,19 @@
       ! References to F90 modules
       USE DAO_MOD,      ONLY : T
       USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD,   ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
-      USE APM_INIT_MOD,   ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD,   ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
+      USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB
+      USE APM_INIT_MOD, ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
+      USE APM_INIT_MOD, ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
+      USE APM_INIT_MOD, ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
       USE APM_INIT_MOD, ONLY : IDTSO4G,IDTSO4BIN1,IDTDSTBIN1
       USE APM_INIT_MOD, ONLY : IDTCTSO4,IDTCTBCOC,IDTCTDST
       USE APM_INIT_MOD, ONLY : IDTCTSEA,IDTSEABIN1
       USE APM_INIT_MOD, ONLY : IDTBCPIFF,IDTBCPIBB,IDTOCPIFF,IDTOCPIBB
       USE APM_INIT_MOD, ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD       ! Size parameters
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L, N
@@ -824,7 +824,7 @@
       USE APM_INIT_MOD, ONLY : IDTBCPIFF,IDTBCPIBB,IDTOCPIFF,IDTOCPIBB
       USE APM_INIT_MOD, ONLY : IDTBCPOFF,IDTBCPOBB,IDTOCPOFF,IDTOCPOBB
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L, N
@@ -1145,18 +1145,18 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,           ONLY : BXHEIGHT, T
-      USE DIAG_MOD,          ONLY : AD16, AD17, AD18
-      USE DIAG_MOD,          ONLY : CT16, CT17, CT18, AD39 
-      USE ERROR_MOD,         ONLY : GEOS_CHEM_STOP, IT_IS_NAN
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN
-      USE TIME_MOD,          ONLY : GET_TS_DYN
-      USE TRACER_MOD,        ONLY : STT
-      USE WETSCAV_MOD,       ONLY : SO2GAINED, SO2WETLOSS
-      USE APM_INIT_MOD,   ONLY : NGCOND,NSO4,NSEA,NDSTB
-      USE APM_INIT_MOD,   ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
-      USE APM_INIT_MOD,   ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
-      USE APM_INIT_MOD,   ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
+      USE DAO_MOD,      ONLY : BXHEIGHT, T
+      USE DIAG_MOD,     ONLY : AD16, AD17, AD18
+      USE DIAG_MOD,     ONLY : CT16, CT17, CT18, AD39 
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP, IT_IS_NAN
+      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
+      USE TIME_MOD,     ONLY : GET_TS_DYN
+      USE TRACER_MOD,   ONLY : STT
+      USE WETSCAV_MOD,  ONLY : SO2GAINED, SO2WETLOSS
+      USE APM_INIT_MOD, ONLY : NGCOND,NSO4,NSEA,NDSTB
+      USE APM_INIT_MOD, ONLY : NCTSO4,NCTBCOC,NCTDST,NCTSEA
+      USE APM_INIT_MOD, ONLY : NBCPIF,NBCPIO,NOCPIF,NOCPIO
+      USE APM_INIT_MOD, ONLY : NBCPOF,NBCPOO,NOCPOF,NOCPOO
       USE APM_INIT_MOD, ONLY : IDTSO4G, IDTSO4BIN1,IDTDSTBIN1
       USE APM_INIT_MOD, ONLY : IDTCTSO4, IDTCTBCOC, IDTCTDST
       USE APM_INIT_MOD, ONLY : IDTCTSEA, IDTSEABIN1
@@ -1165,10 +1165,10 @@
       USE APM_DRIV_MOD, ONLY : IACT1, IACT3, FCLOUD,GFTOT3D
       USE APM_INIT_MOD, ONLY : RDRY,RSALT,IACTSS1, IACTSS3
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic arrays and switches 
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic arrays and switches 
+      IMPLICIT NONE
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LS
@@ -2548,7 +2548,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LS
@@ -2777,7 +2777,7 @@ coefs used
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE TRACER_MOD,   ONLY : N_TRACERS, N_APMTRA
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       INTEGER :: N, NN
@@ -2892,7 +2892,7 @@ coefs used
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE PRESSURE_MOD, ONLY : GET_PCENTER
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       INTEGER             :: I, J, L, AS

@@ -70,7 +70,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
       USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX
       USE AEROSOL_MOD,     ONLY : RDAER,        SOILDUST
@@ -113,9 +112,9 @@
       USE TRACERID_MOD,    ONLY : IDTACET, IDTISOP
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE COMODE_LOOP_MOD        ! NPHOT
-      USE CMN_DIAG_MOD        ! NDxx flags
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE COMODE_LOOP_MOD       ! NPHOT
+      USE CMN_DIAG_MOD          ! NDxx flags
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this

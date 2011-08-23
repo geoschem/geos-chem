@@ -102,7 +102,7 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TRACER_MOD,  ONLY : STT,           N_TRACERS,  TCVV
 
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD                   ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -266,7 +266,7 @@
       USE TRACER_MOD,  ONLY : TRACER_NAME
       USE TRACER_MOD,  ONLY : TRACER_MW_G
 
-      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_SIZE_MOD                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -465,8 +465,7 @@
       USE CHARPAK_MOD, ONLY : TRANUC
       USE ERROR_MOD,   ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD    ! Size parameters
-
+      USE CMN_SIZE_MOD      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -616,7 +615,7 @@
       USE DAO_MOD,    ONLY : AD
       USE TRACER_MOD, ONLY : N_TRACERS, STT, TCVV
       
-      USE CMN_SIZE_MOD                               ! Size parameters
+      USE CMN_SIZE_MOD                                     ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -692,7 +691,7 @@
 !
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_SIZE_MOD                       ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -816,9 +815,9 @@
       USE TIME_MOD,    ONLY : EXPAND_DATE
       USE TIME_MOD,    ONLY : GET_TAU
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD                 ! IGAS
-      USE CMN_MOD                      ! TAU , NSRCX, LSOILNOX
+      USE CMN_SIZE_MOD                   ! Size parameters
+      USE COMODE_LOOP_MOD                ! IGAS
+      USE CMN_MOD                        ! TAU , NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1004,8 +1003,8 @@
       USE LOGICAL_MOD, ONLY : LPRT
       USE TIME_MOD,    ONLY : EXPAND_DATE
 
-      USE CMN_SIZE_MOD            ! Size parameters
-      USE COMODE_LOOP_MOD                ! ITLOOP, IGAS
+      USE CMN_SIZE_MOD                  ! Size parameters
+      USE COMODE_LOOP_MOD               ! ITLOOP, IGAS
       USE CMN_MOD	                ! LPRT, NSRCX, LSOILNOX
 !
 ! !INPUT PARAMETERS: 
