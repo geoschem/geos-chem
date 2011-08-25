@@ -2,20 +2,11 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !MODULE: CMN_GCTM_MOD
 !
-! !DESCRIPTION: CMN_GCTM contains GEOS-CHEM specific PHYSICAL CONSTANTS
-! and DERIVED QUANTITIES (bmy, 6/25/02, 6/23/03)
+! !MODULE: CMN_GCTM_mod
 !
-! REMARKS:
-! (1 ) Changed RCS ID tag comment character from "C" to "!$" to 
-! allow freeform compilation.  Also convert PARAMETERS to F90 
-! syntax. Updated comments, cosmetic changes. (bmy, 6/25/02)
-! (2 ) Added atmospheric scale height (7.6 km) (bmy, 6/23/03)
-!
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!=================================================================
+! !DESCRIPTION: CMN\_GCTM\_mod contains GEOS-Chem specific PHYSICAL CONSTANTS
+!  and DERIVED QUANTITIES.
 !\\
 !\\
 ! !INTERFACE: 
@@ -25,12 +16,8 @@
 ! !USES:
 !
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
+!
 ! !DEFINED PARAMETERS: 
 !
       ! AIRMW : Molecular weight of air [28.97 g/mole]
@@ -59,4 +46,12 @@
 
       ! Scale height of atmosphere (7.6 km = 7600m)
       REAL*8, PARAMETER :: SCALE_HEIGHT = 7600d0
-	END MODULE CMN_GCTM_MOD
+!
+! !REVISION HISTORY:
+!  25 Jun 2002 - R. Yantosca - Initial version
+!  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      END MODULE CMN_GCTM_MOD
+!EOC

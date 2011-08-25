@@ -3,24 +3,20 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !INCLUDE: CMN_SIZE
+! !MODULE: CMN_SIZE
 !
 ! !DESCRIPTION: CMN\_SIZE contains size parameters for GEOS-Chem arrays.
+!\\
+!\\
+! !INTERFACE:
 !
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!------------------------------------------------------------------------------
-!\\
-!\\
       MODULE CMN_SIZE_MOD
-
+!
 ! !USES:
 !
-
       IMPLICIT NONE
-      SAVE
       PUBLIC
-      ! C Preprocessor #define statements for conditional compilation
+
 #     include "define.h"
 !
 ! !DEFINED PARAMETERS:
@@ -461,6 +457,11 @@
 
 #endif
 !
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%% NOTE: THIS WAS MADE INTO A MODULE IN ORDER TO REMOVE COMMON BLOCKS  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
 ! !REVISION HISTORY:
 !  (1 ) Now set LLTROP = 20 for GEOS-3 (bmy, 4/12/01)
 !  (2 ) Eliminated obsolete commented-out code (bmy, 4/20/01)
@@ -525,6 +526,9 @@
 !                              MERRA for the full 72-layer grids (i.e. when
 !                              the Cpp switch GRIDREDUCED is not set).
 !  09 Mar 2011 - R. Yantosca - Updated NNPAR for APM (G. Luo)
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
 !EOP
 !------------------------------------------------------------------------------
+!BOC
       END MODULE CMN_SIZE_MOD
+!EOC

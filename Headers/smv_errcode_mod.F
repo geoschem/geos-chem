@@ -16,38 +16,15 @@
 ! !USES:
 !
       IMPLICIT NONE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
+!
 ! !DEFINED PARAMETERS: 
 !
       ! Return w/ success
-      INTEGER, PARAMETER :: SMV_SUCCESS          =  0
+      INTEGER, PARAMETER :: SMV_SUCCESS =  0
 
       ! Return w/ failure
-      INTEGER, PARAMETER :: SMV_FAILURE          = -1
-
-      !----------------------------------------------------------------------
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: The following are deprecated and will be removed later %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !
-      !! Return codes for emissions readers & internal state routines
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_RD_INIT  = -1000
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_RD_RUN   = -1001
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_RD_FINAL = -1002
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_INIT     = -1003
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_RUN      = -1004
-      !INTEGER, PARAMETER :: SMV_FAIL_EM_FINAL    = -1005
-      !
-      !! Return codes for emissions
-      INTEGER, PARAMETER :: SMV_FAIL_GINOUX      = -1502 
-      INTEGER, PARAMETER :: SMV_FAIL_EMDUSTBOX   = -1503
-      !INTEGER, PARAMETER :: SMV_FAIL_CANOPYNOX   = -1900
-      !INTEGER, PARAMETER :: SMV_FAIL_SOILNOX     = -1902
-      !----------------------------------------------------------------------
+      INTEGER, PARAMETER :: SMV_FAILURE = -1
 !
 ! !REVISION HISTORY: 
 !  20 Mar 2009 - R. Yantosca - Initial version
@@ -60,5 +37,7 @@
 !  03 Jun 2010 - R. Yantosca - Deleted error codes for SCHEM routines
 !  03 Aug 2011 - M. Long     - Converted from Header file to Module
 !EOP
-	END MODULE SMV_ERRCODE_MOD
 !------------------------------------------------------------------------------
+!BOC
+	END MODULE SMV_ERRCODE_MOD
+!EOC

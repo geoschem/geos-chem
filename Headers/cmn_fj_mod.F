@@ -1,47 +1,28 @@
-! $Id: cmn_fj.h,v 1.2 2010/03/15 19:33:18 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  CMN_FJ.H -- Header file containing parameters and common
-!  blocks used to interface between Harvard chemistry and UC-Irvine 
-!  Fast-J photolysis programs.
-!  
-!  Based on code from Oliver Wild (9 Jul 1999)
+! !MODULE: cmn_fj_mod
 !
-!  NOTES:
-!  (1 ) Uses Fortran 90 declarations for parameters and variables
-!  (2 ) Pass CTM size parameters and preprocessor switches via CMN_SIZE.
-!  (3 ) Update JPMAX for new chemistry mechanism (amf, bmy, 4/20/00)
-!  (4 ) Return JPMAX to original setting (bmy, 9/25/00)
-!  (5 ) Return JPMAX to 55 for peroxy recycling (again) (bmy, 12/20/00)
-!  (6 ) Now need to use the window parameters IIPAR,JJPAR,LLPAR (bmy, 9/25/01)
-!  (7 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
-!        compilation. (bmy, 6/25/02)
-!  (8 ) Replaced ESIG array with ETAA and ETAB arrays for the hybrid
-!        pressure formulation.  Also deleted PREST, since we don't need that
-!        anymore. (bmy, 8/23/02)
-!  (9 ) Removed ETAA and ETAB arrays.  We now compute PJ directly from the 
-!        GET_PEDGE routine. (bmy, 10/30/07)
-!  (10) Increase photolysis rxns JPMAX = 79 (tmf, 1/7/09)
-!  (11) Increase photolysis rxns JPMAX = 89 for Isoprene (fp, 2/2/10)
-!  (12) Increase species name length. (fp, 2/2/10)
-!
-!          - Bob Yantosca [bmy@io.as.harvard.edu], 30 Oct 2007
-!
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!******************************************************************************
+! !DESCRIPTION: Module cmn\_fj\_mod contains parameters and global variables
+!  used to interface between Harvard chemistry and UC-Irvine Fast-J photolysis 
+!  programs.
+!\\
+!\\
+! !INTERFACE: 
 !
       MODULE CMN_FJ_MOD
-
-#     include "define.h"
-
+!
+! !USES:
+!
       USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR
 
       IMPLICIT NONE
-      
       PUBLIC
-!      SAVE
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Global array sizes in longitude, latitude, altitude
       INTEGER, PARAMETER :: IPAR = IIPAR
       INTEGER, PARAMETER :: JPAR = JJPAR
@@ -51,7 +32,9 @@
       ! FP increased JPMAX since IPHOT was increased (hotp 7/31/09)
       !INTEGER, PARAMETER :: JPMAX = 79
       INTEGER, PARAMETER :: JPMAX = 89
-
+!
+! !PUBLIC DATA MEMBERS:
+!
       ! Variables for number of layers and number of photolysis rxns
       INTEGER            :: JPNL, JPPJ       
 
@@ -70,5 +53,30 @@
 
       ! Output J-values
       REAL*8             :: ZPJ(LPAR,JPMAX,IPAR,JPAR)
-
+! 
+! !REMARKS:
+!  Based on code from Oliver Wild (9 Jul 1999)
+!
+! !REVISION HISTORY:
+!  (1 ) Uses Fortran 90 declarations for parameters and variables
+!  (2 ) Pass CTM size parameters and preprocessor switches via CMN_SIZE.
+!  (3 ) Update JPMAX for new chemistry mechanism (amf, bmy, 4/20/00)
+!  (4 ) Return JPMAX to original setting (bmy, 9/25/00)
+!  (5 ) Return JPMAX to 55 for peroxy recycling (again) (bmy, 12/20/00)
+!  (6 ) Now need to use the window parameters IIPAR,JJPAR,LLPAR (bmy, 9/25/01)
+!  (7 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
+!        compilation. (bmy, 6/25/02)
+!  (8 ) Replaced ESIG array with ETAA and ETAB arrays for the hybrid
+!        pressure formulation.  Also deleted PREST, since we don't need that
+!        anymore. (bmy, 8/23/02)
+!  (9 ) Removed ETAA and ETAB arrays.  We now compute PJ directly from the 
+!        GET_PEDGE routine. (bmy, 10/30/07)
+!  (10) Increase photolysis rxns JPMAX = 79 (tmf, 1/7/09)
+!  (11) Increase photolysis rxns JPMAX = 89 for Isoprene (fp, 2/2/10)
+!  (12) Increase species name length. (fp, 2/2/10)
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       END MODULE CMN_FJ_MOD
+!EOC

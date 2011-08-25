@@ -2,20 +2,10 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !MODULE: CMN_DEP_mod.F
 !
-! !DESCRIPTION: COMMON BLOCKS FOR DRYDEP
+! !MODULE: CMN_DEP_mod
 !
-! REMARKS:
-! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
-!       compilation.  Changed continuation character from numbers
-!       to &.  Changed comment character from C to !.  Added & continuation 
-!       characters in column 73 to allow header files to be included in 
-!       F90 freeform files. (bmy, 6/25/02)*
-!
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!-----------------------------------------------------------------------------
+! !DESCRIPTION: Common blocks for dry deposition.
 !\\
 !\\
 ! !INTERFACE: 
@@ -24,29 +14,42 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, NTYPE
 
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
-! !DEFINED PARAMETERS: 
 !
-      !  IREG    - Number of landtypes in grid square (I,J)
-      !  ILAND   - Land type ID in grid square (I,J) for IREG landtypes
-      !  IUSE    - Fraction ((per mil) of gridbox area occupied by
-      !                          land type
-      INTEGER ::      IREG(IGLOB,JGLOB),                                &
-     &                ILAND(IGLOB,JGLOB,NTYPE),                         &
-     &                IUSE(IGLOB,JGLOB,NTYPE)                          
-      REAL*8  ::      FRCLND(IGLOB,JGLOB)
+! !PUBLIC DATA MEMBERS:
+!
+      ! IREG   - Number of landtypes in grid square (I,J)
+      INTEGER :: IREG(IIPAR,JJPAR)                                
+
+      ! ILAND  - Land type ID in grid square (I,J) for IREG landtypes
+      INTEGER :: ILAND(IIPAR,JJPAR,NTYPE)
+
+      ! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
+      INTEGER :: IUSE(IIPAR,JJPAR,NTYPE)                          
+
+      ! Fraction of land in grid box
+      REAL*8  :: FRCLND(IIPAR,JJPAR)
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
-      REAL*8 :: XLAI(IIPAR,JJPAR,NTYPE)
+      REAL*8  :: XLAI(IIPAR,JJPAR,NTYPE)
 
       ! XLAI2   - Leaf Area Index of land type for following MONTH
-      REAL*8 :: XLAI2(IIPAR,JJPAR,NTYPE)
+      REAL*8  :: XLAI2(IIPAR,JJPAR,NTYPE)
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  IT WILL BE REMOVED WHEN THE  %%%
+!  %%%  GEIA BIOGENIC EMISSIONS ARE REMOVED FROM GEOS-CHEM (v9-01-03)  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+! !REVISION HISTORY:
+!  23 Aug 2011 - M. Long     - Converted to Module from Header file
+!  25 Aug 2011 - R. Yantosca - Change IGLOB,JGLOB to IIPAR,JJPAR
+!EOP
+!-----------------------------------------------------------------------------
+!BOC
 	END MODULE CMN_DEP_MOD
+!EOC

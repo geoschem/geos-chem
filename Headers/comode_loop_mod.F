@@ -3,12 +3,64 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: COMODE_LOOP_MOD.F
+! !MODULE: comode_loop_mod
 !
-! !DESCRIPTION: Header file COMODE contains common blocks and variables for SMVGEAR II.
+! !DESCRIPTION: Module file COMODE contains common blocks and variables for 
+!  SMVGEAR II.
+!\\
+!\\
+! !INTERFACE: 
+!
+      MODULE COMODE_LOOP_MOD
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+
+      IMPLICIT NONE
+      PUBLIC
+!
+! !REMARKS:
+!         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
+!         C        O     O  M M M M  O     O  D     D  E  
+!         C        O     O  M  M  M  O     O  D     D  EEEEEEE  
+!         C        O     O  M     M  O     O  D     D  E  
+!         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
+!                                                                             .
+! *********************************************************************
+! * THIS IS THE COMMON BLOCK FOR "SMVGEAR" AND "MIE," TWO ORDINARY    *
+! * DIFFERENTIAL EQUATION SOLVERS. THE REFERENCE FOR THE CODES IS     *
+! *                                                                   * 
+! *   JACOBSON M. Z. AND TURCO R. P. (1993) SMVGEAER: A SPARSE-       * 
+! *    MATRIX, VECTORIZED GEAR CODE FOR ATMOSPHERIC MODELS.           *
+! *    SUBMITTED TO ATMOSPHERIC ENVIRONMENT, PART A. MAY 20, 1993     * 
+! *                                                                   * 
+! * COMODE.H SETS PARAMETER VALUES AND SERVES AS A COMMON BLOCK FOR   *
+! * ALL DIMENSIONED AND NON-DIMENSIONED VARIABLES. COMODE.H ALSO      *
+! * DEFINES EACH PARAMETER, BUT DATA FILE DEFINE.DAT EXPLAINS NON-    *
+! * DIMENSIONED VARIABLES. INDIVIDUAL SUBROUTINES DEFINE DIMENSIONED  *
+! * VARIABLES.                                                        *
+! *********************************************************************
+!                                                                             .
+! *********************************************************************
+! *                       SET PARAMETERS                              *
+! *********************************************************************
+!                                                                             .
+! ****************** COORDINATE-SYSTEM PARAMETERS *********************
+!
+! ILAT     = MAXIMUM NUMBER OF LATITUDE(ILAT)   GRID POINTS
+! ILONG    = MAXIMUM NUMBER OF LONGITUDE(ILONG) GRID POINTS
+! IMLOOP   = ILAT * ILONG - USED FOR MORE EFFICIENT ARRAYS
+! IVERT    = MAXIMUM NUMBER OF LAYERS 
+! ILAYER   = MAXIMUM OF LAYER BOUNDARIES
+! KBLOOP   = MAXIMUM NUMBER OF GRID POINTS IN A VECTORIZED BLOCK 
+!            SHOULD RANGE FROM 512 (BELOW WHICH VECTORIZATION DECREASES)
+!            TO 1024 (ABOVE WHICH, ARRAY SPACE IS LIMITED)
+! MXBLOCK  = MAXIMUM NUMBER OF GRID POINT BLOCKS
+! MAXDAYS  = MAXIMUM NUMBER OF DAYS FOR THE MODEL TO RUN
+!
+! !REVISION HISTORY:
 !  (M. Jacobson 1997; bdf, bmy, 4/23/03, 6/1/06)
-!
-!  NOTES:
 !  (1 ) Removed many commented-out common blocks not needed for GEOS-CHEM.
 !        Also updated comments.  Also make sure that MAXGL3 is dimensioned
 !        for at least NNPAR tracers.  Add NNADDG and NKSPECG for DMS+OH+O2
@@ -65,63 +117,10 @@
 !
 !  !REVISION HISTORY:
 !  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-!         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
-!         C        O     O  M M M M  O     O  D     D  E  
-!         C        O     O  M  M  M  O     O  D     D  EEEEEEE  
-!         C        O     O  M     M  O     O  D     D  E  
-!         CCCCCCC  OOOOOOO  M     M  OOOOOOO  DDDDDD   EEEEEEE 
-!
-! *********************************************************************
-! * THIS IS THE COMMON BLOCK FOR "SMVGEAR" AND "MIE," TWO ORDINARY    *
-! * DIFFERENTIAL EQUATION SOLVERS. THE REFERENCE FOR THE CODES IS     *
-! *                                                                   * 
-! *   JACOBSON M. Z. AND TURCO R. P. (1993) SMVGEAER: A SPARSE-       * 
-! *    MATRIX, VECTORIZED GEAR CODE FOR ATMOSPHERIC MODELS.           *
-! *    SUBMITTED TO ATMOSPHERIC ENVIRONMENT, PART A. MAY 20, 1993     * 
-! *                                                                   * 
-! * COMODE.H SETS PARAMETER VALUES AND SERVES AS A COMMON BLOCK FOR   *
-! * ALL DIMENSIONED AND NON-DIMENSIONED VARIABLES. COMODE.H ALSO      *
-! * DEFINES EACH PARAMETER, BUT DATA FILE DEFINE.DAT EXPLAINS NON-    *
-! * DIMENSIONED VARIABLES. INDIVIDUAL SUBROUTINES DEFINE DIMENSIONED  *
-! * VARIABLES.                                                        *
-! *********************************************************************
-!
-! *********************************************************************
-! *                       SET PARAMETERS                              *
-! *********************************************************************
-!
-! ****************** COORDINATE-SYSTEM PARAMETERS *********************
-!
-! ILAT     = MAXIMUM NUMBER OF LATITUDE(ILAT)   GRID POINTS
-! ILONG    = MAXIMUM NUMBER OF LONGITUDE(ILONG) GRID POINTS
-! IMLOOP   = ILAT * ILONG - USED FOR MORE EFFICIENT ARRAYS
-! IVERT    = MAXIMUM NUMBER OF LAYERS 
-! ILAYER   = MAXIMUM OF LAYER BOUNDARIES
-! KBLOOP   = MAXIMUM NUMBER OF GRID POINTS IN A VECTORIZED BLOCK 
-!            SHOULD RANGE FROM 512 (BELOW WHICH VECTORIZATION DECREASES)
-!            TO 1024 (ABOVE WHICH, ARRAY SPACE IS LIMITED)
-! MXBLOCK  = MAXIMUM NUMBER OF GRID POINT BLOCKS
-! MAXDAYS  = MAXIMUM NUMBER OF DAYS FOR THE MODEL TO RUN
-!
-!\\
-!\\
-! !INTERFACE: 
-!
-      MODULE COMODE_LOOP_MOD
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-
-      IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
-      PUBLIC
-	SAVE
 ! !DEFINED PARAMETERS: 
 !
       INTEGER ILAT,ILONG,IVERT,IPLUME,IPVERT,ITLOOP,KBLOOP,MXBLOCK
@@ -625,3 +624,4 @@
 ! *********************************************************************
 !
 	END MODULE COMODE_LOOP_MOD
+!EOC

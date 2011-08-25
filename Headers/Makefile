@@ -1,26 +1,12 @@
-# $Id: Makefile,v 1.5 2010/02/02 16:57:47 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the GeosUtil subdirectory)
+# !MODULE: Makefile (in the Headers subdirectory)
 #
-# !DESCRIPTION: This makefile compiles the various GEOS-Chem utility modules,
-#  which provide basic functionality for:
-#
-# \begin{itemize}
-# \item Collapsing vertical levels in the stratosphere
-# \item Date and time computations
-# \item Defining data directories
-# \item Defining the GEOS-Chem horizontal grid
-# \item Defining the GEOS-Chem pressure coordinate grid
-# \item Defining the logical units for GEOS-Chem file I/O
-# \item Defining various Unix commands
-# \item Platform-specific error handling
-# \item Manipulating string variables
-# \item Regridding data (horizontally) from fine to coarse resolution
-# \end{itemize}
+# !DESCRIPTION: This makefile compiles the various GEOS-Chem Header modules,
+#  which contain many PARAMETERs and global arrays for GEOS-Chem routines.
 #
 # !REMARKS:
 # To build the programs, call "make" with the following syntax:
@@ -48,12 +34,7 @@
 # MAKE       Sys var w/ name of Make command (i.e, "make" or "gmake")
 #
 # !REVISION HISTORY: 
-#  19 Nov 2009 - R. Yantosca - Initial version
-#  23 Nov 2009 - R. Yantosca - Now don't copy module files; they will be
-#                              automatically written to the mod directory
-#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
-#  21 Dec 2009 - R. Yantosca - If HDF5=yes, then look for hdf5.mod in the
-#                              HDF5 include path $(HDF5_INC).
+#  23 Aug 2011 - M. Long     - Initial version
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -137,10 +118,8 @@ commsoil_mod.o      : commsoil_mod.F         CMN_SIZE_mod.o
 
 comode_loop_mod.o   : comode_loop_mod.F      CMN_SIZE_mod.o
 
-#define_mod.o        : define_mod.F
-#
-jv_cmn_mod.o        : jv_cmn_mod.F           CMN_SIZE_mod.o \
-                                           cmn_fj_mod.o
+jv_cmn_mod.o        : jv_cmn_mod.F           CMN_SIZE_mod.o  \
+                                             cmn_fj_mod.o
 
 jv_mie_mod.o        : jv_mie_mod.F
 

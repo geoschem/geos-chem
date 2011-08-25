@@ -2,14 +2,11 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !MODULE: CMN_ISOP_MOD
 !
-! !DESCRIPTION: This include file contains physical constants for the
-!  GEOS-Chem column chemistry code. 
+! !MODULE: CMN_ISOP_mod
 !
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!------------------------------------------------------------------------------
+! !DESCRIPTION: This include file contains variables for the old GEIA
+!  biogenic emissions (ISOPRENE).
 !\\
 !\\
 ! !INTERFACE: 
@@ -18,28 +15,31 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD, ONLY : MAXIJ, NPOLY, NTYPE
 
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
-! !DEFINED PARAMETERS: 
 !
-!-----COMMON BLOCKS FOR ISOPRENE
+! !PUBLIC DATA MEMBERS:
 !
-! NOTES:
-! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
-!       compilation.  Also added & continuation characters in column 73
-!       to allow header files to be included in F90 freeform files.
-!       (bmy, 6/25/02)
+      ! polynomial fitting's coeffcients
+      REAL*8 :: SOPCOEFF(NPOLY)
+      REAL*8 :: BASEISOP(MAXIJ,NTYPE)
+
+      ! Added for EMISOP_GRASS and EMISOP_MB (bdf, bmy, 8/1/01)
+      REAL*8 :: BASEGRASS(MAXIJ)
+      REAL*8 :: BASEMB(MAXIJ)
 !
-      REAL*8 
-             ! polynomial fitting's coeffcients
-     &       SOPCOEFF(NPOLY),BASEISOP(MAXIJ,NTYPE),                     &
-             ! Added for EMISOP_GRASS and EMISOP_MB (bdf, bmy, 8/1/01)
-     &       BASEGRASS(MAXIJ),BASEMB(MAXIJ)
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  IT WILL BE REMOVED WHEN THE  %%%
+!  %%%  GEIA BIOGENIC EMISSIONS ARE REMOVED FROM GEOS-CHEM (v9-01-03)  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+! !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 	END MODULE CMN_ISOP_MOD
+!EOC

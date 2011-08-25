@@ -2,14 +2,12 @@
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
-! !MODULE: CMN_MONOT_MOD
 !
-! !DESCRIPTION: 
+! !MODULE: CMN_MONOT_mod
 !
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!------------------------------------------------------------------------------
-!\\
+! !DESCRIPTION: This include file contains variables for the old GEIA
+!  biogenic emissions (MONOTERPENES).
+\\
 !\\
 ! !INTERFACE: 
 !
@@ -17,23 +15,26 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE CMN_SIZE_MOD, ONLY : MAXIJ, NTYPE
 
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
-! !DEFINED PARAMETERS: 
 !
-!-----COMMON BLOCKS FOR MONOTERPENE
+! !PUBLIC DATA MEMBERS:
 !
-! (1 ) Changed RCS ID tag comment character from "C" to "!" to allow freeform
-!       compilation.  Updated comments, cosmetic changes. (bmy, 6/25/02)
-
       ! Baseline emission
-      REAL*8 BASEMONOT(MAXIJ,NTYPE)
-
+      REAL*8 :: BASEMONOT(MAXIJ,NTYPE)
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED.  IT WILL BE REMOVED WHEN THE  %%%
+!  %%%  GEIA BIOGENIC EMISSIONS ARE REMOVED FROM GEOS-CHEM (v9-01-03)  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+! !REVISION HISTORY:
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 	END MODULE CMN_MONOT_MOD
+!EOC

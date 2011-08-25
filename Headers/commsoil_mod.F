@@ -3,38 +3,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: COMMSOIL_MOD.F
+! !MODULE: commsoil_mod
 !
-! !DESCRIPTION: 
-!
-! !**********************************************************************
-!                                                                       *
-!    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       *
-!    MODULE FOR SOIL NOx EMISSIONS                                      *
-!    by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               *
-!    (Release V2.1)                                                     *
-!                                                                       *
-!    Contact person: Bob Yantosca (bmy@io.harvard.edu)                  *
-!                                                                       *
-! !**********************************************************************
-! NOTES:
-! (1 ) Be sure to force double precision with the DBLE function            
-!       and the "D" exponent, wherever necessary (bmy, 10/6/99)             
-! (2 ) Changed RCS ID tag comment character from "C" to "!" to allow 
-!       freeform compilation.  Also added & continuation characters in 
-!       column 73 to allow header files to be included in F90 freeform 
-!       files. Updated comments, cosmetic changes. (bmy, 6/25/02)
-! (3 ) Now use cpp switches to define 1x1 parameters.  Also added
-!       space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
-! (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
-! (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
-! (6 ) Set # of land boxes for GEOS-5 EUROPE nested grid (amv, 10/19/09)
-!
-!  !REVISION HISTORY:
-!  23 Aug 2011 - M. Long   - Converted to Module from Header file
-!**********************************************************************
-!
-! header file for soil NOx emissions
+! !DESCRIPTION: Module commsoil\_mod contains global variables for the 
+!  soil NOx emissions routines.
 !\\
 !\\
 ! !INTERFACE: 
@@ -43,18 +15,15 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-#     include "define.h"
+      USE CMN_SIZE_MOD, ONLY : MAXIJ
 
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
+
+#     include "define.h"
+!
 ! !DEFINED PARAMETERS: 
-      
+!      
       ! The defined soil types
       INTEGER, PARAMETER :: NSOIL = 11
 
@@ -107,24 +76,47 @@
       INTEGER, PARAMETER :: NLAND = 5536
 
 #endif
+!
+! !PUBLIC DATA MEMBERS:
+!
+      ! Land types:
+      ! water/desert/ice//Trop. Rain. Forst.//conifers//dry deciduous//
+      ! other deciduous//woodland//grassland//agriculture (other than rice)
+      ! rice paddies//wetland/tundra
 
+      ! i,j of the grid
+      INTEGER :: INDEXSOIL(2,NLAND) 
 
-! water/desert/ice//Trop. Rain. Forst.//conifers//dry deciduous//
-! other deciduous//woodland//grassland//agriculture (other than rice)
-! rice paddies//wetland/tundra
-      INTEGER INDEXSOIL(2,NLAND) !i,j of the grid
-      REAL*8 SOILPULS(NPULSE+1,NLAND) 
-	 !tracking of wet/dry & three types of pulsing (Y&L, 94)
-      REAL*8 SOILPREP(2,NLAND)  !two month observed precip
-      REAL*8 SOILFERT(NLAND)    !ferterlizers
-      REAL*8 PULSFACT(NPULSE)   !pulsing factors
-      REAL*8 PULSDECAY(NPULSE)  !pulsing decay per timestep
-      REAL*8 SOILNOX(IIPAR,JJPAR) !stores output
+      ! Tracking of wet/dry & three types of pulsing (Y&L, 94)
+      REAL*8  :: SOILPULS(NPULSE+1,NLAND) 
 
-      INTEGER NCONSOIL(NVEGTYPE) !olson->soil type,nvegtype in commbio.h
-      REAL*8 CANOPYNOX(MAXIJ,NTYPE) !track NOx within canopy dry dep.
-      REAL*8 SOILTA(NSOIL),SOILTB(NSOIL),SOILAW(NSOIL),SOILAD(NSOIL)
-      REAL*8 SOILEXC(NSOIL)     !canopy wind extinction coeff.
+      ! Two month observed precip
+      REAL*8  :: SOILPREP(2,NLAND)  
+
+      ! Fertilizers
+      REAL*8  :: SOILFERT(NLAND)    
+
+      ! Pulsing factors
+      REAL*8  :: PULSFACT(NPULSE)
+
+      ! Pulsing decay per timestep
+      REAL*8  :: PULSDECAY(NPULSE)
+
+      ! Stores output
+      REAL*8  :: SOILNOX(IIPAR,JJPAR) 
+
+      ! Olson->soil type,nvegtype in commbio.h
+      INTEGER :: NCONSOIL(NVEGTYPE) 
+
+      ! Track NOx within canopy dry dep.
+      REAL*8  :: CANOPYNOX(MAXIJ,NTYPE) 
+
+      ! Canopy wind extinction coeff from Y&L
+      REAL*8  :: SOILTA(NSOIL)
+      REAL*8  :: SOILTB(NSOIL)
+      REAL*8  :: SOILAW(NSOIL)
+      REAL*8  :: SOILAD(NSOIL)
+      REAL*8  :: SOILEXC(NSOIL)     
 
       ! The correct sequence of PULSFACT is 5, 10, 15 
       DATA PULSFACT  / 5.D0,    10.D0,   15.D0   /
@@ -158,5 +150,34 @@
       DATA SOILEXC /0.1D0, 4.D0,   4.D0,   4.D0,   4.D0,                
      &              2.D0,  1.D0,   2.D0,   2.D0,   0.5D0,               
      &              0.1D0/
-
-	END MODULE COMMSOIL_MOD
+!
+! !REMARKS:
+!  Original code from:
+!    HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       
+!    MODULE FOR SOIL NOx EMISSIONS                                      
+!    by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               
+!    (Release V2.1) 
+!                                                                             .
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE IS DEPRECATED!  IT WILL BE REMOVED WHEN WE  %%%
+!  %%%  REPLACE THE SOIL NOX EMISSIONS ALGORITHM (IN THE NEAR FUTURE  %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! !
+! !REVISION HISTORY:
+!  (1 ) Be sure to force double precision with the DBLE function            
+!        and the "D" exponent, wherever necessary (bmy, 10/6/99)             
+!  (2 ) Changed RCS ID tag comment character from "C" to "!" to allow 
+!        freeform compilation.  Also added & continuation characters in 
+!        column 73 to allow header files to be included in F90 freeform 
+!        files. Updated comments, cosmetic changes. (bmy, 6/25/02)
+!  (3 ) Now use cpp switches to define 1x1 parameters.  Also added
+!        space in the #ifdef block for the 1x125 grid (bmy, 12/1/04)
+!  (4 ) Bug fix: 2681 should be 2861 in NLAND (bmy, 9/22/06)
+!  (5 ) Set # of land boxes for GEOS-5 nested grids (yxw, dan, bmy, 11/6/08)
+!  (6 ) Set # of land boxes for GEOS-5 EUROPE nested grid (amv, 10/19/09)
+!  23 Aug 2011 - M. Long   - Converted to Module from Header file
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      END MODULE COMMSOIL_MOD
+!EOC

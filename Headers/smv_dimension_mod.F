@@ -19,23 +19,26 @@
 ! !USES:
 !
       IMPLICIT NONE
-!      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS: KITCHEN SINK!
-!
       PUBLIC
-	SAVE
+!
 ! !DEFINED PARAMETERS: 
 !
       ! Locally defined replacement for GEOS-Chem parameter "LLPAR"
-      INTEGER, PARAMETER :: MAX_COLUMN  = 72    ! Full GEOS-5 vertical grid
-      !INTEGER, PARAMETER :: MAX_COLUMN  = 47    ! Reduced GEOS-5 vertical grid
+      !INTEGER, PARAMETER :: MAX_COLUMN  = 72    ! Full GEOS-5 vertical grid
+      INTEGER, PARAMETER :: MAX_COLUMN  = 47    ! Reduced GEOS-5 vertical grid
 
       ! Locally defined replacement for GEOS-Chem parameter "NNPAR"
       INTEGER, PARAMETER :: MAX_TRACERS = 100
 
       ! Locally defined replacement for "comode.h" parameter "IGAS"
       INTEGER, PARAMETER :: MAX_SPECIES = 125
+!
+! !REMARKS:
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%  NOTE: THIS MODULE WAS ORIGINALLY DEVELOPED FOR THE COLUMN CODE.  %%%
+!  %%%  THE PARAMETERS HERE CAN BE COMBINED INTO A SINGLE MODULE WITH    %%%
+!  %%%  DECLARED SIZE PARAMETERS (IN THE NEAR FUTURE).                   %%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 ! !REVISION HISTORY: 
 !  24 Mar 2009 - R. Yantosca - Initial version
