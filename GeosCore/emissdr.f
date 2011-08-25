@@ -77,8 +77,8 @@
 !       (bmy, 2/25/10)
 !  (32) Add a NOx fertilizer switch and a scaling factor for ISOP emissions
 !       (fp, 6/09)
-!  27 Jul 2011 - M. Payer    -  Update MEGAN biogenics for hotp's SOA + semivol
-!                                POA updates.
+!  27 Jul 2011 - M. Payer    -  Update MEGAN biogenics for SOA + semivolatile
+!                               POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -96,7 +96,7 @@
       USE LOGICAL_MOD,       ONLY : LFERTILIZERNOX
       USE LOGICAL_MOD,       ONLY : LAIRNOX,       LBIONOX,   LWOODCO   
       USE LOGICAL_MOD,       ONLY : LMEGAN, LMEGANMONO, LBIOGENIC
-      USE LOGICAL_MOD,       ONLY : LSVPOA ! (mpayer, 7/27/11)
+      USE LOGICAL_MOD,       ONLY : LSVPOA
       USE MEGAN_MOD,         ONLY : GET_EMISOP_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMBO_MEGAN
       USE MEGAN_MOD,         ONLY : GET_EMMONOT_MEGAN
@@ -163,8 +163,8 @@
        REAL*8                 :: GAMMA_P
        REAL*8                 :: GAMMA_T
        REAL*8                 :: GAMMA_SM
-      ! SOAupdate: Add sesquiterpenes, other mtp (hotp, mpayer, 7/27/11)
-      REAL*8                   :: FARN, BCAR, OSQT, OMTP
+      ! Add sesquiterpenes & other monoterpenes (hotp, mpayer, 7/27/11)
+       REAL*8                 :: FARN, BCAR, OSQT, OMTP
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -351,13 +351,11 @@
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
      &                                      PDR, PDF, XNUMOL_C )
 
-                  ! SOAupdate: Add switch for SOA + semivolatile POA or 
-                  !  traditional SOA simulation (mpayer, 7/27/11)
+                  ! Check to see if using SOA + semivolatile POA or
+                  ! traditional SOA simulation (mpayer, 7/27/11)
                   IF ( LSVPOA ) THEN
 
-                     !===========================================
-                     ! SOA + semivolatile POA
-                     !===========================================
+                     !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
 
                      ! ------------------------------------------
                      ! Aplha Pinene emissions
@@ -393,8 +391,8 @@
                      EMMO = APINE + BPINE + LIMON + SABIN + 
      &                      MYRCN + CAREN + OCIMN
 
-                     ! SOAupdate: Sesquiterpenes, OMTP (hotp, mpayer, 7/27/11) 
-                     ! (not actually used here)
+                     !------------------------------------------
+                     ! SESQUITERPENES, OMTP (not actually used here)
                      ! ------------------------------------------
                      ! a-Farnesene emissions
                      FARN = GET_EMTERP_MEGAN( I , J , SC, TMMP ,  
@@ -415,9 +413,7 @@
 
                   ELSE
 
-                     !===========================================
-                     ! Traditional SOA
-                     !===========================================
+                     !%%% Traditional SOA %%%
 
                      ! ------------------------------------------
                      ! Aplha Pinene emissions
@@ -453,7 +449,7 @@
                      EMMO = APINE + BPINE + LIMON + SABIN + 
      &                      MYRCN + CAREN + OCIMN
 
-                  ENDIF ! LSVPOA (mpayer, 7/27/11)
+                  ENDIF ! LSVPOA
 
                ELSE  
 
@@ -505,7 +501,7 @@
 
                EMISS_BVOC( I , J , 1 ) =  EMIS   / AREA_CM2 / DTSRCE     
                EMISS_BVOC( I , J , 2 ) =  EMMO   / AREA_CM2 / DTSRCE
-               EMISS_BVOC( I , J , 3 ) =  EMMB   / AREA_CM2 / DTSRCE                 
+               EMISS_BVOC( I , J , 3 ) =  EMMB   / AREA_CM2 / DTSRCE
                EMISS_BVOC( I , J , 4 ) =  APINE  / AREA_CM2 / DTSRCE     
                EMISS_BVOC( I , J , 5 ) =  BPINE  / AREA_CM2 / DTSRCE
                EMISS_BVOC( I , J , 6 ) =  LIMON  / AREA_CM2 / DTSRCE  
@@ -513,12 +509,14 @@
                EMISS_BVOC( I , J , 8 ) =  MYRCN  / AREA_CM2 / DTSRCE
                EMISS_BVOC( I , J , 9 ) =  CAREN  / AREA_CM2 / DTSRCE  
                EMISS_BVOC( I , J , 10) =  OCIMN  / AREA_CM2 / DTSRCE
-               IF ( LSVPOA ) THEN ! (mpayer, 7/27/11)
-               ! SOAupdate: sesquiterpenes, other mtp (hotp, mpayer, 7/27/11)
-               EMISS_BVOC( I , J , 11) =  FARN   / AREA_CM2 / DTSRCE
-               EMISS_BVOC( I , J , 12) =  BCAR   / AREA_CM2 / DTSRCE  
-               EMISS_BVOC( I , J , 13) =  OSQT   / AREA_CM2 / DTSRCE 
-               EMISS_BVOC( I , J , 14) =  OMTP   / AREA_CM2 / DTSRCE
+
+               ! Add sesquiterpenes, other mtp for SOA + semivol POA
+               !  (hotp, mpayer, 7/27/11)
+               IF ( LSVPOA ) THEN
+                  EMISS_BVOC( I , J , 11) =  FARN   / AREA_CM2 / DTSRCE
+                  EMISS_BVOC( I , J , 12) =  BCAR   / AREA_CM2 / DTSRCE  
+                  EMISS_BVOC( I , J , 13) =  OSQT   / AREA_CM2 / DTSRCE 
+                  EMISS_BVOC( I , J , 14) =  OMTP   / AREA_CM2 / DTSRCE
                ENDIF
                
 
@@ -703,6 +701,7 @@
 !  (1 ) Now make ACET tracer #2 and PRPE tracer #3 (bmy, 9/13/01)
 !  (2 ) Now archive ND46 as [atoms C/cm2/s] here (bmy, 9/13/01)
 !  (3 ) Added MBO emission diagnostics [atoms C/cm2/s] (bmy, tmf, 10/20/05)
+!  27 Jul 2011 - M. Payer    - Add sesquiterpenes for SOA + semivol POA (H.Pye)
 !******************************************************************************
 !
                IF ( ND46 > 0 ) THEN
@@ -752,8 +751,9 @@
                ! Ocimene emissions [atoms C/cm2/s] -- tracer #12
               AD46(I,J,13) = AD46(I,J,13) + ( OCIMN / AREA_CM2 / DTSRCE) 
 
-               IF ( LSVPOA ) THEN ! (mpayer, 7/27/11)
-               ! SOAupdate: Sesquiterpenes 14-16 (hotp, mpayer, 7/27/11)
+               ! Add sesquiterpenes for SOA + semivol POA (hotp,mpayer,7/27/11)
+               IF ( LSVPOA ) THEN
+
                ! Farnesene emissions [atoms C/cm2/s] -- tracer #14
                AD46(I,J,14) = AD46(I,J,14) + ( FARN / AREA_CM2 / DTSRCE)
 
@@ -765,6 +765,7 @@
  
                ! Other MTP emissions [atoms C/cm2/s] -- tracer #17
                AD46(I,J,17) = AD46(I,J,17) + ( OMTP / AREA_CM2 / DTSRCE)
+
                ENDIF
 
                ! ++++++++++++++++++++++++++++++++++++++++++++++++++++

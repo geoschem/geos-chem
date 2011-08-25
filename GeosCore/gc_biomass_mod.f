@@ -178,7 +178,7 @@
       PUBLIC :: GC_READ_BIOMASS_CO2
       PUBLIC :: GC_READ_BIOMASS_NH3
       PUBLIC :: GC_READ_BIOMASS_SO2
-      PUBLIC :: TOTAL_BIOMASS_TG    ! SOAupdate (hotp, mpayer, 7/27/11)
+      PUBLIC :: TOTAL_BIOMASS_TG
       !=================================================================
       ! MODULE VARIABLES
       !=================================================================
@@ -1300,7 +1300,7 @@
 !  NOTES:
 !  (1 ) Took the code that reads the emissions from disk from 
 !        BIOMASS_CARB_GEOS in "carbon_mod.f". (bmy, 9/28/06)
-!  (2 ) Add POA1 for SOA + semivolatile POA simulation (hotp, mpayer, 7/27/11)
+!  27 Jul 2011 - M. Payer    - Add POA1 for SOA + semivolatile POA (H. Pye) 
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1314,7 +1314,7 @@
       USE TIME_MOD,             ONLY : ITS_A_LEAPYEAR 
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTBCPO,         IDTOCPO
-      USE TRACERID_MOD,         ONLY : IDTPOA1 ! SOAupdate(hotp,mpayer,7/27/11)
+      USE TRACERID_MOD,         ONLY : IDTPOA1
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"             ! Size parameters
@@ -1340,7 +1340,11 @@
       !=================================================================
 
       ! Make sure BCPO, OCPO tracers are defined
-      ! SOAupdate: Add IDTPOA1 for semivolatile POA (hotp, mpayer, 7/27/11)
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Add POA1 for SOA + semivol POA (hotp, mpayer, 7/27/11)
+!      IF ( IDTBCPO == 0 .and. IDTOCPO == 0 ) THEN
+!-----------------------------------------------------------------------
       IF ( IDTBCPO == 0 .and. IDTOCPO == 0 .and. IDTPOA1 == 0 ) THEN
          BIOMASS_BC = 0d0
          BIOMASS_OC = 0d0
@@ -1460,7 +1464,7 @@
 
             ! Convert [kg C/month] -> [atoms C/cm2/s]
             BIOMASS_BC(I,J) = BIOMASS_BC(I,J) * XNUMOL(IDTBCPO) * CONV
-            ! SOAupdate: add POA option (hotp, mpayer, 7/27/11)
+            ! Add options for OCPO or  POA1 (hotp, mpayer, 7/27/11)
             IF ( IDTOCPO > 0 ) THEN
               BIOMASS_OC(I,J) = BIOMASS_OC(I,J) * XNUMOL(IDTOCPO) * CONV
             ELSEIF ( IDTPOA1 > 0 ) THEN

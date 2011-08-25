@@ -13,7 +13,7 @@ C  Tan          12/02/06 - Creates this file
 C  Guenther A.  08/11/07 - Creates this file again with updates and move
 C                          from v2.0 to v2.02
 C  Havala Pye   07/26/10 - EFs now double precision (replace REAL with
-C                          REAL*8) (part of SOAupdate)
+C                          REAL*8) (part of SOA + semivolatile POA)
 C=======================================================================
 
       INTEGER        N_EF_SPC

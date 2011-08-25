@@ -91,6 +91,7 @@
 #  28 Jan 2010 - C. Carouge  - Modifications for ISORROPIA II
 #  08 Feb 2010 - C. Carouge  - Modifications for F. Paulot's isoprene scheme
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
+#  08 Jul 2011 - M. Payer    - Add dependency for biomass_mod.f
 #EOP
 #------------------------------------------------------------------------------
 #BOC

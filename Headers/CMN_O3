@@ -11,9 +11,7 @@
 ! (3 ) Add anthropgenic emission species: BENZ, TOLU, XYLE, C2H2, C2H4. 
 !      (tmf, 1/7/09)
 ! (4 ) Add EMISS_BVOC for VOC emissions (mpb, ccc, 11/19/09)
-! (5 ) Added sesquiterpenes to EMISS_BVOC. Also added NAP emissions.
-!      (hotp, mpayer, 6/28/11) 
-!
+!  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !
 ! NOTE: Now NEMPARA = max no. of anthropogenic emissions
 !           NEMPARB = max no. of biogenic emissions
@@ -59,8 +57,9 @@
       ! Define common block
       REAL*8 EMISS_BVOC
 !-------------------------------------------------------------------------
-!     COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10) ! Removed--now 14 
-!                                                  (hotp, mpayer, 6/28/11)
+! Prior to 6/28/11:
+! Increase last dimension for SOA + semivol POA (hotp, mpayer, 6/28/11)
+!     COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,10)
 !-------------------------------------------------------------------------
       COMMON /EMIS100/ EMISS_BVOC(IIPAR,JJPAR,14)
 

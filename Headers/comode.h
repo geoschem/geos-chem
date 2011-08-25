@@ -58,8 +58,7 @@
 !  (16) Increase IGAS, MAXGL, MAXGL2, NMRATE, IPHOT (tmf, 3/6/09)
 !  (17) Add RRATE_FOR_KPP variable to DKBLOOP2 common block (phs,ks,dhk, 09/15/09)
 !  (18) PINP(20) increased to PINP(IMISC) (FP 2/10)
-!  (19) Added ILISOPNO3 to /SPECIE4/. Added ILNRO2H and ILNRO2N to /SPECIE5/
-!       for SOA. (hotp, mpayer, 6/28/11)
+!  28 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !
 !******************************************************************************
 !

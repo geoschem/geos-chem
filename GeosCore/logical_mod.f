@@ -58,7 +58,7 @@
 !  18 Dec 2009 - Aaron van D - Added logical for 2 x 2.5 TPCORE BC's 
 !  29 Jan 2009 - F. Paulot   - Added LFERTILIZERNOX.
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
-!  29 Jun 2011 - M. Payer    - Added LSVPOA switch
+!  06 Jul 2011 - M. Payer    - Added LSVPOA for SOA + semivol POA (H. Pye)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,10 +77,10 @@
       LOGICAL :: LSOA            ! Use secondary organic aerosol tracers?
       LOGICAL :: LSSALT          ! Use sea-salt aerosol tracers?
       LOGICAL :: LDICARB         ! Use dicarbonyl chemistry mechanism?
-      LOGICAL :: LSVPOA          ! Use Havala's SOA + semivol POA?
+      LOGICAL :: LSVPOA          ! Use SOA + semivolatile POA? (H. Pye)
 
-      ! for SOA + semivol POA (hotp, mpayer, 7/6/11)
-      ! Need to find better place for these since not logical
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/6/11)
+      ! Find better place for these since not logical?
       REAL*8  :: NAPEMISS        ! Set NAP emissions [Tg/yr]
       REAL*8  :: POAEMISSSCALE   ! Fractional scaling, recommend value: 1.27
 

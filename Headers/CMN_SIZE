@@ -392,10 +392,9 @@
       INTEGER, PARAMETER :: NNPAR   = 320   ! For TOMAS (win, bmy, 1/25/10)
 #else
       ! increase NNPAR to 100 (FP 8/2009)
-      ! Restore NNPAR to 100 for SOA (hotp, mpayer, 6/28/11)
 !-----------------------------------------------------------------------
-!     Prior to 6/28/11:
-!     Increased NNPAR from 75 to 100 for SOA (mpayer, 6/28/11)
+! Prior to 6/28/11:
+! Increase NNPAR to 100 for SOA + semivol POA (hotp, mpayer, 6/28/11)
 !      INTEGER, PARAMETER :: NNPAR   = 75    ! for non-TOMAS simulations
 !-----------------------------------------------------------------------
       INTEGER, PARAMETER :: NNPAR   = 100   ! For non-TOMAS with SOA
@@ -543,6 +542,7 @@
 !  25 Jan 2010 - R. Yantosca - Define TOMASBIN and TOMASSPEC for TOMAS sims
 !  08 Feb 2010 - F. Paulot   - Increase NNPAR, NEMPARA and NEMPARB
 !  08 Feb 2010 - F. Paulot   - Move MAXMEM and MAXPL from diag_pl_mod.
-!  28 Jun 2011 - M. Payer    - Increase NNPAR, NBIOMAX for SOA  
-!EOP
+!  28 Jun 2011 - M. Payer    - Increase NNPAR & NBIOMAX for SOA + semivolatile
+!                              POA (H. Pye)   
+!eop
 !------------------------------------------------------------------------------

@@ -154,8 +154,7 @@
 !  (36) Now remove obsolete embedded chemistry stuff.  Modify arg list to
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
 !  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
-!  27 Jul 2011 - M. Payer    -  Add check for ILISOPNO3 as part of hotp's SOA +
-!                                semivolatile POA updates
+!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -343,9 +342,9 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
 
-         !---------------------------------
-         ! SOAupdate: Check ILISOPNO3 for SOA (hotp, mpayer, 7/27/11)
-         !---------------------------------
+         !--------------------------------------------------------------
+         ! Check ILISOPNO3 for SOA + semivol POA (hotp, mpayer, 7/27/11)
+         !--------------------------------------------------------------
          IF ( LSOA .and. ILISOPNO3 == 0 ) THEN
             CALL ERROR_STOP( 'IDLISOPNO3 needs to be defined for SOA!',
      &                       'chemdr.f' )

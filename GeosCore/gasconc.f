@@ -31,8 +31,7 @@
 !       the READ_CSPEC value. (hotp, 2/26/09)
 !  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
 !       (dkh, 03/12/10)
-!  27 Jul 2011 - M. Payer    -  Zero out ILISOPNO3, ILNRO2H, ILNRO2N as part of
-!                                hotp's SOA + semivolatile POA updates
+!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -328,7 +327,7 @@ C
 C
 C *********************************************************************
 C *         ZERO OUT ISOPRENE-NO3 OXIDATION COUNTER SPECIES
-C *               SOAupdate (hotp, mpayer, 7/27/11)  
+C *                   (hotp, mpayer, 7/27/11)  
 C *********************************************************************
 C LISOPNO3  = Dummy species for tracking loss of isoprene due to rxn w/ NO3
 C ILISOPNO3 = Location of LISOPNO3 in CSPEC (tracerid_mod.f)
@@ -349,14 +348,14 @@ C LTRO2H  Counter for oxidation of TRO2 by HO2
 C LTRO2N  Counter for oxidation of TRO2 by NO
 C LXRO2H  Counter for oxidation of XRO2 by HO2
 C LXRO2N  Counter for oxidation of XRO2 by NO
-C ILBRO2H Location of LBRO2H in CSPEC
-C ILBRO2N Location of LBRO2N in CSPEC
-C ILTRO2H Location of LTRO2H in CSPEC
-C ILTRO2N Location of LTRO2N in CSPEC
-C ILXRO2H Location of LXRO2H in CSPEC
-C ILXRO2N Location of LXRO2N in CSPEC
-C ILLNRO2H Location of LNRO2H in CSPEC ! SOAupdate (hotp, mpayer, 7/27/11)
-C ILLNRO2N Location of LNRO2N in CSPEC ! SOAupdate (hotp, mpayer, 7/27/11)
+C ILBRO2H  Location of LBRO2H in CSPEC
+C ILBRO2N  Location of LBRO2N in CSPEC
+C ILTRO2H  Location of LTRO2H in CSPEC
+C ILTRO2N  Location of LTRO2N in CSPEC
+C ILXRO2H  Location of LXRO2H in CSPEC
+C ILXRO2N  Location of LXRO2N in CSPEC
+C ILLNRO2H Location of LNRO2H in CSPEC ! (hotp, mpayer, 7/27/11)
+C ILLNRO2N Location of LNRO2N in CSPEC ! (hotp, mpayer, 7/27/11)
 
       ! Check if we have 2dy organic aerosols
       IF ( LSOA ) THEN
@@ -379,14 +378,13 @@ C ILLNRO2N Location of LNRO2N in CSPEC ! SOAupdate (hotp, mpayer, 7/27/11)
                CSPEC(JLOOP,ILXRO2N) = 0d0
             ENDDO
 
-            ! SOAupdate: allow NAP to be present or not in reactions
-            ! (hotp, mpayer, 7/27/11)
+            ! Allow NAP to be present or not in reactions (hotp,mpayer,7/27/11)
             IF ( ILNRO2H > 0 .and.
-     &           ILNRO2N > 0 ) THEN
+     &           ILNRO2N > 0  ) THEN
                DO JLOOP      = 1, NTLOOP
-               ! add NAP species
-               CSPEC(JLOOP,ILNRO2H) = 0d0
-               CSPEC(JLOOP,ILNRO2N) = 0d0
+                  ! Add NAP species
+                  CSPEC(JLOOP,ILNRO2H) = 0d0
+                  CSPEC(JLOOP,ILNRO2N) = 0d0
                ENDDO
             ENDIF
 

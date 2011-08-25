@@ -50,7 +50,7 @@
       USE BENCHMARK_MOD,     ONLY : STDRUN
       ! (hotp 5/24/09) Modified for SOA from aroms
       !USE CARBON_MOD,        ONLY : WRITE_GPROD_APROD
-      USE CARBON_MOD,        ONLY : INIT_CARBON ! (mpayer, 8/10/11)
+      USE CARBON_MOD,        ONLY : INIT_CARBON
       USE CHEMISTRY_MOD,     ONLY : DO_CHEMISTRY
       USE CONVECTION_MOD,    ONLY : DO_CONVECTION
       USE COMODE_MOD,        ONLY : INIT_COMODE
@@ -104,6 +104,7 @@
       USE LOGICAL_MOD,       ONLY : LWETD,     LTURB, LDRYD,   LMEGAN  
       USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LSOA,  LVARTROP,LKPP
       USE LOGICAL_MOD,       ONLY : LLINOZ,    LWINDO
+      USE LOGICAL_MOD,       ONLY : LSVPOA
       USE MEGAN_MOD,         ONLY : INIT_MEGAN
       USE MEGAN_MOD,         ONLY : UPDATE_T_15_AVG
       USE MEGAN_MOD,         ONLY : UPDATE_T_DAY
@@ -170,7 +171,6 @@
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
       USE LINOZ_MOD,         ONLY : LINOZ_READ
-      USE LOGICAL_MOD,       ONLY : LSVPOA ! (mpayer, 7/27/11)
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -421,7 +421,7 @@
       ! add support for making restart files of APROD and GPROD (dkh, 11/09/06)  
       IF ( LSOA ) THEN
 
-         ! APROD GPROD not used for SOA + semivol POA (hotp, mpayer, 7/27/11)
+         ! APROD GPROD not used in SOA + semivol POA (hotp, mpayer, 7/27/11)
          IF ( .NOT. LSVPOA ) THEN
 
             !! use this to make initial soaprod files  
@@ -432,9 +432,8 @@
             !!
 
             ! Need to initialize CARBON_MOD variables referenced in SOAPROD_MOD
-            ! These were previously parameters, but were made allocatable to 
-            ! account for differences between traditional SOA and SOA + semivol
-            ! POA simulations (mpayer, 8/10/11)
+            ! that were previously parameters, but were made allocatable for 
+            ! SOA + semivolatile POA (mpayer, 8/10/11)
             CALL INIT_CARBON
 
             CALL SET_SOAPROD
@@ -536,7 +535,7 @@
 !               ENDIF
 
                IF ( LSOA .and. LCHEM ) THEN
-                  ! APROD GPROD not used for SOA + semivol POA
+                  ! APROD GPROD not used in SOA + semivolatile POA
                   ! (hotp, mpayer, 7/27/11)
                   IF ( .NOT. LSVPOA ) THEN
                      CALL MAKE_SOAPROD_FILE( GET_NYMD(), GET_NHMS() )

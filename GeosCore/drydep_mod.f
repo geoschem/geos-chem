@@ -163,8 +163,8 @@
 !  (29) Add aromatics SOA (dkh)
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
-!  (31) Increase MAXDEP to 100 for Havala's SOA + semivol POA simulation
-!       (mpayer, 7/1/11)
+!  01 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
+
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -200,9 +200,9 @@
 
       ! Parameters
 !-----------------------------------------------------------------------
-!Prior to 7/1/11:
+! Prior to 7/1/11:
+! Increase MAXDEP to 100 for SOA + semivol POA (jje, mpayer, 7/1/11)
 !      INTEGER, PARAMETER   :: MAXDEP    = 50
-!Increase MAXDEP to 100 (jje, mpayer, 7/1/11)
 !-----------------------------------------------------------------------
       INTEGER, PARAMETER   :: MAXDEP    = 100
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
@@ -3325,7 +3325,7 @@ C** Load array DVEL
 !  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
 !  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
 !        (bmy, 10/19/09)
-!  (16) Add new SOA + semivolatile POA tracers (mpayer, 7/1/11)
+!  01 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3347,35 +3347,33 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTSOG1,   IDTSOG2,       IDTSOG3 
       USE TRACERID_MOD, ONLY : IDTSOG4,   IDTSOA1,       IDTSOA2       
       USE TRACERID_MOD, ONLY : IDTSOA3,   IDTSOA4
-      ! (hotp 5/25/09)
       USE TRACERID_MOD, ONLY : IDTSOA5,   IDTSOG5
-      ! add SOA + semivol POA tracers (hotp, mpayer, 7/1/11)
-      USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
-      USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
-      USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
-      USE TRACERID_MOD, ONLY : IDTTSOG1, IDTTSOG2, IDTTSOG3
-      USE TRACERID_MOD, ONLY : IDTTSOA0, IDTTSOG0
-      USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
-      USE TRACERID_MOD, ONLY : IDTISOG1, IDTISOG2, IDTISOG3
-      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
-      USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
       USE TRACERID_MOD, ONLY : IDTDST1
-      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,       IDTDST4
-      USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,       Id_Hg2
+      USE TRACERID_MOD, ONLY : IDTDST2,   IDTDST3,  IDTDST4
+      USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC,  Id_Hg2
       USE TRACERID_MOD, ONLY : ID_HgP,    ID_Hg_tot
       USE TRACERID_MOD, ONLY : IDTH2,     IDTHD
       USE TRACERID_MOD, ONLY : IDTGLYX,   IDTMGLY
       USE TRACERID_MOD, ONLY : IDTSOAG,   IDTSOAM
       USE TRACERID_MOD, ONLY : IDTGLYC
-      USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
-      USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
-      !add some species (fp, 6/2009)
+      USE TRACERID_MOD, ONLY : IDTAPAN,   IDTENPAN, IDTGLPAN
+      USE TRACERID_MOD, ONLY : IDTGPAN,   IDTMPAN,  IDTNIPAN
       USE TRACERID_MOD, ONLY : IDTPROPNN
       USE TRACERID_MOD, ONLY : IDTISOPN    
       USE TRACERID_MOD, ONLY : IDTMMN
-      USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
+      USE TRACERID_MOD, ONLY : IDTRIP,    IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/1/11)
+      USE TRACERID_MOD, ONLY : IDTMTPA,   IDTMTPO
+      USE TRACERID_MOD, ONLY : IDTTSOA1,  IDTTSOA2, IDTTSOA3
+      USE TRACERID_MOD, ONLY : IDTTSOG1,  IDTTSOG2, IDTTSOG3
+      USE TRACERID_MOD, ONLY : IDTTSOA0,  IDTTSOG0
+      USE TRACERID_MOD, ONLY : IDTISOA1,  IDTISOA2, IDTISOA3
+      USE TRACERID_MOD, ONLY : IDTISOG1,  IDTISOG2, IDTISOG3
+      USE TRACERID_MOD, ONLY : IDTASOAN,  IDTASOA1, IDTASOA2, IDTASOA3
+      USE TRACERID_MOD, ONLY : IDTASOG1,  IDTASOG2, IDTASOG3
+      USE TRACERID_MOD, ONLY : IDTPOA1,   IDTPOA2,  IDTPOG1,  IDTPOG2
+      USE TRACERID_MOD, ONLY : IDTOPOA1,  IDTOPOA2, IDTOPOG1, IDTOPOG2
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -4136,7 +4134,8 @@ C** Load array DVEL
             XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! MTPA (hotp, mpayer, 7/1/11)
+         ! For SOA + semivol POA (hotp, mpayer, 7/1/11)
+         ! MTPA
          ELSE IF ( N == IDTMTPA ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMTPA
@@ -4147,7 +4146,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 136.23d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! MTOP (hotp, mpayer, 7/1/11)
+         ! MTPO
          ELSE IF ( N == IDTMTPO ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTMTPO
@@ -4158,7 +4157,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 136d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! ASOAN (hotp, mpayer, 7/1/11)
+         ! ASOAN
          ELSE IF ( N == IDTASOAN ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTASOAN
@@ -4169,7 +4168,141 @@ C** Load array DVEL
             XMW(NUMDEP)     = 150d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! ASOA1-3 (hotp, mpayer, 7/1/11)
+         ! TSOA0-3
+         ELSE IF ( N == IDTTSOA0 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOA0
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOA0'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+         ELSE IF ( N == IDTTSOA1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOA1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOA1'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+         ELSE IF ( N == IDTTSOA2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOA2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOA2'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+         ELSE IF ( N == IDTTSOA3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOA3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOA3'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! TSOG0-3
+         ELSE IF ( N == IDTTSOG0 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOG0
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOG0'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         ELSE IF ( N == IDTTSOG1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOG1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOG1'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         ELSE IF ( N == IDTTSOG2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOG2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOG2'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         ELSE IF ( N == IDTTSOG3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTTSOG3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'TSOG3'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ISOA1-3
+         ELSE IF ( N == IDTISOA1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOA1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOA1'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+         ELSE IF ( N == IDTISOA2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOA2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOA2'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+         ELSE IF ( N == IDTISOA3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOA3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOA3'
+            HSTAR(NUMDEP)   = 0d0
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .TRUE.
+
+         ! ISOG1-3
+         ELSE IF ( N == IDTISOG1 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOG1
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOG1'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         ELSE IF ( N == IDTISOG2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOG2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOG2'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         ELSE IF ( N == IDTISOG3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTISOG3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'ISOG3'
+            HSTAR(NUMDEP)   = 1d5
+            F0(NUMDEP)      = 0d0
+            XMW(NUMDEP)     = 150d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! ASOA1-3
          ELSE IF ( N == IDTASOA1 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTASOA1
@@ -4227,141 +4360,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 150d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! TSOA0-3 (hotp, mpayer, 7/1/11)
-         ELSE IF ( N == IDTTSOA0 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOA0
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOA0'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-         ELSE IF ( N == IDTTSOA1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOA1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOA1'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-         ELSE IF ( N == IDTTSOA2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOA2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOA2'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-         ELSE IF ( N == IDTTSOA3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOA3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOA3'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! TSOG0-3 (hotp, mpayer, 7/1/11)
-         ELSE IF ( N == IDTTSOG0 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOG0
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOG0'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-         ELSE IF ( N == IDTTSOG1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOG1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOG1'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-         ELSE IF ( N == IDTTSOG2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOG2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOG2'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-         ELSE IF ( N == IDTTSOG3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTTSOG3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'TSOG3'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! ISOA1-3 (hotp, mpayer, 7/1/11)
-         ELSE IF ( N == IDTISOA1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOA1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOA1'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-         ELSE IF ( N == IDTISOA2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOA2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOA2'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-         ELSE IF ( N == IDTISOA3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOA3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOA3'
-            HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .TRUE.
-
-         ! ISOG1-3 (hotp, mpayer, 7/1/11)
-         ELSE IF ( N == IDTISOG1 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOG1
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOG1'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-         ELSE IF ( N == IDTISOG2 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOG2
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOG2'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-         ELSE IF ( N == IDTISOG3 ) THEN
-            NUMDEP          = NUMDEP + 1
-            NTRAIND(NUMDEP) = IDTISOG3
-            NDVZIND(NUMDEP) = NUMDEP
-            DEPNAME(NUMDEP) = 'ISOG3'
-            HSTAR(NUMDEP)   = 1d5
-            F0(NUMDEP)      = 0d0
-            XMW(NUMDEP)     = 150d-3
-            AIROSOL(NUMDEP) = .FALSE.
-
-         ! POA1-2 (hotp, mpayer, 7/1/11)
+         ! POA1-2
          ELSE IF ( N == IDTPOA1 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTPOA1
@@ -4381,13 +4380,13 @@ C** Load array DVEL
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! POG1-2 (hotp, mpayer, 7/1/11)
+         ! POG1-2
          ELSE IF ( N == IDTPOG1 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTPOG1
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'POG1'
-            HSTAR(NUMDEP)   = 9.5d0 ! make POG hydrophobic (hotp 9/24/09)
+            HSTAR(NUMDEP)   = 9.5d0 ! make POG hydrophobic (hotp)
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .FALSE.
@@ -4401,7 +4400,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .FALSE.
 
-         ! OPOA1-2 (hotp, mpayer, 7/1/11)
+         ! OPOA1-2
          ELSE IF ( N == IDTOPOA1 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTOPOA1
@@ -4421,7 +4420,7 @@ C** Load array DVEL
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .TRUE.
 
-         ! OPOG1-2 (hotp, mpayer, 7/1/11)
+         ! OPOG1-2
          ELSE IF ( N == IDTOPOG1 ) THEN
             NUMDEP          = NUMDEP + 1
             NTRAIND(NUMDEP) = IDTOPOG1
@@ -4440,6 +4439,7 @@ C** Load array DVEL
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 12d-3
             AIROSOL(NUMDEP) = .FALSE.
+         ! End SOA + semivol POA
 
          !----------------------------------
          ! Dust aerosol tracers
@@ -4605,11 +4605,11 @@ C** Load array DVEL
          WRITE( 6, 100 ) N, TRIM( DEPNAME(N) ), NTRAIND(N), NDVZIND(N), 
      &                   HSTAR(N),  F0(N),      XMW(N),     AIROSOL(N)
       ENDDO
-!-----------------------------------------------------------------------------
+!-----------------------------------------------------------------------
 ! Prior to 7/1/11:
 ! Changed format so we can see full name (hotp, mpayer, 7/1/11)
 ! 100  FORMAT( i3, 3x, a4, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
-!------------------------------------------------------------------------------
+!-----------------------------------------------------------------------
  100  FORMAT( i3, 2x, a5, 2(3x,i3), 4x, es8.1, 2(3x,f6.3), 3x, L3 )
 
       ! Return to calling program

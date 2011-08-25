@@ -139,8 +139,7 @@
 !  (30) Corrected typos in CHECK_TIME_STEPS (bmy, 8/21/09)
 !  (31) Now read LLINOZ in READ_SIMULATION_MENU (dbm, bmy, 10/16/09)
 !  (32) Remove reference to obsolete embedded chemistry stuff (bmy, 2/25/10)
-!  (33) Updates for SOA+semivol POA in READ_AEROSOL_MENU and INIT_INPUT 
-!       (hotp, mpayer, 7/15/11)
+!  15 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -1033,8 +1032,7 @@
 !  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
 !  (7 ) Add LDICARB switch to cancel SOG condensation onto OC aerosols.
 !      (ccc, tmf, 3/10/09)
-!  (8 ) Update for SOA+semivolatile POA option and add LSVPOA switch
-!       (hotp, mpayer, 7/15/11)
+!  15 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1055,17 +1053,17 @@
       USE TRACERID_MOD, ONLY : IDTDST1,  IDTDST2,  IDTDST3, IDTDST4
       USE TRACERID_MOD, ONLY : IDTSALA,  IDTSALC 
       USE TRACERID_MOD, ONLY : IDTSOAG,  IDTSOAM,  IDTSOA5
-      ! SOAupdate: add new SOA + semivol POA tracers (hotp, mpayer, 7/15/11)
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,  IDTMTPO
       USE TRACERID_MOD, ONLY : IDTBENZ,  IDTTOLU,  IDTXYLE
       USE TRACERID_MOD, ONLY : IDTTSOA1, IDTTSOA2, IDTTSOA3
       USE TRACERID_MOD, ONLY : IDTISOA1, IDTISOA2, IDTISOA3
       USE TRACERID_MOD, ONLY : IDTASOA1, IDTASOA2, IDTASOA3, IDTASOAN
-      USE TRACERID_MOD, ONLY : IDTPOA1, IDTPOA2, IDTPOG1, IDTPOG2
+      USE TRACERID_MOD, ONLY : IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2
       USE TRACERID_MOD, ONLY : IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
       USE TRACERID_MOD, ONLY : IDTNAP
-      USE LOGICAL_MOD, ONLY  : NAPEMISS, POAEMISSSCALE
-      USE LOGICAL_MOD, ONLY  : LSVPOA
+      USE LOGICAL_MOD,  ONLY : NAPEMISS, POAEMISSSCALE
+      USE LOGICAL_MOD,  ONLY : LSVPOA
 
       ! Local variables
       INTEGER            :: N, T, I
@@ -1129,19 +1127,25 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:10' )
       READ( SUBSTRS(1:N), * ) LDICARB
 
-      ! SOAupdate: Use SOA + semivol POA option? (hotp, mpayer, 7/15/11)
+!-----------------------------------------------------------------------
+! Prior to 7/15/11:
+! Add lines for SOA + semivolatile POA options (hotp, mpayer, 7/15/11)
+!      ! Separator line
+!      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
+!-----------------------------------------------------------------------
+      ! Use SOA + semivolatile POA option? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:11' )
       READ( SUBSTRS(1:N), * ) LSVPOA
 
-      ! SOAupdate: Add NAP/IVOC surrogate emissions (hotp, mpayer, 7/15/11)
+      ! Naphthanele (IVOC surrogate) emissions [Tg/yr]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:12' )
       READ( SUBSTRS(1:N), * ) NAPEMISS
 
-      ! SOAupdate: POA emission scale (hotp, mpayer, 7/15/11)
+      ! POA emission scale
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:13' )
       READ( SUBSTRS(1:N), * ) POAEMISSSCALE
 
-      ! Separator line  ! changed number (hotp, mpayer, 7/15/11)
+      ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_aerosol_menu:14' )
 
       !=================================================================
@@ -1239,7 +1243,10 @@
       !---------------------------------
       ! Error check CARBON AEROSOLS
       !---------------------------------
-      ! add IDTPOA1 (hotp, mpayer, 7/15/11)
+!-----------------------------------------------------------------------
+! Prior to 7/15/11:
+!      I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI
+!-----------------------------------------------------------------------
       I = IDTBCPO + IDTBCPI + IDTOCPO + IDTOCPI + IDTPOA1
 
       IF ( LCARB ) THEN
@@ -1276,11 +1283,12 @@
       ! Options for organic aerosol tracers:
       ! IF LSOA = F: only OCPI and OCPO
       ! IF LSOA = T:
-      !   OCPI OCPO SOA (non-vol + original traditional)
-      !   POA POG OPOA OPOG SOA BTX NAP (semivol + orig trad + IVOC )
+      !   Traditional SOA  : OCPI OCPO SOA
+      !                      (non-vol POA + original SOA)
+      !   SOA + semivol POA: POA  POG  OPOA  OPOG  SOA  BTX  NAP
+      !                      (semivol POA + updated SOA + aromatics/IVOC )
       ! NAP emissions are set in input.geos
-      ! LSVPOA is just a check (doesn't do anything hotp 7/21/10)
-      I = IDTPOA1 + IDTPOA2 + IDTPOG1 + IDTPOG2 + 
+      I = IDTPOA1  + IDTPOA2  + IDTPOG1  + IDTPOG2  + 
      &    IDTOPOA1 + IDTOPOA2 + IDTOPOG1 + IDTOPOG2
       IF ( LSVPOA ) THEN
          IF ( I < 8 ) THEN
@@ -1297,16 +1305,18 @@
       ! Error check 2dy ORG AEROSOLS
       !---------------------------------
 
-      ! Define I based on LSVPOA or traditional SOA (mpayer, 7/15/11)
+      ! Define I based on using SOA + semivolatile POA or traditional
+      ! SOA simulation (hotp, mpayer, 7/15/11)
       IF ( LSVPOA ) THEN
+         !%%% SOA + semivolatile POA %%%
          I = IDTMTPA  + IDTLIMO  + IDTMTPO  + 
      &       IDTBENZ  + IDTTOLU  + IDTXYLE  +
      &       IDTTSOA1 + IDTTSOA2 + IDTTSOA3 +
      &       IDTISOA1 + IDTISOA2 + IDTISOA3 +
      &       IDTASOA1 + IDTASOA2 + IDTASOA3 + IDTASOAN +
-     &       IDTSOAG +  IDTSOAM
+     &       IDTSOAG  + IDTSOAM
       ELSE
-         ! Add SOA5 in the check. (ccc, 2/4/10)
+         !%%% Traditional SOA %%%
          I = IDTALPH + IDTLIMO + IDTALCO + 
      &       IDTSOG1 + IDTSOG2 + IDTSOG3 + IDTSOG4 + 
      &       IDTSOA1 + IDTSOA2 + IDTSOA3 + IDTSOA4 + 
@@ -1375,17 +1385,14 @@
      &                     SALA_REDGE_um(1), SALA_REDGE_um(2)
       WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                     SALC_REDGE_um(1), SALC_REDGE_um(2)
-      ! print dicarb info (hotp, mpayer, 7/15/11)
       WRITE( 6, 100     ) 'Online dicarb. chem.?       : ', LDICARB
-      ! SOAupdate: add NAPEMISS and LSVPOA (hotp, mpayer, 7/15/11)
       WRITE( 6, 100     ) 'SOA + Semivolatile POA?     : ', LSVPOA
-      WRITE( 6, 105     ) 'Annual NAP emiss (TgC/yr)   : ', NAPEMISS
-      WRITE( 6, 105     ) 'POA emission scale (dimless): ', 
+      WRITE( 6, 105     ) 'Annual NAP emiss [TgC/yr]   : ', NAPEMISS
+      WRITE( 6, 105     ) 'POA emission scale [dimless]: ', 
      &                                                  POAEMISSSCALE
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
- ! SOAupdate: add format to show addt'l digits (hotp, mpayer, 7/15/11)
  105  FORMAT( A, f32.16   )
 
       ! Return to calling program
@@ -5117,7 +5124,7 @@
 !  19 Nov 2009 - C. Carouge  - Initialize LMODISLAI and LPECCA
 !  01 Dec 2009 - C. Carouge  - Initialize LNEI05 
 !  15 Jul 2011 - M. Payer    - Initialize LSVPOA, NAPEMISS, POAEMISSSCALE
-!                              for Havala's SOA + semivol POA simulation
+!                              for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -5152,9 +5159,10 @@
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
       USE LOGICAL_MOD,   ONLY : LLINOZ
-      USE LOGICAL_MOD,   ONLY : LMODISLAI, LPECCA
-      ! SOAupdate: for SOA + semivol POA (hotp, mpayer, 7/15/11)
-      USE LOGICAL_MOD,   ONLY : POAEMISSSCALE, NAPEMISS, LSVPOA
+      ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
+      USE LOGICAL_MOD,   ONLY : LMODISLAI,  LPECCA
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/15/11)
+      USE LOGICAL_MOD,   ONLY : LSVPOA,     NAPEMISS,   POAEMISSSCALE
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -5235,21 +5243,18 @@
       LWAIT        = .FALSE.
       LTURB        = .FALSE.
       LSVGLB       = .FALSE.
-      ! >> (dkh, 02/12/09) 
       LSVCSPEC     = .FALSE.
-      ! << 
       LSPLIT       = .FALSE.
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
       LLINOZ       = .FALSE.
-      ! SOAupdate: for SOA + semivol POA (hotp, mpayer, 7/15/11)
-      LSVPOA       = .FALSE.
-      POAEMISSSCALE = 0d0
-      NAPEMISS      = 0d0
-
-      ! Add flags for MODIS LAI & the PCEEA model (mpb,2009)
       LMODISLAI    = .FALSE.
       LPECCA       = .FALSE.
+      LSVPOA       = .FALSE.
+
+      ! Initialize for SOA + semivol POA (hotp, mpayer, 7/15/11)
+      POAEMISSSCALE= 0d0
+      NAPEMISS     = 0d0
 
       ! Initialize counters
       CT1          = 0

@@ -86,8 +86,8 @@
 !  (20) Added 9 gaseous biofuel emissions: GLYX, MGLY, BENZ, 
 !        TOLU, XYLE, C2H4, C2H2, GLYC, HAC. (tmf, 1/7/09)
 !  (21) Emissions for these 9 tracers are scaled from CO emissions. (tmf, 1/7/09)
-!  (22) Updated for Havala's SOA + semivol POA code. Added for gas phase NAP
-!       chemistry and NAP biofuel emissions. (mpayer, 7/6/11)
+!  06 Jul 2011 - M. Payer    - Add gas-phase NAP chemistry & biofuel emissions
+!                              for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -116,11 +116,11 @@
       ! MODULE VARIABLES
       !=================================================================
 
-      !-----------------------------------------------------------------
-      ! Prior to 7/6/11:
-      ! Increase NMFMAX from 19 to 20 for NAP (hotp, mpayer, 7/6/11)
-      ! INTEGER, PARAMETER  :: NBFMAX = 19
-      !-----------------------------------------------------------------
+!-----------------------------------------------------------------------
+! Prior to 7/6/11:
+! Increase NMFMAX to 20 for NAP (hotp, mpayer, 7/6/11)
+!      INTEGER, PARAMETER  :: NBFMAX = 19
+!-----------------------------------------------------------------------
       INTEGER, PARAMETER  :: NBFMAX = 20
 
       INTEGER             :: NBFTRACE
@@ -203,7 +203,7 @@
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
 !        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
 !  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
-!  (25) Add IDTNAP, NAMEMISS, and IDBFNAP (hotp, mpayer, 7/6/11)
+!  06 Jul 2011 - M. Payer    - Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -229,7 +229,7 @@
       USE TRACERID_MOD,         ONLY : IDBFBENZ,IDBFTOLU,IDBFXYLE
       USE TRACERID_MOD,         ONLY : IDBFGLYX,IDBFMGLY,IDBFC2H4
       USE TRACERID_MOD,         ONLY : IDBFC2H2,IDBFGLYC,IDBFHAC
-      ! for gas phase NAP chemistry, NAP biofuel emiss (hotp, mpayer, 7/6/11)
+      ! For gas-phase NAP chemistry and emissions (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD,         ONLY : IDTNAP
       USE TRACER_MOD,           ONLY : ITS_A_FULLCHEM_SIM 
       USE TRACER_MOD,           ONLY : ITS_A_TAGCO_SIM
@@ -259,7 +259,7 @@
 
       REAL*8                        :: BF_CO( IIPAR, JJPAR )  ! Biofuel emission of CO [molec/cm2/s]
       
-      ! Scale up NAP emiss (hotp, mpayer, 7/6/11)
+      ! Scale up NAP emissions (hotp, mpayer, 7/6/11)
       REAL*8, PARAMETER             :: NAPTOTALSCALE = 66.09027d0
 
       !=================================================================
@@ -296,17 +296,16 @@
          !      C3H8      8          19        [kg C   /box/year]
          !      CH2O      9          20        [kg CH2O/box/year]
          !      C2H6      10         21        [kg C   /box/year]
-         !      GLYX                           [kg     /box/year]
-         !      MGLY                           [kg     /box/year]
-         !      BENZ                           [kg C   /box/year]
-         !      TOLU                           [kg C   /box/year]
-         !      XYLE                           [kg C   /box/year]
-         !      C2H4                           [kg C   /box/year]
-         !      C2H2                           [kg C   /box/year]
-         !      GLYC                           [kg     /box/year]
-         !      HAC                            [kg     /box/year]
-         !      ! (hotp, mpayer, 7/6/11)
-         !      NAP                            [kg C   /box/year]
+         !      GLYX      11                   [kg     /box/year]
+         !      MGLY      12                   [kg     /box/year]
+         !      BENZ      13                   [kg C   /box/year]
+         !      TOLU      14                   [kg C   /box/year]
+         !      XYLE      15                   [kg C   /box/year]
+         !      C2H4      16                   [kg C   /box/year]
+         !      C2H2      17                   [kg C   /box/year]
+         !      GLYC      18                   [kg     /box/year]
+         !      HAC       19                   [kg     /box/year]
+         !      NAP       20                   [kg C   /box/year]
          !
          ! These emissions are converted to [molec/cm3/s] (or 
          ! [molec C/cm3/s] for hydrocarbons), since the chemistry
@@ -767,11 +766,12 @@
             ELSE IF ( NN == IDTNAP ) THEN
 
                !----------------
-               ! Biofuel NAP (hotp, mpayer, 7/6/11)
+               ! Biofuel NAP
+               ! (hotp, mpayer, 7/6/11)
                !----------------
 
-               ! Scale down CO to account for VOC oxidation
-               COSCALEDOWN = 1d0   ! default value
+               ! Scale down CO to account for VOC oxidation (default value)
+               COSCALEDOWN = 1d0
 
                ! Scale based on simulation type
                IF ( ITS_A_FULLCHEM_SIM() ) THEN
@@ -781,8 +781,8 @@
                ENDIF
 
                ! Emmision ratio NAP/CO = 0.0701d-3 [mole/mole]
-               ! NAP emiss =  0.025 g NAP/kg DM (Table 4, Hays et al, 2002)
-               ! CO  emiss =     78 g CO /kg DM (Table 1,Andreae & Merlet,2001)
+               ! NAP emiss = 0.025 g NAP/kg DM (Table 4, Hays et al, 2002)
+               ! CO  emiss =    78 g CO /kg DM (Table 1, Andreae & Merlet,2001)
                ! Scale emissions down if appropriate using COSCALEDOWN
                BIOFUEL_KG(N,:,:) = BIOFUEL_KG(IDBFCO,:,:) * 0.0701d-3 
      &                             * 120d0 / 28d0 * COSCALEDOWN ! [kg C/box/yr]
@@ -878,11 +878,15 @@
                   ! We do not have EPA/NEI biofuel emission.  
                   ! Use default emission for the newly added species. 
                   ! (tmf, 1/8/08) 
-                  ! Add NAP (hotp, mpayer, 7/6/11)
                   IF ( (NN /= IDTGLYX) .and. (NN /= IDTMGLY) .and. 
      &                 (NN /= IDTBENZ) .and. (NN /= IDTTOLU) .and.
      &                 (NN /= IDTXYLE) .and. (NN /= IDTC2H4) .and.
-     &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.             
+     &                 (NN /= IDTC2H2) .and. (NN /= IDTGLYC) .and.
+!-----------------------------------------------------------------------
+! Prior to 7/6/11:
+! Add NAP for SOA + semivolatile POA (hotp, mpayer, 7/6/11)
+!     &                 (NN /= IDTHAC ) ) THEN
+!-----------------------------------------------------------------------
      &                 (NN /= IDTHAC ) .and. (NN /= IDTNAP ) ) THEN
 
                      ! Get EPA/NEI biofuel [molec/cm2/s or atoms C/cm2/s]
@@ -1239,7 +1243,7 @@
 !
 !  NOTES:
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (2 ) Add IDTNAP, IDBFNAP (mpayer, 7/6/11)
+!  06 Jul 2011 - M. Payer    - Add NAP for SOA + semivolatile POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1255,7 +1259,6 @@
       USE TRACERID_MOD, ONLY : IDTGLYX,  IDTMGLY,  IDTBENZ,  IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE,  IDTC2H4,  IDTC2H2,  IDTGLYC
       USE TRACERID_MOD, ONLY : IDTHAC
-      ! for gas phase NAP chemistry, NAP biofuel emiss (hotp, mpayer, 7/6/11)
       USE TRACERID_MOD, ONLY : IDTNAP
       USE TRACERID_MOD, ONLY : IDBFNAP
 

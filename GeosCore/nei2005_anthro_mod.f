@@ -379,8 +379,8 @@
 ! !REVISION HISTORY: 
 !    7 Oct 2009 - A. van Donkelaar - initial version
 !   20 Oct 2009 - P. Le Sager - added VOC, account for mask to get better total
-!    1 Aug 2011 - M. Payer    - Re-define SPECIES_ID for LSVPOA option, which
-!                               renames OCPI to POA1
+!    1 Aug 2011 - M. Payer    - Re-define SPECIES_ID for SOA + semivol POA,
+!                               which renames OCPI to POA1
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -426,9 +426,10 @@
       SNAME = 'GEOS3'
 #endif
 
+      ! list of ID of available species
       IF ( LSVPOA ) THEN
 
-         ! list of ID of available species: SOA + semivolatile POA
+         !%%% SOA + semivolatile POA %%%
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
@@ -436,7 +437,7 @@
 
       ELSE
 
-         ! list of ID of available species: Standard chemistry
+         !%%% Standard chemistry %%%
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
@@ -555,8 +556,11 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
-         !ELSEIF ( SNo .eq. IDTOCPI ) THEN
+!-----------------------------------------------------------------------
+! Prior to 8/1/11:
+! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
+!         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+!-----------------------------------------------------------------------
          ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             CALL DO_REGRID_1x1( 5, 'kg/yr', GEOS_1x1, OC )
@@ -719,8 +723,8 @@
 !
 ! !REVISION HISTORY:
 !   03 Nov 2009 - A. van Donkelaar - initial version
-!    1 Aug 2011 - M. Payer    - Re-define SPECIES_ID for LSVPOA option, which
-!                               renames OCPI to POA1
+!   01 Aug 2011 - M. Payer    - Re-define SPECIES_ID for SOA + semivol POA,
+!                               which renames OCPI to POA1
 ! !REMARKS:
 !EOP
 !------------------------------------------------------------------------------
@@ -766,9 +770,10 @@
       SNAME = 'GEOS3'
 #endif
 
+      ! list of ID of available species
       IF ( LSVPOA ) THEN
 
-         ! list of ID of available species: SOA + semivolatile POA
+         !%%% SOA + semivolatile POA %%%
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4,  
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTPOA1, IDTBCPI, IDTALD2, 
@@ -776,7 +781,7 @@
 
       ELSE
 
-         ! list of ID of available species: Standard chemistry
+         !%%% Standard chemistry %%%
          SPECIES_ID = (/ IDTNOX,  IDTCO,   IDTSO2,  IDTSO4, 
      &                   IDTNH3,  IDTACET, IDTALK4, IDTC2H6, 
      &                   IDTC3H8, IDTOCPI, IDTBCPI, IDTALD2, 
@@ -890,8 +895,11 @@
                NH3(:,:,L) = NH3(:,:,L) * USA_MASK(:,:)
             ENDDO
 
-         ! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
-         !ELSEIF ( SNo .eq. IDTOCPI ) THEN
+!-----------------------------------------------------------------------
+! Prior to 8/1/11:
+! Add POA for SOA + semivolatile POA (mpayer, 8/1/11)
+!         ELSEIF ( SNo .eq. IDTOCPI ) THEN
+!-----------------------------------------------------------------------
          ELSEIF ( SNo == IDTOCPI .or. SNo == IDTPOA1 ) THEN
 
             OC(:,:,:) = GEOS_05x0666

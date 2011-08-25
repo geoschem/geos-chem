@@ -217,21 +217,20 @@
 !  (17) Set IDECO=1 for Tagged CO simulation (jaf, mak, bmy, 2/14/08)
 !  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
-!  (20) Added tracers and emissions for Havala's SOA + semivolatile POA 
-!       simulation (mpayer,6/30/11)
+!  30 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       implicit  NONE
 
       ! for CTM tracers
-!-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-!   restored NNNTRID to 100 for SOA + semivol POA (hotp, mpayer, 6/29/11)
-!----------------------------------------------------------------------------- 
+!----------------------------------------------------------------------- 
 ! Prior to 6/29/11:
-! Increased NNNTRID from 75 to 100 for SOA (mpayer, 6/29/11)
+! Increased NNNTRID to 100 for SOA + semivol POA (hotp, mpayer, 6/29/11)
+!!-- add tracers for new isoprene chemistry. (fp, 01/27/10)
 !      INTEGER, PARAMETER :: NNNTRID  = 75
-!-----------------------------------------------------------------------------
-!      INTEGER, PARAMETER :: MMMEMBER = 10
+!!      INTEGER, PARAMETER :: MMMEMBER = 10
+!!      INTEGER, PARAMETER :: NNNTRID  = 100
+!-----------------------------------------------------------------------
       INTEGER, PARAMETER :: NNNTRID  = 100
       INTEGER, PARAMETER :: MMMEMBER = 15
       INTEGER            :: NMEMBER(NNNTRID) 
@@ -263,7 +262,7 @@
       INTEGER            :: IDLBRO2H, IDLBRO2N  
       INTEGER            :: IDLTRO2H, IDLTRO2N  
       INTEGER            :: IDLXRO2H, IDLXRO2N
-      ! added for IVOC and gas phase NAP chemistry (hotp, mpayer, 6/29/11)
+      ! For gas-phase NAP chemistry (hotp, mpayer, 6/29/11)
       INTEGER            :: IDNAP,    IDNRO2,  IDLNRO2H, IDLNRO2N
 
 
@@ -276,7 +275,6 @@
       INTEGER            :: IDTDMS,  IDTSO2,   IDTSO4,  IDTMSA,  IDTNH3
       INTEGER            :: IDTNH4,  IDTNIT,   IDTRN,   IDTPB,   IDTBE7
       INTEGER            :: IDTBCPI, IDTBCPO,  IDTOCPI, IDTOCPO, IDTDST1
-
       INTEGER            :: IDTDST2, IDTDST3,  IDTDST4, IDTSALA, IDTSALC
       INTEGER            :: IDTALPH, IDTLIMO,  IDTALCO, IDTSOG1, IDTSOG2 
       INTEGER            :: IDTSOG3, IDTSOG4,  IDTSOA1, IDTSOA2, IDTSOA3
@@ -298,27 +296,24 @@
       INTEGER            :: IDTIEPOX
       INTEGER            :: IDTPYPAN,IDTMAP
       INTEGER            :: IDTAP
-
       ! For H2/HD simulation
       INTEGER            :: IDTH2, IDTHD ! (hup, phs, 9/18/07)
-
       ! update for arom (dkh, 10/05/06)  
       INTEGER            :: IDTSOA5, IDTSOG5
-
-      ! For SOA + semivolatile POA simulation (hotp, mpayer, 6/30/11)
-      ! (See Fig. 1, Pye et al, 2010)
-      INTEGER            :: IDTNAP              ! gas phase naphthalene chem
-      INTEGER            :: IDTMTPA,  IDTMTPO   ! new mtp gas phase precursors
-      INTEGER            :: IDTASOAN            ! non-vol, low-NOx SOA product
-      INTEGER            :: IDTASOA1, IDTASOA2, IDTASOA3  ! svol,low-NOx prod
-      INTEGER            :: IDTASOG1, IDTASOG2, IDTASOG3 
-      INTEGER            :: IDTTSOA1, IDTTSOA2, IDTTSOA3  ! mtp + stp products
-      INTEGER            :: IDTTSOG1, IDTTSOG2, IDTTSOG3 
-      INTEGER            :: IDTTSOA0, IDTTSOG0
-      INTEGER            :: IDTISOA1, IDTISOA2, IDTISOA3  ! isoprene products
-      INTEGER            :: IDTISOG1, IDTISOG2, IDTISOG3
-      INTEGER            :: IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2   ! SVOC prod
-      INTEGER            :: IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2
+      ! For SOA + semivolatile POA (See Fig. 1, Pye et al, 2010)
+      ! (hotp, mpayer, 6/30/11)
+      INTEGER            :: IDTNAP                       ! gasphase naphthalene
+      INTEGER            :: IDTMTPA,  IDTMTPO            ! mtp gas precursors
+      INTEGER            :: IDTASOAN                     ! non-vol,low-NOx prod
+      INTEGER            :: IDTASOA1, IDTASOA2, IDTASOA3 ! semivol,low-NOx prod
+      INTEGER            :: IDTASOG1, IDTASOG2, IDTASOG3 ! semivol,low-NOx prod
+      INTEGER            :: IDTTSOA1, IDTTSOA2, IDTTSOA3 ! mtp + sesq products
+      INTEGER            :: IDTTSOG1, IDTTSOG2, IDTTSOG3 ! mtp + sesq products
+      INTEGER            :: IDTTSOA0, IDTTSOG0           ! mtp + sesq products
+      INTEGER            :: IDTISOA1, IDTISOA2, IDTISOA3 ! isoprene products
+      INTEGER            :: IDTISOG1, IDTISOG2, IDTISOG3 ! isoprene products
+      INTEGER            :: IDTPOA1,  IDTPOA2,  IDTPOG1,  IDTPOG2  ! SVOC prod
+      INTEGER            :: IDTOPOA1, IDTOPOA2, IDTOPOG1, IDTOPOG2 ! OSVOC prod
 
       ! For tagged Hg simulation
       INTEGER              :: N_Hg_CATS
@@ -350,6 +345,7 @@
       INTEGER            :: IDBFGLYC
       INTEGER            :: IDBFGLYX, IDBFMGLY
       INTEGER            :: IDBFHAC
+      INTEGER            :: IDBFNAP   ! (hotp, mpayer, 6/30/11)
 
       !BIOMASS BURNING  !(FP,01/27/10)
       INTEGER            :: IDBNOX,  IDBCO,   IDBALK4, IDBACET 
@@ -358,15 +354,11 @@
       INTEGER            :: IDBSO2,  IDBNH3
       INTEGER            :: IDBBC,   IDBOC
       INTEGER            :: IDBCO2
-
       INTEGER            :: IDBTOLU, IDBBENZ, IDBXYLE
       ! add dicarbonyl emissions (ccc, 01/27/10)
       INTEGER            :: IDBGLYX, IDBMGLY, IDBC2H4, IDBC2H2
       INTEGER            :: IDBGLYC, IDBHAC      
-      
-      ! add gas phase NAP chem &  biomass burning emiss (hotp, mpayer, 6/30/11)
-      INTEGER            :: IDBFNAP
-      INTEGER            :: IDBNAP
+      INTEGER            :: IDBNAP   ! (hotp, mpayer, 6/30/11)
 
       CONTAINS
 
@@ -414,7 +406,7 @@
 !  (20) Change hard-wired IDEs to dynamically defined IDEs. (fp, hotp, 01/10)
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
-!  (23) Add case and NAP emissions for SOA + semivol POA (mpayer, 6/30/11)
+!  30 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -781,7 +773,7 @@
             CASE ( 'SOA5' )
                IDTSOA5  = N
 
-            ! for SOA + semivolatile POA (hotp, mpayer, 6/30/11)
+            ! For SOA + semivol POA (hotp, mpayer, 6/30/11)
             CASE ( 'MTPA' )
                IDTMTPA  = N
 
@@ -876,6 +868,7 @@
 
             CASE ( 'OPOG2' )
                IDTOPOG2  = N
+            ! End SOA + semivolatile POA
 
             !--------------------------------
             ! Mineral dust aerosols
@@ -948,8 +941,7 @@
                IDBXYLE  = COUNT_BB
 
             !-------------------------------
-            ! Naphthalene                    
-            ! (hotp, mpayer, 6/30/11)
+            ! Naphthalene (hotp, mpayer, 6/30/11)
             !-------------------------------
             CASE ( 'NAP' )
                COUNT    = COUNT + 1
@@ -1328,7 +1320,7 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEXYLE   = NEMANTHRO
          ENDIF
-         ! NAP emissions for SOA + semivol POA (hotp, mpayer, 6/30/11)
+         ! NAP for SOA + semivol POA (hotp, mpayer, 6/30/11)
          IF ( IDTNAP  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDENAP    = NEMANTHRO
@@ -1404,8 +1396,8 @@
       IF ( IDEC2H2 /= 0 ) IDEMS(IDEC2H2) = IDTC2H2
       IF ( IDEMBO  /= 0 ) IDEMS(IDEMBO ) = IDTMBO
       IF ( IDEGLYC /= 0 ) IDEMS(IDEGLYC) = IDTGLYC
-      IF ( IDEHAC /= 0 )  IDEMS(IDEHAC ) = IDTHAC
-      IF ( IDENAP  /=0  ) IDEMS(IDENAP)  = IDTNAP   ! (hotp,mpayer, 6/30/11)
+      IF ( IDEHAC  /= 0 ) IDEMS(IDEHAC ) = IDTHAC
+      IF ( IDENAP  /= 0 ) IDEMS(IDENAP ) = IDTNAP   ! (hotp, mpayer, 6/30/11)
 
       ! Echo anthro & biogenic emitted tracers
       WRITE( 6, 100 ) IDEMS ( 1:NEMANTHRO+NEMBIOG )
@@ -1417,7 +1409,11 @@
        WRITE( 6, 115 ) 'NEMANTHRO: 10 for standard sims b4 v811'
        WRITE( 6, 115 ) '          + 2 for HNO3 and Ox'
        WRITE( 6, 115 ) '          + 5 for aromatics (B,T,X, C2H2, C2H4)'
-       WRITE( 6, 115 ) '          + 1 for NAP'  ! (hotp, mpayer, 6/30/11) 
+!-----------------------------------------------------------------------
+! Prior to 6/30/11:
+!       WRITE( 6, 115 ) 'NEMANTHRO: 17 max'
+!-----------------------------------------------------------------------
+       WRITE( 6, 115 ) '          + 1 for NAP' ! (hotp, mpayer, 6/30/11)
        WRITE( 6, 115 ) 'NEMANTHRO: 18 max'
        WRITE( 6, 120 ) 'THIS NEMANTHRO: ', NEMANTHRO
        WRITE( 6, 115 ) '-----------------------------------------------'
@@ -1486,8 +1482,7 @@
 !        (ccc, 01/29/10)
 !  (8 ) Add IDs for Henze's aromatics (hotp, 01/10)
 !  (9 ) Add debug print. (hotp, 01/10)
-!  (10) Added IDNAP, IDRO2, IDLNRO2H, IDLNRO2N for SOA + semivolatile POA
-!       simulation (mpayer, 6/30/11)
+!  30 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1978,7 +1973,7 @@
 !  (13) Now zero IDTs for new tracers in isoprene chemistry, Henze's aromatics,
 !       (fp, dkh, hotp, 01/10)
 !  (14) Now zero IDBs for all biomass burning emissions. (fp, hotp, 01/10)
-!  (15) Added IDs for SOA + semivolatile POA simulation (mpayer, 6/30/11)
+!  30 Jun 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2114,7 +2109,6 @@
       IDTOCPI   = 0
       IDTBCPO   = 0
       IDTOCPO   = 0
-
       IDTALPH   = 0
       IDTLIMO   = 0
       IDTALCO   = 0
@@ -2129,7 +2123,7 @@
       ! (hotp 5/25/09)
       IDTSOG5   = 0
       IDTSOA5   = 0
-      ! for SOA + semivol POA (hotp, mpayer, 6/30/11)
+      ! For SOA + semivol POA (hotp, mpayer, 6/30/11)
       IDTNAP    = 0
       IDTMTPA   = 0
       IDTMTPO   = 0
@@ -2162,7 +2156,7 @@
       IDTOPOA2  = 0
       IDTOPOG1  = 0
       IDTOPOG2  = 0
-
+      ! End SOA + semivol POA
       IDTDST1   = 0
       IDTDST2   = 0
       IDTDST3   = 0

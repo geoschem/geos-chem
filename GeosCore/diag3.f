@@ -113,7 +113,7 @@
 !  (93) Add ND57 for potential temperature. (fp, 2/3/10)
 !  (94) Re-order levels in mass fluxes diagnostics before writing them to file.
 !       (ND24, 25, 26). (ccc, 3/8/10)
-!  27 Jul 2011 - M. Payer    - Add hotp's SOA + semivolatile POA updates
+!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -214,7 +214,7 @@
       USE TRACERID_MOD, ONLY : IDTMONX,     IDTMBO, IDTC2H4
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD
-      ! SOAupdate: Add SOA + semivolatile POA tracers (hotp, mpayer, 7/27/11)
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
       USE TRACERID_MOD, ONLY : IDTMTPA,     IDTMTPO
       USE TRACERID_MOD, ONLY : IDTTSOA1,    IDTISOA1, IDTASOA1
       USE TRACERID_MOD, ONLY : IDTPOA1
@@ -476,10 +476,17 @@
       IF ( ND07 > 0 .and. LCARB ) THEN
 
          ! Unit
-         ! SOAupdate: OC and BC in kg C, SOA in kg (assign below)
-         ! (hotp, mpayer, 7/27/11)
-         !UNIT = 'kgC' ! keep old (mpayer, 8/11/11)
-         UNIT = 'kg'
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! For SOA + semivolatile POA OC and BC in kg C, SOA in kg (assign below)
+! (hotp, mpayer, 7/27/11)
+!         UNIT = 'kg'
+!-----------------------------------------------------------------------
+         IF ( LSVPOA ) THEN
+            UNIT = 'kgC'
+         ELSE
+            UNIT = 'kg'
+         ENDIF
          
          !-------------------
          ! BC ANTHRO source
@@ -540,7 +547,11 @@
          ! OC ANTHRO source
          !------------------------------ 
          CATEGORY     = 'OC-ANTH'
-         ! SOAupdate: use POA or OCPI (hotp, mpayer, 7/27/11)
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use OCPI or POA (hotp, mpayer, 7/27/11)
+!         N            = IDTOCPI
+!-----------------------------------------------------------------------
          IF ( IDTOCPI > 0 ) N = IDTOCPI
          IF ( IDTPOA1 > 0 ) N = IDTPOA1
          ARRAY(:,:,1) = AD07(:,:,4) 
@@ -555,7 +566,11 @@
          ! OC BIOMASS source
          !------------------------------
          CATEGORY     = 'OC-BIOB'
-         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use N from above (hotp, mpayer, 7/27/11)
+!         N            = IDTOCPI
+!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,5) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -568,7 +583,11 @@
          ! OC BIOFUEL source
          !------------------------------
          CATEGORY     = 'OC-BIOF'
-         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use N from above (hotp, mpayer, 7/27/11)
+!         N            = IDTOCPI
+!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,6) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -581,7 +600,11 @@
          ! OC BIOGENIC source
          !------------------------------
          CATEGORY     = 'OC-BIOG'
-         !N            = IDTOCPI  ! use N from above (hotp, mpayer, 7/27/11)
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Use N from above (hotp, mpayer, 7/27/11)
+!         N            = IDTOCPI
+!-----------------------------------------------------------------------
          ARRAY(:,:,1) = AD07(:,:,7) 
             
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -593,7 +616,7 @@
          !------------------------------ 
          ! H-philic OC from H-phobic OC
          !------------------------------
-         ! SOAupdate: This only exists with OCPI/OCPO (hotp, mpayer, 7/27/11)
+         ! This only exists with OCPI/OCPO (hotp, mpayer, 7/27/11)
          IF ( IDTOCPI > 0 ) THEN
             CATEGORY     = 'PL-OC=$'
             N            = IDTOCPI
@@ -612,22 +635,20 @@
          ! Only save extra SOA diagnostics if LSOA=T
          IF ( LSOA ) THEN
 
-            ! SOAupdate: add units (hotp, mpayer, 7/27/11)
+            ! Add units
             UNIT = 'kg'
 
             !------------------------------
             ! NVOC SOURCE diagnostics
             !------------------------------
 
-            ! SOAupdate: Add switch for SOA + semivolatile POA or traditional 
+
+            ! Check to see if using SOA + semivolatile POA or traditional
             ! SOA simulation (mpayer, 7/27/11)
             IF ( LSVPOA ) THEN
 
-               !---------------------------------
-               ! SOA + semivolatile POA
-               !---------------------------------
+               !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
 
-               ! SOAupdate: only 11 for SOA + semivol POA (hotp,mpayer,7/27/11)
                DO N = 8, 11
 
                   SELECT CASE ( N )
@@ -666,9 +687,7 @@
 
             ELSE
 
-               !---------------------------------
-               ! Traditional SOA
-               !---------------------------------
+               !%%% Traditional SOA %%%
 
                DO N = 8, 12
 
@@ -711,7 +730,7 @@
 
                ENDDO
 
-            ENDIF ! LSVPOA (mpayer, 7/27/11)
+            ENDIF ! LSVPOA
 
             !-----------------------------------------------
             ! SOA Production from NVOC oxidation [kg]
@@ -720,18 +739,14 @@
             !-----------------------------------------------
             CATEGORY = 'PL-OC=$'
 
-            ! SOAupdate: Add switch for SOA + semivolatile POA or traditional 
+            ! Check to see if using SOA + semivolatile POA or traditional
             ! SOA simulation (mpayer, 7/27/11)
             IF ( LSVPOA ) THEN
 
-               !---------------------------------
-               ! SOA + semivolatile POA
-               !---------------------------------
+               !%%% SOA + semivolatile POA (H.O.T. Pye) %%%
 
                DO N = 1, 6 
 
-                  ! SOAupdate: units diff for POA (hopt, mpayer, 7/27/11)
-                  ! now correspond to JSV
                   IF     ( N == 1 ) THEN
                      NN = IDTTSOA1
                   ELSEIF ( N == 2 ) THEN
@@ -766,9 +781,7 @@
 
             ELSE
 
-               !---------------------------------
-               ! Traditional SOA
-               !---------------------------------
+               !%%% Traditional SOA %%%
 
                ! (hotp 5/25/09) add SO5
                !DO N = 1, 4
@@ -798,7 +811,7 @@
 
                ENDDO
 
-            ENDIF ! LSVPOA (mpayer, 7/27/11)
+            ENDIF ! LSVPOA
 
             !-----------------------------------------------
             ! SOA Production from GLYX and MGLY [kg]

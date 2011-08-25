@@ -36,8 +36,7 @@
 !  (10) In "510 FORMAT", the format of 'B' in kinetic reactions section of 
 !        smv2.log does not match variable type and causes code to crash when 
 !        run with ifort -check all flag. (hotp, bmy, 6/1/10)
-!  27 Jul 2011 - M. Payer    - Add ILISOPNO3, ILNRO2H, ILNRO2N as part of
-!                               hotp's SOA + semivolatile POA updates
+!  27 Jul 2011 - M. Payer    - Add modifications for SOA + semivol POA (H. Pye)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -445,9 +444,10 @@ C
       ILTRO2N = 0
       ILXRO2H = 0
       ILXRO2N = 0
-      ILISOPNO3=0 ! SOAupdate (hotp, mpayer, 7/27/11)
-      ILNRO2H = 0 ! SOAupdate (hotp, mpayer, 7/27/11)
-      ILNRO2N = 0 ! SOAupdate (hotp, mpayer, 7/27/11) 
+      ! For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
+      ILISOPNO3=0
+      ILNRO2H = 0 
+      ILNRO2N = 0 
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
@@ -473,11 +473,11 @@ C
                ILXRO2H = I
             CASE( 'LXRO2N' )
                ILXRO2N = I
-            CASE( 'LISOPNO3' ) ! SOAupdate (hotp, mpayer, 7/27/11)
+            CASE( 'LISOPNO3' ) ! (hotp, mpayer, 7/27/11)
                ILISOPNO3 = I
-            CASE( 'LNRO2H' )   ! SOAupdate (hotp, mpayer, 7/27/11)
+            CASE( 'LNRO2H' )   ! (hotp, mpayer, 7/27/11)
                ILNRO2H = I
-            CASE( 'LNRO2N' )   ! SOAupdate (hotp, mpayer, 7/27/11)
+            CASE( 'LNRO2N' )   ! (hotp, mpayer, 7/27/11)
                ILNRO2N = I
             CASE DEFAULT
                ! Nothing
@@ -1227,12 +1227,16 @@ C
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
                   ! dkh 
-                  ! SOAupdate: add IDLNRO2H/N (hotp, mpayer, 7/27/11)
                   ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
      &                     J == MAPPL(ILBRO2N,NCS) .or.
      &                     J == MAPPL(ILTRO2H,NCS) .or.
      &                     J == MAPPL(ILTRO2N,NCS) .or.
      &                     J == MAPPL(ILXRO2H,NCS) .or.
+!-----------------------------------------------------------------------
+! Prior to 7/27/11:
+! Add IDLNRO2H/N for SOA + semivol POA (hotp, mpayer, 7/27/11)
+!     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
+!-----------------------------------------------------------------------
      &                     J == MAPPL(ILXRO2N,NCS) .or.
      &                     J == MAPPL(ILNRO2H,NCS) .or.
      &                     J == MAPPL(ILNRO2N,NCS)     ) THEN
