@@ -63,7 +63,7 @@
       REAL*8  :: WAA_AOD(NP),QAA_AOD(NP),PAA_AOD(8,NP)             
       REAL*8  :: RAA_AOD(NP),SSA_AOD(NP)
 
-      REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51),             
+      REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
       REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
       REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
 
@@ -82,7 +82,7 @@
       !-----------------------------------------------------------------------
       ! These common blocks MUST be held local for the parallelization 
       ! (bmy, 5/2/00)
-      REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),       
+      REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB)    
       REAL*8   :: AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
       REAL*8   :: zj(LPAR,JPMAX)
       REAL*8   :: FFF(NW,lpar),VALJ(NS)

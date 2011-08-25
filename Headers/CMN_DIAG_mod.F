@@ -173,7 +173,7 @@
       !=================================================================
       INTEGER :: LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
-      INTEGER :: LD54, LD64  LD65, LD66, LD68, LD01, LD02, LD05, LD07
+      INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
       INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
       INTEGER :: LD61
 
@@ -181,6 +181,7 @@
       ! NDxx diagnostic flags
       !=================================================================
       INTEGER :: ND01, ND02, ND05, ND06, ND07, ND08, ND09, ND10, ND11
+      INTEGER :: ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20
       INTEGER :: ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29
       INTEGER :: ND30, ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38
       INTEGER :: ND39, ND40, ND43, ND44, ND45, ND46, ND47, ND48, ND49
