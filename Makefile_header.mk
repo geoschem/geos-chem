@@ -74,6 +74,11 @@
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
 #  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
 #  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
+#  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
+#                              compiler.  This will prevent aggressive 
+#                              optimizations from changing numerical results.
+#  25 Aug 2011 - R. Yantosca - Add -CU (check for uninit'd variables) to 
+#                              FFLAGS when using IFORT w/ the DEBUG option.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -148,10 +153,14 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -check all
+FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -CU
 else
 FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
+
+# Prevent any optimizations that would change numerical results
+# This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
+FFLAGS  += -fp-model source
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 
