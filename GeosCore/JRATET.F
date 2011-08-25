@@ -11,27 +11,29 @@ c  only covers the jpnl levels actually needed by the CTM.
 !  T         dble     [LPAR]  [K]    Vertical temperature profile
 !  IDAY      int        -      -     Day of Year (0-365 or 0-366)
 !-----------------------------------------------------------------------
-c
-c     FFF    Actinic flux at each level for each wavelength bin
-c     QQQ    Cross sections for species (read in in RD_TJPL)
-c     SOLF   Solar distance factor, for scaling; normally given by:
-c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
-c     TQQ    Temperatures at which QQQ cross sections supplied
-c
-c  NOTES
-c  (1 ) Added a pressure-dependancy function selector 'pdepf' 
-c        in 'jv_spec.dat'. (tmf, 1/7/09)
-c  (2 ) Added pressure dependency for MGLY. (tmf, 1/7/09)
-c  (3 ) Updated pressure dependency algorithm for ACET. (tmf, 1/7/09)
-c  (4 ) Added pressure dependancy for MeCOVi, EtCOMe, MeCOCHO. Rewritten 
-c        pressure dependancy for Acetone according to FAST-JX v6.4.
-c        See more detailed documentation for Acetone in fjx_acet_mod.f.
-c        (ccc, 4/20/09)
+!
+!     FFF    Actinic flux at each level for each wavelength bin
+!     QQQ    Cross sections for species (read in in RD_TJPL)
+!     SOLF   Solar distance factor, for scaling; normally given by:
+!                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
+!     TQQ    Temperatures at which QQQ cross sections supplied
+!
+!  NOTES
+!  (1 ) Added a pressure-dependancy function selector 'pdepf' 
+!        in 'jv_spec.dat'. (tmf, 1/7/09)
+!  (2 ) Added pressure dependency for MGLY. (tmf, 1/7/09)
+!  (3 ) Updated pressure dependency algorithm for ACET. (tmf, 1/7/09)
+!  (4 ) Added pressure dependancy for MeCOVi, EtCOMe, MeCOCHO. Rewritten 
+!        pressure dependancy for Acetone according to FAST-JX v6.4.
+!        See more detailed documentation for Acetone in fjx_acet_mod.f.
+!        (ccc, 4/20/09)
+!  25 Aug 2011 - R. Yantosca - Rewrite IF statement to prevent PF from
+!                              never being initialized.
 !-----------------------------------------------------------------------
 
       USE FJX_ACET_MOD
 
-#     include "define.h"
+!#     include "define.h"
       
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
       USE JV_CMN_MOD
@@ -98,7 +100,16 @@ c        (ccc, 4/20/09)
          L = jpdep(J)
 
 !        To choose different forms of pres. dependancy. (ccc, 4/20/09)
-         if ( L.ne.0 ) PF = pdepf(L)
+!------------------------------------------------------------------------------
+! Prior to 8/25/11:
+! Rewrite IF statement to prevent PF from being uninitialized (bmy, 8/25/11)
+!         if ( L.ne.0 ) PF = pdepf(L)
+!------------------------------------------------------------------------------
+         if ( L.ne.0 ) then
+            PF = pdepf(L)
+         else
+            PF = -1
+         endif
 
          if(TQQ(2,J).gt.TQQ(1,J)) TFACT = max(0.d0,min(1.d0,
      $        (T(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
