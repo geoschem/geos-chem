@@ -154,7 +154,7 @@ OBJ := $(TMP:.F90=.o)
 # Makefile targets: type "make help" for a complete listing!
 #=============================================================================
 
-.PHONY: clean realclean doc docclean help print
+.PHONY: clean realclean doc docclean help
 
 all:
 	@$(MAKE) lib
@@ -204,7 +204,7 @@ exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:
+clean:                                               # Remove files here
 	rm -f *.o *.mod geos geosapm geostomas
 
 realclean:                                           # Remove files everywhere
@@ -235,16 +235,23 @@ help:                                                # Show help screen
 # Targets for mercury simulation (ccc, 6/7/10)
 #=============================================================================
 
-allhg:
+allhg:                                               # Build Hg/GTMM executable
 	@$(MAKE) libhg
 	@$(MAKE) exehg
 
-libhg: libutil libkpp libgtmm libiso libcore
+libhg:                                               # Compile HG/GTMM code
+	@$(MAKE) libgtmm           		     
+	@$(MAKE) libgc
+#	@$(MAKE) libheaders         		     
+#	@$(MAKE) libkpp  
+#	@$(MAKE) libutil 			     
+#	@$(MAKE) libiso 			     
+#	@$(MAKE) libcore
 
-libgtmm:
+libgtmm:                                             # Compile GTMM model code
 	@$(MAKE) -C $(GTMM)
 
-exehg:
+exehg:                                               # Create Hg/GTMM exec file
 	$(LD) $(OBJ) $(LHG) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 

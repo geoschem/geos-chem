@@ -90,7 +90,8 @@
 !  (24) Now scale AODs to wavelength specified in jv_spec_aod.dat (clh, 5/14/09)!******************************************************************************
 !
       IMPLICIT NONE
-      
+#     include "define.h"
+
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
       ! and routines from being seen outside "planeflight_mod.f"
@@ -346,8 +347,8 @@
       USE FILE_MOD,   ONLY : IU_FILE,   IOERROR
       USE TRACER_MOD, ONLY : N_TRACERS, ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! NAMEGAS, NSPEC
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
 
       ! Local variables
       LOGICAL             :: IS_FULLCHEM
@@ -763,8 +764,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "comode.h" ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
 
       ! Local variables
       INTEGER            :: M
@@ -839,8 +840,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "comode.h" ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
 
       ! Local variables
       INTEGER            :: M
@@ -913,8 +914,8 @@
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE" ! Size parameters
-#     include "comode.h" ! NSPEC, NAMEGAS, NCS
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
 
       ! Local variables
       INTEGER            :: M
@@ -1010,12 +1011,12 @@
       USE PRESSURE_MOD, ONLY : GET_PEDGE
       USE TIME_MOD,     ONLY : GET_TAU, GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,     TCVV
-      
+            
+      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ 
+      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD    ! NAMEGAS, NSPEC
+
       IMPLICIT NONE
-      
-#     include "cmn_fj.h"   ! FAST-J parameters (includes CMN_SIZE)
-#     include "jv_cmn.h"   ! ODAER, QAA, QAA_AOD
-#     include "comode.h"   ! CSPEC, etc.
       
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -1402,7 +1403,7 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE GRID_MOD,       ONLY : GET_XOFFSET,   GET_YOFFSET  !(win, 7/28/09)
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: IND
@@ -1551,9 +1552,9 @@
       USE COMODE_MOD, ONLY : IXSAVE, IYSAVE, IZSAVE
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND40 switch
-#     include "comode.h"  ! RRATE, JLOOPLO, KBLOOP
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! RRATE, JLOOPLO, KBLOOP
+      USE CMN_DIAG_MOD     ! ND40 switch
  
       ! Arguments 
       REAL*8, INTENT(IN) :: JO1D(KBLOOP)
@@ -1700,8 +1701,8 @@
       USE ERROR_MOD, ONLY : ALLOC_ERR, GEOS_CHEM_STOP
       USE FILE_MOD,  ONLY : IU_FILE,   IOERROR
 
-#     include "CMN_SIZE" ! Size Parameters
-#     include "comode.h" ! ITLOOP
+      USE CMN_SIZE_MOD    ! Size Parameters
+      USE COMODE_LOOP_MOD ! ITLOOP
 
       ! Local variables 
       LOGICAL            :: IS_INIT = .FALSE.

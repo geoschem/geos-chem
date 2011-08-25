@@ -4,7 +4,7 @@
 !******************************************************************************
 !  Module TRACERID_MOD contains variables which point to SMVGEAR species,
 !  CTM Tracers, Biomass species, and biofuel species located within various
-!  GEOS-CHEM arrays. (bmy, 11/12/02, 2/14/08)
+!  GEOS-CHEM arrays. (bmy, ccc, 11/12/02, 5/17/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -427,8 +427,8 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "comode.h"    ! IDEMS
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! IDEMS
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -1948,8 +1948,8 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "comode.h"   ! NAMEGAS
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! NAMEGAS
 
       ! Local variabales
       INTEGER             :: I, J, T, C

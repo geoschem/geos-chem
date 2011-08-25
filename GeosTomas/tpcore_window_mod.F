@@ -152,280 +152,279 @@
      &                          JM_W, IGZD, NL,   AP,   BP,   PT,
      &                          AE,   FILL, MFCT, Umax )
  
-C TransPort module for Goddard Chemistry Transport Model (G-CTM), Goddard
-C Earth Observing System General Circulation Model (GEOS-GCM), and Data
-C Assimilation System (GEOS-DAS).
+! TransPort module for Goddard Chemistry Transport Model (G-CTM), Goddard
+! Earth Observing System General Circulation Model (GEOS-GCM), and Data
+! Assimilation System (GEOS-DAS).
  
-C Purpose: perform the transport of  3-D mixing ratio fields using 
-C          externally specified winds on the hybrid Eta-coordinate.
-C          One call to tpcore updates the 3-D mixing ratio
-C          fields for one time step (NDT). [vertical mass flux is computed
-C          internally using a center differenced hydrostatic mass
-C          continuity equation].
+! Purpose: perform the transport of  3-D mixing ratio fields using 
+!          externally specified winds on the hybrid Eta-coordinate.
+!          One call to tpcore updates the 3-D mixing ratio
+!          fields for one time step (NDT). [vertical mass flux is computed
+!          internally using a center differenced hydrostatic mass
+!          continuity equation].
  
-C Schemes: Multi-dimensional Flux Form Semi-Lagrangian (FFSL) schemes
-C          (Lin and Rood 1996, MWR) with a modified MFCT option (Zalesak 1979).
+! Schemes: Multi-dimensional Flux Form Semi-Lagrangian (FFSL) schemes
+!          (Lin and Rood 1996, MWR) with a modified MFCT option (Zalesak 1979).
  
-C Multitasking version: 7.1
-C Last modified: Sept 2, 1999
-C Changes from version 7.m: large-time-step bug in xtp fixed.
-C Suggested compiler options:
-C CRAY f77 compiler:  cf77 -Zp -c -Wd'-dec' -Wf' -a stack -exm'
-C CRAY f90 compiler:  f90 -c -eZ -DCRAY -Dmultitask
-C SGI Origin: f77 -c -DSGI -Dmultitask -r8 -64 -O3 -mips4 -mp
-C             loader: f77 -64 -mp
-C
-C Send comments/suggestions to
-C
-C                 S.-J. Lin
-C Address:
-C                 Code 910.3, NASA/GSFC, Greenbelt, MD 20771
-C                 Phone: 301-614-6161
-C                 E-mail: slin@dao.gsfc.nasa.gov
-C
-C The algorithm is based on the following papers:
+! Multitasking version: 7.1
+! Last modified: Sept 2, 1999
+! Changes from version 7.m: large-time-step bug in xtp fixed.
+! Suggested compiler options:
+! CRAY f77 compiler:  cf77 -Zp -c -Wd'-dec' -Wf' -a stack -exm'
+! CRAY f90 compiler:  f90 -c -eZ -DCRAY -Dmultitask
+! SGI Origin: f77 -c -DSGI -Dmultitask -r8 -64 -O3 -mips4 -mp
+!             loader: f77 -64 -mp
+!
+! Send comments/suggestions to
+!
+!                 S.-J. Lin
+! Address:
+!                 Code 910.3, NASA/GSFC, Greenbelt, MD 20771
+!                 Phone: 301-614-6161
+!                 E-mail: slin@dao.gsfc.nasa.gov
+!
+! The algorithm is based on the following papers:
  
-C 1. Lin, S.-J., and R. B. Rood, 1996: Multidimensional flux form semi-
-C    Lagrangian transport schemes. Mon. Wea. Rev., 124, 2046-2070.
-C
-C 2. Lin, S.-J., W. C. Chao, Y. C. Sud, and G. K. Walker, 1994: A class of
-C    the van Leer-type transport schemes and its applications to the moist-
-C    ure transport in a General Circulation Model. Mon. Wea. Rev., 122,
-C    1575-1593.
-C
-C 3. Lin, S.-J., and R. B. Rood, 1997: Multidimensional flux form semi-
-C    Lagrangian transport schemes- MFCT option. To be submitted.
+! 1. Lin, S.-J., and R. B. Rood, 1996: Multidimensional flux form semi-
+!    Lagrangian transport schemes. Mon. Wea. Rev., 124, 2046-2070.
+!
+! 2. Lin, S.-J., W. C. Chao, Y. C. Sud, and G. K. Walker, 1994: A class of
+!    the van Leer-type transport schemes and its applications to the moist-
+!    ure transport in a General Circulation Model. Mon. Wea. Rev., 122,
+!    1575-1593.
+!
+! 3. Lin, S.-J., and R. B. Rood, 1997: Multidimensional flux form semi-
+!    Lagrangian transport schemes- MFCT option. To be submitted.
  
-C ======
-C INPUT:
-C ======
+! ======
+! INPUT:
+! ======
  
-C IGD: (horizontal) grid type on which winds are defined.
-C IGD = 0  A-Grid  [all variables defined at the same point from south
-C                   pole (j=1) to north pole (j=JM) ]
+! IGD: (horizontal) grid type on which winds are defined.
+! IGD = 0  A-Grid  [all variables defined at the same point from south
+!                   pole (j=1) to north pole (j=JM) ]
 
-C IGD = 1  GEOS-GCM C-Grid (Max Suarez's center difference dynamical core)
+! IGD = 1  GEOS-GCM C-Grid (Max Suarez's center difference dynamical core)
 
-C                                  [North]
+!                                  [North]
 
-C                                   V(i,j)
-C                                      |
-C                                      |
-C                                      |
-C                 [WEST]  U(i-1,j)---Q(i,j)---U(i,j) [EAST]
-C                                      |
-C                                      |
-C                                      |
-C                                   V(i,j-1)
+!                                   V(i,j)
+!                                      |
+!                                      |
+!                                      |
+!                 [WEST]  U(i-1,j)---Q(i,j)---U(i,j) [EAST]
+!                                      |
+!                                      |
+!                                      |
+!                                   V(i,j-1)
  
-C                                   [South]
+!                                   [South]
 
-C         U(i,   1) is defined at South Pole.
-C         V(i,   1) is half grid north of the South Pole.
-C         V(i,JM-1) is half grid south of the North Pole.
-C
-C         V must be defined at j=1 and j=JM-1 if IGD=1
-C         V at JM need not be defined.
+!         U(i,   1) is defined at South Pole.
+!         V(i,   1) is half grid north of the South Pole.
+!         V(i,JM-1) is half grid south of the North Pole.
+!
+!         V must be defined at j=1 and j=JM-1 if IGD=1
+!         V at JM need not be defined.
  
-C Q(IM,JM,NL,NC): mixing ratios at current time (t)
-C NC: total # of constituents
-C IM: first (E-W) dimension; # of Grid intervals in E-W is IM
-C JM: 2nd (N-S) dimension;   # of Grid intervals in N-S is JM-1
-C NL: 3rd dimension (# of layers); vertical index increases from 1 at
-C       the model top to NL near the surface (see fig. below).
-C       It is assumed that NL > 5.
-C
-C PS1(IM,JM): surface pressure at current time (t)
-C PS2(IM,JM): surface pressure at mid-time-level (t+NDT/2)
-C PS2 is replaced by the predicted PS (at t+NDT) on output.
-C Note: surface pressure can have any unit or can be multiplied by any
-C       const.
-C
-C The hybrid ETA-coordinate:
-C
-C pressure at layer edges are defined as follows:
-C
-C        p(i,j,k) = AP(k)*PT  +  BP(k)*PS(i,j)          (1)
-C
-C Where PT is a constant having the same unit as PS.
-C AP and BP are unitless constants given at layer edges.
-C In all cases  BP(1) = 0., BP(NL+1) = 1.
-C The pressure at the model top is PTOP = AP(1)*PT
-C
-C *********************
-C For pure sigma system
-C *********************
-C AP(k) = 1 for all k, PT = PTOP,
-C BP(k) = sige(k) (sigma at edges), PS = Psfc - PTOP, where Psfc
-C is the true surface pressure.
-C
-C                  /////////////////////////////////
-C              / \ ------ Model top P=PTOP ---------  AP(1), BP(1)
-C               |
-C    delp(1)    |  ........... Q(i,j,1) ............
-C               |
-C     W(k=1)   \ / ---------------------------------  AP(2), BP(2)
-C
-C
-C
-C     W(k-1)   / \ ---------------------------------  AP(k), BP(k)
-C               |
-C    delp(K)    |  ........... Q(i,j,k) ............
-C               |
-C      W(k)    \ / ---------------------------------  AP(k+1), BP(k+1)
-C
-C
-C
-C              / \ ---------------------------------  AP(NL), BP(NL)
-C               |
-C    delp(NL)   |  ........... Q(i,j,NL) .........
-C               |
-C     W(NL)=0  \ / -----Earth's surface P=Psfc ------ AP(NL+1), BP(NL+1)
-C                 //////////////////////////////////
+! Q(IM,JM,NL,NC): mixing ratios at current time (t)
+! NC: total # of constituents
+! IM: first (E-W) dimension; # of Grid intervals in E-W is IM
+! JM: 2nd (N-S) dimension;   # of Grid intervals in N-S is JM-1
+! NL: 3rd dimension (# of layers); vertical index increases from 1 at
+!       the model top to NL near the surface (see fig. below).
+!       It is assumed that NL > 5.
+!
+! PS1(IM,JM): surface pressure at current time (t)
+! PS2(IM,JM): surface pressure at mid-time-level (t+NDT/2)
+! PS2 is replaced by the predicted PS (at t+NDT) on output.
+! Note: surface pressure can have any unit or can be multiplied by any
+!       const.
+!
+! The hybrid ETA-coordinate:
+!
+! pressure at layer edges are defined as follows:
+!
+!        p(i,j,k) = AP(k)*PT  +  BP(k)*PS(i,j)          (1)
+!
+! Where PT is a constant having the same unit as PS.
+! AP and BP are unitless constants given at layer edges.
+! In all cases  BP(1) = 0., BP(NL+1) = 1.
+! The pressure at the model top is PTOP = AP(1)*PT
+!
+! *********************
+! For pure sigma system
+! *********************
+! AP(k) = 1 for all k, PT = PTOP,
+! BP(k) = sige(k) (sigma at edges), PS = Psfc - PTOP, where Psfc
+! is the true surface pressure.
+!
+!                  /////////////////////////////////
+!              / \ ------ Model top P=PTOP ---------  AP(1), BP(1)
+!               |
+!    delp(1)    |  ........... Q(i,j,1) ............
+!               |
+!     W(k=1)   \ / ---------------------------------  AP(2), BP(2)
+!
+!
+!
+!     W(k-1)   / \ ---------------------------------  AP(k), BP(k)
+!               |
+!    delp(K)    |  ........... Q(i,j,k) ............
+!               |
+!      W(k)    \ / ---------------------------------  AP(k+1), BP(k+1)
+!
+!
+!
+!              / \ ---------------------------------  AP(NL), BP(NL)
+!               |
+!    delp(NL)   |  ........... Q(i,j,NL) .........
+!               |
+!     W(NL)=0  \ / -----Earth's surface P=Psfc ------ AP(NL+1), BP(NL+1)
+!                 //////////////////////////////////
  
-C U(IM,JM,NL) & V(IM,JM,NL):winds (m/s) at mid-time-level (t+NDT/2)
-C Note that on return U and V are destroyed.
+! U(IM,JM,NL) & V(IM,JM,NL):winds (m/s) at mid-time-level (t+NDT/2)
+! Note that on return U and V are destroyed.
  
-C NDT (integer): time step in seconds (need not be constant during the course of
-C      the integration). Suggested value: 30 min. for 4x5, 15 min. for 2x2.5
-C      (Lat-Lon) resolution. Smaller values maybe needed if the model
-C      has a well-resolved stratosphere and Max(V) > 225 m/s
-C
-C J1 determines the size of the polar cap:
-C    South polar cap edge is located at -90 + (j1-1.5)*180/(JM-1) deg.
-C    North polar cap edge is located at  90 - (j1-1.5)*180/(JM-1) deg.
-C There are currently only two choices (j1=2 or 3).
-C IM must be an even integer if j1 = 2. Recommended value: J1=3.
-C
-C IORD, JORD, and KORD are integers controlling various options in E-W, N-S,
-C and vertical transport, respectively. 
-C
-C
-C  _ORD=
-C        1: 1st order upstream scheme (too diffusive, not a REAL*8 option; it
-C           can be used for debugging purposes; this is THE only known "linear"
-C           monotonic advection scheme.).
-C        2: 2nd order van Leer (full monotonicity constraint;
-C           see Lin et al 1994, MWR)
-C        3: monotonic PPM* (Collela & Woodward 1984)
-C        4: semi-monotonic PPM (same as 3, but overshoots are allowed)
-C        5: positive-definite PPM (constraint on the subgrid distribution is
-C           only strong enough to prevent generation of negative values;
-C           both overshoots & undershootes are possible).
-C        6: un-constrained PPM (nearly diffusion free; faster but
-C           positivity of the subgrid distribution is not quaranteed. Use
-C           this option only when the fields and winds are very smooth or
-C           when MFCT=.true.)
-C        7: Huynh/Van Leer/Lin full monotonicity constraint
-C Only KORD can be set to 7 to enable the use of Huynh's 2nd monotonicity
-C constraint for piece-wise parabolic distribution.
-C
-C *PPM: Piece-wise Parabolic Method
-C
-C Recommended values:
-C IORD=JORD=3 for high horizontal resolution.
-C KORD=6 or 7  if MFCT=.true.
-C KORD=3 or 7  if MFCT=.false.
-C
-C The implicit numerical diffusion decreases as _ORD increases.
-C DO not use option 4 or 5 for non-positive definite scalars
-C (such as Ertel Potential Vorticity).
-C
-C If numerical diffusion is a problem (particularly at low horizontal
-C resolution) then the following setup is recommended:
-C IORD=JORD=KORD=6 and MFCT=.true.
-C
-C AE: Radius of the sphere (meters).
-C     Recommended value for the planet earth: 6.371E6
-C
-C FILL (logical):   flag to do filling for negatives (see note below).
-C MFCT (logical):   flag to do a Zalesak-type Multidimensional Flux
-C                   correction. It shouldn't be necessary to call the
-C                   filling routine when MFCT is true.
-C
-C Umax: Estimate (upper limit) of the maximum U-wind speed (m/s).
-C (225 m/s is a good value for troposphere model; 300 m/s otherwise)
-C
-C  *****************************************************************
-C  **Input added for window calculation (2x2.5) (yxw, 8/21/01)******
-C  *****************************************************************
-C
-C  I0_W, J0_W:      window index offset
-C  (I1_W, J1_W):    left-low corner index of the window
-C  (I2_W, J2_W);    right-high corner index of the window
-C  IM_W, JM_W:      maximum index of the window (in coarse grid)
-C  
-C
-C ======
-C Output
-C ======
-C
-C Q: the updated mixing ratios at t+NDT (original values are over-written)
-C W(;;NL): large-scale vertical mass flux as diagnosed from the hydrostatic
-C          relationship. W will have the same unit as PS1 and PS2 (eg, mb).
-C          W must be divided by NDT to get the correct mass-flux unit.
-C          The vertical Courant number C = W/delp_UPWIND, where delp_UPWIND
-C          is the pressure thickness in the "upwind" direction. For example,
-C          C(k) = W(k)/delp(k)   if W(k) > 0;
-C          C(k) = W(k)/delp(k+1) if W(k) < 0.
-C              ( W > 0 is downward, ie, toward surface)
-C PS2: predicted PS at t+NDT (original values are over-written)
-C
-C Memory usage:
-C This code is optimized for speed. it requres 18 dynamically allocated
-C 3D work arrays (IM,JM,NL) regardless of the value of NC.
-C Older versions (version 4 or 4.5) use less memory if NC is small.
+! NDT (integer): time step in seconds (need not be constant during the course of
+!      the integration). Suggested value: 30 min. for 4x5, 15 min. for 2x2.5
+!      (Lat-Lon) resolution. Smaller values maybe needed if the model
+!      has a well-resolved stratosphere and Max(V) > 225 m/s
+!
+! J1 determines the size of the polar cap:
+!    South polar cap edge is located at -90 + (j1-1.5)*180/(JM-1) deg.
+!    North polar cap edge is located at  90 - (j1-1.5)*180/(JM-1) deg.
+! There are currently only two choices (j1=2 or 3).
+! IM must be an even integer if j1 = 2. Recommended value: J1=3.
+!
+! IORD, JORD, and KORD are integers controlling various options in E-W, N-S,
+! and vertical transport, respectively. 
+!
+!
+!  _ORD=
+!        1: 1st order upstream scheme (too diffusive, not a REAL*8 option; it
+!           can be used for debugging purposes; this is THE only known "linear"
+!           monotonic advection scheme.).
+!        2: 2nd order van Leer (full monotonicity constraint;
+!           see Lin et al 1994, MWR)
+!        3: monotonic PPM* (Collela & Woodward 1984)
+!        4: semi-monotonic PPM (same as 3, but overshoots are allowed)
+!        5: positive-definite PPM (constraint on the subgrid distribution is
+!           only strong enough to prevent generation of negative values;
+!           both overshoots & undershootes are possible).
+!        6: un-constrained PPM (nearly diffusion free; faster but
+!           positivity of the subgrid distribution is not quaranteed. Use
+!           this option only when the fields and winds are very smooth or
+!           when MFCT=.true.)
+!        7: Huynh/Van Leer/Lin full monotonicity constraint
+! Only KORD can be set to 7 to enable the use of Huynh's 2nd monotonicity
+! constraint for piece-wise parabolic distribution.
+!
+! *PPM: Piece-wise Parabolic Method
+!
+! Recommended values:
+! IORD=JORD=3 for high horizontal resolution.
+! KORD=6 or 7  if MFCT=.true.
+! KORD=3 or 7  if MFCT=.false.
+!
+! The implicit numerical diffusion decreases as _ORD increases.
+! DO not use option 4 or 5 for non-positive definite scalars
+! (such as Ertel Potential Vorticity).
+!
+! If numerical diffusion is a problem (particularly at low horizontal
+! resolution) then the following setup is recommended:
+! IORD=JORD=KORD=6 and MFCT=.true.
+!
+! AE: Radius of the sphere (meters).
+!     Recommended value for the planet earth: 6.371E6
+!
+! FILL (logical):   flag to do filling for negatives (see note below).
+! MFCT (logical):   flag to do a Zalesak-type Multidimensional Flux
+!                   correction. It shouldn't be necessary to call the
+!                   filling routine when MFCT is true.
+!
+! Umax: Estimate (upper limit) of the maximum U-wind speed (m/s).
+! (225 m/s is a good value for troposphere model; 300 m/s otherwise)
+!
+!  *****************************************************************
+!  **Input added for window calculation (2x2.5) (yxw, 8/21/01)******
+!  *****************************************************************
+!
+!  I0_W, J0_W:      window index offset
+!  (I1_W, J1_W):    left-low corner index of the window
+!  (I2_W, J2_W);    right-high corner index of the window
+!  IM_W, JM_W:      maximum index of the window (in coarse grid)
+!  
+!
+! ======
+! Output
+! ======
+!
+! Q: the updated mixing ratios at t+NDT (original values are over-written)
+! W(;;NL): large-scale vertical mass flux as diagnosed from the hydrostatic
+!          relationship. W will have the same unit as PS1 and PS2 (eg, mb).
+!          W must be divided by NDT to get the correct mass-flux unit.
+!          The vertical Courant number C = W/delp_UPWIND, where delp_UPWIND
+!          is the pressure thickness in the "upwind" direction. For example,
+!          C(k) = W(k)/delp(k)   if W(k) > 0;
+!          C(k) = W(k)/delp(k+1) if W(k) < 0.
+!              ( W > 0 is downward, ie, toward surface)
+! PS2: predicted PS at t+NDT (original values are over-written)
+!
+! Memory usage:
+! This code is optimized for speed. it requres 18 dynamically allocated
+! 3D work arrays (IM,JM,NL) regardless of the value of NC.
+! Older versions (version 4 or 4.5) use less memory if NC is small.
 
-C =====
-C NOTES:
-C =====
-C
-C This forward-in-time upstream-biased transport scheme degenerates to
-C the 2nd order center-in-time center-in-space mass continuity eqn.
-C if Q = 1 (constant fields will remain constant). This degeneracy ensures
-C that the computed vertical velocity to be identical to GEOS-1 GCM
-C for on-line transport.
-C
-C A larger polar cap is used if j1=3 (recommended for C-Grid winds or when
-C winds are noisy near poles).
-C
-C The user needs to change the parameter Jmax or Kmax if the resolution
-C is greater than 0.25 deg in N-S or 500 layers in the vertical direction.
-C (this TransPort Core is otherwise resolution independent and can be used
-C as a library routine).
+! =====
+! NOTES:
+! =====
+!
+! This forward-in-time upstream-biased transport scheme degenerates to
+! the 2nd order center-in-time center-in-space mass continuity eqn.
+! if Q = 1 (constant fields will remain constant). This degeneracy ensures
+! that the computed vertical velocity to be identical to GEOS-1 GCM
+! for on-line transport.
+!
+! A larger polar cap is used if j1=3 (recommended for C-Grid winds or when
+! winds are noisy near poles).
+!
+! The user needs to change the parameter Jmax or Kmax if the resolution
+! is greater than 0.25 deg in N-S or 500 layers in the vertical direction.
+! (this TransPort Core is otherwise resolution independent and can be used
+! as a library routine).
  
-C PPM is 4th order accurate when grid spacing is uniform (x & y); 3rd
-C order accurate for non-uniform grid (vertical sigma coord.).
+! PPM is 4th order accurate when grid spacing is uniform (x & y); 3rd
+! order accurate for non-uniform grid (vertical sigma coord.).
  
-C Time step is limitted only by transport in the meridional direction.
-C (the FFSL scheme is not implemented in the meridional direction).
+! Time step is limitted only by transport in the meridional direction.
+! (the FFSL scheme is not implemented in the meridional direction).
  
-C Since only 1-D limiters are applied, negative values could
-C potentially be generated when large time step is used and when the
-C initial fields contain discontinuities.
-C This does not necessarily imply the integration is unstable.
-C These negatives are typically very small. A filling algorithm is
-C activated if the user set "fill" to be true.
-C Alternatively, one can use the MFCT option to enforce monotonicity.
+! Since only 1-D limiters are applied, negative values could
+! potentially be generated when large time step is used and when the
+! initial fields contain discontinuities.
+! This does not necessarily imply the integration is unstable.
+! These negatives are typically very small. A filling algorithm is
+! activated if the user set "fill" to be true.
+! Alternatively, one can use the MFCT option to enforce monotonicity.
 
-      ! References to F90 modules
-      USE TOMAS_MOD,    ONLY : IBINS   !(win, 7/17/09)
+      USE TOMAS_MOD
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h"
 
-C ****6***0*********0*********0*********0*********0*********0**********72
+! ****6***0*********0*********0*********0*********0*********0**********72
       PARAMETER (Jmax = 721, kmax = 200 ) 
-C  add ghost zone depth here (yxw, 08/23/01)       
-C ****6***0*********0*********0*********0*********0*********0**********72
+!  add ghost zone depth here (yxw, 08/23/01)       
+! ****6***0*********0*********0*********0*********0*********0**********72
  
-C Input-Output arrays
+! Input-Output arrays
  
       REAL*8 Q(IM,JM,NL,NC),PS1(IM,JM),PS2(IM,JM),W(IM,JM,NL),
      &     U(IM,JM,NL),V(IM,JM,NL),AP(NL+1),BP(NL+1)
       LOGICAL  ZCROSS, FILL, MFCT, deform
  
-C Local dynamic arrays
+! Local dynamic arrays
 
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -466,7 +465,7 @@ C Local dynamic arrays
  
       INTEGER JS_w(NL),JN_w(NL),j1_in,j2_in
  
-C Local static  arrays
+! Local static  arrays
  
       REAL*8 DTDX_w(-10:Jmax), DTDX5_w(-10:Jmax), 
      &     acosp_w(-10:Jmax),
@@ -476,7 +475,7 @@ C Local static  arrays
       DATA NDT0, NSTEP /0, 0/
       DATA ZCROSS /.true./
 
-C Saved internal variables:
+! Saved internal variables:
       SAVE DTDY_w, DTDY5_w, JS0, JN0,  DTDX_w, out, j1_in,j2_in,
      &     DTDX5_w, acosp_w, COSP_w, COSE_w, DAP,DBK
 
@@ -496,11 +495,11 @@ C Saved internal variables:
       LOGICAL :: PRESSURE_FIX
       PRESSURE_FIX = .TRUE.
 
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================ 
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================ 
       deform = .false.
       JM1 = 181 -1
 !%%%
@@ -511,9 +510,9 @@ C============================================================================
 !%%% 
       NSTEP = NSTEP + 1  
  
-C****6***0*********0*********0*********0*********0*********0**********72
-C Initialization
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Initialization
+!****6***0*********0*********0*********0*********0*********0**********72
  
       ! For aerosol mass flux modification (win, 7/17/09)
       FXNK(:,:,:,:) = 0d0
@@ -585,8 +584,8 @@ C****6***0*********0*********0*********0*********0*********0**********72
  
       WRITE(6,*) 'IM=',IM,' JM=',JM,' NL=',NL,' j1=',j1
       WRITE(6,*) 'I0=',I0,' J0=',J0
-C
-C     write window size information (yxw, 8/21/2001)
+!
+!     write window size information (yxw, 8/21/2001)
 
       WRITE(6,*) 'IM_W=', IM_W, ' JM_W=', JM_W
       WRITE(6,*) 'I1_W=', I1_W, ' I2_W=', I2_W
@@ -614,25 +613,25 @@ C     write window size information (yxw, 8/21/2001)
       PI = 4. * ATAN(1.)
       DL = 2.*PI / float(360)
       DP =    PI / float(JM1)
-C
-C     for window calculation, we have to redefine DL and DP. But since it's for
-C     2x2.5, we skip this step for simplicity. (yxw, 8/21/2001)
-C
+!
+!     for window calculation, we have to redefine DL and DP. But since it's for
+!     2x2.5, we skip this step for simplicity. (yxw, 8/21/2001)
+!
       IF(IGD.EQ.0) THEN
-C Compute analytic cosine at cell edges
-C
-C also need to change cosa for window calculation (yxw, 8/21/2001)
-C 
+! Compute analytic cosine at cell edges
+!
+! also need to change cosa for window calculation (yxw, 8/21/2001)
+! 
          CALL COSA(COSP_W,COSE_W,JM_W,J0_W,PI,DP,IGZD,J0,JMAX)
       ELSE
-C Define cosine consistent with GEOS-GCM (using dycore2.0 or later)
+! Define cosine consistent with GEOS-GCM (using dycore2.0 or later)
          CALL COSC(COSP_W,COSE_W,JM_W,J1_W,J2_W,PI,DP,IGZD,JMAX)
       ENDIF
 
       DO J=-IGZD,JM_W+IGZD+1
          ACOSP_W(J) = 1./COSP_W(J)
       ENDDO
-c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
+!15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
  
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -693,18 +692,18 @@ c15    write (6,*) 'cosp(',j+j0_w+j0,')=',cosp_w(j)
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
       ENDIF              ! END INITIALIZATION.
  
-C****6***0*********0*********0*********0*********0*********0**********72
-C Compute Courant number
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Compute Courant number
+!****6***0*********0*********0*********0*********0*********0**********72
 
       if(IGD.eq.0) then
  
-C Convert winds on A-Grid to Courant # on C-Grid.
+! Convert winds on A-Grid to Courant # on C-Grid.
 
 #if   defined( multitask  )
 #if   defined( CRAY       ) 
-CMIC$ do all shared(NL,im,jm1,jm,U,V,dtdx5_w,dtdy5_w,CRX_w,CRY_w,im_w,jm_w)
-CMIC$* private(i,j,k)
+!MIC$ do all shared(NL,im,jm1,jm,U,V,dtdx5_w,dtdy5_w,CRX_w,CRY_w,im_w,jm_w)
+!MIC$* private(i,j,k)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K )
 #endif
@@ -713,8 +712,8 @@ CMIC$* private(i,j,k)
       do 900 k=1,NL
       DO J=1-IGZD,JM_W+IGZD
       DO I=1-IGZD,IM_W+1+IGZD
-C     calculate Courant # at grid edge, using offsetted wind (yxw 08/23/01)
-C
+!     calculate Courant # at grid edge, using offsetted wind (yxw 08/23/01)
+!
          CRX_w(i,j,k) = dtdx5_w(j)*(U(i+i0_w,j+j0_w,k)+
      &        U(i-1+i0_w,j+j0_w,k))
 !%%%
@@ -744,20 +743,20 @@ C
 
       else
 
-C Convert winds on C-grid to Courant #
-C Beware of the index shifting!! (GEOS-GCM)
+! Convert winds on C-grid to Courant #
+! Beware of the index shifting!! (GEOS-GCM)
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all shared(NL,im,jm1,jm,U,V,dtdx_w,dtdy_w,CRX_w,CRY_w,jm_w,im_w)
-CMIC$* private(i,j,k)
+!MIC$ do all shared(NL,im,jm1,jm,U,V,dtdx_w,dtdy_w,CRX_w,CRY_w,jm_w,im_w)
+!MIC$* private(i,j,k)
 #else 
 !$OMP PARALLEL DO PRIVATE( I, J, K )
 #endif
 #endif
 
-C  calculte Courant # using offsetted wind (yxw,08/23/01)
-C
+!  calculte Courant # using offsetted wind (yxw,08/23/01)
+!
       DO 65 k=1,NL
 
       DO J =1-IGZD, JM_W+IGZD
@@ -799,8 +798,8 @@ C
          ! added parallel loop #if statements (bmy, 10/11/01)
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all shared(NL,IM,JM,JM1,COSE,XMASS_PF,YMASS_PF,DELP2,CRX,CRY)
-CMIC$* private(I,J,K,D5)
+!MIC$ do all shared(NL,IM,JM,JM1,COSE,XMASS_PF,YMASS_PF,DELP2,CRX,CRY)
+!MIC$* private(I,J,K,D5)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K, D5 )
 #endif
@@ -895,8 +894,8 @@ CMIC$* private(I,J,K,D5)
          ! added parallel loop #if statements (bmy, 10/11/01)
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all shared(NL,IM,JM,XMASS_PF,PU,YMASS_PF,DELP2,COSE,CRX,CRY)
-CMIC$* private(I,J,K,D5)
+!MIC$ do all shared(NL,IM,JM,XMASS_PF,PU,YMASS_PF,DELP2,COSE,CRX,CRY)
+!MIC$* private(I,J,K,D5)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K, D5 )
 #endif
@@ -940,24 +939,24 @@ CMIC$* private(I,J,K,D5)
       !=================================================================
 
 
-C**********************************************************************
-C Check whether CRY_w is larger than one  (yxw, eulerian)
-C********************************************************************** 
+!**********************************************************************
+! Check whether CRY_w is larger than one  (yxw, eulerian)
+!********************************************************************** 
       IF ( maxval(CRY_w) .gt. 1.0) THEN
          write (6,*) 'CRY is larger than one!!'
          write (6,*) 'Decrease timestep NTDT!!'
          STOP
       ENDIF
  
-C****6***0*********0*********0*********0*********0*********0**********72
-C Find JN and JS
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Find JN and JS
+!****6***0*********0*********0*********0*********0*********0**********72
  
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope shared(JS_w,JN_w,CRX_w,CRY_w,PS2,U,V,DPI_w,ymass_w,delp2_w,PU_W)
-CMIC$* shared(xmass_w)
-CMIC$* private(i,j,k,sum1,sum2,D5)
+!MIC$ do all autoscope shared(JS_w,JN_w,CRX_w,CRY_w,PS2,U,V,DPI_w,ymass_w,delp2_w,PU_W)
+!MIC$* shared(xmass_w)
+!MIC$* private(i,j,k,sum1,sum2,D5)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2, D5 )
 #endif
@@ -1025,22 +1024,22 @@ CMIC$* private(i,j,k,sum1,sum2,D5)
       endif
       endif
 
-C****6***0*********0*********0*********0*********0*********0**********72
-C ***** Compute horizontal mass fluxes *****
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! ***** Compute horizontal mass fluxes *****
+!****6***0*********0*********0*********0*********0*********0**********72
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% now it is the window version,using offsetted pressure fields 
 !%%% Rewrite DO-loop limits as necessary 
 !%%% 
-C delp = pressure thickness: the psudo-density in a hydrostatic system.
+! delp = pressure thickness: the psudo-density in a hydrostatic system.
       DO J = 0, JM_W+1
       DO I = 0, IM_W+1
          DELP2_W(I,J,K) = DAP(K) + DBK(K)*PS2(I+I0_W,J+J0_W)
       ENDDO
       ENDDO
 
-C N-S componenet
+! N-S componenet
  
       do j=1,jm_w+1
       D5 = 0.5 * COSE_w(j)
@@ -1077,7 +1076,7 @@ C N-S componenet
 !%%%      DPI(i, 1,k) = sum1
 !%%% 100   DPI(i,JM,k) = sum2
  
-C E-W component
+! E-W component
       do J = 1, JM_W
       DO I = 1, IM_W+1
          PU_W(I,J,K) = 0.5 * (DELP2_W(I,J,K) + DELP2_W(I-1,J,K))
@@ -1108,9 +1107,9 @@ C E-W component
 !%%%    DO 130 j=j1,j2
 !%%% 130   DPI(IM,j,k) = DPI(IM,j,k) + xmass(IM,j,k) - xmass(1,j,k)
 !%%% 
-C****6***0*********0*********0*********0*********0*********0**********72
-C Compute Courant number at cell center
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Compute Courant number at cell center
+!****6***0*********0*********0*********0*********0*********0**********72
  
       DO J = 1-IGZD, JM_W+IGZD
       DO I = 1-IGZD, IM_W+IGZD
@@ -1168,13 +1167,13 @@ C****6***0*********0*********0*********0*********0*********0**********72
 !C Compute vertical mass flux (same dimensional unit as PS)
 !C****6***0*********0*********0*********0*********0*********0**********72
  
-C compute total column mass CONVERGENCE.
+! compute total column mass CONVERGENCE.
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope shared(im,jm,DPI_w,PS1,PS2,W_w,DBK,jm_w,im_w)
-CMIC$* shared(DPI_w,PS1,PS2,W_w,DBK)
-CMIC$* private(i,j,k,DG1_w)
+!MIC$ do all autoscope shared(im,jm,DPI_w,PS1,PS2,W_w,DBK,jm_w,im_w)
+!MIC$* shared(DPI_w,PS1,PS2,W_w,DBK)
+!MIC$* private(i,j,k,DG1_w)
 #else 
 !$OMP PARALLEL DO PRIVATE( I, J, K, DG1_w )
 #endif
@@ -1198,11 +1197,11 @@ CMIC$* private(i,j,k,DG1_w)
 
       do 360 i=1,IM_w
  
-C Compute PS2 (PS at n+1) using the hydrostatic assumption.
-C Changes (increases) to surface pressure = total column mass convergence
+! Compute PS2 (PS at n+1) using the hydrostatic assumption.
+! Changes (increases) to surface pressure = total column mass convergence
          PS2(i+i0_w,j+j0_w)  = PS1(i+i0_w,j+j0_w) + DG1_w(i)
  
-C compute vertical mass flux from mass conservation principle.
+! compute vertical mass flux from mass conservation principle.
          W_w(i,j,1) = DPI_w(i,j,1) - DBK(1)*DG1_w(i)
          W_w(i,j,NL) = 0.
 360   continue
@@ -1217,9 +1216,9 @@ C compute vertical mass flux from mass conservation principle.
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all
-CMIC$* shared(deform,NL,im,jm,delp_w,delp1_w,delp2_w,DPI_w,DAP,DBK,PS1,PS2)
-CMIC$* private(i,j,k)
+!MIC$ do all
+!MIC$* shared(deform,NL,im,jm,delp_w,delp1_w,delp2_w,DPI_w,DAP,DBK,PS1,PS2)
+!MIC$* private(i,j,k)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K )
 #endif
@@ -1235,7 +1234,7 @@ CMIC$* private(i,j,k)
       ENDDO
       ENDDO
  
-C Check deformation of the flow fields
+! Check deformation of the flow fields
       if(deform) then
 
 !%%%
@@ -1254,9 +1253,9 @@ C Check deformation of the flow fields
       endif
 390   continue
 
-C****6***0*********0*********0*********0*********0*********0**********72
-C Do transport one tracer at a time.
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Do transport one tracer at a time.
+!****6***0*********0*********0*********0*********0*********0**********72
  
       DO 5000 IC=1,NC
 
@@ -1291,7 +1290,7 @@ C****6***0*********0*********0*********0*********0*********0**********72
 !%%%      endif
 !%%%
 
-C Initialize DQ
+! Initialize DQ
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% use offsetted tracer concentration Q, and save into DQ_W
@@ -1303,7 +1302,7 @@ C Initialize DQ
       ENDDO
       ENDDO
 
-C E-W advective cross term 
+! E-W advective cross term 
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Pass new arguments as necessary (e.g. IM_W, JM_W, etc)
@@ -1319,7 +1318,7 @@ C E-W advective cross term
       ENDDO
       ENDDO
  
-C N-S advective cross term
+! N-S advective cross term
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Rewrite DO-loop limits as necessary
@@ -1346,9 +1345,9 @@ C N-S advective cross term
       ENDDO
       ENDDO
 
-C****6***0*********0*********0*********0*********0*********0**********72
-C compute flux in  E-W direction
-C Return flux contribution from TPCORE in FX1_TP array (bey, 9/28/00)
+!****6***0*********0*********0*********0*********0*********0**********72
+! compute flux in  E-W direction
+! Return flux contribution from TPCORE in FX1_TP array (bey, 9/28/00)
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Call XTP, with window arrays etc.
@@ -1357,8 +1356,8 @@ C Return flux contribution from TPCORE in FX1_TP array (bey, 9/28/00)
      &       wk_w(:,:,2),CRX_w(:,:,k),fx_w(:,:,k),xmass_w(:,:,k),IORD,
      &       fx1_tp_w(:,:,k),i0_w,j0_w,i0,J0)
 
-C compute flux in  N-S direction
-C Return flux contribution from TPCORE in FY1_TP array (bey, 9/28/00)
+! compute flux in  N-S direction
+! Return flux contribution from TPCORE in FY1_TP array (bey, 9/28/00)
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Call YTP with window arrays etc.
@@ -1370,9 +1369,9 @@ C Return flux contribution from TPCORE in FY1_TP array (bey, 9/28/00)
 
       if(ZCROSS) then
 
-C qz is the horizontal advection modified value for input to th=1,5
-C vertical transport operator FZPPM
-C Note: DQ contains only first order upwind contribution.
+! qz is the horizontal advection modified value for input to th=1,5
+! vertical transport operator FZPPM
+! Note: DQ contains only first order upwind contribution.
 
          DO J = 1, JM_W
          DO I = 1, IM_W
@@ -1391,9 +1390,9 @@ C Note: DQ contains only first order upwind contribution.
       ENDIF
 
 2500  continue     ! k-loop
-C****6***0*********0*********0*********0*********0*********0**********72
-C Compute fluxes in the vertical direction
-C Return flux contribution from FZPPM in FZ1_TP for ND26 (bey, 9/28/00)
+!****6***0*********0*********0*********0*********0*********0**********72
+! Compute fluxes in the vertical direction
+! Return flux contribution from FZPPM in FZ1_TP for ND26 (bey, 9/28/00)
 !%%% 
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Call FZPPM with window arrays
@@ -1403,51 +1402,51 @@ C Return flux contribution from FZPPM in FZ1_TP for ND26 (bey, 9/28/00)
 
 !C****6***0*********0*********0*********0*********0*********0**********72
 
-C Final update
+! Final update
 
 !With the addition for TOMAS, I don't know exactly how to make the 
 !new code parallel, so c/o this part for now (win, 8/11/09)
-c$$$#if   defined( multitask  )
-c$$$#if   defined( CRAY       )
-c$$$CMIC$ do all autoscope
-c$$$CMIC$* private(i,j,k,sum1,sum2)
-c$$$#else
-c$$$!$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
-c$$$#endif
-c$$$#endif 
+!$$$#if   defined( multitask  )
+!$$$#if   defined( CRAY       )
+!$$$CMIC$ do all autoscope
+!$$$CMIC$* private(i,j,k,sum1,sum2)
+!$$$#else
+!$$$!$OMP PARALLEL DO PRIVATE( I, J, K, SUM1, SUM2 )
+!$$$#endif
+!$$$#endif 
 
 !Prior to modification for TOMAS aerosol (win, 7/17/09)
-c$$$      DO 101 K = 1, NL
-c$$$
-c$$$      DO J = 1, JM_W
-c$$$      DO I = 1, IM_W
-c$$$         DQ_W(I,J,K) = DQ_W(I,J,K)   
-c$$$     &               +   FX_W(I,J,K) - FX_W(I+1,J,K)
-c$$$     &               + ( FY_W(I,J,K) - FY_W(I,J+1,K) ) * ACOSP_W(J)
-c$$$     &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
-c$$$      ENDDO
-c$$$      ENDDO
-c$$$
-c$$$!%%% 
-c$$$!%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
-c$$$!%%% Polar cap stuff, useless for nested simulation
-c$$$!%%%      sum1 = fy(IM,j1  ,k)
-c$$$!%%%      sum2 = fy(IM,J2+1,k)
-c$$$!%%%
-c$$$!%%%      do i=1,IM-1
-c$$$!%%%         sum1 = sum1 + fy(i,j1  ,k)
-c$$$!%%%         sum2 = sum2 + fy(i,J2+1,k)
-c$$$!%%%      enddo
-c$$$!%%% 
-c$$$!%%%      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP + fz(1, 1,k) - fz(1, 1,k+1)
-c$$$!%%%      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP + fz(1,JM,k) - fz(1,JM,k+1)
-c$$$!%%% 
-c$$$!%%%      do i=2,IM
-c$$$!%%%      DQ(i, 1,k) = DQ(1, 1,k)
-c$$$!%%%      DQ(i,JM,k) = DQ(1,JM,k)
-c$$$!%%%      enddo
-c$$$!%%%
-c$$$101   continue
+!$$$      DO 101 K = 1, NL
+!$$$
+!$$$      DO J = 1, JM_W
+!$$$      DO I = 1, IM_W
+!$$$         DQ_W(I,J,K) = DQ_W(I,J,K)   
+!$$$     &               +   FX_W(I,J,K) - FX_W(I+1,J,K)
+!$$$     &               + ( FY_W(I,J,K) - FY_W(I,J+1,K) ) * ACOSP_W(J)
+!$$$     &               +   FZ_W(I,J,K) - FZ_W(I,J,K+1)
+!$$$      ENDDO
+!$$$      ENDDO
+!$$$
+!$$$!%%% 
+!$$$!%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
+!$$$!%%% Polar cap stuff, useless for nested simulation
+!$$$!%%%      sum1 = fy(IM,j1  ,k)
+!$$$!%%%      sum2 = fy(IM,J2+1,k)
+!$$$!%%%
+!$$$!%%%      do i=1,IM-1
+!$$$!%%%         sum1 = sum1 + fy(i,j1  ,k)
+!$$$!%%%         sum2 = sum2 + fy(i,J2+1,k)
+!$$$!%%%      enddo
+!$$$!%%% 
+!$$$!%%%      DQ(1, 1,k) = DQ(1, 1,k) - sum1*RCAP + fz(1, 1,k) - fz(1, 1,k+1)
+!$$$!%%%      DQ(1,JM,k) = DQ(1,JM,k) + sum2*RCAP + fz(1,JM,k) - fz(1,JM,k+1)
+!$$$!%%% 
+!$$$!%%%      do i=2,IM
+!$$$!%%%      DQ(i, 1,k) = DQ(1, 1,k)
+!$$$!%%%      DQ(i,JM,k) = DQ(1,JM,k)
+!$$$!%%%      enddo
+!$$$!%%%
+!$$$101   continue
 !ending of original code before addition for TOMAS (win, 7/17/09)
 
 !Modification for TOMAS aerosol (win, 7/17/09)
@@ -1618,9 +1617,9 @@ C****6***0*********0*********0*********0*********0*********0**********72
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all
-CMIC$* shared(q,IC,NL,j1,im,jm,jm1,DQ_w,delp2_w)
-CMIC$* private(i,j,k)
+!MIC$ do all
+!MIC$* shared(q,IC,NL,j1,im,jm,jm1,DQ_w,delp2_w)
+!MIC$* private(i,j,k)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K )
 #endif
@@ -1655,14 +1654,14 @@ CMIC$* private(i,j,k)
 
       subroutine cosa(cosp,cose,jm_w,j0_w,PI,DP,igzd,j0,Jmax)  
 !cosa_w (yxw, 8/23/2001)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 cosp(-10:Jmax),cose(-10:Jmax),
      &      sine(-10:jm_w+igzd+2)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Rewrite DO-loop boundaries  
@@ -1676,7 +1675,7 @@ C============================================================================
          COSP(J) = (SINE(J+1)-SINE(J))/DP
       ENDDO
  
-C Define cosine at edges..
+! Define cosine at edges..
 
       DO J = 1-IGZD, JM_W+IGZD+1
          COSE(J) = 0.5 * (COSP(J-1)+COSP(J))
@@ -1688,13 +1687,13 @@ C Define cosine at edges..
 !------------------------------------------------------------------------------
 
       subroutine cosc(cosp,cose,jm_w,J1_w,j2_w,PI,DP,igzd,Jmax) 
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 cosp(-10:Jmax),cose(-10:Jmax)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Rewrite DO-loop boundaries  
@@ -1720,16 +1719,16 @@ C============================================================================
 !------------------------------------------------------------------------------
 
       subroutine filew(q,qtmp,IMR,JNP,ipx,tiny, fx)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 q(IMR,*),qtmp(JNP,IMR), fx(IMR+1,JNP)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
       ipx = 0
-C Copy & swap direction for vectorization.
+! Copy & swap direction for vectorization.
       do i=1,imr
       do j=1,jnp
          qtmp(j,i) = q(i,j)
@@ -1799,12 +1798,12 @@ c east
 !%%%
       endif            
 75    continue
-C
+!
       if(ipx.ne.0) then
       do 85 j=1,jnp
       do 85 i=1,imr
 85    q(i,j) = qtmp(j,i)
-C      else
+!      else
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (bmy, 3/10/03)
 !%%% Polar cap stuff, useless for nested simulation
@@ -1818,17 +1817,17 @@ C      else
 !------------------------------------------------------------------------------
 
       subroutine filns(q,IMR,JNP,cosp,acosp,ipy,tiny,DP,fy,Jmax)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 q(IMR,*),cosp(-10:Jmax),acosp(-10:Jmax), fy(IMR,JNP+1)
       LOGICAL first
       DATA first /.true./
-C     SAVE cap1
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
+!     SAVE cap1
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
       if(first) then
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (bmy, 3/10/03)
@@ -1838,21 +1837,21 @@ C
 !%%%
       first = .false.
       endif
-C
+!
       ipy = 0
       do 55 j=2,jNP-1
       DO 55 i=1,IMR
       IF(q(i,j).LT.0.) THEN
       ipy =  1
       dq  = - q(i,j)*cosp(j)
-C North
+! North
       dn = q(i,j+1)*cosp(j+1)
       d0 = max(0.,dn)
       d1 = min(dq,d0)
       q(i,j+1) = (dn - d1)*acosp(j+1)
       fy(i,j+1) = fy(i,j+1)-d1  !(yxw,02/09/2003)
       dq = dq - d1
-C South
+! South
       ds = q(i,j-1)*cosp(j-1)
       d0 = max(0.,ds)
       d2 = min(dq,d0)
@@ -1862,13 +1861,13 @@ C South
       
       endif
 55    continue
-C
+!
       
       do i=1,imr
       IF(q(i,1).LT.0.) THEN
       ipy =  1
       dq  = - q(i,1)*cosp(1)
-C North
+! North
       dn = q(i,1+1)*cosp(1+1)
       d0 = max(0.,dn)
       d1 = min(dq,d0)
@@ -1884,7 +1883,7 @@ C North
       IF(q(i,j).LT.0.) THEN
       ipy =  1
       dq  = - q(i,j)*cosp(j)
-C South
+! South
       ds = q(i,j-1)*cosp(j-1)
       d0 = max(0.,ds)
       d2 = min(dq,d0)
@@ -1923,17 +1922,17 @@ C South
 !------------------------------------------------------------------------------
 
       subroutine fxppm(IMR,UT,P,DC,fx1,fx2,IORD,igzd)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       PARAMETER ( R3 = 1./3., R23 = 2./3. )
       REAL*8 UT(1-igzd:imr+igzd+1),fx1(IMR+1),P(1-igzd:imr+igzd),
      &     DC(1-igzd:imr+igzd)
       REAL*8 AR(0:IMR+1),AL(0:IMR+1),A6(0:IMR+1),fx2(IMR+1)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C     
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!     
       LMT = IORD - 3
 
       DO i=0,IMR+1
@@ -1956,7 +1955,7 @@ C
       IF(LMT.LE.2) CALL LMTPPM_X(DC(:),A6(:),AR(:),
      &                     AL(:),P(:),IMR,IGZD,LMT)
 
-C Abs(UT(i)) < 1
+! Abs(UT(i)) < 1
       DO I=1,IMR+1
          IF(UT(I).GT.0.) THEN
             FX1(I) = P(I-1)
@@ -1968,7 +1967,7 @@ C Abs(UT(i)) < 1
      &                       A6(I)*(1.+R23*UT(I)))
          ENDIF
       ENDDO
-C
+!
       DO I=1,IMR+1
          FX2(I) = FX2(I) - FX1(I)
       ENDDO
@@ -1979,17 +1978,17 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE fyppm(C,P,DC,fy1,fy2,IMR,JNP,A6,AR,AL,JORD,igzd)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       PARAMETER ( R3 = 1./3., R23 = 2./3. )
       REAL*8 C(IMR,JNP+1),fy1(IMR,JNP+1),
      &     DC(IMR,-1:JNP+2) ,fy2(IMR,JNP+1), 
      &     P(IMR,-2:JNP+3)
       REAL*8 AR(IMR,0:JNP+1), AL(IMR,0:JNP+1),A6(IMR,0:JNP+1)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
 
       IMH = IMR / 2
       JMR = JNP - 1
@@ -2055,7 +2054,7 @@ C============================================================================
 !------------------------------------------------------------------------------
 
       SUBROUTINE FZPPM(P,fz,IMR,JNP,NL,DQ,WZ,delp,KORD,fz1_tp)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h" 
@@ -2065,7 +2064,7 @@ C****6***0*********0*********0*********0*********0*********0**********72
      &     P(IMR,JNP,NL),
      &     DQ(IMR,JNP,NL),
      &     fz(IMR,JNP,NL+1),delp(IMR,JNP,NL)
-C local 2d arrays
+! local 2d arrays
       REAL*8 AR(IMR,NL),AL(IMR,NL),A6(IMR,NL),delq(IMR,NL),DC(IMR,NL)
 
 ! bey, 6/20/00. for mass-flux diagnostic
@@ -2079,16 +2078,16 @@ C local 2d arrays
 !%%%     REAL*8 median
 !%%%     median(x,y,z) = min(max(x,y), max(y,z), max(z,x))
 !%%%
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================ 
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================ 
       km = NL
       km1 = NL-1
       LMT = max(KORD - 3, 0)
  
-C find global min/max
+! find global min/max
        
       ! VMAX1D causes bus errors on SGI.  Replace with F90 intrinsic
       ! functions "MAXVAL" and "MINVAL".  These functions produced
@@ -2101,11 +2100,11 @@ C find global min/max
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* shared(LMT,Tmax,Tmin,Bmax,Bmin,JNP,IMR)
-CMIC$* shared(fz,DQ,WZ,fz1_tp)
-CMIC$* private(i,j,k,c1,c2,tmp,qmax,qmin,A1,A2,d1,d2,qm,dp,c3)
-CMIC$* private(cmax,cmin,DC,delq,AR,AL,A6,CM,CP, qmp, lac)
+!MIC$ do all autoscope
+!MIC$* shared(LMT,Tmax,Tmin,Bmax,Bmin,JNP,IMR)
+!MIC$* shared(fz,DQ,WZ,fz1_tp)
+!MIC$* private(i,j,k,c1,c2,tmp,qmax,qmin,A1,A2,d1,d2,qm,dp,c3)
+!MIC$* private(cmax,cmin,DC,delq,AR,AL,A6,CM,CP, qmp, lac)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K, C1, C2, TMP, QMAX, QMIN, A1, A2,
 !$OMP+                     D1, D2, QM, DP, C3, CMAX, CMIN, DC, DELQ,
@@ -2139,12 +2138,12 @@ CMIC$* private(cmax,cmin,DC,delq,AR,AL,A6,CM,CP, qmp, lac)
       ENDDO
       ENDDO
 
-C****6***0*********0*********0*********0*********0*********0**********72
-C Compute the first guess at cell interface
-C First guesses are required to be continuous.
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! Compute the first guess at cell interface
+! First guesses are required to be continuous.
+!****6***0*********0*********0*********0*********0*********0**********72
  
-C Interior.
+! Interior.
  
       DO K = 3, KM1
       DO I = 1, IMR
@@ -2157,8 +2156,8 @@ C Interior.
       ENDDO
       ENDDO
 
-C Area preserving cubic with 2nd deriv. = 0 at the boundaries
-C Top
+! Area preserving cubic with 2nd deriv. = 0 at the boundaries
+! Top
       DO 10 I=1,IMR
          D1 = DELP(I,J,1)
          D2 = DELP(I,J,2)
@@ -2169,7 +2168,7 @@ C Top
          AL(I,2) = QM - 0.25*C1*D1*D2*(D2+3.*D1)
          AL(I,1) = D1*(2.*C1*D1**2-C3) + AL(I,2)
          DC(I,1) =  P(I,J,1) - AL(I,1)
-C No over- and undershoot condition
+! No over- and undershoot condition
          AL(I,1) = MAX(TMIN,AL(I,1))
          AL(I,1) = MIN(TMAX,AL(I,1))
          CMAX = MAX(P(I,J,1), P(I,J,2))
@@ -2178,7 +2177,7 @@ C No over- and undershoot condition
          AL(I,2) = MIN(CMAX,AL(I,2))
 10    CONTINUE
  
-C Bottom
+! Bottom
       DO 15 I=1,IMR
          D1 = DELP(I,J,KM )
          D2 = DELP(I,J,KM1)
@@ -2189,7 +2188,7 @@ C Bottom
          AL(I,KM) = QM - 0.25*C1*D1*D2*(D2+3.*D1)
          AR(I,KM) = D1*(2.*C1*D1**2-C3) + AL(I,KM)
          DC(I,KM) = AR(I,KM) -  P(I,J,KM)
-C No over- and undershoot condition
+! No over- and undershoot condition
          CMAX = MAX(P(I,J,KM), P(I,J,KM1))
          CMIN = MIN(P(I,J,KM), P(I,J,KM1))
          AL(I,KM) = MAX(CMIN,AL(I,KM))
@@ -2204,8 +2203,8 @@ C No over- and undershoot condition
       ENDDO
       ENDDO
  
-C f(s) = AL + s*[(AR-AL) + A6*(1-s)]         ( 0 <= s  <= 1 )
-C Top 2 layers
+! f(s) = AL + s*[(AR-AL) + A6*(1-s)]         ( 0 <= s  <= 1 )
+! Top 2 layers
       DO K=1,2
          DO I=1,IMR
             A6(I,K) = 3.*(P(I,J,K)+P(I,J,K) - (AL(I,K)+AR(I,K)))
@@ -2218,7 +2217,7 @@ C Top 2 layers
      &                 IMR,0)
       ENDDO
 
-C Interior.
+! Interior.
       IF(LMT.LE.2) THEN
          DO K=3,NL-2
             DO I=1,IMR
@@ -2235,7 +2234,7 @@ C Interior.
       ELSEIF(LMT .EQ. 4) THEN
 
 c****6***0*********0*********0*********0*********0*********0**********72
-C Huynh's 2nd constraint
+! Huynh's 2nd constraint
 c****6***0*********0*********0*********0*********0*********0**********72
 
       DO K=2, NL-1
@@ -2246,27 +2245,27 @@ c****6***0*********0*********0*********0*********0*********0**********72
 
       DO  K=3, NL-2
          DO  I=1, IMR
-C Right edges
+! Right edges
          QMP   = P(I,J,K)                 + 2.0*DELQ(I,K-1)
          LAC   = P(I,J,K) + 1.5*DC(I,K-1) + 0.5*DELQ(I,K-1)
          QMIN  = MIN(P(I,J,K), QMP, LAC)
          QMAX  = MAX(P(I,J,K), QMP, LAC)
-C        AR(I,K) = MEDIAN(AR(I,K), QMIN, QMAX)
+!        AR(I,K) = MEDIAN(AR(I,K), QMIN, QMAX)
          AR(I,K) = MIN(MAX(AR(I,K), QMIN), QMAX)
-C Left  edges
+! Left  edges
          QMP   = P(I,J,K)                 - 2.0*DELQ(I,K)
          LAC   = P(I,J,K) + 1.5*DC(I,K+1) - 0.5*DELQ(I,K)
          QMIN  = MIN(P(I,J,K), QMP, LAC)
          QMAX  = MAX(P(I,J,K), QMP, LAC)
 c        AL(i,k) = median(AL(i,k), qmin, qmax)
          AL(I,K) = MIN(MAX(AL(I,K), QMIN), QMAX)
-C Recompute A6
+! Recompute A6
          A6(I,K) = 3.*(2.*P(I,J,K) - (AR(I,K)+AL(I,K)))
          ENDDO
       ENDDO
       ENDIF
 
-C Bottom 2 layers
+! Bottom 2 layers
       DO K=NL-1,NL
          DO I=1,IMR
          A6(I,K) = 3.*(P(I,J,K)+P(I,J,K) - (AL(I,K)+AR(I,K)))
@@ -2340,22 +2339,22 @@ C Bottom 2 layers
 !------------------------------------------------------------------------------
 
       SUBROUTINE HILO(Q,IM,JM,QMAX,QMIN,BT,BD)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 q(IM,JM),Qmax(IM,JM),Qmin(IM,JM),bt(IM,*),bd(IM,*)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================ 
-C y-sweep
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================ 
+! y-sweep
       DO J = 1, JM
       DO I = 0, IM+1
          BT(I,J) = MAX(Q(I,J-1),Q(I,J),Q(I,J+1))
          BD(I,J) = MIN(Q(I,J-1),Q(I,J),Q(I,J+1))
       ENDDO
       ENDDO
-C
-C x-sweep
+!
+! x-sweep
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID (yxw, bmy, 3/10/03)
 !%%% Comment this line out
@@ -2432,24 +2431,24 @@ C x-sweep
 !------------------------------------------------------------------------------
 
       SUBROUTINE HILO3D(P,IM,JM,KM,PMAX,PMIN,QMAX,QMIN,BT,BD)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h" 
 
       REAL*8 P(IM+2,JM+2,km),Pmax(IM,JM,km),Pmin(IM,JM,km),
      &     Qmax(IM,JM,km),Qmin(IM,JM,km),bt(im,jm),bd(im,jm)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================ 
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================ 
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* shared(P,Qmax,Qmin,im,jm,j1,j2)
-CMIC$* private(k,bt,bd)
+!MIC$ do all autoscope
+!MIC$* shared(P,Qmax,Qmin,im,jm,j1,j2)
+!MIC$* private(k,bt,bd)
 #else
 !$OMP PARALLEL DO PRIVATE( K, BT, BD )
 #endif
@@ -2464,9 +2463,9 @@ CMIC$* private(k,bt,bd)
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* shared(Pmax,Pmin,Qmax,Qmin,im,jm,km,km1,km2)
-CMIC$* private(i,j)
+!MIC$ do all autoscope
+!MIC$* shared(Pmax,Pmin,Qmax,Qmin,im,jm,km,km1,km2)
+!MIC$* private(i,j)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J )
 #endif
@@ -2474,12 +2473,12 @@ CMIC$* private(i,j)
  
       DO J = 1, JM
       DO I = 1, IM
-C k=1 and k=km
+! k=1 and k=km
          PMAX(I,J, 1) = MAX(QMAX(I,J,  2),QMAX(I,J, 1))
          PMIN(I,J, 1) = MIN(QMIN(I,J,  2),QMIN(I,J, 1))
          PMAX(I,J,KM) = MAX(QMAX(I,J,KM1),QMAX(I,J,KM))
          PMIN(I,J,KM) = MIN(QMIN(I,J,KM1),QMIN(I,J,KM))
-C k=2 and k=km1
+! k=2 and k=km1
          PMAX(I,J,  2) = MAX(QMAX(I,J,  3),PMAX(I,J, 1))
          PMIN(I,J,  2) = MIN(QMIN(I,J,  3),PMIN(I,J, 1))
          PMAX(I,J,KM1) = MAX(QMAX(I,J,KM2),PMAX(I,J,KM))
@@ -2489,9 +2488,9 @@ C k=2 and k=km1
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* shared(Pmax,Pmin,Qmax,Qmin,im,jm,km,km1,km2)
-CMIC$* private(i,j,k)
+!MIC$ do all autoscope
+!MIC$* shared(Pmax,Pmin,Qmax,Qmin,im,jm,km,km1,km2)
+!MIC$* private(i,j,k)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, K )
 #endif
@@ -2512,32 +2511,32 @@ CMIC$* private(i,j,k)
 !------------------------------------------------------------------------------
 
       SUBROUTINE LMTPPM_X(DC,A6,AR,AL,P,IM,IGZD,LMT)
-C****6***0*********0*********0*********0*********0*********0**********72
-C
-C A6 =  CURVATURE OF THE TEST PARABOLA
-C AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
-C AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
-C DC =  0.5 * MISMATCH
-C P  =  CELL-AVERAGED VALUE
-C IM =  VECTOR LENGTH
-C
-C OPTIONS:
-C
-C LMT = 0: FULL MONOTONICITY
-C LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
-C LMT = 2: POSITIVE-DEFINITE CONSTRAINT
-C
+!****6***0*********0*********0*********0*********0*********0**********72
+!
+! A6 =  CURVATURE OF THE TEST PARABOLA
+! AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
+! AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
+! DC =  0.5 * MISMATCH
+! P  =  CELL-AVERAGED VALUE
+! IM =  VECTOR LENGTH
+!
+! OPTIONS:
+!
+! LMT = 0: FULL MONOTONICITY
+! LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
+! LMT = 2: POSITIVE-DEFINITE CONSTRAINT
+!
       PARAMETER ( R12 = 1./12. )
       REAL*8 A6(0:IM+1),AR(0:IM+1),AL(0:IM+1),
      &     P(1-igzd:im+igzd),DC(1-igzd:im+igzd)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
       IF(LMT.EQ.0) THEN
-C FULL CONSTRAINT
+! FULL CONSTRAINT
       DO 100 I=0,IM+1
          IF(DC(I).EQ.0.) THEN
             AR(I) = P(I)
@@ -2557,7 +2556,7 @@ C FULL CONSTRAINT
          ENDIF
  100  CONTINUE
       ELSEIF(LMT.EQ.1) THEN
-C SEMI-MONOTONIC CONSTRAINT
+! SEMI-MONOTONIC CONSTRAINT
          DO 150 I=0,IM+1
             IF(ABS(AR(I)-AL(I)) .GE. -A6(I)) GO TO 150
             IF(P(I).LT.AR(I) .AND. P(I).LT.AL(I)) THEN
@@ -2597,32 +2596,32 @@ C SEMI-MONOTONIC CONSTRAINT
 !------------------------------------------------------------------------------
 
       SUBROUTINE LMTPPM_Y(DC,A6,AR,AL,P,IM,JNP,LMT)
-C****6***0*********0*********0*********0*********0*********0**********72
-C
-C A6 =  CURVATURE OF THE TEST PARABOLA
-C AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
-C AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
-C DC =  0.5 * MISMATCH
-C P  =  CELL-AVERAGED VALUE
-C IM =  VECTOR LENGTH
-C
-C OPTIONS:
-C
-C LMT = 0: FULL MONOTONICITY
-C LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
-C LMT = 2: POSITIVE-DEFINITE CONSTRAINT
-C
+!****6***0*********0*********0*********0*********0*********0**********72
+!
+! A6 =  CURVATURE OF THE TEST PARABOLA
+! AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
+! AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
+! DC =  0.5 * MISMATCH
+! P  =  CELL-AVERAGED VALUE
+! IM =  VECTOR LENGTH
+!
+! OPTIONS:
+!
+! LMT = 0: FULL MONOTONICITY
+! LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
+! LMT = 2: POSITIVE-DEFINITE CONSTRAINT
+!
       PARAMETER ( R12 = 1./12. )
       REAL*8 A6(IM,0:JNP+1),AR(IM,0:JNP+1),AL(IM,0:JNP+1),
      &     P(IM,-2:JNP+3),DC(IM,-1:JNP+2)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
       IF(LMT.EQ.0) THEN
-C FULL CONSTRAINT
+! FULL CONSTRAINT
          DO 100 I=1,IM*(JNP+2)
             IF(DC(I,0).EQ.0.) THEN
                AR(I,0) = P(I,0)
@@ -2642,7 +2641,7 @@ C FULL CONSTRAINT
             ENDIF
  100     CONTINUE
       ELSEIF(LMT.EQ.1) THEN
-C SEMI-MONOTONIC CONSTRAINT
+! SEMI-MONOTONIC CONSTRAINT
       DO 150 I=1,IM*(JNP+2)
          IF(ABS(AR(I,0)-AL(I,0)) .GE. -A6(I,0)) GO TO 150
          IF(P(I,0).LT.AR(I,0) .AND. P(I,0).LT.AL(I,0)) THEN
@@ -2683,31 +2682,31 @@ C SEMI-MONOTONIC CONSTRAINT
 !------------------------------------------------------------------------------
 
       SUBROUTINE LMTPPM_Z(DC,A6,AR,AL,P,IM,LMT)
-C****6***0*********0*********0*********0*********0*********0**********72
-C
-C A6 =  CURVATURE OF THE TEST PARABOLA
-C AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
-C AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
-C DC =  0.5 * MISMATCH
-C P  =  CELL-AVERAGED VALUE
-C IM =  VECTOR LENGTH
-C
-C OPTIONS:
-C
-C LMT = 0: FULL MONOTONICITY
-C LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
-C LMT = 2: POSITIVE-DEFINITE CONSTRAINT
-C
+!****6***0*********0*********0*********0*********0*********0**********72
+!
+! A6 =  CURVATURE OF THE TEST PARABOLA
+! AR =  RIGHT EDGE VALUE OF THE TEST PARABOLA
+! AL =  LEFT  EDGE VALUE OF THE TEST PARABOLA
+! DC =  0.5 * MISMATCH
+! P  =  CELL-AVERAGED VALUE
+! IM =  VECTOR LENGTH
+!
+! OPTIONS:
+!
+! LMT = 0: FULL MONOTONICITY
+! LMT = 1: SEMI-MONOTONIC CONSTRAINT (NO UNDERSHOOTS)
+! LMT = 2: POSITIVE-DEFINITE CONSTRAINT
+!
       PARAMETER ( R12 = 1./12. )
       REAL*8 A6(IM),AR(IM),AL(IM),P(IM),DC(IM)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
       IF(LMT.EQ.0) THEN
-C FULL CONSTRAINT
+! FULL CONSTRAINT
          DO 100 I=1,IM
             IF(DC(I).EQ.0.) THEN
                AR(I) = P(I)
@@ -2727,7 +2726,7 @@ C FULL CONSTRAINT
             ENDIF
  100     CONTINUE
       ELSEIF(LMT.EQ.1) THEN
-C SEMI-MONOTONIC CONSTRAINT
+! SEMI-MONOTONIC CONSTRAINT
          DO 150 I=1,IM
             IF(ABS(AR(I)-AL(I)) .GE. -A6(I)) GO TO 150
             IF(P(I).LT.AR(I) .AND. P(I).LT.AL(I)) THEN
@@ -2768,7 +2767,7 @@ C SEMI-MONOTONIC CONSTRAINT
 
       SUBROUTINE QCKXYZ(Q,QTMP,IMR,JNP,NLAY,COSP,ACOSP,IC,NSTEP,DP,
      &           IGZD, JMAX,FX, FY, FZ)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       ! Added to pass C-preprocessor switches (bmy, 3/9/01)
 #     include "define.h" 
@@ -2780,19 +2779,19 @@ C****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 fx(IMR+1, JNP, NLAY), fy(IMR, JNP+1, NLAY), 
      &       fz(IMR, JNP, NLAY+1)          !(yxw, 02/09/2003)
       integer IP(kmax)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================ 
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================ 
       NLM1 = NLAY-1
 
-C Do horizontal filling.
+! Do horizontal filling.
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* private(i,j,L,qtmp)
+!MIC$ do all autoscope
+!MIC$* private(i,j,L,qtmp)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, L, QTMP )
 #endif
@@ -2828,12 +2827,12 @@ CMIC$* private(i,j,L,qtmp)
          LPZ = IPZ
       ENDIF
 
-C Do vertical filling.
+! Do vertical filling.
 
 #if   defined( multitask  )
 #if   defined( CRAY       )
-CMIC$ do all autoscope
-CMIC$* private(i,j,L,qup,qly,dup)
+!MIC$ do all autoscope
+!MIC$* private(i,j,L,qup,qly,dup)
 #else
 !$OMP PARALLEL DO PRIVATE( I, J, L, QUP, QLY, DUP )
 #endif
@@ -2842,7 +2841,7 @@ CMIC$* private(i,j,L,qup,qly,dup)
       DO 2000 J=1,JNP
 
          IF(IPZ .EQ. 1) THEN
-C Top layer
+! Top layer
             DO I=1,IMR
                IF(Q(I,J,1).LT.0.) THEN
                   Q(I,J,2) = Q(I,J,2) + Q(I,J,1)
@@ -2855,14 +2854,14 @@ C Top layer
          DO 225 L = LPZ,NLM1
             DO I=1,IMR
                IF( Q(I,J,L).LT.0.) THEN
-C From above
+! From above
                   QUP =  Q(I,J,L-1)
                   QLY = -Q(I,J,L)
                   DUP  = MIN(QLY,QUP)
                   Q(I,J,L-1) = QUP - DUP
                   Q(I,J,L  ) = DUP-QLY
                   FZ(I,J,L)= FZ(I,J,L-1) + DUP
-C Below
+! Below
                   Q(I,J,L+1) = Q(I,J,L+1) + Q(I,J,L) 
                   FZ(I,J,L+1)= FZ(I,J,L+1)+ Q(I,J,L) !(yxw, 02/09/2003)
                   Q(I,J,L)   = 0.
@@ -2870,17 +2869,17 @@ C Below
             ENDDO
  225     CONTINUE
  
-C BOTTOM LAYER
+! BOTTOM LAYER
          L = NLAY
          DO I=1,IMR
             IF( Q(I,J,L).LT.0.) THEN
-C From above 
+! From above 
                QUP = Q(I,J,NLM1)
                QLY = -Q(I,J,L)
                DUP = MIN(QLY,QUP)
                Q(I,J,NLM1) = QUP - DUP
                FZ(I,J,L) = FZ(I,J,L) + DUP !(yxw,02/09/2003)
-C From "below" the surface.
+! From "below" the surface.
                Q(I,J,L) = 0.
                FZ(I,J,L+1) = FZ(I,J,L+1) + DUP - QLY
             ENDIF
@@ -2894,15 +2893,15 @@ C From "below" the surface.
 
       SUBROUTINE XADV( IM_W, JM_W, P,   UA,   JS,   JN, ADX_W, 
      &                 IGZD, IMR,  JNP, I0_W, J0_W, I0, J0 ) !( yxw,08/23/01) 
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 p(IMR,JNP),adx_w(1-igzd:im_w+igzd,1-igzd:jm_w+igzd),
      & qtmp(1-igzd:im_w+igzd),UA(1-igzd:im_w+igzd,1-igzd:jm_w+igzd)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C     
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!     
       do 1309 j=1-igzd,jm_w+igzd
          if((J+j0_w+j0) .GT.JS  .and.(J+j0_w+j0).LT.JN) GO TO 1309
 
@@ -2946,10 +2945,10 @@ C
          ENDDO
  1309 CONTINUE
  
-C Eulerian upwind
+! Eulerian upwind
  
       DO J=JS+1-J0_W-J0,JN-1-J0_W-J0
-C
+!
       
          DO I=1-IGZD,IM_W+IGZD
             QTMP(I) = P(I+I0_W,J+J0_W)
@@ -2990,16 +2989,16 @@ C
 !------------------------------------------------------------------------------
 
       SUBROUTINE XMIST(IMR,P,DC,igzd)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       REAL*8 P(1-igzd:IMR+igzd),DC(1-igzd:IMR+igzd)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
-C 2nd order version.
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
+! 2nd order version.
+!
       DC(:)=0d0      ! initialization (yxw,09/28/01)
 
       DO I=2-IGZD,IMR+IGZD-1
@@ -3016,7 +3015,7 @@ C
 
       SUBROUTINE XTP(IM_W,JM_W,IGZD,JN,JS,PU,DQ,Q,C,FX2,XMASS,IORD,
      &                 FX1_TP,I0_W,J0_W,I0,J0)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       REAL*8 C(1-IGZD:IM_W+1+IGZD,1-IGZD:JM_W+IGZD),
      &     FX1(IM_W+1), DC(1-IGZD:IM_W+IGZD),
@@ -3027,11 +3026,11 @@ C****6***0*********0*********0*********0*********0*********0**********72
 ! bey, 6/20/00. for mass-flux diagnostic
       REAL*8 FX1_TP(IM_W,JM_W)
 
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
       IMP = im_w + 1
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -3042,15 +3041,15 @@ C============================================================================
 !%%%      j2vl = j2-jvan
 !%%%
       do 1310 j=1,jm_w
-C
+!
          do i=1-igzd,im_w+igzd
             qtmp(i) = q(i,j)
          enddo
-C
+!
          if(j .ge.(JN-j0_w-J0) .or. j .le. (JS-j0_w-J0)) goto 2222
-C****6***0*********0*********0*********0*********0*********0**********72
-C *** Eulerian ***
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
+! *** Eulerian ***
+!****6***0*********0*********0*********0*********0*********0**********72
 
 !%%%
 !%%% MODIFICATION FOR NESTED GRID (yxw, bmy, 3/10/03)
@@ -3067,7 +3066,7 @@ C****6***0*********0*********0*********0*********0*********0**********72
                FX1(I) = QTMP(IU)
             ENDDO
  
-C Zero high order contribution
+! Zero high order contribution
             DO I=1,IM_W+1
                FX2(I,J) = 0.
             ENDDO
@@ -3075,7 +3074,7 @@ C Zero high order contribution
             CALL XMIST(IM_W,QTMP,DC,IGZD) 
             DC(1-IGZD)=DC(2-IGZD)
             DC(IM_W+IGZD)=DC(IM_W+IGZD-1)
-C     
+!     
             IF(IORD.EQ.2) THEN
                DO I=1,IM_W+1
                   IU = FLOAT(I) - C(I,J)
@@ -3085,19 +3084,19 @@ C
             ELSE
         CALL FXPPM(IM_W,C(:,J),QTMP(:),DC(:),FX1(:),FX2(:,J),IORD,IGZD)
       ENDIF
-C
+!
       ENDIF
-C
+!
       DO I=1,IM_W+1
          FX1(I  ) = FX1(I  )*XMASS(I,J)
          FX2(I,J) = FX2(I,J)*XMASS(I,J)
       ENDDO
-C
+!
       GOTO 1309
-C
-C****6***0*********0*********0*********0*********0*********0**********72
-C *** Conservative (flux-form) Semi-Lagrangian transport ***
-C****6***0*********0*********0*********0*********0*********0**********72
+!
+!****6***0*********0*********0*********0*********0*********0**********72
+! *** Conservative (flux-form) Semi-Lagrangian transport ***
+!****6***0*********0*********0*********0*********0*********0**********72
  
  2222 CONTINUE
 !%%%
@@ -3137,7 +3136,7 @@ C****6***0*********0*********0*********0*********0*********0**********72
             FX1(I) = (C(I,J)-IU) * QTMP(ITMP-I0_W)
          ENDDO
 
-C Zero high order contribution
+! Zero high order contribution
          DO I=1,IM_W+1
             FX2(I,J) = 0.
          ENDDO
@@ -3194,28 +3193,28 @@ C Zero high order contribution
          ENDIF
          ISAVE(I)=ISAVE(I)-I0-I0_W
          IF(C(I,J).GT.1.) THEN
-CDIR$ NOVECTOR
+!DIR$ NOVECTOR
             DO IST =ISAVE(I),I-1
                FX1(I) = FX1(I) + QTMP(IST)
             ENDDO
          ELSEIF(C(I,J).LT.-1.) THEN
-CDIR$ NOVECTOR
+!DIR$ NOVECTOR
             DO IST = I,ISAVE(I)
                FX1(I) = FX1(I) - QTMP(IST)
             ENDDO
          ENDIF
       ENDDO
-CDIR$ VECTOR
+!DIR$ VECTOR
       DO I=1,IM_W+1
          FX1(I)   = PU(I,J)*FX1(I)
          FX2(I,J) = PU(I,J)*FX2(I,J)
       ENDDO
 
-C use extrapolation to calculate fx1 and fx2 at grid IMP (yxw, 08/24/01)
+! use extrapolation to calculate fx1 and fx2 at grid IMP (yxw, 08/24/01)
 
  1309 CONTINUE 
 
-C Update using low order fluxes.
+! Update using low order fluxes.
       DO I=1,IM_W
 
          DQ(I,J) =  DQ(I,J) + FX1(I)-FX1(I+1)
@@ -3232,17 +3231,17 @@ C Update using low order fluxes.
 !------------------------------------------------------------------------------
 
       SUBROUTINE  YMIST(IMR,JNP,P,DC,IGZD)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
       PARAMETER ( R24 = 1./24. )
       REAL*8 P(IMR,-2:JNP+3),DC(IMR,-1:JNP+2)
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
-C
-C 2nd order version for scalars
-C
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
+!
+! 2nd order version for scalars
+!
       DO I=1,IMR*(JNP+4)
          TMP = 0.25*(P(I,0) - P(I,-2))
          PMAX = MAX(P(I,0),P(I,-1),P(I,-2))-P(I,-1)
@@ -3289,7 +3288,7 @@ C
 
       SUBROUTINE YTP(IMR,JNP,ACOSP,DQ,Q,CRY,YMASS,FY2,JORD,FY1_TP,IGZD,
      &               JMAX)
-C****6***0*********0*********0*********0*********0*********0**********72
+!****6***0*********0*********0*********0*********0*********0**********72
 
       REAL*8 Q(1-IGZD:IMR+IGZD,1-IGZD:JNP+IGZD),
      &     CRY(1-IGZD:IMR+IGZD,1-IGZD:JNP+IGZD+1),
@@ -3299,18 +3298,18 @@ C****6***0*********0*********0*********0*********0*********0**********72
 ! bey, 6/20/00. for mass-flux diagnostic
       REAL*8 fy1_tp(IMR,JNP)
       
-C============================================================================
-C Cray NOBOUNDS directive will turn off all subscript bounds checking.
-C This directive is also legal on SGI compilers (bmy, 4/24/00)
-CDIR$ NOBOUNDS
-C============================================================================
+!============================================================================
+! Cray NOBOUNDS directive will turn off all subscript bounds checking.
+! This directive is also legal on SGI compilers (bmy, 4/24/00)
+!DIR$ NOBOUNDS
+!============================================================================
 
-C Work array
+! Work array
       REAL*8 fy1(IMR,JNP+1),P(IMR,-2:JNP+3),C(IMR,JNP+1), 
      &     AR(IMR,0:JNP+1),
      &     AL(IMR,0:JNP+1),
      &     A6(IMR,0:JNP+1),DC2(IMR,-1:JNP+2)
-C
+!
       LEN = IMR*(JNP+1)
       P(:,:)=0D0
 
@@ -3351,12 +3350,12 @@ C
             ENDDO
          ENDIF
       ENDIF
-C
+!
       DO I=1,LEN
          FY1(I,1) = FY1(I,1)*YMASS(I,1)
          FY2(I,1) = FY2(I,1)*YMASS(I,1)
       ENDDO
-C
+!
 !=============================================================================
 ! This loop had to be extended for the mass-flux diagnostics (bmy, 4/26/00)
 !      DO 1400 j=j1,j2
@@ -3438,11 +3437,12 @@ C
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE TIME_MOD, ONLY : GET_TS_DYN
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_GCTM_MOD  ! g0_100
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic switches
-#     include "CMN_GCTM"  ! g0_100
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -3723,9 +3723,10 @@ C
       USE GRID_MOD,     ONLY : GET_AREA_M2
       USE PRESSURE_MOD, ONLY : GET_BP
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
 
-#     include "CMN_SIZE"     ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4377,6 +4378,7 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
 !%%%
@@ -4493,6 +4495,7 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 !%%%
 !%%% MODIFICATIONS FOR NESTED GRID
 !%%% Remove LSP, LNP, LEW from arg list (bmy, 3/10/03)
@@ -4692,6 +4695,7 @@ C
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)    :: ID, JD, IM, JM
@@ -4790,11 +4794,12 @@ C
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TRACER_MOD,     ONLY : TCVV, ITS_A_CH4_SIM
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! Diagnostic switches
+      USE CMN_GCTM_MOD      ! g0_100
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! Diagnostic switches
-#     include "CMN_GCTM"      ! g0_100
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: IC, NDT, Jmax
@@ -4978,8 +4983,8 @@ C
 
       SUBROUTINE POSITION_WINDOW( JS, JN, JL, JH, OUT, J1_IN, J2_IN )
 
-C Determine the relationship of (JS0,JN0) and (J1_W, J2_W) (yxw, 08/23/01)
-C (ji_in,j2_in) are the part of the window inside the region (JS0,JN0)
+! Determine the relationship of (JS0,JN0) and (J1_W, J2_W) (yxw, 08/23/01)
+! (ji_in,j2_in) are the part of the window inside the region (JS0,JN0)
 
       INTEGER JS, JN,JL, JH, J1_IN, J2_IN
       LOGICAL OUT

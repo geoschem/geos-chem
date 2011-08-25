@@ -16,11 +16,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD              ! Dimensions of arrays
+      USE CMN_DIAG_MOD              ! Diagnostic parameters
+
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 
-#     include "CMN_SIZE"              ! Dimensions of arrays
-#     include "CMN_DIAG"              ! Diagnostic parameters
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -1732,7 +1734,7 @@
                CASE( 20 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
                CASE( 21 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
@@ -1757,7 +1759,7 @@
                CASE( 26 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
-                  INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -1775,7 +1777,7 @@
             SCALE(T,03) = 1e0
 
 
-            NAME (T,03) = TRACER_NAME(N)
+            NAME (T,03) = TRACER_NAME(N) 
 
 !--- Keep HgP for tracer 3 in the ocean now on. (ccc, 7/20/10)
 !                  ! Tracer 3 should be "HgC" instead of "HgP"

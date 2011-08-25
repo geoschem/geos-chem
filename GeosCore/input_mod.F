@@ -779,7 +779,7 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
       USE TRACERID_MOD, ONLY : TRACERID
 
-      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1974,8 +1974,8 @@
       USE LOGICAL_MOD, ONLY : LCHEMCO2     
       USE TRACER_MOD,  ONLY : ITS_A_CO2_SIM
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_O3_MOD      ! FSCALYR
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_O3_MOD        ! FSCALYR
 ! 
 ! !REVISION HISTORY: 
 !  02 Mar 2009 - R. Nassar   - Initial version
@@ -2337,7 +2337,7 @@
       USE TIME_MOD,    ONLY : SET_CT_CHEM
       USE TRACER_MOD,  ONLY : N_TRACERS
 
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2837,8 +2837,8 @@
 !
       USE FILE_MOD, ONLY : IU_GEOS, IOERROR
       
-      USE CMN_SIZE_MOD ! Size parameters
-      USE CMN_DIAG_MOD ! NJDAY
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! NJDAY
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2927,8 +2927,8 @@
       USE TRACERID_MOD, ONLY : NEMANTHRO
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NMAX
 
-      USE CMN_SIZE_MOD     ! Size parameters
-      USE CMN_DIAG_MOD     ! NDxx flags
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! NDxx flags
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3549,8 +3549,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! TMAX, TINDEX
+      USE CMN_SIZE_MOD                              ! Size parameters
+      USE CMN_DIAG_MOD                              ! TMAX, TINDEX
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3679,8 +3679,8 @@
       USE ERROR_MOD,       ONLY : ERROR_STOP
       USE PLANEFLIGHT_MOD, ONLY : SET_PLANEFLIGHT
 
-      USE CMN_SIZE_MOD        ! MAXFAM
-      USE CMN_DIAG_MOD        ! ND40
+      USE CMN_SIZE_MOD          ! MAXFAM
+      USE CMN_DIAG_MOD          ! ND40
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -3882,7 +3882,7 @@
       USE DIAG49_MOD, ONLY : INIT_DIAG49
       USE ERROR_MOD,  ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4125,8 +4125,8 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51_HDF
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! NDxx flags
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -4265,8 +4265,8 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LND51b_HDF
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE CMN_DIAG_MOD    ! NDxx flags
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! NDxx flags
 ! 
 ! !REVISION HISTORY: 
 !  21 Dec 2009 - Aaron van D - Initial version
@@ -4405,8 +4405,8 @@
       USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM, ITS_AN_AEROSOL_SIM
       USE LOGICAL_MOD, ONLY : LKPP
 
-      USE CMN_SIZE_MOD    ! MAXFAM
-      USE CMN_DIAG_MOD    ! ND65
+      USE CMN_SIZE_MOD      ! MAXFAM
+      USE CMN_DIAG_MOD      ! ND65
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -5747,8 +5747,8 @@
       USE JULDAY_MOD, ONLY : JULDAY
       USE TIME_MOD,   ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! NJDAY
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! NJDAY
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version

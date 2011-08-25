@@ -20,7 +20,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       !NBIOMAX moved to F77_CMN_SIZE (fp, 6/2009)
       !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
@@ -89,12 +88,11 @@
       USE TRACER_MOD,      ONLY : N_APMTRA
 #endif
 
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE CMN_DIAG_MOD   ! Diagnostic switches & arrays
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! Diagnostic switches & arrays
 
       IMPLICIT NONE
 #     include "define.h"
-
 ! 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version

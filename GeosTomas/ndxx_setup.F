@@ -6,7 +6,7 @@
 ! !ROUTINE: ndxx_setup
 !
 ! !DESCRIPTION: Subroutine NDXX\_SETUP dynamically allocates memory for 
-!  certain diagnostic arrays that  are declared allocatable in "diag_mod.f". 
+!  certain diagnostic arrays that  are declared allocatable in "diag\_mod.f". 
 !\\
 !\\
 !  This allows us to reduce the amount of memory that needs to be declared 
@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-      !NBIOMAX moved to CMN_SIZE (fp, 6/2009)
+      !NBIOMAX moved to F77_CMN_SIZE (fp, 6/2009)
       !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
@@ -102,10 +102,11 @@
       USE TRACER_MOD,      ONLY : N_APMTRA
 #endif
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! Diagnostic switches & arrays
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
+      IMPLICIT NONE
+#     include "define.h"
 ! 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version

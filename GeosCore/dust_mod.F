@@ -1335,7 +1335,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
@@ -1356,7 +1355,6 @@
       USE CMN_DIAG_MOD        ! ND21, LD21
 
       IMPLICIT NONE
-
 !
 ! !INPUT PARAMETERS: 
 !

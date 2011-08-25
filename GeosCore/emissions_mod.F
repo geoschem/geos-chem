@@ -119,8 +119,8 @@
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,        ONLY : EMISS_ICOADS_SHIP !(cklee,7/09/09)
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE CMN_O3_MOD                 ! FSCLYR
+      USE CMN_SIZE_MOD                 ! Size parameters
+      USE CMN_O3_MOD                   ! FSCLYR
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)

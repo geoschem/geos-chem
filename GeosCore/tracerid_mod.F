@@ -362,8 +362,8 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-      USE CMN_SIZE_MOD    ! Size parameters
-      USE COMODE_LOOP_MOD    ! IDEMS
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! IDEMS
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -1328,7 +1328,7 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! NAMEGAS
 
       ! Local variabales

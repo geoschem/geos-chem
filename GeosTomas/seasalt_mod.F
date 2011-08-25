@@ -147,7 +147,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-#     include "CMN_SIZE"     ! Size parameters 
+      USE CMN_SIZE_MOD       ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -249,9 +249,9 @@
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44
+      USE CMN_GCTM_MOD        ! g0
 
       ! Argumetns
       INTEGER, INTENT(IN)    :: N
@@ -465,9 +465,9 @@
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -562,7 +562,7 @@
       USE TRACERID_MOD, ONLY : IDTSS1 ! (win, 7/17/09)
       USE TOMAS_MOD,    ONLY : IBINS ! (win, 7/17/09)
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -699,9 +699,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND44, ND08
-#     include "CMN_GCTM"      ! PI
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44, ND08
+      USE CMN_GCTM_MOD        ! PI
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -947,9 +947,9 @@
       USE TOMAS_MOD,     ONLY : IBINS, Xk
       USE TRACERID_MOD        ! IDTNK1, IDTSS1
 
-#      include "CMN_SIZE"      ! Size parameters
-#      include "CMN_DIAG"      ! ND59
-#      include "CMN_DEP"       ! FRCLND
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND59
+      USE CMN_DEP_MOD         ! FRCLND
       
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
@@ -1273,7 +1273,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

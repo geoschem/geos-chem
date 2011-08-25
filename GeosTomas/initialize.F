@@ -78,10 +78,12 @@
       USE DIAG_MOD,    ONLY : AD07_OM
 #endif
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! NDxx flags
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
+      IMPLICIT NONE
+#     include "define.h"
+
 
 !
 ! !INPUT PARAMETERS: 
@@ -160,6 +162,8 @@
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !EOP
 !------------------------------------------------------------------------------
 !BOC

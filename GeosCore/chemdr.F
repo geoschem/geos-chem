@@ -40,12 +40,12 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE COMODE_LOOP_MOD             ! SMVGEAR variables
-      USE CMN_O3_MOD               ! EMISRRN, EMISRR
-      USE CMN_DIAG_MOD             ! ND40
-      USE CMN_NOX_MOD              ! SLBASE
-      USE CMN_DEP_MOD              ! FRCLND
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD            ! SMVGEAR variables
+      USE CMN_O3_MOD                 ! EMISRRN, EMISRR
+      USE CMN_DIAG_MOD               ! ND40
+      USE CMN_NOX_MOD                ! SLBASE
+      USE CMN_DEP_MOD                ! FRCLND
 
       IMPLICIT NONE
 #     include "define.h"

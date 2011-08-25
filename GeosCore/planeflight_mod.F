@@ -358,8 +358,8 @@
       USE TRACER_MOD, ONLY : N_TRACERS
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE COMODE_LOOP_MOD      ! NAMEGAS, NSPEC
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD  ! NAMEGAS, NSPEC
 ! 
 ! !REVISION HISTORY:
 !  30 Jul 2002 - M. Evans    - Initial version
@@ -1073,9 +1073,9 @@
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ     ! FAST-J parameters (includes CMN_SIZE)
-      USE JV_CMN_MOD     ! ODAER, QAA, QAA_AOD
-      USE COMODE_LOOP_MOD     ! CSPEC, etc.
+      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
+      USE COMODE_LOOP_MOD    ! CSPEC, etc.
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -1491,7 +1491,7 @@
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_SIZE_MOD                ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1664,9 +1664,9 @@
       USE COMODE_MOD, ONLY : IZSAVE
       USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
 
-      USE CMN_SIZE_MOD               ! Size parameters
-      USE COMODE_LOOP_MOD                   ! RRATE, JLOOPLO, KBLOOP
-      USE CMN_DIAG_MOD               ! ND40 switch
+      USE CMN_SIZE_MOD                     ! Size parameters
+      USE COMODE_LOOP_MOD                  ! RRATE, JLOOPLO, KBLOOP
+      USE CMN_DIAG_MOD                     ! ND40 switch
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1835,8 +1835,8 @@
       USE FILE_MOD,  ONLY : IU_FILE
       USE FILE_MOD,  ONLY : IOERROR
 
-      USE CMN_SIZE_MOD   ! Size Parameters
-      USE COMODE_LOOP_MOD       ! ITLOOP
+      USE CMN_SIZE_MOD    ! Size Parameters
+      USE COMODE_LOOP_MOD ! ITLOOP
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version

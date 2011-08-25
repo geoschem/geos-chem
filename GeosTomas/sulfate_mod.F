@@ -228,6 +228,7 @@
       USE VDIFF_PRE_MOD, ONLY : emis_save ! (Lin, 03/31/09)
 
       IMPLICIT NONE
+#     include "define.h"
       
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -331,7 +332,7 @@
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Local variables
       INTEGER              :: I,    J,    L
@@ -485,7 +486,7 @@
       USE TRACERID_MOD,   ONLY : IDTNITs,         IDTSO4s
       USE LOGICAL_MOD,    ONLY : LTOMAS    !(win, 1/25/10)
  
-#     include "CMN_SIZE"     ! Size parameters 
+      USE CMN_SIZE_MOD     ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -679,9 +680,9 @@
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_GCTM"      ! g0
-#     include "CMN_DIAG"      ! ND44
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44
+      USE CMN_GCTM_MOD        ! g0
 
       ! Arguments
       INTEGER, INTENT(IN)    :: N
@@ -939,9 +940,9 @@
       USE TRACERID_MOD,   ONLY : IDTDMS
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_DIAG"     ! ND05, LD05
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND05, LD05
+      USE CMN_GCTM_MOD         ! AIRMW
 
       ! Local variables
       LOGICAL                :: IS_FULLCHEM
@@ -1191,9 +1192,10 @@
       USE UVALBEDO_MOD,   ONLY : UVALBEDO
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
  
-#     include "cmn_fj.h"       ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "CMN_GCTM"       ! AIRMW
-#     include "CMN_DIAG"       ! ND44
+      USE CMN_SIZE_MOD
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_GCTM_MOD         ! AIRMW
       
       ! Local variables
       LOGICAL                 :: FIRST     = .TRUE.
@@ -1434,6 +1436,8 @@
 !  (16) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
 !  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
 !  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
+!  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
+!                              and adjust the L2S and L3S rates accordingly
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1442,6 +1446,7 @@
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE DIRECTORY_MOD,   ONLY : DATA_DIR
       USE ERROR_MOD,       ONLY : IS_SAFE_EXP
+      USE ERROR_MOD,       ONLY : SAFE_DIV
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE GRID_MOD,        ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
@@ -1458,9 +1463,9 @@
       ! For LWC from met fields in GEOS-5 (jaf, 6/30/10)
       USE DAO_MOD,         ONLY : AIRDEN, QL, CLDF 
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_GCTM"    ! AIRMW
-#     include "CMN_DIAG"    ! LD05, ND05, ND44
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! LD05, ND05, ND44
+      USE CMN_GCTM_MOD          ! AIRMW
 
       ! Local variables
       LOGICAL               :: IS_OFFLINE
@@ -1640,6 +1645,14 @@
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
+         ! LWC is a grid-box averaged quantity. To improve the representation 
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+         ! compute sulfate chemistry based on the LWC within the cloud.  We 
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC     = SAFE_DIV( LWC, FC, 0d0 )
+
 #else
          !---------------------------------------------
          ! Otherwise, compute FC, LWC as before
@@ -1649,7 +1662,17 @@
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! Prior to 5/21/11:
+         !LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! LWC as returned from the GET_LWC function is the in-cloud liquid
+         ! water content.  To improve the representation of sulfate chemistry, 
+         ! we use this LWC to compute the aqueous sulfate chemistry.  We then
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying by FC AFTER computing the aqueous sulfur chemistry
+         ! within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC = GET_LWC( TK )
 
 #endif
 
@@ -1754,14 +1777,6 @@
             XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            !----------------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! If SO2_ss = H2O20 (i.e. if they are both zero), then prevent
-            ! a division by zero, because SO2_ss*L2 - H2O20 will be zero.
-            ! Only execute the "IF" part of the block if XX is nonzero.  
-            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
-            !IF ( IS_SAFE_EXP( XX ) ) THEN
-            !----------------------------------------------------------------
             IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
@@ -1796,14 +1811,6 @@
             XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            !----------------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! If SO2_ss = O3 (i.e. if they are both zero), then prevent
-            ! a division by zero, because SO2_ss*L3 - O3 will be zero.
-            ! Only execute the "IF" part of the block if XX is nonzero.  
-            ! Otherwise shunt to the "ELSE" block.  (koo, bmy, 11/12/10)
-            !IF ( IS_SAFE_EXP( XX ) ) THEN
-            !----------------------------------------------------------------
             IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
@@ -1823,6 +1830,15 @@
                ENDIF
             ENDIF
 
+            ! We have used the in-cloud LWC to compute the sulfate
+            ! aqueous chemistry.  We get the appropriate grid-box averaged 
+            ! mass of SO2 and sulfate by multiplying the reaction rates
+            ! L2S and L3s by the cloud fraction after the aqueous chemistry
+            ! has been done.  (lzh, jaf, bmy, 5/27/11)
+            L2S =  L2S * FC
+            L3S =  L3S * FC    
+
+            ! Make sure SO2_ss and H2O20 are in the proper range
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             H2O20  = MAX( H2O20  - L2S,           MINDAT )
 
@@ -1987,12 +2003,12 @@
       USE GLOBAL_HNO3_MOD, ONLY : GET_HNO3_UGM3
       USE DAO_MOD,         ONLY : AIRVOL
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
 !---------------------------------------------------------------
 ! DIAGNOSTIC -- leave commented out for now (bec, bmy, 4/13/05)
-!#     include "CMN_DIAG"  ! ND19
+!      USE CMN_DIAG_MOD          ! ND19
 !---------------------------------------------------------------
-#     include "CMN_GCTM"  ! AIRMW
+      USE CMN_GCTM_MOD  ! AIRMW
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L 
@@ -2557,8 +2573,8 @@
       USE TRACERID_MOD,   ONLY : IDTLET, IDTSO4aq, IDTNH4aq
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND44
 
       ! Local variables
       INTEGER               :: I,      J,      L,        N,     N_ND44
@@ -2962,7 +2978,7 @@
       USE TRACERID_MOD,   ONLY : IDTSO4, IDTNK10
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Local variables
       INTEGER                 :: I, J, L
@@ -3058,9 +3074,9 @@
       USE TRACERID_MOD,   ONLY : IDTMSA
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! AIRMW
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND44
+      USE CMN_GCTM_MOD         ! AIRMW
 
       ! Local variables
       INTEGER               :: I,      J,    L,        PBL_MAX
@@ -3227,8 +3243,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH3
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,        L,    PBL_MAX
@@ -3384,8 +3400,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,    L,        PBL_MAX
@@ -3527,8 +3543,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNH4aq
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,      J,     L,        PBL_MAX
@@ -3686,8 +3702,8 @@
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL
       USE TRACERID_MOD, ONLY : IDTNIT, IDTNITs
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       INTEGER :: I,        J,     L,    N,     N_ND44, PBL_MAX
@@ -3956,7 +3972,7 @@
       USE TOMAS_MOD,         ONLY : IBINS,      ICOMP,    IDIAG  !(win, 1/25/10)
       USE TOMAS_MOD,         ONLY : NH4BULKTOBIN, SRTNH4  !(win, 1/25/10)
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
@@ -4133,6 +4149,7 @@ c      print *,BINMASS(24,11,2,:)
 !                 
       USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS:
 !             
@@ -4235,9 +4252,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE TRACERID_MOD,   ONLY : IDTDMS ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND13 (for now)
+      USE CMN_GCTM_MOD     ! SCALE_HEIGHT
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4484,9 +4501,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,     ONLY : XNUMOL
       USE TRACERID_MOD,   ONLY : IDTSO2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13, LD13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND13, LD13 (for now)
+      USE CMN_GCTM_MOD         ! SCALE_HEIGHT
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
@@ -5061,9 +5078,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTSO4, IDTSO2
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13 (for now)
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -5337,9 +5354,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13 (for now)
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND13 (for now)
+      USE CMN_GCTM_MOD       ! SCALE_HEIGHT
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
@@ -5809,9 +5826,9 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,         ONLY : XNUMOL
       USE TRACERID_MOD,       ONLY : IDTNH3
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND13
-#     include "CMN_GCTM"     ! SCALE_HEIGHT
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_DIAG_MOD             ! ND13
+      USE CMN_GCTM_MOD             ! SCALE_HEIGHT
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -6042,7 +6059,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6131,7 +6148,7 @@ c      print *,BINMASS(24,11,2,:)
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDOH
  
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6185,7 +6202,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6299,7 +6316,7 @@ c      print *,BINMASS(24,11,2,:)
       USE COMODE_MOD,   ONLY : CSPEC, JLOP
       USE TRACERID_MOD, ONLY : IDNO3
       
-#     include "CMN_SIZE"  ! Size parameters 
+      USE CMN_SIZE_MOD       ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6350,7 +6367,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,   ONLY : XNUMOLAIR
       USE TRACERID_MOD, ONLY : IDO3
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J, L
@@ -6438,7 +6455,7 @@ c      print *,BINMASS(24,11,2,:)
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -6553,7 +6570,7 @@ c      print *,BINMASS(24,11,2,:)
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
       USE TIME_MOD,       ONLY : EXPAND_DATE
       
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: INDAY, INMONTH, INYEAR
@@ -6711,8 +6728,8 @@ c      print *,BINMASS(24,11,2,:)
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD,     ONLY : GET_ANNUAL_SCALAR
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! FSCALYR
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE CMN_O3_MOD                 ! FSCALYR
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH, NSEASON
@@ -7034,7 +7051,7 @@ c      print *,BINMASS(24,11,2,:)
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters 
+      USE CMN_SIZE_MOD        ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -7103,7 +7120,7 @@ c      print *,BINMASS(24,11,2,:)
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: THISMONTH, THISYEAR
@@ -7233,7 +7250,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
                                     
       ! Arguments                   
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7337,7 +7354,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
       
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
                                     
       ! Local variables             
       INTEGER                       :: I, J
@@ -7398,7 +7415,7 @@ c      print *,BINMASS(24,11,2,:)
       USE DIRECTORY_MOD, ONLY : DATA_DIR 
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -7554,7 +7571,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTSO2
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters 
+      USE CMN_SIZE_MOD               ! Size parameters 
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7764,7 +7781,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -7878,7 +7895,7 @@ c      print *,BINMASS(24,11,2,:)
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: THISMONTH
@@ -7981,7 +7998,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACERID_MOD,         ONLY : IDTNH3
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -8080,7 +8097,7 @@ c      print *,BINMASS(24,11,2,:)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTNH3, IDBNH3
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 
       ! Local variables
       INTEGER                       :: I, J
@@ -8141,7 +8158,7 @@ c      print *,BINMASS(24,11,2,:)
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: MONTH
@@ -8241,8 +8258,8 @@ c      print *,BINMASS(24,11,2,:)
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_GCTM_MOD
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -8408,7 +8425,7 @@ c      print *,BINMASS(24,11,2,:)
       USE LOGICAL_MOD,   ONLY : LDRYD
       USE TRACER_MOD,    ONLY : ITS_AN_AEROSOL_SIM
 
-#     include "CMN_SIZE" ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: IS_INIT = .FALSE.

@@ -127,13 +127,13 @@
       USE DIAG_PL_MOD,  ONLY : GET_FAM_NAME         !(win, 1/25/10)
       USE TOMAS_MOD,    ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE COMODE_LOOP_MOD    ! IDEMS
+      USE CMN_O3_MOD         ! FMOL, XNUMOL
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_MOD            ! IFLX, LPAUSE
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN"        ! IFLX, LPAUSE
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "CMN_O3"     ! FMOL, XNUMOL
-#     include "comode.h"   ! IDEMS
+      IMPLICIT NONE
 ! 
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic

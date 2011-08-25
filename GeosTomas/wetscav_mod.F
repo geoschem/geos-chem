@@ -163,6 +163,9 @@
       PUBLIC :: GET_WETDEP_NSOL
       PUBLIC :: INIT_WETSCAV
       PUBLIC :: WETDEPID
+      PUBLIC :: WASHOUT
+      PUBLIC :: LS_K_RAIN
+      PUBLIC :: LS_F_PRIME
 
       !=================================================================
       ! MODULE VARIABLES
@@ -211,7 +214,7 @@
       USE ERROR_MOD,   ONLY : DEBUG_MSG
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       !==================================================================
       ! DO_WETDEP begins here!
@@ -303,7 +306,7 @@
       USE DAO_MOD,   ONLY : AIRDEN, BXHEIGHT, MOISTQ, PREACC, PRECON
       USE ERROR_MOD, ONLY : ALLOC_ERR
       
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN)  :: LS
@@ -664,7 +667,7 @@
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 !CDH
 
-#     include "CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: N
@@ -2080,7 +2083,7 @@
       ! References to F90 modules
       USE DAO_MOD, ONLY : BXHEIGHT
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN)  :: KC
@@ -2135,8 +2138,8 @@
 !
       ! References to F90 modules
       USE TRACER_MOD, ONLY : N_TRACERS
-
-#     include "CMN_SIZE"   ! Size parameters
+      
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TEST
@@ -2284,9 +2287,9 @@
       USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 4/16/09)
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD   ! Size parameters
 
-#     include "CMN_SIZE"   ! Size parameters
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L, N
@@ -3334,7 +3337,7 @@
 
       USE OCEAN_MERCURY_MOD,  ONLY : LHg_WETDasHNO3 ! (cdh 5/20/09)
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L, N
@@ -4097,10 +4100,10 @@
       USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
       USE LOGICAL_MOD,       ONLY : LGTMM
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE CMN_DIAG_MOD            ! Diagnostic arrays and switches 
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! Diagnostic arrays and switches 
+      IMPLICIT NONE
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LS
@@ -5320,7 +5323,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LS
@@ -5419,8 +5422,7 @@
       USE TRACERID_MOD, ONLY : IDTISOPN, IDTMMN
       USE TRACERID_MOD, ONLY : IDTIEPOX, IDTRIP, IDTMAP
 
-
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       INTEGER :: N, NN
@@ -5822,7 +5824,7 @@
       USE TRACERID_MOD, ONLY : IDTNK1    !(win, 7/16/09)
       USE TOMAS_MOD,    ONLY : IBINS, IDIAG, ICOMP  !(win, 7/16/09)
 
-#     include "CMN_SIZE"   ! Size Parameters
+      USE CMN_SIZE_MOD   ! Size Parameters
 
       ! Function value
       INTEGER :: NMAX
@@ -6028,7 +6030,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTH2O2, IDTSO2
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       INTEGER             :: I, J, L, AS

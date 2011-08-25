@@ -145,7 +145,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD     ! Size parameters 
+      USE CMN_SIZE_MOD       ! Size parameters 
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.

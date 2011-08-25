@@ -2882,9 +2882,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD, ONLY : GET_AREA_M2
       USE TIME_MOD, ONLY : GET_TS_DYN
 
-      USE CMN_SIZE_MOD  ! Size parameters
-      USE CMN_DIAG_MOD  ! Diagnostic switches
-      USE CMN_GCTM_MOD  ! g0_100
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! Diagnostic switches
+      USE CMN_GCTM_MOD   ! g0_100
 
       IMPLICIT NONE
 #     include "define.h" 
@@ -4087,9 +4087,9 @@ c        AL(i,k) = median(AL(i,k), qmin, qmax)
       USE GRID_MOD,       ONLY : GET_AREA_M2
       USE TRACER_MOD,     ONLY : ITS_A_CH4_SIM, TCVV
 
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! Diagnostic switches
-      USE CMN_GCTM_MOD      ! g0_100
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! Diagnostic switches
+      USE CMN_GCTM_MOD         ! g0_100
 
       IMPLICIT NONE
 #     include "define.h"
