@@ -79,6 +79,8 @@
 #                              optimizations from changing numerical results.
 #  25 Aug 2011 - R. Yantosca - Add -CU (check for uninit'd variables) to 
 #                              FFLAGS when using IFORT w/ the DEBUG option.
+#  26 Aug 2011 - R. Yantosca - Allow for deactivation of the "-fp-model source"
+#                              option by using the PRECISE=no env variable
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -100,6 +102,11 @@ endif
 # HDF5 output is turned off by defautl
 ifndef HDF5
 HDF5 = no
+endif
+
+# Use precise FP math optimization (i.e. to avoid numerical noise)
+ifndef PRECISE
+PRECISE=yes
 endif
 
 # TOMAS runs on single processor (at least for now!)
@@ -160,7 +167,9 @@ endif
 
 # Prevent any optimizations that would change numerical results
 # This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
+ifeq ($(PRECISE),yes)
 FFLAGS  += -fp-model source
+endif
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 

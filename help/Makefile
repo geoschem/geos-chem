@@ -33,6 +33,7 @@
 #  10 Mar 2010 - C. Carouge  - Remove info about TOMAS option. Keep info
 #                              about tomas target.
 #  26 Aug 2011 - R. Yantosca - Added info about APM targets
+#  26 Aug 2011 - R. Yantosca - Add info about the PRECISE=no option
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -79,6 +80,7 @@ help:
 	@echo ''
 	@echo 'OPTIONAL-FLAGS may be:'
 	@echo 'COMPILER=___   Options: ifort pgi sun xlf (default is ifort)'
+	@echo 'PRECISE=no     Disable precise floating point math optimization (for speed)'
 	@echo 'HDF5=yes       Enables writing diagnostic timeseries output to HDF5 files'
 	@echo 'DEBUG=yes      Builds GEOS-Chem for a debugger (with -g -O0)'
 	@echo 'BOUNDS=yes     Turns on subscript-array checking (for debug)'
