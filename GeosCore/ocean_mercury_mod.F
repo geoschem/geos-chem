@@ -641,7 +641,11 @@ c$$$
 ! will crash at compile-time. (ganluo, bmy, 7/27/11)
 !      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    
 !-----------------------------------------------------------------------------
+#if defined ( LINUX_PGI )
+      REAL*8, PARAMETER     :: Kd_part   = 316227.76601684
+#else
       REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
+#endif
       REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
