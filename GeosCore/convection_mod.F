@@ -137,6 +137,7 @@
 !  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
 !  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,13 +149,6 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
 
 #if   defined( GCAP ) 
 
@@ -170,6 +164,13 @@
       !=================================================================
       ! GEOS-3 met fields
       !=================================================================
+
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       !-----------------------------------------------------------------------
       ! Prior to 2/15/11:
@@ -195,6 +196,13 @@
       ! GEOS-5 met fields
       !=================================================================
 
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
+
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
@@ -210,7 +218,7 @@
       TYPE(SPEC_2_TRAC)  :: COEF
       TYPE(GC_OPTIONS)   :: OPTIONS
       TYPE(ID_TRAC)      :: IDT
-                         
+                   
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, RC, TS_DYN
       REAL*8             :: AREA_M2, DT
@@ -229,6 +237,13 @@
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
+
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       ! Define variables and object fields
       TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
