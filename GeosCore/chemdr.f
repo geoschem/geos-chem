@@ -187,6 +187,7 @@
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
+      USE LOGICAL_MOD,          ONLY : LSVPOA 
 
       IMPLICIT NONE
 
@@ -345,9 +346,10 @@
          !--------------------------------------------------------------
          ! Check ILISOPNO3 for SOA + semivol POA (hotp, mpayer, 7/27/11)
          !--------------------------------------------------------------
-         IF ( LSOA .and. ILISOPNO3 == 0 ) THEN
-            CALL ERROR_STOP( 'IDLISOPNO3 needs to be defined for SOA!',
-     &                       'chemdr.f' )
+         IF ( LSVPOA .and. ILISOPNO3 == 0 ) THEN
+            CALL ERROR_STOP( 
+     &         'IDLISOPNO3 needs to be defined for SOA + semivol POA!',
+     &         'chemdr.f' )
          ENDIF
 
       ENDIF

@@ -73,6 +73,9 @@
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
 #  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
+#  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
+#                              compiler.  This will prevent aggressive 
+#                              optimizations from changing numerical results.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -141,6 +144,10 @@ FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
 else
 FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
+
+# Prevent any optimizations that would change numerical results
+# This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
+FFLAGS  += -fp-model source
 
 # Turn on OpenMP parallelization
 ifeq ($(OMP),yes) 

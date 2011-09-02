@@ -5425,34 +5425,6 @@
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTMTPO
 
-         ELSE IF ( N == IDTASOAN ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOAN
-
-         ELSE IF ( N == IDTASOA1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA1
-
-         ELSE IF ( N == IDTASOA2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA2
-
-         ELSE IF ( N == IDTASOA3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOA3
-
-         ELSE IF ( N == IDTASOG1 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG1
-
-         ELSE IF ( N == IDTASOG2 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG2
-
-         ELSE IF ( N == IDTASOG3 ) THEN
-            NSOL         = NSOL + 1
-            IDWETD(NSOL) = IDTASOG3
-
          ELSE IF ( N == IDTTSOA1 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTTSOA1
@@ -5508,6 +5480,34 @@
          ELSE IF ( N == IDTISOG3 ) THEN
             NSOL         = NSOL + 1
             IDWETD(NSOL) = IDTISOG3
+
+         ELSE IF ( N == IDTASOAN ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOAN
+
+         ELSE IF ( N == IDTASOA1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOA1
+
+         ELSE IF ( N == IDTASOA2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOA2
+
+         ELSE IF ( N == IDTASOA3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOA3
+
+         ELSE IF ( N == IDTASOG1 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOG1
+
+         ELSE IF ( N == IDTASOG2 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOG2
+
+         ELSE IF ( N == IDTASOG3 ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTASOG3
 
          ELSE IF ( N == IDTPOA1 ) THEN
             NSOL         = NSOL + 1

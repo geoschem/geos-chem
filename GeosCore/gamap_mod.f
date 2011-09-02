@@ -1848,8 +1848,7 @@
                      FNAME(T,07) = 'SOAM production in clouds'
                      MWT  (T,07) = 72e-3
                      INDEX(T,07) = 92 + ( SPACING * 33 )
-
-               CASE DEFAULT
+                  CASE DEFAULT
                   ! Nothing
 
                END SELECT
@@ -1940,8 +1939,7 @@
                      FNAME(T,07) = 'SOAM production in clouds'
                      MWT  (T,07) = 72e-3
                      INDEX(T,07) = 92 + ( SPACING * 33 )
-
-               CASE DEFAULT
+                  CASE DEFAULT
                   ! Nothing
 
                END SELECT

@@ -1320,7 +1320,7 @@
             NEMANTHRO = NEMANTHRO + 1
             IDEXYLE   = NEMANTHRO
          ENDIF
-         ! NAP for SOA + semivol POA (hotp, mpayer, 6/30/11)
+         ! NAP emissions for SOA + semivol POA (hotp, mpayer, 6/30/11)
          IF ( IDTNAP  > 0 ) THEN
             NEMANTHRO = NEMANTHRO + 1
             IDENAP    = NEMANTHRO
@@ -1491,7 +1491,7 @@
       USE TRACER_MOD, ONLY : TRACER_COEFF,   TRACER_CONST
       USE TRACER_MOD, ONLY : TRACER_N_CONST, TRACER_NAME
       ! for Debug (hotp 8/5/09)
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD, ONLY : LPRT,          LSVPOA
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "comode.h"   ! NAMEGAS
@@ -1578,10 +1578,14 @@
          IF ( NAMEGAS(I) == 'LTRO2N'   ) IDLTRO2N   = I
          IF ( NAMEGAS(I) == 'LXRO2H'   ) IDLXRO2H   = I
          IF ( NAMEGAS(I) == 'LXRO2N'   ) IDLXRO2N   = I
-         IF ( NAMEGAS(I) == 'NAP'      ) IDNAP      = I ! (hotp,mpayer,6/30/11)
-         IF ( NAMEGAS(I) == 'NRO2'     ) IDNRO2     = I ! (hotp,mpayer,6/30/11)
-         IF ( NAMEGAS(I) == 'LNRO2H'   ) IDLNRO2H   = I ! (hotp,mpayer,6/30/11)
-         IF ( NAMEGAS(I) == 'LNRO2N'   ) IDLNRO2N   = I ! (hotp,mpayer,6/30/11)
+         
+         ! For SOA + semivol POA (hotp,mpayer,6/30/11)
+         IF ( LSVPOA ) THEN
+            IF ( NAMEGAS(I) == 'NAP'      ) IDNAP      = I 
+            IF ( NAMEGAS(I) == 'NRO2'     ) IDNRO2     = I
+            IF ( NAMEGAS(I) == 'LNRO2H'   ) IDLNRO2H   = I
+            IF ( NAMEGAS(I) == 'LNRO2N'   ) IDLNRO2N   = I
+         ENDIF
       ENDDO
 
       !=================================================================

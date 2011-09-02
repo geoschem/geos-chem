@@ -1168,6 +1168,7 @@
          LDUST  = .FALSE.
          LDEAD  = .FALSE.
          LSSALT = .FALSE.
+         LSVPOA = .FALSE.
       ENDIF
 
       !%%% The cryst/aq code is currently under development so make

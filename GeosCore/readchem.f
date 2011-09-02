@@ -46,7 +46,7 @@
 
       !FP_ISOP (6/2009)
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD, ONLY : LPRT,    LSVPOA
 
       IMPLICIT NONE
 
@@ -451,6 +451,7 @@ C
 
       ! Locate positions of O2, H2O, CH4, LISOPOH in CSPEC array
       DO I = 1, NTSPECGAS
+
          SELECT CASE ( TRIM( NAMEGAS(I) ) )
             CASE( 'O2'      )
                IOXYGEN  = I
@@ -473,15 +474,17 @@ C
                ILXRO2H = I
             CASE( 'LXRO2N' )
                ILXRO2N = I
-            CASE( 'LISOPNO3' ) ! (hotp, mpayer, 7/27/11)
-               ILISOPNO3 = I
-            CASE( 'LNRO2H' )   ! (hotp, mpayer, 7/27/11)
-               ILNRO2H = I
-            CASE( 'LNRO2N' )   ! (hotp, mpayer, 7/27/11)
-               ILNRO2N = I
+            ! For SOA + semivolatile POA (hotp, mpayer, 7/27/11)
+            CASE( 'LISOPNO3' )
+               IF ( LSVPOA ) ILISOPNO3 = I
+            CASE( 'LNRO2H' )
+               IF ( LSVPOA ) ILNRO2H   = I
+            CASE( 'LNRO2N' )
+               IF ( LSVPOA ) ILNRO2N   = I
             CASE DEFAULT
                ! Nothing
          END SELECT
+
       ENDDO
 C
 C *********************************************************************
@@ -1238,8 +1241,8 @@ C
 !     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
 !-----------------------------------------------------------------------
      &                     J == MAPPL(ILXRO2N,NCS) .or.
-     &                     J == MAPPL(ILNRO2H,NCS) .or.
-     &                     J == MAPPL(ILNRO2N,NCS)     ) THEN
+     &      ( LSVPOA .and. J == MAPPL(ILNRO2H,NCS)) .or.
+     &      ( LSVPOA .and. J == MAPPL(ILNRO2N,NCS))     ) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
                   ENDIF

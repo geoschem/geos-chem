@@ -188,7 +188,7 @@
             CALL CHEMDR
 
             ! Do seasalt aerosol chemistry
-             IF ( LSSALT ) CALL CHEMSEASALT
+            IF ( LSSALT ) CALL CHEMSEASALT
 
              ! Also do sulfate chemistry
              IF ( LSULF ) THEN

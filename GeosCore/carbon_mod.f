@@ -4667,8 +4667,8 @@ c
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISCARB: after ND07' )
       ENDIF
 
-      ! Pring info for checks
-      IF ( LPRT ) THEN
+      ! Print info for checks
+      IF ( LPRT .AND. LSVPOA ) THEN
          print*,'POA emissions in kg/timestep conv to Tg/yr'
          print*,'ANTH_ORGC ',SUM(ANTH_ORGC(:,:,:))*1d-9*365.0*24.0
          print*,'BIOB_ORGC ',SUM(BIOB_ORGC(:,:,:))*1d-9*365.0*24.0

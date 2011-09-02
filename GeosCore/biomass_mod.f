@@ -240,7 +240,7 @@
       USE TRACERID_MOD,      ONLY : IDBXYLE, IDBTOLU, IDBBENZ !for debug (hotp)
       USE TRACERID_MOD,      ONLY : IDTPOA1
       USE TRACERID_MOD,      ONLY : IDBNAP
-      USE LOGICAL_MOD,       ONLY : NAPEMISS
+      USE LOGICAL_MOD,       ONLY : NAPEMISS, LSVPOA
 
 
 #     include "CMN_SIZE"          ! Size parameters
@@ -391,23 +391,26 @@
 
          ENDIF
 
-         IF ( IDBBENZ > 0 )
-     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ) * 2592000d0, ! s in jun
-     &                             12d-3, 'BENZ' )
+         ! Print for SOA + semivol POA
+         IF ( LSVPOA ) THEN
+            ! 2592000d0 is seconds in June
+            IF ( IDBBENZ > 0 )
+     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBBENZ) * 2592000d0,
+     &                                12d-3, 'BENZ' )
 
 
-         IF ( IDBTOLU > 0 ) 
-     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU) * 2592000d0, ! s in jun
-     &                             12d-3, 'TOLU' )
+            IF ( IDBTOLU > 0 ) 
+     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBTOLU) * 2592000d0,
+     &                                12d-3, 'TOLU' )
 
-         IF ( IDBXYLE > 0 )
-     &      CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE) * 2592000d0, ! s in jun
-     &                             12d-3, 'XYLE' )
+            IF ( IDBXYLE > 0 )
+     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBXYLE) * 2592000d0,
+     &                                12d-3, 'XYLE' )
 
-         IF ( IDBNAP > 0 ) THEN        
-            CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0, ! s in jun
-     &                             12d-3, 'NAP ' )
-         ENDIF
+            IF ( IDBNAP > 0 )
+     &         CALL TOTAL_BIOMASS_TG( BIOMASS(:,:,IDBNAP ) * 2592000d0,
+     &                                12d-3, 'NAP ' )
+         ENDIF ! LSVPOA
       
          !==============================================================
          ! Do the following on every timestep:
