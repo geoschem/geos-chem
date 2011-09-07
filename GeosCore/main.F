@@ -1,10 +1,12 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !PROGRAM: geos_chem 
+! !MODULE: geos_chem 
 !
 ! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
 !  GEOS-Chem model of atmospheric chemistry and composition.
@@ -1467,7 +1469,7 @@
 ! file buffers to disk. 
 !\\
 !\\
-! CTM_FLUSH should normally be called after each diagnostic output, so that 
+! CTM\_FLUSH should normally be called after each diagnostic output, so that 
 ! in case the run dies, the output files from the last diagnostic timestep 
 ! will not be lost.  
 !\\

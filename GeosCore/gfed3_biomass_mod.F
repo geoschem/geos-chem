@@ -1,21 +1,51 @@
-! $Id: gfed3_biomass_mod.f,v 1.3 2010/03/15 19:33:23 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!     
+! !MODULE: gfed3_biomass_mod
+!     
+! !DESCRIPTION: Module GFED3\_BIOMASS\_MOD contains routines and variables 
+!  used in the wet scavenging of tracer in cloud updrafts, rainout, and 
+!  washout. 
+!\\   
+!\\   
+! !INTERFACE: 
+!
       MODULE GFED3_BIOMASS_MOD
 !
-!******************************************************************************
-!  Module GFED3_BIOMASS_MOD contains variables and routines to compute the
-!  GFED3 biomass burning emissions. (psk, 1/5/11)
+! !USES:
 !
-!     Monthly/8-day/3-hr emissions of DM are read from disk and then
-!     multiplied by the appropriate emission factors to produce biomass
-!     burning emissions on a "generic" 1x1 grid.  The emissions are then
-!     regridded to the current GEOS-Chem or GCAP grid (1x1, 2x25, or
-!     4x5).
-!     If several gfed3 options are switched on, the smaller period
-!     product is used: 3-hr before 8-day before monthly.
+      IMPLICIT NONE
+      PRIVATE
 !
-!  gfed3 biomass burning emissions are computed for the following gas-phase 
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: GFED3_COMPUTE_BIOMASS
+      PUBLIC  :: CLEANUP_GFED3_BIOMASS
+      PUBLIC  :: GFED3_IS_NEW
+!
+! PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: CHECK_GFED3
+      PRIVATE :: GFED3_AVAILABLE
+      PRIVATE :: GFED3_SCALfE_FUTURE
+      PRIVATE :: GFED3_TOTAL_Tg
+      PRIVATE :: INIT_GFED3_BIOMASS
+      PRIVATE :: REARRANGE_BIOM
+!
+! !REMARKS:
+!  Monthly/8-day/3-hr emissions of DM are read from disk and then
+!  multiplied by the appropriate emission factors to produce biomass
+!  burning emissions on a "generic" 1x1 grid.  The emissions are then
+!  regridded to the current GEOS-Chem or GCAP grid (1x1, 2x25, or 4x5).
+!                                                                             .
+!  If several gfed3 options are switched on, the smaller period
+!  product is used: 3-hr before 8-day before monthly.
+!                                                                             .
+!  GFED3 biomass burning emissions are computed for the following gas-phase 
 !  and aerosol-phase species:
-!
+!                                                                             .
 !     (1 ) NOx  [  molec/cm2/s]     (13) BC   [atoms C/cm2/s]
 !     (2 ) CO   [  molec/cm2/s]     (14) OC   [atoms C/cm2/s]                  
 !     (3 ) ALK4 [atoms C/cm2/s]     (15) GLYX [  molec/cm2/s]    
@@ -28,56 +58,7 @@
 !     (10) C2H6 [atoms C/cm2/s]     (22) GLYC [  molec/cm2/s]
 !     (11) SO2  [  molec/cm2/s]     (23) HAC  [  molec/cm2/s]
 !     (12) NH3  [  molec/cm2/s]     (24) CO2  [  molec/cm2/s]
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) IDBNOx          (INTEGER) : Local index for NOx  in BIOM_OUT array
-!  (2 ) IDBCO           (INTEGER) : Local index for CO   in BIOM_OUT array
-!  (3 ) IDBALK4         (INTEGER) : Local index for ALK4 in BIOM_OUT array
-!  (4 ) IDBACET         (INTEGER) : Local index for ACET in BIOM_OUT array
-!  (5 ) IDBMEK          (INTEGER) : Local index for MEK  in BIOM_OUT array
-!  (6 ) IDBALD2         (INTEGER) : Local index for ALD2 in BIOM_OUT array
-!  (7 ) IDBPRPE         (INTEGER) : Local index for PRPE in BIOM_OUT array
-!  (8 ) IDBC3H8         (INTEGER) : Local index for C3H8 in BIOM_OUT array
-!  (9 ) IDBCH2O         (INTEGER) : Local index for CH2O in BIOM_OUT array
-!  (10) IDBC2H6         (INTEGER) : Local index for C2H6 in BIOM_OUT array
-!  (11) IDBSO2          (INTEGER) : Local index for SO2  in BIOM_OUT array
-!  (12) IDBNH3          (INTEGER) : Local index for NH3  in BIOM_OUT array
-!  (13) IDBBC           (INTEGER) : Local index for BC   in BIOM_OUT array
-!  (14) IDBOC           (INTEGER) : Local index for OC   in BIOM_OUT array
-!  (15) IDBCO2          (INTEGER) : Local index for CO2  in BIOM_OUT array
-!  (11) SECONDS         (REAL*8 ) : Number of seconds in the current month
-!  (12) N_EMFAC         (INTEGER) : Number of emission factors per species
-!  (13) N_SPEC          (INTEGER) : Number of species
-!  (14) VEG_GEN_1x1     (INTEGER) : Array for GFED3 1x1 humid trop forest map
-!  (15) GFED3_SPEC_NAME (CHAR*4 ) : Array for GFED3 biomass species names
-!  (16) GFED3_EMFAC     (REAL*8 ) : Array for user-defined emission factors
-!  (17) BIOM_OUT        (REAL*8 ) : Array for biomass emissions on model grid
-!  (18) DOY8DAY         (INTEGER) : Day Of the Year at start of the current
-!                                   8-day period. 
-!  (19) T3HR            (INTEGER) : HH at start of the current 3-hr period.
-!  (20) UPDATED         (LOGICAL) : flag to indicate if new data are read at
-!                                   the current emission time step.
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GFED3_COMPUTE_BIOMASS     : Computes biomass emissions once per month
-!  (2 ) GFED3_SCALE_FUTURE        : Applies IPCC future scale factors to GFED3
-!  (3 ) GFED3_TOTAL_Tg            : Totals GFED3 biomass emissions [Tg/month]
-!  (4 ) INIT_GFED3_BIOMASS        : Initializes arrays and reads startup data
-!  (5 ) CLEANUP_GFED3_BIOMASS     : Deallocates all module arrays
-!
-!  GEOS-Chem modules referenced by "gfed3_biomass_mod.f":
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-CHEM data & met field dirs
-!  (3 ) error_mod.f            : Module w/ error and NaN check routines
-!  (4 ) file_mod.f             : Module w/ file unit numbers and error checks
-!  (5 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (6 ) grid_mod.f             : Module w/ horizontal grid information
-!  (7 ) time_mod.f             : Module w/ routines for computing time & date
-!  (8 ) regrid_1x1_mod.f       : Module w/ routines for regrid 1x1 data
-!
+!                                                                             .
 !  References:
 !  ============================================================================
 !  (1 ) Original GFED3 database from Guido van der Werf 
@@ -94,53 +75,49 @@
 !       (1997–2009), Atmos. Chem. Phys., 10, 11707-11735, 
 !       doi:10.5194/acp-10-11707-2010, 2010. 
 !
-!  NOTES:
-!  (1 ) Created from gfed2_biomass_mod.f (psk, 1/5/11)
-!******************************************************************************
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
+! !DEFINED PARAMETERS:
+!
       !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "gfed3_biomass_mod.f"
+      ! MODULE PARAMETERS
+      !
+      ! N_EMFAC : Number of emission factors per species
+      ! N_SPEC  : Number of species
       !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: GFED3_COMPUTE_BIOMASS
-      PUBLIC :: CLEANUP_GFED3_BIOMASS
-      PUBLIC :: GFED3_IS_NEW
-
-      !==================================================================
-      ! MODULE VARIABLES
-      !==================================================================
+      INTEGER,          PARAMETER   :: N_EMFAC = 6
+      INTEGER,          PARAMETER   :: N_SPEC  = 24
+!
+! PRIVATE TYPES:
+!
+      !=================================================================
+      ! MODULE VARIABLES:
+      !
+      ! BIO_SAVE        : Index array to store IDBxxx values
+      ! SECONDS         : Number of seconds in the current month
+      ! VEG_GEN_1x1     : Array for GFED3 1x1 humid trop forest map
+      ! GFED3_SPEC_NAME : Array for GFED3 biomass species names
+      ! GFED3_EMFAC     : Array for user-defined emission factors
+      ! BIOM_OUT        : Array for biomass emissions on model grid
+      ! DOY8DAY         : Day Of the Year at start of the current
+      !                   8-day period. 
+      ! T3HR            : HH at start of the current 3-hr period.
+      ! UPDATED         : flag to indicate if new data are read at
+      !=================================================================
 
       ! Scalars
-!      INTEGER                       :: IDBNOx,  IDBCO,   IDBALK4
-!      INTEGER                       :: IDBACET, IDBMEK,  IDBALD2
-!      INTEGER                       :: IDBPRPE, IDBC3H8, IDBCH2O
-!      INTEGER                       :: IDBC2H6, IDBBC,   IDBOC
-!      INTEGER                       :: IDBSO2,  IDBNH3,  IDBCO2
-!      INTEGER                       :: IDBBENZ, IDBTOLU, IDBXYLE
-!      INTEGER                       :: IDBC2H2, IDBC2H4, IDBGLYX
-!      INTEGER                       :: IDBMGLY, IDBGLYC, IDBHAC
-
-      ! BIO_SAVE stores IDB for GFED3 species number (hotp 7/31/09)
-      ! BIO_SAVE(GFED#xxx) = IDBxxx
-      INTEGER, ALLOCATABLE  :: BIO_SAVE(:)
-
-      INTEGER                       :: DOY8DAY, T3HR
       LOGICAL                       :: UPDATED
+      INTEGER                       :: DOY8DAY
+      INTEGER                       :: T3HR
       REAL*8                        :: SECONDS
 
-      ! Parameters
-      INTEGER,          PARAMETER   :: N_EMFAC = 6
-!------------------------------------------------------------------------
-      INTEGER,          PARAMETER   :: N_SPEC  = 24
-
       ! Arrays
+      INTEGER,          ALLOCATABLE :: BIO_SAVE(:)
       INTEGER,          ALLOCATABLE :: VEG_GEN_1x1(:,:)
       REAL*8,           ALLOCATABLE :: GFED3_EMFAC(:,:)
       REAL*8,           ALLOCATABLE :: GFED3_SPEC_MOLWT(:)
@@ -152,57 +129,85 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gfed3_is_new
+!
+! !DESCRIPTION: Function GFED3\_IS\_NEW returns TRUE if GFED3 emissions 
+!  have been updated.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GFED3_IS_NEW( ) RESULT( IS_UPDATED )
 !
-!******************************************************************************
-!  Function GFED3_IS_NEW returns TRUE if GFED3 emissions have been updated.
+! !RETURN VALUE:
 !
-!  NOTES:
-!     (1 ) Used in carbon_mod.f and sulfate_mod.f
-!******************************************************************************
+      LOGICAL :: IS_UPDATED    ! =T if GFED3 is updated; =F otherwise
 !
-      ! Function value
-      LOGICAL    :: IS_UPDATED
-
+! !REMARKS:
+!  Called from carbon_mod.f and sulfate_mod.f
+!
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IS_UPDATED = UPDATED      
 
-      ! Return to calling program
       END FUNCTION GFED3_IS_NEW
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: check_gfed3
+!
+! !DESCRIPTION: Subroutine CHECK\_GFED3 checks if we entered a new GFED period
+!  since last emission timestep (ie, last call). The result depends
+!  on the emissions time step, and the GFED time period used, as well
+!  as MMDDHH at beginning of the GEOS-Chem run
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHECK_GFED3( DOY, HH )
 !
-!******************************************************************************
-!     Subroutine GFED3_UPDATE checks if we entered a new GFED period
-!     since last emission timestep (ie, last call). The result depends
-!     on the emissions time step, and the GFED time period used, as well
-!     as MMDDHH at beginning of the GEOS-Chem run
+! !USES:
 !
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DOY  (INTEGER) : Day of the Year (0-366) 
-!  (2 ) HH   (INTEGER) : Current hour of the day (0-23)
-!
-!  NOTES:
-!  (1 ) the routine computes the DOY (resp. HOUR) at start of the 8-day (resp.
-!       3-hour) period we are in, if the 8-day (resp. 3-hr or synoptic) GFED3
-!       option is on. Result is compared to previous value to indicate if new
-!       data should be read.
-!******************************************************************************
-!
-      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3, L3HRBB3, LSYNOPBB3
+      USE LOGICAL_MOD, ONLY : LGFED3BB
+      USE LOGICAL_MOD, ONLY : L8DAYBB3
+      USE LOGICAL_MOD, ONLY : L3HRBB3
+      USE LOGICAL_MOD, ONLY : LSYNOPBB3
       USE TIME_MOD,    ONLY : ITS_A_NEW_MONTH
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: DOY, HH
-
-      ! Local
-      INTEGER             :: NEW_T3HR, NEW_DOY8DAY
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: DOY   ! Day of year (0-365 or 0-366 leap years)
+      INTEGER, INTENT(IN) :: HH    ! Hour of day (0-23)
+!
+! !REMARKS:
+!  The routine computes the DOY (resp. HOUR) at start of the 8-day (resp.
+!  3-hour) period we are in, if the 8-day (resp. 3-hr or synoptic) GFED3
+!  option is on. Result is compared to previous value to indicate if new
+!  data should be read.
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: NEW_T3HR, NEW_DOY8DAY
       
       ! Reset to default
       UPDATED = .FALSE.
@@ -239,25 +244,40 @@
       
       
       END SUBROUTINE CHECK_GFED3
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gfed3_available
+!
+! !DESCRIPTION: Function GFED3\_AVAILABLE checks an input YYYY year and MM
+!  month against the available data dates.  If the requested YYYY and MM
+!  lie outside of the valid range of dates, then GFED3\_AVAILABLE will return 
+!  the last valid YYYY and MM.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GFED3_AVAILABLE( YYYY, YMIN, YMAX, MM, MMIN, MMAX )
-!     
-!******************************************************************************
-!     Function GFED3_AVAILABLE checks if data are available for input YYYY/MM
-!     date, and constrains the later if needed 
-!     
-!     NOTES:
-!     (1 ) 
-!******************************************************************************
-!     
-      ! Arguments 
-      INTEGER, INTENT(INOUT)           :: YYYY
-      INTEGER, INTENT(IN)              :: YMIN, YMAX
-      INTEGER, INTENT(INOUT), OPTIONAL :: MM
-      INTEGER, INTENT(IN),    OPTIONAL :: MMIN, MMAX
-
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)              :: YMIN, YMAX   ! Min & max years 
+      INTEGER, INTENT(IN),    OPTIONAL :: MMIN, MMAX   ! Min & max months
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      INTEGER, INTENT(INOUT)           :: YYYY         ! Year of GFED3 data
+      INTEGER, INTENT(INOUT), OPTIONAL :: MM           ! Month of GFED3 data
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 
       ! Check year
       IF ( YYYY > YMAX .OR. YYYY < YMIN ) THEN
@@ -282,66 +302,89 @@
          ENDIF
       ENDIF
 
-      ! Return to calling program
-      END subroutine GFED3_AVAILABLE
-
+      END SUBROUTINE GFED3_AVAILABLE
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gfed3_compute_biomass
+!
+! !DESCRIPTION: Subroutine GFED3\_COMPUTE\_BIOMASS computes the monthly 
+!  GFED3 biomass burning emissions for a given year and month. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GFED3_COMPUTE_BIOMASS( THIS_YYYY, THIS_MM, BIOM_OUT )
 !
-!******************************************************************************
-!  Subroutine GFED3_COMPUTE_BIOMASS computes the monthly GFED3 biomass burning
-!  emissions for a given year and month. 
+! !USES:
 !
-!  This routine has to be called on EVERY emissions-timestep if you use one
-!  of the GFED3 options.
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THIS_YYYY (INTEGER) : Current year 
-!  (2 ) THIS_MM   (INTEGER) : Current month (1-12)
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : READ_BPCH2,    GET_TAU0
+      USE BPCH2_MOD,      ONLY : READ_BPCH2
+      USE BPCH2_MOD,      ONLY : GET_TAU0
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
-      USE JULDAY_MOD,     ONLY : JULDAY, CALDATE
+      USE JULDAY_MOD,     ONLY : JULDAY
+      USE JULDAY_MOD,     ONLY : CALDATE
       USE LOGICAL_MOD,    ONLY : LFUTURE
-      USE LOGICAL_MOD,    ONLY : L8DAYBB3, L3HRBB3, LSYNOPBB3, LGFED3BB
-      USE TIME_MOD,       ONLY : EXPAND_DATE,   TIMESTAMP_STRING
-      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1, DO_REGRID_G2G_1x1
-      USE TIME_MOD,       ONLY : GET_DAY, GET_HOUR, GET_DAY_OF_YEAR
+      USE LOGICAL_MOD,    ONLY : L8DAYBB3
+      USE LOGICAL_MOD,    ONLY : L3HRBB3
+      USE LOGICAL_MOD,    ONLY : LSYNOPBB3
+      USE LOGICAL_MOD,    ONLY : LGFED3BB
+      USE TIME_MOD,       ONLY : EXPAND_DATE
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
+      USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
+      USE TIME_MOD,       ONLY : GET_DAY
+      USE TIME_MOD,       ONLY : GET_HOUR
+      USE TIME_MOD,       ONLY : GET_DAY_OF_YEAR
       USE TIME_MOD,       ONLY : ITS_A_LEAPYEAR
 
-      USE CMN_SIZE_MOD         ! Size parameters
-
-      ! Arguments 
-      INTEGER,            INTENT(IN)    :: THIS_YYYY
-      INTEGER,            INTENT(IN)    :: THIS_MM
-      REAL*8,             INTENT(OUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)
-
-      ! Local variables
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: I,    J,  N,   NF 
-      INTEGER                 :: YYYY, MM, MM1, YYYY1
-      INTEGER                 :: YYYYMMDD, HHMMSS
-      REAL*8                  :: GFED3_EMFACX
-      REAL*4                  :: ARRAY_1x1(I1x1,J1x1-1)
-      REAL*4                  :: DM_GEN_1x1(I1x1,J1x1-1,6)
-      REAL*8                  :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
-      REAL*8                  :: BIOM_GEOS_1x1(I1x1,J1x1,N_SPEC)
-      REAL*8                  :: TAU0, TAU1, JD8DAY
-      REAL*4                  :: TMP
-      CHARACTER(LEN=255)      :: FILENAME1
-      CHARACTER(LEN=255)      :: FILENAME2
-      CHARACTER(LEN=255)      :: FILENAME3
-      CHARACTER(LEN=255)      :: FILENAME4
-      CHARACTER(LEN=255)      :: FILENAME5
-      CHARACTER(LEN=255)      :: FILENAME6
-      CHARACTER(LEN=16 )      :: TIME_STR
-      INTEGER                 :: DD, HH, DOY
+      USE CMN_SIZE_MOD                                       ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THIS_YYYY                      ! Current year   
+      INTEGER, INTENT(IN)  :: THIS_MM                        ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(OUT) :: BIOM_OUT(IIPAR,JJPAR,NBIOMAX)  ! BB emissions
+                                                             ! [molec/cm2/s]
+!
+! !REMARKS:
+!  This routine has to be called on EVERY emissions-timestep if you use one
+!  of the GFED3 options.
+! 
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I,    J,  N,   NF 
+      INTEGER            :: YYYY, MM, MM1, YYYY1
+      INTEGER            :: YYYYMMDD, HHMMSS
+      REAL*8             :: GFED3_EMFACX
+      REAL*4             :: ARRAY_1x1(I1x1,J1x1-1)
+      REAL*4             :: DM_GEN_1x1(I1x1,J1x1-1,6)
+      REAL*8             :: BIOM_GEN_1x1(I1x1,J1x1-1,N_SPEC)
+      REAL*8             :: BIOM_GEOS_1x1(I1x1,J1x1,N_SPEC)
+      REAL*8             :: TAU0, TAU1, JD8DAY
+      REAL*4             :: TMP
+      CHARACTER(LEN=255) :: FILENAME1
+      CHARACTER(LEN=255) :: FILENAME2
+      CHARACTER(LEN=255) :: FILENAME3
+      CHARACTER(LEN=255) :: FILENAME4
+      CHARACTER(LEN=255) :: FILENAME5
+      CHARACTER(LEN=255) :: FILENAME6
+      CHARACTER(LEN=16 ) :: TIME_STR
+      INTEGER            :: DD, HH, DOY
 
       !=================================================================
       ! GFED3_COMPUTE_BIOMASS begins here!
@@ -455,27 +498,38 @@
       ! AGW, DEF, FOR, PET, SAV, WDL
       CALL READ_BPCH2( FILENAME1, 'GFED3-BB',   91, 
      &                 TAU0,      I1x1,        J1x1-1,     
-     &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+     &                 1,         ARRAY_1x1,  QUIET=.TRUE. )
+ 
       DM_GEN_1x1(:,:,1)=ARRAY_1x1(:,:)
+
       CALL READ_BPCH2( FILENAME2, 'GFED3-BB',   92, 
      &                 TAU0,      I1x1,        J1x1-1,     
      &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+
       DM_GEN_1x1(:,:,2)=ARRAY_1x1(:,:)
+
       CALL READ_BPCH2( FILENAME3, 'GFED3-BB',   93, 
      &                 TAU0,      I1x1,        J1x1-1,     
      &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+
       DM_GEN_1x1(:,:,3)=ARRAY_1x1(:,:)
+
       CALL READ_BPCH2( FILENAME4, 'GFED3-BB',   94, 
      &                 TAU0,      I1x1,        J1x1-1,     
      &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+
       DM_GEN_1x1(:,:,4)=ARRAY_1x1(:,:)
+
       CALL READ_BPCH2( FILENAME5, 'GFED3-BB',   95, 
      &                 TAU0,      I1x1,        J1x1-1,     
      &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+
       DM_GEN_1x1(:,:,5)=ARRAY_1x1(:,:)
+
       CALL READ_BPCH2( FILENAME6, 'GFED3-BB',   96, 
      &                 TAU0,      I1x1,        J1x1-1,     
      &                 1,         ARRAY_1x1,  QUIET=.TRUE. ) 
+
       DM_GEN_1x1(:,:,6)=ARRAY_1x1(:,:)
 
       !=================================================================
@@ -525,8 +579,9 @@
             BIOM_GEN_1x1(I,J,N) = 0.0
             DO NF = 1, N_EMFAC
                GFED3_EMFACX=GFED3_EMFAC(N,NF)
-! Use woodland emission factors for 'deforestation' outside 
-! humid tropical forest
+
+               ! Use woodland emission factors for 'deforestation' outside 
+               ! humid tropical forest
                IF(NF.EQ.2.AND.VEG_GEN_1x1(I,J).EQ.0)
      &            GFED3_EMFACX=GFED3_EMFAC(N,6)
                BIOM_GEN_1x1(I,J,N) =  BIOM_GEN_1x1(I,J,N) +
@@ -561,42 +616,34 @@
       ! [molec/cm2/3hr] to [molec/cm2/s]
       GFED3_BIOMASS = GFED3_BIOMASS / SECONDS
 
-
-!-- New reordering necessary (fp, 6/09)
-!      ! set output
-!      BIOM_OUT = GFED3_BIOMASS
-      !GFED3_BIOMASS is indexed as GFED3
-      !BIOM_OUT      is indexed as IDBs
-      CALL REARRANGE_BIOM(GFED3_BIOMASS,BIOM_OUT)
-
+      ! Rearrange the species to the same order as in the IDBxxx (fp, 6/09)
+      ! GFED3_BIOMASS is indexed as GFED3
+      ! BIOM_OUT      is indexed as IDBs
+      CALL REARRANGE_BIOM( GFED3_BIOMASS, BIOM_OUT )
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
-      ! Return to calling program
       END SUBROUTINE GFED3_COMPUTE_BIOMASS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gfed3_scale_future
+!
+! !DESCRIPTION: Subroutine GFED3\_SCALE\_FUTURE applies the IPCC future 
+!  emissions scale factors to the GFED3 biomass burning emisisons in order 
+!  to compute the future emissions of biomass burning for NOx, CO, and VOC's.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GFED3_SCALE_FUTURE( BB )
 !
-!******************************************************************************
-!  Subroutine GFED3_SCALE_FUTURE applies the IPCC future emissions scale 
-!  factors to the GFED3 biomass burning emisisons in order to compute the 
-!  future emissions of biomass burning for NOx, CO, and VOC's.  
-!  (swu, bmy, 5/30/06, 9/25/06)
+! !USES:
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (1 ) BB (REAL*8) : Array w/ biomass burning emisisons [molec/cm2]
-!
-!  NOTES:
-!  (1 ) Now scale to IPCC future scenario for BC, OC, SO2, NH3 (bmy, 9/25/03)
-!  (2 ) IDBs are now defined in TRACERID_MOD. Use BIO_SAVE for correspondance
-!       of species order. (fp, ccc, 01/29/10)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_BCbb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_CObb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_NH3bb
@@ -605,19 +652,27 @@
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_SO2bb
       USE FUTURE_EMISSIONS_MOD,   ONLY : GET_FUTURE_SCALE_VOCbb
       USE TRACER_MOD,             ONLY : ITS_A_CO2_SIM       
-
-      !Need IDBs from TRACERID_MOD now.
       USE TRACERID_MOD,           ONLY : IDBNOx,  IDBCO,   IDBSO2 
       USE TRACERID_MOD,           ONLY : IDBNH3,  IDBBC,   IDBOC 
 
       USE CMN_SIZE_MOD                 ! Size parameters
-
-      ! Arguments
-      REAL*8,           INTENT(INOUT) :: BB(IIPAR,JJPAR,N_SPEC)
-
-      ! Local variables
-      LOGICAL                         :: ITS_CO2
-      INTEGER                         :: I, J, N
+!
+! !OUTPUT PARAMETERS:
+!
+      !  Array w/ biomass burning emisisons [molec/cm2]
+      REAL*8, INTENT(INOUT) :: BB(IIPAR,JJPAR,N_SPEC)
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: ITS_CO2
+      INTEGER :: I, J, N
       
       !=================================================================
       ! GFED3_SCALE_FUTURE begins here!
@@ -636,39 +691,31 @@
       DO I = 1, IIPAR 
 
          ! Scale each species to IPCC future scenario
-! Now use BIO_SAVE to have the correspondance GFED order -> tracers order.
-! (ccc, 01/27/10)
-!         IF ( N == IDBNOx ) THEN
          IF ( BIO_SAVE(N) == IDBNOx ) THEN
 
             ! Future biomass NOx [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NOxbb( I, J )
 
-!         ELSE IF ( N == IDBCO ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBCO ) THEN
 
             ! Future biomass CO [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_CObb( I, J )
 
-!         ELSE IF ( N == IDBSO2 ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBSO2 ) THEN
 
             ! Future biomass SO2 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_SO2bb( I, J )
 
-!         ELSE IF ( N == IDBNH3 ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBNH3 ) THEN
 
             ! Future biomass NH3 [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_NH3bb( I, J )
 
-!         ELSE IF ( N == IDBBC ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBBC ) THEN
 
             ! Future biomass BC [molec/cm2]
             BB(I,J,N) = BB(I,J,N) * GET_FUTURE_SCALE_BCbb( I, J )
 
-!         ELSE IF ( N == IDBOC ) THEN
          ELSE IF ( BIO_SAVE(N) == IDBOC ) THEN
 
             ! Future biomass OC [molec/cm2]
@@ -690,39 +737,47 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE GFED3_SCALE_FUTURE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gfed3_total_Tg
+!
+! !DESCRIPTION: Subroutine GFED3\_TOTAL\_Tg prints the amount of biomass 
+!  burning emissions that are emitted each month/8-day/3-hr in Tg or Tg C. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GFED3_TOTAL_Tg( YYYY, MM )
 !
-!******************************************************************************
-!  Subroutine TOTAL_BIOMASS_TG prints the amount of biomass burning emissions 
-!  that are emitted each month/8-day/3-hr in Tg or Tg C. (bmy, 3/20/01,
-!  12/23/08)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) YYYY    (INTEGER) : Current year
-!  (2 ) MM      (INTEGER) : Currrent month
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
+      USE GRID_MOD,    ONLY : GET_AREA_CM2
+
+      USE CMN_SIZE_MOD              ! Size parameters
 !
-      ! References to F90 modules
-      USE GRID_MOD,   ONLY : GET_AREA_CM2
-
-      USE CMN_SIZE_MOD     ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: YYYY, MM
-
-      ! Local variables
-      INTEGER             :: I,    J,     N
-      REAL*8              :: CONV, MOLWT, TOTAL
-      CHARACTER(LEN=4)    :: NAME
-      CHARACTER(LEN=6)    :: UNIT
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: YYYY   ! Current year
+      INTEGER, INTENT(IN) :: MM     ! Current month
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: I,    J,     N
+      REAL*8           :: CONV, MOLWT, TOTAL
+      CHARACTER(LEN=4) :: NAME
+      CHARACTER(LEN=6) :: UNIT
 
       !=================================================================
       ! GFED3_TOTAL_Tg begins here!
@@ -754,44 +809,55 @@
  110     FORMAT( 'Sum Biomass ', a4, 1x, ': ', f9.4, 1x, a6 )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE GFED3_TOTAL_Tg
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_gfed3_biomass
+!
+! !DESCRIPTION: Subroutine INIT\_GFED3\_BIOMASS allocates all module arrays.  
+!  It also reads the emission factors at the start of a GEOS-Chem
+!  simulation. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GFED3_BIOMASS
 !
-!******************************************************************************
-!  Subroutine INIT_GFED3_BIOMASS allocates all module arrays.  It also reads
-!  the emission factors at the start of a GEOS-Chem
-!  simulation. 
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
       USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE FILE_MOD,      ONLY : IOERROR, IU_FILE
+      USE FILE_MOD,      ONLY : IOERROR
+      USE FILE_MOD,      ONLY : IU_FILE
       USE LOGICAL_MOD,   ONLY : LDICARB
+      USE TRACERID_MOD,  ONLY : IDBNOx,  IDBCO,   IDBALK4
+      USE TRACERID_MOD,  ONLY : IDBACET, IDBMEK,  IDBALD2
+      USE TRACERID_MOD,  ONLY : IDBPRPE, IDBC3H8, IDBCH2O
+      USE TRACERID_MOD,  ONLY : IDBC2H6, IDBBC,   IDBOC
+      USE TRACERID_MOD,  ONLY : IDBSO2,  IDBNH3,  IDBCO2
+      USE TRACERID_MOD,  ONLY : IDBGLYX, IDBMGLY, IDBBENZ
+      USE TRACERID_MOD,  ONLY : IDBTOLU, IDBXYLE, IDBC2H4
+      USE TRACERID_MOD,  ONLY : IDBC2H2, IDBGLYC, IDBHAC
 
-      !(fp)
-      USE TRACERID_MOD, ONLY : IDBNOx,  IDBCO,   IDBALK4
-      USE TRACERID_MOD, ONLY : IDBACET, IDBMEK,  IDBALD2
-      USE TRACERID_MOD, ONLY : IDBPRPE, IDBC3H8, IDBCH2O
-      USE TRACERID_MOD, ONLY : IDBC2H6, IDBBC,   IDBOC
-      USE TRACERID_MOD, ONLY : IDBSO2,  IDBNH3,  IDBCO2
-      USE TRACERID_MOD, ONLY : IDBGLYX, IDBMGLY, IDBBENZ
-      USE TRACERID_MOD, ONLY : IDBTOLU, IDBXYLE, IDBC2H4
-      USE TRACERID_MOD, ONLY : IDBC2H2, IDBGLYC, IDBHAC
-
-      USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Local variables
-      INTEGER                :: AS, IOS, M, N, NDUM
-      REAL*4                 :: ARRAY(I1x1,J1x1-1,1)
-      CHARACTER(LEN=255)     :: FILENAME
+      USE CMN_SIZE_MOD        ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: AS, IOS, M, N, NDUM
+      REAL*4             :: ARRAY(I1x1,J1x1-1,1)
+      CHARACTER(LEN=255) :: FILENAME
       
       !=================================================================
       ! INIT_GFED3_BIOMASS begins here!
@@ -906,7 +972,6 @@
       DO N = 1, N_SPEC
          SELECT CASE ( TRIM( GFED3_SPEC_NAME(N) ) ) 
             CASE( 'NOx'  )
-!               IDBNOx              = N
                BIO_SAVE(N)         = IDBNOX
                GFED3_SPEC_MOLWT(N) = 14d-3
                GFED3_SPEC_UNIT(N)  = '[Tg N]'
@@ -1011,50 +1076,81 @@
          END SELECT
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE INIT_GFED3_BIOMASS
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE REARRANGE_BIOM(BIOM_OUT,BIOM_OUTM)
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-! Subroutine REARRANGE_BIOM takes GFED3 emissions (which have their own,
-! unique ID#s and associates them with the IDBxxxs of tracerid_mod
-! Created: FP (6/2009)
-!******************************************************************************
+! !IROUTINE: 
+!
+! !DESCRIPTION: Subroutine REARRANGE\_BIOM takes GFED3 emissions (which have 
+!  their own, unique ID numbers and associates them with the IDBxxxs of 
+!  tracerid\_mod.F.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE REARRANGE_BIOM( BIOM_OUT, BIOM_OUTM )
 
-      USE CMN_SIZE_MOD         ! Size parameters
-
-      REAL*8,  INTENT(IN)     :: BIOM_OUT(IIPAR,JJPAR,N_SPEC)
-      REAL*8,  INTENT(OUT)    :: BIOM_OUTM(IIPAR,JJPAR,NBIOMAX) !+1 from CO2
-     
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD     ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN)  :: BIOM_OUT (IIPAR,JJPAR,N_SPEC)
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8, INTENT(OUT) :: BIOM_OUTM(IIPAR,JJPAR,NBIOMAX) !+1 from CO2
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: N
 
-      DO N=1,N_SPEC
+      ! Loop over GFED2 species
+      DO N = 1, N_SPEC
 
-         IF (BIO_SAVE(N) .GT. 0) THEN
-
-            BIOM_OUTM(:,:,BIO_SAVE(N))=BIOM_OUT(:,:,N)
-       
+         ! Save into array w/ proper ordering for GEOS-Chem
+         IF ( BIO_SAVE(N) .GT. 0 ) THEN
+            BIOM_OUTM(:,:,BIO_SAVE(N)) = BIOM_OUT(:,:,N)
          ENDIF
-
 
       ENDDO
 
       END SUBROUTINE REARRANGE_BIOM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_gfed3_biomass
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GFED3\_BIOMASS deallocates all module 
+!  arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GFED3_BIOMASS
-!
-!******************************************************************************
-!  Subroutine CLEANUP_GFED3_BIOMASS deallocates all module arrays.
-!  (psk, bmy, 4/20/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  07 Sep 2011 - P. Kasibhatla - Initial version, based on GFED2
+!  07 Sep 2011 - R. Yantosca   - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_GFED3_BIOMASS begins here!
       !=================================================================
@@ -1064,10 +1160,6 @@
       IF ( ALLOCATED( VEG_GEN_1x1      ) ) DEALLOCATE( VEG_GEN_1x1     )
       IF ( ALLOCATED( GFED3_BIOMASS    ) ) DEALLOCATE( GFED3_BIOMASS   )
       
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GFED3_BIOMASS
-
-!------------------------------------------------------------------------------
-
-      ! End of module 
+!EOC
       END MODULE GFED3_BIOMASS_MOD

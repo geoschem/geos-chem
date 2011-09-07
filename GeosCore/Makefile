@@ -215,7 +215,9 @@ realclean:                                           # Remove files everywhere
 	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
+ifeq ($(ESMF),yes)
 	@$(MAKE) -C $(LESMF) clean
+endif
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
@@ -242,11 +244,6 @@ allhg:                                               # Build Hg/GTMM executable
 libhg:                                               # Compile HG/GTMM code
 	@$(MAKE) libgtmm           		     
 	@$(MAKE) libgc
-#	@$(MAKE) libheaders         		     
-#	@$(MAKE) libkpp  
-#	@$(MAKE) libutil 			     
-#	@$(MAKE) libiso 			     
-#	@$(MAKE) libcore
 
 libgtmm:                                             # Compile GTMM model code
 	@$(MAKE) -C $(GTMM)
