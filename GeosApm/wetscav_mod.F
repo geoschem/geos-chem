@@ -2064,6 +2064,10 @@
          ! Force not to be lost in convective updraft for now
          F    = 0d0
 
+      ELSE IF ( (N >= IDTCTSEA .and. N<(IDTCTSEA+NCTSEA)) .or.
+     &          (N >= IDTSEABIN1 .and. N<(IDTSEABIN1+NSEA)) ) THEN
+         CALL F_AEROSOL( KC, F )
+
       ELSE IF ( (N >= IDTCTDST .and. N<(IDTCTDST+NCTDST)) .or.
      &          (N >= IDTDSTBIN1 .and. N<(IDTDSTBIN1+NDSTB)) ) THEN
          CALL F_AEROSOL( KC, F )
@@ -5625,11 +5629,6 @@
             ! the atmosphere in the gas phase in grid box (I,J,L).
             GAINED  = DSTT(NN,L+1,I,J) * ALPHA2
 
-#if   defined( APM )
-            ! Archive GAINED for APM microphysics
-            SO2GAINED(I,J,L) = GAINED * 96D0 / 64D0
-#endif
-
             ! Amount of aerosol lost to washout in grid box
             ! (qli, bmy, 10/29/02)
             WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
@@ -5643,6 +5642,11 @@
             IF ( N == IDTSO2 ) THEN
                STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
      &                           + GAINED * 96D0 / 64D0
+
+#if   defined( APM )
+               ! Archive GAINED for APM microphysics
+               SO2GAINED(I,J,L) = GAINED * 96D0 / 64D0
+#endif
 
                STT(I,J,L,N)      = STT(I,J,L,N) *
      &                                          ( 1d0 - WASHFRAC )
