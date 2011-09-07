@@ -100,8 +100,8 @@ KPPSOLVER = rosenbrock
 endif
 
 # solver (S=Source, T=Target)
-SOLVER_SFILE=./int/gckpp_Integrator_$(KPPSOLVER).f90
-SOLVER_TFILE=./$(CHEM)/gckpp_Integrator.f90
+SOLVER_SFILE=./int/gckpp_Integrator_$(KPPSOLVER).F90
+SOLVER_TFILE=./$(CHEM)/gckpp_Integrator.F90
 
 
 #=============================================================================
