@@ -26,6 +26,7 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
+      PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I6_FIELDS
@@ -171,6 +172,8 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU    (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD    (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -485,6 +488,122 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE AIRQNT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: airqnt_fullgrid
+!
+! !DESCRIPTION: Subroutine AIRQNT_FULLGRID calculates the same quantities as 
+!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AIRQNT_FULLGRID
+!
+! !USES:
+!
+      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
+!
+! !REMARKS:
+!  DAO met fields updated by AIRQNT_FULLGRID:
+!  ========================================================================
+!  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
+!
+!  NOTES:
+!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I,  J,  L
+      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
+      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+
+      !=================================================================
+      ! AIRQNT_FULLGRID begins here! 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
+!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
+      DO L = 1, LGLOB
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [m2]
+         AREA_M2 = GET_AREA_M2( J )
+
+         DO I = 1, IIPAR
+               
+            ! Pressure at bottom edge of grid box [hPa]
+            P1          = GET_PEDGE_FULLGRID(I,J,L)
+
+            ! Pressure at top edge of grid box [hPa]
+            P2          = GET_PEDGE_FULLGRID(I,J,L+1)
+
+            ! Pressure difference between top & bottom edges [hPa]
+            DELP_TMP = P1 - P2
+            
+            !===========================================================
+            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+            ! in meters. 
+            !
+            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+            ! Rd = 287 J/K/kg is the value for the ideal gas constant
+            ! R for air (M.W = 0.02897 kg/mol),  or 
+            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+            !===========================================================
+            BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
+
+            !===========================================================
+            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+            !
+            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+            ! boxes (I,J,L=1), that is, at the earth's surface.
+            !
+            ! Since the thickness of the atmosphere is much smaller 
+            ! than the radius of the earth, we can make the "thin 
+            ! atmosphere" approximation, namely:
+            !
+            !               (Rearth + h) ~ Rearth
+            !
+            ! Therefore, the Delta-X * Delta-Y surface area of grid
+            ! boxes that are above the earth's surface will be 
+            ! approx. the same as AREA_M2.  Thus we are justified 
+            ! in using AREA_M2 for grid boxes (I, J, L > 1)
+            !===========================================================
+            AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
+
+            !===========================================================
+            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+            ! given by:        
+            !
+            !  Mass    Pressure        100      1        Surface area 
+            !        = difference   *  ---  *  ---   *   of grid box 
+            !          in grid box      1       g          AREA_M2
+            !
+            !   kg         mb          Pa      s^2           m^2
+            !  ----  =    ----      * ----  * -----  *      -----
+            !    1          1          mb       m             1
+            !===========================================================
+            AD_TMP = DELP_TMP * G0_100 * AREA_M2
+
+            !===========================================================
+            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+            !===========================================================
+            AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+         ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE AIRQNT_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2105,6 +2224,16 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
       T = 0d0
 
+      ! Temperature on full vertical grid 
+      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+      T_FULLGRID = 0d0
+
+      ! Number density of air on full vertical grid
+      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+      AIRDEN_FULLGRID = 0d0
+
       ! Tropopause pressure
       ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TROPP' )
@@ -2802,6 +2931,8 @@
       IF ( ALLOCATED( ZMMD     ) ) DEALLOCATE( ZMMD     )
       IF ( ALLOCATED( ZMMU     ) ) DEALLOCATE( ZMMU     )
       IF ( ALLOCATED( EFLUX    ) ) DEALLOCATE( EFLUX    )
+      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
+      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC
