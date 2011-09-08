@@ -1015,11 +1015,6 @@
          !   ***** U N I T   C O N V E R S I O N  ( kg -> v/v ) *****
          !==============================================================
          IF ( ITS_TIME_FOR_UNIT() ) THEN
-
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!            CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
-!------------------------------------------------------------------------------
             CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, AD, STT )
 
             !### Debug
@@ -1074,10 +1069,6 @@
          IF ( LNLPBL .AND. ITS_TIME_FOR_EMIS() ) THEN
 
             IF ( ITS_TIME_FOR_UNIT() )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11;
-!     &         CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT ) ! v/v -> kg
-!------------------------------------------------------------------------------
      &         CALL CONVERT_UNITS( 2, N_TRC_TOT, TCVV, AD, STT ) ! v/v -> kg
 
             ! Increment emission counter
@@ -1094,10 +1085,6 @@
             IF ( LEMIS ) CALL DO_EMISSIONS
 
             IF ( ITS_TIME_FOR_UNIT() )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
-!------------------------------------------------------------------------------
      &         CALL CONVERT_UNITS( 1, N_TRC_TOT, TCVV, AD, STT ) ! kg -> v/v
          ENDIF
 

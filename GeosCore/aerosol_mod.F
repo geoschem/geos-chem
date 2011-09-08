@@ -590,12 +590,6 @@
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
 
-      !-------------------------------------------------
-      ! Prior to 8/3/10:
-      !!Fraction of aerosol from H2O
-      !REAL*8		  :: FWET      
-      !-------------------------------------------------
-
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
 
@@ -986,17 +980,8 @@
                ! Wet radius in "jv_spec.dat"
                RW(R) = RAA(4,IND(N)+R-1)	
 
-               !--------------------------------------------------------------
-               ! Prior to 8/3/10:
-               !! Wet frac of aerosol 
-               !FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
-               !
-               !! Extinction efficiency Q for each RH bin
-               !QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
-               !--------------------------------------------------------------
-
-              ! Extinction efficiency Q for each RH bin
-              QW(R) = QAA(4,IND(N)+R-1)
+               ! Extinction efficiency Q for each RH bin
+               QW(R) = QAA(4,IND(N)+R-1)
 
             ENDIF
 

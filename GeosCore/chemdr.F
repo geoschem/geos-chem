@@ -397,12 +397,6 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                    IT_EXISTS )
-!------------------------------------------------------------------------------
             CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
      &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                    FRCLND,                 IT_EXISTS )
@@ -413,12 +407,6 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                    IT_EXISTS )
-!------------------------------------------------------------------------------
             CALL GASCONC( .FALSE.,                 N_TRACERS, 
      &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
      &                     FRCLND,                 IT_EXISTS )
@@ -427,12 +415,6 @@
 
       ELSE 
 
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-!     &                 IT_EXISTS )
-!------------------------------------------------------------------------------
          CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
      &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
      &                  FRCLND,                 IT_EXISTS )
@@ -520,11 +502,6 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!      CALL LUMP( N_TRACERS, XNUMOL, STT )
-!------------------------------------------------------------------------------
       CALL LUMP( N_TRACERS, 
      &           XNUMOL(1:N_TRACERS),
      &           STT(:,:,:,1:N_TRACERS) )
@@ -536,13 +513,6 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
-!         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
-!     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-!     &                SAVENO,    SAVENO2, SAVENO3 )
-!------------------------------------------------------------------------------
          CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
      &                STT(:,:,:,1:N_TRACERS), FRACO3, 
      &                FRACNO,                 FRACNO2, 

@@ -1919,18 +1919,6 @@
       !=================================================================
 
       ! Compute totals [Tg/yr]
-      !------------------------------------------------------------------------
-      ! Prior to 8/4/10:
-      ! Bug fix: do not reference EDGAR_NOx_SHIP, EDGAR_CO_SHIP, or
-      ! EDGAR_CO_SHIP unless they have been allocated.  Put an IF statement
-      ! to avoid a seg fault error. (jensberg, bmy, 8/4/10)
-      !T_NOx   = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      !T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      !T_CO    = SUM( EDGAR_CO       )                 / 1d9   ! Tg CO
-      !T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9   ! Tg CO
-      !T_SO2an = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9   ! Tg S
-      !T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9   ! Tg S
-      !------------------------------------------------------------------------
       T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
       T_CO       = SUM( EDGAR_CO       )                 / 1d9 ! Tg CO
       T_SO2an    = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9 ! Tg S

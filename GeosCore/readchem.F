@@ -1049,11 +1049,6 @@
      1       'DELIMETER ',A2,' HAD INCORRECT # OF REACTIONS ',I5)
  450  FORMAT('READCHEM: ORD# REACT ',I3,' CANT HAVE COEFF > 1')
  470  FORMAT('READCHEM: SURFACE REACTION ',I5,'HAS THREE REACTANTS ')
-!---------------------------------------------------------------------------
-! Prior to 6/1/10:
-! Update format to eliminate error in smv2.log (hotp 6/1/10)
-! 510  FORMAT(I3,1X,ES7.1,1X,ES7.1,I6,1X,0PF3.2,1X,
-!---------------------------------------------------------------------------
  510  FORMAT(I3,1X,ES7.1,1X,F7.2,1X,I6,1X,0PF3.2,1X,
      1       A6,2(A1,A6),14(A1,0PF3.1,A6)) 
  520  FORMAT( 'KINETIC REACTIONS FOR ', A,' CHEMISTRY',/,   
@@ -1220,20 +1215,6 @@
                   IF ( J == MAPPL(IFAM(N),NCS) ) THEN
                      ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
                      EXIT
-!------------------------------------------------------------------------------
-! Prior to 3/1/11:
-! These statements will cause an out-of-bounds error if any of the IL* indices 
-! are zero.  Bracket these out with separate IF statements (bmy, 3/1/11)
-!                  ! dkh 
-!                  ELSEIF ( J == MAPPL(ILBRO2H,NCS) .or.
-!     &                     J == MAPPL(ILBRO2N,NCS) .or.
-!     &                     J == MAPPL(ILTRO2H,NCS) .or.
-!     &                     J == MAPPL(ILTRO2N,NCS) .or.
-!     &                     J == MAPPL(ILXRO2H,NCS) .or.
-!     &                     J == MAPPL(ILXRO2N,NCS) ) THEN
-!                     ITS_NOT_A_ND65_FAMILY(J) = .FALSE.
-!                     EXIT
-!------------------------------------------------------------------------------
                   ENDIF
 
                   ! Avoid out-of-bounds-errors by making sure that each

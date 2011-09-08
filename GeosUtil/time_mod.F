@@ -416,13 +416,6 @@
      &                    'SET_BEGIN_TIME (time_mod.f)' )
       ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 12/16/10:
-! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
-!      ! Make sure THISNYMDb uses 4 digits for the year
-!      ! and is not less than 1985/01/01
-!      IF ( THISNYMDb < 19850101 ) THEN
-!-----------------------------------------------------------------------------
       ! Error check THISNYMDb
       IF ( THISNYMDb < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDb must be in the format YYYYMMDD!',
@@ -492,13 +485,6 @@
      &                    'SET_END_TIME (time_mod.f)' )
       ENDIF
 
-!-----------------------------------------------------------------------------
-! Prior to 12/16/10:
-! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
-!!      ! Make sure THISNYMDb uses 4 digits for the year
-!!      ! and is not less than 1985/01/01
-!!      IF ( THISNYMDe < 19850101 ) THEN
-!-----------------------------------------------------------------------------
       ! Error check THISNYMDe
       IF ( THISNYMDe < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDe must be in the format YYYYMMDD!',
@@ -2799,13 +2785,6 @@
       ! A3 fields are indexed at the midpoint of the 3-hr interval
       !==================================================================
 
-      !--------------------------------------------------------------------
-      ! Prior to 9/27/10:
-      ! For GEOS-4, GEOS-5, and GCAP: Call GET_A3_TIME to return 
-      ! the date/time under which the A-3 fields are timestamped
-      !DATE = GET_A3_TIME()
-      !--------------------------------------------------------------------
-
       ! Split NYMS into hours, mins, seconds
       CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
@@ -2874,12 +2853,6 @@
       !==================================================================
       ! GEOS-3, GEOS-4, GEOS-5, MERRA MET FIELDS
       !==================================================================
-
-      !---------------------------------------------------------
-      ! Prior to 9/27/10:
-      !! For GEOS data: Return the current date/time
-      !DATE = (/ NYMD, NHMS /)
-      !---------------------------------------------------------
 
       ! Split NYMS into hours, mins, seconds
       CALL YMD_EXTRACT( NHMS, HH, MM, SS )        

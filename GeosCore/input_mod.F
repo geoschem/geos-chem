@@ -1741,13 +1741,6 @@
       !=================================================================
       ! Enforce emissions options for Nested China on native GEOS-5 grid
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 7/27/11:
-! Fix bug reported by Lin Zhang.  Remove #if defined( GRID05x0666 ) from 
-! the IF condition to avoid turning off CAC and BRAVO emissions for NA 
-! Nested Grid simulations. (lzh, bmy, 7/27/11)
-!#if defined( GRID05x0666 ) || defined( NESTED_CH )
-!-----------------------------------------------------------------------------
 #if   defined ( NESTED_CH )
 
       ! Turn off emissions options that are
@@ -3188,12 +3181,6 @@
       !--------------------------
       ! ND17: Rainout losses
       !--------------------------
-!--------------------------------------------------------------------------
-! Prior to 5/26/11:
-! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
-! won't print out (skim, bmy, 5/26/11) 
-!      N_TMP = GET_WETDEP_NMAX()
-!--------------------------------------------------------------------------
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:19' )
       READ( SUBSTRS(1), * ) ND17
@@ -3203,12 +3190,6 @@
       !--------------------------
       ! ND18: Washout losses
       !--------------------------
-!--------------------------------------------------------------------------
-! Prior to 5/26/11:
-! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
-! won't print out (skim, bmy, 5/26/11) 
-!      N_TMP = GET_WETDEP_NMAX()
-!--------------------------------------------------------------------------
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:20' )
       READ( SUBSTRS(1), * ) ND18
@@ -3342,12 +3323,6 @@
       !--------------------------
       ! ND37: Updraft scav frac
       !--------------------------
-!--------------------------------------------------------------------------
-! Prior to 5/26/11:
-! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
-! won't print out (skim, bmy, 5/26/11) 
-!      N_TMP = GET_WETDEP_NMAX()
-!--------------------------------------------------------------------------
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:38' )
       READ( SUBSTRS(1), * ) ND37
@@ -3356,12 +3331,6 @@
       !--------------------------
       ! ND38: Cld conv losses
       !--------------------------
-!--------------------------------------------------------------------------
-! Prior to 5/26/11:
-! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
-! won't print out (skim, bmy, 5/26/11) 
-!      N_TMP = GET_WETDEP_NMAX()
-!--------------------------------------------------------------------------
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:39' )
       READ( SUBSTRS(1), * ) ND38
@@ -3371,12 +3340,6 @@
       !--------------------------
       ! ND39: Wet scav losses
       !--------------------------
-!--------------------------------------------------------------------------
-! Prior to 5/26/11:
-! Need to set N_TMP=N_TRACERS or else wetdep tracers higher than 32
-! won't print out (skim, bmy, 5/26/11) 
-!      N_TMP = GET_WETDEP_NMAX()
-!--------------------------------------------------------------------------    
       N_TMP = N_TRACERS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:40' )
       READ( SUBSTRS(1), * ) ND39

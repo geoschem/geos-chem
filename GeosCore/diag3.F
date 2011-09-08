@@ -2984,10 +2984,6 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!            IF ( N > N_TRACERS ) CYCLE
-!-----------------------------------------------------------------------------
             IF ( N > N_TOT_TRC ) CYCLE
 
             NN = N
@@ -3006,20 +3002,12 @@
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
 
                   WHERE( CTO3 /= 0 )
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TRACERS+1) /
-!-----------------------------------------------------------------------------
                      ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TOT_TRC+1) /
      $                    FLOAT( CTO3 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD45) = 0.
                   ENDWHERE
                   
-!-----------------------------------------------------------------------------
-! Prior to 2/15/11:
-!               NN = N_TRACERS + 1
-!-----------------------------------------------------------------------------
                NN = N_TOT_TRC + 1
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
@@ -3207,12 +3195,6 @@
          UNIT = 'unitless'
 
          DO L = 1, LD54
-!-----------------------------------------------------------------------------
-! Prior to 5/27/11:
-! The time in the tropopause is now archived once every chemistry timestep,
-! so we need to divide by SCALEDIAG instead of SCALEDYN (bmy, 5/27/11)
-!            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
-!-----------------------------------------------------------------------------
             ARRAY(:,:,L) = AD54(:,:,L) / SCALEDIAG
          ENDDO
 

@@ -892,12 +892,6 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.' // 
      &              YEAR_STR          // '.'                        //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -908,12 +902,6 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                //
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)                          // 
-!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.'//
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -1065,12 +1053,6 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)                   
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'  // 
      &              YEAR_STR          // '.'                         //
      &              GET_NAME_EXT_2D() // '.'       //  GET_RES_EXT()
@@ -1079,12 +1061,6 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)    
-!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.' //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
@@ -1340,12 +1316,6 @@
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                               // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)        
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'//  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()

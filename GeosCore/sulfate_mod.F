@@ -1644,10 +1644,6 @@
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         !---------------------------------------------------------------------
-         ! Prior to 5/21/11:
-         !LWC     = GET_LWC( TK ) * FC
-         !---------------------------------------------------------------------
          ! LWC as returned from the GET_LWC function is the in-cloud liquid
          ! water content.  To improve the representation of sulfate chemistry, 
          ! we use this LWC to compute the aqueous sulfate chemistry.  We then

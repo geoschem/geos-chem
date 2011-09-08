@@ -570,11 +570,6 @@
       MAGLAT= abs(XMAGLAT) !  magnetic latitude in degree
 
       L = INT(MAGLAT+0.5) + 1
-!---------------------------------------
-! Prior to 3/9/11:
-! Gan Luo says change this line:
-!      K = INT(XP/5.+0.5)
-!----------------------------------------
       K = MIN( MAX ( INT( XP/5. + 0.5 ), 1 ), 203 )
       ZQ = YQ(L,K)   ! GCR ionization rate from the lookup table
 

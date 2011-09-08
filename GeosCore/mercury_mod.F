@@ -616,30 +616,6 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-!------------------------------------------------------------------------------
-! Prior to 1/10/11:
-! Get values directly from GEOS-5/MERRA met fields (skim, bmy, 1/14/10)
-!         ! Get volume fraction of gridbox containing 
-!         ! cloud [unitless], following Sundqvist et al 1989.
-!         FC          = GET_VCLDF( I, J, L )
-!
-!         ! Get liquid water content for entire grid box,
-!         ! based on formula for LWC in cloud (m3/m3)
-!         LWC         = GET_LWC( T(I,J,L) ) * FC 
-!
-!         ! There should be no liquid water when T < 258K 
-!         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
-!
-!#if   defined( GEOS_5 ) || defined( MERRA )
-!         IF ( LGEOSLWC ) THEN
-!
-!            ! Get grid-averaged liquid water content from met fields (kg/kg)
-!            ! Convert to m3/m3
-!            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-!
-!         ENDIF
-!#endif
-!------------------------------------------------------------------------------
 #if   defined( GEOS_5 ) || defined( MERRA ) 
 
          !---------------------------------------------

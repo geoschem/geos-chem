@@ -783,13 +783,6 @@
          TAU2005 = GET_TAU0( 1, 1, 2005 )
 
          ! File name
-!-----------------------------------------------------------------------------
-! Prior to 7/27/11:
-! As in EMISS_NEI2005_ANTHRO, we should be reading data from the
-! from NEI2005_201007.  For some reason, we had noted this in the comments 
-! but not changed this in the source code. (lschiferl, bmy, 7/27/11)
-!         FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_200710/' //
-!-----------------------------------------------------------------------------
          FILENAME  = TRIM( DATA_DIR ) // 'NEI2005_201007/' //
      &            'NEI2005.' // TRIM( SNAME ) 
      &             // '.1t2x2t3.AVG.na.bpch'
