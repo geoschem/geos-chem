@@ -1354,6 +1354,8 @@
 !	 for points near the date line.  (bmy, 4/23/04)
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
+!  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
+!                              based on nested regions
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1361,6 +1363,8 @@
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GRID_MOD,       ONLY : GET_XOFFSET
+      USE GRID_MOD,       ONLY : GET_YOFFSET
 
 #     include "CMN_SIZE"   ! Size parameters
 
@@ -1372,6 +1376,7 @@
       ! Local variables
       INTEGER              :: IL
       LOGICAL              :: FOUND
+      INTEGER              :: I0, J0   ! (lds, 8/25/11)
 
       !=================================================================
       ! TEST_VALID begins here!
@@ -1380,14 +1385,19 @@
       ! We have not found a valid point
       FOUND = .FALSE.
 
+      ! Added correct definitions for I and J based on nested regions 
+      ! (lds, 8/25/11)
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
       ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180d0 ) / DISIZE + 1.5d0 )
+      I = INT( ( PLON(IND) + 180d0 - (I0 * DISIZE) ) / DISIZE + 1.5d0 )
 
       ! Handle date line correctly (bmy, 4/23/04)
-      IF ( I > IIPAR ) I = I - IIPAR 
+      IF ( I > IIPAR ) I = I - IIPAR
 
       ! Get J corresponding to PLAT(IND)
-      J = INT( ( PLAT(IND) +  90d0 ) / DJSIZE + 1.5d0 )
+      J = INT( ( PLAT(IND) +  90d0 - (J0 * DJSIZE) ) / DJSIZE + 1.5d0 )
 
       ! Get L corresponding to PRESS(IND)
       L = 1
