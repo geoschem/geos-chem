@@ -475,7 +475,7 @@
          ALD2 = 0D0
       ENDIF
 
-      ONOFFNH3 = 2.d0
+      ONOFFNH3 = 1.d0
 
       ! TAU0 values for 2000, 2004 and 2006
       TAU2000 = GET_TAU0( 1, 1, 2000 )
@@ -1155,6 +1155,7 @@
       LOGICAL, SAVE              :: FIRST = .TRUE.
       INTEGER                    :: BASE_YEAR,       SIM_YEAR
       CHARACTER(LEN=255)         :: FILENAME,        STREETS_DIR
+      CHARACTER(LEN=255)         :: STREETS_DIR_2000
 
       ! to loop over the sources
       INTEGER, PARAMETER         :: NSRCE = 10
@@ -1195,7 +1196,7 @@
          ALD2 = 0D0
       ENDIF
 
-      ONOFFNH3 = 2.d0
+      ONOFFNH3 = 1.d0
 
       ! TAU0 values for 2000, 2004 and 2006
       TAU2000 = GET_TAU0( 1, 1, 2000 )
@@ -1246,6 +1247,7 @@
       !IS_2006 = .TRUE.
 
       ! define data directory and number of sources
+      STREETS_DIR_2000 = TRIM( DATA_DIR ) // 'Streets_200607/'
       IF ( IS_2006 ) THEN
          NTSOURCE1   = 4
          NTSOURCE2   = 10
@@ -1534,15 +1536,14 @@
          !   NH3 = -1D0
 
          !ELSE
-            
+
             ! File name
-            !FILENAME  = TRIM( STREETS_DIR ) // 
-            FILENAME = '/data2/ctm/GEOS_0.5x0.666_CH/Streets_200607/' // 
-     &                  'Streets_NH3_FF_2000.geos5.05x0666'
+            FILENAME  = TRIM( STREETS_DIR_2000 ) //
+     &                 'Streets_NH3_FF_2000.geos5.05x0666'
 
             ! Old file has NH3 as tracer #30
-            CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 30,
-     $                                 TAU2000,   NH3 )
+            CALL READ_STREETS_05x0666( FILENAME, 'ANTHSRCE', 30, 
+     $                                 TAU2000, NH3 )
 
             ! switch and scale
             NH3 = NH3 * ONOFF( 1 ) * ONOFFNH3
