@@ -1377,7 +1377,7 @@
 !
 ! !USES:
 !
-      USE DIAG03_MOD,   ONLY : ND03, PD03
+      USE DIAG03_MOD,   ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG42_MOD,   ONLY : ND42
@@ -1453,8 +1453,6 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
-      ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1547,9 +1545,7 @@
          
          ! Number of tracers:
          ! PD03     = max # of tracers for HG-SRCE
-         ! PD03_PL  = max # of tracers for HG-SRCE + PL-HG2-$
-         PD03_PL = PD03 + 8
-         
+         ! PD03_PL  = max # of tracers for PL-HG2-$
 
          ! Loop over tracers for HG-SRCE
 !         DO T = 1, NTRAC(03)
@@ -1617,9 +1613,12 @@
                CASE( 12 )
 !                  NAME (T,03) = 'Hg_to_C'
 !                  FNAME(T,03) = 'Hg converted to colloidal'
-                  NAME (T,03) = 'Hg_to_P'
-                  FNAME(T,03) = 'Hg converted to particulate'
-                  UNIT (T,03) = 'kg/m2/s'
+!                  NAME (T,03) = 'Hg_to_P'
+!                  FNAME(T,03) = 'Hg converted to particulate'
+!                  UNIT (T,03) = 'kg/m2/s'
+                  NAME (T,03) = 'JorgC'
+                  FNAME(T,03) = 'Mass of orgC sunk in ocean'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
                   NAME (T,03) = 'Hg_bb'
@@ -1656,7 +1655,7 @@
          ENDDO
          
          ! Loop over tracers for PL-HG2-$
-         DO N = 1, 8
+         DO N = 1, PD03_PL
             T = N + PD03
 
             ! Define quantities
@@ -1667,37 +1666,37 @@
 
 
             ! Get name, long-name, index, and new units
-            SELECT CASE( T )
-               CASE( 19 )
+            SELECT CASE( N )
+               CASE( 1 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 20 )
+               CASE( 2 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 21 )
+               CASE( 3 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 22 )
+               CASE( 4 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 23 )
+               CASE( 5 )
                   NAME (T,03) = 'Hg2_SSR'
                   FNAME(T,03) = 'Loss rate Hg2 from sea salt'
                   UNIT (T,03) = '/s'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 24 )
+               CASE( 6 )
                   NAME (T,03) = 'Hg2_Br'
                   FNAME(T,03) = 'Prod of Hg2 from Br'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 25 )
+               CASE( 7 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 26 )
+               CASE( 8 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
@@ -1709,7 +1708,7 @@
          ! Loop over tracers for OCEAN-HG
          DO N = 1, N_TRACERS
          
-            T = N + PD03_PL
+            T = N + PD03 + PD03_PL
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1733,7 +1732,7 @@
          ! Loop over tracers for SNOW-HG
          DO N = 1, 1
          
-            T = N + PD03_PL + N_TRACERS
+            T = N + PD03 + PD03_PL + N_TRACERS
 
             ! Define quantities
             UNIT (T,03) = 'kg'
