@@ -38,7 +38,11 @@
 # R8         Specifies the c
 #
 # !REVISION HISTORY: 
-#  21 Dec 2009 - C. Carouge   - Initial version
+#  21 Dec 2009 - C. Carouge  - Initial version
+#  22 Aug 2011 - R. Yantosca - Add "-fp-model source" flag for IFORT compiler,
+#                              which prevents random numerical noise
+#  25 Aug 2011 - R. Yantosca - Remove -fp-model source flag here, as this is
+#                              now added to FFLAGS in Makefile_header.mk
 #EOP
 #------------------------------------------------------------------------------
 #BOC

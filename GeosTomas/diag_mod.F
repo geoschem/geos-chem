@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -24,10 +25,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
       ! For ND01 -- Rn, Pb, Be emissions
       REAL*4,  ALLOCATABLE :: AD01(:,:,:,:)
 

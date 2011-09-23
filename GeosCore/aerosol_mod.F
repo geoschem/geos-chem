@@ -62,6 +62,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -127,8 +128,8 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LVARTROP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! AD, AVG, WTAIR, other SMVGEAR variables
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! AD, AVG, WTAIR, other SMVGEAR variables
 
       ! Argumetns
       INTEGER, INTENT(OUT) :: N_TROP
@@ -306,7 +307,7 @@
       USE TRACERID_MOD, ONLY : IDTSO4,  IDTSOA5  
       USE TRACERID_MOD, ONLY : IDTSOAG, IDTSOAM
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST = .TRUE. 
@@ -539,6 +540,7 @@
 !        the AOD should be computed. This will set the optical properties
 !        that are used for the calculation of the AOD. The ND21 diagnostic
 !        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
+!  09 Mar 2011 - R. Yantosca - Set MSDENS(2) = 1800 for APM (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -556,12 +558,16 @@
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"   ! ODAER, QAA, RAA, QAA_AOD (clh)
-#     include "F77_CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTLOOP
+      USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR, JJPAR, LLTROP
+      USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM, NEMPARA, NEMPARB, LGLOB
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
+      USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD   ! NTLOOP
+      USE CMN_DIAG_MOD   ! ND21, LD21
+
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER, INTENT(IN), OPTIONAL :: MONTH, YEAR, WAVELENGTH
@@ -583,12 +589,6 @@
 
       ! Mass of hydrophilic aerosol from Mian Chin
       REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
-
-      !-------------------------------------------------
-      ! Prior to 8/3/10:
-      !!Fraction of aerosol from H2O
-      !REAL*8		  :: FWET      
-      !-------------------------------------------------
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -920,7 +920,11 @@
       ! Scaling is sufficient for the surface area calculation
       !=================================================================
       MSDENS(1) = 1700.0d0    !SO4
+#if   defined( APM )
+      MSDENS(2) = 1800.0d0    !BC 
+#else
       MSDENS(2) = 1000.0d0    !BC 
+#endif
       MSDENS(3) = 1800.0d0    !OC 
       MSDENS(4) = 2200.0d0    !SS (accum)
       MSDENS(5) = 2200.0d0    !SS (coarse)
@@ -976,17 +980,8 @@
                ! Wet radius in "jv_spec.dat"
                RW(R) = RAA(4,IND(N)+R-1)	
 
-               !--------------------------------------------------------------
-               ! Prior to 8/3/10:
-               !! Wet frac of aerosol 
-               !FWET  = (RW(R)**3 - RW(1)**3) / RW(R)**3 
-               !
-               !! Extinction efficiency Q for each RH bin
-               !QW(R) = QAA(4,IND(N)+R-1)*FWET + QAA(4,IND(N))*(1.d0-FWET)
-               !--------------------------------------------------------------
-
-              ! Extinction efficiency Q for each RH bin
-              QW(R) = QAA(4,IND(N)+R-1)
+               ! Extinction efficiency Q for each RH bin
+               QW(R) = QAA(4,IND(N)+R-1)
 
             ENDIF
 
@@ -1394,7 +1389,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 
       ! Local variables
       INTEGER :: AS

@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -92,7 +93,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -194,9 +195,9 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! g0
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -401,8 +402,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -497,7 +498,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -594,9 +595,9 @@
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DIAG"      ! ND06
-#     include "F77_CMN_GCTM"      ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND06
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -778,14 +779,6 @@
 
             ! Snow height [m H2O]
 #if   defined( GEOS_5 ) || defined( MERRA )
-            !--------------------------------------------------------------
-            ! Prior to 9/3/10:
-            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
-            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
-            ! units of liquid-equivalent mm H2O.  Therefore, we need to
-            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
-            !SNW_HGT_LQD(I) = SNOMAS(I,J)
-            !--------------------------------------------------------------
             SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
@@ -861,9 +854,9 @@
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE GRID_MOD,      ONLY : GET_AREA_M2
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! ND19, LD13 (for now)
-#     include "F77_CMN_GCTM"  ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1106,10 +1099,11 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-#     include "cmn_fj.h"      ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"      ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "F77_CMN_DIAG"      ! ND21, LD21
-#     include "comode.h"      ! NTTLOOP
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+
+      USE CMN_DIAG_MOD        ! ND21, LD21
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1123,10 +1117,12 @@
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!  (4 ) Include wavelength argument to determine the wavelength at which the
-!        AOD should be computed. This will set the optical properties that are
-!        used for the calculation of the AOD. The ND21 diagnostic should only
-!        be updated when WAVELENGTH = 1. (skim, 02/03/11)
+!  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are
+!                              used for the calculation of the AOD. The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1185,15 +1181,15 @@
 
          IF ( WAVELENGTH > 0 ) THEN
 
-         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                      DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                     ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
          ELSE
 
-         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                      DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                     ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
          ENDIF
 
@@ -1331,7 +1327,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
       USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
@@ -1344,12 +1339,14 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"   ! LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "F77_CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
+
+      IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1407,11 +1404,13 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!  (23) Include third input argument to determine the wavelength at which
-!        the AOD should be computed. This will set the optical properties
-!        that are used for the calculation of the AOD. The ND21 diagnostic
-!        should only be updated when WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Feb 2011 - S. Kim      - Include third input argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are 
+!                              used for the calculation of the AOD.  The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1503,15 +1502,15 @@
 
             IF ( WAVELENGTH > 0 ) THEN
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
-     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
 
             ELSE
 
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
 
             ENDIF
 
@@ -1657,7 +1656,7 @@
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version

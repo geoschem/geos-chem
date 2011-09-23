@@ -36,228 +36,231 @@
       USE COMODE_MOD, ONLY : ERRMX2, IXSAVE, IYSAVE, IZSAVE
       USE ERROR_MOD, ONLY  : IT_IS_NAN, GEOS_CHEM_STOP
 
+#     include "define.h"
+
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
+
       IMPLICIT NONE
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
-C
-C *********************************************************************
-C ************        WRITTEN BY MARK JACOBSON (1993)      ************
-C ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
-C ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
-C ***                         (650) 723-6836                        *** 
-C *********************************************************************
-C
-C *********************************************************************
-C *********************************************************************
-C
-C  SSSSSSS   M     M  V       V  GGGGGGG   EEEEEEE      A      RRRRRRR
-C  S         MM   MM   V     V   G         E           A A     R     R  
-C  SSSSSSS   M M M M    V   V    G  GGGG   EEEEEEE    A   A    RRRRRRR
-C        S   M  M  M     V V     G     G   E         AAAAAAA   R  R
-C  SSSSSSS   M     M      V      GGGGGGG   EEEEEEE  A       A  R    R 
-C
-C *********************************************************************
-C                    VERSION:      SMVGEAR II
-C                    LAST UPDATE:  AUGUST, 1997
-C *********************************************************************
-C
-C *********************************************************************
-C * SMVGEAR IS A GEAR-TYPE INTEGRATOR THAT SOLVES FIRST-ORDER ORDIN-  *
-C * ARY DIFFERENTIAL EQUATIONS WITH INITIAL VALUE BOUNDARY CONDITIONS.*
-C * SMVGEAR DIFFERS FROM AN ORIGINAL GEAR CODE IN THAT IT USES SPARSE *
-C * MATRIX AND VECTORIZATION TECHNIQUES TO IMPROVE SPEED. MUCH        * 
-C * OF THE SPEED UP IN THIS PROGRAM IS DUE TO SPARSE MATRIX           *
-C * TECHNIQUES AND VECTORIZATION.                                     *
-C *                                                                   *
-C * THIS VERSION INCLUDES RE-ORDERING OF GRID-CELLS PRIOR TO EACH     *
-C * TIME-INTERVAL. THE PURPOSE OF THE REORDERING IS TO GROUP CELLS    *
-C * WITH STIFF EQUATIONS TOGETHER AND THOSE WITH NON-STIFF EQUATIONS  *
-C * THIS REORDERING CAN SAVE SIGNIFCANT COMPUTER TIME                 *
-C * (E.G. SPEED THE CODE BY A FACTOR OF TWO OR MORE), DEPENDING ON    *
-C * THE VARIATION IN STIFFNESS THROUGHOUT THE GRID-DOMAIN. WHEN THE   *
-C * STIFFNESS IS THE SAME THROUGHOUT THE GRID-DOMAIN (E.G. IF ALL     *
-C * CONCENTRATIONS AND RATES ARE THE SAME), THEN RE-ORDERING IS       *
-C * UNNECESSARY AND WILL NOT SPEED SOLUTIONS.                         *
-C *                                                                   *
-C * THIS VERSION INCLUDES A VARIABLE ABSOLUTE ERROR TOLERANCE.        *
-C * THE ABSOLUTE TOLERANCE IS RECALCULATED EVERY FEW GEAR TIME STEPS. *
-C *                                                                   *
-C * THIS VERSION CONTAINS DIFFERENT SETS OF CHEMISTRY FOR             *
-C * DIFFERENT REGIONS OF THE ATMOSPHERE. THUS, URBAN, FREE TROP-      *
-C * OSPHERIC, AND STRATOSPHERIC CHEMISTRY CAN BE SOLVED DURING THE    *
-C * SAME MODEL RUN.                                                   * 
-C *                                                                   *
-C * REFERENCES:                                                       *
-C * -----------                                                       *
-C *                                                                   * 
-C * JACOBSON M. Z. (1998) FUNDAMENTALS OF ATMOSPHERIC MODELING.       *
-C *  CAMBRIDGE UNIVERSITY PRESS, NEW YORK.                            *
-C *                                                                   * 
-C * JACOBSON M. Z. (1998) IMPROVEMENT OF SMVGEAR II ON VECTOR AND     *
-C *  SCALAR MACHINES THROUGH ABSOLUTE ERROR TOLERANCE CONTROL.        *    
-C *  ATMOS. ENVIRON. 32, 791 - 796                                    *
-C *                                                                   * 
-C * JACOBSON M. Z. (1995) COMPUTATION OF GLOBAL PHOTOCHEMISTRY        *
-C *  WITH SMVGEAR II. ATMOS. ENVIRON., 29A, 2541 - 2546               *
-C *                                                                   *
-C * JACOBSON M. Z. (1994) DEVELOPING, COUPLING, AND APPLYING A GAS,   *
-C *  AEROSOL, TRANSPORT, AND RADIATION MODEL TO STUDYING URBAN        *
-C *  AND REGIONAL AIR POLLUTION. Ph. D. THESIS, UNIVERSITY OF         *
-C *  CALIFORNIA, LOS ANGELES.                                         *
-C *                                                                   *
-C * JACOBSON M. Z. AND TURCO R. P. (1994) SMVGEAR: A SPARSE-          * 
-C *  MATRIX, VECTORIZED GEAR CODE FOR ATMOSPHERIC MODELS.             *
-C *  ATMOS. ENVIRON. 28A, 273 - 284.                                  * 
-C *                                                                   *
-C * HOW TO CALL SUBROUTINE:                                           *
-C * ----------------------                                            *
-C *  CALL SMVGEAR FROM PHYSPROC FOR GAS CHEM W/ NCS = 1..NCSGAS       *
-C *                                                                   *
-C *********************************************************************
-C *                                                                   *
-C * THE ORIGINS OF THE GEAR INTEGRATOR USED IN SMVGEAR ARE FOUND IN   *
-C *                                                                   *    
-C * GEAR C. W. (1971) NUMERICAL INITIAL VALUE PROBLEMS IN ORDINARY    *  
-C *  DIFFERENTIAL EQUATIONS. PRENTICE-HALL, NJ, PP. 158-166.          * 
-C *                                                                   *    
-C *********************************************************************
-C *                                                                   *      
-C * FINALLY, IN SUBROUTINE SMVGEAR.F, THE FOLLOWING IDEAS ORIGINATED  *
-C *   FROM LSODES, THE LIVERMORE SOLVER FOR ORDINARY DIFFERENTIAL     *
-C *   WITH SPARSE MATRICES (HINDMARSH A. C. AND SHERMAN A. H.):       *
-C *                                                                   *      
-C *  (A) PREDICTING THE FIRST TIME-STEP;                              *
-C *  (B) DETERMINING CORRECTOR CONVERGENCE DIFFERENTLY THAN IN        *
-C *      GEAR'S ORIGINAL CODE (GOC)                                   *
-C *  (C) DETERMINING ERROR DIFFERENTLY THAN IN GOC                    *
-C *  (D) SUMMING UP THE PASCAL MATRIX DIFFERENTLY THAN IN GOC         *      
-C *                                                                   *      
-C * REFERENCES FOR THE 1987 LSODES VERSION INCLUDE:                   *
-C *                                                                   *      
-C * SHERMAN A. H. AND HINDMARSH A. C. (1980) GEARS: A PACKAGE FOR     *
-C *  THE SOLUTION OF SPARSE, STIFF ORDINARY DIFFERENTIAL EQUATIONS.   *
-C *  LAWRENCE LIVERMORE LABORATORY REPORT UCRL-84102.                 *   
-C *                                                                   *      
-C * HINDMARSH A. C. (1983) ODEPACK, A SYSTEMATIZED COLLECTION OF      *
-C *  ODE SOLVERS. IN SCIENTIFIC COMPUTING, R.S. STEPLEMAN ET AL.,     *
-C *  EDS., NORTH-HOLLAND, AMSTERDAM, PP. 55 - 74.                     *
-C *                                                                   *      
-C *********************************************************************
-C
-C *********************************************************************
-C *************** HERE ARE SOME PARAMETER DEFINITIONS *****************
-C *********************************************************************
-C                                                                          
-C ABST2     = 1. / TIMEINTERVAL**2   (SEC-2) (SET IN READER.F) 
-C ASN1      = THE VALUE OF ASET(NQQ,1)
-C CEST      = STORES VALUE OF DTLOS WHEN IDOUB = 1
-C CHOLD     = 1 / (RELTOL * CNEW + ABTOL). MULTIPLY
-C             CHOLD BY LOCAL ERRORS IN DIFFERENT ERROR TESTS.
-C CNEW      = STORES CONCENTRATION (Y [ESTIMATED])
-C CONC      = AN ARRAY OF LENGTH ISCHAN * (MAXORD+1) THAT CARRIES THE
-C             DERIVATIVES OF CNEW, SCALED BY DELT**J/FACTORIAL(J),
-C             WHERE J IS THE J-TH DERIVATIVE. J VARIES FROM 1 TO NQQ,
-C             WHICH IS THE CURRENT ORDER OF THE METHOD.
-C             E.G. CONC(JSPC,2) STORES DELT * Y' (ESTIMATED)                   
-C DELT      = CURRENT TIME-STEP (S) LENGTH DURING A TIME-INTERVAL 
-C DRATE     = PARAMETER WHICH USED TO DETERMINE WHETHER CONVERGENCE 
-C             HAS OCCURRED
-C DTLOS     = AN ARRAY OF LENGTH ISCHAN, USED FOR THE ACCUMULATED
-C             CORRECTIONS.  ON A SUCCESSFUL RETURN, DTLOS(KLOOP,I) CONTAINS
-C             THE ESTIMATED ONE-STEP LOCAL ERROR IN CNEW.
-C EDWN      = PERTST**2 * ORDER FOR ONE ORDER LOWER THAN CURRENT ORDER
-C ENQQ      = PERTST**2 * ORDER FOR CURRENT ORDER
-C ERRMAX    = RELATIVE ERROR TOLERANCE (SEE CHOLD). SET IN m.dat.
-C             EPS SHOULD BE < 1.0. FOR SPEEDY AND RELIABLE RESULTS, 
-C             10**-3 IS REASONABLE. FOR MANY DECIMAL PLACES OF ACCURACY,
-C             DECREASE EPS. 
-C EUP       = PERTST**2 * ORDER FOR ONE ORDER HIGHER THAN CURRENT ORDER 
-C FRACDEC   = FRACTION THE TIME-STEP IS DECREASED IF CONVERGENCE TEST FAILS
-C GLOSS     = VALUE OF FIRST DERIVATIVES ON OUTPUT FROM SUBFUN.
-C           = RIGHT-SIDE OF EQUATION ON INPUT TO BACKSUB.F 
-C           = ERROR TERM (SOLUTION FROM BACKSUB.F) ON OUTPUT FROM BACKSUB
-C HMAX      = THE MAXIMUM ALLOWABLE VALUE OF DELT
-C HMIN      = THE MINIMUM ALLOWABLE VALUE OF DELT
-C HRMAX     = MAXIMUM RELATIVE CHANGE IN DELT*ASET(1) BEFORE PDERIV IS CALLED.
-C HRATIO    = RELATIVE CHANGE IN DELT * ASET(1) EACH CHANGE IN STEP OR ORDER
-C             WHEN ABS(HRATIO-1) > HRMAX, RESET JEVAL = 1 TO CALL PDERIV
-C IABOVK    = NUMBER OF SPECIES WHOSE CONCENTRATIONS ARE LARGER THAN YABST
-C IDOUB     = RECORDS THE NUMBER OF STEPS SINCE THE LAST CHANGE IN STEP SIZE   
-C             OR ORDER.  IT MUST BE AT LEAST KSTEP = NQQ+1 BEFORE DOUBLING IS 
-C             ALLOWED. 
-C IFAIL     = NUMBER OF TIMES THE CORRECTOR FAILED TO CONVERGE WHILE THE
-C             JACOBIAN WAS OLD (PDERIV NOT CALLED DURING THE LAST TEST)
-C IFSUCCESS = IDENTIFIES WHETHER STEP IS SUCCESSFUL (=1) OR NOT (=0)
-C IFSUN     = IDENTIFIES WHETHER SUN IS UP (=1) OR DOWN (=2)
-C ISCHAN    = THE NUMBER OF FIRST-ORDER EQUATIONS TO SOLVE = # OF SPECIES = 
-C             ORDER OF ORIGINAL MATRIX. ISCHAN HAS A DIFFERENT VALUE
-C             FOR DAY AND NIGHT AND FOR GAS- CHEMISTRY.
-C ISREORD   = 1: CALC INITIAL STIFFNESS BEFORE RUNNING CODE TO REORDER CELLS
-C                IN THIS CASE, USE PHOTORATES FOR END OF TIME-INTERVAL
-C           = 0: DO NORMAL CALCULATIONS
-C JEVAL     = 1  --> CALL PDERIV THE NEXT TIME THROUGH THE CORRECTOR STEPS.
-C           = 0  --> LAST STEP WAS SUCCESSFUL AND DO NOT NEED TO CALL PDERIV
-C           = -1 --> PDERIV JUST CALLED, AND DO NOT NEED TO CALL AGAIN
-C             UNTIL JEVAL SWITCHED TO 1. 
-C JRESTAR   = COUNTS NUMBER OF TIMES SMVGEAR STARTS OVER AT ORDER 1
-C             BECAUSE OF EXCESSIVE FAILURES.
-C LFAIL     = NUMBER OF TIMES THE ACCUMULATED ERROR TEST FAILED
-C KSTEP     = NQQ + 1
-C KTLOOP    = NUMBER OF GRID-CELLS IN A GRID-BLOCK
-C MAXORD    = THE MAXIMUM ALLOWABLE ORDER OF THE INTEGRATION METHOD
-C MBETWEEN  = THE MAXIMUM ALLOWABLE NUMBER OF STEPS BETWEEN CALLS TO PDERIV
-C MSTEP     = THE MAXIMUM ALLOWABLE NUMBER OF CORRECTOR ITERATIONS
-C NCS       = 1..NCSGAS FOR GAS CHEMISTRY                            
-C NCSP      = NCS       FOR DAYTIME   GAS CHEM            
-C           = NCS + ICS FOR NIGHTTIME GAS CHEM           
-C NFAIL     = NUMBER OF TIMES CORRECTER FAILS TO CONVERGE AFTER PDERIV
-C             WAS JUST CALLED
-C NPDERIV   = TOTAL NUMBER OF TIMES THAT MATRIX IS EVALUATED (PDERIV)
-C NPDTOT    = NUMBER OF CALLS TO PDERIV ROUTINE, OVER ALL TIME
-C NSFTOT    = NUMBER OF CALLS TO SUBFUN ROUTINE, OVER ALL TIME
-C NSLP      = THE LAST TIME-STEP NUMBER DURING WHICH PDERIV WAS CALLED 
-C NSTTOT    = TOTAL NUMBER OF SUCCESSFUL TIME-STEPS, OVER ALL TIME 
-C NSUBFUN   = TOTAL NUMBER OF TIMES SUBFUN IS CALLED
-C NSTEPS    = TOTAL NUMBER OF SUCCESSFUL TIME-STEPS TAKEN
-C NQQ       = ORDER OF THE INTEGRATION METHOD. IT VARIES BETWEEN 1 AND MAXORD. 
-C NQQISC    = NQQ * ISCHAN
-C NQQOLD    = VALUE OF NQQ DURING LAST TIME-STEP
-C ORDER     = FLOATING POINT VALUE OF ISCHAN, THE ORDER OF NUMBER OF ODES.
-C PDERIV    = NAME OF ROUTINE TO EVALUATE THE JACOBIAN MATRIX (J) 
-C             AND P = I - DELT * ASET(1) * J 
-C PERTS2    = COEFFICIENTS USED IN SELECTING THE STEP AND ORDER (SEE
-C             JSPARSE.F) NOTE THAT PERTS2 = ORIGINAL PERTST**2     
-C RDELMAX   = THE MAXIMUM FACTOR BY WHICH DELT CAN BE INCREASED IN A SINGLE 
-C             STEP.  AS IN LSODES, SET IT TO 1E4 INITIALLY TO COMPENSATE 
-C             FOR THE SMALL INITIAL DELT, BUT THEN SET IT TO 10 AFTER 
-C             SUCCESSFUL STEPS AND 2 AFTER UNSUCCESSFUL STEPS
-C RDELT     = FACTOR (TIME-STEP RATIO) BY WHICH WE INCREASE OR DECREASE DELT
-C RDELTDN   = TIME-STEP RATIO AT ONE ORDER LOWER THAN CURRENT ORDER 
-C RDELTSM   = TIME-STEP RATIO AT CURRENT ORDER 
-C RDELTUP   = TIME-STEP RATIO AT ONE ORDER HIGHER THAN CURRENT ORDER 
-C RMSRAT    = RATIO OF CURRENT TO PREVIOUS RMS SCALED ERROR. IF THIS
-C             RATIO DECREASES, THEN CONVERGENCE IS OCCURING.
-C SUBFUN    = NAME OF ROUTINE TO SOLVE FIRST DERIVATIVES.
-C           = EVALUATES DERIVATIVES IN THE SPECIAL FORM F = Y'(EST)
-C           = F(X,Y,ESTIMATED), WHERE F IS THE RIGHT HAND SIDE OF THE
-C             DIFFERENTIAL EQUATION. 
-C TINTERVAL = TOTAL SECONDS IN A TIME-INTERVAL
-C TIMREMAIN = REMAINING TIME IN AN INTERVAL 
-C TOLD      = STORES THE LAST VALUE OF XELAPS IN CASE THE CURRENT STEP FAILS
-C XELAPS    = ELAPSED TIME IN AN INTERVAL (S)
-C ABTOL     = ABSOLUTE ERROR TOLERANCE 
-C             IF ABTOL IS TOO SMALL, THEN INTEGRATION WILL TAKE TOO LONG.
-C             IF ABTOL TOO LARGE, CONVERGENCE WILL BE TOO EASY AND ERRORS
-C             WILL ACCUMULATE, THE TIME-STEP MAY BE CUT TOO SMALL, AND
-C             THE INTEGRATION MAY STOP (DELT < HMIN OR FLOATING POINT
-C             EXCEPTION IN DECOMP.F).
-C             TYPICAL GAS-PHASE VALUES OF ABSTOL ARE 10**3 CM-3
-C             TYPICAL AQ -PHASE VALUES OF ABSTOL ARE 10**-13 TO 10**-15 M L-1
-C YFAC      = 1.0 ORIGINIALLY, BUT IS DECREASED IF EXCESSIVE FAILURES OCCUR
-C             IN ORDER TO REDUCE ABSOLUTE ERROR TOLERANCE 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ************        WRITTEN BY MARK JACOBSON (1993)      ************
+! ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           *** 
+! ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      *** 
+! ***                         (650) 723-6836                        *** 
+! *********************************************************************
+!
+! *********************************************************************
+! *********************************************************************
+!
+!  SSSSSSS   M     M  V       V  GGGGGGG   EEEEEEE      A      RRRRRRR
+!  S         MM   MM   V     V   G         E           A A     R     R  
+!  SSSSSSS   M M M M    V   V    G  GGGG   EEEEEEE    A   A    RRRRRRR
+!        S   M  M  M     V V     G     G   E         AAAAAAA   R  R
+!  SSSSSSS   M     M      V      GGGGGGG   EEEEEEE  A       A  R    R 
+!
+! *********************************************************************
+!                    VERSION:      SMVGEAR II
+!                    LAST UPDATE:  AUGUST, 1997
+! *********************************************************************
+!
+! *********************************************************************
+! * SMVGEAR IS A GEAR-TYPE INTEGRATOR THAT SOLVES FIRST-ORDER ORDIN-  *
+! * ARY DIFFERENTIAL EQUATIONS WITH INITIAL VALUE BOUNDARY CONDITIONS.*
+! * SMVGEAR DIFFERS FROM AN ORIGINAL GEAR CODE IN THAT IT USES SPARSE *
+! * MATRIX AND VECTORIZATION TECHNIQUES TO IMPROVE SPEED. MUCH        * 
+! * OF THE SPEED UP IN THIS PROGRAM IS DUE TO SPARSE MATRIX           *
+! * TECHNIQUES AND VECTORIZATION.                                     *
+! *                                                                   *
+! * THIS VERSION INCLUDES RE-ORDERING OF GRID-CELLS PRIOR TO EACH     *
+! * TIME-INTERVAL. THE PURPOSE OF THE REORDERING IS TO GROUP CELLS    *
+! * WITH STIFF EQUATIONS TOGETHER AND THOSE WITH NON-STIFF EQUATIONS  *
+! * THIS REORDERING CAN SAVE SIGNIFCANT COMPUTER TIME                 *
+! * (E.G. SPEED THE CODE BY A FACTOR OF TWO OR MORE), DEPENDING ON    *
+! * THE VARIATION IN STIFFNESS THROUGHOUT THE GRID-DOMAIN. WHEN THE   *
+! * STIFFNESS IS THE SAME THROUGHOUT THE GRID-DOMAIN (E.G. IF ALL     *
+! * CONCENTRATIONS AND RATES ARE THE SAME), THEN RE-ORDERING IS       *
+! * UNNECESSARY AND WILL NOT SPEED SOLUTIONS.                         *
+! *                                                                   *
+! * THIS VERSION INCLUDES A VARIABLE ABSOLUTE ERROR TOLERANCE.        *
+! * THE ABSOLUTE TOLERANCE IS RECALCULATED EVERY FEW GEAR TIME STEPS. *
+! *                                                                   *
+! * THIS VERSION CONTAINS DIFFERENT SETS OF CHEMISTRY FOR             *
+! * DIFFERENT REGIONS OF THE ATMOSPHERE. THUS, URBAN, FREE TROP-      *
+! * OSPHERIC, AND STRATOSPHERIC CHEMISTRY CAN BE SOLVED DURING THE    *
+! * SAME MODEL RUN.                                                   * 
+! *                                                                   *
+! * REFERENCES:                                                       *
+! * -----------                                                       *
+! *                                                                   * 
+! * JACOBSON M. Z. (1998) FUNDAMENTALS OF ATMOSPHERIC MODELING.       *
+! *  CAMBRIDGE UNIVERSITY PRESS, NEW YORK.                            *
+! *                                                                   * 
+! * JACOBSON M. Z. (1998) IMPROVEMENT OF SMVGEAR II ON VECTOR AND     *
+! *  SCALAR MACHINES THROUGH ABSOLUTE ERROR TOLERANCE CONTROL.        *    
+! *  ATMOS. ENVIRON. 32, 791 - 796                                    *
+! *                                                                   * 
+! * JACOBSON M. Z. (1995) COMPUTATION OF GLOBAL PHOTOCHEMISTRY        *
+! *  WITH SMVGEAR II. ATMOS. ENVIRON., 29A, 2541 - 2546               *
+! *                                                                   *
+! * JACOBSON M. Z. (1994) DEVELOPING, COUPLING, AND APPLYING A GAS,   *
+! *  AEROSOL, TRANSPORT, AND RADIATION MODEL TO STUDYING URBAN        *
+! *  AND REGIONAL AIR POLLUTION. Ph. D. THESIS, UNIVERSITY OF         *
+! *  CALIFORNIA, LOS ANGELES.                                         *
+! *                                                                   *
+! * JACOBSON M. Z. AND TURCO R. P. (1994) SMVGEAR: A SPARSE-          * 
+! *  MATRIX, VECTORIZED GEAR CODE FOR ATMOSPHERIC MODELS.             *
+! *  ATMOS. ENVIRON. 28A, 273 - 284.                                  * 
+! *                                                                   *
+! * HOW TO CALL SUBROUTINE:                                           *
+! * ----------------------                                            *
+! *  CALL SMVGEAR FROM PHYSPROC FOR GAS CHEM W/ NCS = 1..NCSGAS       *
+! *                                                                   *
+! *********************************************************************
+! *                                                                   *
+! * THE ORIGINS OF THE GEAR INTEGRATOR USED IN SMVGEAR ARE FOUND IN   *
+! *                                                                   *    
+! * GEAR C. W. (1971) NUMERICAL INITIAL VALUE PROBLEMS IN ORDINARY    *  
+! *  DIFFERENTIAL EQUATIONS. PRENTICE-HALL, NJ, PP. 158-166.          * 
+! *                                                                   *    
+! *********************************************************************
+! *                                                                   *      
+! * FINALLY, IN SUBROUTINE SMVGEAR.F, THE FOLLOWING IDEAS ORIGINATED  *
+! *   FROM LSODES, THE LIVERMORE SOLVER FOR ORDINARY DIFFERENTIAL     *
+! *   WITH SPARSE MATRICES (HINDMARSH A. C. AND SHERMAN A. H.):       *
+! *                                                                   *      
+! *  (A) PREDICTING THE FIRST TIME-STEP;                              *
+! *  (B) DETERMINING CORRECTOR CONVERGENCE DIFFERENTLY THAN IN        *
+! *      GEAR'S ORIGINAL CODE (GOC)                                   *
+! *  (C) DETERMINING ERROR DIFFERENTLY THAN IN GOC                    *
+! *  (D) SUMMING UP THE PASCAL MATRIX DIFFERENTLY THAN IN GOC         *      
+! *                                                                   *      
+! * REFERENCES FOR THE 1987 LSODES VERSION INCLUDE:                   *
+! *                                                                   *      
+! * SHERMAN A. H. AND HINDMARSH A. C. (1980) GEARS: A PACKAGE FOR     *
+! *  THE SOLUTION OF SPARSE, STIFF ORDINARY DIFFERENTIAL EQUATIONS.   *
+! *  LAWRENCE LIVERMORE LABORATORY REPORT UCRL-84102.                 *   
+! *                                                                   *      
+! * HINDMARSH A. C. (1983) ODEPACK, A SYSTEMATIZED COLLECTION OF      *
+! *  ODE SOLVERS. IN SCIENTIFIC COMPUTING, R.S. STEPLEMAN ET AL.,     *
+! *  EDS., NORTH-HOLLAND, AMSTERDAM, PP. 55 - 74.                     *
+! *                                                                   *      
+! *********************************************************************
+!
+! *********************************************************************
+! *************** HERE ARE SOME PARAMETER DEFINITIONS *****************
+! *********************************************************************
+!                                                                          
+! ABST2     = 1. / TIMEINTERVAL**2   (SEC-2) (SET IN READER.F) 
+! ASN1      = THE VALUE OF ASET(NQQ,1)
+! CEST      = STORES VALUE OF DTLOS WHEN IDOUB = 1
+! CHOLD     = 1 / (RELTOL * CNEW + ABTOL). MULTIPLY
+!             CHOLD BY LOCAL ERRORS IN DIFFERENT ERROR TESTS.
+! CNEW      = STORES CONCENTRATION (Y [ESTIMATED])
+! CONC      = AN ARRAY OF LENGTH ISCHAN * (MAXORD+1) THAT CARRIES THE
+!             DERIVATIVES OF CNEW, SCALED BY DELT**J/FACTORIAL(J),
+!             WHERE J IS THE J-TH DERIVATIVE. J VARIES FROM 1 TO NQQ,
+!             WHICH IS THE CURRENT ORDER OF THE METHOD.
+!             E.G. CONC(JSPC,2) STORES DELT * Y' (ESTIMATED)                   
+! DELT      = CURRENT TIME-STEP (S) LENGTH DURING A TIME-INTERVAL 
+! DRATE     = PARAMETER WHICH USED TO DETERMINE WHETHER CONVERGENCE 
+!             HAS OCCURRED
+! DTLOS     = AN ARRAY OF LENGTH ISCHAN, USED FOR THE ACCUMULATED
+!             CORRECTIONS.  ON A SUCCESSFUL RETURN, DTLOS(KLOOP,I) CONTAINS
+!             THE ESTIMATED ONE-STEP LOCAL ERROR IN CNEW.
+! EDWN      = PERTST**2 * ORDER FOR ONE ORDER LOWER THAN CURRENT ORDER
+! ENQQ      = PERTST**2 * ORDER FOR CURRENT ORDER
+! ERRMAX    = RELATIVE ERROR TOLERANCE (SEE CHOLD). SET IN m.dat.
+!             EPS SHOULD BE < 1.0. FOR SPEEDY AND RELIABLE RESULTS, 
+!             10**-3 IS REASONABLE. FOR MANY DECIMAL PLACES OF ACCURACY,
+!             DECREASE EPS. 
+! EUP       = PERTST**2 * ORDER FOR ONE ORDER HIGHER THAN CURRENT ORDER 
+! FRACDEC   = FRACTION THE TIME-STEP IS DECREASED IF CONVERGENCE TEST FAILS
+! GLOSS     = VALUE OF FIRST DERIVATIVES ON OUTPUT FROM SUBFUN.
+!           = RIGHT-SIDE OF EQUATION ON INPUT TO BACKSUB.F 
+!           = ERROR TERM (SOLUTION FROM BACKSUB.F) ON OUTPUT FROM BACKSUB
+! HMAX      = THE MAXIMUM ALLOWABLE VALUE OF DELT
+! HMIN      = THE MINIMUM ALLOWABLE VALUE OF DELT
+! HRMAX     = MAXIMUM RELATIVE CHANGE IN DELT*ASET(1) BEFORE PDERIV IS CALLED.
+! HRATIO    = RELATIVE CHANGE IN DELT * ASET(1) EACH CHANGE IN STEP OR ORDER
+!             WHEN ABS(HRATIO-1) > HRMAX, RESET JEVAL = 1 TO CALL PDERIV
+! IABOVK    = NUMBER OF SPECIES WHOSE CONCENTRATIONS ARE LARGER THAN YABST
+! IDOUB     = RECORDS THE NUMBER OF STEPS SINCE THE LAST CHANGE IN STEP SIZE   
+!             OR ORDER.  IT MUST BE AT LEAST KSTEP = NQQ+1 BEFORE DOUBLING IS 
+!             ALLOWED. 
+! IFAIL     = NUMBER OF TIMES THE CORRECTOR FAILED TO CONVERGE WHILE THE
+!             JACOBIAN WAS OLD (PDERIV NOT CALLED DURING THE LAST TEST)
+! IFSUCCESS = IDENTIFIES WHETHER STEP IS SUCCESSFUL (=1) OR NOT (=0)
+! IFSUN     = IDENTIFIES WHETHER SUN IS UP (=1) OR DOWN (=2)
+! ISCHAN    = THE NUMBER OF FIRST-ORDER EQUATIONS TO SOLVE = # OF SPECIES = 
+!             ORDER OF ORIGINAL MATRIX. ISCHAN HAS A DIFFERENT VALUE
+!             FOR DAY AND NIGHT AND FOR GAS- CHEMISTRY.
+! ISREORD   = 1: CALC INITIAL STIFFNESS BEFORE RUNNING CODE TO REORDER CELLS
+!                IN THIS CASE, USE PHOTORATES FOR END OF TIME-INTERVAL
+!           = 0: DO NORMAL CALCULATIONS
+! JEVAL     = 1  --> CALL PDERIV THE NEXT TIME THROUGH THE CORRECTOR STEPS.
+!           = 0  --> LAST STEP WAS SUCCESSFUL AND DO NOT NEED TO CALL PDERIV
+!           = -1 --> PDERIV JUST CALLED, AND DO NOT NEED TO CALL AGAIN
+!             UNTIL JEVAL SWITCHED TO 1. 
+! JRESTAR   = COUNTS NUMBER OF TIMES SMVGEAR STARTS OVER AT ORDER 1
+!             BECAUSE OF EXCESSIVE FAILURES.
+! LFAIL     = NUMBER OF TIMES THE ACCUMULATED ERROR TEST FAILED
+! KSTEP     = NQQ + 1
+! KTLOOP    = NUMBER OF GRID-CELLS IN A GRID-BLOCK
+! MAXORD    = THE MAXIMUM ALLOWABLE ORDER OF THE INTEGRATION METHOD
+! MBETWEEN  = THE MAXIMUM ALLOWABLE NUMBER OF STEPS BETWEEN CALLS TO PDERIV
+! MSTEP     = THE MAXIMUM ALLOWABLE NUMBER OF CORRECTOR ITERATIONS
+! NCS       = 1..NCSGAS FOR GAS CHEMISTRY                            
+! NCSP      = NCS       FOR DAYTIME   GAS CHEM            
+!           = NCS + ICS FOR NIGHTTIME GAS CHEM           
+! NFAIL     = NUMBER OF TIMES CORRECTER FAILS TO CONVERGE AFTER PDERIV
+!             WAS JUST CALLED
+! NPDERIV   = TOTAL NUMBER OF TIMES THAT MATRIX IS EVALUATED (PDERIV)
+! NPDTOT    = NUMBER OF CALLS TO PDERIV ROUTINE, OVER ALL TIME
+! NSFTOT    = NUMBER OF CALLS TO SUBFUN ROUTINE, OVER ALL TIME
+! NSLP      = THE LAST TIME-STEP NUMBER DURING WHICH PDERIV WAS CALLED 
+! NSTTOT    = TOTAL NUMBER OF SUCCESSFUL TIME-STEPS, OVER ALL TIME 
+! NSUBFUN   = TOTAL NUMBER OF TIMES SUBFUN IS CALLED
+! NSTEPS    = TOTAL NUMBER OF SUCCESSFUL TIME-STEPS TAKEN
+! NQQ       = ORDER OF THE INTEGRATION METHOD. IT VARIES BETWEEN 1 AND MAXORD. 
+! NQQISC    = NQQ * ISCHAN
+! NQQOLD    = VALUE OF NQQ DURING LAST TIME-STEP
+! ORDER     = FLOATING POINT VALUE OF ISCHAN, THE ORDER OF NUMBER OF ODES.
+! PDERIV    = NAME OF ROUTINE TO EVALUATE THE JACOBIAN MATRIX (J) 
+!             AND P = I - DELT * ASET(1) * J 
+! PERTS2    = COEFFICIENTS USED IN SELECTING THE STEP AND ORDER (SEE
+!             JSPARSE.F) NOTE THAT PERTS2 = ORIGINAL PERTST**2     
+! RDELMAX   = THE MAXIMUM FACTOR BY WHICH DELT CAN BE INCREASED IN A SINGLE 
+!             STEP.  AS IN LSODES, SET IT TO 1E4 INITIALLY TO COMPENSATE 
+!             FOR THE SMALL INITIAL DELT, BUT THEN SET IT TO 10 AFTER 
+!             SUCCESSFUL STEPS AND 2 AFTER UNSUCCESSFUL STEPS
+! RDELT     = FACTOR (TIME-STEP RATIO) BY WHICH WE INCREASE OR DECREASE DELT
+! RDELTDN   = TIME-STEP RATIO AT ONE ORDER LOWER THAN CURRENT ORDER 
+! RDELTSM   = TIME-STEP RATIO AT CURRENT ORDER 
+! RDELTUP   = TIME-STEP RATIO AT ONE ORDER HIGHER THAN CURRENT ORDER 
+! RMSRAT    = RATIO OF CURRENT TO PREVIOUS RMS SCALED ERROR. IF THIS
+!             RATIO DECREASES, THEN CONVERGENCE IS OCCURING.
+! SUBFUN    = NAME OF ROUTINE TO SOLVE FIRST DERIVATIVES.
+!           = EVALUATES DERIVATIVES IN THE SPECIAL FORM F = Y'(EST)
+!           = F(X,Y,ESTIMATED), WHERE F IS THE RIGHT HAND SIDE OF THE
+!             DIFFERENTIAL EQUATION. 
+! TINTERVAL = TOTAL SECONDS IN A TIME-INTERVAL
+! TIMREMAIN = REMAINING TIME IN AN INTERVAL 
+! TOLD      = STORES THE LAST VALUE OF XELAPS IN CASE THE CURRENT STEP FAILS
+! XELAPS    = ELAPSED TIME IN AN INTERVAL (S)
+! ABTOL     = ABSOLUTE ERROR TOLERANCE 
+!             IF ABTOL IS TOO SMALL, THEN INTEGRATION WILL TAKE TOO LONG.
+!             IF ABTOL TOO LARGE, CONVERGENCE WILL BE TOO EASY AND ERRORS
+!             WILL ACCUMULATE, THE TIME-STEP MAY BE CUT TOO SMALL, AND
+!             THE INTEGRATION MAY STOP (DELT < HMIN OR FLOATING POINT
+!             EXCEPTION IN DECOMP.F).
+!             TYPICAL GAS-PHASE VALUES OF ABSTOL ARE 10**3 CM-3
+!             TYPICAL AQ -PHASE VALUES OF ABSTOL ARE 10**-13 TO 10**-15 M L-1
+! YFAC      = 1.0 ORIGINIALLY, BUT IS DECREASED IF EXCESSIVE FAILURES OCCUR
+!             IN ORDER TO REDUCE ABSOLUTE ERROR TOLERANCE 
+! *********************************************************************
+!
       INTEGER JFAIL,ISCHAN1,IABOVE,KLOOP,IDOUB,JRESTAR,JNEW,IFSUCCESS
       INTEGER K,JSPC,K1,K2,K3,K4,K5,NQQOLD,JEVAL,JS1,NQQISC
       INTEGER LLOOPA,LLOOPB,JLOOP,MLOOP,M1,M2,JOLD,I1,J,I,J1,J2,J3,J4
@@ -337,22 +340,22 @@ C
       NNOFAM    = ISCHAN - NFAMILIES
       ORDER     = REAL( NNOFAM )
       !-----------------------------------------------------------------------
-C
+!
       IABOVE    = ORDER * 0.4d0
-C
+!
       DO 115 KLOOP   = 1, KTLOOP
        IABOVK(KLOOP) = IABOVE
  115  CONTINUE
-C
+!
       HRMAX     = 0.3d0
       HMAX      = HMAXUSE( NCSP)
       YFAC      = 1.0d0
       ERRINIT   = MIN(ERRMAX(NCS),1.0D-03)
-C
-C *********************************************************************
-C            START TIME INTERVAL OR RE-ENTER AFTER TOTAL FAILURE
-C *********************************************************************
-C
+!
+! *********************************************************************
+!            START TIME INTERVAL OR RE-ENTER AFTER TOTAL FAILURE
+! *********************************************************************
+!
       ! EXPLANATORY NOTE: Internal timestep loop begins here (tmf, 11/1/07)
  120  IDOUB     = 2
       NSLP      = MBETWEEN
@@ -367,14 +370,14 @@ C
       RELTOL3   = 1.d0   / ERRMAX(NCS)
       ABTOLER1  = ABTOL(6,NCS) * RELTOL1
       ABTOLER2  = ABTOL(6,NCS) * RELTOL2
-C
-C *********************************************************************
-C                  INITIALIZE CONCENTRATION ARRAY 
-C *********************************************************************
-C CORIG  = ORIGINAL CONCENTRATIONS, WHICH DO NOT CHANGE IN SMVGEAR
-C CNEW   = FINAL CONCENTRATIONS, CALCULATED IN SMVGEAR
-C CPREVM = VALUE OF CNEW AT END OF LAST SUCCESSFUL MARCH
-C
+!
+! *********************************************************************
+!                  INITIALIZE CONCENTRATION ARRAY 
+! *********************************************************************
+! CORIG  = ORIGINAL CONCENTRATIONS, WHICH DO NOT CHANGE IN SMVGEAR
+! CNEW   = FINAL CONCENTRATIONS, CALCULATED IN SMVGEAR
+! CPREVM = VALUE OF CNEW AT END OF LAST SUCCESSFUL MARCH
+!
 
       DO 129 JNEW         = 1, ISCHAN
        DO 127 KLOOP       = 1, KTLOOP
@@ -387,56 +390,56 @@ C
  127   CONTINUE
  129  CONTINUE
       
-C
-C *********************************************************************
-C  RE-ENTER HERE IF TOTAL FAILURE OR IF RESTARTING WITH NEW CELL BLOCK 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!  RE-ENTER HERE IF TOTAL FAILURE OR IF RESTARTING WITH NEW CELL BLOCK 
+! *********************************************************************
+!
  140  HRATIO    = 0.d0
       ASN1      = 1.d0
       IFSUCCESS = 1
       RDELMAX   = 1.0d+04
 
-C *********************************************************************
-C                         INITIALIZE PHOTRATES 
-C *********************************************************************
-C
+! *********************************************************************
+!                         INITIALIZE PHOTRATES 
+! *********************************************************************
+!
       ! Called for photorates with no active loss terms (bdf, 4/18/03)
       IF (IFSUN.EQ.1) CALL UPDATE
-C
-C *********************************************************************
-C               INITIALIZE FIRST DERIVATIVE FOR CHEMISTRY 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!               INITIALIZE FIRST DERIVATIVE FOR CHEMISTRY 
+! *********************************************************************
+!
       CALL SUBFUN
 
 
-C
-C *********************************************************************
-C                DETERMINE INITIAL ABSOLUTE ERROR TOLERANCE 
-C *********************************************************************
-C IABOVK  = NUMBER OF SPECIES WHOSE CONCENTRATIONS ARE LARGER THAN YABST
-C ISREORD = 1: CALC INITIAL STIFFNESS BEFORE RUNNING CODE TO REORDER CELLS
-C              IN THIS CASE, USE PHOTORATES FOR END OF TIME-INTERVAL
-C         = 2: DO NORMAL CALCULATIONS
-C KGRP    = COUNTS NUMBER OF CONCENTRATIONS ABOVE ABTOL(I), I = 1..  
-C YABST   = ABSOLUTE ERROR TOLERANCE (MOLEC. CM-3 FOR GASES) 
-C ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
-C
+!
+! *********************************************************************
+!                DETERMINE INITIAL ABSOLUTE ERROR TOLERANCE 
+! *********************************************************************
+! IABOVK  = NUMBER OF SPECIES WHOSE CONCENTRATIONS ARE LARGER THAN YABST
+! ISREORD = 1: CALC INITIAL STIFFNESS BEFORE RUNNING CODE TO REORDER CELLS
+!              IN THIS CASE, USE PHOTORATES FOR END OF TIME-INTERVAL
+!         = 2: DO NORMAL CALCULATIONS
+! KGRP    = COUNTS NUMBER OF CONCENTRATIONS ABOVE ABTOL(I), I = 1..  
+! YABST   = ABSOLUTE ERROR TOLERANCE (MOLEC. CM-3 FOR GASES) 
+! ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
+!
       DO 142 KLOOP    = 1, KTLOOP
        ERRHOLD(KLOOP) = 0.d0
  142  CONTINUE 
-C
+!
       ! EXPLANATORY NOTE: 
       ! We don't reorder: IFREORD=0 in mglob.dat, (tmf, 11/1/07)
       IF (ISREORD.NE.1) THEN
-C
+!
        DO 134 K              = 1, 5        
         DO 132 KLOOP         = 1, KTLOOP
          KGRP(KLOOP,K)       = 0
  132    CONTINUE
  134   CONTINUE
-C
+!
        DO 136 JSPC           = 1, ISCHAN
         !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -461,7 +464,7 @@ C
         !---------------------------------------------------------------------
  136   CONTINUE
 
-C
+!
 
        DO 137 KLOOP         = 1, KTLOOP
         K1                  = KGRP(KLOOP,1)
@@ -483,7 +486,7 @@ C
          YABST(KLOOP)       = ABTOL(6,NCS)
         ENDIF
  137   CONTINUE
-C
+!
        DO 139 JSPC      = 1, ISCHAN
          !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -499,17 +502,17 @@ C
          !--------------------------------------------------------------------
  139   CONTINUE
 
-C
+!
       ELSE
 
 ! EXPLANATORY NOTE: This is not used (tmf, 11/1/07)
-C
-C *********************************************************************
-C          USE LOWEST ABSOLUTE ERROR TOLERANCE WHEN REORDERING 
-C          IF REORDERING, SET ERRMX2 THEN RETURN TO PHYSPROC.F 
-C *********************************************************************
-C ABTOLER1 = YFAC * ABTOL(6,NCS) / MIN(ERRMAX,1.0E-03) 
-C 
+!
+! *********************************************************************
+!          USE LOWEST ABSOLUTE ERROR TOLERANCE WHEN REORDERING 
+!          IF REORDERING, SET ERRMX2 THEN RETURN TO PHYSPROC.F 
+! *********************************************************************
+! ABTOLER1 = YFAC * ABTOL(6,NCS) / MIN(ERRMAX,1.0E-03) 
+! 
        DO 144 JSPC      = 1, ISCHAN  
          !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -524,12 +527,12 @@ C
          ENDIF
          !--------------------------------------------------------------------
  144   CONTINUE
-C
+!
        IF (ISREORD.EQ.1) THEN 
         DO 150 KLOOP           = 1, KTLOOP 
          ERRMX2(JLOOPLO+KLOOP) = ERRHOLD(KLOOP)
  150    CONTINUE
-C
+!
         RETURN
        ENDIF
       ENDIF
@@ -537,19 +540,19 @@ C
 ! EXPLANATORY NOTE (tmf, 11/1/07)
 ! This is the end of the ISREORDER condition.
 
-C
-C *********************************************************************
-C               CALCULATE INITIAL TIME STEP SIZE (S) 
-C *********************************************************************
-C SQRT(ERRHOLD / [ERRINIT * ORDER]) = RMSNORM OF ERROR SCALED TO ERRINIT 
-C                                * CNEW + ABTOL/RELTOL
-C
+!
+! *********************************************************************
+!               CALCULATE INITIAL TIME STEP SIZE (S) 
+! *********************************************************************
+! SQRT(ERRHOLD / [ERRINIT * ORDER]) = RMSNORM OF ERROR SCALED TO ERRINIT 
+!                                * CNEW + ABTOL/RELTOL
+!
       RMSTOP         = 0.d0
-C
+!
       DO 151 KLOOP   = 1, KTLOOP
        IF (ERRHOLD(KLOOP).GT.RMSTOP) RMSTOP = ERRHOLD(KLOOP)   
  151  CONTINUE
-C
+!
       DELT1    = SQRT(ERRINIT / (ABST2(NCS) + RMSTOP / ORDER)) 
 
       !-----------------------------------------------------------------------
@@ -566,21 +569,21 @@ C
       ! Reset IDTFORCE for next internal timestep march
       IDTFORCE = 0
       !-----------------------------------------------------------------------
-C
-C *********************************************************************
-C                      SET INITIAL ORDER TO 1
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                      SET INITIAL ORDER TO 1
+! *********************************************************************
+!
       NQQOLD       = 0
       NQQ          = 1 
       JEVAL        = 1
       RDELT        = 1.0d0
 
-C
-C *********************************************************************
-C *   STORE INITIAL CONCENTRATION AND FIRST DERIVATIVES x TIME-STEP   * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *   STORE INITIAL CONCENTRATION AND FIRST DERIVATIVES x TIME-STEP   * 
+! *********************************************************************
+!
       DO 155 JSPC        = 1, ISCHAN 
        JS1               = ISCHAN + JSPC
        DO 154 KLOOP      = 1, KTLOOP
@@ -589,13 +592,13 @@ C
  154   CONTINUE
  155  CONTINUE
 
-C
-C *********************************************************************
-C ** UPDATE COEFFICIENTS OF THE ORDER. NQQ IS THE ORDER. ASET AND    **
-C ** PERTS2 ARE DEFINED IN SUBROUTINE KSPARSE. NOTE THAT PERTS2      **
-C ** IS THE ORIGINAL PERTST**2                                       **
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ** UPDATE COEFFICIENTS OF THE ORDER. NQQ IS THE ORDER. ASET AND    **
+! ** PERTS2 ARE DEFINED IN SUBROUTINE KSPARSE. NOTE THAT PERTS2      **
+! ** IS THE ORIGINAL PERTST**2                                       **
+! *********************************************************************
+!
 
  170  IF (NQQ.NE.NQQOLD) THEN
        NQQOLD                = NQQ 
@@ -612,12 +615,12 @@ C
       ENDIF
       counter=counter+1
 
-C
-C *********************************************************************
-C   LIMIT SIZE OF RDELT, THEN RECALCULATE NEW TIME STEP AND UPDATE
-C HRATIO. USE HRATIO TO DETERMINE WHETHER PDERIV SHOULD BE CALLED AGAIN 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!   LIMIT SIZE OF RDELT, THEN RECALCULATE NEW TIME STEP AND UPDATE
+! HRATIO. USE HRATIO TO DETERMINE WHETHER PDERIV SHOULD BE CALLED AGAIN 
+! *********************************************************************
+!
       HMTIM         = MIN(HMAX,TIMREMAIN) 
       RDELT         = MIN(RDELT,RDELMAX,HMTIM/DELT)
       DELT          = DELT   * RDELT 
@@ -625,24 +628,24 @@ C
       XELAPS        = XELAPS + DELT  
 
 
-C
+!
       IF (ABS(HRATIO-1.0).GT.HRMAX.OR.NSTEPS.GE.NSLP) JEVAL = 1
-C
-C *********************************************************************
-C      IF TIME STEP < HMIN, TIGHTEN ABSOLOUTE ERROR TOLERANCE AND 
-C          RESTART INTEGRATION AT BEGINNING OF TIME INTERVAL
-C *********************************************************************
-C
+!
+! *********************************************************************
+!      IF TIME STEP < HMIN, TIGHTEN ABSOLOUTE ERROR TOLERANCE AND 
+!          RESTART INTEGRATION AT BEGINNING OF TIME INTERVAL
+! *********************************************************************
+!
       IF (DELT.LT.HMIN) THEN
        WRITE(6,233)DELT,KBLK,KTLOOP,NCS,TIME,TIMREMAIN,YFAC,ERRMAX(NCS)
        NYLOWDEC  = NYLOWDEC + 1
        YFAC      = YFAC  * 0.01d0
-C
+!
        IF (NYLOWDEC.EQ.10) THEN
         LLOOPA      = 1
         LLOOPB      = KTLOOP
         WRITE(6,234)
-C
+!
         DO 177 KLOOP = 1, KTLOOP
          JLOOP       = JREORDER(JLOOPLO+KLOOP)
          K           = (JLOOP - 1) / NLOOP + 1
@@ -651,7 +654,7 @@ C
          M2          = MLOOP - (M1 - 1) * NLONG
          WRITE(6,685) M1, M2, K, ERRHOLD(KLOOP)
  177    CONTINUE
-C
+!
         DO 178 JNEW = 1, ISCHAN
          JOLD       = INEWOLD(JNEW,NCS)
          WRITE(6,690) JNEW, NCS, NAMENCS(JOLD,NCS),CORIG(LLOOPA,JNEW),
@@ -661,16 +664,16 @@ C
         ! Stop run w/ error msg
         CALL GEOS_CHEM_STOP
        ENDIF
-C
+!
        GOTO 120
       ENDIF
 
-C
-C *********************************************************************
-C * IF THE DELT IS DIFFERENT THAN DURING THE LAST STEP (IF RDELT NE   *
-C * 1), THEN SCALE THE DERIVATIVES                                    *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE DELT IS DIFFERENT THAN DURING THE LAST STEP (IF RDELT NE   *
+! * 1), THEN SCALE THE DERIVATIVES                                    *
+! *********************************************************************
+!
       IF (RDELT.NE.1.0) THEN
        RDELTA            = 1.0d0
        I1                = 1
@@ -684,43 +687,43 @@ C
  182    CONTINUE
  184   CONTINUE
       ENDIF
-C
-C *********************************************************************
-C * UPDATE PHOTO RATES BECAUSE THE TIME CHANGED.                      *
-C * NOTE THAT A TIME CHANGE COULD CORRESPOND TO EITHER A SUCCESSFUL   *
-C * OR FAILED STEP                                                    * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * UPDATE PHOTO RATES BECAUSE THE TIME CHANGED.                      *
+! * NOTE THAT A TIME CHANGE COULD CORRESPOND TO EITHER A SUCCESSFUL   *
+! * OR FAILED STEP                                                    * 
+! *********************************************************************
+!
       ! Called for photorates with no active loss terms (bdf, 4/18/03)
       IF (IFSUN.EQ.1.AND.XELAPS.NE.XELAPLAST) CALL UPDATE
-C
-C *********************************************************************
-C * IF THE LAST STEP WAS SUCCESSFUL, RESET RDELMAX = 10 AND UPDATE    *
-C * THE CHOLD ARRAY WITH CURRENT VALUES OF CNEW.                      * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE LAST STEP WAS SUCCESSFUL, RESET RDELMAX = 10 AND UPDATE    *
+! * THE CHOLD ARRAY WITH CURRENT VALUES OF CNEW.                      * 
+! *********************************************************************
+!
       IF (IFSUCCESS.EQ.1) THEN
        RDELMAX             = 10.d0
-C
-C *********************************************************************
-C                DETERMINE NEW ABSOLUTE ERROR TOLERANCE 
-C *********************************************************************
-C KGRP    = COUNTS NUMBER OF CONCENTRATIONS ABOVE ABTOL(I), I = 1..  
-C YABST   = ABSOLUTE ERROR TOLERANCE (MOLEC. CM-3 FOR GASES) 
-C ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
-C
-C EXPLANATORY NOTES (tmf, 11/1/07)
-C (1) If the previous step is successful, then redetermine
-C     the absolute error tolerance every on 3rd step. 
-C *********************************************************************
-C
+!
+! *********************************************************************
+!                DETERMINE NEW ABSOLUTE ERROR TOLERANCE 
+! *********************************************************************
+! KGRP    = COUNTS NUMBER OF CONCENTRATIONS ABOVE ABTOL(I), I = 1..  
+! YABST   = ABSOLUTE ERROR TOLERANCE (MOLEC. CM-3 FOR GASES) 
+! ABTOL   = PRE-DEFINED ABSOLUTE ERROR TOLERANCES 
+!
+! EXPLANATORY NOTES (tmf, 11/1/07)
+! (1) If the previous step is successful, then redetermine
+!     the absolute error tolerance every on 3rd step. 
+! *********************************************************************
+!
        IF (MOD(NSTEPS,3).EQ.2) THEN
         DO 203 K              = 1, 5        
          DO 201 KLOOP         = 1, KTLOOP
           KGRP(KLOOP,K)       = 0
  201     CONTINUE
  203    CONTINUE
-C
+!
         DO 207 JSPC           = 1, ISCHAN
          !--------------------------------------------------------------------
          ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -744,7 +747,7 @@ C
          ENDIF
          !--------------------------------------------------------------------
  207    CONTINUE
-C
+!
         DO 209 KLOOP         = 1, KTLOOP
          K1                  = KGRP(KLOOP,1)
          K2                  = KGRP(KLOOP,2) + K1
@@ -766,10 +769,10 @@ C
          ENDIF
  209    CONTINUE
        ENDIF
-C
-C EXPLANATORY NOTES: (tmf, 11/1/07)
-C (1) What is CHOLD?
-C     CHOLD = 1./( (Relative tolerance) * N + (Absolute tolerance * Yfac) )
+!
+! EXPLANATORY NOTES: (tmf, 11/1/07)
+! (1) What is CHOLD?
+!     CHOLD = 1./( (Relative tolerance) * N + (Absolute tolerance * Yfac) )
        DO 213 JSPC         = 1, ISCHAN
         !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -783,20 +786,20 @@ C     CHOLD = 1./( (Relative tolerance) * N + (Absolute tolerance * Yfac) )
         ENDIF
         !---------------------------------------------------------------------
  213   CONTINUE 
-C
+!
       ENDIF 
 
-C     ENDIF IFSUCCESS.EQ.1
-C
-C *********************************************************************
-C * COMPUTE THE PREDICTED CONCENTRATION AND DERIVATIVES BY MULTIPLY-  *
-C * ING PREVIOUS VALUES BY THE PASCAL TRIANGLE MATRIX.                * 
-C *********************************************************************
-C THIS SET OF OPERATIONS IS EQUIVALENT TO THE REVERSE OF LOOP 419.
-C THE EXPANSION OF THE PASCAL TRIANGLE MATRIX WAS CALCULATED BY B. SCHWARTZ.
-C THE FIRST DERIVATIVE MULTIPLIED BY THE TIME STEP IS THE SUM 
-C OF TERMS ADDED TO CONC(KLOOP,I)
-C
+!     ENDIF IFSUCCESS.EQ.1
+!
+! *********************************************************************
+! * COMPUTE THE PREDICTED CONCENTRATION AND DERIVATIVES BY MULTIPLY-  *
+! * ING PREVIOUS VALUES BY THE PASCAL TRIANGLE MATRIX.                * 
+! *********************************************************************
+! THIS SET OF OPERATIONS IS EQUIVALENT TO THE REVERSE OF LOOP 419.
+! THE EXPANSION OF THE PASCAL TRIANGLE MATRIX WAS CALCULATED BY B. SCHWARTZ.
+! THE FIRST DERIVATIVE MULTIPLIED BY THE TIME STEP IS THE SUM 
+! OF TERMS ADDED TO CONC(KLOOP,I)
+!
       IF (NQQ.EQ.1) THEN
        DO 236 I          = 1, ISCHAN
         J                = I + ISCHAN
@@ -804,9 +807,9 @@ C
          CONC(KLOOP,I)   = CONC(KLOOP,I) + CONC(KLOOP,J)
  235    CONTINUE
  236   CONTINUE
-C 
+! 
       ELSEIF (NQQ.EQ.2) THEN
-C
+!
        DO 238 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -816,9 +819,9 @@ C
          CONC(KLOOP,J1) = CONC(KLOOP,J1) + CONC(KLOOP,J2) * 2.d0
  237    CONTINUE
  238   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.3) THEN
-C
+!
        DO 240 I         = 1,   ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -831,9 +834,9 @@ C
          CONC(KLOOP,J2) = CONC(KLOOP,J2) + CONC3J3
  239    CONTINUE
  240   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.4) THEN
-C
+!
        DO 242 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -851,9 +854,9 @@ C
          CONC(KLOOP,J3) = CONC(KLOOP,J3) + CONC4J4
  241    CONTINUE 
  242   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.5) THEN
-C
+!
        DO 244 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -878,17 +881,17 @@ C
  244   CONTINUE
       ENDIF
 
-C
-C *********************************************************************
-C ************************** CORRECTION LOOP **************************
-C * TAKE UP TO 3 CORRECTOR ITERATIONS. TEST CONVERGENCE BY REQUIRING  *
-C * THAT CHANGES BE LESS THAN THE RMS NORM WEIGHTED BY CHOLD.         * 
-C * ACCUMULATE THE CORRECTION IN THE ARRAY DTLOS(). IT EQUALS THE     *
-C * THE J-TH DERIVATIVE OF CONC() MULTIPLIED BY DELT**KSTEP /         *
-C * (FACTORIAL(KSTEP-1)*ASET(KSTEP)); THUS, IT IS PROPORTIONAL TO THE *
-C * ACTUAL ERRORS TO THE LOWEST POWER OF DELT PRESENT (DELT**KSTEP)   *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ************************** CORRECTION LOOP **************************
+! * TAKE UP TO 3 CORRECTOR ITERATIONS. TEST CONVERGENCE BY REQUIRING  *
+! * THAT CHANGES BE LESS THAN THE RMS NORM WEIGHTED BY CHOLD.         * 
+! * ACCUMULATE THE CORRECTION IN THE ARRAY DTLOS(). IT EQUALS THE     *
+! * THE J-TH DERIVATIVE OF CONC() MULTIPLIED BY DELT**KSTEP /         *
+! * (FACTORIAL(KSTEP-1)*ASET(KSTEP)); THUS, IT IS PROPORTIONAL TO THE *
+! * ACTUAL ERRORS TO THE LOWEST POWER OF DELT PRESENT (DELT**KSTEP)   *
+! *********************************************************************
+!
  220  L3                  = 0
       DO 232 JSPC         = 1, ISCHAN
        DO 230 KLOOP       = 1, KTLOOP
@@ -897,19 +900,19 @@ C
  230   CONTINUE
  232  CONTINUE
 
-C
-C *********************************************************************
-C * IF JEVAL = 1, RE-EVALUATE PREDICTOR MATRIX P = I - H * ASET(1) *J *
-C * BEFORE STARTING THE CORRECTOR ITERATION. AFTER CALLING PDERIV,    * 
-C * SET JEVAL = -1 TO PREVENT RECALLING PDERIV UNLESS NECESSARY LATER.*
-C * CALL DECOMP TO DECOMPOSE THE MATRIX                               *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF JEVAL = 1, RE-EVALUATE PREDICTOR MATRIX P = I - H * ASET(1) *J *
+! * BEFORE STARTING THE CORRECTOR ITERATION. AFTER CALLING PDERIV,    * 
+! * SET JEVAL = -1 TO PREVENT RECALLING PDERIV UNLESS NECESSARY LATER.*
+! * CALL DECOMP TO DECOMPOSE THE MATRIX                               *
+! *********************************************************************
+!
       IF (JEVAL.EQ.1) THEN
        R1DELT   = -ASN1 * DELT
-C
+!
        CALL PDERIV
-C     
+!     
        CALL DECOMP 
        JEVAL    = -1 
        HRATIO   = 1.0d0
@@ -918,25 +921,25 @@ C
 
       ENDIF
 
-C
-C *********************************************************************
-C *   EVALUATE THE FIRST DERIVATIVE USING CORRECTED VALUES OF CNEW    * 
-C *********************************************************************
-C     
+!
+! *********************************************************************
+! *   EVALUATE THE FIRST DERIVATIVE USING CORRECTED VALUES OF CNEW    * 
+! *********************************************************************
+!     
  270  CALL SUBFUN
 
-C
-C *********************************************************************
-C * IN THE CASE OF THE CHORD METHOD, COMPUTE ERROR (GLOSS) FROM THE   * 
-C * CORRECTED CALCULATION OF THE FIRST DERIVATIVE                     * 
-C *                                                                   *
-C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
-C * (1) GLOSS now changes from 1st derivative to error here           *
-C * (2) GLOSS is now the B matrix in Px = B                           *
-C *      (Equation 3 in Jacobson & Turco 1994)                        *
-C * (3) DTLOS is the accumulation of deltaN (x array in Px = B)       *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IN THE CASE OF THE CHORD METHOD, COMPUTE ERROR (GLOSS) FROM THE   * 
+! * CORRECTED CALCULATION OF THE FIRST DERIVATIVE                     * 
+! *                                                                   *
+! * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+! * (1) GLOSS now changes from 1st derivative to error here           *
+! * (2) GLOSS is now the B matrix in Px = B                           *
+! *      (Equation 3 in Jacobson & Turco 1994)                        *
+! * (3) DTLOS is the accumulation of deltaN (x array in Px = B)       *
+! *********************************************************************
+!
       DO 362 JSPC         = 1,  ISCHAN
        J                  = JSPC + ISCHAN
        DO 360 KLOOP       = 1, KTLOOP
@@ -946,34 +949,34 @@ C
  362  CONTINUE
 
 
-C
-C *********************************************************************
-C * SOLVE THE LINEAR SYSTEM OF EQUATIONS WITH THE CORRECTOR ERROR.    *
-C * BACKSUB.F SOLVES BACKSUBSTITUTION OVER MATRIX OF PARTIAL DERIVS.  * 
-C *                                                                   *
-C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
-C * (1) BACKSUB solves Px = B.                                        *
-C * (2) GLOSS is now the solution B array.                            *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * SOLVE THE LINEAR SYSTEM OF EQUATIONS WITH THE CORRECTOR ERROR.    *
+! * BACKSUB.F SOLVES BACKSUBSTITUTION OVER MATRIX OF PARTIAL DERIVS.  * 
+! *                                                                   *
+! * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+! * (1) BACKSUB solves Px = B.                                        *
+! * (2) GLOSS is now the solution B array.                            *
+! *********************************************************************
+!
       CALL BACKSUB
-C
-C *********************************************************************
-C * SUM-UP THE ACCUMULATED ERROR, CORRECT THE CONCENTRATION WITH THE  * 
-C * ERROR, AND BEGIN TO CALCULATE THE RMSNORM OF THE ERROR RELATIVE   *  
-C * TO CHOLD.                                                         *
-C *                                                                   *
-C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
-C * In loops 366..368 and 370..372 we do the following:               *
-C * (1) Calculate local error                                         * 
-C * (2) Update DTLOS = accumulation of delta N                        *
-C * (3) Update CNEW = concentration array                             *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * SUM-UP THE ACCUMULATED ERROR, CORRECT THE CONCENTRATION WITH THE  * 
+! * ERROR, AND BEGIN TO CALCULATE THE RMSNORM OF THE ERROR RELATIVE   *  
+! * TO CHOLD.                                                         *
+! *                                                                   *
+! * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+! * In loops 366..368 and 370..372 we do the following:               *
+! * (1) Calculate local error                                         * 
+! * (2) Update DTLOS = accumulation of delta N                        *
+! * (3) Update CNEW = concentration array                             *
+! *********************************************************************
+!
       DO 365 KLOOP     = 1, KTLOOP
        DELY(KLOOP)     = 0.d0
  365  CONTINUE
-C
+!
       specmax = 0.0d0
       IF (ASN1.EQ.1.0) THEN 
        DO 368 I         = 1, ISCHAN
@@ -1010,21 +1013,21 @@ C
       ENDIF
 
 
-C
-C *********************************************************************
-C * SET THE PREVIOUS RMS ERROR AND CALCULATE THE NEW RMS ERROR.       *
-C * IF DCON < 1, THEN SUFFICIENT CONVERGENCE HAS OCCURRED. OTHERWISE, *
-C * IF THE RATIO OF THE CURRENT TO PREVIOUS RMSERR IS DECREASING,     *
-C * ITERATE MORE. IF IT IS NOT, THEN THE CONVERGENCE TEST FAILED      *
-C *                                                                   *
-C * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
-C * (1) ORDER is the # of species, excluding ND65 families            *
-C * (2) RMSRAT = (local error this march) / (local error last march)  *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * SET THE PREVIOUS RMS ERROR AND CALCULATE THE NEW RMS ERROR.       *
+! * IF DCON < 1, THEN SUFFICIENT CONVERGENCE HAS OCCURRED. OTHERWISE, *
+! * IF THE RATIO OF THE CURRENT TO PREVIOUS RMSERR IS DECREASING,     *
+! * ITERATE MORE. IF IT IS NOT, THEN THE CONVERGENCE TEST FAILED      *
+! *                                                                   *
+! * EXPLANATORY NOTES (tmf, 11/1/07)                                  *
+! * (1) ORDER is the # of species, excluding ND65 families            *
+! * (2) RMSRAT = (local error this march) / (local error last march)  *
+! *********************************************************************
+!
       RMSERRP           = RMSERR
       DER2MAX           = 0.d0
-C
+!
       ksave=0d0
       DO 427 KLOOP      = 1, KTLOOP
        !-----------------------------------------------------------------------
@@ -1038,22 +1041,22 @@ C
           ksave=kloop
        ENDIF
  427  CONTINUE
-C
+!
       RMSERR             = SQRT(DER2MAX / ORDER)
-C
+!
       L3                 = L3 + 1
-C
+!
       IF (L3.GT.1) THEN
        RMSRAT            = RMSERR / RMSERRP    
        DRATE             = MAX(0.2d0 * DRATE, RMSRAT)
       ENDIF
-C
+!
       DCON               = RMSERR * MIN(CONPST(NQQ),CONP15(NQQ)*DRATE)
-C
-C *********************************************************************
-C       IF CONVERGENCE OCCURS, GO ON TO CHECK ACCUMULATED ERROR
-C *********************************************************************
-C
+!
+! *********************************************************************
+!       IF CONVERGENCE OCCURS, GO ON TO CHECK ACCUMULATED ERROR
+! *********************************************************************
+!
 
 
       ! EXPLANATORY NOTE (tmf, 11/1/07)
@@ -1063,26 +1066,26 @@ C
        ! EXPLANATORY NOTE (tmf, 11/1/07)
        ! Go on to check global error
        GOTO 390 
-C
-C *********************************************************************
-C  IF NONCONVERGENCE AFTER ONE STEP, RE-EVALUATE FIRST DERIVATIVE WITH
-C                           NEW VALUES OF CNEW
-C *********************************************************************
-C
-C     ELSEIF (L3.LT.MSTEP.AND.(L3.EQ.1.OR.RMSRAT.LE.0.9)) THEN
+!
+! *********************************************************************
+!  IF NONCONVERGENCE AFTER ONE STEP, RE-EVALUATE FIRST DERIVATIVE WITH
+!                           NEW VALUES OF CNEW
+! *********************************************************************
+!
+!     ELSEIF (L3.LT.MSTEP.AND.(L3.EQ.1.OR.RMSRAT.LE.0.9)) THEN
       ELSEIF (L3.EQ.1) THEN
 
        GOTO 270
-C
-C *********************************************************************
-C *             THE CORRECTOR ITERATION FAILED TO CONVERGE            *
-C * IF THE JACOBIAN MATRIX IS MORE THAN ONE STEP OLD, UPDATE THE      *
-C * JACOBIAN AND TRY CONVERGENCE AGAIN. IF THE JACOBIAN IS CURRENT,   * 
-C * THEN REDUCE THE TIME-STEP, RE-SET THE ACCUMULATED DERIVATIVES TO  *
-C * THEIR VALUES BEFORE THE FAILED STEP, AND RETRY WITH THE SMALLER   *
-C * STEP.                                                             *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *             THE CORRECTOR ITERATION FAILED TO CONVERGE            *
+! * IF THE JACOBIAN MATRIX IS MORE THAN ONE STEP OLD, UPDATE THE      *
+! * JACOBIAN AND TRY CONVERGENCE AGAIN. IF THE JACOBIAN IS CURRENT,   * 
+! * THEN REDUCE THE TIME-STEP, RE-SET THE ACCUMULATED DERIVATIVES TO  *
+! * THEIR VALUES BEFORE THE FAILED STEP, AND RETRY WITH THE SMALLER   *
+! * STEP.                                                             *
+! *********************************************************************
+!
 
       ELSEIF (JEVAL .EQ. 0) THEN
 
@@ -1096,19 +1099,19 @@ C
        GOTO 220
       ENDIF
 
-C
+!
  399  NFAIL            = NFAIL + 1
       RDELMAX          = 2.0d0
       JEVAL            = 1
       IFSUCCESS        = 0
       XELAPS           = TOLD
       RDELT            = FRACDEC
-C
-C *********************************************************************
-C               SUBTRACT OFF DERIVATIVES PREVIOUSLY ADDED 
-C *********************************************************************
-C THIS SET OF OPERATIONS IS EQUIVALENT TO LOOP 419.
-C
+!
+! *********************************************************************
+!               SUBTRACT OFF DERIVATIVES PREVIOUSLY ADDED 
+! *********************************************************************
+! THIS SET OF OPERATIONS IS EQUIVALENT TO LOOP 419.
+!
       ! EXPLANATORY NOTE (tmf, 11/1/07)
       ! The local error is still not converging
       IF (NQQ.EQ.1) THEN
@@ -1118,9 +1121,9 @@ C
          CONC(KLOOP,I) = CONC(KLOOP,I) - CONC(KLOOP,J)
  375    CONTINUE
  376   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.2) THEN
-C
+!
        DO 378 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN 
@@ -1129,7 +1132,7 @@ C
          CONC(KLOOP,J1) = CONC(KLOOP,J1) - CONC(KLOOP,J2) * 2.d0 
  377    CONTINUE
  378   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.3) THEN
        DO 380 I         = 1,   ISCHAN
         J1              = I  + ISCHAN
@@ -1143,9 +1146,9 @@ C
          CONC(KLOOP,J2) = CONC(KLOOP,J2) - CONC3J3
  379    CONTINUE
  380   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.4) THEN
-C
+!
        DO 382 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -1163,9 +1166,9 @@ C
          CONC(KLOOP,J3) = CONC(KLOOP,J3) - CONC4J4
  381    CONTINUE 
  382   CONTINUE
-C
+!
       ELSEIF (NQQ.EQ.5) THEN
-C
+!
        DO 384 I         = 1, ISCHAN
         J1              = I  + ISCHAN
         J2              = J1 + ISCHAN
@@ -1191,21 +1194,21 @@ C
       ENDIF
 
       GOTO 170
-C
-C *********************************************************************
-C *               THE CORRECTOR ITERATION CONVERGED                   *  
-C * SET JEVAL = 0 SO THAT IT DOES NOT NEED TO BE CALLED THE NEXT STEP *
-C * IF ALL ELSE GOES WELL. NEXT, TEST THE ACCUMULATED ERROR FROM THE  * 
-C *                    CONVERGENCE PROCESS, ABOVE                     * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *               THE CORRECTOR ITERATION CONVERGED                   *  
+! * SET JEVAL = 0 SO THAT IT DOES NOT NEED TO BE CALLED THE NEXT STEP *
+! * IF ALL ELSE GOES WELL. NEXT, TEST THE ACCUMULATED ERROR FROM THE  * 
+! *                    CONVERGENCE PROCESS, ABOVE                     * 
+! *********************************************************************
+!
  390  JEVAL          = 0
-C
+!
       IF (L3.GT.1) THEN
        DO 395 KLOOP  = 1, KTLOOP
         DELY(KLOOP)  = 0.d0
  395   CONTINUE
-C
+!
        DO 402 JSPC   = 1, ISCHAN     
         !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -1219,28 +1222,28 @@ C
         ENDIF
         !---------------------------------------------------------------------
  402   CONTINUE
-C
+!
        DER2MAX       = 0.d0
-C
+!
        DO 405 KLOOP  = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER2MAX) DER2MAX = DELY(KLOOP)   
  405   CONTINUE 
       ENDIF
-C
-C *********************************************************************
-C *                 THE ACCUMULATED ERROR TEST FAILED                 *  
-C * IN ALL CASES, RE-SET THE DERIVATIVES TO THEIR VALUES BEFORE THE   *
-C * LAST TIME-STEP. NEXT                                              *    
-C *                                                                   * 
-C * (A)   RE-ESTIMATE A TIME-STEP AT THE SAME OR ONE LOWER ORDER AND  *   
-C *        RETRY THE STEP.                                            *  
-C * (B)   IF THE FIRST ATTEMPTS FAIL, RETRY THE STEP AT FRACDEC x     * 
-C *        THE PRIOR STEP                                             *  
-C * (C)   IF THIS FAILS, RE-SET THE ORDER TO 1 AND GO BACK TO THE     * 
-C *        BEGINNING, AT ORDER = 1, BECAUSE ERRORS OF THE WRONG ORDER *
-C *        HAVE ACCUMULATED                                           *
-C *********************************************************************
-C 
+!
+! *********************************************************************
+! *                 THE ACCUMULATED ERROR TEST FAILED                 *  
+! * IN ALL CASES, RE-SET THE DERIVATIVES TO THEIR VALUES BEFORE THE   *
+! * LAST TIME-STEP. NEXT                                              *    
+! *                                                                   * 
+! * (A)   RE-ESTIMATE A TIME-STEP AT THE SAME OR ONE LOWER ORDER AND  *   
+! *        RETRY THE STEP.                                            *  
+! * (B)   IF THE FIRST ATTEMPTS FAIL, RETRY THE STEP AT FRACDEC x     * 
+! *        THE PRIOR STEP                                             *  
+! * (C)   IF THIS FAILS, RE-SET THE ORDER TO 1 AND GO BACK TO THE     * 
+! *        BEGINNING, AT ORDER = 1, BECAUSE ERRORS OF THE WRONG ORDER *
+! *        HAVE ACCUMULATED                                           *
+! *********************************************************************
+! 
       ! EXPLANATORY NOTE (tmf, 11/1/07)
       ! Check if global error is tolerable
       IF (DER2MAX.GT.ENQQ) THEN
@@ -1248,7 +1251,7 @@ C
        XELAPS           = TOLD
        LFAIL            = LFAIL + 1
        JFAIL            = JFAIL  + 1
-C
+!
        I1               = NQQISC + 1
        DO 419 JB        = 1, NQQ
         I1              = I1 - ISCHAN
@@ -1259,7 +1262,7 @@ C
  415     CONTINUE
  417    CONTINUE
  419   CONTINUE
-C
+!
        RDELMAX          = 2.0d0
        IF (JFAIL.LE.6) THEN
         IFSUCCESS       = 0 
@@ -1279,34 +1282,34 @@ C
         JFAIL           = 0
         JRESTAR         = JRESTAR + 1
         IDOUB           = 5
-C
+!
         DO 432 JSPC        = 1, ISCHAN
          DO 430 KLOOP      = 1, KTLOOP
           CNEW(KLOOP,JSPC) = CONC(KLOOP,JSPC)
  430     CONTINUE
  432    CONTINUE
-C
+!
         WRITE(6,670) DELT, XELAPS
         !print*, 'kblk = ', kblk      !gcc
         IF (JRESTAR.EQ.100) THEN
          WRITE(6,680)
          CALL GEOS_CHEM_STOP
         ENDIF
-C
+!
         GOTO 140
        ENDIF    ! end of JFAIL condition
-C
+!
       ELSE
 
-C
-C *********************************************************************
-C *             ALL SUCCESSFUL STEPS COME THROUGH HERE                * 
-C *                                                                   * 
-C * AFTER A SUCCESSFUL STEP, UPDATE THE CONCENTRATION AND ALL DERIV-  *
-C * ATIVES, RESET TOLD, SET IFSUCCESS = 1, INCREMENT NSTEPS, AND      *
-C * RESET JFAIL = 0.                                                  *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *             ALL SUCCESSFUL STEPS COME THROUGH HERE                * 
+! *                                                                   * 
+! * AFTER A SUCCESSFUL STEP, UPDATE THE CONCENTRATION AND ALL DERIV-  *
+! * ATIVES, RESET TOLD, SET IFSUCCESS = 1, INCREMENT NSTEPS, AND      *
+! * RESET JFAIL = 0.                                                  *
+! *********************************************************************
+!
 !-----------------------------------------------------------------------------
 ! %%%%% MODIFICATION TO PREVENT NEGATIVE CNEW (tmf, 11/1/07) %%%%%
 !
@@ -1359,9 +1362,9 @@ C
        IFSUCCESS        = 1
        NSTEPS           = NSTEPS + 1
        TOLD             = XELAPS
-C
-C *********************************************************************
-C
+!
+! *********************************************************************
+!
        I1               = 1 
        DO 474 J         = 2, KSTEP
         I1              = I1 + ISCHAN
@@ -1373,7 +1376,7 @@ C
  470     CONTINUE
  472    CONTINUE
  474   CONTINUE
-C
+!
        IF (ASN1.EQ.1.0) THEN 
         DO 473 JSPC         = 1, ISCHAN
          DO 471 KLOOP       = 1, KTLOOP
@@ -1387,11 +1390,11 @@ C
  475     CONTINUE 
  477    CONTINUE 
        ENDIF 
-C
-C *********************************************************************
-C          EXIT SMVGEAR IF A TIME INTERVAL HAS BEEN COMPLETED
-C *********************************************************************
-C
+!
+! *********************************************************************
+!          EXIT SMVGEAR IF A TIME INTERVAL HAS BEEN COMPLETED
+! *********************************************************************
+!
        TIMREMAIN        = TINTERVAL - XELAPS
 
        IF (TIMREMAIN.LE.1.0d-06) GOTO 650
@@ -1442,20 +1445,20 @@ C
           WRITE( 6, '(/,a)' ) 'STOP 700 in smvgear.f'
           CALL GEOS_CHEM_STOP
        ENDIF
-C
-C *********************************************************************
-C * IDOUB COUNTS THE NUMBER OF SUCCESSFUL STEPS BEFORE RE-TESTING THE *
-C * STEP-SIZE AND ORDER                                               *
-C *                                                                   * 
-C * IF IDOUB > 1, DECREASE IDOUB AND GO ON TO THE NEXT TIME-STEP WITH *
-C *               THE CURRENT STEP-SIZE AND ORDER.                    * 
-C * IF IDOUB = 1, STORE THE VALUE OF THE ERROR (DTLOS) FOR THE TIME-  *
-C *               STEP PREDICTION, WHICH WILL OCCUR WHEN IDOUB = 0,   *
-C *               BUT GO ON TO THE NEXT STEP WITH THE CURRENT STEP-   *
-C *               SIZE AND ORDER.                                     * 
-C * IF IDOUB = 0, TEST THE TIME-STEP AND ORDER FOR A CHANGE.          *  
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IDOUB COUNTS THE NUMBER OF SUCCESSFUL STEPS BEFORE RE-TESTING THE *
+! * STEP-SIZE AND ORDER                                               *
+! *                                                                   * 
+! * IF IDOUB > 1, DECREASE IDOUB AND GO ON TO THE NEXT TIME-STEP WITH *
+! *               THE CURRENT STEP-SIZE AND ORDER.                    * 
+! * IF IDOUB = 1, STORE THE VALUE OF THE ERROR (DTLOS) FOR THE TIME-  *
+! *               STEP PREDICTION, WHICH WILL OCCUR WHEN IDOUB = 0,   *
+! *               BUT GO ON TO THE NEXT STEP WITH THE CURRENT STEP-   *
+! *               SIZE AND ORDER.                                     * 
+! * IF IDOUB = 0, TEST THE TIME-STEP AND ORDER FOR A CHANGE.          *  
+! *********************************************************************
+!
        IF (IDOUB.GT.1) THEN
         IDOUB               = IDOUB - 1
         IF (IDOUB.EQ.1) THEN
@@ -1484,32 +1487,32 @@ C
 
         GOTO 170
        ENDIF
-C
+!
       ENDIF 
-C     ENDIF DER2MAX.GT.ENQQ
-C
-C *********************************************************************
-C *         TEST WHETHER TO CHANGE THE STEP-SIZE AND ORDER            * 
-C * DETERMINE THE TIME-STEP AT (A) ONE ORDER LOWER THAN, (B) THE SAME *
-C * ORDER AS, AND (C) ONE ORDER HIGHER THAN THE CURRENT ORDER. IN THE *
-C * CASE OF MULTIPLE GRID-CELLS IN A GRID-BLOCK, FIND THE MINIMUM     *
-C * STEP-SIZE AMONG ALL THE CELLS FOR EACH OF THE ORDERS. THEN, IN    *
-C * ALL CASES, CHOOSE THE LONGEST TIME-STEP AMONG THE THREE STEPS     *
-C * PAIRED WITH ORDERS, AND CHOOSE THE ORDER ALLOWING THIS LONGEST    *
-C * STEP.                                                             *
-C *********************************************************************
-C
-C *********************************************************************
-C * ESTIMATE THE TIME-STEP RATIO (RDELTUP) AT ONE ORDER HIGHER THAN   *
-C * THE CURRENT ORDER. IF NQQ >= MAXORD, THEN WE DO NOT ALLOW THE     * 
-C *                        ORDER TO INCREASE.                         *
-C *********************************************************************
-C
+!     ENDIF DER2MAX.GT.ENQQ
+!
+! *********************************************************************
+! *         TEST WHETHER TO CHANGE THE STEP-SIZE AND ORDER            * 
+! * DETERMINE THE TIME-STEP AT (A) ONE ORDER LOWER THAN, (B) THE SAME *
+! * ORDER AS, AND (C) ONE ORDER HIGHER THAN THE CURRENT ORDER. IN THE *
+! * CASE OF MULTIPLE GRID-CELLS IN A GRID-BLOCK, FIND THE MINIMUM     *
+! * STEP-SIZE AMONG ALL THE CELLS FOR EACH OF THE ORDERS. THEN, IN    *
+! * ALL CASES, CHOOSE THE LONGEST TIME-STEP AMONG THE THREE STEPS     *
+! * PAIRED WITH ORDERS, AND CHOOSE THE ORDER ALLOWING THIS LONGEST    *
+! * STEP.                                                             *
+! *********************************************************************
+!
+! *********************************************************************
+! * ESTIMATE THE TIME-STEP RATIO (RDELTUP) AT ONE ORDER HIGHER THAN   *
+! * THE CURRENT ORDER. IF NQQ >= MAXORD, THEN WE DO NOT ALLOW THE     * 
+! *                        ORDER TO INCREASE.                         *
+! *********************************************************************
+!
       IF (NQQ.LT.MAXORD) THEN  
        DO 542 KLOOP  = 1, KTLOOP
         DELY(KLOOP)  = 0.d0
  542   CONTINUE
-C
+!
        DO 545 JSPC   = 1, ISCHAN     
         !---------------------------------------------------------------------
         ! Added for the ND65 prod/loss diagnostic.  This prevents ND65
@@ -1528,35 +1531,35 @@ C
         ENDIF
         !---------------------------------------------------------------------
  545   CONTINUE
-C
+!
        DER3MAX       = 0.d0
-C
+!
        DO 546 KLOOP  = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER3MAX) DER3MAX = DELY(KLOOP)
  546   CONTINUE
-C
+!
        RDELTUP       = 1.0d0 / (CONP3*DER3MAX**ENQQ3(NQQ)+1.4d-6)
       ELSE
        RDELTUP       = 0.0d0
       ENDIF
-C
-C *********************************************************************
-C *    ESTIMATE THE TIME-STEP RATIO (RDELTSM) AT THE CURRENT ORDER    *
-C *      WE CALCULATED DER2MAX DURING THE ERROR TESTS EARLIER         *  
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *    ESTIMATE THE TIME-STEP RATIO (RDELTSM) AT THE CURRENT ORDER    *
+! *      WE CALCULATED DER2MAX DURING THE ERROR TESTS EARLIER         *  
+! *********************************************************************
+!
  540  RDELTSM        = 1.0d0 / (CONP2*DER2MAX**ENQQ2(NQQ)+1.2d-6)
-C
-C *********************************************************************
-C * ESTIMATE THE TIME-STEP RATIO (RDELTDN) AT ONE ORDER LOWER THAN    *
-C * THE CURRENT ORDER. IF NQQ = 1, THEN WE CANNOT TEST A LOWER ORDER. * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * ESTIMATE THE TIME-STEP RATIO (RDELTDN) AT ONE ORDER LOWER THAN    *
+! * THE CURRENT ORDER. IF NQQ = 1, THEN WE CANNOT TEST A LOWER ORDER. * 
+! *********************************************************************
+!
       IF (NQQ.GT.1) THEN
        DO 552 KLOOP  = 1, KTLOOP
         DELY(KLOOP)  = 0.d0
  552   CONTINUE
-C
+!
        KSTEPISC      = (KSTEP - 1) * ISCHAN
        DO 555 JSPC   = 1, ISCHAN     
         !---------------------------------------------------------------------
@@ -1572,51 +1575,51 @@ C
         ENDIF
         !---------------------------------------------------------------------
  555   CONTINUE
-C
+!
        DER1MAX       = 0.d0
-C
+!
        DO 556 KLOOP = 1, KTLOOP
         IF (DELY(KLOOP).GT.DER1MAX) DER1MAX = DELY(KLOOP)   
  556   CONTINUE
         
        RDELTDN       = 1.0d0 / (CONP1*DER1MAX**ENQQ1(NQQ)+1.3d-6)
-C
+!
       ELSE
        RDELTDN       = 0.d0
       ENDIF
-C
-C *********************************************************************
-C * FIND THE LARGEST OF THE PREDICTED TIME-STEPS RATIOS OF EACH ORDER * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * FIND THE LARGEST OF THE PREDICTED TIME-STEPS RATIOS OF EACH ORDER * 
+! *********************************************************************
+!
       RDELT        = MAX(RDELTUP,RDELTSM,RDELTDN)
-C
-C *********************************************************************
-C * IF THE LAST STEP WAS SUCCESSFUL AND RDELT IS SMALL, KEEP THE      *
-C * CURRENT STEP AND ORDER AND ALLOW THREE SUCCESSFUL STEPS BEFORE    *
-C * RE-CHECKING THE TIME-STEP AND ORDER.                              *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE LAST STEP WAS SUCCESSFUL AND RDELT IS SMALL, KEEP THE      *
+! * CURRENT STEP AND ORDER AND ALLOW THREE SUCCESSFUL STEPS BEFORE    *
+! * RE-CHECKING THE TIME-STEP AND ORDER.                              *
+! *********************************************************************
+!
       IF (RDELT.LT.1.1.AND.IFSUCCESS.EQ.1) THEN
        IDOUB         = 3
        GOTO 170
-C
-C *********************************************************************
-C * IF THE MAXIMUM TIME-STEP RATIO IS THAT OF ONE ORDER LOWER THAN    *  
-C * THE CURRENT ORDER, DECREASE THE ORDER. DO NOT MINIMIZE RDELT      *
-C * TO =< 1 WHEN IFSUCCESS = 0 SINCE THIS IS LESS EFFICIENT.          *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE MAXIMUM TIME-STEP RATIO IS THAT OF ONE ORDER LOWER THAN    *  
+! * THE CURRENT ORDER, DECREASE THE ORDER. DO NOT MINIMIZE RDELT      *
+! * TO =< 1 WHEN IFSUCCESS = 0 SINCE THIS IS LESS EFFICIENT.          *
+! *********************************************************************
+!
       ELSEIF (RDELT.EQ.RDELTDN) THEN
        NQQ              = NQQ - 1
 
-C
-C *********************************************************************
-C * IF THE MAXIMUM TIME-STEP RATIO IS THAT OF ONE ORDER HIGHER THAN   *  
-C * THE CURRENT ORDER, INCREASE THE ORDER AND ADD A DERIVATIVE TERM   *
-C * FOR THE HIGHER ORDER.                                             *  
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE MAXIMUM TIME-STEP RATIO IS THAT OF ONE ORDER HIGHER THAN   *  
+! * THE CURRENT ORDER, INCREASE THE ORDER AND ADD A DERIVATIVE TERM   *
+! * FOR THE HIGHER ORDER.                                             *  
+! *********************************************************************
+!
       ELSEIF (RDELT.EQ.RDELTUP) THEN
        CONSMULT         = ASET(NQQ,KSTEP) / FLOAT(KSTEP)
        NQQ              = KSTEP
@@ -1633,22 +1636,22 @@ C
 
 
       ENDIF
-C
-C *********************************************************************
-C * IF THE LAST TWO STEPS HAVE FAILED, RE-SET IDOUB TO THE CURRENT    *
-C * ORDER + 1. DO NOT MINIMIZE RDELT IF JFAIL.GE.2 SINCE TESTS SHOW   *
-C * THAT THIS MERELY LEADS TO ADDITIONAL COMPUTATIONS.                *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! * IF THE LAST TWO STEPS HAVE FAILED, RE-SET IDOUB TO THE CURRENT    *
+! * ORDER + 1. DO NOT MINIMIZE RDELT IF JFAIL.GE.2 SINCE TESTS SHOW   *
+! * THAT THIS MERELY LEADS TO ADDITIONAL COMPUTATIONS.                *
+! *********************************************************************
+!
       IDOUB             = NQQ + 1
-C
+!
 
       GOTO 170  
-C
-C *********************************************************************
-C *                      UPDATE COUNTERS                              *
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *                      UPDATE COUNTERS                              *
+! *********************************************************************
+!
  650  NSFTOT             = NSFTOT   + NSUBFUN 
       NPDTOT             = NPDTOT   + NPDERIV
       NSTTOT             = NSTTOT   + NSTEPS 
@@ -1656,11 +1659,11 @@ C
       NFAILTOT           = NFAILTOT + NFAIL
       LFAILTOT           = LFAILTOT + LFAIL
 
-C
-C *********************************************************************
-C *        SET FINAL CONCENTRATION FOR RUN AND UPDATE COUNTERS        * 
-C *********************************************************************
-C
+!
+! *********************************************************************
+! *        SET FINAL CONCENTRATION FOR RUN AND UPDATE COUNTERS        * 
+! *********************************************************************
+!
       DO JSPC        = 1, ISCHAN
       DO KLOOP       = 1, KTLOOP
 
@@ -1728,12 +1731,12 @@ C
       ENDDO
 
 
-C
-C
-C *********************************************************************
-C                             FORMATS
-C *********************************************************************
-C
+!
+!
+! *********************************************************************
+!                             FORMATS
+! *********************************************************************
+!
  233  FORMAT('SMVGEAR: DELT= ',1PE8.2,' TOO LOW DEC YFAC. KBLK, ', 
      1       'KTLOOP, NCS, TIME, TIMREMAIN, YFAC, ', 
      2       'EPS = ',/3(1X,I4),2X,4(1PE9.3,1X))
@@ -1743,10 +1746,10 @@ C
  680  FORMAT('SMVGEAR: STOP BECAUSE OF EXCESSIVE ERRORS.')
  685  FORMAT('M1,M2,K,ERR = ',3(I4),2X,1PE10.4)
  690  FORMAT('CONC WHEN STOP = ',2(I4,1X),A14,2(1X,1PE10.2))
-C
-C *********************************************************************
-C ***************     END OF SUBROUTINE SMVGEAR     *******************
-C *********************************************************************
-C
+!
+! *********************************************************************
+! ***************     END OF SUBROUTINE SMVGEAR     *******************
+! *********************************************************************
+!
       RETURN
       END SUBROUTINE SMVGEAR

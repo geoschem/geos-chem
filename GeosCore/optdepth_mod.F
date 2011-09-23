@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -65,8 +66,8 @@
 !
       USE DIAG_MOD, ONLY: AD21
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! ND21
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! ND21
 !
 ! !INPUT PARAMETERS: 
 !

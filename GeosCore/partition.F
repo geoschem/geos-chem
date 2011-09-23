@@ -23,10 +23,11 @@
       USE TRACERID_MOD, ONLY : IDO3,      IDNO,       IDHNO2
       USE TRACERID_MOD, ONLY : CTRMB,     NMEMBER
 
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"
+      IMPLICIT NONE
 
 !
 ! !INPUT PARAMETERS: 
@@ -172,14 +173,6 @@
             
          ENDIF
 		    
-!------------------------------------------------------------------------------
-! Prior to 6/27/11:
-! Bug fix: we need to use index CSPEC with JLOOP_P and CSAVE with JLOOP here.
-! (dkh, bmy, 6/27/11)
-!         ! Store into CSAVE
-!         CSAVE(JLOOP,N) = CSPEC(JLOOP,CSAVEID_JJ(N))
-!------------------------------------------------------------------------------
-
          ! Archive into the CSAVE array the concentration of each species
          ! in the CSPEC array at the previous chemistry timestep at index
          ! JLOOP_P.  JLOOP_P is guaranteed to be a tropopsheric box.  This

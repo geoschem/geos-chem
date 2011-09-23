@@ -16,7 +16,9 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
+
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
@@ -99,7 +101,7 @@
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
       USE LINOZ_MOD,   ONLY : DO_LINOZ
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -192,8 +194,8 @@
       USE TRACERID_MOD,   ONLY : IDTOX
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
       
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_GCTM"       ! Rdg0
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! Rdg0
 !
 ! !REMARKS:
 !  Reference:
@@ -526,7 +528,7 @@
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -847,8 +849,8 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTHD, IDTH2
       
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! Rdg0
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_GCTM_MOD     ! Rdg0
 !
 ! !REMARKS:
 !  Instead of calculating the fractionation of H2 in the stratosphere 

@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -79,7 +80,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D_TROP
       USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
 
-#     include "F77_CMN_SIZE"                 ! Size parameters
+      USE CMN_SIZE_MOD                 ! Size parameters
 
 !
 ! !INPUT PARAMETERS: 
@@ -408,7 +409,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"

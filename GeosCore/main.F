@@ -1,4 +1,6 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -167,12 +169,14 @@
       USE TIME_MOD,          ONLY : GET_FIRST_A1_TIME
       USE TIME_MOD,          ONLY : ITS_TIME_FOR_A1
 
+      USE CMN_SIZE_MOD            ! Size parameters
+      USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
+      USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
+      USE CMN_GCTM_MOD            ! Physical constants
+
       IMPLICIT NONE
+#     include "define.h"
       
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! Diagnostic switches, NJDAY
-#     include "F77_CMN_GCTM"          ! Physical constants
-#     include "comode.h"          ! SMVGEAR common blocks
 !
 ! !REMARKS:
 !                                                                             .
@@ -335,13 +339,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st MERRA A3 TIME' )
 
       ! Open & read I-6 fields
-      !---------------------------------------------------------------
-      ! Prior to 12/17/10:
-      ! Now call GET_FIRST_I6_TIME so that we can get the time of
-      ! the first I6 data read.  Works for start times other than
-      ! 00 GMT. (bmy, 9/27/10)
-      !DATE = (/ NYMD, NHMS /)
-      !---------------------------------------------------------------
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_MERRA_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_MERRA_I6_FIELDS_1( DATE(1), DATE(2) )
@@ -433,13 +430,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a 1st A6 TIME' )
 
       ! Open & read I-6 fields
-      !---------------------------------------------------------------
-      ! Prior to 9/27/10:
-      ! Now call GET_FIRST_I6_TIME so that we can get the time of
-      ! the first I6 data read.  Works for start times other than
-      ! 00 GMT. (bmy, 9/27/10)
-      !DATE = (/ NYMD, NHMS /)
-      !---------------------------------------------------------------
       DATE = GET_FIRST_I6_TIME()
       CALL OPEN_I6_FIELDS(  DATE(1), DATE(2) )
       CALL GET_I6_FIELDS_1( DATE(1), DATE(2) )
@@ -575,15 +565,6 @@
 
       ! Compute time parameters at start of 6-h loop
       CALL SET_CURRENT_TIME
-
-      !----------------------------------------------------------------------
-      ! Prior to 9/27/10:
-      ! Now define NSECb not as total elapsed time since the start of a G-C
-      ! simulation, but with respect to the start of the current day.
-      ! (bmy, 9/27/10)
-      ! NSECb is # of seconds at the start of 6-h loop
-      !NSECb = GET_ELAPSED_SEC()
-      !----------------------------------------------------------------------
 
       ! NSECb is # of seconds (measured from 00 GMT today) 
       ! at the start of this 6-hr timestepping loop.
@@ -951,13 +932,6 @@
          
          ! Interpolate I-6 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         !---------------------------------------------------------------
-         ! Prior to 9/27/10:
-         ! Use elapsed seconds from the start of today rather than
-         ! elapsed seconds from the start of the run for the 
-         ! interpolation of the I6 fields. (bmy, 9/27/10)
-         !CALL INTERP( NSECb, ELAPSED_SEC, N_DYN )
-         !---------------------------------------------------------------
          CALL INTERP( NSECb, ELAPSED_TODAY, N_DYN )
 
          ! Case of variable tropopause:
@@ -977,12 +951,6 @@
          CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
          ! Compute tropopause height for ND55 diagnostic
-         !---------------------------------------------------------------
-         ! Prior to 9/10/10:
-         ! Moved "tropopause.f" into "tropopause_mod.f" and renamed
-         ! to DIAG_TROPOPAUSE (bmy, 9/10/10)
-         !IF ( ND55 > 0 ) CALL TROPOPAUSE
-         !---------------------------------------------------------------
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
 
 #if   defined( GEOS_3 )

@@ -104,6 +104,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -590,8 +591,8 @@ c$$$
       USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
  
 
-#     include "F77_CMN_SIZE"      ! Size parameters
-#     include "F77_CMN_DEP"       ! FRCLND
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DEP_MOD       ! FRCLND
 
       ! Arguments 
       REAL*8,  INTENT(OUT)  :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
@@ -634,13 +635,11 @@ c$$$
       REAL*8, PARAMETER     :: k_radbase = 1.73d-6                     
       REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
       REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
-!-----------------------------------------------------------------------------
-! Prior to 7/27/11:
-! Use the D exponent in the defnition of KD_PART, or else the PGI compiler
-! will crash at compile-time. (ganluo, bmy, 7/27/11)
-!      REAL*8, PARAMETER     :: Kd_part   = 10**(5.5)    
-!-----------------------------------------------------------------------------
+#if defined ( LINUX_PGI )
+      REAL*8, PARAMETER     :: Kd_part   = 316227.76601684
+#else
       REAL*8, PARAMETER     :: Kd_part   = 10d0**(5.5d0)
+#endif
       REAL*8, PARAMETER     :: k_ox_dark = 1d-7  
       REAL*8, PARAMETER     :: ECchla    = 31d0     
 
@@ -1339,12 +1338,6 @@ c$$$
 
                   HgPaq(I,J)   = HgPaq(I,J) - HgPaq_SUNK
 
-!-----------------------------------------------------------------------------
-! Prior to 7/27/11:
-! Use the D exponent in the defnition of KD_PART, or else the PGI compiler
-! will crash at compile-time. (ganluo, bmy, 7/27/11)
-!                  HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0.0 )                 
-!-----------------------------------------------------------------------------
                   HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0d0 )                 
 
                   ! Store carbon sinking [kgC/time]
@@ -1525,7 +1518,7 @@ c$$$
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1, DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
@@ -1674,7 +1667,7 @@ c$$$
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
 !--jaf.end
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: THISMONTH
@@ -1778,8 +1771,8 @@ c$$$
       USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_oc, N_Hg_CATS
       USE DAO_MOD,      ONLY : FROCEAN, FRSEAICE ! jaf
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
       
       ! Arguments
       INTEGER, INTENT(IN)   :: I, J 
@@ -2072,7 +2065,7 @@ c$$$
       USE TRACERID_MOD,     ONLY : GET_Hg0_CAT, GET_Hg2_CAT, N_Hg_CATS
       USE TRACERID_MOD,     ONLY : ID_Hg0,      ID_Hg2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)   :: YYYYMMDD, HHMMSS
@@ -2327,7 +2320,7 @@ c$$$
       ! References to F90 modules
       USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: N_TRACERS, NCOUNT(NNPAR)
@@ -2395,7 +2388,7 @@ c$$$
       USE TRACERID_MOD,     ONLY : ID_Hg_tot,   ID_Hg0
       USE TRACERID_MOD,     ONLY : ID_Hg2,      N_Hg_CATS
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments           
       INTEGER, INTENT(IN)   :: NYMD, NHMS
@@ -2556,7 +2549,7 @@ c$$$
       USE TRACERID_MOD,        ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2741,7 +2734,7 @@ c$$$
       USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2852,7 +2845,7 @@ c$$$
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
@@ -2968,7 +2961,7 @@ c$$$
       USE LOGICAL_MOD,         ONLY : LSPLIT
       USE TRACERID_MOD,        ONLY : ID_Hg_tot, N_Hg_CATS
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*8,           INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)            
@@ -3060,7 +3053,7 @@ c$$$
       USE TRACERID_MOD, ONLY : N_Hg_CATS
       USE LOGICAL_MOD,  ONLY : LPREINDHG
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: THIS_Hg_RST_FILE

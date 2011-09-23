@@ -16,11 +16,13 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD              ! Dimensions of arrays
+      USE CMN_DIAG_MOD              ! Diagnostic parameters
+
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 
-#     include "F77_CMN_SIZE"              ! Dimensions of arrays
-#     include "F77_CMN_DIAG"              ! Diagnostic parameters
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -93,23 +95,6 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      !--------------------------------------------------------------------
-      ! Prior to 8/3/10:
-      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in F77_CMN_DIAG.  This will prevent out-of bounds errors
-      ! when these parameters are extended to add more tracers.
-      ! (psk, bmy, 8/3/10)
-      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
-      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
-      !--------------------------------------------------------------------
-      !--------------------------------------------------------------------
-      ! Prior to 12/7/10:
-      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
-      ! AD44 holds the data for deposition velocity and deposition flux)
-      ! So MAXTRACER must be defined as 2*MAX_TRACER
-      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
-      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
-      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
       INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
@@ -980,36 +965,6 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-      !------------------------------------------------------------------------
-      ! Prior to 9/21/10:
-      ! Remove duplicate definitions of diagnostics.  These should be in kg/s
-      ! so they need to have a diagnostic offset of 3000. (bmy, ccc, 9/27/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'CV-FLX-$'
-      !DESCRIPT(N) = 'Upward flux from wet conv'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'TURBMC-$'
-      !DESCRIPT(N) = 'Upward flux from PBL mixing'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'EW-FLX-$'
-      !DESCRIPT(N) = 'E/W transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'NS-FLX-$'
-      !DESCRIPT(N) = 'N/S transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'UP-FLX-$'
-      !DESCRIPT(N) = 'Up/down transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !------------------------------------------------------------------------
-
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
@@ -1134,15 +1089,6 @@
       CATEGORY(N) = 'WD-CVW-$'
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
-
-      !--------------------------------------------------------------------
-      ! Prior to 10/21/10:
-      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'MC-FRC-$'
-      !DESCRIPT(N) = 'Moist conv fraction'
-      !OFFSET(N)   = SPACING * 30
-      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
@@ -2798,12 +2744,6 @@
       !-------------------------------------      
       ! Surface pressure (ND31)
       !-------------------------------------   
-      !-------------------------------------------------------------
-      ! Prior to 11/12/10:
-      ! Need to save out surface pressure line to tracerinfo.dat
-      ! for the timeseries diagnostics (bmy, 11/12/10)
-      !IF ( ND31 > 0 ) THEN
-      !-------------------------------------------------------------
       IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
      &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
      &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN

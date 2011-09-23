@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -55,7 +56,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: do_chemistry
 !
 ! !DESCRIPTION: Subroutine DO\_CHEMISTRY is the driver routine which calls 
 !  the appropriate chemistry subroutine for the various GEOS-Chem simulations. 
@@ -67,7 +68,6 @@
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE ACETONE_MOD,     ONLY : OCEAN_SINK_ACET
       USE AEROSOL_MOD,     ONLY : AEROSOL_CONC, AEROSOL_RURALBOX
       USE AEROSOL_MOD,     ONLY : RDAER,        SOILDUST
@@ -112,9 +112,9 @@
       USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
       USE TRACERID_MOD,    ONLY : IDTNK1    !(win, 7/14/09)
 
-#     include "CMN_SIZE"        ! Size parameters
-#     include "CMN_DIAG"        ! NDxx flags
-#     include "comode.h"        ! NPHOT
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE COMODE_LOOP_MOD       ! NPHOT
+      USE CMN_DIAG_MOD          ! NDxx flags
 !
 ! !REVISION HISTORY: 
 !  (1 ) Now reference DELP, T from "dao_mod.f" since we need to pass this
@@ -302,8 +302,10 @@
                 ! Do dust aerosol chemsitry
                 CALL CHEMDUST
  
+                WAVELENGTH = 0
+
                 ! Compute dust OD's & surface areas
-                CALL RDUST_ONLINE( SOILDUST )
+                CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
              ENDIF
  
           !---------------------------------
@@ -674,5 +676,102 @@
 
       ! Return to calling program
       END SUBROUTINE GCKPP_DRIVER
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: recompute_od
+!
+! !DESCRIPTION: Subroutine RECOMPUTE\_OD will update the optical depth values 
+!  before accumulating or writing the diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE RECOMPUTE_OD
+!
+! !USES:
+!
+      ! References to F90 modules
+      USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
+      USE AEROSOL_MOD,     ONLY : RDAER, SOILDUST
+      USE DUST_MOD,        ONLY : RDUST_ONLINE, RDUST_OFFLINE
+      USE ERROR_MOD,       ONLY : DEBUG_MSG
+      USE LOGICAL_MOD,     ONLY : LCARB, LCHEM, LCRYST, LDUST
+      USE LOGICAL_MOD,     ONLY : LPRT, LSSALT, LSULF,  LSOA
+      USE TIME_MOD,        ONLY : GET_MONTH, GET_YEAR
+      USE TRACER_MOD,      ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,      ONLY : ITS_AN_AEROSOL_SIM
+!
+! !REVISION HISTORY: 
+!  03 Fev 2011 - Adapted from chemdr.f by skim
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+      INTEGER                  :: MONTH, YEAR, WAVELENGTH
+ 
+      !=================================================================
+      ! RECOMPUTE_OD begins here!
+      !=================================================================
+
+      ! Get month and year
+      MONTH = GET_MONTH()
+      YEAR  = GET_YEAR()
+
+      IF ( LCHEM ) THEN
+
+         IF ( ITS_A_FULLCHEM_SIM() .or. ITS_AN_AEROSOL_SIM() ) THEN
+            IF ( LSULF .or. LCARB .or. LDUST .or. LSSALT ) THEN
+
+               ! Skip this section if all of these are turned off
+               CALL AEROSOL_CONC
+
+               !===============================================================
+               ! Call RDAER -- computes aerosol optical depths
+               !===============================================================
+
+               ! Calculate the AOD at the wavelength specified in jv_spec_aod
+               WAVELENGTH = 1
+
+               CALL RDAER( MONTH, YEAR, WAVELENGTH )
+
+               !### Debug
+               IF ( LPRT ) THEN 
+                  CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDAER' )
+               ENDIF
+
+               !===============================================================
+               ! If LDUST is turned on, then we have online dust aerosol in
+               ! GEOS-CHEM...so just pass SOILDUST to RDUST_ONLINE in order to
+               ! compute aerosol optical depth for FAST-J, etc.
+               !
+               ! If LDUST is turned off, then we don't have online dust aerosol
+               ! in GEOS-CHEM...so read monthly-mean dust files from disk.
+               ! (rjp, tdf, bmy, 4/1/04)
+               !===============================================================
+               IF ( LDUST ) THEN
+                  CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
+               ELSE
+                  CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
+               ENDIF
+
+               !### Debug
+               IF ( LPRT ) THEN
+                  CALL DEBUG_MSG( '### RECOMPUTE_OD: after RDUST' )
+               ENDIF
+
+            ENDIF
+         ENDIF
+
+      ENDIF
+
+      ! Return to calling program
+      END SUBROUTINE RECOMPUTE_OD
 !EOC
       END MODULE CHEMISTRY_MOD

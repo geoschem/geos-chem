@@ -1,19 +1,21 @@
-C $Id: GEN.f,v 1.1 2009/09/16 14:06:48 bmy Exp $
+! $Id: GEN.f,v 1.1 2009/09/16 14:06:48 bmy Exp $
       SUBROUTINE GEN(ID)
-C-----------------------------------------------------------------------
-C  Generates coefficient matrices for the block tri-diagonal system:
-C               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+!  Generates coefficient matrices for the block tri-diagonal system:
+!               A(I)*X(I-1) + B(I)*X(I) + C(I)*X(I+1) = H(I)
+!-----------------------------------------------------------------------
+      USE JV_MIE_MOD
 
-#     include "jv_mie.h"
+      IMPLICIT NONE
+#     include "define.h"
+
 
       integer id, id0, id1, im, i, j, k, mstart
       real*8  sum0, sum1, sum2, sum3
       real*8  deltau, d1, d2, surfac
-C---------------------------------------------
+!---------------------------------------------
       IF(ID.EQ.1 .OR. ID.EQ.ND) THEN
-C---------calculate generic 2nd-order terms for boundaries
+!---------calculate generic 2nd-order terms for boundaries
        ID0 = ID
        ID1 = ID+1
        IF(ID.GE.ND) ID1 = ID-1
@@ -84,7 +86,7 @@ C---------calculate generic 2nd-order terms for boundaries
         ENDDO
        ENDDO
        IF (ID.EQ.1) THEN
-C-------------upper boundary, 2nd-order, C-matrix is full (CC)
+!-------------upper boundary, 2nd-order, C-matrix is full (CC)
         DELTAU = ZTAU(2) - ZTAU(1)
         D2 = 0.25d0*DELTAU
         DO I=1,N
@@ -95,12 +97,12 @@ C-------------upper boundary, 2nd-order, C-matrix is full (CC)
           ENDDO
           B(I,I) = B(I,I) + D1
           CC(I,I) = CC(I,I) - D1
-C         H(I) = H(I) + 2.0d0*D2*C1(I) + D1*SISOTP
+!         H(I) = H(I) + 2.0d0*D2*C1(I) + D1*SISOTP
           H(I) = H(I) + 2.0d0*D2*C1(I)
           A(I) = 0.0d0
         ENDDO
        ELSE
-C-------------lower boundary, 2nd-order, A-matrix is full (AA)
+!-------------lower boundary, 2nd-order, A-matrix is full (AA)
         DELTAU = ZTAU(ND) - ZTAU(ND-1)
         D2 = 0.25d0*DELTAU
         SURFAC = 4.0d0*ZREFL/(1.0d0 + ZREFL)
@@ -125,7 +127,7 @@ C-------------lower boundary, 2nd-order, A-matrix is full (AA)
            C1(I) = 0.0d0
         ENDDO
        ENDIF
-C------------intermediate points:  can be even or odd, A & C diagonal
+!------------intermediate points:  can be even or odd, A & C diagonal
       ELSE
         DELTAU = ZTAU(ID+1) - ZTAU(ID-1)
         MSTART = M + MOD(ID+1,2)

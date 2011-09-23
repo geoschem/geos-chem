@@ -1,10 +1,10 @@
-C $Id: RD_TJPL.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
+! $Id: RD_TJPL.f,v 1.1 2009/09/16 14:06:46 bmy Exp $
       SUBROUTINE RD_TJPL(NJ1,NAMFIL)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Read in wavelength bins, solar fluxes, Rayleigh parameters, temperature-
 c  dependent cross sections and Rayleigh/aerosol scattering phase functions
 c  with temperature dependences. Current data originates from JPL'97
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c
 c     NAMFIL   Name of spectral data file (jv_spec.dat)
 c     NJ1      Channel number for reading data file
@@ -38,11 +38,13 @@ c  (1 ) Updated to include new pressure-dependancy function for GLYX and MGLY.
 c        (tmf, 1/7/09)
 c  (2 ) Added a pressure-dependancy function selector 'pdepf'. 
 c        (tmf, ccc, 1/7/09)
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       integer i, j, k, iw, nk, nqqq, nwww, nj1
       character*7  lpdep(7)
@@ -52,7 +54,7 @@ C-----------------------------------------------------------------------
           TQQ(K,J) = 0.d0
         enddo
       enddo
-C-------------spectral data---------------------------------------------
+!-------------spectral data---------------------------------------------
       open(NJ1, FILE=NAMFIL)
       read(NJ1,'(A)') TITLE0
       write(6,'(1X,A)') TITLE0
@@ -61,11 +63,9 @@ C-------------spectral data---------------------------------------------
         write(6,300) NJVAL,NS
         stop
       endif
-C------------NQQQ = no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
-C- NQQQ is changed to NJVAL-1 because there are 2 dummy species at the end
-C used for acetone pressure dependency only. (ccc, 4/20/09)
-C- prior to 4/20/09
-C      NQQQ = NJVAL-3
+!------------NQQQ = no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
+!- NQQQ is changed to NJVAL-1 because there are 2 dummy species at the end
+! used for acetone pressure dependency only. (ccc, 4/20/09)
       NQQQ = NJVAL-1
       read(NJ1,102) (WBIN(IW),IW=1,NWWW)
       read(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
@@ -74,7 +74,7 @@ C      NQQQ = NJVAL-3
       read(NJ1,102) (QRAYL(IW),IW=1,NWWW)
       read(NJ1,102) (QBC(IW),IW=1,NWWW)   !  From Loiusse et al. [JGR, 1996]
 c
-C---Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields (each at 3 temps)
+!---Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields (each at 3 temps)
       do K=1,3
         read(NJ1,103) TITLEJ(K,1),TQQ(K,1), (QO2(IW,K),IW=1,NWWW)
       enddo
@@ -88,7 +88,7 @@ C---Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields (each at 3 temps)
         write(6,200) titlej(1,k),(tqq(i,k),i=1,3)
       enddo
 c
-C---Read remaining species:  X-sections at 2 T's
+!---Read remaining species:  X-sections at 2 T's
       do J=1,NQQQ
         read(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)
         read(NJ1,103) TITLEJ(2,J+3),TQQ(2,J+3),(QQQ(IW,2,J),IW=1,NWWW)
@@ -124,7 +124,7 @@ c---Zero index arrays
         jpdep(j)=0
       enddo
 c
-C---Set mapping index
+!---Set mapping index
       do j=1,NJVAL
         do k=1,jppj
           if (jlabel(k).eq.titlej(1,j)) jind(k)=j
@@ -146,7 +146,7 @@ C---Set mapping index
         endif
       enddo
 c
-C---Read aerosol phase functions:
+!---Read aerosol phase functions:
       read(NJ1,'(A10,I5,/)') TITLE0,NAA
       NK=4        ! Fix number of wavelengths at 4
       do j=1,NAA
@@ -163,8 +163,8 @@ c
      $                   TITLEA(J),J,'  wavel=',(WAA(K,J),K=1,NK)
         write(6,'(9x,I2,A,9F8.4)') J,'  Qext =',(QAA(K,J),K=1,NK)
       enddo
-C--------
-C Modify reading and writing formats 105 & 201 for pressure dependancy 
+!--------
+! Modify reading and writing formats 105 & 201 for pressure dependancy 
 c (ccc, 1/7/09)
 
   101 FORMAT(8E10.3)

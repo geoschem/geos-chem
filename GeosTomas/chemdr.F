@@ -17,6 +17,7 @@
 !
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
+      USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
       USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
       USE DAO_MOD,              ONLY : T
@@ -37,16 +38,18 @@
       USE UVALBEDO_MOD,         ONLY : UVALBEDO
       USE RESTART_MOD,          ONLY : READ_CSPEC_FILE 
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
-      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LTOMAS
+      USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ,    LTOMAS
+
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE COMODE_LOOP_MOD             ! SMVGEAR variables
+      USE CMN_O3_MOD               ! EMISRRN, EMISRR
+      USE CMN_DIAG_MOD             ! ND40
+      USE CMN_NOX_MOD              ! SLBASE
+      USE CMN_DEP_MOD              ! FRCLND
 
       IMPLICIT NONE
+#     include "define.h"
 
-#     include "CMN_SIZE"             ! Size parameters
-#     include "CMN_O3"               ! EMISRRN, EMISRR
-#     include "CMN_NOX"              ! SLBASE
-#     include "comode.h"             ! SMVGEAR variables
-#     include "CMN_DEP"              ! FRCLND
-#     include "CMN_DIAG"             ! ND40
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -193,7 +196,7 @@
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
 !  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
-!EOPp
+!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -202,6 +205,7 @@
       LOGICAL, SAVE            :: FIRSTCHEM = .TRUE.
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
+      INTEGER                  :: WAVELENGTH
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
@@ -249,7 +253,18 @@
       NLOOP  = NLAT  * NLONG
       NTLOOP = NLOOP * NVERT
 
+      !vartrop fix (dkh, 05/08/11)
+      !Save a copy of JLOP from the previous time step before re-ordering
+      !the grid mappings.
+      JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
+
       CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+
+      !vartrop fix (dkh, 05/08/11)
+      !Use JLOP from this timestep the first time through
+      IF ( FIRSTCHEM ) THEN
+	JLOP_PREVIOUS(:,:,:)= JLOP(:,:,:)
+      ENDIF
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RURALBOX' ) 
@@ -383,9 +398,15 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
-      
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                    FRCLND,                 IT_EXISTS )
          ELSE 
 
             ! Use restart values 
@@ -393,15 +414,29 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                    IT_EXISTS )
+!------------------------------------------------------------------------------
+            CALL GASCONC( .FALSE.,                 N_TRACERS, 
+     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                     FRCLND,                 IT_EXISTS )
 
          ENDIF 
 
       ELSE 
-               
-         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                 IT_EXISTS )
+
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
+!     &                 IT_EXISTS )
+!------------------------------------------------------------------------------
+         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
+     &                  FRCLND,                 IT_EXISTS )
 
       ENDIF 
       IT_EXISTS = .FALSE.
@@ -420,7 +455,11 @@
       !=================================================================
       ! Call RDAER -- computes aerosol optical depths
       !=================================================================
-      CALL RDAER( MONTH, YEAR )
+
+      ! Call RDAER to compute AOD for FAST-J (skim, 02/03/11)
+      WAVELENGTH = 0
+
+      CALL RDAER( MONTH, YEAR, WAVELENGTH )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after RDAER' )
@@ -435,14 +474,14 @@
       ! (rjp, tdf, bmy, 4/1/04)
       !=================================================================
       IF ( LDUST ) THEN
-         CALL RDUST_ONLINE( SOILDUST )
+         CALL RDUST_ONLINE( SOILDUST, WAVELENGTH )
       ELSE
          IF ( LTOMAS ) THEN
             ! Don't read dust emissions from disk when using TOMAS,
             ! because TOMAS uses a different set of dust tracers than the 
             ! std code (win, bmy, 1/25/10)
          ELSE
-            CALL RDUST_OFFLINE( MONTH, YEAR )
+            CALL RDUST_OFFLINE( MONTH, YEAR, WAVELENGTH )
          ENDIF
       ENDIF
 
@@ -488,7 +527,14 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-      CALL LUMP( N_TRACERS, XNUMOL, STT )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!      CALL LUMP( N_TRACERS, XNUMOL, STT )
+!------------------------------------------------------------------------------
+      CALL LUMP( N_TRACERS, 
+     &           XNUMOL(1:N_TRACERS),
+     &           STT(:,:,:,1:N_TRACERS) )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
@@ -497,9 +543,20 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
-     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-     &                SAVENO,    SAVENO2, SAVENO3 )
+!------------------------------------------------------------------------------
+! Prior to 2/15/11:
+! Now pass STT & XNUMOL with N_TRACERS to avoid seg fault (G.Luo, bmy, 2/15/11)
+!         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
+!     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
+!     &                SAVENO,    SAVENO2, SAVENO3 )
+!------------------------------------------------------------------------------
+         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
+     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
+     &                FRACNO,                 FRACNO2, 
+     &                SAVEOH,                 SAVEHO2, 
+     &                SAVENO,                 SAVENO2, 
+     &                SAVENO3 )
+
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
       ENDIF

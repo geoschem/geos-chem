@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -73,7 +74,7 @@
       USE DAO_MOD,          ONLY : IS_ICE, IS_LAND
       USE DAO_MOD,          ONLY : FRSNO, FRSEAICE, FRLANDIC, FRLAND ! jaf
 
-#     include "F77_CMN_SIZE"         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS:
 !
@@ -249,8 +250,8 @@
       USE TIME_MOD,     ONLY : GET_TS_EMIS
       USE GRID_MOD,     ONLY : GET_AREA_CM2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic arrays & switches
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic arrays & switches
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -357,8 +358,8 @@
       USE TIME_MOD,       ONLY: GET_TS_EMIS
       USE GRID_MOD,       ONLY: GET_AREA_M2
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !
@@ -502,8 +503,8 @@
       USE DAO_MOD,  ONLY : SNOW, SNOMAS
       USE DAO_MOD,  ONLY : FRSNO, FRLAND ! jaf
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DEP"      ! FRCLND
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DEP_MOD      ! FRCLND
 !
 ! !INPUT PARAMETERS:
 !
@@ -718,7 +719,7 @@
       USE TIME_MOD,       ONLY : GET_MONTH,  ITS_A_NEW_MONTH
       USE TRANSFER_MOD,   ONLY : TRANSFER_2D
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !REMARKS:
 !  Data source:
@@ -802,7 +803,7 @@
       USE DAO_MOD,          ONLY : T, SUNCOS
       USE DEPO_MERCURY_MOD, ONLY : SNOW_HG
 
-#     include "F77_CMN_SIZE"         ! Size parameters
+      USE CMN_SIZE_MOD         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -930,7 +931,7 @@
       USE DEPO_MERCURY_MOD,  ONLY : WD_Hg2, WD_HgP, DD_HgP, DD_Hg2
       USE DEPO_MERCURY_MOD,  ONLY : READ_GTMM_RESTART
     
-#     include "F77_CMN_SIZE"          ! Size parameters
+      USE CMN_SIZE_MOD          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1143,7 +1144,7 @@
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 ! 
 ! !REVISION HISTORY:
 !  14 Sep 2009 - C. Carouge  - Initial version

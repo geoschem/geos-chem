@@ -67,6 +67,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables
@@ -148,7 +149,7 @@
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP,      LEDGARSOx
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
  
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR, MONTH
@@ -287,7 +288,7 @@
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR, MONTH
@@ -409,7 +410,7 @@
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(OUT)    :: E_1x1(I1x1,J1x1)
@@ -704,7 +705,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_NOx_1x1(I1x1,J1x1-1)
@@ -778,7 +779,7 @@
       USE TIME_MOD,         ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR
@@ -865,7 +866,7 @@
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(OUT)     :: E_CO_1x1(I1x1,J1x1)
@@ -991,7 +992,7 @@
       USE TIME_MOD,          ONLY : EXPAND_DATE
       USE SCALE_ANTHRO_MOD,  ONLY : GET_ANNUAL_SCALAR_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)     :: YEAR, MONTH
@@ -1079,7 +1080,7 @@
       USE LOGICAL_MOD,    ONLY : LEDGARSHIP
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(OUT)    :: E_SO2_1x1(I1x1,J1x1)
@@ -1238,7 +1239,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_SO2_1x1(I1x1,J1x1-1)
@@ -1303,7 +1304,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1
 
-#     include "F77_CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
  
       ! Arguments
       REAL*8,  INTENT(INOUT) :: E_SO2_SHIP_1x1(I1x1,J1x1)
@@ -1361,7 +1362,7 @@
       USE DIRECTORY_MOD,        ONLY : DATA_DIR_1x1
       USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER,          INTENT(IN)  :: TRACER
@@ -1434,7 +1435,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(IN)            :: E(I1x1,J1x1-1)
@@ -1498,7 +1499,7 @@
 !      USE DIRECTORY_MOD,        ONLY : DATA_DIR_1x1
 !      USE BPCH2_MOD,            ONLY : GET_TAU0, READ_BPCH2
 !
-!#     include "F77_CMN_SIZE"             ! Size parameters
+!      USE CMN_SIZE_MOD             ! Size parameters
 !
 !      ! Arguments
 !      CHARACTER(LEN=*), INTENT(IN)  :: NAME
@@ -1918,18 +1919,6 @@
       !=================================================================
 
       ! Compute totals [Tg/yr]
-      !------------------------------------------------------------------------
-      ! Prior to 8/4/10:
-      ! Bug fix: do not reference EDGAR_NOx_SHIP, EDGAR_CO_SHIP, or
-      ! EDGAR_CO_SHIP unless they have been allocated.  Put an IF statement
-      ! to avoid a seg fault error. (jensberg, bmy, 8/4/10)
-      !T_NOx   = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      !T_NOxSh = SUM( EDGAR_NOx_SHIP ) * ( 14d0/46d0 ) / 1d9   ! Tg N
-      !T_CO    = SUM( EDGAR_CO       )                 / 1d9   ! Tg CO
-      !T_COSh  = SUM( EDGAR_CO_SHIP  )                 / 1d9   ! Tg CO
-      !T_SO2an = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9   ! Tg S
-      !T_SO2sh = SUM( EDGAR_SO2_SHIP ) * ( 32d0/64d0 ) / 1d9   ! Tg S
-      !------------------------------------------------------------------------
       T_NOx      = SUM( EDGAR_NOx      ) * ( 14d0/46d0 ) / 1d9 ! Tg N
       T_CO       = SUM( EDGAR_CO       )                 / 1d9 ! Tg CO
       T_SO2an    = SUM( EDGAR_SO2      ) * ( 32d0/64d0 ) / 1d9 ! Tg S
@@ -2000,8 +1989,9 @@
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_BENZ(IIPAR,JJPAR )
@@ -2114,8 +2104,9 @@
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_C2H4(IIPAR,JJPAR )
@@ -2184,8 +2175,9 @@
       USE REGRID_1x1_MOD,       ONLY : DO_REGRID_1x1
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_C2H2(IIPAR,JJPAR )
@@ -2255,8 +2247,9 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_BENZ(IIPAR,JJPAR )
@@ -2349,8 +2342,9 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_C2H4(IIPAR,JJPAR )
@@ -2410,8 +2404,9 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
 
 !      IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD            ! Size parameters
 
       ! Arguments
       REAL*4, INTENT(OUT) :: E_C2H2(IIPAR,JJPAR )
@@ -2460,7 +2455,7 @@
 !
 !      USE TIME_MOD,        ONLY : GET_TS_EMIS
 !
-!#     include "F77_CMN_SIZE"  ! size parameters
+!      USE CMN_SIZE_MOD  ! size parameters
 !
 !      ! Local variables
 !      INTEGER                        :: I, J, K, IMAX, IMIN, JMAX, JMIN
@@ -2601,7 +2596,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LEDGARSHIP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local Variables
       INTEGER            :: AS, J

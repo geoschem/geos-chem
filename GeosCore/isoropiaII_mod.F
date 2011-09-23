@@ -20,6 +20,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -71,6 +72,7 @@
 !  06 Jul 2007 - H. O. T. Pye - Initial version
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISOROPIAII for offline aerosol
+!  16 Feb 2011 - R. Yantosca  - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -118,8 +120,13 @@
       USE TRACERID_MOD,    ONLY : IDTHNO3, IDTNIT, IDTNH4, IDTNH3
       USE TRACERID_MOD,    ONLY : IDTSALA, IDTSO4
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+#if   defined( APM )
+      USE APM_INIT_MOD,    ONLY : NSO4
+      USE APM_INIT_MOD,    ONLY : IDTSO4BIN1,IDTCTSEA
+      USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST,IDTCTSO4
+#endif
 
-#     include "F77_CMN_SIZE"        ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
 !
 ! !REMARKS:
 !  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
@@ -165,6 +172,9 @@
       REAL*8                   :: CNTRL(NCTRLA)
       CHARACTER(LEN=255)       :: X 
       CHARACTER(LEN=15)        :: SCASI  
+#if   defined( APM )
+      REAL*8                   :: TSO4COAT
+#endif
 
       !Temporary variables to check if division is safe
       REAL*8                   :: NUM_SAV, DEN_SAV
@@ -251,6 +261,9 @@
 !$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
 !$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
 !$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
+#if   defined( APM )
+!$OMP+PRIVATE( TSO4COAT             )
+#endif
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -286,10 +299,29 @@
          !---------------------------------
          ! Compute quantities for ISOROPIA
          !---------------------------------
-                                
+
+#if   defined( APM )
+         
+         ! %%% WITH APM %%%
+
+         !GanLuo+ Deduce SULFLO form TSO4, 
+         ! Add those sulfate coated on primary particles
+         TSO4     = (SUM(STT(I,J,L,IDTSO4BIN1:(IDTSO4BIN1+NSO4-1)))
+     &            ) * 1.d3 / ( 96.d0 * VOL )
+
+         TSO4COAT = (STT(I,J,L,(IDTCTBCOC-1+1)) +
+     &               STT(I,J,L,(IDTCTBCOC-1+2)) +
+     &               STT(I,J,L,IDTCTDST)+STT(I,J,L,IDTCTSEA)) *
+     &               1.d3 / ( 96.d0 * VOL )
+         TSO4 = TSO4 + TSO4COAT
+#else
+
+         !%%% WITHOUT APM %%%
+
          ! Total SO4 [mole/m3]
          TSO4     = STT(I,J,L,IDTSO4) * 1.d3 / ( 96.d0 * VOL )
 
+#endif
          ! Total NH3 [mole/m3] 
          TNH3     = STT(I,J,L,IDTNH4) * 1.d3 / ( 18.d0 * VOL )  +
      &              STT(I,J,L,IDTNH3) * 1.d3 / ( 17.d0 * VOL )
@@ -406,9 +438,12 @@
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
-
+#if   defined( APM )
+         ! Nothing
+#else
          ! Convert ISOROPIA output from [mole/m3] to [kg]
          TSO4 = MAX( 96.d-3 * VOL *   WT(2),            CONMIN )
+#endif
          TNH3 = MAX( 17.d-3 * VOL *   GAS(1),           CONMIN )
          TNH4 = MAX( 18.d-3 * VOL * ( WT(3) - GAS(1) ), CONMIN )
          TNIT = MAX( 62.d-3 * VOL * ( WT(4) - GAS(2) ), CONMIN )
@@ -753,7 +788,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
  
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version

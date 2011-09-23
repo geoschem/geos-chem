@@ -1,12 +1,14 @@
-C $Id: XSEC1D.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
+! $Id: XSEC1D.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
       FUNCTION XSEC1D(K,TTT)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Quantum yields for O3 --> O2 + O(1D) interpolated across 3 temps
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       integer k
       real*8 ttt, flint, xsec1d

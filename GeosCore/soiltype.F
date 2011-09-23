@@ -1,47 +1,49 @@
-C $Id: soiltype.f,v 1.1 2009/09/16 14:06:05 bmy Exp $
+! $Id: soiltype.f,v 1.1 2009/09/16 14:06:05 bmy Exp $
       SUBROUTINE SOILTYPE
 
-C**********************************************************************
-C                                                                     *
-C  HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       *
-C  MODULE FOR SOIL NOx EMISSIONS                                      *
-C  by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               *
-C  (Release V2.1)                                                     *
-C                                                                     *
-C  Contact person: Bob Yantosca (bmy@io.harvard.edu)                  *
-C                                                                     *
-C**********************************************************************
-C Be sure to force double precision with the DBLE function            *
-C and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
-C**********************************************************************
+!**********************************************************************
+!                                                                     *
+!  HARVARD ATMOSPHERIC CHEMISTRY MODELING GROUP                       *
+!  MODULE FOR SOIL NOx EMISSIONS                                      *
+!  by Yuhang Wang, Gerry Gardner and Prof. Daniel Jacob               *
+!  (Release V2.1)                                                     *
+!                                                                     *
+!  Contact person: Bob Yantosca (bmy@io.harvard.edu)                  *
+!                                                                     *
+!**********************************************************************
+! Be sure to force double precision with the DBLE function            *
+! and the "D" exponent, wherever necessary (bmy, 10/6/99)             *
+!**********************************************************************
 
       ! References to F90 modules (bmy, 2/11/03)
       USE TIME_MOD, ONLY : GET_MONTH, GET_DAY_OF_YEAR
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD
+      USE COMMSOIL_MOD
 
-C**********************************************************************
-C  SOILTYPE DETERMINES WHETHER SOIL IS DRY OR WET                     *
-C  UPDATED DAILY.                                                     *
-C**********************************************************************
-C SOILPREP  = Two month observed precip (mm/day/box                   *
-C             (divide by # of days in month))                         *
-C JENDDAY   = Julian ending day of previous month                     *
-C WETSOIL   = Criteria for wet soil mm                                *
-C LENGTHDAY = Number of days for pulse                                *
-C MONTHDAY  = Day of the month                                        *
-C NCURRENT  = Number of days in current  month                        *
-C NPREV     = Number of days in previous month                        *
-C JDAY      = Julian day                                              *
-C MONTH     = Month number                                            *
-C RAIN      = Total rain                                              *
-C NPULSE    = Number of types of pulsing                              *
-C NLAND     = Total number of land boxes                              *
-C SOILPULS  = Tracking of wet/dry & three types of pulsing (Y&L, 94)  *
-C**********************************************************************
-C
-#     include "F77_CMN_SIZE"
-#     include "commsoil.h"
+      IMPLICIT NONE
+#     include "define.h"
+
+!**********************************************************************
+!  SOILTYPE DETERMINES WHETHER SOIL IS DRY OR WET                     *
+!  UPDATED DAILY.                                                     *
+!**********************************************************************
+! SOILPREP  = Two month observed precip (mm/day/box                   *
+!             (divide by # of days in month))                         *
+! JENDDAY   = Julian ending day of previous month                     *
+! WETSOIL   = Criteria for wet soil mm                                *
+! LENGTHDAY = Number of days for pulse                                *
+! MONTHDAY  = Day of the month                                        *
+! NCURRENT  = Number of days in current  month                        *
+! NPREV     = Number of days in previous month                        *
+! JDAY      = Julian day                                              *
+! MONTH     = Month number                                            *
+! RAIN      = Total rain                                              *
+! NPULSE    = Number of types of pulsing                              *
+! NLAND     = Total number of land boxes                              *
+! SOILPULS  = Tracking of wet/dry & three types of pulsing (Y&L, 94)  *
+!**********************************************************************
+!
 
       ! Now make JDAY, MONTH local variables
       INTEGER :: JDAY, MONTH
@@ -72,17 +74,17 @@ C
          NPREV=MAX0(0,LENGTHDAY-NCURRENT)
          
          DO M=1,NLAND
-C For each land grid-box
+! For each land grid-box
 	    RAIN=SOILPREP(1,M)*DBLE(NPREV)+SOILPREP(2,M)*
      *           DBLE(NCURRENT)
 	    IF (RAIN.GT.WETSOIL) THEN
-C WET
+! WET
                SOILPULS(1,M)=-1.D0
                DO K=1,NPULSE
                   SOILPULS(1+K,M)=0.D0
                END DO
 	    ELSE
-C DRY
+! DRY
                SOILPULS(1,M)=1.D0
 	    END IF
          END DO

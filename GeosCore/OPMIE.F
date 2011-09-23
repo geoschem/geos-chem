@@ -1,36 +1,36 @@
-C $Id: OPMIE.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
+! $Id: OPMIE.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
       SUBROUTINE OPMIE(KW,WAVEL,XQO2,XQO3,FMEAN)
-C-----------------------------------------------------------------------
-C  NEW Mie code for J's, only uses 8-term expansion, 4-Gauss pts
-C  Currently allow up to NP aerosol phase functions (at all altitudes) to
-C  be associated with optical depth AER(1:NC) = aerosol opt.depth @ 1000 nm
-C  
-C  Pick Mie-wavelength with phase function and Qext:
-C
-C  01 RAYLE = Rayleigh phase
-C  02 ISOTR = isotropic
-C  03 ABSRB = fully absorbing 'soot', wavelength indep.
-C  04 S_Bkg = backgrnd stratospheric sulfate (n=1.46,log-norm:r=.09um/sigma=.6)
-C  05 S_Vol = volcanic stratospheric sulfate (n=1.46,log-norm:r=.08um/sigma=.8)
-C  06 W_H01 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.1um /alpha=2)
-C  07 W_H04 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.4um /alpha=2)
-C  08 W_C02 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=2.0um /alpha=6)
-C  09 W_C04 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=4.0um /alpha=6)
-C  10 W_C08 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=8.0um /alpha=6)
-C  11 W_C13 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=13.3um /alpha=6)
-C  12 W_L06 = water cloud (Lacis) (n=1.335, r-mode=5.5um / alpha=11/3)
-C  13 Ice-H = hexagonal ice cloud (Mishchenko)
-C  14 Ice-I = irregular ice cloud (Mishchenko)
-C
-C  Choice of aerosol index MIEDX is made in SET_AER; optical depths are
-C  apportioned to the AER array in SET_PROF
-C
-C-----------------------------------------------------------------------
-C  FUNCTION RAYLAY(WAVE)---RAYLEIGH CROSS-SECTION for wave > 170 nm
-C       WSQI = 1.E6/(WAVE*WAVE)
-C       REFRM1 = 1.0E-6*(64.328+29498.1/(146.-WSQI)+255.4/(41.-WSQI))
-C       RAYLAY = 5.40E-21*(REFRM1*WSQI)**2
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
+!  NEW Mie code for J's, only uses 8-term expansion, 4-Gauss pts
+!  Currently allow up to NP aerosol phase functions (at all altitudes) to
+!  be associated with optical depth AER(1:NC) = aerosol opt.depth @ 1000 nm
+!  
+!  Pick Mie-wavelength with phase function and Qext:
+!
+!  01 RAYLE = Rayleigh phase
+!  02 ISOTR = isotropic
+!  03 ABSRB = fully absorbing 'soot', wavelength indep.
+!  04 S_Bkg = backgrnd stratospheric sulfate (n=1.46,log-norm:r=.09um/sigma=.6)
+!  05 S_Vol = volcanic stratospheric sulfate (n=1.46,log-norm:r=.08um/sigma=.8)
+!  06 W_H01 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.1um /alpha=2)
+!  07 W_H04 = water haze (H1/Deirm.) (n=1.335, gamma:  r-mode=0.4um /alpha=2)
+!  08 W_C02 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=2.0um /alpha=6)
+!  09 W_C04 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=4.0um /alpha=6)
+!  10 W_C08 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=8.0um /alpha=6)
+!  11 W_C13 = water cloud (C1/Deirm.) (n=1.335, gamma:  r-mode=13.3um /alpha=6)
+!  12 W_L06 = water cloud (Lacis) (n=1.335, r-mode=5.5um / alpha=11/3)
+!  13 Ice-H = hexagonal ice cloud (Mishchenko)
+!  14 Ice-I = irregular ice cloud (Mishchenko)
+!
+!  Choice of aerosol index MIEDX is made in SET_AER; optical depths are
+!  apportioned to the AER array in SET_PROF
+!
+!-----------------------------------------------------------------------
+!  FUNCTION RAYLAY(WAVE)---RAYLEIGH CROSS-SECTION for wave > 170 nm
+!       WSQI = 1.E6/(WAVE*WAVE)
+!       REFRM1 = 1.0E-6*(64.328+29498.1/(146.-WSQI)+255.4/(41.-WSQI))
+!       RAYLAY = 5.40E-21*(REFRM1*WSQI)**2
+!-----------------------------------------------------------------------
 c
 c     DTAUX    Local optical depth of each CTM level
 c     PIRAY    Contribution of Rayleigh scattering to extinction
@@ -40,12 +40,14 @@ c     FTAU     Attenuation of solar beam
 c     POMEGA   Scattering phase function
 c     FMEAN    Mean actinic flux at desired levels
 c
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
-#     include "jv_mie.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+      USE JV_MIE_MOD
+
+      IMPLICIT NONE
 
       integer jndlev(lpar),jaddlv(nc),jaddto(nc+1)
       integer KW,km,i,j,k,l,ix,j1
@@ -59,25 +61,25 @@ C-----------------------------------------------------------------------
       ! For KLUDGE to fix the # of added levels (phs, 7/1/08)
       INTEGER :: loc(1)
 c
-C---Pick nearest Mie wavelength, no interpolation--------------
+!---Pick nearest Mie wavelength, no interpolation--------------
                               KM=1
       if( WAVEL .gt. 355.d0 ) KM=2
       if( WAVEL .gt. 500.d0 ) KM=3
-C     if( WAVEL .gt. 800.d0 ) KM=4  !drop the 1000 nm wavelength
+!     if( WAVEL .gt. 800.d0 ) KM=4  !drop the 1000 nm wavelength
 c
-C---For Mie code scale extinction at 1000 nm to wavelength WAVEL (QXMIE)
+!---For Mie code scale extinction at 1000 nm to wavelength WAVEL (QXMIE)
       do I=1,MX
         QXMIE(I) = QAA(KM,MIEDX(I))/QAA(4,MIEDX(I))
         SSALB(I) = SSA(KM,MIEDX(I))
       enddo
 c
-C---Reinitialize arrays
+!---Reinitialize arrays
       do j=1,nc+1
         ttau(j)=0.d0
         ftau(j)=0.d0
       enddo
 c
-C---Set up total optical depth over each CTM level, DTAUX
+!---Set up total optical depth over each CTM level, DTAUX
       J1 = NLBATM
       do J=J1,NB
         XLO3=DO3(J)*XQO3(J)
@@ -100,8 +102,8 @@ c  Fractional extinction for Rayleigh scattering and each aerosol type
         enddo
       enddo
 c
-C---Define the scattering phase fn. with mix of Rayleigh(1) & Mie(MIEDX)
-C   No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
+!---Define the scattering phase fn. with mix of Rayleigh(1) & Mie(MIEDX)
+!   No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
       N = M__
       MFIT = 2*M__
       do j=j1,NB
@@ -113,7 +115,7 @@ C   No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
         enddo
       enddo
 c
-C---Calculate attenuated incident beam EXP(-TTAU/U0) and flux on surface
+!---Calculate attenuated incident beam EXP(-TTAU/U0) and flux on surface
       do J=J1,NB
         if(AMF(J,J).gt.0.0D0) then
           XLTAU=0.0D0
@@ -135,12 +137,12 @@ C---Calculate attenuated incident beam EXP(-TTAU/U0) and flux on surface
         ZFLUX = 0.d0
       endif
 c
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c  Take optical properties on CTM layers and convert to a photolysis
 c  level grid corresponding to layer centres and boundaries. This is
 c  required so that J-values can be calculated for the centre of CTM
 c  layers; the index of these layers is kept in the jndlev array.
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c
 c  Set lower boundary and levels to calculate J-values at 
       J1=2*J1-1
@@ -193,7 +195,7 @@ c  Define lower and upper boundaries
         pomegaj(i,nc+1) = pomegaj(i,nc)
       enddo
 c
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c  Calculate cumulative total and define levels we want J-values at.
 c  Sum upwards for levels, and then downwards for Mie code readjustments.
 c
@@ -201,7 +203,7 @@ c     jaddlv(i)   Number of new levels to add between (i) and (i+1)
 c     jaddto(i)   Total number of new levels to add to and above level (i)
 c     jndlev(j)   Level needed for J-value for CTM layer (j)
 c
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c
 c  Reinitialize level arrays
       do j=1,nc+1
@@ -257,7 +259,7 @@ c     write(6,1300) jaddto
 c     write(6,1300) jndlev
 c     write(6,1300) jaddto
 c
-C---------------------SET UP FOR MIE CODE-------------------------------
+!---------------------SET UP FOR MIE CODE-------------------------------
 c
 c  Transpose the ascending TTAU grid to a descending ZTAU grid.
 c  Double the resolution - TTAU points become the odd points on the
@@ -269,8 +271,8 @@ c        Top:       TTAU(NC)  now use ZTAU(3)
 c        Infinity:            now use ZTAU(1)
 c
 c  Mie scattering code only used from surface to level NC
-C------------------------------------------------------------------------
-C
+!------------------------------------------------------------------------
+!
 c  Initialise all Fast-J optical property arrays
       do k=1,N__
         do i=1,MFIT
@@ -294,7 +296,7 @@ c  Check profiles if desired
 c      ND = 2*(NC+jaddto(J1)-J1)  + 3
 c      if(kw.eq.1) call CH_PROF
 c
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c    Insert new levels, working downwards from the top of the atmosphere
 c  to the surface (down in 'j', up in 'k'). This allows ztau and pomega
 c  to be incremented linearly (in a +ve sense), and the flux fz to be
@@ -306,7 +308,7 @@ c    dttau     change in ttau per increment    (linear, positive)
 c    dpomega   change in pomega per increment  (linear)
 c    ftaulog   change in ftau per increment    (exponential, normally < 1)
 c
-C------------------------------------------------------------------------
+!------------------------------------------------------------------------
 c
       do j=nc,J1,-1
           zk = 0.5d0/(1.d0+dble(jaddlv(j)-jadsub(j)))
@@ -374,7 +376,7 @@ c          endif
 c
       enddo
 c
-C---Update total number of levels and check doesn't exceed N__
+!---Update total number of levels and check doesn't exceed N__
       ND = 2*(NC+jaddto(J1)-J1)  + 3
 
 !==============================================================================
@@ -392,8 +394,8 @@ C---Update total number of levels and check doesn't exceed N__
       endif
 !==============================================================================
 c
-C---Add boundary/ground layer to ensure no negative J's caused by
-C---too large a TTAU-step in the 2nd-order lower b.c.
+!---Add boundary/ground layer to ensure no negative J's caused by
+!---too large a TTAU-step in the 2nd-order lower b.c.
       ZTAU(ND+1) = ZTAU(ND)*1.000005d0
       ZTAU(ND+2) = ZTAU(ND)*1.000010d0
       zk=max(abs(U0),0.01d0)
@@ -409,9 +411,9 @@ c
       ZU0 = U0
       ZREFL = RFLECT
 c
-C-----------------------------------------
+!-----------------------------------------
       CALL MIESCT
-C-----------------------------------------
+!-----------------------------------------
 c  Accumulate attenuation for selected levels
       l=2*(NC+jaddto(J1))+3
       do j=1,lpar

@@ -1,11 +1,12 @@
-C $Id: LEGND0.f,v 1.1 2009/09/16 14:06:47 bmy Exp $
+! $Id: LEGND0.f,v 1.1 2009/09/16 14:06:47 bmy Exp $
       SUBROUTINE LEGND0 (X,PL,N)
-C---Calculates ORDINARY LEGENDRE fns of X (real) 
-C---   from P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
+!---Calculates ORDINARY LEGENDRE fns of X (real) 
+!---   from P[0] = PL(1) = 1,  P[1] = X, .... P[N-1] = PL(N)
       IMPLICIT NONE
+#     include "define.h"
       INTEGER N,I
       REAL*8 X,PL(N),DEN
-C---Always does PL(2) = P[1]
+!---Always does PL(2) = P[1]
         PL(1) = 1.D0
         PL(2) = X
         DO I=3,N

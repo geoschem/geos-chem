@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -88,7 +89,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD 
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX
 
-#     include "F77_CMN_SIZE"                        ! Size parameters
+      USE CMN_SIZE_MOD                          ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -333,7 +334,7 @@
       USE FILE_MOD,      ONLY : IU_A3,      IOERROR,    FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "F77_CMN_SIZE"                       ! Size parameters
+      USE CMN_SIZE_MOD                         ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -491,7 +492,7 @@
       USE DAO_MOD, ONLY : U10M,    USTAR,  V10M,   Z0, EFLUX
       USE DAO_MOD, ONLY : FRLAND,  FROCEAN,FRLAKE, FRLANDIC
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -640,7 +641,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"            ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -719,7 +720,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -785,8 +786,8 @@
       USE TRANSFER_MOD, ONLY : TRANSFER_2D
       USE TRANSFER_MOD, ONLY : TRANSFER_TO_1D
 
-#     include "F77_CMN_SIZE"                       ! Size parameters
-#     include "F77_CMN_DIAG"                       ! ND67
+      USE CMN_SIZE_MOD                         ! Size parameters
+      USE CMN_DIAG_MOD                         ! ND67
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1523,7 +1524,7 @@
 !
       USE DIAG_MOD, ONLY : AD67             ! ND67 diagnostic array
 
-#     include "F77_CMN_SIZE"                    ! Size parameters
+      USE CMN_SIZE_MOD                      ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !

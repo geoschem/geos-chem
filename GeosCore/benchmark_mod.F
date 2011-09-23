@@ -31,6 +31,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE VARIABLES
@@ -80,7 +81,7 @@
       USE TRACER_MOD,   ONLY : STT,                  N_TRACERS
       USE TRACERID_MOD, ONLY : IDTOX
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       LOGICAL, INTENT(IN) :: LBEGIN 

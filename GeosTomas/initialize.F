@@ -74,11 +74,16 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE LOGICAL_MOD, ONLY : LCRYST
       USE TIME_MOD
+#if   defined( APM )
+      USE DIAG_MOD,    ONLY : AD07_OM
+#endif
+
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! NDxx flags
 
       IMPLICIT NONE
+#     include "define.h"
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
 
 !
 ! !INPUT PARAMETERS: 
@@ -157,6 +162,8 @@
 !       (kjw, 8/18/09)
 !  (46) Add ND59 and ND60 for initialization (win, 7/28/09)
 !  (47) Add potential temperature diagnostic. (fp, 06/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  25 Aug 2010 - R. Yantosca - Now also reset the counter for A1 timesteps
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -236,12 +243,14 @@
 
          ! ND07 -- carbon aerosol emissions (rjp, tdf, bmy, 4/5/04)
          IF ( ND07 > 0 ) THEN
-            AD07     = 0e0
-            AD07_BC  = 0e0
-            AD07_OC  = 0e0
-            AD07_HC  = 0e0
+            AD07       = 0e0
+            AD07_BC    = 0e0
+            AD07_OC    = 0e0
+            AD07_HC    = 0e0
             AD07_SOAGM = 0e0
-
+#if   defined( APM )
+            AD07_OM    = 0e0
+#endif
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)

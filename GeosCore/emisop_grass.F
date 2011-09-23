@@ -40,11 +40,12 @@
       ! References to F90 modules
       USE DAO_MOD, ONLY : CLDFRC
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_ISOP_MOD  ! SOPCOEFF, BASEISOP, BASEGRASS
+      USE CMN_VEL_MOD   ! IJREG, IJLAND, IJUSE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_VEL"   ! IJREG, IJLAND, IJUSE
-#     include "F77_CMN_ISOP"  ! SOPCOEFF, BASEISOP, BASEGRASS
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN) :: IJLOOP,        I,    J

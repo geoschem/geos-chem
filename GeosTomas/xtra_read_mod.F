@@ -33,6 +33,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -78,7 +79,7 @@
       USE UNIX_CMDS_MOD, ONLY : BACKGROUND, REDIRECT,   REMOVE_CMD
       USE UNIX_CMDS_MOD, ONLY : UNZIP_CMD,  WILD_CARD,  ZIP_SUFFIX 
 
-#     include "CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments
       CHARACTER(LEN=*),  INTENT(IN) :: OPTION
@@ -252,7 +253,7 @@
       USE FILE_MOD,      ONLY : IU_XT, IOERROR, FILE_EXISTS
       USE TIME_MOD,      ONLY : EXPAND_DATE
 
-#     include "CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: NYMD, NHMS
@@ -340,7 +341,7 @@
       USE DAO_MOD,    ONLY : PARDR, PARDF, SNOW
       USE FILE_MOD,   ONLY : IU_XT
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: NYMD, NHMS 
@@ -390,7 +391,7 @@
 !  NOTES:
 !******************************************************************************
 !
-#     include "CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Arguments 
       INTEGER, INTENT(IN) :: XYMD, XHMS, NYMD, NHMS
@@ -445,8 +446,8 @@
       USE TIME_MOD,              ONLY : SET_CT_XTRA, TIMESTAMP_STRING
       USE TRANSFER_MOD,          ONLY : TRANSFER_2D, TRANSFER_TO_1D
 
-#     include "CMN_SIZE"              ! Size parameters
-#     include "CMN_DIAG"              ! ND67
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_DIAG_MOD              ! ND67
 
       ! Arguments
       INTEGER, INTENT(IN)            :: NYMD, NHMS

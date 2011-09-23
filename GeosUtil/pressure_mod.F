@@ -18,6 +18,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -115,7 +116,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"              ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -153,7 +154,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"              ! Size parameters
+      USE CMN_SIZE_MOD              ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -194,7 +195,7 @@
 !
       USE ERROR_MOD, ONLY : CHECK_VALUE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
   
 !
 ! !INPUT PARAMETERS: 
@@ -254,7 +255,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"   ! PTOP
+      USE CMN_SIZE_MOD   ! PTOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -315,7 +316,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"   ! PTOP
+      USE CMN_SIZE_MOD   ! PTOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -366,7 +367,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"  ! LLPAR, PTOP
+      USE CMN_SIZE_MOD  ! LLPAR, PTOP
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 

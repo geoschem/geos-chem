@@ -41,10 +41,11 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
 
+      USE CMN_SIZE_MOD                               ! Size parameters
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 
-#     include "F77_CMN_SIZE"                               ! Size parameters
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -876,7 +877,7 @@
       USE TIME_MOD,   ONLY : GET_LOCALTIME
       USE GRID_MOD,   ONLY : GET_YMID  
 
-#     include "F77_CMN_GCTM"   ! Physical constants (why?!)
+      USE CMN_GCTM_MOD   ! Physical constants (why?!)
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1205,7 +1206,7 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_GCTM"   ! Physical constants
+      USE CMN_GCTM_MOD   ! Physical constants
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2441,6 +2442,8 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
+#     include "define.h"
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version
@@ -2640,43 +2643,6 @@
       !AEF_SPARE = 0d0
 
       ! Allocate arrays for light (mpb,2009)
-!------------------------------------------------------------------------------
-! Prior to 2/7/11:
-! Fix typos: make sure to zero out the proper arrays (dbm, bmy, 2/7/11)
-!      ! -- Direct --
-!      ALLOCATE( PARDR_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAY' )
-!      T_DAY = 0d0
-!
-!      ALLOCATE( PARDR_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15' )
-!      T_15 = 0d0
-!
-!      ALLOCATE( PARDR_15_AVG( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_15_AVG' )
-!      T_15_AVG = 0d0
-!
-!      ALLOCATE( PARDR_DAILY( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDR_DAILY' )
-!      T_DAILY = 0d0
-!
-!      ! -- Diffuse --
-!      ALLOCATE( PARDF_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAY' )
-!      T_DAY = 0d0
-!
-!      ALLOCATE( PARDF_15( IIPAR, JJPAR, NUM_DAYS ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15' )
-!      T_15 = 0d0
-!
-!      ALLOCATE( PARDF_15_AVG( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_15_AVG' )
-!      T_15_AVG = 0d0
-!
-!      ALLOCATE( PARDF_DAILY( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
-!      T_DAILY = 0d0
-!------------------------------------------------------------------------------
 
       ! -- Direct --
       ALLOCATE( PARDR_DAY( IIPAR, JJPAR, DAY_DIM ), STAT=AS )
@@ -2788,12 +2754,6 @@
       ENDIF
 
       ! Loop over 15 days
-      !------------------------------------------------------------------
-      ! Prior to 9/1/10:
-      ! We now average over NUM_DAYS=10 days of data instead of 15
-      ! days, so rewrite the DO loop accordingly (bmy, 9/1/10)
-      !DO I = 15+BACK_ONE, 1, -1
-      !------------------------------------------------------------------
       DO I = NUM_DAYS+BACK_ONE, 1, -1
 
          ! Skip February 29th for GCAP (phs, 9/18/07)
@@ -2811,11 +2771,6 @@
          ENDIF
 
          ! Loop over 3h periods during day
-         !---------------------------------------------------------
-         ! Prior to 8/20/10:
-         ! Eliminate hardwiring; now use DAY_DIM (bmy, 8/20/10)
-         !DO J = 0, 7
-         !---------------------------------------------------------
          DO J = 0, DAY_DIM-1  
 
 #if   defined( MERRA )

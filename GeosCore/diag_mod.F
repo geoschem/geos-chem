@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PUBLIC
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -47,6 +48,10 @@
       REAL*4,  ALLOCATABLE :: AD07_OC(:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_HC(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD07_SOAGM(:,:,:,:)
+
+#if   defined( APM )
+      REAL*4,  ALLOCATABLE :: AD07_OM(:,:)
+#endif 
 
       ! For ND08 -- seasalt emission
       REAL*4,  ALLOCATABLE :: AD08(:,:,:)
@@ -333,6 +338,7 @@
 !  (12) Now also deallocate AD09 and AD09_em (bmy, 6/27/05)
 !  (13) Now deallocate AD30 (bmy, 8/18/05)
 !  (14) Now deallocate CTO3, AD10, AD10em arrays (phs, 9/18/07)
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM microphysics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -449,6 +455,13 @@
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  ) 
+
+#if   defined( APM )
+      !-----------------------------------------
+      ! Deallocate arrays for APM microphysics
+      !-----------------------------------------
+      IF ( ALLOCATED( AD07_OM     ) ) DEALLOCATE( AD07_OM     )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG
 !EOC

@@ -46,6 +46,7 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE GC_BIOMASS_MOD,          ONLY : CLEANUP_GC_BIOMASS
       USE GFED2_BIOMASS_MOD,       ONLY : CLEANUP_GFED2_BIOMASS
+      USE GFED3_BIOMASS_MOD,       ONLY : CLEANUP_GFED3_BIOMASS
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GLOBAL_HNO3_MOD,         ONLY : CLEANUP_GLOBAL_HNO3
       USE GLOBAL_NO3_MOD,          ONLY : CLEANUP_GLOBAL_NO3
@@ -83,10 +84,13 @@
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       USE ICOADS_SHIP_MOD,         ONLY : CLEANUP_ICOADS_SHIP  !(cklee,7/09/09)
       USE RETRO_MOD,               ONLY : CLEANUP_RETRO
+#if   defined( APM )
+      USE APM_WETS_MOD,            ONLY : CLEANUP_WETSCAVBIN
+#endif
 
       IMPLICIT NONE
-
 #     include "define.h"
+
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -171,6 +175,8 @@
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
+!  07 Sep 2011 - P. Kasibhatla - Add modifications for GFED3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -213,6 +219,7 @@
       CALL CLEANUP_EPA_NEI
       CALL CLEANUP_GC_BIOMASS
       CALL CLEANUP_GFED2_BIOMASS
+      CALL CLEANUP_GFED3_BIOMASS
       CALL CLEANUP_GLOBAL_CH4
       CALL CLEANUP_GLOBAL_HNO3
       CALL CLEANUP_GLOBAL_NO3
@@ -249,6 +256,10 @@
       CALL CLEANUP_WETSCAV
       CALL CLEANUP_ICOADS_SHIP !(cklee,7/09/09)
       CALL CLEANUP_RETRO
+
+#if   defined( APM )
+      CALL CLEANUP_WETSCAVBIN  ! Cleanup arrays for APM wet scavenging
+#endif
 
 #if   defined( GEOS_5 ) && defined( GRID05x0666 )
       CALL EXIT_GEOS5_TPCORE_WINDOW 

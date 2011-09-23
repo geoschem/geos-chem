@@ -40,14 +40,16 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC,     LLINOZ
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD            ! SMVGEAR variables
+      USE CMN_O3_MOD                 ! EMISRRN, EMISRR
+      USE CMN_DIAG_MOD               ! ND40
+      USE CMN_NOX_MOD                ! SLBASE
+      USE CMN_DEP_MOD                ! FRCLND
 
-#     include "F77_CMN_SIZE"             ! Size parameters
-#     include "F77_CMN_O3"               ! EMISRRN, EMISRR
-#     include "F77_CMN_NOX"              ! SLBASE
-#     include "comode.h"             ! SMVGEAR variables
-#     include "F77_CMN_DEP"              ! FRCLND
-#     include "F77_CMN_DIAG"             ! ND40
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !REMARKS:
 !  Important input variables from "dao_mod.f" and "uvalbedo_mod.f":
@@ -395,9 +397,9 @@
             WRITE(6,*) 
      &   '    - CHEMDR: CSPEC restart not found, use background values'
  
-            CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
-      
+            CALL GASCONC( FIRSTCHEM,              N_TRACERS, 
+     &                    STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                    FRCLND,                 IT_EXISTS )
          ELSE 
 
             ! Use restart values 
@@ -405,15 +407,17 @@
      &   '    - CHEMDR: using CSPEC values from restart file'                  
 
             ! Call GASCONC but don't reset CSPEC values
-            CALL GASCONC( .FALSE., N_TRACERS, STT, XNUMOL, FRCLND,
-     &                    IT_EXISTS )
+            CALL GASCONC( .FALSE.,                 N_TRACERS, 
+     &                     STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),    
+     &                     FRCLND,                 IT_EXISTS )
 
          ENDIF 
 
       ELSE 
-               
-         CALL GASCONC( FIRSTCHEM, N_TRACERS, STT, XNUMOL, FRCLND,
-     &                 IT_EXISTS )
+
+         CALL GASCONC(  FIRSTCHEM,              N_TRACERS, 
+     &                  STT(:,:,:,1:N_TRACERS), XNUMOL(1:N_TRACERS),  
+     &                  FRCLND,                 IT_EXISTS )
 
       ENDIF 
       IT_EXISTS = .FALSE.
@@ -498,7 +502,9 @@
       !=================================================================
       ! Call LUMP which lumps the species together after chemistry
       !=================================================================
-      CALL LUMP( N_TRACERS, XNUMOL, STT )
+      CALL LUMP( N_TRACERS, 
+     &           XNUMOL(1:N_TRACERS),
+     &           STT(:,:,:,1:N_TRACERS) )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after LUMP' )
@@ -507,9 +513,13 @@
       ! Call OHSAVE which saves info on OZONE, OH, AND NO concentrations 
       !=================================================================
       IF ( IDTNOX /= 0 .AND. IDTOX /= 0 ) THEN
-         CALL OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3, 
-     &                FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
-     &                SAVENO,    SAVENO2, SAVENO3 )
+         CALL OHSAVE( N_TRACERS,              XNUMOL(1:N_TRACERS),
+     &                STT(:,:,:,1:N_TRACERS), FRACO3, 
+     &                FRACNO,                 FRACNO2, 
+     &                SAVEOH,                 SAVEHO2, 
+     &                SAVENO,                 SAVENO2, 
+     &                SAVENO3 )
+
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after OHSAVE' )
       ENDIF

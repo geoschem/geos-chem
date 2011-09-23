@@ -17,6 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -73,7 +74,7 @@
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D_TROP
 
-#     include "F77_CMN_SIZE"                  ! Size parameters
+      USE CMN_SIZE_MOD                  ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -166,7 +167,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 ! 
 ! !REVISION HISTORY: 
 !  15 Oct 2002 - R. Yantosca - Initial version

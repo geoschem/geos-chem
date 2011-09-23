@@ -17,6 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -112,8 +113,8 @@
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_GCTM"  ! Physical constants
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD  ! Physical constants
 !
 ! !REVISION HISTORY:
 !  11 Mar 2003 - R. Yantosca - Initial version
@@ -826,7 +827,7 @@
 !
       USE ERROR_MOD, ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -958,7 +959,7 @@
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !REVISION HISTORY:
 !  11 Mar 2003 - R. Yantosca - Initial version

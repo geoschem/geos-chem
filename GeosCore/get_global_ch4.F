@@ -45,6 +45,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
 
       IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISYEAR

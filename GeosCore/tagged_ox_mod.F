@@ -17,6 +17,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -94,7 +95,7 @@
 !
       USE TRACER_MOD, ONLY : STT
 
-#     include "F77_CMN_SIZE"           ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -150,8 +151,8 @@
       USE DIAG_PL_MOD                                      !dbj
       USE JULDAY_MOD,    ONLY : JULDAY                     !dbj
            
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_DIAG" ! LD65
+      USE CMN_SIZE_MOD ! Size parameters
+      USE CMN_DIAG_MOD ! LD65
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version
@@ -309,9 +310,9 @@
       USE TIME_MOD,       ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_GCTM"       ! SCALE_HEIGHT
-#     include "F77_CMN_DIAG"       ! ND44, ND65, LD65
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44, ND65, LD65
+      USE CMN_GCTM_MOD       ! SCALE_HEIGHT
 !
 ! !INPUT PARAMETERS: 
 !
@@ -518,10 +519,12 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
       USE LOGICAL_MOD,    ONLY : LNLPBL
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! ND44, ND65, LD65
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! ND44, ND65, LD65
+      IMPLICIT NONE
+#     include "define.h"
+
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Hudman   - Initial version
@@ -762,8 +765,8 @@
       USE ERROR_MOD,  ONLY : ERROR_STOP
       USE TRACER_MOD, ONLY : N_TRACERS
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! ND44, ND65, LD65
+      USE CMN_SIZE_MOD   ! Size parameters
+      USE CMN_DIAG_MOD   ! ND44, ND65, LD65
 ! 
 ! !REVISION HISTORY:
 !  20 Aug 2003 - R. Yantosca - Initial version

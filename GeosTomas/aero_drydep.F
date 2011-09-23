@@ -32,10 +32,10 @@
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE TOMAS_MOD
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD
+      USE CMN_DIAG_MOD
 
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_DIAG"       ! ND44
+      IMPLICIT NONE
 ! 
 ! !REVISION HISTORY: 
 !  22 Jul 2007 - Win T.      - Initial version

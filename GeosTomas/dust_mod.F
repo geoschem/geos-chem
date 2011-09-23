@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -93,7 +94,7 @@
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -199,8 +200,8 @@
       USE TRACER_MOD,   ONLY : STT, XNUMOL
       USE TRACERID_MOD, ONLY : IDTDUST1, IDTNK1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 ! 
 ! !REVISION HISTORY:
 !  17 Jul 2009 - W. Trivitayanurak - Initial version
@@ -342,9 +343,9 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_GCTM"     ! g0
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -549,8 +550,8 @@
       USE TRACER_MOD,   ONLY : XNUMOL
       USE TRACERID_MOD, ONLY : IDTDST1
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -649,9 +650,9 @@
       USE DIAG_MOD,     ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
       USE LOGICAL_MOD,  ONLY : LDUST  !(win, 7/17/09)
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND59
-!
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND59
+! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
@@ -831,9 +832,9 @@ c$$$      ENDIF
       USE TIME_MOD,      ONLY : GET_DAY_OF_YEAR, ITS_A_NEW_MONTH
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! ND06
-#     include "CMN_GCTM"      ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND06
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 ! 
@@ -1099,9 +1100,9 @@ c$$$      ENDIF
       USE GRID_MOD,      ONLY : GET_AREA_M2
       USE ERROR_MOD,     ONLY : ERROR_STOP
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND19, LD13 (for now)
-#     include "CMN_GCTM"  ! g0
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND19, LD13 (for now)
+      USE CMN_GCTM_MOD        ! g0
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
@@ -1360,7 +1361,7 @@ c$$$      ENDIF
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_ONLINE( DUST )
+      SUBROUTINE RDUST_ONLINE( DUST, WAVELENGTH )
 !
 ! !USES:
 !
@@ -1374,16 +1375,16 @@ c$$$      ENDIF
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      IMPLICIT NONE
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+      USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+      USE COMODE_LOOP_MOD     ! NTTLOOP
 
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
 !
 ! !INPUT/OUTPUT PARAMETERS: 
-!
-      REAL*8, INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+! 
+      REAL*8, INTENT(IN)  :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+      INTEGER, INTENT(IN) :: WAVELENGTH
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Martin, R. Park - Initial version
@@ -1392,6 +1393,12 @@ c$$$      ENDIF
 !        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
 !  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  03 Feb 2011 - S. Kim.     - Include wavelength argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are
+!                              used for the calculation of the AOD. The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1. (skim, 02/03/11)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
@@ -1447,9 +1454,21 @@ c$$$      ENDIF
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-         ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                      DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                     ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+         IF ( WAVELENGTH > 0 ) THEN
+
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                        ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+         ELSE
+
+            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO
@@ -1482,7 +1501,15 @@ c$$$      ENDIF
          J = IYSAVE(JLOOP)
          L = IZSAVE(JLOOP)
 
-         ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+         IF ( WAVELENGTH > 0 ) THEN
+
+            ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
+
+         ELSE
+
+            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+
+         ENDIF
 
          TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                      DUST(I,J,L,N) / MSDENS(N)  
@@ -1512,7 +1539,7 @@ c$$$      ENDIF
       ! Tracer #5: Dust surface areas (from all size bins)
       ! Tracers #21-27: Dust AOD for each size bin
       !==============================================================
-      IF ( ND21 > 0 ) THEN
+      IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
 
          DO N = 1, NDUST
 
@@ -1526,14 +1553,14 @@ c$$$      ENDIF
                !--------------------------------------
                ! ND21 tracer #4: Dust optical depths (clh)
                !--------------------------------------
-               AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
+               AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
 
                !--------------------------------------
                ! ND21 tracer #21-27: size-resolved dust optical depths
                !--------------------------------------
                AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
-     &              ( ODMDUST(I,J,L,N) * QAA_AOD(14+N)/QAA(4,14+N) )
+     &                                ODMDUST(I,J,L,N)
+  
 
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
@@ -1556,7 +1583,6 @@ c$$$      ENDIF
          ENDDO
       ENDIF 
 
-      ! Return to calling program
       END SUBROUTINE RDUST_ONLINE
 !EOC
 !------------------------------------------------------------------------------
@@ -1568,12 +1594,12 @@ c$$$      ENDIF
 !
 ! !DESCRIPTION: Subroutine RDUST\_OFFLINE reads global mineral dust 
 !  concentrations as determined by P. Ginoux.  Calculates dust optical 
-!  depth at each level for the FAST-J routine "set_prof.f". 
+!  depth at each level for the FAST-J routine "set\_prof.f". 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR )
+      SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR, WAVELENGTH )
 !
 ! !USES:
 !
@@ -1589,17 +1615,21 @@ c$$$      ENDIF
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
+      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
+      USE COMODE_LOOP_MOD     ! NTTLOOP
+      USE CMN_DIAG_MOD        ! ND21, LD21
+
+      IMPLICIT NONE
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
       INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+      ! Determine which wavelength to use for optical properties
+      INTEGER, INTENT(IN) :: WAVELENGTH  
 !
 ! !REVISION HISTORY:
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
@@ -1651,6 +1681,12 @@ c$$$      ENDIF
 !  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Feb 2011 - S. Kim      - Include third input argument to determine the 
+!                              wavelength at which the AOD should be computed. 
+!                              This will set the optical properties that are 
+!                              used for the calculation of the AOD.  The ND21 
+!                              diagnostic should only be updated when 
+!                              WAVELENGTH = 1.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1739,9 +1775,21 @@ c$$$      ENDIF
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
-     &                         DUST(I,J,L,N) * QAA(4,14+N)     / 
-     &                        ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+            IF ( WAVELENGTH > 0 ) THEN
+
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA_AOD(14+N)     / 
+     &                           ( MSDENS(N) * RAA_AOD(14+N) * 1.0D-6 )
+
+            ELSE
+
+               ODMDUST(I,J,L,N) = 0.75d0        * BXHEIGHT(I,J,L) * 
+     &                            DUST(I,J,L,N) * QAA(4,14+N)     / 
+     &                           ( MSDENS(N) * RAA(4,14+N) * 1.0D-6 )
+
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -1778,7 +1826,15 @@ c$$$      ENDIF
             J = IYSAVE(JLOOP)
             L = IZSAVE(JLOOP)
 
-            ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+            IF ( WAVELENGTH > 0 ) THEN
+
+               ERADIUS(JLOOP,N) = RAA_AOD(14+N) * 1.0D-4
+
+            ELSE
+
+               ERADIUS(JLOOP,N) = RAA(4,14+N) * 1.0D-4
+
+            ENDIF
 
             TAREA(JLOOP,N)   = 3.D0 / ERADIUS(JLOOP,N) *
      &                         DUST(I,J,L,N) / MSDENS(N)  
@@ -1807,7 +1863,7 @@ c$$$      ENDIF
          ! Tracer #4: Dust optical depths at  (from all size bins)
          ! Tracer #5: Dust surface areas (from all size bins)
          !==============================================================
-         IF ( ND21 > 0 ) THEN
+         IF ( ND21 > 0 .and. WAVELENGTH > 0 ) THEN
             DO N = 1, NDUST
 
 !$OMP PARALLEL DO
@@ -1820,9 +1876,19 @@ c$$$      ENDIF
                   !--------------------------------------
                   ! ND21 tracer #4: Dust optical depths
                   !--------------------------------------
-                  AD21(I,J,L,4) = AD21(I,J,L,4) + 
-     &               ( ODMDUST(I,J,L,N) * QAA(2,14+N) / QAA(4,14+N) )
+                  AD21(I,J,L,4) = AD21(I,J,L,4) + ODMDUST(I,J,L,N)
 
+
+                  !--------------------------------------
+                  ! ND21 tracer #21-27: size-resolved dust optical depths
+                  !--------------------------------------
+
+                  ! Added the optical depths for each size bin
+                  ! (skim, 02/03/11)
+
+                  AD21(I,J,L,21+(N-1)) = AD21(I,J,L,21+(N-1)) + 
+     &                                   ODMDUST(I,J,L,N)
+  
                   !--------------------------------------
                   ! ND21 tracer #5: Dust surface areas
                   !--------------------------------------
@@ -1868,7 +1934,7 @@ c$$$      ENDIF
       USE ERROR_MOD,   ONLY : ERROR_STOP !(win, 7/17/09)
       USE TOMAS_MOD,   ONLY : IBINS, Xk ! TOMAS bin boundary mass/particle [kg]  !(win, 7/17/09)
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
@@ -2030,7 +2096,7 @@ c$$$      ENDIF
 ! !INTERFACE:
 
       SUBROUTINE CLEANUP_DUST
-! 
+!
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - R. Yantosca - Initial version
 !  25 Aug 2010 - R. Yantosca - Added ProTeX headers

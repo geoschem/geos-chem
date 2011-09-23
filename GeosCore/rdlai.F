@@ -16,11 +16,13 @@
 !
       USE GRID_MOD, ONLY : GET_XOFFSET, GET_YOFFSET
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD
+      USE CMN_VEL_MOD
+      USE CMN_DEP_MOD
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_DEP"
-#     include "F77_CMN_VEL"
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS:
 !

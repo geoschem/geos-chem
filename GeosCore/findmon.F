@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !

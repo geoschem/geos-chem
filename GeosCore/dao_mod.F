@@ -16,11 +16,14 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_GCTM_MOD           ! Physical constants
+
       IMPLICIT NONE
+#     include "define.h"
+
       PRIVATE
 
-#     include "F77_CMN_SIZE"           ! Size parameters
-#     include "F77_CMN_GCTM"           ! Physical constants
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -1465,7 +1468,7 @@
 ! !REVISION HISTORY: 
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
-!  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
+!  (2 ) Use IMPLICIT NONE
 !  (3 ) Use C-preprocessor #include statement to include F77_CMN_SIZE, which 
 !        has IIPAR, JJPAR, LLPAR, IIPAR, JJPAR, LGLOB. 
 !  (4 ) Use IM and JM (in F77_CMN_SIZE) as loop limits.
@@ -1775,54 +1778,6 @@
       !=================================================================
       ! COPY_I6_FIELDS begins here!
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/20/10:
-! Rewrite #if block for clarity
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Copy surface pressure
-!         PS1(I,J)   = PS2(I,J) 
-!
-!#if   !defined( GEOS_5 )
-!         ! Tropopause pressure (except for GEOS-5)
-!         TROPP1(I,J) = TROPP2(I,J)
-!#endif
-!
-!#if   defined( GEOS_3 )
-!         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
-!         ALBD1(I,J) = ALBD2(I,J)  
-!#endif
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#if   defined( GEOS_3 )
-!
-!      !=================================================================
-!      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
-!      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         UWND1(I,J,L) = UWND2(I,J,L)
-!         VWND1(I,J,L) = VWND2(I,J,L)
-!         TMPU1(I,J,L) = TMPU2(I,J,L)
-!         SPHU1(I,J,L) = SPHU2(I,J,L)
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GCAP )
 

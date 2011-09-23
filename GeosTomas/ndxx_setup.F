@@ -6,7 +6,7 @@
 ! !ROUTINE: ndxx_setup
 !
 ! !DESCRIPTION: Subroutine NDXX\_SETUP dynamically allocates memory for 
-!  certain diagnostic arrays that  are declared allocatable in "diag_mod.f". 
+!  certain diagnostic arrays that  are declared allocatable in "diag\_mod.f". 
 !\\
 !\\
 !  This allows us to reduce the amount of memory that needs to be declared 
@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-      !NBIOMAX moved to CMN_SIZE (fp, 6/2009)
+      !NBIOMAX moved to F77_CMN_SIZE (fp, 6/2009)
       !USE BIOMASS_MOD,     ONLY : NBIOMAX
       USE BIOFUEL_MOD,     ONLY : NBFTRACE
       USE DIAG_MOD,        ONLY : AD01,        AD02,        AD05    
@@ -97,11 +97,16 @@
       USE TRACERID_MOD,    ONLY : NEMANTHRO
       USE WETSCAV_MOD,     ONLY : GET_WETDEP_NMAX
       USE TRACERID_MOD,    ONLY : IDTNK1    !(win, 7/14/09)
+#if   defined( APM )
+      USE DIAG_MOD,        ONLY : AD07_OM 
+      USE TRACER_MOD,      ONLY : N_APMTRA
+#endif
+
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! Diagnostic switches & arrays
 
       IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! Diagnostic switches & arrays
+#     include "define.h"
 ! 
 ! !REVISION HISTORY:
 !  16 Jun 1998 - I. Bey, R. Yantosca - Initial version
@@ -240,13 +245,14 @@
 !  (76) Initialize values for LD59, LD60, and LD61 (win, 8/10/09)
 !  (77) NBIOMAX is now in CMN_SIZE. (fp, 2/26/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  16 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: NMAX, AS, NEMISS, LMAX
+      INTEGER :: NMAX, AS, NEMISS, LMAX, N_TRC_TOT
 
       !=================================================================
       ! NDXX_SETUP begins here! 
@@ -287,6 +293,13 @@
       LD64 = 1
       LD66 = 1
       LD68 = 1
+
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TRC_TOT = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else 
+      N_TRC_TOT = N_TRACERS              ! G-C advected tracers only
+#endif
 
       !=================================================================
       ! ND01: Rn, Pb, Be emissions
@@ -348,6 +361,11 @@
 
          ALLOCATE( AD07_SOAGM( IIPAR, JJPAR, LD07, 4 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_SOAGM' )
+
+#if   defined( APM )
+         ALLOCATE( AD07_OM( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OM' )
+#endif
 
       ENDIF  
 
@@ -1003,7 +1021,11 @@
       !=================================================================
       IF ( ND45 > 0 ) THEN
          LD45 = MIN( ND45,        LLPAR   )
-         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
+!------------------------------------------------------------------------------
+! Prior to 2/16/11:
+!         NMAX = MIN( N_TRACERS+1, NNPAR+1 )
+!------------------------------------------------------------------------------
+         NMAX = MIN( N_TRC_TOT+1, NNPAR+1 )
 
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)

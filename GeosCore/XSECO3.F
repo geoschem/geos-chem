@@ -1,12 +1,14 @@
-C $Id: XSECO3.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
+! $Id: XSECO3.f,v 1.1 2009/09/16 14:06:45 bmy Exp $
       FUNCTION XSECO3(K,TTT)
-C-----------------------------------------------------------------------
+!-----------------------------------------------------------------------
 c  Cross-sections for O3 for all processes interpolated across 3 temps
-C-----------------------------------------------------------------------
-      IMPLICIT NONE
+!-----------------------------------------------------------------------
+#     include "define.h"
 
-#     include "cmn_fj.h"
-#     include "jv_cmn.h"
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE JV_CMN_MOD
+
+      IMPLICIT NONE
 
       integer k
       real*8 ttt, flint, xseco3

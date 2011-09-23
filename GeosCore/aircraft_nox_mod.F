@@ -55,6 +55,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -139,7 +140,7 @@
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       USE TIME_MOD,      ONLY : GET_MONTH
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE      :: FIRST     = .TRUE.
@@ -252,9 +253,9 @@
       USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
       USE PRESSURE_MOD, ONLY : GET_PEDGE
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! PTOP, SIGE, AVP
-#     include "F77_CMN_DIAG"  ! Diagnostic switches
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_MOD       ! PTOP, SIGE, AVP
 
       INTEGER             :: I,    J,     IREF, JREF,  L,     K
       INTEGER             :: I0,   J0
@@ -384,7 +385,7 @@
       ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
       
       ! Local variables
       INTEGER :: AS

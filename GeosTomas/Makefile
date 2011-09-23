@@ -69,29 +69,45 @@
 #BOC
 
 # Define variables
-ROOTDIR = ..
-BIN     = $(ROOTDIR)/bin
-BPCH    = $(ROOTDIR)/GeosBpch
-CORE    = $(ROOTDIR)/GeosCore
-DOC     = $(ROOTDIR)/doc
-EXE     = geostomas
-HDR     = $(ROOTDIR)/Headers
-HELP    = $(ROOTDIR)/help
-ISO     = $(ROOTDIR)/ISOROPIA
-LIB     = $(ROOTDIR)/lib
-KPP     = $(ROOTDIR)/KPP
-MOD     = $(ROOTDIR)/mod
-UTIL    = $(ROOTDIR)/GeosUtil
-GTMM    = $(ROOTDIR)/GTMM
+ROOTDIR := ..
+APM     := $(ROOTDIR)/APM
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+CORE    := $(ROOTDIR)/GeosCore
+DOC     := $(ROOTDIR)/doc
+EXE     := geostomas
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+LIB     := $(ROOTDIR)/lib
+KPP     := $(ROOTDIR)/KPP
+MOD     := $(ROOTDIR)/mod
+UTIL    := $(ROOTDIR)/GeosUtil
+GTMM    := $(ROOTDIR)/GTMM
+LESMF   := $(ROOTDIR)/ESMF
 
 # This directory only contains files that are different for the TOMAS
 # aerosol microphysics.  For files that are the same as for the regular
 # GEOS-Chem code, look in the GeosCore directory.
-VPATH   = ../GeosCore
+VPATH   := ../GeosCore
 
 # Include header file.  This returns CC, F90, FREEFORM, LD, R8, SHELL,
 # as well as the default Makefile compilation rules for source code files.
+
+ifeq ($(ESMF),yes)
+  # Hack to force the ESMA headers work correctly with mpif90 as FC
+  include $(ROOTDIR)/Makefile_header.mk
+	override FC := $(COMPILER)
+  # End-of-hack
+  include $(ESMADIR)/Config/ESMA_base.mk  # Generic stuff
+  include $(ESMADIR)/Config/ESMA_arch.mk  # System dependencies
+  include $(ESMADIR)/Config/GMAO_base.mk  # GMAO stuff
+  include $(ROOTDIR)/Makefile_header.mk
+	override FC := $(ESMA_FC) # Unset hack
+	override LD := mpif90
+else
 include $(ROOTDIR)/Makefile_header.mk
+endif
 
 #=============================================================================
 # List of files to compile.  We need to manually list all object files, since 
@@ -158,7 +174,7 @@ diag41_mod.o             linoz_mod.o             tpcore_window_mod.o         \
 diag42_mod.o             logical_mod.o           tracer_mod.o                \
 diag48_mod.o             lump.o                  tracerid_mod.o              \
 diag49_mod.o             main.o                  transport_mod.o             \
-diag50_mod.o             megan_mod.o                                         \
+diag50_mod.o             megan_mod.o             retro_mod.o                 \
 diag51_mod.o             meganut_mod.o           tropopause_mod.o            \
 diag51b_mod.o            mercury_mod.o           upbdflx_mod.o               \
 diag56_mod.o             mmran_16.o              update.o                    \
@@ -182,45 +198,73 @@ all:
 	@$(MAKE) TOMAS=yes lib
 	@$(MAKE) TOMAS=yes exe
 
-lib: libkpp libutil libiso libtomas
+ifeq ($(ESMF),yes)                       
+lib:                                                 # Build for ESMF/GEOS-5
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf			     
+else ifeq ($(ESMF_TESBED),yes)            	     
+lib:                                                 # Build for ESMF/Testbed
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf_testbed		     
+else                                      	     
+lib:                                                 # Build normal GEOS-Chem
+	@$(MAKE) libgc				     
+endif						     
 
-libtomas: $(OBJ)
+libgc:                                               # Compile everything
+	@$(MAKE) libheaders         		     
+	@$(MAKE) libkpp             		     
+	@$(MAKE) libutil 			     
+	@$(MAKE) libiso 			     
+	@$(MAKE) libtomas
 
-libiso:
+libtomas: $(OBJ)                                     # Build code in GeosTomas/
+
+libiso:                                              # Build code in ISOROPIA/
 	@$(MAKE) -C $(ISO)
 
-libkpp: 
+libkpp:                                              # Build code in KPP/
 	@$(MAKE) -C $(KPP)
 
-libutil:
+libutil:                                             # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)
 
-exe:
+libheaders:                                          # Build code in Headers/ 
+	@$(MAKE) -C $(HDR)			     
+
+libesmf:                                             # Compile ESMF/GEOS-5
+	@$(MAKE) -C $(LESMF) ESMF=yes esmf	     
+
+libesmf_testbed:                                     # Compile ESMF testbed
+	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf     
+
+exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:
-	rm -f *.o *.mod geos geostomas
+clean:                                               # Remove files here
+	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:
+realclean:                                           # Remove files everywhere
 	@$(MAKE) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
 	@$(MAKE) -C $(UTIL) clean
 	@$(MAKE) -C $(CORE) clean
 	@$(MAKE) -C $(GTMM) clean
+	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:
+doc:                                                 # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean: 
+docclean:                                            # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:
+help:                                                # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #==============================================================================
@@ -404,9 +448,10 @@ comode_mod.o                : comode_mod.F            tracer_mod.o
 convection_mod.o            : convection_mod.F                               \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      fvdas_convect_mod.o    \
-                              gcap_convect_mod.o      logical_mod.o          \
-                              mercury_mod.o           tracer_mod.o           \
-                              tracerid_mod.o          wetscav_mod.o
+                              gc_type_mod.o           gcap_convect_mod.o     \
+                              logical_mod.o           mercury_mod.o          \
+                              tracer_mod.o            tracerid_mod.o         \
+                              wetscav_mod.o
 
 dao_mod.o                   : dao_mod.F                                      \
                               logical_mod.o           tracer_mod.o           
@@ -521,7 +566,8 @@ emfossil.o                  : emfossil.F                                     \
                               epa_nei_mod.o           icoads_ship_mod.o      \
                               logical_mod.o           nei2005_anthro_mod.o   \
                               streets_anthro_mod.o    tracer_mod.o           \
-                              tracerid_mod.o          vistas_anthro_mod.o    
+                              tracerid_mod.o          vistas_anthro_mod.o    \
+                              retro_mod.o   
 
 emisop.o                    : emisop.F                dao_mod.o              \
                               meganut_mod.o
@@ -551,7 +597,8 @@ emissions_mod.o             : emissions_mod.F                                \
                               nei2005_anthro_mod.o    RnPbBe_mod.o           \
                               seasalt_mod.o           streets_anthro_mod.o   \
                               sulfate_mod.o           tagged_co_mod.o        \
-                              tracer_mod.o            vistas_anthro_mod.o
+                              tracer_mod.o            vistas_anthro_mod.o    \
+                              retro_mod.o
 
 emmonot.o                   : emmonot.F
 
@@ -606,6 +653,8 @@ GAUSSP.o                    : GAUSSP.F
 gc_biomass_mod.o            : gc_biomass_mod.F                               \
                               future_emissions_mod.o  logical_mod.o          \
                               tracerid_mod.o          tracer_mod.o    
+
+gc_type_mod.o               : gc_type_mod.F
 
 gcap_convect_mod.o          : gcap_convect_mod.F                             \
                               dao_mod.o               diag_mod.o
@@ -689,10 +738,10 @@ input_mod.o                 : input_mod.F                                    \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o  	      diag48_mod.o           \
-                              diag49_mod.o            diag50_mod.o           \
-                              diag51_mod.o            diag51b_mod.o          \
-                              diag56_mod.o            diag_oh_mod.o          \
-                              diag_pl_mod.o           drydep_mod.o           \
+                              diag49_mod.o  	      diag50_mod.o           \
+			      diag51_mod.o  	      diag51b_mod.o          \
+			      diag56_mod.o  	      diag_oh_mod.o          \
+			      diag_pl_mod.o 	      drydep_mod.o           \
                               emissions_mod.o         future_emissions_mod.o \
                               gamap_mod.o             land_mercury_mod.o     \
                               logical_mod.o 	      mercury_mod.o          \
@@ -882,6 +931,11 @@ readlai.o                   : readlai.F               logical_mod.o
 restart_mod.o               : restart_mod.F                                  \
                               comode_mod.o            dao_mod.o              \
                               logical_mod.o           tracer_mod.o  
+
+retro_mod.o                 : retro_mod.F                                    \
+                              future_emissions_mod.o  logical_mod.o          \
+                              scale_anthro_mod.o      tracerid_mod.o         \
+                              tracer_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               dao_mod.o               diag_mod.o             \

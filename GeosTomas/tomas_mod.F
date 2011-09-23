@@ -235,9 +235,9 @@ c$$$      INTEGER,           SAVE        :: SRTNH4
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
       USE ERROR_MOD,      ONLY : ERROR_STOP
      
-#     include "CMN_SIZE"
-#     include "CMN_DIAG"  ! ND60, ND61,  LD61
-#     include "comode.h"        ! NFAMILIES
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND60, ND61,  LD61
+      USE COMODE_LOOP_MOD      ! NFAMILIES
 
       ! Local variables
       INTEGER           :: I, J, L, N, JC, K !counters
@@ -2786,8 +2786,8 @@ Cjrp      endif
       USE TRACERID_MOD,   ONLY : IDTNK1, IDTAW1, IDTNH4
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-#     include "CMN_SIZE"  ! IIPAR, JJPAR, LLPAR for STT
-#     include "CMN_DIAG"  ! ND60
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND60
 
       ! Arguments
       REAL*8                 :: MOXID
@@ -3024,8 +3024,8 @@ Cjrp      endif
       USE TRACER_MOD,     ONLY : STT
       USE TRACERID_MOD,   ONLY : IDTNK1, IDTAW1, IDTNH4
 
-#     include "CMN_SIZE"  ! IIPAR, JJPAR, LLPAR for STT
-#     include "CMN_DIAG"  ! ND60
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND60
 
       ! Arguments
       REAL*8                 :: MSOA
@@ -4872,8 +4872,8 @@ c
       USE ERROR_MOD,   ONLY :  IT_IS_NAN
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! LD60
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND60
 
       ! Arguments
       INTEGER               :: PTYPE,    I,      J,      L 
@@ -5271,7 +5271,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER,  INTENT(IN)   :: I, J, L, N
@@ -5378,7 +5378,7 @@ c      USE LOGICAL_MOD, ONLY  : LCARB30, LDUST30
       USE TRACERID_MOD, ONLY : IDTECIL1, IDTOCIL1, IDTOCOB1, IDTECOB1
       USE TRACERID_MOD, ONLY : IDTNK1,   IDTSF1,   IDTSS1 ,  IDTDUST1
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER,  INTENT(IN)   :: I, J, L, N
@@ -5531,7 +5531,7 @@ c       IF (LDUST30) MDUST = STT(I,J,L,IDTDUST1-1+BIN)
       USE TRACERID_MOD, ONLY : IDTNK1, IDTSF1, IDTSS1, IDTAW1, IDTOCIL1
       USE TRACER_MOD,   ONLY : STT
 
-#     include "CMN_SIZE"       ! IIPAR, JJPAR, LLPAR
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       INTEGER,  INTENT(IN) :: I, J, L, BIN
@@ -5650,9 +5650,9 @@ c      USE LOGICAL_MOD,    ONLY : LSULF30, LSALT30, LCARB30, LDUST30
       USE TRACERID_MOD,   ONLY : IDTNK1,   IDTSF1,   IDTSS1,   IDTDUST1
       USE TRACERID_MOD,   ONLY : IDTECIL1, IDTECOB1, IDTOCIL1, IDTOCOB1
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD         ! Size parameters
 
-#     include "CMN_SIZE"        ! IIPAR, JJPAR, MAXIJ
+      IMPLICIT NONE
 
       ! Arguments 
       REAL*8,  INTENT(OUT):: DIA(MAXIJ, IBINS), DENSITY(MAXIJ, IBINS)
@@ -5747,8 +5747,8 @@ C         IF ( LDUST30 ) MDUST = STT(I,J,LEV,IDTDUST1-1+BIN)
       USE TRACERID_MOD, ONLY : IDTNK1,  IDTAW1
       USE TRACER_MOD,   ONLY : STT, TCVV, XNUMOL, N_TRACERS
 
-#     include "CMN_SIZE"  ! IIPAR, JJPAR, LLPAR for STT
-#     include "CMN_DIAG"  ! ND60
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND60
 
       ! Arguments
       INTEGER                :: II, JJ, LL
@@ -7006,9 +7006,10 @@ Cpja Perform some numerical checks on dmdt_int
       USE TRACERID_MOD, ONLY : IDTNK1,  IDTAW1
       USE TRACER_MOD,   ONLY : STT
 
-      implicit none
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND60
 
-#     include "CMN_SIZE"        ! IIPAR, JJPAR, LLPAR
+      implicit none
 
       ! Arguments
       INTEGER,   INTENT(IN) :: I, J, L, N

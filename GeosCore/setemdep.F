@@ -25,10 +25,11 @@
       USE TRACER_MOD,   ONLY : TRACER_NAME
       USE TRACERID_MOD, ONLY : IDEMIS, IDTRMB, NEMANTHRO, NEMBIOG
 
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE COMODE_LOOP_MOD  ! SMVGEAR II arrays
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "comode.h"  ! SMVGEAR II arrays
+      IMPLICIT NONE
 
       ! Arguments
       INTEGER, INTENT(IN) :: NTRACER

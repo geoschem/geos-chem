@@ -76,6 +76,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -173,10 +174,10 @@
       USE TRACERID_MOD, ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
       USE TRACERID_MOD, ONLY : IDTR4N2, IDTSALA, IDTSALC 
 
-#     include "cmn_fj.h"    ! Size parameters + FAST-J stuff
-#     include "jv_cmn.h"    ! ODAER, ODMDUST, QAA, QAA_OUT
-#     include "F77_CMN_O3"      ! XNUMOLAIR
-#     include "F77_CMN_GCTM"    ! SCALE_HEIGHT
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ    ! Size parameters + FAST-J stuff
+      USE JV_CMN_MOD    ! ODAER, ODMDUST, QAA, QAA_OUT
+      USE CMN_O3_MOD      ! XNUMOLAIR
+      USE CMN_GCTM_MOD    ! SCALE_HEIGHT
 
       ! Local variables
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
@@ -674,14 +675,6 @@
             UNIT     = 'hPa'
             GMTRC    = 1            
             
-            !---------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! Now save the pressure at all requested levels, rather
-            ! than the Psurface-PTOP. (bmy, 11/12/10)
-            !IF ( K == 1 ) THEN
-            !   Q(1) = GET_PEDGE(I,J,1) - PTOP
-            !ENDIF
-            !---------------------------------------------------------
             DO L = 1, K
                Q(L) = GET_PEDGE( I, J, K )
             ENDDO
@@ -873,7 +866,7 @@
       USE BPCH2_MOD, ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE ERROR_MOD, ONLY : ALLOC_ERR, ERROR_STOP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       LOGICAL,            INTENT(IN) :: DO_ND48

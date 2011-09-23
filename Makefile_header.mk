@@ -73,6 +73,14 @@
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
 #  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
+#  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
+#  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
+#                              compiler.  This will prevent aggressive 
+#                              optimizations from changing numerical results.
+#  25 Aug 2011 - R. Yantosca - Add -CU (check for uninit'd variables) to 
+#                              FFLAGS when using IFORT w/ the DEBUG option.
+#  26 Aug 2011 - R. Yantosca - Allow for deactivation of the "-fp-model source"
+#                              option by using the PRECISE=no env variable
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -94,6 +102,11 @@ endif
 # HDF5 output is turned off by defautl
 ifndef HDF5
 HDF5 = no
+endif
+
+# Use precise FP math optimization (i.e. to avoid numerical noise)
+ifndef PRECISE
+PRECISE=yes
 endif
 
 # TOMAS runs on single processor (at least for now!)
@@ -118,8 +131,8 @@ H5L = /home/bmy/NASA/basedir/x86_64-unknown-linux-gnu/ifort/Linux/lib
 
 # Link to library files created from code in the various subdirs
 # NOTE: -lGeosUtil should always be last!
-LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil
-LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil
+LINK  = -L$(LIB) -lKpp -lIsoropia -lGeosUtil -lHeaders
+LHG   = -L$(LIB) -lKpp -lIsoropia -lHg -lGeosUtil -lHeaders
 
 # Add the HDF5 library link commands if necessary
 ifeq ($(HDF5),yes) 
@@ -147,9 +160,15 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g
+FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -CU
 else
 FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
+endif
+
+# Prevent any optimizations that would change numerical results
+# This is needed to prevent numerical noise from ISORROPIA (bmy, 8/25/11)
+ifeq ($(PRECISE),yes)
+FFLAGS  += -fp-model source
 endif
 
 # Turn on OpenMP parallelization
@@ -160,6 +179,11 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS  += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
 endif
 
 # Add special IFORT optimization commands
@@ -230,6 +254,11 @@ ifeq ($(TOMAS),yes)
 FFLAGS  += -DTOMAS
 endif
 
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
+endif
+
 # Add option for "array out of bounds" checking
 ifdef BOUNDS
 FFLAGS  += -C
@@ -279,6 +308,11 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS  += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
 endif
 
 # Add option for "array out of bounds" checking
@@ -335,6 +369,11 @@ endif
 # Also add TOMAS aerosol microphysics option
 ifeq ($(TOMAS),yes) 
 FFLAGS  += -DTOMAS
+endif
+
+# Also add APM aerosol microphysics option
+ifeq ($(APM),yes) 
+FFLAGS  += -DAPM
 endif
 
 # Add option for "array out of bounds" checking

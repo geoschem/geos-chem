@@ -115,14 +115,24 @@
       USE TRACERID_MOD, ONLY : IS_Hg2
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_NSOL
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
+#if   defined( APM )
+      USE DIAG_MOD,     ONLY : AD07_OM
+      USE TRACER_MOD,   ONLY : N_APMTRA
+      USE APM_DRIV_MOD, ONLY : IFTEMPOUT
+      USE APM_DRIV_MOD, ONLY : TEMPOUT
+      USE APM_DRIV_MOD, ONLY : NTEMPOUT
+      USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
+#endif
+
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE COMODE_LOOP_MOD     ! IDEMS
+      USE CMN_O3_MOD       ! FMOL, XNUMOL
+      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
+      USE CMN_MOD          ! IFLX, LPAUSE
 
       IMPLICIT NONE
+#     include "define.h"
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "CMN"          ! IFLX, LPAUSE
-#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
-#     include "F77_CMN_O3"       ! FMOL, XNUMOL
-#     include "comode.h"     ! IDEMS
 ! 
 ! !REVISION HISTORY: 
 !  (40) Bug fix: Save levels 1:LD13 for ND13 diagnostic for diagnostic
@@ -248,7 +258,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, LMAX
-      INTEGER            :: N, NN, NMAX, NTEST
+      INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       REAL*8             :: SCALE_TMP(IIPAR,JJPAR)
       REAL*8             :: SCALE_I6,   SCALE_A6,   SCALE_A3  
@@ -277,6 +287,13 @@
 !  Add a small number (e.g. 1d-32) to prevent division by zero errors.
 !******************************************************************************
 !
+      ! Pick the proper # of tracers
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C advected tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C advected tracers 
+#endif
+
       ! Now use counter variables from "time_mod.f" (bmy, 3/27/03)
       DIAGb      = GET_DIAGb()
       DIAGe      = GET_DIAGe()
@@ -2967,7 +2984,8 @@
 
          DO M = 1, TMAX(45)
             N  = TINDEX(45,M)
-            IF ( N > N_TRACERS ) CYCLE
+            IF ( N > N_TOT_TRC ) CYCLE
+
             NN = N
 
             DO L = 1, LD45
@@ -2984,13 +3002,13 @@
             IF ( ITS_A_FULLCHEM_SIM() .and. NN == IDTOX ) THEN 
 
                   WHERE( CTO3 /= 0 )
-                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TRACERS+1) /
+                     ARRAY(:,:,1:LD45) = AD45(:,:,1:LD45,N_TOT_TRC+1) /
      $                    FLOAT( CTO3 )
                   ELSEWHERE
                      ARRAY(:,:,1:LD45) = 0.
                   ENDWHERE
                   
-               NN = N_TRACERS + 1
+               NN = N_TOT_TRC + 1
 
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -3000,6 +3018,36 @@
             ENDIF
          ENDDO
       ENDIF
+
+#if   defined( APM )
+      !-----------------------------------
+      ! Output TEMPOUT for APM (G. Luo)
+      !-----------------------------------
+      IF ( IFTEMPOUT ) THEN
+
+         CATEGORY  = 'IJ-TMP-$'
+         SCALE_TMP = FLOAT( NPOUTSTEPS ) + 1d-20
+         UNIT      = ''
+
+         DO NN = 1, NTEMPOUT
+
+            DO L = 1, LD45
+               ARRAY(:,:,L) = TEMPOUT(:,:,L,NN) / SCALE_TMP(:,:)
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD45,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
+
+         ENDDO
+
+         TEMPOUT    = 0.d0
+         NPOUTSTEPS = 0
+      ENDIF
+#endif
+
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -3147,12 +3195,6 @@
          UNIT = 'unitless'
 
          DO L = 1, LD54
-!-----------------------------------------------------------------------------
-! Prior to 5/27/11:
-! The time in the tropopause is now archived once every chemistry timestep,
-! so we need to divide by SCALEDIAG instead of SCALEDYN (bmy, 5/27/11)
-!            ARRAY(:,:,L) = AD54(:,:,L) / SCALEDYN
-!-----------------------------------------------------------------------------
             ARRAY(:,:,L) = AD54(:,:,L) / SCALEDIAG
          ENDDO
 

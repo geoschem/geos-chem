@@ -18,6 +18,7 @@
       USE DAO_MOD, ONLY : U10M, V10M
 
       IMPLICIT NONE
+#     include "define.h"
 !  
 ! !INPUT PARAMETERS: 
 !

@@ -178,6 +178,7 @@
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
 
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -311,7 +312,7 @@
       USE TRACERID_MOD,   ONLY : IDTOCIL1, IDTOCOB1, IDTNK1  !(win, 1/25/10)
       USE TOMAS_MOD,      ONLY : IBINS  !(win, 1/25/10)
 
-#     include "CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE           :: FIRSTCHEM = .TRUE.
@@ -540,8 +541,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -712,8 +713,8 @@
       USE TRACERID_MOD, ONLY : IDTBCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -889,8 +890,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPO
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1062,8 +1063,8 @@
       USE TRACERID_MOD, ONLY : IDTOCPI
       USE TIME_MOD,     ONLY : GET_TS_CHEM
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -1225,7 +1226,7 @@
       USE TIME_MOD,     ONLY : GET_TS_CHEM    ! [=] minute
       USE TOMAS_MOD,    ONLY : IBINS
 
-#     include  "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Argument
       REAL*8,  INTENT(INOUT) :: MIL(IIPAR,JJPAR,LLPAR, IBINS)
@@ -1287,10 +1288,10 @@
       USE TRACERID_MOD, ONLY : IDTGLYX, IDTSOAG
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
-#     include "comode.h"     ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD           ! XNUMOL
+      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
 
       ! Local variables
@@ -1487,10 +1488,10 @@
       USE TRACERID_MOD, ONLY : IDTMGLY, IDTSOAM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
-#     include "comode.h"     ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE COMODE_LOOP_MOD      ! AD, WTAIR, other SMVGEAR variables
+      USE CMN_O3_MOD           ! XNUMOL
+      USE CMN_DIAG_MOD         ! ND44, ND07, LD07
 
 
       ! Local variables
@@ -1748,9 +1749,9 @@
       USE TIME_MOD,     ONLY : ITS_TIME_FOR_BPCH
       USE LOGICAL_MOD,  ONLY : LPRT   !(bmy, 4/21/10)
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_O3"       ! XNUMOL
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! XNUMOL
+      USE CMN_DIAG_MOD       ! ND44
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -3141,7 +3142,7 @@ c
       USE TRACERID_MOD,  ONLY : IDTALCO,     IDTALPH,  IDTLIMO
       USE TIME_MOD,      ONLY : GET_TS_CHEM, GET_MONTH
 
-#     include "CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L
@@ -3344,7 +3345,7 @@ c
       USE TRACERID_MOD, ONLY : IDTSOG1, IDTSOG2, IDTSOG3, IDTSOG4
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
 
-#     include "CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -3481,8 +3482,8 @@ c
       USE TRACERID_MOD, ONLY : IDTSOG5, IDTSOA5
 
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! ND44, ND07, LD07
       
       ! Arguments
       INTEGER, INTENT(IN)  :: I, J, L
@@ -3888,8 +3889,8 @@ c
       USE TIME_MOD,     ONLY : GET_TS_CHEM
       USE TRACER_MOD,   ONLY : XNUMOL
 
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! ND44
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
@@ -4059,8 +4060,8 @@ c
       USE TRACERID_MOD,ONLY : IDTECIL1, IDTECOB1, IDTNK1  !(win, 1/25/10)
       USE TRACERID_MOD,ONLY : IDTOCIL1, IDTOCOB1  !(win, 1/25/10)
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! ND07
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD    ! ND07
 
       ! Local variables
       LOGICAL, SAVE        :: FIRST = .TRUE.
@@ -4548,8 +4549,8 @@ c
       USE TOMAS_MOD,    ONLY : SUBGRIDCOAG,   MNFIX, NH4BULKTOBIN
       USE ERROR_MOD,    ONLY : IT_IS_NAN
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! ND59
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND59
 
       ! Arguments
       REAL*8,  INTENT(IN)    :: EMISMASS(IIPAR, JJPAR, IBINS)
@@ -4808,7 +4809,7 @@ ccc
       ! Reference to F90 modules
       USE TOMAS_MOD,   ONLY : IBINS
 
-#     include "CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Arguments
       REAL*8,  INTENT(IN) :: BULKEMIS(IIPAR, JJPAR)
@@ -4910,7 +4911,7 @@ ccc
       USE DAO_MOD,       ONLY : PARDF, PARDR
       USE MEGANUT_MOD,   ONLY : XLTMMP
 
-#     include "CMN_SIZE"      ! Size parameters
+      USE CMN_SIZE_MOD      ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -5259,7 +5260,7 @@ ccc
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -5488,7 +5489,7 @@ ccc
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN)           :: THISMONTH
@@ -5719,7 +5720,7 @@ ccc
       USE TIME_MOD,             ONLY : GET_TS_EMIS
       USE TRANSFER_MOD,         ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"             ! Size parameters 
+      USE CMN_SIZE_MOD             ! Size parameters 
 
       ! Local variables
       INTEGER                       :: I, J
@@ -5870,7 +5871,7 @@ ccc
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_OCbb
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_BCbb
 
-#     include "CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       !-------------------
       ! Local variables
@@ -5984,7 +5985,7 @@ ccc
       USE TRACERID_MOD, ONLY  : IDTALPH, IDTLIMO, IDTALCO
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE ! (Lin, 03/31/09)
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,2)
@@ -6146,7 +6147,7 @@ ccc
       USE TOMAS_MOD,    ONLY : IBINS
       USE VDIFF_PRE_MOD, ONLY : EMIS_SAVE 
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Arguments
       REAL*8, INTENT(IN) :: BCSRC(IIPAR,JJPAR,IBINS, 2)
@@ -6247,8 +6248,8 @@ ccc
       USE TIME_MOD, ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD, ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_GCTM"
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_GCTM_MOD
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -6384,7 +6385,7 @@ ccc
       USE TRACER_MOD,    ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,  ONLY : IDOH
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6481,8 +6482,8 @@ ccc
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM, ITS_AN_AEROSOL_SIM
       USE TRACERID_MOD,   ONLY : IDNO3
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN"       ! NSRCX
+      USE CMN_SIZE_MOD  ! Size parameters
+      USE CMN_MOD       ! NSRCX
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6604,7 +6605,7 @@ ccc
       USE TRACER_MOD,    ONLY : XNUMOLAIR
       USE TRACERID_MOD,  ONLY : IDO3
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Arguments
       INTEGER, INTENT(IN) :: I, J, L
@@ -6711,9 +6712,9 @@ ccc
       USE TRACER_MOD,    ONLY : XNUMOL
       USE TRACERID_MOD,  ONLY : IDTBENZ, IDTTOLU, IDTXYLE
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_O3"        ! XNUMOL
-#     include "comode.h"      ! ILx
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD      ! ILx
+      USE CMN_O3_MOD        ! XNUMOL
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L, NOX, JHC
@@ -6891,8 +6892,8 @@ ccc
       USE TRACER_MOD,    ONLY : XNUMOL,             TRACER_COEFF
       USE TRACERID_MOD,  ONLY : IDTISOP
 
-#     include "CMN_SIZE"      ! Size parameters
-#     include "comode.h"      ! ILISOPOH   (dkh, 05/29/06)  
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD      ! ILISOPOH   (dkh, 05/29/06)  
 
       ! Arguments
       INTEGER, INTENT(IN)    :: I, J, L
@@ -6984,7 +6985,7 @@ ccc
       USE DAO_MOD,      ONLY : RH
       USE PRESSURE_MOD, ONLY : GET_PCENTER, GET_PEDGE
 
-#     include "CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! Local variables
       INTEGER              :: I,    J,    L
@@ -7113,8 +7114,8 @@ ccc
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTGLYX, IDTSOAG
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -7312,8 +7313,8 @@ ccc
       USE TRACER_MOD,      ONLY : STT
       USE TRACERID_MOD,    ONLY : IDTMGLY, IDTSOAM
 
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"     ! ND44, ND07, LD07
+      USE CMN_SIZE_MOD    ! Size parameters
+      USE CMN_DIAG_MOD     ! ND44, ND07, LD07
 
       ! Local variables
       INTEGER   :: I, J, L
@@ -7508,7 +7509,7 @@ ccc
 !      USE GRID_MOD,   ONLY : GET_XOFFSET,   GET_YOFFSET
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
-!#     include "CMN_SIZE"   ! Size parameters
+!      USE CMN_SIZE_MOD   ! Size parameters
 !
 !      ! Arguments
 !      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -7616,7 +7617,7 @@ ccc
 !      USE FILE_MOD,   ONLY : IU_FILE
 !      USE TIME_MOD,   ONLY : EXPAND_DATE
 !
-!#     include "CMN_SIZE"   ! Size parameters      
+!      USE CMN_SIZE_MOD   ! Size parameters      
 !
 !      ! Arguments
 !      INTEGER, INTENT(IN) :: YYYYMMDD, HHMMSS
@@ -7704,7 +7705,7 @@ ccc
       USE TIME_MOD,     ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
       USE TRACERID_MOD, ONLY : IDTSOA5
 
-#     include "CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE :: IS_INIT = .FALSE.

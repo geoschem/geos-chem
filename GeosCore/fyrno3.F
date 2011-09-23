@@ -23,6 +23,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! Arguments
       REAL*8, INTENT(IN) :: XCARBN, ZDNUM, TT

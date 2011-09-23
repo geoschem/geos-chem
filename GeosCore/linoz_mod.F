@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !DEFINED PARAMETERS:
@@ -95,7 +96,7 @@
 !
       USE TIME_MOD
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -149,8 +150,8 @@
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE PRESSURE_MOD,   ONLY : GET_PCENTER
   
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !INPUT PARAMETERS:
 !
@@ -374,8 +375,8 @@
       USE TIME_MOD,       ONLY : GET_MONTH
       USE PRESSURE_MOD                   
 
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -539,7 +540,7 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !
 ! !USES:
 !
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !DEFINED PARAMETERS:
 !
@@ -580,38 +581,38 @@ c         58 km (N=30) scan downward from 58 km to 10 km (NX=25) by 2 km
 c         intervals, constant >58km
 c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass) 
 c
-C======== Comments from Chris McLinden by Email ={PJC}==================
-C     CALL SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
-C   - P1,P2 are the pressure EDGES for the CTM layer onto which the
-C     coefficients will be mapped. [P1>P2 I believe {PJC}]
-C   - F0,F1,F2 are the CTM layer vertical moments determined in SOMLFQ
-C   - PS are the pressure layer edges of the original [ie Linox] grid
-C   - F is the column of coefficients (on the original grid); note
-C     F is flipped relative to STRTX and since the coefficients begin
-C     at z*=10, F(1)=F(2)=...=F(5)=0
-C   - NL is 30; size of F()
-C      
-C     The box model calculations were performed at z*=10km, 12km, ... and
-C     so these would represent the centres with the corresponding edges at
-C     9,11km ; 11,13km; ...
-C     PS() represents the edges (although PS(1) is set to 1000mb).
-C     The first few values are:
-C     PS(1)=1000
-C     PS(2)=874.947105    (note PS(2) is not quite 1000 exp(-1/16) as the
-C     PS(3)=656.117767     the average pressure is used - not the pressure
-C     PS(4)=492.018914     at the average z*)
-C     PS(5)=368.96213
-C     PS(6)=276.68257
-C     PS(7)=207.48266
-C     ...
-C     PS(30)=0.276682568
-C     PS(31)=0.0
-C     
-C     F(1) spans PS(1)-PS(2)
-C     F(2) spans PS(2)-PS(3)
-C     ...
-C     F(30) spans PS(30)-PS(31)
-C=======================================================================
+!======== Comments from Chris McLinden by Email ={PJC}==================
+!     CALL SOMLFQ(P1,P2,F0,F1,F2,PS,F,NL)
+!   - P1,P2 are the pressure EDGES for the CTM layer onto which the
+!     coefficients will be mapped. [P1>P2 I believe {PJC}]
+!   - F0,F1,F2 are the CTM layer vertical moments determined in SOMLFQ
+!   - PS are the pressure layer edges of the original [ie Linox] grid
+!   - F is the column of coefficients (on the original grid); note
+!     F is flipped relative to STRTX and since the coefficients begin
+!     at z*=10, F(1)=F(2)=...=F(5)=0
+!   - NL is 30; size of F()
+!      
+!     The box model calculations were performed at z*=10km, 12km, ... and
+!     so these would represent the centres with the corresponding edges at
+!     9,11km ; 11,13km; ...
+!     PS() represents the edges (although PS(1) is set to 1000mb).
+!     The first few values are:
+!     PS(1)=1000
+!     PS(2)=874.947105    (note PS(2) is not quite 1000 exp(-1/16) as the
+!     PS(3)=656.117767     the average pressure is used - not the pressure
+!     PS(4)=492.018914     at the average z*)
+!     PS(5)=368.96213
+!     PS(6)=276.68257
+!     PS(7)=207.48266
+!     ...
+!     PS(30)=0.276682568
+!     PS(31)=0.0
+!     
+!     F(1) spans PS(1)-PS(2)
+!     F(2) spans PS(2)-PS(3)
+!     ...
+!     F(30) spans PS(30)-PS(31)
+!=======================================================================
 
 
       XPSD       = 10.D0 **(-0.125D0)
@@ -776,7 +777,7 @@ c-------- K=1 is at the top of atmosphere ------------------------------
       USE FILE_MOD,      ONLY : IOERROR        ! I/O error subroutine
       USE DIRECTORY_MOD, ONLY : DATA_DIR_1x1   ! Data directory path
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 !
 ! !REMARKS:
 !  LINOZ_READ is called from "main.f" at the start of the simulation.
@@ -956,8 +957,8 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
       USE TRACERID_MOD 
       USE TRACER_MOD   
 
-#     include "F77_CMN_SIZE"
-#     include "CMN"
+      USE CMN_SIZE_MOD
+      USE CMN_MOD
 !
 ! !REVISION HISTORY: 
 !  24 Jun 2003 - B. Field & D. Jones - Further updates for GEOS-Chem
@@ -1004,7 +1005,7 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE" 
+      USE CMN_SIZE_MOD 
 !
 ! !REVISION HISTORY: 
 !  16 Oct 2009 - R. Yantosca - Initial version

@@ -172,6 +172,7 @@
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
 
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS
@@ -327,10 +328,10 @@
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
-#     include "F77_CMN_SIZE" ! Size parameters
-#     include "F77_CMN_DIAG" ! ND44
-#     include "F77_CMN_DEP"  ! IREG, ILAND, IUSE, etc.
-#     include "F77_CMN_GCTM" ! Physical constants
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! ND44
+      USE CMN_GCTM_MOD       ! Physical constants
+      USE CMN_DEP_MOD        ! IREG, ILAND, IUSE, etc.
 
       ! Local variables
       LOGICAL, SAVE     :: FIRST = .TRUE.
@@ -462,7 +463,7 @@
       USE TRACERID_MOD, ONLY : IDTMSA, IDTNH3, IDTNH4
       USE TRACERID_MOD, ONLY : IDTNIT, IDTSO2, IDTSO4
 
-#     include "F77_CMN_SIZE"   ! Size parameters!
+      USE CMN_SIZE_MOD       ! Size parameters!
 
       ! Arguments
       INTEGER, INTENT(IN) :: N
@@ -568,8 +569,8 @@
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_GCTM"     ! Physical constants
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_GCTM_MOD       ! Physical constants
 
       ! Arguments
       LOGICAL, INTENT(OUT)  :: LSNOW(MAXIJ)
@@ -705,9 +706,9 @@
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "F77_CMN_DIAG"   ! Diagnostic switches & arrays
-#     include "comode.h"   ! CSPEC
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! CSPEC
+      USE CMN_DIAG_MOD      ! Diagnostic switches & arrays
 
       ! Local variables
       INTEGER :: I, J, JJ, JLOOP, L, L_PBLTOP, N, NK, NN
@@ -843,9 +844,9 @@
       USE TIME_MOD,    ONLY : GET_TS_CHEM
       USE TRACER_MOD,  ONLY : STT
 
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! ND44
-#     include "F77_CMN_DEP"   ! Dry deposition variables
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE CMN_DIAG_MOD      ! ND44
+      USE CMN_DEP_MOD       ! Dry deposition variables
 
       ! Local variables
       INTEGER             :: I, J, L, PBL_MAX, N, NN
@@ -967,11 +968,11 @@
       USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
       USE MEGANUT_MOD,  ONLY : XLTMMP
       
-#     include "F77_CMN_SIZE"  ! Size parameters
-#     include "F77_CMN_DIAG"  ! Diagnostic switches & arrays
-#     include "F77_CMN_VEL"   ! IJLAND
-#     include "F77_CMN_DEP"   ! Dry deposition variables
-#     include "commsoil.h" ! Soil pulsing & wetness variables
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_DIAG_MOD       ! Diagnostic switches & arrays
+      USE CMN_VEL_MOD        ! IJLAND
+      USE CMN_DEP_MOD        ! Dry deposition variables
+      USE COMMSOIL_MOD       ! Soil pulsing & wetness variables
 
       ! Local variables
       INTEGER     :: I, J, L, N, NN, M, PBL_MAX
@@ -1200,148 +1201,148 @@
       ! References to F90 modules (bmy, 3/8/01)
       USE ERROR_MOD, ONLY : IT_IS_NAN
                         
-C     Subroutine computes the dry deposition velocities using 
-C      a resistance-in-series model.
-C
-C** Contact: D.J. Jacob, Harvard U. (djj@io.harvard.edu)
-C** Modularized by G.M. Gardner, Harvard U.
-C** Version 3.2:   5/27/97
-C** Version 3.2.1: 3/4/99   -- bug fix in expression for RT 
-C** Version 3.2.2: 3/26/99  -- bug fix: specify a large Ra for aerosols
-C** Version 3.2.3: 11/12/99 -- change Reynolds # criterion from 10 to 1
-C                           -- force double precision w/ "D" exponents
-C** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
-C** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
-C** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
-C** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
-C** Version 3.7    4/20/04  -- Now also do drydep of SEASALT aerosol tracers
-C** Version 3.8    4/13/05  -- Accounts for hygroscopic growth of SEASALT
-C**                             aerosol tracers.  DUST aerosol tracers do
-C**                             not grow hygroscopically.  Added RHB as
-C**                             an input argument.
-C** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
-C** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
-C
-C***********************************************************************
-C   Changes from Version 3.2 to Version 3.3:                         ***
-C   * We now suppress dry deposition over aerodynamically smooth     ***
-C     surfaces.  The previous algorithm yielded negative numbers     ***
-C     when u* was very small (due to the logarithm going negative).  ***
-C     See the comments below for more information.                   ***
-C   * Now eliminate obsolete variables ZLMO and SIH from the code.   ***
-C   * Obsolete comments have been updated or removed.                ***
-C***********************************************************************
-C   Changes from version 3.1 to version 3.2:                         ***
-C   * In unstable atmospheres with |ZLMO| < ZO, as can happen        ***
-C    occasionally under very low wind conditions with tall canopies, ***
-C    application of Monin-Obukhov similarity yields negative values  ***
-C    for RA.  This was a problem in version 3.1.  In fact,           ***
-C    Monin-Obukhov similarity does not apply under such conditions,  ***
-C    so we now set RA to zero and let the boundary                   ***
-C    resistance RB define the overall aerodynamic resistance.  Since *** 
-C    RB varies inversely with U* it will impose a large aerodynamic  ***
-C    resistance under very low wind conditions.                      ***
-C   * The range of applicability of stability correction functions   ***
-C    to Monin-Obukhov similarity has been extended to                ***
-C    -2.5 < z/zMO < 1.5, based on Figure 2 of Businger et al. [1971].***
-C    The range used to be -1 < z/zMO < 1 in version 3.1.             ***
-C***********************************************************************
-C                                  
-C  Literature cited:
-C     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
-C       resistance model for gaseous deposition to vegetated surfaces,
-C       Atmos. Environ. 21, 91-101, 1987.
-C     Brutsaert, W., Evaporation into the Atmosphere, Reidel, 1982.
-C     Businger, J.A., et al., Flux-profile relationships in the atmospheric 
-C       surface layer, J. Atmos. Sci., 28, 181-189, 1971.
-C     Dwight, H.B., Tables of integrals and other mathematical data,
-C       MacMillan, 1957.
-C     Guenther, A., and 15 others, A global model of natural volatile
-C       organic compound emissions, J. Geophys. Res., 100, 8873-8892, 1995.
-C     Hicks, B.B., and P.S. Liss, Transfer of SO2 and other reactive
-C       gases across the air-sea interface, Tellus, 28, 348-354, 1976.
-C     Jacob, D.J., and S.C. Wofsy, Budgets of reactive nitrogen,
-C       hydrocarbons, and ozone over the Amazon forest during the wet season,
-C       J.  Geophys. Res., 95, 16737-16754, 1990.
-C     Jacob, D.J., and 9 others, Deposition of ozone to tundra,
-C       J. Geophys. Res., 97, 16473-16479, 1992.
-C     Levine, I.N., Physical Chemistry, 3rd ed., McGraw-Hill, New York, 1988.
-C     Munger, J.W., and 8 others, Atmospheric deposition of reactive
-C       nitrogen oxides and ozone in a temperate deciduous forest and a
-C       sub-arctic woodland, J. Geophys. Res., in press, 1996.
-C     Walcek, C.J., R.A. Brost, J.S. Chang, and M.L. Wesely, SO2, sulfate, and
-C       HNO3 deposition velocities computed using regional landuse and
-C       meteorological data, Atmos. Environ., 20, 949-964, 1986.
-C     Wang, Y.H., paper in preparation, 1996.
-C     Wesely, M.L, Improved parameterizations for surface resistance to
-C       gaseous dry deposition in regional-scale numerical models, 
-C       Environmental Protection Agency Report EPA/600/3-88/025,
-C       Research Triangle Park (NC), 1988.
-C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
-C
-C***********************************************************************       
-C
-C Need as landtype input for each grid square (I,J) see (RDLAND & F77_CMN_VEL):
-C     IJREG(JLOOP)       - # of landtypes in grid square
-C     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
-C                          (could be from any source - mapped to deposition 
-C                          surface ID in input unit 65)
-C     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
-C                          land type element LDT
-C
-C Need as leaf area index see (RDLAI & F77_CMN_VEL):
-C     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
-C
-C Need as meteorological input for each grid square(I,J) (passed):
-C     RADIAT(IJLOOP) - Solar radiation in W m-2
-C     TEMP(IJLOOP)   - Surface air temperature in K
-C     SUNCOS(IJLOOP) - Cosine of solar zenith angle
-C     LSNOW(IJLOOP)  - Logical for snow and sea ice
-C     RHB(IJLOOP)    - Relative humidity at the surface
-C
-C Need as input for each species K (passed):
-C     F0(K)          - reactivity factor for oxidation of biological substances
-C     HSTAR(K)       - Henry's Law constant
-C     XMW(K)         - Molecular weight (kg/mole) of species K
-C                      (used to calculate molecular diffusivities)
-C     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
-C                                    F = gas-phase species)
-C
-C Also need to call the following subroutines to read drydep input data:
-C     "modin.f"      - reads Olson land types, dry deposition land types,
-C                      and roughness heights from "drydep.table". 
-C                      (NOTE: For GEOS model, roughness heights are taken
-C                       from met field input instead of from "drydep.table").
-C     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
-C     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
-C     "rdland.f"     - reads Olson land types from file "vegtype.global"
-C
-C Some variables used in the subroutine (passed):
-C     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
-C                        (RA=1.E4 m s-1) is imposed; else RA is calculated
-C     USTAR(IJLOOP)  - Friction velocity (m s-1)
-C     CZ1(IJLOOP)    - Altitude (m) at which deposition velocity is computed
-C     OBK(IJLOOP)    - Monin-Obukhov length (m): set to 1.E5 m under neutral 
-C                      conditions
-C     CFRAC(IJLOOP)  - Fractional cloud cover
-C     ZH(IJLOOP)     - Mixing depth (m)
-C
-C Some variables used in the subroutine:
-C     MAXDEP         - the maximum number of species for which the dry 
-C                      deposition calculation is done
-C     ZO(LDT)        - Roughness height (m) for specific surface type indexed 
-C                      by LDT
-C     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
-C                      surface LDT
-C     C1X(K)         - Total resistance to deposition (s m-1) for species K
-C
-C Returned:
-C     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
-C***********************************************************************       
+!     Subroutine computes the dry deposition velocities using 
+!      a resistance-in-series model.
+!
+!** Contact: D.J. Jacob, Harvard U. (djj@io.harvard.edu)
+!** Modularized by G.M. Gardner, Harvard U.
+!** Version 3.2:   5/27/97
+!** Version 3.2.1: 3/4/99   -- bug fix in expression for RT 
+!** Version 3.2.2: 3/26/99  -- bug fix: specify a large Ra for aerosols
+!** Version 3.2.3: 11/12/99 -- change Reynolds # criterion from 10 to 1
+!                           -- force double precision w/ "D" exponents
+!** Version 3.3:   5/8/00   -- bug fixes, cleanup, updated comments.
+!** Version 3.4:   1/22/03  -- remove hardwire for CANOPYNOX
+!** Version 3.5    7/21/03  -- Remove cap of surface resistance in RLUXX
+!** Version 3.6    4/01/04  -- Now do drydep of DUST aerosol tracers
+!** Version 3.7    4/20/04  -- Now also do drydep of SEASALT aerosol tracers
+!** Version 3.8    4/13/05  -- Accounts for hygroscopic growth of SEASALT
+!**                             aerosol tracers.  DUST aerosol tracers do
+!**                             not grow hygroscopically.  Added RHB as
+!**                             an input argument.
+!** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
+!** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
+!
+!***********************************************************************
+!   Changes from Version 3.2 to Version 3.3:                         ***
+!   * We now suppress dry deposition over aerodynamically smooth     ***
+!     surfaces.  The previous algorithm yielded negative numbers     ***
+!     when u* was very small (due to the logarithm going negative).  ***
+!     See the comments below for more information.                   ***
+!   * Now eliminate obsolete variables ZLMO and SIH from the code.   ***
+!   * Obsolete comments have been updated or removed.                ***
+!***********************************************************************
+!   Changes from version 3.1 to version 3.2:                         ***
+!   * In unstable atmospheres with |ZLMO| < ZO, as can happen        ***
+!    occasionally under very low wind conditions with tall canopies, ***
+!    application of Monin-Obukhov similarity yields negative values  ***
+!    for RA.  This was a problem in version 3.1.  In fact,           ***
+!    Monin-Obukhov similarity does not apply under such conditions,  ***
+!    so we now set RA to zero and let the boundary                   ***
+!    resistance RB define the overall aerodynamic resistance.  Since *** 
+!    RB varies inversely with U* it will impose a large aerodynamic  ***
+!    resistance under very low wind conditions.                      ***
+!   * The range of applicability of stability correction functions   ***
+!    to Monin-Obukhov similarity has been extended to                ***
+!    -2.5 < z/zMO < 1.5, based on Figure 2 of Businger et al. [1971].***
+!    The range used to be -1 < z/zMO < 1 in version 3.1.             ***
+!***********************************************************************
+!                                  
+!  Literature cited:
+!     Baldocchi, D.D., B.B. Hicks, and P. Camara, A canopy stomatal
+!       resistance model for gaseous deposition to vegetated surfaces,
+!       Atmos. Environ. 21, 91-101, 1987.
+!     Brutsaert, W., Evaporation into the Atmosphere, Reidel, 1982.
+!     Businger, J.A., et al., Flux-profile relationships in the atmospheric 
+!       surface layer, J. Atmos. Sci., 28, 181-189, 1971.
+!     Dwight, H.B., Tables of integrals and other mathematical data,
+!       MacMillan, 1957.
+!     Guenther, A., and 15 others, A global model of natural volatile
+!       organic compound emissions, J. Geophys. Res., 100, 8873-8892, 1995.
+!     Hicks, B.B., and P.S. Liss, Transfer of SO2 and other reactive
+!       gases across the air-sea interface, Tellus, 28, 348-354, 1976.
+!     Jacob, D.J., and S.C. Wofsy, Budgets of reactive nitrogen,
+!       hydrocarbons, and ozone over the Amazon forest during the wet season,
+!       J.  Geophys. Res., 95, 16737-16754, 1990.
+!     Jacob, D.J., and 9 others, Deposition of ozone to tundra,
+!       J. Geophys. Res., 97, 16473-16479, 1992.
+!     Levine, I.N., Physical Chemistry, 3rd ed., McGraw-Hill, New York, 1988.
+!     Munger, J.W., and 8 others, Atmospheric deposition of reactive
+!       nitrogen oxides and ozone in a temperate deciduous forest and a
+!       sub-arctic woodland, J. Geophys. Res., in press, 1996.
+!     Walcek, C.J., R.A. Brost, J.S. Chang, and M.L. Wesely, SO2, sulfate, and
+!       HNO3 deposition velocities computed using regional landuse and
+!       meteorological data, Atmos. Environ., 20, 949-964, 1986.
+!     Wang, Y.H., paper in preparation, 1996.
+!     Wesely, M.L, Improved parameterizations for surface resistance to
+!       gaseous dry deposition in regional-scale numerical models, 
+!       Environmental Protection Agency Report EPA/600/3-88/025,
+!       Research Triangle Park (NC), 1988.
+!     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
+!
+!***********************************************************************       
+!
+! Need as landtype input for each grid square (I,J) see (RDLAND & F77_CMN_VEL):
+!     IJREG(JLOOP)       - # of landtypes in grid square
+!     IJLAND(IJLOOP,LDT) - Land type ID for element LDT =1, IJREG(IJLOOP)
+!                          (could be from any source - mapped to deposition 
+!                          surface ID in input unit 65)
+!     IJUSE(IJLOOP,LDT)  - Fraction ((per mil) of gridbox area occupied by
+!                          land type element LDT
+!
+! Need as leaf area index see (RDLAI & F77_CMN_VEL):
+!     XYLAI(IJLOOP,LDT)  - Leaf Area Index of land type element LDT
+!
+! Need as meteorological input for each grid square(I,J) (passed):
+!     RADIAT(IJLOOP) - Solar radiation in W m-2
+!     TEMP(IJLOOP)   - Surface air temperature in K
+!     SUNCOS(IJLOOP) - Cosine of solar zenith angle
+!     LSNOW(IJLOOP)  - Logical for snow and sea ice
+!     RHB(IJLOOP)    - Relative humidity at the surface
+!
+! Need as input for each species K (passed):
+!     F0(K)          - reactivity factor for oxidation of biological substances
+!     HSTAR(K)       - Henry's Law constant
+!     XMW(K)         - Molecular weight (kg/mole) of species K
+!                      (used to calculate molecular diffusivities)
+!     AIROSOL(K)     - LOGICAL flag (T = aerosol species; 
+!                                    F = gas-phase species)
+!
+! Also need to call the following subroutines to read drydep input data:
+!     "modin.f"      - reads Olson land types, dry deposition land types,
+!                      and roughness heights from "drydep.table". 
+!                      (NOTE: For GEOS model, roughness heights are taken
+!                       from met field input instead of from "drydep.table").
+!     "rddrycf.f     - reads drydep polynomial coeff's from file "drydep.coef"
+!     "rdlai.f"      - reads Leaf Area Indices from files "lai**.global"
+!     "rdland.f"     - reads Olson land types from file "vegtype.global"
+!
+! Some variables used in the subroutine (passed):
+!     LRGERA(IJLOOP) T -> stable atmosphere; a high aerodynamic resistance
+!                        (RA=1.E4 m s-1) is imposed; else RA is calculated
+!     USTAR(IJLOOP)  - Friction velocity (m s-1)
+!     CZ1(IJLOOP)    - Altitude (m) at which deposition velocity is computed
+!     OBK(IJLOOP)    - Monin-Obukhov length (m): set to 1.E5 m under neutral 
+!                      conditions
+!     CFRAC(IJLOOP)  - Fractional cloud cover
+!     ZH(IJLOOP)     - Mixing depth (m)
+!
+! Some variables used in the subroutine:
+!     MAXDEP         - the maximum number of species for which the dry 
+!                      deposition calculation is done
+!     ZO(LDT)        - Roughness height (m) for specific surface type indexed 
+!                      by LDT
+!     RSURFC(K,LDT)  - Bulk surface resistance (s m-1) for species K to 
+!                      surface LDT
+!     C1X(K)         - Total resistance to deposition (s m-1) for species K
+!
+! Returned:
+!     DVEL(IJLOOP,K) - Deposition velocity (m s-1) of species K
+!***********************************************************************       
 
-#     include "F77_CMN_SIZE"
-#     include "F77_CMN_VEL"
-#     include "commsoil.h"
+      USE CMN_SIZE_MOD
+      USE CMN_VEL_MOD
+      USE COMMSOIL_MOD
 
       INTEGER NPTS
       REAL*8  RADIAT(MAXIJ),TEMP(MAXIJ),SUNCOS(MAXIJ)
@@ -1385,16 +1386,16 @@ C***********************************************************************
       REAL*8  RCLX,RIXX,BIOFIT
       REAL*8  PRESS
       DATA PRESS /1.5D5/
-C
-C Logical for snow and sea ice
-C
+!
+! Logical for snow and sea ice
+!
 
       LOGICAL LSNOW(MAXIJ)
-C***********************************************************************       
-C
-C
-C** If LDEP(K)=F, species does not deposit.
-C** Deposition is applied only to species with LDEP=T.
+!***********************************************************************       
+!
+!
+!** If LDEP(K)=F, species does not deposit.
+!** Deposition is applied only to species with LDEP=T.
 
       DO K = 1,NUMDEP
          LDEP(K) = (HSTAR(K).GT.0.D0 .OR. F0(K).GT.0.D0 
@@ -1406,11 +1407,11 @@ C** Deposition is applied only to species with LDEP=T.
             DVEL(IJLOOP,K) = 0.0D0
          ENDDO
       ENDDO
-C***********************************************************************
-C*                                 
-C*    Begin section for computing deposition velocities           
-C*                                 
-C*                                 
+!***********************************************************************
+!*                                 
+!*    Begin section for computing deposition velocities           
+!*                                 
+!*                                 
       ! Add parallel DO-loop (bmy, 2/22/05)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1425,12 +1426,12 @@ C*
 !$OMP+PRIVATE( C1X,    VK                                     )
       DO 560 IJLOOP =1,NPTS
 
-C** CZ is Altitude (m) at which deposition velocity is computed
+!** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(IJLOOP)
-C** TEMPK and TEMPC are surface air temperatures in K and in C
+!** TEMPK and TEMPC are surface air temperatures in K and in C
          TEMPK = TEMP(IJLOOP)
          TEMPC = TEMP(IJLOOP)-273.15D0
-C* Initialize variables
+!* Initialize variables
          DO K = 1,NUMDEP
             VD(K) = 0.0D0
             DO LDT = 1,NTYPE
@@ -1438,73 +1439,73 @@ C* Initialize variables
             END DO
          END DO
 
-C** Calculate the kinematic viscosity XNU (m2 s-1) of air
-C** as a function of temperature.
-C** The kinematic viscosity is used to calculate the roughness heights over
-C** water surfaces and to diagnose whether such surfaces are aerodynamically
-C** rough or smooth using a Reynolds number criterion.
-C** The expression for the temperature dependence of XNU
-C** is from the FORTRAN code in Appendix II of Wesely [1988];
-C** I wasn't able to find an original reference but it seems benign enough.
+!** Calculate the kinematic viscosity XNU (m2 s-1) of air
+!** as a function of temperature.
+!** The kinematic viscosity is used to calculate the roughness heights over
+!** water surfaces and to diagnose whether such surfaces are aerodynamically
+!** rough or smooth using a Reynolds number criterion.
+!** The expression for the temperature dependence of XNU
+!** is from the FORTRAN code in Appendix II of Wesely [1988];
+!** I wasn't able to find an original reference but it seems benign enough.
          C1 = TEMPK/273.15D0
          XNU = 0.151D0*(C1**1.77D0)*1.0D-04
 
-C* Compute bulk surface resistance for gases.    
-C*                                 
-C* Adjust external surface resistances for temperature; 
-C* from Wesely [1989], expression given in text on p. 1296.        
-C*                                 
-C* BUG FIX!  Wesely [1989] gives RT = 1000.0*EXP(-TEMPC-4.0)
-C* so the inner parentheses are not needed (bmy, 3/4/99)
-C*        RT = 1000.0*EXP(-(TEMPC-4.0))
+!* Compute bulk surface resistance for gases.    
+!*                                 
+!* Adjust external surface resistances for temperature; 
+!* from Wesely [1989], expression given in text on p. 1296.        
+!*                                 
+!* BUG FIX!  Wesely [1989] gives RT = 1000.0*EXP(-TEMPC-4.0)
+!* so the inner parentheses are not needed (bmy, 3/4/99)
+!*        RT = 1000.0*EXP(-(TEMPC-4.0))
          RT = 1000.0D0*EXP(-TEMPC-4.0D0)
-C*
-C    Get surface resistances - loop over land types LDT
-C***************************************************************************
-C* The land types within each grid square are defined using the Olson
-C* land-type database.  Each of the Olson land types is assigned a 
-C* corresponding "deposition land type" with characteristic values of surface
-C* resistance components.  There are 74 Olson land-types but only 11 deposition
-C* land-types (i.e., many of the Olson land types share the same deposition
-C* characteristics).  Surface resistance components for the "deposition land 
-C* types" are from Wesely [1989] except for tropical forests [Jacob and Wofsy,
-C* 1990] and for tundra [Jacob et al., 1992].  All surface resistance 
-C* components are normalized to a leaf area index of unity.
-C*
-C* Olson land types, deposition land types, and surface resistance components
-C* are read from file 'drydep.table'; check that file for further details.
-C****************************************************************************
+!*
+!    Get surface resistances - loop over land types LDT
+!***************************************************************************
+!* The land types within each grid square are defined using the Olson
+!* land-type database.  Each of the Olson land types is assigned a 
+!* corresponding "deposition land type" with characteristic values of surface
+!* resistance components.  There are 74 Olson land-types but only 11 deposition
+!* land-types (i.e., many of the Olson land types share the same deposition
+!* characteristics).  Surface resistance components for the "deposition land 
+!* types" are from Wesely [1989] except for tropical forests [Jacob and Wofsy,
+!* 1990] and for tundra [Jacob et al., 1992].  All surface resistance 
+!* components are normalized to a leaf area index of unity.
+!*
+!* Olson land types, deposition land types, and surface resistance components
+!* are read from file 'drydep.table'; check that file for further details.
+!****************************************************************************
          DO 170 LDT = 1,IJREG(IJLOOP)
             IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 170
             IOLSON = IJLAND(IJLOOP,LDT)+1
             II = IDEP(IOLSON)
-C
-C** If the surface to be snow or ice;
-C** set II to 1 instead.
-C
+!
+!** If the surface to be snow or ice;
+!** set II to 1 instead.
+!
             IF(LSNOW(IJLOOP)) II=1
 
-C* Read the internal resistance RI (minimum stomatal resistance for water 
-C* vapor,per unit area of leaf) from the IRI array; a '9999' value means no 
-C* deposition to stomata so we impose a very large value for RI.
+!* Read the internal resistance RI (minimum stomatal resistance for water 
+!* vapor,per unit area of leaf) from the IRI array; a '9999' value means no 
+!* deposition to stomata so we impose a very large value for RI.
 
             RI(LDT) = DBLE(IRI(II))
             IF (RI(LDT)   .GE. 9999.D0) RI(LDT)   = 1.D12
 
-C** Cuticular resistances IRLU read in from 'drydep.table'
-C** are per unit area of leaf;
-C** divide them by the leaf area index to get a cuticular resistance for the
-C** bulk canopy.  If IRLU is '9999' it means there are no cuticular
-C** surfaces on which to deposit so we impose a very large value for RLU.
+!** Cuticular resistances IRLU read in from 'drydep.table'
+!** are per unit area of leaf;
+!** divide them by the leaf area index to get a cuticular resistance for the
+!** bulk canopy.  If IRLU is '9999' it means there are no cuticular
+!** surfaces on which to deposit so we impose a very large value for RLU.
             IF (IRLU(II) .GE. 9999 .OR. 
      &           XYLAI(IJLOOP,LDT).LE.0.D0) THEN
                RLU(LDT)  = 1.D6
             ELSE
                RLU(LDT)= DBLE(IRLU(II))/XYLAI(IJLOOP,LDT)+RT
             ENDIF
-C** The following are the remaining resistances for the Wesely
-C** resistance-in-series model for a surface canopy
-C** (see Atmos. Environ. paper, Fig.1).  
+!** The following are the remaining resistances for the Wesely
+!** resistance-in-series model for a surface canopy
+!** (see Atmos. Environ. paper, Fig.1).  
             RAC(LDT)  = MAX(DBLE(IRAC(II)), 1.D0)
             IF (RAC(LDT)  .GE. 9999.D0) RAC(LDT)  = 1.D12
             RGSS(LDT) = MAX(DBLE(IRGSS(II)) + RT ,1.D0)
@@ -1515,32 +1516,32 @@ C** (see Atmos. Environ. paper, Fig.1).
             IF (RCLS(LDT) .GE. 9999.D0) RCLS(LDT) = 1.D12
             RCLO(LDT) = DBLE(IRCLO(II)) + RT          
             IF (RCLO(LDT) .GE. 9999.D0) RCLO(LDT) = 1.D12
-C***************************************************************************
-C*                                 
-C*    Adjust stomatal resistances for insolation and temperature:  
-C*
-C*     Temperature adjustment is from Wesely [1989], equation (3).
-C*       
-C*     Light adjustment by the function BIOFIT is described by Wang [1996].
-C*     It combines
-C*       - Local dependence of stomal resistance on the intensity I of light 
-C*         impinging the leaf; this is expressed as a mutliplicative 
-C*         factor I/(I+b) to the stomatal resistance where b = 50 W m-2
-C*         (equation (7) of Baldocchi et al. [1987])
-C*       - radiative transfer of direct and diffuse radiation in the 
-C*         canopy using equations (12)-(16) from Guenther et al. [1995]
-C*       - separate accounting of sunlit and shaded leaves using
-C*         equation (12) of Guenther et al. [1995]
-C*       - partitioning of the radiation at the top of the canopy into direct
-C*         and diffuse components using a parameterization to results from
-C*         an atmospheric radiative transfer model [Wang, 1996]
-C*     The dependent variables of the function BIOFIT are the leaf area
-C*     index (XYLAI), the cosine of zenith angle (SUNCOS) and the fractional
-C*     cloud cover (CFRAC).  The factor GFACI integrates the light
-C*     dependence over the canopy depth; sp even though RI is input per
-C*     unit area of leaf it need not be scaled by LAI to yield a bulk
-C*     canopy value because that's already done in the GFACI formulation.
-C***************************************************************************
+!***************************************************************************
+!*                                 
+!*    Adjust stomatal resistances for insolation and temperature:  
+!*
+!*     Temperature adjustment is from Wesely [1989], equation (3).
+!*       
+!*     Light adjustment by the function BIOFIT is described by Wang [1996].
+!*     It combines
+!*       - Local dependence of stomal resistance on the intensity I of light 
+!*         impinging the leaf; this is expressed as a mutliplicative 
+!*         factor I/(I+b) to the stomatal resistance where b = 50 W m-2
+!*         (equation (7) of Baldocchi et al. [1987])
+!*       - radiative transfer of direct and diffuse radiation in the 
+!*         canopy using equations (12)-(16) from Guenther et al. [1995]
+!*       - separate accounting of sunlit and shaded leaves using
+!*         equation (12) of Guenther et al. [1995]
+!*       - partitioning of the radiation at the top of the canopy into direct
+!*         and diffuse components using a parameterization to results from
+!*         an atmospheric radiative transfer model [Wang, 1996]
+!*     The dependent variables of the function BIOFIT are the leaf area
+!*     index (XYLAI), the cosine of zenith angle (SUNCOS) and the fractional
+!*     cloud cover (CFRAC).  The factor GFACI integrates the light
+!*     dependence over the canopy depth; sp even though RI is input per
+!*     unit area of leaf it need not be scaled by LAI to yield a bulk
+!*     canopy value because that's already done in the GFACI formulation.
+!***************************************************************************
 
             RAD0 = RADIAT(IJLOOP)
             RIX = RI(LDT)
@@ -1556,18 +1557,18 @@ C***************************************************************************
             
             RIX = RIX*GFACT*GFACI
  150        CONTINUE
-C*                                 
-C*    Compute aerodynamic resistance to lower elements in lower part           
-C*    of the canopy or structure, assuming level terrain - 
-C*    equation (5) of Wesely [1989].
-C*                                 
+!*                                 
+!*    Compute aerodynamic resistance to lower elements in lower part           
+!*    of the canopy or structure, assuming level terrain - 
+!*    equation (5) of Wesely [1989].
+!*                                 
             RDC = 100.D0*(1.0D0+1000.0D0/(RAD0 + 10.D0))
-C*
-C*    Loop over species; species-dependent corrections to resistances
-C*    are from equations (6)-(9) of Wesely [1989].
-C*
+!*
+!*    Loop over species; species-dependent corrections to resistances
+!*    are from equations (6)-(9) of Wesely [1989].
+!*
             DO 160  K = 1,NUMDEP
-C** exit for non-depositing species or aerosols.
+!** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
                RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
@@ -1576,41 +1577,41 @@ C** exit for non-depositing species or aerosols.
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
      C              RLUXX = RLU(LDT)/(HSTAR(K)/1.0D+05 + F0(K))
-C*
-C* To prevent virtually zero resistance to species with huge HSTAR, such
-C* as HNO3, a minimum value of RLUXX needs to be set. The rationality
-C* of the existence of such a minimum is demonstrated by the observed
-C* relationship between Vd(NOy-NOx) and Ustar in Munger et al.[1996];
-C* Vd(HNO3) never exceeds 2 cm s-1 in observations. The
-C* corresponding minimum resistance is 50 s m-1.  This correction
-C* was introduced by J.Y. Liang on 7/9/95.
-C*
+!*
+!* To prevent virtually zero resistance to species with huge HSTAR, such
+!* as HNO3, a minimum value of RLUXX needs to be set. The rationality
+!* of the existence of such a minimum is demonstrated by the observed
+!* relationship between Vd(NOy-NOx) and Ustar in Munger et al.[1996];
+!* Vd(HNO3) never exceeds 2 cm s-1 in observations. The
+!* corresponding minimum resistance is 50 s m-1.  This correction
+!* was introduced by J.Y. Liang on 7/9/95.
+!*
                !-----------------------------------------------------------
                ! Prior to 7/21/03:
                ! Remove the cap of surface resistance (rjp, bmy, 7/21/03)
                !IF(RLUXX.LT. 50.D0) RLUXX= 50.D0
                !-----------------------------------------------------------
-C     
+!     
                RGSX = 1.D0/(HSTAR(K)/1.0D+05/RGSS(LDT) + 
      1              F0(K)/RGSO(LDT))
                RCLX = 1.D0/(HSTAR(K)/1.0D+05/RCLS(LDT) + 
      1              F0(K)/RCLO(LDT))
-C*
-C** Get the bulk surface resistance of the canopy, RSURFC, from the network
-C** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
+!*
+!** Get the bulk surface resistance of the canopy, RSURFC, from the network
+!** of resistances in parallel and in series (Fig. 1 of Wesely [1989])
                DTMP1=1.D0/RIXX
                DTMP2=1.D0/RLUXX
                DTMP3=1.D0/(RAC(LDT)+RGSX)
                DTMP4=1.D0/(RDC+RCLX)
                RSURFC(K,LDT) = 1.D0/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
-C  Save the within canopy depvel of NOx, used in calculating the 
-C  canopy reduction factor for soil emissions.
+!  Save the within canopy depvel of NOx, used in calculating the 
+!  canopy reduction factor for soil emissions.
                ! Remove hardwire for CANOPYNOX (bmy, 1/24/03)
                IF ( K == DRYDNO2 ) THEN
                   CANOPYNOX(IJLOOP,LDT)=DTMP1+DTMP2+DTMP3+DTMP4
                ENDIF
-C** get surface deposition velocity for aerosols if needed;
-C** equations (15)-(17) of Walcek et al. [1986]
+!** get surface deposition velocity for aerosols if needed;
+!** equations (15)-(17) of Walcek et al. [1986]
  155           IF (.NOT. AIROSOL(K)) GOTO 160
 
               !===========================================================
@@ -1689,19 +1690,19 @@ C** equations (15)-(17) of Walcek et al. [1986]
      &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, 
      &                              USTAR(IJLOOP))
                   
-C*                                 
-C*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
-C*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
-C*    Invert to get corresponding R
+!*                                 
+!*    Set VDS to be less than VDSMAX (entry in input file divided by 1.D4)
+!*    VDSMAX is taken from Table 2 of Walcek et al. [1986].
+!*    Invert to get corresponding R
 
 !                  RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
                ENDIF
  160        CONTINUE
-C*
+!*
  170     CONTINUE
-C*
-C*    Set max and min values for bulk surface resistances         
-C*                                 
+!*
+!*    Set max and min values for bulk surface resistances         
+!*                                 
          DO 190 K = 1,NUMDEP 
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1,IJREG(IJLOOP)
@@ -1709,9 +1710,9 @@ C*
                RSURFC(K,LDT)= MAX(1.D0, MIN(RSURFC(K,LDT), 9999.D0))
  180        CONTINUE
  190     CONTINUE
-C*                                 
-C*    Loop through the different landuse types present in the grid square     
-C*                                 
+!*                                 
+!*    Loop through the different landuse types present in the grid square     
+!*                                 
          DO 500 LDT=1, IJREG(IJLOOP)
             IF (IJUSE(IJLOOP,LDT) .EQ. 0) GOTO 500
             IOLSON = IJLAND(IJLOOP,LDT)+1
@@ -1731,86 +1732,86 @@ C*
  210        CONTINUE
 #endif
 
-C***** Get aerodynamic resistances Ra and Rb. ***********************
-C   The aerodynamic resistance Ra is integrated from altitude z0+d up to the
-C   altitude z1 at which the dry deposition velocity is to be referenced.
-C   The integration corrects for stability using Monin-Obukhov similarity 
-C   formulas from Businger et al. [1971] which apply over the range 
-C   -2.5 < z/zMO < 1.5 (see their Figure 2).
-C   Under very unstable conditions when z1 > -2.5 zMO, we assume that there is
-C   no resistance to transfer in the convective column between zMO and z1.
-C   Under very stable conditions when z1 > 1.5 zMO, we assume that vertical
-C   transfer in the column between zMO and z1 is strongly suppressed so
-C   that the deposition velocity at altitude z1 is very low.  Under these
-C   conditions we just specify a very large Ra=1.E4 s m-1 (LRGERA = T).
-C**
-C   The Reynolds number REYNO diagnoses whether a surface is
-C   aerodynamically rough (REYNO > 1) or smooth.  
-C
-C   NOTE: The criterion "REYNO > 1" was originally "REYNO > 10".
-C         See below for an explanation of why it was changed (hyl, 10/15/99)
-C
-C   Surface is rough in all cases except over water with low wind speeds.  
-C   In the smooth case, vertical transport IN THE SUBLAYER near the surface 
-C   is limited by molecular diffusion and is therefore very slow; we assign 
-C   a large value we assign a large value of Ra + Rb to account for this 
-C   effect.  [In Versions 3.2 and earlier we used the formulation for Ra + Rb 
-C   given in Equation (12) of Walcek et al [1986] to calculate the aerodynamic 
-C   resistance over smooth surfaces.  However, that expression fails when 
-C   u* is very small, as it yields negative values of Ra + Rb].  
-C   (djj, hyl, bmy, 5/8/00)
-C**
-C   In the aerodynamically rough case, the expression for Ra is as
-C   given in equation (5) of Jacob et al. [1992]:
-C
-C          Ra = (1/ku*)*int(from z0 to z1) (phi(x)/z)dz
-C
-C    where x = (z-D)/zMO, z is the height above ground, and D is the
-C    displacement height which is typically 70-80% of the canopy height
-C    [Brutsaert, 1982].  We change the vertical coordinate so that z=0 at
-C    the displacement height; that's OK since for all practical applications
-C    z1 >> D.  In this manner we don't need to assume any specific value for
-C    the displacement height.  Applying the variable transformation 
-C    z -> x = z/zMO, the equation above becomes
-C
-C          Ra = (1/ku*)*int(from x0 to x1) (phi(x)/x)dx   with x=z/zMO
-C
-C    Here phi is a stability correction function originally formulated by
-C    Businger et al. [1971] and given in eqns 5a and 5b of Jacob et al. [1992].
-C    For unstable conditions,
-C
-C          phi(x) = a/sqrt(1-bx)  where a=0.74, b = 9
-C
-C    The analytical solution to the integral is 
-C    [Dwight, 1957, integral 192.11]:
-C
-C          int(dx/(x*sqrt(1-bx))) = log(abs((sqrt(1-bx)-1)/(sqrt(1-bx)+1)))
-C
-C    which yields the expression for Ra used in the code for unstable 
-C    conditions.  For stable conditions,
-C
-C          phi(x) = a + bx        where a=0.74, b = 4.7
-C
-C    and the analytical solution to the integral is
-C
-C          int((a/x)+b)dx = a*ln(x) + bx
-C
-C    which yields the expression of Ra used in the code for stable conditions.
-C**
-C   The formulation of RB for gases is equation (12) of 
-C   Walcek et al. [1986].  The parameterization for deposition of
-C   aerosols does not include an RB term so RB for aerosols is set
-C   to zero.
-C   Modify phi(x) according to the non-local mixing scheme by Holtslag 
-C   and Boville [1993] ( Lin, 07/18/08 )
-C   For unstable conditions,
-C          phi(x) = a/sqrt(1-bx)  where a=1.0, b=15.0
-C
-C   For stable conditions,
-C          phi(x) = a + bx
-C              where a=1.0, b=5.0 for 0 <= x <= 1, and
-C                    a=5.0, b=1.0 for x > 1.0 
-C*********************************************************************
+!***** Get aerodynamic resistances Ra and Rb. ***********************
+!   The aerodynamic resistance Ra is integrated from altitude z0+d up to the
+!   altitude z1 at which the dry deposition velocity is to be referenced.
+!   The integration corrects for stability using Monin-Obukhov similarity 
+!   formulas from Businger et al. [1971] which apply over the range 
+!   -2.5 < z/zMO < 1.5 (see their Figure 2).
+!   Under very unstable conditions when z1 > -2.5 zMO, we assume that there is
+!   no resistance to transfer in the convective column between zMO and z1.
+!   Under very stable conditions when z1 > 1.5 zMO, we assume that vertical
+!   transfer in the column between zMO and z1 is strongly suppressed so
+!   that the deposition velocity at altitude z1 is very low.  Under these
+!   conditions we just specify a very large Ra=1.E4 s m-1 (LRGERA = T).
+!**
+!   The Reynolds number REYNO diagnoses whether a surface is
+!   aerodynamically rough (REYNO > 1) or smooth.  
+!
+!   NOTE: The criterion "REYNO > 1" was originally "REYNO > 10".
+!         See below for an explanation of why it was changed (hyl, 10/15/99)
+!
+!   Surface is rough in all cases except over water with low wind speeds.  
+!   In the smooth case, vertical transport IN THE SUBLAYER near the surface 
+!   is limited by molecular diffusion and is therefore very slow; we assign 
+!   a large value we assign a large value of Ra + Rb to account for this 
+!   effect.  [In Versions 3.2 and earlier we used the formulation for Ra + Rb 
+!   given in Equation (12) of Walcek et al [1986] to calculate the aerodynamic 
+!   resistance over smooth surfaces.  However, that expression fails when 
+!   u* is very small, as it yields negative values of Ra + Rb].  
+!   (djj, hyl, bmy, 5/8/00)
+!**
+!   In the aerodynamically rough case, the expression for Ra is as
+!   given in equation (5) of Jacob et al. [1992]:
+!
+!          Ra = (1/ku*)*int(from z0 to z1) (phi(x)/z)dz
+!
+!    where x = (z-D)/zMO, z is the height above ground, and D is the
+!    displacement height which is typically 70-80% of the canopy height
+!    [Brutsaert, 1982].  We change the vertical coordinate so that z=0 at
+!    the displacement height; that's OK since for all practical applications
+!    z1 >> D.  In this manner we don't need to assume any specific value for
+!    the displacement height.  Applying the variable transformation 
+!    z -> x = z/zMO, the equation above becomes
+!
+!          Ra = (1/ku*)*int(from x0 to x1) (phi(x)/x)dx   with x=z/zMO
+!
+!    Here phi is a stability correction function originally formulated by
+!    Businger et al. [1971] and given in eqns 5a and 5b of Jacob et al. [1992].
+!    For unstable conditions,
+!
+!          phi(x) = a/sqrt(1-bx)  where a=0.74, b = 9
+!
+!    The analytical solution to the integral is 
+!    [Dwight, 1957, integral 192.11]:
+!
+!          int(dx/(x*sqrt(1-bx))) = log(abs((sqrt(1-bx)-1)/(sqrt(1-bx)+1)))
+!
+!    which yields the expression for Ra used in the code for unstable 
+!    conditions.  For stable conditions,
+!
+!          phi(x) = a + bx        where a=0.74, b = 4.7
+!
+!    and the analytical solution to the integral is
+!
+!          int((a/x)+b)dx = a*ln(x) + bx
+!
+!    which yields the expression of Ra used in the code for stable conditions.
+!**
+!   The formulation of RB for gases is equation (12) of 
+!   Walcek et al. [1986].  The parameterization for deposition of
+!   aerosols does not include an RB term so RB for aerosols is set
+!   to zero.
+!   Modify phi(x) according to the non-local mixing scheme by Holtslag 
+!   and Boville [1993] ( Lin, 07/18/08 )
+!   For unstable conditions,
+!          phi(x) = a/sqrt(1-bx)  where a=1.0, b=15.0
+!
+!   For stable conditions,
+!          phi(x) = a + bx
+!              where a=1.0, b=5.0 for 0 <= x <= 1, and
+!                    a=5.0, b=1.0 for x > 1.0 
+!*********************************************************************
             CKUSTR = XCKMAN*USTAR(IJLOOP)
 
             ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
@@ -1843,7 +1844,7 @@ C*********************************************************************
                   CORR2 = LOG(-CORR1)
                ENDIF
             ENDIF
-C*                                 
+!*                                 
             IF (CKUSTR.EQ.0.0D0) THEN
                WRITE(6,212) IJLOOP,CKUSTR,XCKMAN,USTAR(IJLOOP)
  212           FORMAT(1X,'IJLOOP= ',I4,1X,'CKUSTR=',E10.1,1X,
@@ -1852,38 +1853,38 @@ C*
                CLOSE(98)
                STOP             ! debug
             ENDIF
-C
-C
-C...aerodynamically rough or smooth surface
-C "In the classic study by Nikuradse (1933) the transition from smooth
-C  to rough was examined in pipe flow. He introduced a roughness Reynolds
-C  number Rr = U* Z0 / Nu and found the flow to be smooth for Rr < 0.13
-C  and rough for Rr > 2.5 with a transition regime in between."
-C  (E.B. Kraus and J.A. Businger, Atmosphere-Ocean Interaction, second
-C  edition, P.144-145, 1994). Similar statements can be found in the books:
-C  Evaporation into the atmosphere, by Wilfried Brutsaert, P.59,89, 1982;
-C  or Seinfeld & Pandis, P.858, 1998. Here we assume a sudden transition
-C  point Rr = 1 from smooth to rough, following L. Merlivat (1978, The
-C  dependence of bulk evaporation coefficients on air-water interfacial
-C  conditions as determined by the isotopic method, J. Geophys. Res.,
-C  Oceans & Atmos., 83, C6, 2977-2980). Also refer to Brutsaert's book,
-C  P.125. We used to use the criterion "REYNO > 10" for aerodynamically
-C  rough surface and now change to "REYNO > 1". (hyl, 10/15/99)
-C  
-C  11/17/05: D. J. Jacob says to change the criterion for aerodynamically
-C  rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
+!
+!
+!...aerodynamically rough or smooth surface
+! "In the classic study by Nikuradse (1933) the transition from smooth
+!  to rough was examined in pipe flow. He introduced a roughness Reynolds
+!  number Rr = U* Z0 / Nu and found the flow to be smooth for Rr < 0.13
+!  and rough for Rr > 2.5 with a transition regime in between."
+!  (E.B. Kraus and J.A. Businger, Atmosphere-Ocean Interaction, second
+!  edition, P.144-145, 1994). Similar statements can be found in the books:
+!  Evaporation into the atmosphere, by Wilfried Brutsaert, P.59,89, 1982;
+!  or Seinfeld & Pandis, P.858, 1998. Here we assume a sudden transition
+!  point Rr = 1 from smooth to rough, following L. Merlivat (1978, The
+!  dependence of bulk evaporation coefficients on air-water interfacial
+!  conditions as determined by the isotopic method, J. Geophys. Res.,
+!  Oceans & Atmos., 83, C6, 2977-2980). Also refer to Brutsaert's book,
+!  P.125. We used to use the criterion "REYNO > 10" for aerodynamically
+!  rough surface and now change to "REYNO > 1". (hyl, 10/15/99)
+!  
+!  11/17/05: D. J. Jacob says to change the criterion for aerodynamically
+!  rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
             IF ( REYNO < 0.1d0 ) GOTO 220
 
             ! Add option for non-local PBL (Lin, 03/31/09) 
             IF (.NOT. LNLPBL) THEN
 
-C...aerodynamically rough surface.
-C*                                 
+!...aerodynamically rough surface.
+!*                                 
                IF (CORR1.LE.0.0D0 .AND. Z0OBK .LT. -1.D0)THEN
-C*... unstable condition; set RA to zero. (first implemented in V. 3.2)
+!*... unstable condition; set RA to zero. (first implemented in V. 3.2)
                   RA = 0.D0
                ELSEIF (CORR1.LE.0.0D0 .AND. Z0OBK .GE. -1.D0) THEN
-C*... unstable conditions; compute Ra as described above.
+!*... unstable conditions; compute Ra as described above.
                   DUMMY1 = (1.D0 - 9D0*CORR1)**0.5D0
                   DUMMY2 = (1.D0 - 9D0*Z0OBK)**0.5D0
                   DUMMY3 = ABS((DUMMY1 - 1.D0)/(DUMMY1 + 1.D0))
@@ -1891,20 +1892,20 @@ C*... unstable conditions; compute Ra as described above.
                   RA = 0.74D0* (1.D0/CKUSTR) * LOG(DUMMY3/DUMMY4)
                                  
                ELSEIF((CORR1.GT.0.0D0).AND.(.NOT.LRGERA(IJLOOP)))THEN
-C*...moderately stable conditions (z/zMO <1); compute Ra as described above
+!*...moderately stable conditions (z/zMO <1); compute Ra as described above
                   RA = (1D0/CKUSTR) * 
      &                 (.74D0*LOG(CORR1/Z0OBK) + 4.7D0*(CORR1-Z0OBK))
                ELSEIF(LRGERA(IJLOOP)) THEN
-C*... very stable conditions
+!*... very stable conditions
                   RA = 1.D+04
                ENDIF
-C* check that RA is positive; if RA is negative (as occasionally
-C* happened in version 3.1) send a warning message.
+!* check that RA is positive; if RA is negative (as occasionally
+!* happened in version 3.1) send a warning message.
 
             ELSE
 
                IF (CORR1.LT.0.0D0) THEN
-C*... unstable conditions; compute Ra as described above.
+!*... unstable conditions; compute Ra as described above.
                   !coef_a=1.d0
                   !coef_b=15.d0
                   DUMMY1 = (1.D0 - 15.D0*CORR1)**0.5D0
@@ -1944,11 +1945,11 @@ C*... unstable conditions; compute Ra as described above.
 #endif
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             I10,4(1X,E12.5))
-C* Get total resistance for deposition - loop over species.
+!* Get total resistance for deposition - loop over species.
             DO 215 K = 1,NUMDEP 
                IF (.NOT.LDEP(K)) GOTO 215
-C** DAIR is the thermal diffusivity of air; value of 0.2*1.E-4 m2 s-1 
-C** cited on p. 16,476 of Jacob et al. [1992]
+!** DAIR is the thermal diffusivity of air; value of 0.2*1.E-4 m2 s-1 
+!** cited on p. 16,476 of Jacob et al. [1992]
                DAIR = 0.2D0*1.D-4
                RB = (2.D0/CKUSTR)*
      x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
@@ -1957,10 +1958,10 @@ C** cited on p. 16,476 of Jacob et al. [1992]
  215        CONTINUE
             GOTO 240
  220        CONTINUE 
-C** ... aerodynamically smooth surface
-C** BUG FIX -- suppress drydep over smooth surfaces by setting Ra to a large
-C** value (1e4).  This prevents negative dry deposition velocities when u*
-C** is very small (djj, bmy, 5/8/00)
+!** ... aerodynamically smooth surface
+!** BUG FIX -- suppress drydep over smooth surfaces by setting Ra to a large
+!** value (1e4).  This prevents negative dry deposition velocities when u*
+!** is very small (djj, bmy, 5/8/00)
             DO 230 K = 1,NUMDEP 
                IF ( LDEP(K) ) THEN
                   RA     = 1.0D4
@@ -1969,12 +1970,12 @@ C** is very small (djj, bmy, 5/8/00)
  230        CONTINUE
 
  240        CONTINUE
-C*                                 
-C* IJUSE is the fraction of the grid square occupied by surface LDT
-C* in units of per mil (IJUSE=500 -> 50% of the grid square).  Add
-C* the contribution of surface type LDT to the deposition velocity;
-C* this is a loop over all surface types in the gridbox.
-C*
+!*                                 
+!* IJUSE is the fraction of the grid square occupied by surface LDT
+!* in units of per mil (IJUSE=500 -> 50% of the grid square).  Add
+!* the contribution of surface type LDT to the deposition velocity;
+!* this is a loop over all surface types in the gridbox.
+!*
             DO 400 K = 1,NUMDEP
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
@@ -1982,7 +1983,7 @@ C*
  400        CONTINUE
  500     CONTINUE
 
-C** Load array DVEL
+!** Load array DVEL
          DO 550 K=1,NUMDEP
             IF (.NOT.LDEP(K)) GOTO 550
             DVEL(IJLOOP,K) = VD(K)
@@ -2147,9 +2148,10 @@ C** Load array DVEL
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
       
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD        ! Size parameters
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
 
       ! Local variables
       INTEGER             :: L, IOLSON, I, IOS, IUNIT
@@ -2257,10 +2259,11 @@ C** Load array DVEL
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE, IOERROR
 
-      IMPLICIT NONE
-      
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD  ! Size parameters
 
+      IMPLICIT NONE
+#     include "define.h"
+      
       ! Local variables
       INTEGER            :: I, IOS
       CHARACTER(LEN=80)  :: DUM
@@ -3388,7 +3391,7 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
 
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       LOGICAL :: IS_Hg

@@ -17,12 +17,13 @@
 ! !USES:
 !
       USE GC_TYPE_MOD
+      USE SMV_ERRCODE_MOD
+      USE SMV_PHYSCONST_MOD
 
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 
-#     include "smv_errcode.h"
-#     include "smv_physconst.h"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -60,6 +61,7 @@
 !  05 Oct 2010 - R. Yantosca - Added ND14 and ND38 diagnostics to 
 !                              DO_MERRA_CONVECTION routine
 !  16 Aug 2011 - J. Fisher   - Minor bug fixes in DO_MERRA_CONVECTION
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -109,9 +111,12 @@
       USE WETSCAV_MOD,  ONLY : COMPUTE_F
       USE WETSCAV_MOD,  ONLY : H2O2s
       USE WETSCAV_MOD,  ONLY : SO2s
+#if   defined( APM )
+      USE TRACER_MOD,   ONLY : N_APMTRA
+#endif
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic flags
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic flags
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -131,9 +136,20 @@
 !  15 Oct 2010 - R. Yantosca - Now get H2O2s, SO2s from wetscav_mod.f
 !  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
 !  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N_TOT_TRC               ! # of tracers to convect
+
+      !=================================================================
+      ! DO_CONVECT begins here!
+      !=================================================================
+
 #if   defined( GCAP ) 
 
       !=================================================================
@@ -149,8 +165,15 @@
       ! GEOS-3 met fields
       !=================================================================
 
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( N_TRACERS, TCVV, CLDMAS, DTRAIN, STT )
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
+
+      ! Call the S-J Lin convection routine for GEOS-3
+      CALL NFCLDMX( N_TOT_TRC, TCVV, CLDMAS, DTRAIN, STT )
 
 #elif defined( GEOS_4 )
 
@@ -167,8 +190,15 @@
       ! GEOS-5 met fields
       !=================================================================
 
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( N_TRACERS, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
+
+      ! Call the S-J Lin convection routine for GEOS-5
+      CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
 #elif defined( MERRA )
 
@@ -182,7 +212,7 @@
       TYPE(SPEC_2_TRAC)  :: COEF
       TYPE(GC_OPTIONS)   :: OPTIONS
       TYPE(ID_TRAC)      :: IDT
-                         
+                   
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, RC, TS_DYN
       REAL*8             :: AREA_M2, DT
@@ -201,6 +231,13 @@
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
+
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       ! Define variables and object fields
       TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
@@ -370,9 +407,12 @@
       USE TRACER_MOD,        ONLY : N_TRACERS, STT, TCVV
       USE PRESSURE_MOD,      ONLY : GET_PEDGE
       USE WETSCAV_MOD,       ONLY : COMPUTE_F
+#if   defined( APM ) 
+      USE TRACER_MOD,        ONLY : N_APMTRA
+#endif
 
-#     include "F77_CMN_SIZE"          ! Size parameters
-#     include "F77_CMN_DIAG"          ! ND37, LD37 
+      USE CMN_SIZE_MOD          ! Size parameters
+      USE CMN_DIAG_MOD          ! ND37, LD37 
 ! 
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -381,6 +421,7 @@
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -389,17 +430,32 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER       :: INDEXSOL(N_TRACERS) 
+      !INTEGER       :: INDEXSOL(N_TRACERS) 
       INTEGER       :: CONVDT    
-      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
       REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
       REAL*8        :: P1, P2, TDT   
+      INTEGER       :: N_TOT_TRC      
+#if   defined( APM )
+      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+#else
+      INTEGER       :: INDEXSOL(                  N_TRACERS) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
       !=================================================================
       
+      ! Pick the proper # of tracers for convection
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA  
+#else
+      N_TOT_TRC = N_TRACERS
+#endif
+
       ! Convection timestep [s]
       CONVDT = GET_TS_CONV() * 60d0 
        
@@ -429,7 +485,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TRACERS
+      DO N = 1, N_TOT_TRC
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
@@ -498,8 +554,8 @@
       !=================================================================
 
       ! Call the fvDAS convection routines (originally from NCAR!)
-      CALL FVDAS_CONVECT( TDT,      
-     &                    N_TRACERS, 
+      CALL FVDAS_CONVECT( TDT,   
+     &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
      &                    HKETA (:,:,LLPAR:1:-1  ),
@@ -519,7 +575,7 @@
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
 !$OMP+PRIVATE( N, L, J, I )
-      DO N = 1,N_TRACERS
+      DO N = 1,N_TOT_TRC
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
@@ -563,9 +619,12 @@
       USE TRACER_MOD,       ONLY : N_TRACERS, STT, TCVV
       USE PRESSURE_MOD,     ONLY : GET_PEDGE, GET_PCENTER
       USE WETSCAV_MOD,      ONLY : COMPUTE_F
+#if   defined( APM )
+      USE TRACER_MOD,       ONLY : N_APMTRA
+#endif
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_DIAG"         ! ND37, LD37 
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_DIAG_MOD         ! ND37, LD37 
 !
 ! !REVISION HISTORY: 
 !  25 May 2005 - S. Wu       - Initial version
@@ -575,6 +634,7 @@
 !        (swu, bmy, 11/1/05)
 !  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
 !  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,17 +643,32 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER       :: INDEXSOL(N_TRACERS) 
+      !INTEGER       :: INDEXSOL(N_TRACERS) 
       INTEGER       :: CONVDT    
-      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      !REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
       REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
       REAL*8        :: P1, P2, TDT   
       REAL*8        :: GAINMASS
+      INTEGER       :: N_TOT_TRC      
+#if   defined( APM )
+      INTEGER       :: INDEXSOL(                  N_TRACERS+N_APMTRA) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS+N_APMTRA)
+#else
+      INTEGER       :: INDEXSOL(                  N_TRACERS) 
+      REAL*8        :: F       (IIPAR,JJPAR,LLPAR,N_TRACERS)
+#endif
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
       !=================================================================
       
+      ! Pick the proper # of tracers for convection
+#if   defined( APM )
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! G-C tracers + APM tracers
+#else
+      N_TOT_TRC = N_TRACERS              ! G-C tracers only
+#endif
+
       ! Test??
       GAINMASS = 0d0
 
@@ -620,7 +695,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO N = 1, N_TRACERS
+      DO N = 1, N_TOT_TRC
 
          ! Get fraction of tracer scavenged and the soluble tracer 
          ! index (ISOL). For non-soluble tracers, F=0 and ISOL=0.
@@ -691,8 +766,8 @@
 
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
-     &                   STT      (:,:,LLPAR:1:-1,:),    
-     &                   N_TRACERS,   
+     &                   STT      (:,:,LLPAR:1:-1,:), 
+     &                   N_TOT_TRC,
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
      &                   F        (:,:,LLPAR:1:-1,:),     
@@ -711,7 +786,7 @@
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
 !$OMP+PRIVATE( N, L, J, I )
-      DO N = 1,N_TRACERS
+      DO N = 1,N_TOT_TRC
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
@@ -764,10 +839,12 @@
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
       USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD     ! Size parameters
+      USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
 
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_DIAG"     ! Diagnostic switches & arrays
+      IMPLICIT NONE
+#     include "define.h"
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -2252,14 +2329,6 @@
                   !------------------------------------------------------------
                   IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use WETLOSS instead of T0_SUM in the ND38 diagnostic below the cloud
-! base.  WETLOSS is the loss in this level, but T0_SUM is the loss summed
-! over the entire column.  Using T0_SUM leads us to over-count the tracer
-! scavenged out of the column. (jaf, hamos, bmy, 8/16/11)
-!     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
-!------------------------------------------------------------------------------
      &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
                   ENDIF
                 
@@ -2283,11 +2352,6 @@
             !--------------------------------------
             ! Hg2 
             !--------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use IS_Hg2 array to test for Hg2 tagged tracers (jaf, bmy, 8/16/11)
-!            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
-!------------------------------------------------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
@@ -2304,11 +2368,6 @@
             !--------------------------------------
             ! HgP
             !--------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use IS_HgP array to test for HgP tagged tracers (jaf, bmy, 8/16/11)
-!            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
-!------------------------------------------------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]

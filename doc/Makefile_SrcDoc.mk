@@ -42,6 +42,7 @@
 #  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #  29 Jul 2011 - R. Yantosca - Added planeflight_mod
 #  22 Aug 2011 - R. Yantosca - Added retro_mod
+#   7 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -51,8 +52,11 @@ SRC1 :=                              \
 ./intro.geos-chem                    \
 ./headers.geos-chem                  \
 $(HDR)/define.h                      \
-$(HDR)/CMN_SIZE                      \
-$(HDR)/CMN_DIAG                      \
+$(HDR)/CMN_SIZE_mod.F                \
+$(HDR)/CMN_DIAG_mod.F                \
+$(HDR)/cmn_fj_mod.F                  \
+$(HDR)/jv_cmn_mod.F                  \
+$(HDR)/jv_mie_mod.F                  \
 $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
@@ -80,6 +84,7 @@ $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
 $(CORE)/fjx_acet_mod.F               \
 $(CORE)/gamap_mod.F                  \
+$(CORE)/gfed3_biomass_mod.F          \
 $(CORE)/global_br_mod.F              \
 $(CORE)/global_no3_mod.F             \
 $(CORE)/global_nox_mod.F             \

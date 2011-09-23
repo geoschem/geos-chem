@@ -47,12 +47,15 @@
       USE VISTAS_ANTHRO_MOD,  ONLY : GET_VISTAS_ANTHRO
       USE ICOADS_SHIP_MOD,    ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD               ! Size parameters
+      USE COMODE_LOOP_MOD               ! IHOUR
+      USE CMN_O3_MOD                 ! EMISR, EMISRR, etc...
+      USE CMN_DIAG_MOD               ! Diagnostic switches & arrays
 
-#     include "F77_CMN_SIZE"               ! Size parameters
-#     include "F77_CMN_DIAG"               ! Diagnostic switches & arrays
-#     include "F77_CMN_O3"                 ! EMISR, EMISRR, etc...
-#     include "comode.h"               ! IHOUR
+      IMPLICIT NONE
+#     include "define.h"
+
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -856,9 +859,6 @@
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------
-!--- Prior to (gvinken, 11/16/10). Emissions already present in EMISRR
-!     no longer get overwritten.
-!         EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
          EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
 
          ! ND29 = CO source diagnostic... 

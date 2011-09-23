@@ -15,12 +15,15 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD              ! Size parameters
+      USE CMN_DIAG_MOD              ! NDxx flags
+      USE CMN_GCTM_MOD              ! g0
+
       IMPLICIT NONE
+#     include "define.h"
+
       PRIVATE
 
-#     include "F77_CMN_SIZE"              ! Size parameters
-#     include "F77_CMN_DIAG"              ! NDxx flags
-#     include "F77_CMN_GCTM"              ! g0
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 

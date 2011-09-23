@@ -92,12 +92,15 @@
 #  10 May 2010 - R. Yantosca - Add dependency for RD_AOD.f
 #  14 May 2010 - C. Carouge  - Updates for mercury simulation
 #  20 Aug 2010 - R. Yantosca - Modifications for MERRA met fields
+#  16 Feb 2011 - R. Yantosca - Add modifications for APM (G. Luo)
+#  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 # Define variables
 ROOTDIR := ..
+APM     := $(ROOTDIR)/GeosApm
 BIN     := $(ROOTDIR)/bin
 BPCH    := $(ROOTDIR)/GeosBpch
 DOC     := $(ROOTDIR)/doc
@@ -117,10 +120,10 @@ LESMF   := $(ROOTDIR)/ESMF
 # as well as the default Makefile compilation rules for source code files.
 
 ifeq ($(ESMF),yes)
-	# Hack to force the ESMA headers work correctly with mpif90 as FC
+  # Hack to force the ESMA headers work correctly with mpif90 as FC
   include $(ROOTDIR)/Makefile_header.mk
 	override FC := $(COMPILER)
-	# End-of-hack
+  # End-of-hack
   include $(ESMADIR)/Config/ESMA_base.mk  # Generic stuff
   include $(ESMADIR)/Config/ESMA_arch.mk  # System dependencies
   include $(ESMADIR)/Config/GMAO_base.mk  # GMAO stuff
@@ -156,76 +159,96 @@ OBJ := $(TMP:.F90=.o)
 all:
 	@$(MAKE) lib
 	@$(MAKE) exe
-ifeq ($(ESMF),yes)
-lib: libkpp libutil libiso libcore libesmf
-else ifeq ($(ESMF_TESBED),yes)
-lib: libkpp libutil libiso libcore libesmf_testbed
-else
-lib: libkpp libutil libiso libcore 
-endif
 
-libcore: $(OBJ)
+ifeq ($(ESMF),yes)                       
+lib:                                                 # Build for ESMF/GEOS-5
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf			     
+else ifeq ($(ESMF_TESBED),yes)            	     
+lib:                                                 # Build for ESMF/Testbed
+	@$(MAKE) libgc				     
+	@$(MAKE) libesmf_testbed		     
+else                                      	     
+lib:                                                 # Build normal GEOS-Chem
+	@$(MAKE) libgc				     
+endif						     
 
-libiso:
-	@$(MAKE) -C $(ISO)
+libgc:                                               # Compile everything
+	@$(MAKE) libheaders         		     
+	@$(MAKE) libkpp             		     
+	@$(MAKE) libutil 			     
+	@$(MAKE) libiso 			     
+	@$(MAKE) libcore			     
 
-libkpp: 
-	@$(MAKE) -C $(KPP)
+libcore: $(OBJ)                                      # Build code in GeosCore/
 
-libutil:
-	@$(MAKE) -C $(UTIL)
+libiso:                                              # Build code in ISOROPIA/
+	@$(MAKE) -C $(ISO)			     
 
-libesmf:
-	@$(MAKE) -C $(LESMF) ESMF=yes esmf
+libkpp:                                              # Build code in KPP/
+	@$(MAKE) -C $(KPP)			     
 
-libesmf_testbed:
-	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf
+libutil:                                             # Build code in GeosUtil/
+	@$(MAKE) -C $(UTIL)			     
 
-exe:
-	@echo 'LIBSYS----' $(LIB_SYS) $(LIB_MPEU) $(LIB_ESMF) $(EXTEND_SOURCE) $(FC) $(COMPILER)
-	@echo 'INC_MPI---' $(INC_MPI)
+libheaders:                                          # Build code in Headers/ 
+	@$(MAKE) -C $(HDR)			     
+
+libesmf:                                             # Compile ESMF/GEOS-5
+	@$(MAKE) -C $(LESMF) ESMF=yes esmf	     
+
+libesmf_testbed:                                     # Compile ESMF testbed
+	@$(MAKE) -C $(LESMF) ESMF_TESTBED=yes esmf     
+
+exe:                                                 # Build executable
 	$(LD) $(OBJ) $(LINK) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
-clean:
-	rm -f *.o *.mod geos
+clean:                                               # Remove files here
+	rm -f *.o *.mod geos geosapm geostomas
 
-realclean:
+realclean:                                           # Remove files everywhere
 	@$(MAKE) clean
+	@$(MAKE) -C $(APM) clean
 	@$(MAKE) -C $(ISO) clean
 	@$(MAKE) -C $(KPP) realclean
 	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
+ifeq ($(ESMF),yes)
 	@$(MAKE) -C $(LESMF) clean
+endif
+	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
 	rm -f $(MOD)/*.mod
 	rm -f $(BIN)/geos*
 
-doc:
+doc:                                                 # Build documentation
 	@$(MAKE) -C $(DOC) all
 
-docclean: 
+docclean:                                            # Remove documentation
 	@$(MAKE) -C $(DOC) clean
 
-help:
+help:                                                # Show help screen
 	@$(MAKE) -C $(HELP)
 
 #=============================================================================
 # Targets for mercury simulation (ccc, 6/7/10)
 #=============================================================================
 
-allhg:
+allhg:                                               # Build Hg/GTMM executable
 	@$(MAKE) libhg
 	@$(MAKE) exehg
 
-libhg: libutil libkpp libgtmm libiso libcore
+libhg:                                               # Compile HG/GTMM code
+	@$(MAKE) libgtmm           		     
+	@$(MAKE) libgc
 
-libgtmm:
+libgtmm:                                             # Compile GTMM model code
 	@$(MAKE) -C $(GTMM)
 
-exehg:
+exehg:                                               # Create Hg/GTMM exec file
 	$(LD) $(OBJ) $(LHG) -o $(EXE)
 	cp -f $(EXE) $(BIN)
 
@@ -289,7 +312,8 @@ biofit.o                    : biofit.F
 
 biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
-                              gfed2_biomass_mod.o     logical_mod.o          \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              logical_mod.o                                  \
                               tracerid_mod.o          tracer_mod.o
 
 BLKSLV.o                    : BLKSLV.F
@@ -322,7 +346,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_no3_mod.o       \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_no3_mod.o                               \
                               global_o3_mod.o         global_oh_mod.o        \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
@@ -376,6 +401,7 @@ cleanup.o                   : cleanup.F                                      \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           gc_biomass_mod.o       \
                               isoropiaII_mod.o        gfed2_biomass_mod.o    \
+                              gfed3_biomass_mod.o                            \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
@@ -635,6 +661,10 @@ gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
+gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
+                              future_emissions_mod.o  logical_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
+
 global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
@@ -698,7 +728,7 @@ input_mod.o                 : input_mod.F                                    \
                               depo_mercury_mod.o      diag03_mod.o           \
                               diag04_mod.o            diag41_mod.o           \
                               diag42_mod.o  	      diag48_mod.o           \
-                               diag49_mod.o  	      diag50_mod.o           \
+                              diag49_mod.o  	      diag50_mod.o           \
 			      diag51_mod.o  	      diag51b_mod.o          \
 			      diag56_mod.o  	      diag_oh_mod.o          \
 			      diag_pl_mod.o 	      drydep_mod.o           \
@@ -979,7 +1009,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               diag_mod.o              drydep_mod.o           \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_hno3_mod.o      \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_hno3_mod.o                              \
                               global_no3_mod.o        global_oh_mod.o        \
                               icoads_ship_mod.o       logical_mod.o          \
                               nei2005_anthro_mod.o    pbl_mix_mod.o          \

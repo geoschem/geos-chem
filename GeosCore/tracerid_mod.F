@@ -174,9 +174,11 @@
 !  (18) Add IDEHNO3 to deal with ship NOx emissions (phs, 3/4/08)
 !  (19) Added tracers and emissions for dicarbonyl simulation (tmf, 1/7/09)
 !  (20) Updates for mercury simulation (ccc, 5/17/10)
+!  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)
@@ -347,6 +349,7 @@
 !  (21) Add IDEMS definitions for new species (fp, hotp, 01/10)
 !  (22) Add writing check on IDs. (hotp, 01/10)
 !  17 Aug 2011 - R. Yantosca - Print values of 3 extra emission IDExxx flags
+!  22 Aug 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -359,8 +362,8 @@
       ! Error check for array dimensions (hotp 8/1/09)
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
-#     include "F77_CMN_SIZE"    ! Size parameters
-#     include "comode.h"    ! IDEMS
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! IDEMS
 
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
@@ -381,8 +384,12 @@
       ! NNNTRID is used in this module to dimension some arrays
       ! NNNTRID should be the same as NNPAR in F77_CMN_SIZE
       IF ( NNNTRID .NE. NNPAR ) THEN
+#if   defined( APM )
+         write(*,*)'NNNTRID .NE. NNPAR!',NNNTRID,NNPAR
+#else
          CALL ERROR_STOP ( 'NNNTRID .NE. NNPAR!',
      &                                     'tracerid_mod,F77_CMN_SIZE' )
+#endif
          ! If you get this error, an appropriate fix is to increase 
          ! either NNNTRID (in tracerid_mod) or NNPAR (in F77_CMN_SIZE) so
          ! they are the same and greater than or equal to the number 
@@ -1321,8 +1328,8 @@
       ! for Debug (hotp 8/5/09)
       USE LOGICAL_MOD, ONLY : LPRT
 
-#     include "F77_CMN_SIZE"   ! Size parameters
-#     include "comode.h"   ! NAMEGAS
+      USE CMN_SIZE_MOD      ! Size parameters
+      USE COMODE_LOOP_MOD   ! NAMEGAS
 
       ! Local variabales
       INTEGER             :: I, J, T, C

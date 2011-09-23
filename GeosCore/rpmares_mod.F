@@ -46,6 +46,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -107,8 +108,15 @@
       USE TRACERID_MOD,    ONLY : IDTSO4,             IDTNH3, IDTNH4 
       USE TRACERID_MOD,    ONLY : IDTNIT,             IDTHNO3 
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
+#if   defined( APM )
+      USE TRACER_MOD,      ONLY : N_TRACERS, N_APMTRA
+      USE TRACERID_MOD
+      USE APM_INIT_MOD,    ONLY : NSO4
+      USE APM_INIT_MOD,    ONLY : IDTCTSO4,IDTSO4BIN1,IDTCTSEA
+      USE APM_INIT_MOD,    ONLY : IDTCTBCOC, IDTCTDST
+#endif
 
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD     ! Size parameters
 
       ! Local variables
       LOGICAL, SAVE          :: FIRST     = .TRUE.
@@ -117,6 +125,9 @@
       REAL*8                 :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
       REAL*8                 :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
       CHARACTER(LEN=255)     :: X 
+#if   defined( APM )
+      REAL*8                 :: TSO4, TSO4COAT
+#endif
 
       ! concentration lower limit [ug/m3 ]
       REAL*8,  PARAMETER     :: CONMIN = 1.0D-30
@@ -168,6 +179,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  )
 !$OMP+PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
+#if   defined( APM )
+!$OMP+PRIVATE( TSO4, TSO4COAT )
+#endif
       DO L = 1, LLTROP
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -180,9 +194,25 @@
          ARH   = RH(I,J,L) * 1.d-2
          AVOL  = AIRVOL(I,J,L)
 
+#if   defined( APM )
+
+         ! GanLuo+ Deduce SULFLO form TSO4, 
+         ! Add those sulfate coated on primary particles
+         TSO4     = SUM(STT(I,J,L,IDTSO4BIN1:(IDTSO4BIN1+NSO4-1)))
+         TSO4COAT = (STT(I,J,L,(IDTCTBCOC-1+1)) +
+     &               STT(I,J,L,(IDTCTBCOC-1+2)) +
+     &               STT(I,J,L,IDTCTDST)+STT(I,J,L,IDTCTSEA))
+         TSO4     = TSO4 + TSO4COAT
+
+         SO4       = MAX( TSO4 * 1.d9 / AVOL, CONMIN )
+
+#else
+
          ! Convert sulfate, ammonimum, gaseous NH3, gaseous HNO3, 
          ! and aerosol NO3  from [kg] to [ug/m3].
          SO4   = MAX( STT(I,J,L,IDTSO4) * 1.d9 / AVOL, CONMIN )
+
+#endif
          GNH3  = MAX( STT(I,J,L,IDTNH3) * 1.d9 / AVOL, CONMIN ) 
          ANH4  = MAX( STT(I,J,L,IDTNH4) * 1.d9 / AVOL, CONMIN ) 
          ANO3  = MAX( STT(I,J,L,IDTNIT) * 1.d9 / AVOL, CONMIN )
@@ -1858,7 +1888,7 @@
       ! F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
-#     include "F77_CMN_SIZE"
+      USE CMN_SIZE_MOD
 
       ! Local variables
       INTEGER :: AS

@@ -16,12 +16,13 @@
 !
       USE TRACER_MOD, ONLY : N_TRACERS
 
-      IMPLICIT NONE
+#     include "define.h"
+      USE CMN_SIZE_MOD
+      USE COMODE_LOOP_MOD                    ! IDEMS, NEMIS, NCS
+      USE CMN_O3_MOD                      ! EMISRR, EMISRRN
+      USE CMN_DIAG_MOD                    ! ND15
 
-#     include "F77_CMN_SIZE"
-#     include "comode.h"                    ! IDEMS, NEMIS, NCS
-#     include "F77_CMN_O3"                      ! EMISRR, EMISRRN
-#     include "F77_CMN_DIAG"                    ! ND15
+      IMPLICIT NONE
 
       PRIVATE
 !

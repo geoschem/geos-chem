@@ -50,10 +50,13 @@
 !        to PHOTOJ. (bmy, 11/29/07)
 !******************************************************************************
 !
-      IMPLICIT NONE
+#     include "define.h"
 
-#     include "cmn_fj.h"      ! IPAR, JPAR, LPAR, F77_CMN_SIZE
-#     include "jv_cmn.h"      ! ZPJ
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
+      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL, ZPJ      ! IPAR, JPAR, LPAR, F77_CMN_SIZE
+!      USE JV_CMN_MOD, ONLY : ZPJ
+
+      IMPLICIT NONE
 
       ! Local variables
       INTEGER, INTENT(IN)    :: NCB ! Number of Cloud Blocks

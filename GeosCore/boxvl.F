@@ -19,6 +19,7 @@
       USE DAO_MOD, ONLY : AIRVOL
 
       IMPLICIT NONE
+#     include "define.h"
 !
 ! !INPUT PARAMETERS: 
 !

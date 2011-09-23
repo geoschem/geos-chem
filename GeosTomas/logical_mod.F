@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
 !
 ! !REVISION HISTORY:
 !  05 Nov 2004 - R. Yantosca - Added LNEI99 switch to toggle EPA/NEI emissions 
@@ -60,6 +61,8 @@
 !  26 Feb 2010 - R. Yantosca - Remove obsolete LEMBED flag
 !  18 May 2010 - R. Nassar   - Add logical flags for CO2 offline simulation
 !  20 Jul 2010 - C. Carouge  - Add LPREINDHG and LGTMM for updated mercury.
+!  24 Jan 2011 - L. Murray   - Remove LOTDREG, LCTH, LMFLUX, LPRECON,
+!                               and LOTDSCALE for lightning
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -122,12 +125,7 @@
       LOGICAL :: LICARTT         ! Use ICARTT fix to EPA emissions?
       LOGICAL :: LICOADSSHIP     ! Use ICOADS ship emissions inventory
       LOGICAL :: LLIGHTNOX       ! Use lightning NOx emissions?
-      LOGICAL :: LOTDREG         ! Use OTD-LIS regional flash redistribution?
       LOGICAL :: LOTDLOC         ! Use OTD-LIS local flash redistribution?
-      LOGICAL :: LOTDSCALE       ! Scale LNOx totals to OTD-LIS climatology
-      LOGICAL :: LCTH            ! Use cloud-top height option in lightning?
-      LOGICAL :: LMFLUX          ! Use mass-flux option in lightning?
-      LOGICAL :: LPRECON         ! Use precip option in lightning?
       LOGICAL :: LMEGAN          ! Use MEGAN biogenic emissions?
       LOGICAL :: LMEGANMONO      ! Use MEGAN monoterpenes?
       LOGICAL :: LMONOT          ! Use old 
@@ -150,6 +148,7 @@
       LOGICAL :: LSYNOPBB        ! Use GFED2 synoptic biomass burning
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
+      LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

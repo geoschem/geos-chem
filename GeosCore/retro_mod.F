@@ -84,8 +84,7 @@
       USE LOGICAL_MOD,          ONLY : LFUTURE
       USE TIME_MOD,             ONLY : EXPAND_DATE
       USE TIME_MOD,             ONLY : GET_MONTH
-
-#     include "F77_CMN_SIZE"         ! Size parameters
+      USE CMN_SIZE_MOD               ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial version
@@ -211,9 +210,8 @@
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
-
-#     include "F77_CMN_SIZE"     ! Size parameters
-#     include "F77_CMN_O3"       ! FSCLYR
+      USE CMN_SIZE_MOD           ! Size parameters
+      USE CMN_O3_MOD             ! FSCLYR
 !
 ! !INPUT PARAMETERS: 
 !
@@ -380,9 +378,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
-
-#     include "F77_CMN_SIZE"             ! Size parameters
-
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -535,8 +531,7 @@
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
-
-#     include "F77_CMN_SIZE"     ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 !
 ! !INPUT PARAMETERS: 
 !
@@ -558,10 +553,6 @@
 !
 ! !LOCAL VARIABLES
 !
-
-      ! Arguments
-
-      ! Local variables
 
       !=================================================================
       !  GET_RETRO_ANTHRO begins here
@@ -622,10 +613,9 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,   ONLY   : ALLOC_ERR
-      USE LOGICAL_MOD, ONLY   : LRETRO
-
-#     include "F77_CMN_SIZE"  ! Size parameters
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE LOGICAL_MOD, ONLY : LRETRO
+      USE CMN_SIZE_MOD      ! Size parameters
 ! 
 ! !REVISION HISTORY: 
 !  08 Mar 2011 - W. Reinhart - Initial Version 

@@ -34,9 +34,11 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
       USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL, ITS_IN_THE_STRAT
 
-      IMPLICIT NONE
+      USE CMN_SIZE_MOD        ! Size parameters
 
-#     include "F77_CMN_SIZE"        ! Size parameters
+      IMPLICIT NONE
+#     include "define.h"
+
 ! 
 ! !REVISION HISTORY: 
 !  01 Oct 1995 - M. Prather  - Initial version

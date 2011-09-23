@@ -83,6 +83,7 @@
 !******************************************************************************
 !
       IMPLICIT NONE
+#     include "define.h"
 
       !=================================================================
       ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
@@ -428,8 +429,8 @@
       USE TIME_MOD,         ONLY : GET_YEAR,          GET_MONTH
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
 
-#     include "F77_CMN_SIZE"         ! Size parameters
-#     include "F77_CMN_O3"           ! FSCALYR
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_O3_MOD           ! FSCALYR
 
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
@@ -1015,7 +1016,7 @@
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TRACERID_MOD,   ONLY : IDTNH3
 
-#     include "F77_CMN_SIZE"        ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
@@ -1137,7 +1138,7 @@
       USE BPCH2_MOD,      ONLY : GET_TAU0,         READ_BPCH2
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_05X0666
 
-#     include "F77_CMN_SIZE"        ! Size parameters
+      USE CMN_SIZE_MOD        ! Size parameters
   
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN)    :: FILENAME, CATEGORY
@@ -1197,8 +1198,8 @@
       USE TRACER_MOD,       ONLY : XNUMOL
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR_05x0666_NESTED
 
-#     include "F77_CMN_SIZE"       ! Size parameters
-#     include "F77_CMN_O3"         ! FSCALYR
+      USE CMN_SIZE_MOD       ! Size parameters
+      USE CMN_O3_MOD         ! FSCALYR
 
       ! Local variables
       LOGICAL, SAVE              :: FIRST = .TRUE.
@@ -1789,7 +1790,7 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
 
-#     include "F77_CMN_SIZE"             ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
 
       ! Local variables
       INTEGER                       :: I, J
@@ -1842,7 +1843,7 @@
       ! References to F90 modules
       USE TRACER_MOD, ONLY : ITS_A_CH4_SIM, ITS_A_CO2_SIM 
 
-#     include "F77_CMN_SIZE"   ! Size parameters
+      USE CMN_SIZE_MOD   ! Size parameters
 
       ! argument
       INTEGER, INTENT(IN) :: YEAR, BASE_YEAR
@@ -1995,7 +1996,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR_1x1
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_G2G_1x1, DO_REGRID_1x1
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       REAL*4                  :: ARRAY(I1x1,J1x1-1,1)
@@ -2082,7 +2083,7 @@
       USE DIRECTORY_MOD,  ONLY : DATA_DIR
       USE REGRID_1x1_MOD, ONLY : DO_REGRID_05x0666
 
-#     include "F77_CMN_SIZE"       ! Size parameters
+      USE CMN_SIZE_MOD       ! Size parameters
 
       ! Local variables
       REAL*4                  :: ARRAY(I05x0666,J05x0666,1)
@@ -2169,7 +2170,7 @@
       USE GRID_MOD,    ONLY : GET_AREA_CM2
       USE LOGICAL_MOD, ONLY : LSTREETS
 
-#     include "F77_CMN_SIZE"    ! Size parameters
+      USE CMN_SIZE_MOD    ! Size parameters
 
       ! Local variables
       INTEGER              :: AS, J
