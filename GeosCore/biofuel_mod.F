@@ -215,6 +215,7 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_O3_MOD               ! FSCLYR
       USE CMN_DIAG_MOD             ! ND29, ND32, ND34
+      USE LOGICAL_MOD,          ONLY : LRETRO ! (dbm, 8/18/2011)
 
       IMPLICIT NONE
 #     include "define.h"
@@ -780,6 +781,25 @@
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
+
+            !-----------------------------------------------------------
+            ! RETRO anthropogenic emissions include residential biofuel,
+            ! so set this to zero if we are using RETRO for anthro VOCs
+            ! (dbm, 8/18/2011)
+            !-----------------------------------------------------------
+            IF ( LRETRO ) THEN
+               IF ( (NN == IDTC2H2) .or. (NN == IDTC2H4) .or.
+     &              (NN == IDTC2H6) .or. (NN == IDTPRPE) .or.
+     &              (NN == IDTC3H8) .or. (NN == IDTALK4) .or.
+     &              (NN == IDTCH2O) .or. (NN == IDTALD2) .or. 
+     &              (NN == IDTACET) .or. (NN == IDTMEK ) .or.
+     &              (NN == IDTBENZ) .or. (NN == IDTTOLU) .or.
+     &              (NN == IDTXYLE) ) THEN
+
+                  BIOFUEL(N,I,J) = 0.d0
+
+               ENDIF
+            ENDIF
 
             !-----------------------------------------------------------
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
