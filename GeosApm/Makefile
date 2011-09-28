@@ -40,6 +40,7 @@
 #  13 Jan 2011 - R. Yantosca - Initial version
 #  22 Aug 2011 - R. Yantosca - Modified for v9-01-02
 #  05 Aug 2011 - M. Long     - Now compile module files in Headers/ directory
+#  27 Sep 2011 - M. Payer    - Modified dependencies for GFED3
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -88,7 +89,7 @@ endif
 #=============================================================================
 # List of files to compile (the order is important!).  We specify these as
 # a list of object files (*.o).  For each object file, the "make" utility
-# will find the corresponding source code file (*.f) and compile it. 
+# will find the corresponding source code file (*.F) and compile it. 
 #=============================================================================
 
 OBJ =                                                                        \
@@ -128,7 +129,8 @@ fvdas_convect_mod.o      fyhoro.o                fyrno3.o		     \
 gamap_mod.o              gasconc.o               gc_biomass_mod.o	     \
 gc_type_mod.o            gcap_convect_mod.o      gcap_read_mod.o	     \
 geia_mod.o               get_global_ch4.o        getifsun.o		     \
-gfed2_biomass_mod.o      global_br_mod.o         global_ch4_mod.o	     \
+gfed2_biomass_mod.o      gfed3_biomass_mod.o                                 \
+global_br_mod.o          global_ch4_mod.o	                             \
 global_hno3_mod.o        global_no3_mod.o        global_nox_mod.o	     \
 global_o1d_mod.o         global_o3_mod.o         global_oh_mod.o	     \
 gwet_read_mod.o          h2_hd_mod.o             hcn_ch3cn_mod.o	     \
@@ -324,7 +326,8 @@ biofit.o                    : biofit.F
 
 biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
-                              gfed2_biomass_mod.o     logical_mod.o          \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              logical_mod.o                                  \
                               tracerid_mod.o          tracer_mod.o
 
 BLKSLV.o                    : BLKSLV.F
@@ -357,7 +360,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_no3_mod.o       \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_no3_mod.o                               \
                               global_o3_mod.o         global_oh_mod.o        \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
@@ -413,6 +417,7 @@ cleanup.o                   : cleanup.F                                      \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           gc_biomass_mod.o       \
                               isoropiaII_mod.o        gfed2_biomass_mod.o    \
+                              gfed3_biomass_mod.o                            \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
@@ -672,6 +677,10 @@ get_global_ch4.o            : get_global_ch4.F                               \
 getifsun.o                  : getifsun.F              comode_mod.o
 
 gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
+                              future_emissions_mod.o  logical_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
+
+gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
@@ -1023,7 +1032,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               diag_mod.o              drydep_mod.o           \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_hno3_mod.o      \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_hno3_mod.o                              \
                               global_no3_mod.o        global_oh_mod.o        \
                               icoads_ship_mod.o       logical_mod.o          \
                               nei2005_anthro_mod.o    pbl_mix_mod.o          \
@@ -1137,3 +1147,5 @@ XSECO3.o                    : XSECO3.F
 
 xtra_read_mod.o             : xtra_read_mod.F         dao_mod.o             \
                               diag_mod.o              logical_mod.o
+
+#EOC
