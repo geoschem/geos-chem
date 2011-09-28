@@ -307,7 +307,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_pedge
+! !IROUTINE: get_pedge_fullgrid
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
@@ -320,7 +320,7 @@
 !
 ! !USES:
 !
-#     include "CMN_SIZE"   ! PTOP
+      USE CMN_SIZE_MOD   ! PTOP
 !
 ! !INPUT PARAMETERS: 
 !

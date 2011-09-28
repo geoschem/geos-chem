@@ -1490,6 +1490,8 @@
       USE PRESSURE_MOD,   ONLY : GET_PEDGE
       USE TRACER_MOD,     ONLY : ITS_A_FULLCHEM_SIM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE GRID_MOD,       ONLY : GET_XOFFSET
+      USE GRID_MOD,       ONLY : GET_YOFFSET
 
       USE CMN_SIZE_MOD                ! Size parameters
 !
@@ -1517,6 +1519,8 @@
 !  (4 ) Now references ITS_A_FULLCHEM_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (5 ) Now references ITS_IN_THE_TROP from "tropopause_mod.f" (bmy, 8/22/05)
 !  29 Jul 2011 - R. Yantosca - Added ProTeX headers
+!  08 Sep 2011 - L. Schiferl - Added correct definitions for I and J 
+!                              based on nested regions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1525,6 +1529,7 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
+      INTEGER :: I0, J0   ! (lds, 8/25/11)
 
       !=================================================================
       ! TEST_VALID begins here!

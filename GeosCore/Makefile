@@ -684,7 +684,8 @@ global_o1d_mod.o            : global_o1d_mod.F
 
 global_o3_mod.o             : global_o3_mod.F
 
-global_oh_mod.o             : global_oh_mod.F
+global_oh_mod.o             : global_oh_mod.F                                \
+                              dao_mod.o
 
 gwet_read_mod.o             : gwet_read_mod.F                                \
                               dao_mod.o               diag_mod.o             \
