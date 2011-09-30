@@ -205,6 +205,8 @@
       INTEGER, SAVE            :: CH4_YEAR  = -1
       INTEGER                  :: I, J, JLOOP, L, NPTS, N, MONTH, YEAR
       INTEGER                  :: WAVELENGTH
+      INTEGER                  :: DATE                         
+      INTEGER, SAVE            :: DATE_PREV = -1
 
       ! To use CSPEC_FULL restart (dkh, 02/12/09) 
       LOGICAL                  :: IT_EXISTS 
@@ -362,8 +364,25 @@
       ! At the beginning of each new day, call SETUP_PLANEFLIGHT
       ! to see if there are any plane flight points to be processed
       !=================================================================
-      IF ( ND40 > 0 .and. ITS_A_NEW_DAY() ) THEN
+!-----------------------------------------------------------------------
+! Prior to 9/27/11:
+! Fix for centralizing chemistry timestep (bmy, mpayer, 9/27/11)
+!      IF ( ND40 > 0 .and. ITS_A_NEW_DAY() ) THEN
+!         CALL SETUP_PLANEFLIGHT
+!      ENDIF
+!-----------------------------------------------------------------------
+
+      ! Get todays' date
+      DATE = GET_NYMD()
+    
+      ! If this is the first chem timestep of a new day, then we need to 
+      ! call SETUP_PLANEFLIGHT.  If chemistry is turned on, then we need
+      ! to place this call here, so as to make sure that the chemical
+      ! mechanism files (read by READER and READCHEM) have been loaded.
+      IF ( ND40 .and. DATE /= DATE_PREV ) THEN
+         print*, '### Called SETUP_PLANEFLIGHT'
          CALL SETUP_PLANEFLIGHT
+         DATE_PREV = DATE
       ENDIF
 
       !================================================================

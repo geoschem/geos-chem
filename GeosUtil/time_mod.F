@@ -2945,11 +2945,36 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2011 - M. Payer    - Modifications for centralizing the chemistry
+!                              time step (lzh)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! changes for proper chemistry time (lzh, ccc, 3/20/10)
+      INTEGER :: M 
+
+      !=================================================================
+      ! ITS_TIME_FOR_CHEM begins here!
+      !=================================================================
+
+      ! Get multiplier between transport and chemistry:
+      M = TS_CHEM/TS_DYN
+
+      ! Divide by 2 (get middle). KEEP INTEGERS!!!!
+      M = MAX( M/2, 1 )
+
       ! Is it time for chemistry?
-      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
+!-----------------------------------------------------------------------
+! Prior to 9/27/11:
+! Chemistry time step is now in the center of transport time steps. The
+! previous setup was TCTTT, now TTCTT (lzh, mpayer, 9/27/11)
+!      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == 0 )
+!-----------------------------------------------------------------------
+      ! Chemistry time step is now in the center of transport time steps
+      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_CHEM
 !EOC
