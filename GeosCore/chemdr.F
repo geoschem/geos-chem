@@ -18,9 +18,13 @@
       USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER, SOILDUST
       USE COMODE_MOD,           ONLY : ABSHUM, CSPEC, ERADIUS, TAREA
       USE COMODE_MOD,           ONLY : JLOP,   JLOP_PREVIOUS
-      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW   
-      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
-      USE DAO_MOD,              ONLY : T
+      USE DAO_MOD,              ONLY : AD,       AIRVOL,    ALBD, AVGW
+!------------------------------------------------------------------------------
+! Prior to 11/5/11:
+!      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
+!------------------------------------------------------------------------------
+      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD  
+      USE DAO_MOD,              ONLY : T,        SUNCOS30
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -195,6 +199,9 @@
 !        RURALBOX accordingly.   Removed obsolete LEMBED switch. (bmy, 2/26/10)
 !  (37) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  26 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 (cosine of SZA at 30m after
+!                              the GMT hour) instead of SUNCOS.  This fixes
+!                              the photolysis issue.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,7 +266,12 @@
       !the grid mappings.
       JLOP_PREVIOUS(:,:,:) = JLOP(:,:,:)
 
-      CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+!-----------------------------------------------------------------------------
+! Prior to 10/5/11:
+! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
+!     CALL RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+!-----------------------------------------------------------------------------
+      CALL RURALBOX( AD, T, AVGW, ALBD )
 
       !vartrop fix (dkh, 05/08/11)
       !Use JLOP from this timestep the first time through
@@ -491,7 +503,12 @@
       !=================================================================
       ! Call photolysis routine to compute J-Values
       !=================================================================
-      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call photolysis with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
+!      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
+!------------------------------------------------------------------------------
+      CALL FAST_J( SUNCOS30, OPTD, UVALBEDO )              
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
@@ -503,7 +520,12 @@
       ! PHYSPROC calls both CALCRATE, which computes rxn rates 
       ! and SMVGEAR (if we do not use the solver coded by kpp), which
       ! is the chemistry solver
-      CALL PHYSPROC( SUNCOS )
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call photolysis with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
+!      CALL PHYSPROC( SUNCOS )
+!------------------------------------------------------------------------------
+      CALL PHYSPROC( SUNCOS30 )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )

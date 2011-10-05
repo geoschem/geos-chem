@@ -322,7 +322,12 @@
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
-      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now use SUNCOS30, for consistency with the chemistry routines (bmy, 10/5/11)
+!      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
+!------------------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS30
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
@@ -369,9 +374,16 @@
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       !=================================================================
-      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
-     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
-     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now use SUNCOS30, for consistency with the chemistry routines (bmy, 10/5/11)
+!      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
+!     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
+!     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
+!------------------------------------------------------------------------------
+      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS30, F0,  HSTAR, 
+     &             XMW,   AIROSOL, USTAR, CZ1,      OBK, CFRAC,  
+     &             ZH,    LSNOW,   DVEL,  AZO,      RHB ) 
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics

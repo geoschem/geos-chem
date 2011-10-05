@@ -1889,7 +1889,7 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_LOCALTIME( I, OFFSET ) RESULT( THISLOCALTIME )
+      FUNCTION GET_LOCALTIME( I, OFFSET, GMT ) RESULT( THISLOCALTIME )
 !
 ! !USES:
 !
@@ -1899,6 +1899,7 @@
 !
       INTEGER, INTENT(IN)           :: I        ! Longitude index
       REAL*8,  INTENT(IN), OPTIONAL :: OFFSET   ! Offset to apply to GMT [hrs]
+      REAL*8,  INTENT(IN), OPTIONAL :: GMT      ! GMT w
 !
 ! !RETURN VALUE:
 !
@@ -1914,13 +1915,14 @@
 !  27 Apr 2010 - R. Yantosca - Add OFFSET to argument list, to allow the
 !                              local time to be computed at an arbitrary time
 !                              (e.g. at the halfway point of an interval)
+!  05 Oct 2011 - R. Yantosca - Now add GMT as an optional argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8 :: OFF 
+      REAL*8 :: OFF, TIME
 
       ! Save the value of OFFSET in a local variable
       IF ( PRESENT( OFFSET ) ) THEN 
@@ -1929,8 +1931,21 @@
          OFF = 0d0
       ENDIF
 
-      ! Local time  =   GMT time [hrs]    +   longitude     / 15
-      THISLOCALTIME = ( GET_GMT() + OFF ) + ( GET_XMID( I ) / 15d0 ) 
+      ! Save the value of GMT in a local varaible
+      IF ( PRESENT( GMT ) ) THEN
+         TIME = GMT
+      ELSE
+         TIME = GET_GMT()
+      ENDIF
+
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+!      ! Local time  =   GMT time [hrs]    +   longitude     / 15
+!      THISLOCALTIME = ( GET_GMT() + OFF ) + ( GET_XMID( I ) / 15d0 ) 
+!------------------------------------------------------------------------------
+
+      ! Local time  = GMT time [hrs] +   longitude     / 15
+      THISLOCALTIME = ( TIME + OFF ) + ( GET_XMID( I ) / 15d0 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24d0 

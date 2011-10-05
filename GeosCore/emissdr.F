@@ -77,6 +77,9 @@
 !       (bmy, 2/25/10)
 !  (32) Add a NOx fertilizer switch and a scaling factor for ISOP emissions
 !       (fp, 6/09)
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 array, which has the cos(SZA)
+!                              defined at 30 mins after the GMT hour, in order
+!                              to be consistent w/ the chemistry.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -84,7 +87,11 @@
       USE ACETONE_MOD,       ONLY : READ_JO1D,     READ_RESP
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
-      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+!      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
+!------------------------------------------------------------------------------
+      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS30        
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
@@ -121,11 +128,6 @@
       IMPLICIT NONE
 #     include "define.h"
 
-!------------------------------------------------------------------------------
-! Prior to 2/25/10:
-! Remove reference to obsolete embedded chemistry stuff in "CMN" (bmy, 2/25/10)
-!      USE CMN_MOD          ! IEBD1, IEBD2, JEBD1, JEBD2
-!------------------------------------------------------------------------------
       ! Local variables
       LOGICAL, SAVE          :: FIRSTEMISS = .TRUE. 
       LOGICAL                :: NO_TAGCO
@@ -146,20 +148,18 @@
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
       ! External functions
-!-- XLTMMP moved to meganut_mod.f (ccc, 11/20/09)
-!      REAL*8, EXTERNAL       :: BOXVL,   XLTMMP,    EMISOP 
       REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
       REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
 
       ! Add in new monoterpene species (mpb,2009)
-       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
-       REAL*8                 :: MYRCN  , CAREN , OCIMN
+      REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
+      REAL*8                 :: MYRCN  , CAREN , OCIMN
       ! Add in gamma activity factors for isoprene ONLY (mpb,2009)
-       REAL*8                 :: GAMMA_LAI
-       REAL*8                 :: GAMMA_LEAF_AGE
-       REAL*8                 :: GAMMA_P
-       REAL*8                 :: GAMMA_T
-       REAL*8                 :: GAMMA_SM
+      REAL*8                 :: GAMMA_LAI
+      REAL*8                 :: GAMMA_LEAF_AGE
+      REAL*8                 :: GAMMA_P
+      REAL*8                 :: GAMMA_T
+      REAL*8                 :: GAMMA_SM
 !
 !******************************************************************************
 !  EMISSDR begins here!
@@ -271,12 +271,16 @@
             IF ( LLIGHTNOX ) CALL EMLIGHTNING( I, J )
 !-----------------------------------------------------------------------------
 ! SOIL EMISSIONS NOX [molecules/cm3/s]
-! Now have to pass SUNCOS to SOILNOXEMS and SOILCRF (bmy, 10/20/99)
 !
-            ! Add separate fertilizer switch. (fp, 6/09)
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
-     &         CALL SOILNOXEMS( SUNCOS )
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
+! each GMT hour (bmy, 10/5/11)
+!     &         CALL SOILNOXEMS( SUNCOS )
+!------------------------------------------------------------------------------
+     &         CALL SOILNOXEMS( SUNCOS30 )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
@@ -302,17 +306,19 @@
                   !------------------
 
                   ! Cosine of solar zenith angle
-                  SC   = SUNCOS(IJLOOP)
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
+! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+!                  SC   = SUNCOS(IJLOOP)
+!------------------------------------------------------------------------------
+                  SC   = SUNCOS30(IJLOOP)
                
                   ! Diffuse and direct PAR
                   PDR  = PARDR(I,J)
                   PDF  = PARDF(I,J)
 
                   ! Isoprene         
-!--- Change arguments order for coherence with other MEGAN functions
-!    (ccc, 11/23/09)
-!                  EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
-!     &                                      XNUMOL_C, PDR, PDF )
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
      &                                      PDR, PDF, XNUMOL_C )
 
@@ -323,7 +329,13 @@
                   !------------------
 
                   ! Isoprene
-                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
+! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+!                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
+!------------------------------------------------------------------------------
+                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS30,TMMP,XNUMOL_C)
 
                ENDIF
  
@@ -339,10 +351,6 @@
                   !------------------
 
                   ! Methyl butenol
-!--- Change arguments order for coherence with other MEGAN functions
-!    (ccc, 11/23/09)
-!                  EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
-!     &                                      XNUMOL_C, PDR, PDF )
                   EMMB = GET_EMMBO_MEGAN(   I, J,     SC, TMMP,
      &                                      PDR, PDF, XNUMOL_C )
 
@@ -392,7 +400,13 @@
      &                              TMMP, XNUMOL_C )
              
                   ! Methyl Butenol
-                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
+! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
+!------------------------------------------------------------------------------
+                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS30, 
      &                              TMMP, XNUMOL_C )
 
                ENDIF
@@ -411,7 +425,14 @@
                ! EMISOP_GRASS should NOT be considered as an additional
                ! isoprene source.
                !--------------------------------------------------------------
-               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
+! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
+!               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
+!------------------------------------------------------------------------------
+               GRASS = EMISOP_GRASS(I,J,IJLOOP,SUNCOS30,TMMP,XNUMOL_C) 
 
                ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)

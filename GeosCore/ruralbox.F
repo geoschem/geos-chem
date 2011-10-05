@@ -12,7 +12,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
+!      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
+!------------------------------------------------------------------------------
+      SUBROUTINE RURALBOX( AD, T, AVGW, ALBD )
 !
 ! !USES:
 !
@@ -35,7 +40,11 @@
       REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
       REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
       REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
-      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)             ! Cos of SZA [unitless]
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! SUNCOS is no longer used in RURALBOX, we can remove it (bmy, 10/5/11)
+!      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)             ! Cos of SZA [unitless]
+!------------------------------------------------------------------------------
 !
 ! !REMARKS:
 !  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)

@@ -467,11 +467,16 @@
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
+!  05 Oct 2011 - R. Yantosca - SUNCOS is no longer needed here
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+!      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
+!------------------------------------------------------------------------------
+      USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH

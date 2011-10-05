@@ -99,6 +99,7 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS  (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOW    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS  (:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS30(:  )
       REAL*8,  ALLOCATABLE, PUBLIC :: TO31    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO32    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO3     (:,:)
@@ -237,6 +238,8 @@
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE, F77_CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
+!  05 Oct 2011 - R. Yantosca - Add SUNCOS30 array to hold the cos(SZA)
+!                              computed @ 30 mins after each GMT hour.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1568,11 +1571,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( JDAY, SUNCOS )
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Also return SUNCOS30, cos(SZA) @ 30min after the GMT hour (bmy, 10/5/11)
+!      SUBROUTINE COSSZA( JDAY, SUNCOS )
+!------------------------------------------------------------------------------
+      SUBROUTINE COSSZA( JDAY, SUNCOS, SUNCOS30 )
 !
 ! !USES:
 !
       USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_LOCALTIME
       USE TIME_MOD, ONLY : GET_TS_SUN_2
 !
@@ -1582,8 +1591,26 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( Solar zenith angle )
-! 
+      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( SZA ) @ current time
+      REAL*8,  INTENT(OUT) :: SUNCOS30(MAXIJ)  ! COS( SZA ) @ 30 min after hour
+!
+! !REMARKS:
+!  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
+!  and increases by 15 deg for every hour before or after solar noon.  Hour 
+!  angle can be thought of as the time in hours since the sun last passed
+!  the meridian (i.e. the time since the last local noon).
+!                                                                             .
+!  The cosine of the solar zenith angle (SZA) is given by:
+!                                                                             .
+!     cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+!                                                                             .
+!  where LAT = the latitude angle, 
+!        DEC = the solar declination angle,  
+!        AHR = the hour angle, all in radians. 
+!                                                                             .
+!  If SUNCOS < 0, then the sun is below the horizon, and therefore does not 
+!  contribute to any solar heating.  
+!
 ! !REVISION HISTORY: 
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
@@ -1608,14 +1635,17 @@
 !        (i.e. the chemistry timestep).   Also make the A and B coefficients
 !        parameters instead of variables. (bmy, 4/27/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  05 Oct 2011 - R. Yantosca - Now also return the cosine of the solar 
+!                              zenith angle at 30m after the GMT hour.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I, IJLOOP, J
-      REAL*8             :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+      INTEGER            :: I,       IJLOOP,    J
+      REAL*8             :: R,       AHR,       DEC,   TIMLOC,   YMID_R
+      REAL*8             :: GMT_30m, S_YMID_R,  S_DEC, C_YMID_R, C_DEC
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1629,20 +1659,31 @@
       REAL*8,  PARAMETER :: B3 = 0.000148d0
 
       !=================================================================
-      ! COSSZA begins here!   
+      ! Initialization   
       !=================================================================
 
-      ! 1/2 of the time interval (normally the chemistry timestep)
-      ! for computing SUNCOS.  Convert from minutes to hours.
-      OFFSET = GET_TS_SUN_2() / 60d0
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now compute 
+!      ! 1/2 of the time interval (normally the chemistry timestep)
+!      ! for computing SUNCOS.  Convert from minutes to hours.
+!      OFFSET = GET_TS_SUN_2() / 60d0
+!------------------------------------------------------------------------------
+
+      ! Construct the GMT at 30 minutes after the hour
+      GMT_30m = DBLE( GET_HOUR() ) + 0.5d0
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
-      R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+      R       = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
 
-      ! Solar declination angle (low precision formula)
-      DEC = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &         - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &         - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+      ! Solar declination angle (low precision formula) [radians]
+      DEC     = A0 - A1*COS(     R ) + B1*SIN(     R )
+     &             - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
+     &             - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+
+      ! Pre-compute sin & cos of DEC outside of DO loops (for efficiency)
+      S_DEC   = SIN( DEC )
+      C_DEC   = COS( DEC )
 
       !=================================================================
       ! Compute cosine of solar zenith angle
@@ -1650,13 +1691,17 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
 
       ! Loop over latitude
       DO J = 1, JJPAR
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( J )
+         YMID_R   = GET_YMID_R( J )
+
+         ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
+         S_YMID_R = SIN( YMID_R )
+         C_YMID_R = COS( YMID_R )
 
          ! Loop over longitude
          DO I = 1, IIPAR
@@ -1665,39 +1710,37 @@
             IJLOOP = ( (J-1) * IIPAR ) + I
 
             !===========================================================
-            ! TIMLOC = Local Time in Hours                   
-            !
-            ! Hour angle (AHR) is a function of longitude.  AHR is 
-            ! zero at solar noon, and increases by 15 deg for every 
-            ! hour before or after solar noon.  
-            !
-            ! Hour angle can be thought of as the time in hours since 
-            ! the sun last passed the meridian (i.e. the time since the
-            ! last local noon).  Convert to radians for the COS below.
+            ! Compute cosine of SZA at the current GMT time
             !===========================================================
 
             ! Local time at box (I,J) [hours]
-            TIMLOC = GET_LOCALTIME( I, OFFSET )
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+!            TIMLOC = GET_LOCALTIME( I, OFFSET )
+!------------------------------------------------------------------------------
+            TIMLOC           = GET_LOCALTIME( I )
 
             ! Hour angle at box (I,J) [radians]
-            AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            AHR              = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
+            ! Cosine of solar zenith angle at box (I,J) [unitless]
+            SUNCOS(IJLOOP)   = ( S_YMID_R * S_DEC              ) 
+     &                       + ( C_YMID_R * C_DEC * COS( AHR ) )
+
             !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
+            ! Compute cosine of SZA at 30 minutes after the GMT hour
+            ! Required for photolysis, chemistry, emissions, drydep
             !===========================================================
-               
-            ! Compute cos(SZA) at box (I,J) [unitless]
-            SUNCOS(IJLOOP) = SIN( YMID_R ) * SIN( DEC ) +
-     &                       COS( YMID_R ) * COS( DEC ) * COS( AHR )
+
+            ! Local time [hours] at box (I,J) at 30 minutes after the GMT hour
+            TIMLOC           = GET_LOCALTIME( I, GMT=GMT_30m )
+
+            ! Hour angle at box (I,J) [radians]
+            AHR              = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            
+            ! Corresponding cosine( SZA ) at box (I,J) [unitless]
+            SUNCOS30(IJLOOP) = ( S_YMID_R * S_DEC              )
+     &                       + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          ENDDO
       ENDDO
@@ -2173,6 +2216,11 @@
       ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
+
+      ! Cosine of solar zenith angle (computed @ 30m after each GMT hour)
+      ALLOCATE( SUNCOS30( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS30' )
+      SUNCOS30 = 0d0
 
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2751,6 +2799,7 @@
 !  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
+!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS30
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2856,6 +2905,7 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
+      IF ( ALLOCATED( SUNCOS30 ) ) DEALLOCATE( SUNCOS30 )
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )
