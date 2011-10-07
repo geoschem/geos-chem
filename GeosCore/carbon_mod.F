@@ -4252,17 +4252,18 @@ c
 !  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
 !  05 Oct 2011 - R. Yantosca - Now use SUNCOS30, which is the cos(SZA)
 !                              computed @ 30 mins after each GMT hour
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
 !-----------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS30, the cos(SZA) @ 30 min after the hour (bmy, 10/5/11)
+! Prior to 10/7/11:
 !      USE DAO_MOD,       ONLY : SUNCOS
 !-----------------------------------------------------------------------------
-      USE DAO_MOD,       ONLY : SUNCOS30
+      USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
@@ -4345,7 +4346,7 @@ c
 ! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
 !            SC   = SUNCOS(IJLOOP)   
 !------------------------------------------------------------------------------
-            SC   = SUNCOS30(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4435,7 +4436,7 @@ c
 ! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
 !            SC   = SUNCOS(IJLOOP)   
 !------------------------------------------------------------------------------
-            SC   = SUNCOS30(IJLOOP)   
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4454,15 +4455,15 @@ c
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS30(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
 !-----------------------------------------------------------------------------
 ! Prior to 10/5/11:
-! Now use SUNCOS30 array instead of SUNCOS (bmy, 10/5/11)
+! Now use SUNCOS_MID array instead of SUNCOS (bmy, 10/5/11)
 !     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
 !     &                          ( 1440d0        / GET_TS_CHEM() )
 !-----------------------------------------------------------------------------
-     &                          ( SUNCOS30(IJLOOP) / TCOSZ(I,J) ) *
+     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
      &                          ( 1440d0           / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative

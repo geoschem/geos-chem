@@ -80,6 +80,8 @@
 !  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 array, which has the cos(SZA)
 !                              defined at 30 mins after the GMT hour, in order
 !                              to be consistent w/ the chemistry.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !******************************************************************************
 !
       ! References to F90 modules
@@ -88,10 +90,10 @@
       USE AIRCRAFT_NOX_MOD,  ONLY : AIREMISS
       USE BIOFUEL_MOD,       ONLY : BIOFUEL_BURN
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
+! Prior to 10/7/11:
 !      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS        
 !------------------------------------------------------------------------------
-      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS30        
+      USE DAO_MOD,           ONLY : PARDF,         PARDR,     SUNCOS_MID       
       USE DIAG_MOD,          ONLY : AD29,          AD46
       USE GRID_MOD,          ONLY : GET_AREA_CM2
       USE GRID_MOD,          ONLY : GET_XOFFSET,   GET_YOFFSET
@@ -275,12 +277,12 @@
             IF ( ( LSOILNOX .OR. LFERTILIZERNOX )
      &             .AND. I == 1 .AND. J == 1 ) 
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
-! each GMT hour (bmy, 10/5/11)
+! Prior to 10/7/11:
+! Now call soil NOx emissions with the cos(SZA) computed @ the midpoint of
+! the chemistry timestep (bmy, 10/7/11)
 !     &         CALL SOILNOXEMS( SUNCOS )
 !------------------------------------------------------------------------------
-     &         CALL SOILNOXEMS( SUNCOS30 )
+     &         CALL SOILNOXEMS( SUNCOS_MID )
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
@@ -307,12 +309,12 @@
 
                   ! Cosine of solar zenith angle
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
-! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+! Prior to 10/7/11:
+! Now call MEGAN emissions with the cos(SZA) computed @ the midpoint of
+! the chemistry timestep (bmy, 10/7/11)
 !                  SC   = SUNCOS(IJLOOP)
 !------------------------------------------------------------------------------
-                  SC   = SUNCOS30(IJLOOP)
+                  SC   = SUNCOS_MID(IJLOOP)
                
                   ! Diffuse and direct PAR
                   PDR  = PARDR(I,J)
@@ -331,11 +333,11 @@
                   ! Isoprene
 !------------------------------------------------------------------------------
 ! Prior to 10/5/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
-! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
+! the chemistry timestep (bmy, 10/7/11)
 !                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
 !------------------------------------------------------------------------------
-                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS30,TMMP,XNUMOL_C)
+                  EMIS = EMISOP( I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C )
 
                ENDIF
  
@@ -401,12 +403,12 @@
              
                   ! Methyl Butenol
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
-! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+! Prior to 10/7/11:
+! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
+! the chemistry timestep (bmy, 10/7/11)
 !                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
 !------------------------------------------------------------------------------
-                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS30, 
+                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS_MID, 
      &                              TMMP, XNUMOL_C )
 
                ENDIF
@@ -426,13 +428,13 @@
                ! isoprene source.
                !--------------------------------------------------------------
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call soil NOx emissions with the cos(SZA) computed @ 30 min after 
-! each GMT hour, to be consistent w/ the chemistry. (bmy, 10/5/11)
+! Prior to 10/7/11:
+! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
+! the chemistry timestep (bmy, 10/7/11)
 !                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
 !               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
 !------------------------------------------------------------------------------
-               GRASS = EMISOP_GRASS(I,J,IJLOOP,SUNCOS30,TMMP,XNUMOL_C) 
+               GRASS = EMISOP_GRASS(I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C) 
 
                ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)

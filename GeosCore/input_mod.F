@@ -5643,14 +5643,22 @@
 !        SUNCOS at the midpoint of the timestep instead of the beginning.
 !        (bmy, 4/27/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  07 Oct 2011 - R. Yantosca - Add extra error checks for centralizing
+!                              chemistry timestep algorithm
+!  07 Oct 2011 - R. Yantosca - Remove TS_SUN_2 from call to SET_TIMESTEPS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: I,           J,       K,       L
-      INTEGER :: TS_SMALLEST, TS_DIAG, TS_SUN_2
+!------------------------------------------------------------------------------
+! Prior to 10/7/11:
+! Remove obsolete TS_SUN_2 variable
+!      INTEGER :: I,           J,       K,       L
+!      INTEGER :: TS_SMALLEST, TS_DIAG, TS_SUN_2
+!------------------------------------------------------------------------------
+      INTEGER :: I, J, K, L, TS_SMALLEST, TS_DIAG
       
       !=================================================================
       ! CHECK_TIME_STEPS begins here!
@@ -5658,6 +5666,26 @@
 
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
+
+      ! For the centralizing chemistry timestep modification, the emissions 
+      ! should be done at the same time as chemistry.  Stop the run if the
+      ! emissions timestep differs from the chemistry timestep. (bmy, 10/7/11)
+      IF ( TS_EMIS /= TS_CHEM ) THEN 
+         WRITE(6,*) 'The emission time step should equal the chemistry'
+         WRITE(6,*) 'timestep.  This is required for the new central'
+         WRITE(6,*) 'chemistry timestep algorithm.'
+         CALL GEOS_CHEM_STOP
+      ENDIF
+
+      ! For the centralizing chemistry timestep modification, the convection 
+      ! should be done at the same time as dynamics.  Stop the run if the
+      ! convection timestep differs from the dynamic timestep. (bmy, 10/7/11)
+      IF ( TS_CONV /= TS_DYN ) THEN 
+         WRITE(6,*) 'The convection time step should equal the dynamic'
+         WRITE(6,*) 'timestep.  This is required for the new central'
+         WRITE(6,*) 'chemistry timestep algorithm.'
+         CALL GEOS_CHEM_STOP
+      ENDIF
 
       ! Only do unit conversion if necessary
       IF ( LTRAN .or. LCONV .or. LTURB ) THEN
@@ -5739,21 +5767,28 @@
          CALL GEOS_CHEM_STOP
       ENDIF
 
-      ! We need to compute the cosine of the solar zenith angle at the 
-      ! center of the relevant timestep.  Take 1/2 of the proper time 
-      ! interval and store for future reference. (bmy, 4/27/10)
-      IF ( LCHEM .or. LEMIS .or. LDRYD ) THEN
-         TS_SUN_2 = TS_CHEM     / 2   ! 1/2 of chemistry timestep
-      ELSE 
-         TS_SUN_2 = TS_SMALLEST / 2   ! 1/2 of dynamic (smallest) timestep
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 10/7/11:
+! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
+!      ! We need to compute the cosine of the solar zenith angle at the 
+!      ! center of the relevant timestep.  Take 1/2 of the proper time 
+!      ! interval and store for future reference. (bmy, 4/2 7/10)
+!      IF ( LCHEM .or. LEMIS .or. LDRYD ) THEN
+!         TS_SUN_2 = TS_CHEM     / 2   ! 1/2 of chemistry timestep
+!      ELSE 
+!         TS_SUN_2 = TS_SMALLEST / 2   ! 1/2 of dynamic (smallest) timestep
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Initialize timesteps in "time_mod.f"
       CALL SET_TIMESTEPS( CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
-     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
-     &                    SUNCOS     = TS_SUN_2 )
-
+     &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG )
+!------------------------------------------------------------------------------
+! Prior to 10/7/11:
+! We no longer need to pass TS_SUN_2 to SET_TIMESTEPS (bmy, 10/7/11)
+!     &                    SUNCOS     = TS_SUN_2 )
+!------------------------------------------------------------------------------
       
  100  FORMAT( A, ' time step must be a multiple of the smallest one:',
      &         i5, i5 )

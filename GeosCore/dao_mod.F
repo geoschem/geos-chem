@@ -99,7 +99,7 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS  (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOW    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS  (:  )
-      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS30(:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID(:  )
       REAL*8,  ALLOCATABLE, PUBLIC :: TO31    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO32    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO3     (:,:)
@@ -238,8 +238,10 @@
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE, F77_CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
-!  05 Oct 2011 - R. Yantosca - Add SUNCOS30 array to hold the cos(SZA)
+!  05 Oct 2011 - R. Yantosca - Add SUNCOS_30 array to hold the cos(SZA)
 !                              computed @ 30 mins after each GMT hour.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1566,33 +1568,30 @@
 !
 ! !IROUTINE: cossza
 !
-! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle.
+! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle at
+!  the current time, and at the midpoint of the chemistry timestep interval.
 !\\
 !\\
 ! !INTERFACE:
 !
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Also return SUNCOS30, cos(SZA) @ 30min after the GMT hour (bmy, 10/5/11)
-!      SUBROUTINE COSSZA( JDAY, SUNCOS )
-!------------------------------------------------------------------------------
-      SUBROUTINE COSSZA( JDAY, SUNCOS, SUNCOS30 )
+      SUBROUTINE COSSZA( JDAY, SUNCOS, SUNCOS_MID )
 !
 ! !USES:
 !
       USE GRID_MOD, ONLY : GET_YMID_R
       USE TIME_MOD, ONLY : GET_HOUR
+      USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_SUN_2
+      USE TIME_MOD, ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: JDAY             ! Day of year (0-365)
+      INTEGER, INTENT(IN)  :: JDAY              ! Day of year (0-365)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( SZA ) @ current time
-      REAL*8,  INTENT(OUT) :: SUNCOS30(MAXIJ)  ! COS( SZA ) @ 30 min after hour
+      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)     ! cos(SZA) @ current time
+      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ) ! cos(SZA) @ midpt of chem step
 !
 ! !REMARKS:
 !  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
@@ -1637,15 +1636,19 @@
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  05 Oct 2011 - R. Yantosca - Now also return the cosine of the solar 
 !                              zenith angle at 30m after the GMT hour.
+!  07 Oct 2011 - R. Yantosca - Now return SUNCOS_MID, the cos(SZA) at the
+!                              midpt of the chem step (not always at 00:30).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I,       IJLOOP,    J
-      REAL*8             :: R,       AHR,       DEC,   TIMLOC,   YMID_R
-      REAL*8             :: GMT_30m, S_YMID_R,  S_DEC, C_YMID_R, C_DEC
+      INTEGER            :: FACTOR, I,        IJLOOP,  J
+      INTEGER            :: HOUR,   MINUTE,   TS_SUN
+      REAL*8             :: AHR,    GMT_MID,  R,       TIMLOC
+      REAL*8             :: DEC,    C_DEC,    S_DEC
+      REAL*8             :: YMID_R, C_YMID_R, S_YMID_R
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1662,28 +1665,28 @@
       ! Initialization   
       !=================================================================
 
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute 
-!      ! 1/2 of the time interval (normally the chemistry timestep)
-!      ! for computing SUNCOS.  Convert from minutes to hours.
-!      OFFSET = GET_TS_SUN_2() / 60d0
-!------------------------------------------------------------------------------
+      ! Quantities for central chemistry timestep
+      TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
+      HOUR     = GET_HOUR()                            ! Current hour
+      MINUTE   = GET_MINUTE()                          ! Current minutes
+      FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
 
-      ! Construct the GMT at 30 minutes after the hour
-      GMT_30m = DBLE( GET_HOUR() ) + 0.5d0
+      ! GMT at the midpoint of the chemistry timestep
+      GMT_MID  = ( DBLE( GET_HOUR()      )        )    ! Start of hour
+     &         + ( DBLE( TS_SUN * FACTOR ) / 60d0 )    ! + steps already done
+     &         + ( DBLE( TS_SUN / 2      ) / 60d0 )    ! + 1/2 chem timestep
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
-      R       = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+      R        = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
 
       ! Solar declination angle (low precision formula) [radians]
-      DEC     = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &             - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &             - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+     &              - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
+     &              - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
 
       ! Pre-compute sin & cos of DEC outside of DO loops (for efficiency)
-      S_DEC   = SIN( DEC )
-      C_DEC   = COS( DEC )
+      S_DEC    = SIN( DEC )
+      C_DEC    = COS( DEC )
 
       !=================================================================
       ! Compute cosine of solar zenith angle
@@ -1707,40 +1710,36 @@
          DO I = 1, IIPAR
 
             ! 1-D grid box index
-            IJLOOP = ( (J-1) * IIPAR ) + I
+            IJLOOP             = ( (J-1) * IIPAR ) + I
 
             !===========================================================
             ! Compute cosine of SZA at the current GMT time
             !===========================================================
 
             ! Local time at box (I,J) [hours]
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-!            TIMLOC = GET_LOCALTIME( I, OFFSET )
-!------------------------------------------------------------------------------
-            TIMLOC           = GET_LOCALTIME( I )
+            TIMLOC             = GET_LOCALTIME( I )
 
             ! Hour angle at box (I,J) [radians]
-            AHR              = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
             ! Cosine of solar zenith angle at box (I,J) [unitless]
-            SUNCOS(IJLOOP)   = ( S_YMID_R * S_DEC              ) 
-     &                       + ( C_YMID_R * C_DEC * COS( AHR ) )
+            SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
 
             !===========================================================
-            ! Compute cosine of SZA at 30 minutes after the GMT hour
+            ! Compute cosine(SZA) at the midpoint of the chem timestep
             ! Required for photolysis, chemistry, emissions, drydep
             !===========================================================
 
             ! Local time [hours] at box (I,J) at 30 minutes after the GMT hour
-            TIMLOC           = GET_LOCALTIME( I, GMT=GMT_30m )
+            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
 
             ! Hour angle at box (I,J) [radians]
-            AHR              = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
             ! Corresponding cosine( SZA ) at box (I,J) [unitless]
-            SUNCOS30(IJLOOP) = ( S_YMID_R * S_DEC              )
-     &                       + ( C_YMID_R * C_DEC * COS( AHR ) )
+            SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          ENDDO
       ENDDO
@@ -2217,10 +2216,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
 
-      ! Cosine of solar zenith angle (computed @ 30m after each GMT hour)
-      ALLOCATE( SUNCOS30( MAXIJ ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS30' )
-      SUNCOS30 = 0d0
+      ! Cosine of solar zenith angle (computed @ midpt of chem timestep)
+      ALLOCATE( SUNCOS_MID( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID' )
+      SUNCOS_MID = 0d0
 
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2799,7 +2798,7 @@
 !  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
-!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS30
+!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2905,7 +2904,7 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
-      IF ( ALLOCATED( SUNCOS30 ) ) DEALLOCATE( SUNCOS30 )
+      IF ( ALLOCATED( SUNCOS_MID ) ) DEALLOCATE( SUNCOS_MID )
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )

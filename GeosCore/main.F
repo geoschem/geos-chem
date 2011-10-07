@@ -48,7 +48,7 @@
       USE DAO_MOD,           ONLY : INTERP,          PS1
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
-      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOS30
+      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOS_MID
       USE DAO_MOD,           ONLY : MAKE_RH
       !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
       USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
@@ -219,6 +219,8 @@
 !  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
 !  02 Feb 2011 - S. Kim      - Call Compute_OD after wet deposition
 !  05 Oct 2011 - R. Yantosca - Now get SUNCOS30 array from routine COSSZA
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -948,15 +950,14 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
 
-         ! Compute the cosine of the solar zenith angle array SUNCOS
+         ! Compute the cosine of the solar zenith angle array
+         ! SUNCOS     = cos(SZA) at the current time
+         ! SUNCOS_MID = cos(SZA) at the midpt of the chemistry timestep
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now compute SUNCOS *cos(SZA) at the present time) and SUNCOS30 (cos(SZA)
-! at 30 minutes after the GMT hour.  SUNCOS30 is necessary for the centralizing
-! chemistry time step. (bmy, 10/5/11)
+! Prior to 10/7/11:
 !         CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 !------------------------------------------------------------------------------
-         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS30 )
+         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS_MID )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE

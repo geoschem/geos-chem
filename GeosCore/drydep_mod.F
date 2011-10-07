@@ -318,16 +318,18 @@
 !  01 Aug 2011 - J. Fisher - Set aerosol dry deposition velocity to 0.03 cm/s
 !                            over snow and ice based on Nilsson & Rannik, 2001
 !  15 Aug 2011 - R. Yantosca - Now reference IDTxxx flags from tracerid_mod.f
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !******************************************************************************
 !
       ! Reference to F90 modules
       USE DIAG_MOD,     ONLY : AD44
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now use SUNCOS30, for consistency with the chemistry routines (bmy, 10/5/11)
+! Prior to 10/7/11:
 !      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
 !------------------------------------------------------------------------------
-      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS30
+      USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS_MID
+
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC, IDTSO4s, IDTNITs
@@ -376,14 +378,15 @@
       !=================================================================
 !------------------------------------------------------------------------------
 ! Prior to 10/5/11:
-! Now use SUNCOS30, for consistency with the chemistry routines (bmy, 10/5/11)
+! Now use SUNCOS_MID, the cos(SZA) at the midpoint of the chem timestep,
+! for consistency with the chemistry routines (bmy, 10/7/11)
 !      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
 !     &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
 !     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
 !------------------------------------------------------------------------------
-      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS30, F0,  HSTAR, 
-     &             XMW,   AIROSOL, USTAR, CZ1,      OBK, CFRAC,  
-     &             ZH,    LSNOW,   DVEL,  AZO,      RHB ) 
+      CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS_MID, F0,  HSTAR, 
+     &             XMW,   AIROSOL, USTAR, CZ1,        OBK, CFRAC,  
+     &             ZH,    LSNOW,   DVEL,  AZO,        RHB ) 
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics

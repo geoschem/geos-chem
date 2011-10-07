@@ -24,7 +24,7 @@
 !      USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD, SUNCOS  
 !------------------------------------------------------------------------------
       USE DAO_MOD,              ONLY : BXHEIGHT, MAKE_AVGW, OPTD  
-      USE DAO_MOD,              ONLY : T,        SUNCOS30
+      USE DAO_MOD,              ONLY : T,        SUNCOS_MID
       USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
       USE DIAG_PL_MOD,          ONLY : DO_DIAG_PL
       USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
@@ -202,6 +202,8 @@
 !  05 Oct 2011 - R. Yantosca - Now use SUNCOS30 (cosine of SZA at 30m after
 !                              the GMT hour) instead of SUNCOS.  This fixes
 !                              the photolysis issue.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -504,11 +506,10 @@
       ! Call photolysis routine to compute J-Values
       !=================================================================
 !------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call photolysis with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
+! Prior to 10/7/11:
 !      CALL FAST_J( SUNCOS, OPTD, UVALBEDO )              
 !------------------------------------------------------------------------------
-      CALL FAST_J( SUNCOS30, OPTD, UVALBEDO )              
+      CALL FAST_J( SUNCOS_MID, OPTD, UVALBEDO )              
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after FAST-J' )
@@ -522,10 +523,9 @@
       ! is the chemistry solver
 !------------------------------------------------------------------------------
 ! Prior to 10/5/11:
-! Now call photolysis with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
 !      CALL PHYSPROC( SUNCOS )
 !------------------------------------------------------------------------------
-      CALL PHYSPROC( SUNCOS30 )
+      CALL PHYSPROC( SUNCOS_MID )
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
