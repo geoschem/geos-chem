@@ -190,6 +190,7 @@
 !  07 Oct 2011 - M. Payer    - Modifications for central chemistry timestep
 !  07 Oct 2011 - R. Yantosca - Remove obsolete TS_SUN_2, GET_TS_SUN_2
 !  07 Oct 2011 - R. Yantosca - Remove obsolete OFFSET argument to GET_LOCALTIME
+!  12 Oct 2011 - R. Yantosca - Modified ITS_A_NEW_MONTH for central chem step
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3761,42 +3762,157 @@
 !
 ! !IROUTINE: its_a_new_month
 !
-! !DESCRIPTION: Function ITS\_A\_NEW\_MONTH returns TRUE if it's the first 
-!  of a new month (it also returns TRUE on the first timestep of the run).  
-!  This is useful for setting flags for reading in data. 
+! !DESCRIPTION: Function ITS\_A\_NEW\_MONTH returns TRUE if it's the first
+!  timestep of the month when we have to read in monthly data.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_MONTH() RESULT( IS_NEW_MONTH )
+      FUNCTION ITS_A_NEW_MONTH( NO_CCTS ) RESULT( IS_NEW_MONTH )
+!
+! !INPUT PARAMETERS
+!
+      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                         ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: IS_NEW_MONTH
+      LOGICAL           :: IS_NEW_MONTH  ! =T if start of month (for data read)
+!
+! !REMARKS:
+!  ITS_A_NEW_MONTH assumes that we are using the central chemistry timestep
+!  option (i.e. do chemistry & emissions & related processes at the midpoint
+!  of each chemistry timestep).  To revert to the prior behavior, set the
+!  optional flag NO_CCTS = .TRUE.
+!                                                                             .
+!  If we are using the central chemistry timestep option (which is now the
+!  default behavior), then we must not read data at 00:00 GMT on the first day 
+!  of the month, but at the center of the first chemistry timestep of the 
+!  month.  This is because emissions and chemistry are done at the same time.  
+!  The proper time of day for reading emissions is determined by function 
+!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!                                                                             .
+!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  time, we must not read data at the starting date and time of the simulation,
+!  but at the midpoint of the first chemistry timestep of the simulation.
+!                                                                             .
+!  If we are not using the central chemistry timestep option (specified by
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
+!  on the first day of the month.  Similarly, for those simulations that start
+!  at midmonth, the first data read will occur the starting date and time
+!  of the simulation.
 ! 
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( DAY == 1 .and. NHMS == 000000 ) THEN
+!
+! !LOCAL VARIABLES
+!
+      LOGICAL :: NO_CENTRAL
+      INTEGER :: HH,   MM,  SS
+      REAL*8  :: GMTb, TS
 
-         ! Test for the 1st of the month at 0 GMT
-         IS_NEW_MONTH = .TRUE.
+      !==============================================================
+      ! Initialization
+      !==============================================================
 
-      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+      ! Save 
+      IF ( PRESENT( NO_CCTS ) ) THEN
+         NO_CENTRAL = NO_CCTS
+      ELSE
+         NO_CENTRAL = .FALSE.
+      ENDIF
 
-         ! Also return TRUE if it's the start of the run
-         ! (since files will need to be read in from disk)
-         IS_NEW_MONTH = .TRUE.
+      ! Emissions timestep [hours]
+      TS = DBLE( TS_EMIS ) / 60d0
+     
+      ! Split starting time into hour, minute, second
+      CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+
+      IF ( DAY == 1 .and. HOUR == 0 ) THEN
+
+         !==============================================================
+         ! FOR THE FIRST DAY OF THE MONTH
+         !==============================================================
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep.  
+            ! Therefore, the first data read of the month should occur 
+            ! at 00:00 GMT of the 1st day of the month.
+            IS_NEW_MONTH = ( NHMS == 000000 ) 
+
+         ELSE
+
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the month will occur not at 
+            ! 00:00 GMT on the 1st day of the month, but offset by a small
+            ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
+            IS_NEW_MONTH = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
+      
+      ELSE IF ( NYMD == NYMDb ) THEN
+
+         !==============================================================
+         ! FOR THE FIRST DAY OF THE SIMULATION
+         ! (i.e. for simulations that start at other times of the month)
+         !==============================================================
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep.  
+            ! Therefore, the first data read of this month should occur 
+            ! at the start time of the simulation.
+            IS_NEW_MONTH = ( NHMS == NHMSb )
+
+         ELSE
+
+            ! Compute GMT at the start of the simulation
+            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the month will occur not at 
+            ! 00:00 GMT on the 1st day of the month, but offset by a small
+            ! amount (as diagnosed by function ITS_TIME_FOR_EMIS).
+            IS_NEW_MONTH = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
 
       ELSE
 
-         ! Otherwise, it's not a new year
+         !==============================================================
+         ! FOR ALL OTHER DAYS
+         !==============================================================
+
+         ! It isn't time for the first data read of the month; return FALSE
          IS_NEW_MONTH = .FALSE.
-         
+
       ENDIF
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Prior to 10/13/11:
+!%%% Save original code here
+!%%%      IF ( DAY == 1 .and. NHMS == 000000 ) THEN
+!%%%
+!%%%         ! Test for the 1st of the month at 0 GMT
+!%%%         IS_NEW_MONTH = .TRUE.
+!%%%
+!%%%      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+!%%%
+!%%%         ! Also return TRUE if it's the start of the run
+!%%%         ! (since files will need to be read in from disk)
+!%%%         IS_NEW_MONTH = .TRUE.
+!%%%
+!%%%      ELSE
+!%%%
+!%%%         ! Otherwise, it's not a new year
+!%%%         IS_NEW_MONTH = .FALSE.
+!%%%         
+!%%%      ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       END FUNCTION ITS_A_NEW_MONTH
 !EOC

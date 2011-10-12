@@ -162,13 +162,14 @@
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !EOP
 !------------------------------------------------------------------------------
-!BOC
+!BOCca
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                     :: MONTH, YEAR
-      ! BIOMASS not used (hotp 8/3/09)
-      !REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+      INTEGER                     :: MONTH, YEAR, DO_READ_MONTH
+!
+! !DEFINED PARAMETERS:
+!
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -217,14 +218,19 @@
          ENDIF
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
-         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
+         IF ( LRETRO .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_RETRO
+         ENDIF
 
          ! Read EPA/NEI99 (USA) emissions once per month
-         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
+         IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_EPA_NEI
+         ENDIF
 
          ! Read VISTAS (USA) emissions once per month
-         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) 
-     &        CALL EMISS_VISTAS_ANTHRO
+         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_VISTAS_ANTHRO
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
          IF ( LBRAVO .and. ITS_A_NEW_YEAR()  ) CALL EMISS_BRAVO
