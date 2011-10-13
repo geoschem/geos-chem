@@ -10749,12 +10749,13 @@ c
       ! CHECK_MB starts here
       !=================================================================
 
-! run in serial now (hotp 6/5/10)
-!  !$OMP PARALLEL DO
-!  !$OMP+DEFAULT( SHARED )
-!  !$OMP+PRIVATE( NOX,         JHC,        JSV,    IPR )
-!  !$OMP+PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      )
-!  !$OMP+PRIVATE( I, J, L                              )
+      ! run in serial now (hotp 6/5/10)
+      ! Make parallel again (mpayer, 9/14/11)
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( NOX,         JHC,        JSV,    IPR )
+!$OMP+PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      )
+!$OMP+PRIVATE( I, J, L                              )
 
       DO L = 1, LLTROP
       DO J = 1, JJPAR
@@ -11087,6 +11088,7 @@ c
       ENDDO
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Save information in [Tg]
       DO JHC = 1, MHC

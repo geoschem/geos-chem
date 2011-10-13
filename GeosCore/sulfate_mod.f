@@ -4369,6 +4369,10 @@
       J0 = GET_YOFFSET()
     
       ! Loop over surface grid boxes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, K )
+!$OMP+PRIVATE( PLOW, PHIGH, PVOLCLOW, PVOLCHIGH, FRAC, T_SUM, T_DIFF )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
     
@@ -4477,6 +4481,7 @@
 
       ENDDO       ! I
       ENDDO       ! J
+!$OMP END PARALLEL DO
 
       !=================================================================
       ! Overwrite USA    w/ EPA/NEI99 (anthro+biofuel) SO2 emissions 

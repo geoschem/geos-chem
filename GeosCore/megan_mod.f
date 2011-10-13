@@ -2118,6 +2118,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_ISOP ) 
 
       ! Loop over longitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
        
          ! Grid box surface area [m2]
@@ -2135,6 +2138,7 @@
 
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in MONOTERPENE Annual Emission Factors
@@ -2156,6 +2160,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MONOT ) 
 
       ! Loop over longitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Surface area 
@@ -2172,6 +2179,7 @@
 
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in MBO Annual Emission Factors
@@ -2193,6 +2201,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MBO ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2209,6 +2220,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !---------------------------------------------
       ! Read in other VOC Annual Emission Factors
@@ -2230,6 +2242,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OVOC ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2246,6 +2261,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !--------------------------------------------------
       ! Read in other Monoterpene Annual Emission Factors
@@ -2269,6 +2285,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_APINE ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2285,6 +2304,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 2) Beta Pinene (BPIN) 
 
@@ -2304,6 +2324,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_BPINE ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2320,6 +2343,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 3) Limonene (LIMON) 
 
@@ -2339,6 +2363,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_LIMON ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2355,6 +2382,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 4) Sabinene (SABIN) 
 
@@ -2374,6 +2402,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_SABIN ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2390,6 +2421,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 5) Myrcene (MYRCN) 
 
@@ -2409,6 +2441,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_MYRCN ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2425,6 +2460,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 6) 3-Carene (CAREN) 
 
@@ -2444,6 +2480,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_CAREN ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2460,6 +2499,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! 7) Ocimene (OCIMN) 
 
@@ -2479,6 +2519,9 @@
       CALL DO_REGRID_1x1( 'ug C/m2/hr', ARRAY, AEF_OCIMN ) 
 
       ! Loop over latitudes
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO J = 1, JJPAR
 
          ! Grid box surface area
@@ -2495,6 +2538,7 @@
             
          ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       ! Return to calling program
       END SUBROUTINE GET_AEF
@@ -3124,6 +3168,10 @@
       DTSRCE = GET_TS_EMIS()
 
       ! Loop over the 20 MEGAN groups
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( SPECIES, SPECIES2CARBON )
+!$OMP+PRIVATE( I, J, AREA_M2, FACTOR )
       DO SPECIES = 1, 20
 
          ! Ratio of carbon mass to total compound mass [kgC/kg]
@@ -3176,6 +3224,7 @@
          ENDDO    ! JJPAR
 
       ENDDO       ! species
+!$OMP END PARALLEL DO
 
       ! Diagnostic info to log/screen
       print*,'Annual Sesquiterpene Base AEFs [TgC/yr]:'
