@@ -468,17 +468,17 @@
 
          ! File name with GFED3 DM emissions
          FILENAME1 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_AGW_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_AGW_YYYYMM.generic.1x1'
          FILENAME2 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_DEF_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_DEF_YYYYMM.generic.1x1'
          FILENAME3 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_FOR_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_FOR_YYYYMM.generic.1x1'
          FILENAME4 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_PET_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_PET_YYYYMM.generic.1x1'
          FILENAME5 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_SAV_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_SAV_YYYYMM.generic.1x1'
          FILENAME6 = TRIM( DATA_DIR_1x1 ) //
-     &       'GFED3_201012/YYYY/GFED3_DM_WDL_YYYYMM.generic.1x1'
+     &       'GFED3_201110/YYYY/GFED3_DM_WDL_YYYYMM.generic.1x1'
 
       ENDIF
       
@@ -911,7 +911,7 @@
      
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1) // 
-     &           'GFED3_201012/GFED3_emission_factors.txt'
+     &           'GFED3_201110/GFED3_emission_factors.txt'
 
       ! Open emission factor file (ASCII format)
       OPEN( IU_FILE, FILE=TRIM( FILENAME ), STATUS='OLD', IOSTAT=IOS )
@@ -949,7 +949,7 @@
 
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &           'GFED3_201012/GFED3_vegmap.generic.1x1'
+     &           'GFED3_2011110/GFED3_vegmap.generic.1x1'
 
       ! Read GFED3 veg map
       CALL READ_BPCH2( FILENAME, 'LANDMAP',  1,
