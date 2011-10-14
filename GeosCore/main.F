@@ -886,9 +886,14 @@
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
+         ! NOTE: Only call ANTHROEMS if it's time to do emissions;
+         ! this will function properly for the central chemistry time step
+         ! (bmy, 10/14/11)
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
-            IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-               CALL ANTHROEMS( SEASON )              
+            IF ( ITS_TIME_FOR_EMIS() ) THEN 
+               IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
+                  CALL ANTHROEMS( SEASON )              
+               ENDIF
             ENDIF
          ENDIF
 

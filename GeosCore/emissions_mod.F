@@ -166,7 +166,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                     :: MONTH, YEAR, DO_READ_MONTH
+      INTEGER                     :: MONTH, YEAR
 !
 ! !DEFINED PARAMETERS:
 !

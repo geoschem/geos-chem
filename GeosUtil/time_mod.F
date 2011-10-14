@@ -3716,39 +3716,132 @@
 ! !IROUTINE: its_a_new_year
 !
 ! !DESCRIPTION: Function ITS\_A\_NEW\_YEAR returns TRUE if it's the first 
-!  of a new month (it also returns TRUE on the first timestep of the run).  
-!  This is useful for setting flags for reading in data.
+!  timestep of the year when we have to read in annual data.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_YEAR() RESULT( IS_NEW_YEAR )
+      FUNCTION ITS_A_NEW_YEAR( NO_CCTS ) RESULT( IS_NEW_YEAR )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                         ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: IS_NEW_YEAR
+      LOGICAL           :: IS_NEW_YEAR   ! =T if it's 1st data read of year
 ! 
+! !REMARKS:
+!  ITS_A_NEW_YEAR assumes that we are using the central chemistry timestep
+!  option (i.e. do chemistry & emissions & related processes at the midpoint
+!  of each chemistry timestep).  To revert to the prior behavior, set the
+!  optional flag NO_CCTS = .TRUE.
+!                                                                             .
+!  If we are using the central chemistry timestep option (which is now the
+!  default behavior), then we must not read data at 00:00 GMT on the first day 
+!  of the year, but at the center of the first chemistry timestep of the 
+!  year.  This is because emissions and chemistry are done at the same time.  
+!  The proper time of day for reading emissions is determined by function 
+!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!                                                                             .
+!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  time, we must not read data at the starting date and time of the simulation,
+!  but at the midpoint of the first chemistry timestep of the simulation.
+!                                                                             .
+!  If we are not using the central chemistry timestep option (specified by
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
+!  on the Jan 1st.  Similarly, for those simulations that start at midmonth, 
+!  the first data read will occur the starting date and time
+!  of the simulation.
+!
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  01 Nov 2005 - R. Yantosca - Bug fix: Need month & day to be 1
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( MONTH == 1 .and. DAY == 1 .and. NHMS == 000000 ) THEN
+!
+! !LOCAL VARIABLES
+!
+      LOGICAL :: NO_CENTRAL
+      INTEGER :: HH,     MM,   SS
+      REAL*8  :: GMTb,   TS
 
-         ! A new year is Jan 1 at 0 GMT
-         IS_NEW_YEAR = .TRUE.
+      !==============================================================
+      ! Initialization
+      !==============================================================
 
-      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+      ! Save the optional argument NO_CCTS in a local shadow variable
+      IF ( PRESENT( NO_CCTS ) ) THEN
+         NO_CENTRAL = NO_CCTS
+      ELSE
+         NO_CENTRAL = .FALSE.
+      ENDIF
 
-         ! Also return TRUE if it's the start of the run
-         ! (since files will need to be read in from disk)
-         IS_NEW_YEAR = .TRUE.
+      ! Emissions timestep [hours]
+      TS = DBLE( TS_EMIS ) / 60d0
+     
+      !==============================================================
+      ! FOR JANUARY 1st OF THE YEAR
+      !==============================================================
+      IF ( MONTH == 1 .and. DAY == 1 ) THEN
+
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep.  
+            ! Therefore, the first data read of the year should occur
+            ! at 00:00 GMT on Jan 1st.
+            IS_NEW_YEAR = ( NHMS == 000000 )
+
+         ELSE
+
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the year will occur not at 
+            ! 00:00 GMT on the Jan 1st, but offset by a small amount (as 
+            ! diagnosed by function ITS_TIME_FOR_EMIS).
+            IS_NEW_YEAR = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
+
+      ELSE IF ( NYMD == NYMDb ) THEN
+
+         !==============================================================
+         ! FOR THE FIRST DAY OF THE SIMULATION
+         ! (i.e. for simulations that start at other times of the year)
+         !==============================================================
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep.  
+            ! Therefore, the first data read of this year should occur 
+            ! at the start time of the simulation.
+            IS_NEW_YEAR = ( NHMS == NHMSb )
+
+         ELSE
+
+            ! Split starting time into hour, minute, second
+            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+
+            ! Compute GMT at the start of the simulation
+            GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the year will occur not 
+            ! at  00:00 GMT on Jan 1st, but offset by a small amount (as  
+            ! diagnosed by function ITS_TIME_FOR_EMIS).
+            IS_NEW_YEAR  = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
 
       ELSE
 
-         ! Otherwise, it's not a new year
+         !==============================================================
+         ! FOR ALL OTHER DAYS
+         !==============================================================
+
+         ! It isn't time for the first data read of the year; return FALSE
          IS_NEW_YEAR = .FALSE.
          
       ENDIF
@@ -3777,7 +3870,7 @@
 !
 ! !RETURN VALUE:
 !
-      LOGICAL           :: IS_NEW_MONTH  ! =T if start of month (for data read)
+      LOGICAL           :: IS_NEW_MONTH  ! =T if it's 1st data read of month
 !
 ! !REMARKS:
 !  ITS_A_NEW_MONTH assumes that we are using the central chemistry timestep
@@ -3830,9 +3923,6 @@
       ! Emissions timestep [hours]
       TS = DBLE( TS_EMIS ) / 60d0
      
-      ! Split starting time into hour, minute, second
-      CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
-
       IF ( DAY == 1 .and. HOUR == 0 ) THEN
 
          !==============================================================
@@ -3870,6 +3960,9 @@
 
          ELSE
 
+            ! Split starting time into hour, minute, second
+            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+
             ! Compute GMT at the start of the simulation
             GMTb         = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
             
@@ -3891,28 +3984,6 @@
          IS_NEW_MONTH = .FALSE.
 
       ENDIF
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Prior to 10/13/11:
-!%%% Save original code here
-!%%%      IF ( DAY == 1 .and. NHMS == 000000 ) THEN
-!%%%
-!%%%         ! Test for the 1st of the month at 0 GMT
-!%%%         IS_NEW_MONTH = .TRUE.
-!%%%
-!%%%      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
-!%%%
-!%%%         ! Also return TRUE if it's the start of the run
-!%%%         ! (since files will need to be read in from disk)
-!%%%         IS_NEW_MONTH = .TRUE.
-!%%%
-!%%%      ELSE
-!%%%
-!%%%         ! Otherwise, it's not a new year
-!%%%         IS_NEW_MONTH = .FALSE.
-!%%%         
-!%%%      ENDIF
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       END FUNCTION ITS_A_NEW_MONTH
 !EOC
@@ -3938,12 +4009,19 @@
 ! !REVISION HISTORY: 
 !  10 Oct 2005 - S. Strode   - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! Test for the 16th of the month at 0 GMT
-      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
+!----------------------------------------------------------------------------
+! Prior to 10/14/11:
+! Now use ITS_A_NEW_DAY to tell if it's the first data read time of the day.
+! This will account for the central chemistry timestep option. (bmy, 10/14/11) 
+!      IS_MIDMONTH = ( DAY == 16 .and. NHMS == 000000 )
+!----------------------------------------------------------------------------
+      IS_MIDMONTH = ( DAY == 16 .and. ITS_A_NEW_DAY() )
 
       END FUNCTION ITS_MIDMONTH
 !EOC
@@ -3952,46 +4030,131 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: its_a_new_season
+! !IROUTINE: its_a_new_day
 !
-! !DESCRIPTION: Function ITS\_A\_NEW\_DAY returns TRUE if it's the first 
-!  timestep of a new day (it also returns TRUE on the first timestep of the
-!  run).  This is useful for setting flags for reading in data.
+! !DESCRIPTION: Function ITS\_A\_NEW\_DAY returns TRUE if it's the first
+!  timestep of the day when we have to read in daily data.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_A_NEW_DAY( ) RESULT( IS_NEW_DAY )
+      FUNCTION ITS_A_NEW_DAY( NO_CCTS ) RESULT( IS_NEW_DAY )
+!
+! !INPUT PARAMETERS
+!
+      LOGICAL, OPTIONAL :: NO_CCTS       ! =T reverts to previous behavior
+                                         ! (i.e. w/o using central chem step)
 !
 ! !RETURN VALUE:
 !
-      LOGICAL :: IS_NEW_DAY
+      LOGICAL           :: IS_NEW_DAY    ! =T if it's 1st data read of day
+!
+! !REMARKS:
+!  ITS_A_NEW_DAY assumes that we are using the central chemistry timestep
+!  option (i.e. do chemistry & emissions & related processes at the midpoint
+!  of each chemistry timestep).  To revert to the prior behavior, set the
+!  optional flag NO_CCTS = .TRUE.
+!                                                                             .
+!  If we are using the central chemistry timestep option (which is now the
+!  default behavior), then we must not read data at 00:00 GMT of each day,
+!  but at the center of the first chemistry timestep of the day.  This is 
+!  because emissions and chemistry are done at the same time.  The proper 
+!  time of day for reading emissions is determined by function 
+!  ITS_TIME_FOR_EMIS, also within time_mod.f.
+!                                                                             .
+!  Similarly, for simulations that start at an arbitrary midmonth date and 
+!  time, we must not read data at the starting date and time of the simulation,
+!  but at the midpoint of the first chemistry timestep of the simulation.
+!                                                                             .
+!  If we are not using the central chemistry timestep option (specified by
+!  NO_CCTS=.TRUE.), then the first data read of the month occurs at 00:00 GMT 
+!  each day.  Similarly, for those simulations that start at midmonth, the 
+!  first data read will occur the starting date and time of the simulation.
 !
 ! !REVISION HISTORY: 
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
+!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( NHMS == 000000 ) THEN
+!
+! !LOCAL VARIABLES
+!
+      LOGICAL :: NO_CENTRAL
+      INTEGER :: HH,     MM,   SS
+      REAL*8  :: GMTb,   TS
 
-         ! Test if it's 0 GMT
-         IS_NEW_DAY = .TRUE.
+      !==============================================================
+      ! Initialization
+      !==============================================================
 
-      ELSE IF ( NYMD == NYMDb .and. NHMS == NHMSb ) THEN
+      ! Save optional argument NO_CCTS in a local shadow variable
+      IF ( PRESENT( NO_CCTS ) ) THEN
+         NO_CENTRAL = NO_CCTS
+      ELSE
+         NO_CENTRAL = .FALSE.
+      ENDIF
 
-         ! Also return TRUE if it's the start of the run
-         ! (since files will need to be read in from disk)
-         IS_NEW_DAY = .TRUE.
+      ! Emissions timestep [hours]
+      TS = DBLE( TS_EMIS ) / 60d0
+     
+      IF ( NYMD == NYMDb ) THEN
+
+         !==============================================================
+         ! FOR THE FIRST DAY OF THE SIMULATION
+         ! (i.e. for simulations that start at any time of the year)
+         !==============================================================
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep option 
+            ! Therefore, the first data read of this day should occur at
+            ! the start time of the simulation.
+            IS_NEW_DAY = ( NHMS == NHMSb )
+
+         ELSE
+
+            ! Split starting time into hour, minute, second
+            CALL YMD_EXTRACT( NHMSb, HH, MM, SS )
+
+            ! Compute GMT at the start of the simulation
+            GMTb       = DBLE( HH ) + ( DBLE( MM ) / 60d0 )
+            
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the day will occur not at 
+            ! 00:00 GMT, but offset by a small amount (as diagnosed by 
+            ! function ITS_TIME_FOR_EMIS).
+            IS_NEW_DAY = ( GMT < GMTb+TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
 
       ELSE
 
-         ! Otherwise, it's not a new year
-         IS_NEW_DAY = .FALSE.
-         
+         !==============================================================
+         ! FOR EACH NEW DAY
+         !==============================================================
+         IF ( NO_CENTRAL ) THEN
+
+            ! Here, we are not using the central chemistry timestep.  
+            ! Therefore, the first data read of this day should occur 
+            ! at 00:00 GMT.
+            IS_NEW_DAY = ( NHMS == 000000 )
+
+         ELSE
+
+            ! Here, we are using the central chemistry timestep option.
+            ! Therefore, the first data read of the day will occur not at 
+            ! 00:00 GMT, but offset by a small amount (as diagnosed by 
+            ! function ITS_TIME_FOR_EMIS).
+            IS_NEW_DAY = ( GMT < TS .and. ITS_TIME_FOR_EMIS() )
+
+         ENDIF
+
       ENDIF
 
       END FUNCTION ITS_A_NEW_DAY
+
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
