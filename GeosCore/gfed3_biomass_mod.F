@@ -949,7 +949,7 @@
 
       ! File name
       FILENAME = TRIM( DATA_DIR_1x1 ) //
-     &           'GFED3_2011110/GFED3_vegmap.generic.1x1'
+     &           'GFED3_201110/GFED3_vegmap.generic.1x1'
 
       ! Read GFED3 veg map
       CALL READ_BPCH2( FILENAME, 'LANDMAP',  1,
