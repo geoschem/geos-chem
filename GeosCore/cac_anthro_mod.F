@@ -224,7 +224,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_CAC_ANTHRO(EMISSIONS)
+#else
       SUBROUTINE EMISS_CAC_ANTHRO
+#endif
 !
 ! !USES:
 ! 
@@ -237,6 +241,11 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
+
 !
 ! !REVISION HISTORY: 
 !  28 Jan 2009 - P. Le Sager - Initial Version
@@ -263,6 +272,9 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
@@ -425,6 +437,13 @@
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
 
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
+      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+#endif
+
       END SUBROUTINE EMISS_CAC_ANTHRO
 !EOC
 !------------------------------------------------------------------------------
@@ -441,7 +460,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_CAC_ANTHRO_05x0666(EMISSIONS)
+#else
       SUBROUTINE EMISS_CAC_ANTHRO_05x0666
+#endif
 !
 ! !USES:
 !
@@ -453,6 +476,10 @@
 
       USE CMN_SIZE_MOD          ! Size parameters
       USE CMN_O3_MOD            ! FSCALYR
+#if defined( DEVEL )
+      USE TRACERID_MOD, ONLY : IDTNOx, IDTCO, IDTSO2, IDTNH3
+      USE TRACER_MOD,   ONLY : N_TRACERS 
+#endif
 !
 ! !REVISION HISTORY:
 !  03 Nov 2009 - A. van Donkelaar - Initial Version
@@ -478,6 +505,9 @@
       CHARACTER(LEN=255)         :: FILENAME
       CHARACTER(LEN=4)           :: SYEAR, SNAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: EMISSIONS(IIPAR,JJPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISS_CAC_ANTHRO begins here!
       !=================================================================
@@ -637,6 +667,13 @@
       ! Print emission totals
       !--------------------------
       CALL TOTAL_ANTHRO_Tg( THISYEAR )
+
+#if defined( DEVEL )
+      EMISSIONS(:,:,IDTNH3) = EMISSIONS(:,:,IDTNH3)+NH3
+      EMISSIONS(:,:,IDTSO2) = EMISSIONS(:,:,IDTSO2)+SO2
+      EMISSIONS(:,:,IDTNOx) = EMISSIONS(:,:,IDTNOx)+NOx
+      EMISSIONS(:,:,IDTCO)  = EMISSIONS(:,:,IDTCO) +CO
+#endif
 
       END SUBROUTINE EMISS_CAC_ANTHRO_05x0666
 !EOC

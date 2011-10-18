@@ -39,7 +39,11 @@
       CONTAINS
 
 !-----------------------------------------------------------------------
+#if defined( DEVEL )
+      SUBROUTINE EMISS_RETRO( EMISSIONS )
+#else
       SUBROUTINE EMISS_RETRO
+#endif
 !***********************************************************************
 !  Subroutine EMISS_RETRO reads all RETRO emissions at the beginning of
 !  each month. (wfr, 3/8/11)
@@ -59,6 +63,14 @@
 
       USE CMN_SIZE_MOD               ! Size parameters
 
+#if defined( DEVEL )
+      USE TRACERID_MOD,         ONLY : IDTALK4, IDTACET, IDTMEK,
+     & IDTALD2, IDTPRPE, IDTC3H8, IDTC2H6, IDTCH2O, IDTBENZ,
+     & IDTTOLU, IDTXYLE, IDTC2H4, IDTC2H2
+      USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
+      USE GRID_MOD,             ONLY : GET_AREA_CM2
+#endif
+
       !Local variables
       LOGICAL, SAVE                 :: FIRST = .TRUE.
       INTEGER                       :: I, J, THISMONTH, YYYYMMDD
@@ -67,6 +79,9 @@
       
       CHARACTER(LEN=255)            :: FILENAME
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
+#endif
       !=================================================================
       !  EMISS_RETRO begins here
       !=================================================================
@@ -150,6 +165,39 @@
 
       ! Fancy output
       WRITE(6, '(a)' ) REPEAT( '=', 79)
+
+#if defined( DEVEL )
+
+      DO J = 1,JJPAR
+      IF ( IDTALK4 > 0 ) EMISSIONS(:,J,IDTALK4) = RETRO_ALK4(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTALK4)
+      IF ( IDTACET > 0 ) EMISSIONS(:,J,IDTACET) = RETRO_ACET(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTACET)
+      IF ( IDTMEK  > 0 ) EMISSIONS(:,J,IDTMEK)  = RETRO_MEK(:,J)  * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTMEK)
+      IF ( IDTALD2 > 0 ) EMISSIONS(:,J,IDTALD2) = RETRO_ALD2(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTALD2)
+      IF ( IDTPRPE > 0 ) EMISSIONS(:,J,IDTPRPE) = RETRO_PRPE(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTPRPE)
+      IF ( IDTC3H8 > 0 ) EMISSIONS(:,J,IDTC3H8) = RETRO_C3H8(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC3H8)
+      IF ( IDTC2H6 > 0 ) EMISSIONS(:,J,IDTC2H6) = RETRO_C2H6(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H6)
+      IF ( IDTCH2O > 0 ) EMISSIONS(:,J,IDTCH2O) = RETRO_CH2O(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTCH2O)
+      IF ( IDTBENZ > 0 ) EMISSIONS(:,J,IDTBENZ) = RETRO_BENZ(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTBENZ)
+      IF ( IDTTOLU > 0 ) EMISSIONS(:,J,IDTTOLU) = RETRO_TOLU(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTTOLU)
+      IF ( IDTXYLE > 0 ) EMISSIONS(:,J,IDTXYLE) = RETRO_XYLE(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTXYLE)
+      IF ( IDTC2H4 > 0 ) EMISSIONS(:,J,IDTC2H4) = RETRO_C2H4(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H4)
+      IF ( IDTC2H2 > 0 ) EMISSIONS(:,J,IDTC2H2) = RETRO_C2H2(:,J) * 
+     & GET_AREA_CM2(J) * 6.0225d-23 * TRACER_MW_KG(IDTC2H2)
+
+      ENDDO
+#endif
 
       ! Return to calling program
       END SUBROUTINE EMISS_RETRO

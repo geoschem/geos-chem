@@ -535,7 +535,7 @@ dust_mod.o                  : dust_mod.F                                     \
 
 edgar_mod.o                 : edgar_mod.F                                    \
                               future_emissions_mod.o  logical_mod.o          \
-                              scale_anthro_mod.o    
+                              scale_anthro_mod.o      tracerid_mod.o
 
 EFOLD.o                     : EFOLD.F
 
@@ -1017,6 +1017,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
 
 sunparam.o                  : sunparam.F
 
+tmp_type_mod.o              : tmp_type_mod.F90        tracer_mod.o
+
 tagged_co_mod.o             : tagged_co_mod.F                                \
                               biofuel_mod.o           biomass_mod.o          \
                               dao_mod.o               diag_mod.o             \
@@ -1055,7 +1057,7 @@ tpcore_window_mod.o         : tpcore_window_mod.F     dao_mod.o              \
 
 tracer_mod.o                : tracer_mod.F
 
-tracerid_mod.o              : tracerid_mod.F                                 \
+tracerid_mod.o              : tracerid_mod.F          tmp_type_mod.o         \
                               logical_mod.o           tracer_mod.o
 
 transport_mod.o             : transport_mod.F                                \

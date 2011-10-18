@@ -177,12 +177,15 @@
 !  17 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
 !******************************************************************************
 !
+
+      USE CMN_SIZE_MOD, ONLY : NNNTRID=>NNPAR
+
       IMPLICIT NONE
 #     include "define.h"
 
       ! for CTM tracers
 !-- add tracers for new isoprene chemistry. (fp, 01/27/10)
-      INTEGER, PARAMETER :: NNNTRID  = 75
+!MSL      INTEGER, PARAMETER :: NNNTRID  = 75
 !      INTEGER, PARAMETER :: MMMEMBER = 10
 !      INTEGER, PARAMETER :: NNNTRID  = 100
       INTEGER, PARAMETER :: MMMEMBER = 15
@@ -365,6 +368,10 @@
       USE CMN_SIZE_MOD      ! Size parameters
       USE COMODE_LOOP_MOD   ! IDEMS
 
+#if defined(DEVEL)
+      USE TMP_TYPE_MOD
+#endif
+
       ! Local variables
       INTEGER              :: N, COUNT, COUNT_Hg0, COUNT_Hg2, COUNT_HgP
       CHARACTER(LEN=14)    :: NAME
@@ -414,6 +421,11 @@
       !=================================================================
       DO N = 1, N_TRACERS
 
+#if defined (DEVEL)
+!         write(*,*) 'ID NUMBER',N
+!         CHEM_STATE%TRAC_ID(N) = N
+!         CHEM_STATE%TRAC_NAME(N)  = TRIM( TRACER_NAME(N) )
+#endif
          ! Convert tracer name to upper case.  TCNAME is in the "CMN" header
          ! file -- we might use something better later on (bmy, 11/12/02)
          NAME = TRACER_NAME(N)

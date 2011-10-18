@@ -3827,7 +3827,11 @@
 
 !-----------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSSULFATE(EMISSIONS)
+#else
       SUBROUTINE EMISSSULFATE
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSSULFATE is the interface between the GEOS-CHEM model and
@@ -3879,10 +3883,19 @@
 
       USE CMN_SIZE_MOD            ! Size parameters
 
+#if defined( DEVEL )
+      USE TRACER_MOD, ONLY   : N_TRACERS 
+#endif
+
       ! Local variables
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE. 
       INTEGER            :: NSEASON, DAY, MONTH, YEAR   
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)      :: 
+     &            EMISSIONS(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+!      REAL*8                     :: STT_TMP(IIPAR,JJPAR,
+#endif
       !=================================================================
       ! EMISSSULFATE begins here!
       !=================================================================
@@ -3977,10 +3990,21 @@
       !=================================================================
       ! Add emissions into the STT tracer array
       !=================================================================
+#if defined( DEVEL )
+      IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS),         
+     &                    EMISSIONS(:,:,1,IDTDMS))
+      IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON,         
+     &                    EMISSIONS(:,:,:,IDTSO2))
+      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4),                  
+     &                    EMISSIONS(:,:,:,IDTSO4))
+      IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3),
+     &                    EMISSIONS(:,:,:,IDTNH3))
+#else
       IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS)          )
       IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON )
       IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)          )
       IF ( IDTNH3 /= 0 ) CALL SRCNH3( STT(:,:,:,IDTNH3)          )
+#endif
 
       ! Return to calling program
       END SUBROUTINE EMISSSULFATE
@@ -4077,7 +4101,11 @@
 !EOC    
 !---------------------------------------------------------------------------
       
+#if defined( DEVEL)
+      SUBROUTINE SRCDMS( TC, SFLX )
+#else
       SUBROUTINE SRCDMS( TC )
+#endif
 !
 !***************************************************************************** 
 !  Subroutine SRCDMS, from Mian Chin's GOCART model, add DMS emissions 
@@ -4117,7 +4145,9 @@
 
       ! Arguments
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
+#if defined( DEVEL )
+      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR)
+#endif
       ! Local variables
       INTEGER                :: I,      J,    L,     NTOP
       REAL*8                 :: DTSRCE, SST,  Sc,    CONC,   W10 
@@ -4240,6 +4270,9 @@
 
             DMSSRC = ERATE * GET_AREA_M2( J )
 
+#if defined( DEVEL )
+            SFLX(I,J) = SFLX(I,J) + DMSSRC/DTSRCE ! kg DMS/grid/s
+#endif
             !===========================================================
             ! Add DMS emissions [kg DMS/box] into the tracer array
             !===========================================================
@@ -4287,7 +4320,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SRCSO2( TC, NSEASON, SFLX )
+#else
       SUBROUTINE SRCSO2( TC, NSEASON )
+#endif
 !
 !******************************************************************************
 !  Subroutine SRCSO2 (originally from Mian Chin) computes SO2 emissons from 
@@ -4367,7 +4404,9 @@
       ! Arguments
       INTEGER, INTENT(IN)    :: NSEASON
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
+#if defined( DEVEL )
+      REAL*8                 :: SFLX(IIPAR,JJPAR,LLPAR)
+#endif
       ! Local variables
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, NTOP
@@ -4774,6 +4813,14 @@
             ENDIF
 
          ENDDO
+#if defined( DEVEL )
+         ! kg/m2/s
+         SFLX(:,J,1) = SFLX(:,J,1) + (SO2an(:,J,1) + Eso2_bb(:,J) +
+     &                                 SO2bf(:,J)   + ESO2_sh(:,J))
+
+         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO2an(:,J,2:)
+
+#endif
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -4884,7 +4931,11 @@
 
 !-----------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SRCSO4( TC, SFLX )
+#else
       SUBROUTINE SRCSO4( TC )
+#endif
 !
 !******************************************************************************
 !  Subroutine SRCSO4 (originally from Mian Chin) computes SO4 emissions from 
@@ -4943,7 +4994,9 @@
 
       ! Arguments      
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
+#if defined( DEVEL )
+      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
+#endif
       ! Local variables
       LOGICAL                :: WEEKDAY, IS_LOCAL
       INTEGER                :: I, J, K, L, DAY_NUM, NTOP
@@ -5150,6 +5203,10 @@
             
             
          ENDDO
+#if defined( DEVEL )
+         SFLX(:,J,1) = SFLX(:,J,1) + (SO4an(:,J,1) + SO4bf(:,J))
+         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + SO4an(:,J,2:)
+#endif
       ENDDO
 !$OMP END PARALLEL DO
 
@@ -5158,7 +5215,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE SRCNH3( TC, SFLX )
+#else
       SUBROUTINE SRCNH3( TC )
+#endif
 !
 !******************************************************************************
 !  Subroutine SRCNH3 handles NH3 emissions into the GEOS-CHEM tracer array.
@@ -5219,7 +5280,9 @@
       
       ! Argumetns
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
+#if defined( DEVEL )
+      REAL*8,  INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR)
+#endif
       ! Local variables
       LOGICAL                :: WEEKDAY,  IS_LOCAL
       INTEGER                :: I, J, L,  K, NTOP, DAY_NUM
@@ -5410,6 +5473,12 @@
             ENDIF
             
          ENDDO
+#if defined( DEVEL )
+         SFLX(:,J,1) = SFLX(:,J,1) + (NH3an(:,J,1) + ENH3_bb(:,J) + 
+     &                                NH3bf(:,J)   + ENH3_na(:,J))
+
+         SFLX(:,J,2:NOXLEVELS) = SFLX(:,J,2:NOXLEVELS) + NH3an(:,J,2:)
+#endif
       ENDDO
 !$OMP END PARALLEL DO
 

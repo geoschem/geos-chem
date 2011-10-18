@@ -172,6 +172,10 @@
       USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
       USE CMN_GCTM_MOD            ! Physical constants
 
+#if defined( DEVEL )
+      USE TMP_TYPE_MOD,      ONLY : CHEM_STATE, INIT_CHEMSTATE
+#endif
+
       IMPLICIT NONE
 #     include "define.h"
       
@@ -251,6 +255,11 @@
       ! Read input file and call init routines from other modules
       CALL READ_INPUT_FILE 
       IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a READ_INPUT_FILE' )
+
+#if defined( DEVEL )
+      ! Initialize all of CHEMSTATE
+      CALL INIT_CHEMSTATE
+#endif
 
       ! Initialize met field arrays from "dao_mod.f"
       CALL INIT_DAO
@@ -1038,7 +1047,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
 
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
@@ -1117,7 +1130,11 @@
             !========================================================
             !             ***** E M I S S I O N S *****
             !========================================================
+#if defined( DEVEL )
+            IF ( LEMIS ) CALL DO_EMISSIONS(CHEM_STATE)
+#else
             IF ( LEMIS ) CALL DO_EMISSIONS
+#endif
          ENDIF    
 
 
@@ -1135,7 +1152,21 @@
             CALL SET_CT_CHEM( INCREMENT=.TRUE. )
 
             ! Call the appropriate chemistry routine
+#if defined( DEVEL )
+! vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv!
+! BELOW IS A TMP KLUGE TO TEST PASSING STT !
+! TO "DO_CHEMISTRY" VIA THE "CHEM_STATE"   !
+! DERIVED TYPE                             !
+!
+!    >-- STT SHOULD BE IN KG HERE --<
+!
+!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^!
+            CHEM_STATE%TRACERS(:,:,:,:N_TRACERS) = STT
+! FIN DE KLUGE
+            CALL DO_CHEMISTRY(CHEM_STATE)
+#else
             CALL DO_CHEMISTRY
+#endif
 
          ENDIF 
 

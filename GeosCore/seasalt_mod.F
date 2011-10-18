@@ -532,7 +532,11 @@
 
 !------------------------------------------------------------------------------
 
+#if defined( DEVEL )
+      SUBROUTINE EMISSSEASALT( SFLX )
+#else
       SUBROUTINE EMISSSEASALT
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSSEASALT is the interface between the GEOS-CHEM model
@@ -557,11 +561,17 @@
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
       USE CMN_SIZE_MOD       ! Size parameters
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+#endif
 
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
 
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+#endif
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
@@ -602,6 +612,11 @@
          CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
+
+#if defined( DEVEL )
+      SFLX(:,:,1,IDTSALA) = SFLX(:,:,1,IDTSALA) + ALK_EMIS(:,:,1,1)
+      SFLX(:,:,1,IDTSALC) = SFLX(:,:,1,IDTSALC) + ALK_EMIS(:,:,1,2)
+#endif
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 

@@ -514,12 +514,26 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISS_EPA_NEI(EMISS, BEMISS)
+#else
       SUBROUTINE EMISS_EPA_NEI
+#endif
 !
 ! !USES:
 !
       USE LOGICAL_MOD, ONLY : LNEI05 
       USE LOGICAL_MOD, ONLY : LNEI99
+#if defined( DEVEL )
+      USE CMN_SIZE_MOD
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
+      USE TIME_MOD,     ONLY : GET_DAY_OF_WEEK
+#endif
 !
 ! !REMARKS:
 !  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
@@ -538,6 +552,13 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       
+#if defined( DEVEL )
+      INTEGER               :: J, DAY_NUM
+      LOGICAL               :: WEEKDAY
+      REAL*8, INTENT(INOUT) :: EMISS(IIPAR, JJPAR, N_TRACERS)
+      REAL*8, INTENT(INOUT) :: BEMISS(IIPAR, JJPAR, NBIOMAX)
+#endif
+
       !=================================================================
       ! First-time initialization
       !=================================================================
@@ -588,6 +609,172 @@
          ENDIF
 
       ENDIF
+
+#if defined( DEVEL )
+! Emissions  are treated as if they're molec/cm2/s
+! and converted to Kg/s
+
+      DAY_NUM = GET_DAY_OF_WEEK()
+      WEEKDAY = ( DAY_NUM > 0 .and. DAY_NUM < 6 )
+
+      DO J=1,JJPAR
+         IF ( WEEKDAY ) THEN
+            IF (.not. LNEI05) THEN
+               IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &              EPA_WD_AN_NOX * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+               IF ( IDTCO  > 0) EMISS(:,:,IDTCO)  = 
+     &              EPA_WD_AN_CO * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
+               IF ( IDTALK4> 0) EMISS(:,:,IDTALK4) = 
+     &              EPA_WD_AN_ALK4 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+               IF ( IDTACET > 0) EMISS(:,:,IDTACET) = 
+     &              EPA_WD_AN_ACET * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
+               IF ( IDTMEK > 0) EMISS(:,:,IDTMEK)  = 
+     &              EPA_WD_AN_MEK * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+               IF ( IDTPRPE > 0) EMISS(:,:,IDTPRPE) = 
+     &              EPA_WD_AN_PRPE * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+               IF ( IDTC3H8> 0) EMISS(:,:,IDTC3H8) = 
+     &              EPA_WD_AN_C3H8 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+               IF ( IDTCH2O> 0) EMISS(:,:,IDTCH2O) = 
+     &              EPA_WD_AN_CH2O * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+               IF ( IDTC2H6> 0) EMISS(:,:,IDTC2H6) = 
+     &              EPA_WD_AN_C2H6 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+               IF ( IDTSO2 > 0) EMISS(:,:,IDTSO2)  = 
+     &              EPA_WD_AN_SO2 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+               IF ( IDTSO4 > 0) EMISS(:,:,IDTSO4)  = 
+     &              EPA_WD_AN_SO4 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+               IF ( IDTNH3 > 0) EMISS(:,:,IDTNH3)  = 
+     &              EPA_WD_AN_NH3 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+            ENDIF
+
+            IF ( IDTNOX > 0 ) EMISS(:,:,IDTNOX) = 
+     &           EPA_WD_BF_NOX * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+            IF ( IDTCO > 0 ) EMISS(:,:,IDTCO)  = 
+     &           EPA_WD_BF_CO * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
+            IF ( IDTALK4> 0 ) EMISS(:,:,IDTALK4) = 
+     &           EPA_WD_BF_ALK4 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+            IF ( IDTACET> 0 ) EMISS(:,:,IDTACET) = 
+     &           EPA_WD_BF_ACET * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
+            IF ( IDTMEK > 0 ) EMISS(:,:,IDTMEK)  = 
+     &           EPA_WD_BF_MEK * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+            IF ( IDTPRPE> 0 ) EMISS(:,:,IDTPRPE) = 
+     &           EPA_WD_BF_PRPE * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+            IF ( IDTC3H8> 0 ) EMISS(:,:,IDTC3H8) = 
+     &           EPA_WD_BF_C3H8 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+            IF ( IDTCH2O> 0 ) EMISS(:,:,IDTCH2O) = 
+     &           EPA_WD_BF_CH2O * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+            IF ( IDTC2H6> 0 ) EMISS(:,:,IDTC2H6) = 
+     &           EPA_WD_BF_C2H6 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+            IF ( IDTSO2 > 0 ) EMISS(:,:,IDTSO2)  = 
+     &           EPA_WD_BF_SO2 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+            IF ( IDTSO4 > 0 ) EMISS(:,:,IDTSO4)  = 
+     &           EPA_WD_BF_SO4 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+            IF ( IDTNH3 > 0 ) EMISS(:,:,IDTNH3)  = 
+     &           EPA_WD_BF_NH3 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+
+         ELSE ! ITS a WEEKEND...
+            IF (.not. LNEI05) THEN
+               IF ( IDTNOX > 0) EMISS(:,:,IDTNOX) = 
+     &              EPA_WE_AN_NOX * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+               IF ( IDTCO  > 0) EMISS(:,:,IDTCO)  = 
+     &              EPA_WE_AN_CO * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCO) 
+               IF ( IDTALK4> 0) EMISS(:,:,IDTALK4) = 
+     &              EPA_WE_AN_ALK4 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+               IF ( IDTACET> 0) EMISS(:,:,IDTACET) = 
+     &              EPA_WE_AN_ACET * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTACET) 
+               IF ( IDTMEK > 0) EMISS(:,:,IDTMEK)  = 
+     &              EPA_WE_AN_MEK * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+               IF ( IDTPRPE> 0) EMISS(:,:,IDTPRPE) = 
+     &              EPA_WE_AN_PRPE * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+               IF ( IDTC3H8> 0) EMISS(:,:,IDTC3H8) = 
+     &              EPA_WE_AN_C3H8 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+               IF ( IDTCH2O> 0) EMISS(:,:,IDTCH2O) = 
+     &              EPA_WE_AN_CH2O * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+               IF ( IDTC2H6> 0) EMISS(:,:,IDTC2H6) = 
+     &              EPA_WE_AN_C2H6 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+               IF ( IDTSO2 > 0) EMISS(:,:,IDTSO2)  = 
+     &              EPA_WE_AN_SO2 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+               IF ( IDTSO4 > 0) EMISS(:,:,IDTSO4)  = 
+     &              EPA_WE_AN_SO4 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+               IF ( IDTNH3 > 0) EMISS(:,:,IDTNH3)  = 
+     &              EPA_WE_AN_NH3 * GET_AREA_CM2(J) *
+     &              6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+            ENDIF
+            
+            IF ( IDTNOX > 0 ) EMISS(:,:,IDTNOX) = 
+     &           EPA_WE_BF_NOX * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNOX) 
+            IF ( IDTCO  > 0 ) EMISS(:,:,IDTCO)  = 
+     &           EPA_WE_BF_CO * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCO) 
+            IF ( IDTALK4> 0 ) EMISS(:,:,IDTALK4) = 
+     &           EPA_WE_BF_ALK4 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTALK4) 
+            IF ( IDTACET> 0 ) EMISS(:,:,IDTACET) = 
+     &           EPA_WE_BF_ACET * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTACET) 
+            IF ( IDTMEK > 0 ) EMISS(:,:,IDTMEK)  = 
+     &           EPA_WE_BF_MEK * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTMEK) 
+            IF ( IDTPRPE> 0 ) EMISS(:,:,IDTPRPE) = 
+     &           EPA_WE_BF_PRPE * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTPRPE) 
+            IF ( IDTC3H8> 0 ) EMISS(:,:,IDTC3H8) = 
+     &           EPA_WE_BF_C3H8 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC3H8) 
+            IF ( IDTCH2O> 0 ) EMISS(:,:,IDTCH2O) = 
+     &           EPA_WE_BF_CH2O * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTCH2O) 
+            IF ( IDTC2H6> 0 ) EMISS(:,:,IDTC2H6) = 
+     &           EPA_WE_BF_C2H6 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTC2H6) 
+            IF ( IDTSO2 > 0 ) EMISS(:,:,IDTSO2)  = 
+     &           EPA_WE_BF_SO2 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO2) 
+            IF ( IDTSO4 > 0 ) EMISS(:,:,IDTSO4)  = 
+     &           EPA_WE_BF_SO4 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTSO4) 
+            IF ( IDTNH3 > 0 ) EMISS(:,:,IDTNH3)  = 
+     &           EPA_WE_BF_NH3 * GET_AREA_CM2(J) *
+     &           6.0225d-23 * TRACER_MW_KG(IDTNH3) 
+
+         ENDIF
+      ENDDO
+#endif
 
       ! Echo info
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )

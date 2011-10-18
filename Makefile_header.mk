@@ -160,7 +160,7 @@ endif
 
 # Pick compiler options for debug run or regular run 
 ifdef DEBUG
-FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -CU
+FFLAGS   = -cpp -w -O0 -auto -noalign -convert big_endian -g -CU -check all
 else
 FFLAGS   = -cpp -w -O2 -auto -noalign -convert big_endian -vec-report0
 endif
@@ -217,6 +217,11 @@ endif
 ifeq ($(ESMF_TESTBED),yes)
 FFLAGS += -DESMF_TESTBED_
 INCLUDE += -I$(HDR)
+endif
+
+# DEVELOPMENT FLAG - MSL
+ifeq ($(DEVEL),yes)
+FFLAGS  += -DDEVEL
 endif
 
 CC       =

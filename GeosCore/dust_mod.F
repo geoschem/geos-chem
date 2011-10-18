@@ -489,7 +489,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
+      SUBROUTINE EMISSDUST( SFLX )
+#else
       SUBROUTINE EMISSDUST
+#endif
 !
 ! !USES:
 !
@@ -499,6 +503,10 @@
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
       USE CMN_SIZE_MOD       ! Size parameters
+#if defined( DEVEL )
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TIME_MOD,     ONLY : GET_TS_EMIS
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  30 Mar 2004 - T. D. Fairlie - Initial version
@@ -514,6 +522,11 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT) :: SFLX(IIPAR,JJPAR,LLPAR,N_TRACERS+1)
+      REAL*8                :: STT_TMP(IIPAR,JJPAR,LLPAR,4)
+!      REAL*8                :: DTSRCE
+#endif
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
@@ -541,6 +554,9 @@
       !=================================================================
       ! Call appropriate emissions routine
       !=================================================================
+#if defined( DEVEL )
+      STT_TMP(:,:,:,:) = STT(:,:,:,IDTDST1:IDTDST4)
+#endif
       IF ( LDEAD ) THEN
 
          ! Use Zender's DEAD dust source function
@@ -558,6 +574,10 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
       ENDIF     
+
+#if defined( DEVEL )
+      SFLX(:,:,:,IDTDST1:IDTDST4) = (STT(:,:,:,IDTDST1:IDTDST4)-STT_TMP)/(GET_TS_EMIS()*60.d0)
+#endif
 
       END SUBROUTINE EMISSDUST
 !EOC

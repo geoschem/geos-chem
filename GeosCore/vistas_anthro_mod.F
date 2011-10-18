@@ -156,7 +156,11 @@
 !\\
 ! !INTERFACE:
 !
+#if defined( DEVEL )
       SUBROUTINE EMISS_VISTAS_ANTHRO
+#else
+      SUBROUTINE EMISS_VISTAS_ANTHRO
+#endif
 !
 ! !USES:
 ! 

@@ -86,8 +86,11 @@
       CONTAINS
      
 !------------------------------------------------------------------------------
-      
+#if defined( DEVEL )      
+      SUBROUTINE EMISSC2H6(EMISSIONS)
+#else
       SUBROUTINE EMISSC2H6
+#endif
 !
 !******************************************************************************
 !  Subroutine EMISSC2H6 reads in C2H6 emissions for the Tagged C2H6 run.
@@ -149,6 +152,10 @@
       
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL
+
+#if defined( DEVEL )
+      REAL*8, INTENT(INOUT)  :: EMISSIONS(IIPAR,JJPAR)
+#endif
 
       !=================================================================
       ! EMISS_C2H6 begins here!
@@ -296,6 +303,9 @@
 !$OMP END PARALLEL DO
       ENDIF
          
+#if defined( DEVEL )
+      EMISSIONS(:,:) = EMISSIONS(:,:) + NGASC2H6(:,:)
+#endif
       ! Return to calling program
       END SUBROUTINE EMISSC2H6
 
