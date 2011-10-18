@@ -215,7 +215,9 @@ realclean:                                           # Remove files everywhere
 	@$(MAKE) -C $(TOM) clean
 	@$(MAKE) -C $(GTMM) clean
 	@$(MAKE) -C $(UTIL) clean
+ifeq ($(ESMF),yes)
 	@$(MAKE) -C $(LESMF) clean
+endif
 	@$(MAKE) -C $(HDR) clean
 	@$(MAKE) docclean
 	rm -f $(LIB)/*.a
@@ -242,11 +244,6 @@ allhg:                                               # Build Hg/GTMM executable
 libhg:                                               # Compile HG/GTMM code
 	@$(MAKE) libgtmm           		     
 	@$(MAKE) libgc
-#	@$(MAKE) libheaders         		     
-#	@$(MAKE) libkpp  
-#	@$(MAKE) libutil 			     
-#	@$(MAKE) libiso 			     
-#	@$(MAKE) libcore
 
 libgtmm:                                             # Compile GTMM model code
 	@$(MAKE) -C $(GTMM)
@@ -315,7 +312,8 @@ biofit.o                    : biofit.F
 
 biomass_mod.o               : biomass_mod.F                                  \
                               diag_mod.o              gc_biomass_mod.o       \
-                              gfed2_biomass_mod.o     logical_mod.o          \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              logical_mod.o                                  \
                               tracerid_mod.o          tracer_mod.o
 
 BLKSLV.o                    : BLKSLV.F
@@ -348,7 +346,8 @@ carbon_mod.o                : carbon_mod.F                                   \
                               biomass_mod.o           comode_mod.o           \
                               dao_mod.o               diag_mod.o             \
                               drydep_mod.o            future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_no3_mod.o       \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_no3_mod.o                               \
                               global_o3_mod.o         global_oh_mod.o        \
                               logical_mod.o           megan_mod.o            \
                               pbl_mix_mod.o           tracerid_mod.o         \
@@ -402,6 +401,7 @@ cleanup.o                   : cleanup.F                                      \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           gc_biomass_mod.o       \
                               isoropiaII_mod.o        gfed2_biomass_mod.o    \
+                              gfed3_biomass_mod.o                            \
                               global_ch4_mod.o        global_hno3_mod.o      \
                               global_no3_mod.o        global_nox_mod.o       \
                               global_o1d_mod.o        global_oh_mod.o        \
@@ -661,6 +661,10 @@ gfed2_biomass_mod.o         : gfed2_biomass_mod.F                            \
                               future_emissions_mod.o  logical_mod.o          \
                               tracer_mod.o            tracerid_mod.o
 
+gfed3_biomass_mod.o         : gfed3_biomass_mod.F                            \
+                              future_emissions_mod.o  logical_mod.o          \
+                              tracer_mod.o            tracerid_mod.o
+
 global_br_mod.o             : global_br_mod.F         tropopause_mod.o 
 
 global_ch4_mod.o            : global_ch4_mod.F                               \
@@ -680,7 +684,8 @@ global_o1d_mod.o            : global_o1d_mod.F
 
 global_o3_mod.o             : global_o3_mod.F
 
-global_oh_mod.o             : global_oh_mod.F
+global_oh_mod.o             : global_oh_mod.F                                \
+                              dao_mod.o
 
 gwet_read_mod.o             : gwet_read_mod.F                                \
                               dao_mod.o               diag_mod.o             \
@@ -1005,7 +1010,8 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               diag_mod.o              drydep_mod.o           \
                               edgar_mod.o             emep_mod.o             \
                               epa_nei_mod.o           future_emissions_mod.o \
-                              gfed2_biomass_mod.o     global_hno3_mod.o      \
+                              gfed2_biomass_mod.o     gfed3_biomass_mod.o    \
+                              global_hno3_mod.o                              \
                               global_no3_mod.o        global_oh_mod.o        \
                               icoads_ship_mod.o       logical_mod.o          \
                               nei2005_anthro_mod.o    pbl_mix_mod.o          \

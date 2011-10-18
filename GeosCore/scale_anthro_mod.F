@@ -192,12 +192,6 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-!-----------------------------------------------------------------------------
-! Prior to 8/10/11:
-! This file had an error over Botswana.  We now use the corrected file from 
-! Dylan Millet. (dbm, bmy, 8/10/11).
-!     &          'CO-AnnualScalar.geos.1x1'
-!-----------------------------------------------------------------------------
      &           'CO-AnnualScalar.201105-Fix.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN
@@ -239,12 +233,6 @@
 
             ! CO
             FILENAME = TRIM( SCALE_DIR ) //
-!-----------------------------------------------------------------------------
-! Prior to 8/10/11:
-! This file had an error over Botswana.  We now use the corrected file from 
-! Dylan Millet. (dbm, bmy, 8/10/11).
-!     &          'CO-AnnualScalar.geos.1x1'
-!-----------------------------------------------------------------------------
      &           'CO-AnnualScalar.201105-Fix.geos.1x1'
 
          ELSE IF ( TRACER == 73 ) THEN

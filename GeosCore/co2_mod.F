@@ -118,6 +118,7 @@
 !  (6 ) Implemented monthly CO2 chemical production and surface correction 
 !        (R.Nassar 2010)   
 !  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
+!  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,6 +178,7 @@
       USE TRACERID_MOD, ONLY : IDBCO2
       USE LOGICAL_MOD,  ONLY : LGENFF,      LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD,  ONLY : LSEASBB,     LGFED2BB, L8DAYBB, LBIOFUEL
+      USE LOGICAL_MOD,  ONLY : LGFED3BB, L8DAYBB3
       USE LOGICAL_MOD,  ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD,  ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD,  ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON
@@ -279,7 +281,10 @@
 !  3a) compute_biomass_emissions calls gfed2_compute_biomass 
 !      in gfed2_biomass_mod.f
 !               ** OR **
-!  3b) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
+!  3b) compute_biomass_emissions calls gfed3_compute_biomass 
+!      in gfed3_biomass_mod.f
+!               ** OR **
+!  3c) compute_biomass_emissions calls gc_read_biomass_co2 in gc_biomass_mod.f
 !------------------------------------------------------------------------------
 
 !      ! Check if Balanced Biosphere emissions are required  
@@ -468,7 +473,8 @@
          !-------------------------------------------
          ! #5: CO2 from biomass burning emissions
          !-------------------------------------------
-         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB ) THEN 
+         IF ( LSEASBB .OR. LGFED2BB .OR. L8DAYBB .OR.
+     &        LGFED3BB. OR. L8DAYBB3) THEN 
 
             ! Biomass burning emissions [molec/cm2/s]
             E_CO2          = BIOMASS(I,J,IDBCO2)
@@ -886,12 +892,6 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.' // 
      &              YEAR_STR          // '.'                        //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -902,12 +902,6 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                //
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)                          // 
-!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.'//
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
@@ -1059,12 +1053,6 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)                   
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'  // 
      &              YEAR_STR          // '.'                         //
      &              GET_NAME_EXT_2D() // '.'       //  GET_RES_EXT()
@@ -1073,12 +1061,6 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)    
-!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.' //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
@@ -1334,12 +1316,6 @@
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                               // 
-!------------------------------------------------------------------------------
-! Prior to 2/25/11: 
-! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
-! (rnassar, bmy, 2/25/11)        
-!     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
-!------------------------------------------------------------------------------
      &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'//  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()
@@ -3174,6 +3150,7 @@
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LGENFF,  LANNFF,   LMONFF, LSTREETS
       USE LOGICAL_MOD, ONLY : LSEASBB, LGFED2BB, L8DAYBB, LBIOFUEL
+      USE LOGICAL_MOD, ONLY : LGFED3BB, L8DAYBB3
       USE LOGICAL_MOD, ONLY : LBIODAILY,   LBIODIURNAL
       USE LOGICAL_MOD, ONLY : LBIONETORIG, LBIONETCLIM
       USE LOGICAL_MOD, ONLY : LOCN1997,    LOCN2009ANN, LOCN2009MON

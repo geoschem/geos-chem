@@ -315,10 +315,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!--------------------------------
-! Prior to 2/16/11:
-!     DO N = 1, N_TRACERS
-!--------------------------------
       DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -371,10 +367,6 @@
       ! (ccc, 3/8/10)
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &                   MG,       N_TRACERS, Ap,       Bp,
-!------------------------------------------------------------------------------
      &                   MG,       N_TOT_TRC, Ap,       Bp,
      &                   UTMP,     VTMP,      P_TP1,    P_TP2,
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
@@ -400,10 +392,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-!----------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!----------------------------
       DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
@@ -591,10 +579,6 @@
       ! L=1 is atm top, so flip in the vertical. (bmy, 10/30/07)
       CALL TPCORE( IGD,   STT(:,:,LLPAR:1:-1,:),
      &             P_TP1, P_TP2, UTMP, VTMP,  WW,    
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &             N_DYN, IORD,  JORD, KORD,  N_TRACERS, 
-!------------------------------------------------------------------------------
      &             N_DYN, IORD,  JORD, KORD,  N_TOT_TRC, 
      &             IIPAR, JJPAR, J1,   LLPAR, Ap,   
      &             Bp,    PTOP,  Re,   LFILL, LMFCT, Umax )
@@ -751,10 +735,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!----------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!----------------------------
       DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -806,10 +786,6 @@
       ! Do the advection
       CALL TPCORE_FVDAS( D_DYN,    Re,        IIPAR,    JJPAR,
      &                   LLPAR,    JFIRST,    JLAST,    NG,
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &                   MG,       N_TRACERS, Ap,       Bp,
-!------------------------------------------------------------------------------
      &                   MG,       N_TOT_TRC, Ap,       Bp,
      &                   UTMP,     VTMP,      P_TP1,    P_TP2,
      &                   P_TEMP,   STT(:,:,LLPAR:1:-1,:),       
@@ -836,10 +812,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, SUMADA, AD_A, TR_A, TR_DIFF )
-!-----------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!-----------------------------
       DO N = 1, N_TOT_TRC
 
          ! Zero summing variable
@@ -1032,10 +1004,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!------------------------------
       DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -1090,10 +1058,6 @@
       ! Do the advection
       CALL TPCORE_GEOS5_WINDOW( D_DYN, Re, IIPAR, JJPAR,
      &                          LLPAR,    JFIRST,    JLAST,    NG,
-!---------------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &                          MG,       N_TRACERS, Ap,       Bp,
-!---------------------------------------------------------------------------
      &                          MG,       N_TOT_TRC, Ap,       Bp,
      &                          UTMP,     VTMP,      P_TP1,    P_TP2,
      &                          P_TEMP,   STT(:,:,LLPAR:1:-1,:),
@@ -1221,10 +1185,6 @@
       ! dynamic timestep (P = PS-PTOP; P_TEMP = PSC2-PTOP).
       CALL TPCORE_WINDOW( IGD,   STT,       P_TP1, P_TP2,  UTMP,  
      &                    VTMP,  WW,        N_DYN, IORD,   JORD,   
-!-----------------------------------------------------------------------
-! Prior to 2/16/11:
-!     &                    KORD,  N_TRACERS, IIPAR, JJPAR,  J1,    
-!-----------------------------------------------------------------------
      &                    KORD,  N_TOT_TRC, IIPAR, JJPAR,  J1,    
      &                    I0,    J0,        I0_W,  J0_W,   I1_W,  
      &                    J1_W,  I2_W,      J2_W,  IM_W,   JM_W,  

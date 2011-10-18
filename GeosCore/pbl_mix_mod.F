@@ -46,6 +46,7 @@
 !  (3 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (4 ) Add INIT_PBL_MIX and COMPUTE_PBL_HEIGHT as PUBLIC routines 
 !        (lin, 5/29/09)
+!  (5 ) Extend tracers for APM simulation (GanLuo, 2010)
 !******************************************************************************
 !
       IMPLICIT NONE
@@ -109,17 +110,29 @@
 !  (1 ) DO_TURBDAY (LOGICAL) : Switch which turns on PBL mixing of tracers
 !
 !  NOTES:
+!  07 Sep 2011 - G. Luo    - Add modifications for APM
 !******************************************************************************
 !
       ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LTURB
       USE TRACER_MOD,  ONLY : N_TRACERS, STT, TCVV 
+#if   defined( APM ) 
+      USE TRACER_MOD,  ONLY : N_APMTRA
+#endif
 
       ! Arguments
       LOGICAL, INTENT(IN) :: DO_TURBDAY
 
       ! Local variables
       LOGICAL, SAVE       :: FIRST = .TRUE.
+      INTEGER             :: N_TOT_TRC
+
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -135,7 +148,11 @@
       CALL COMPUTE_PBL_HEIGHT
 
       ! Do complete mixing of tracers in the PBL (if necessary)
-      IF ( DO_TURBDAY ) CALL TURBDAY( N_TRACERS, STT, TCVV )
+!-----------------------------------------------------------------------------
+! Prior to 9/7/11:
+!      IF ( DO_TURBDAY ) CALL TURBDAY( N_TRACERS, STT, TCVV )
+!-----------------------------------------------------------------------------
+      IF ( DO_TURBDAY ) CALL TURBDAY( N_TOT_TRC, STT, TCVV )
 
       ! Return to calling program
       END SUBROUTINE DO_PBL_MIX

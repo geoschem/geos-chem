@@ -21,7 +21,8 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PUBLIC, PARAMETER   :: PD03 = 18            ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03    = 18         ! Dim of AD03 array
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 8          ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -116,13 +117,13 @@
       ! Zero arrays
       AD03         = 0D0
       AD03_Hg2_Hg0 = 0D0
-      AD03_Hg2_Br  = 0D0 !cdh added diagnostic
+      AD03_Hg2_Br  = 0D0 
       AD03_Hg2_OH  = 0D0
       AD03_Hg2_O3  = 0D0
       AD03_Hg2_SS  = 0D0
-      AD03_Hg2_SSR = 0D0 !cdh added diagnostic
-      AD03_nat     = 0D0 !cdh moved here from mercury_mod
-      AD03_Br      = 0D0 !cdh for bromine
+      AD03_Hg2_SSR = 0D0 
+      AD03_nat     = 0D0
+      AD03_Br      = 0D0 
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -152,7 +153,7 @@
       USE TIME_MOD,     ONLY : GET_CT_EMIS
       USE TIME_MOD,     ONLY : GET_DIAGb
       USE TIME_MOD,     ONLY : GET_DIAGe
-      USE TIME_MOD,     ONLY : GET_CT_CHEM  ! CDH for sea salt loss rate
+      USE TIME_MOD,     ONLY : GET_CT_CHEM  
       USE TRACERID_MOD, ONLY : N_Hg_CATS
 
       USE CMN_SIZE_MOD     ! Size parameters
@@ -161,6 +162,7 @@
 ! !REMARKS:
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
+!  The following list is outdated and not reliable (cdh, 7/5/11)
 !  (1 ) HG-SRCE  : Anthropogenic HG0 emission      : kg       : 1
 !  (2 ) HG-SRCE  : Total mass of oceanic Hg0       : kg       : 1
 !  (3 ) HG-SRCE  : Oceanic HgO emission            : kg       : 1
@@ -210,7 +212,7 @@
       REAL*8            :: DIAGb,     DIAGe,       SCALE
       CHARACTER(LEN=20) :: MODELNAME 
       CHARACTER(LEN=40) :: CATEGORY,  RESERVED,    UNIT
-      REAL*8            :: NCHEMSTEP !CDH for sea salt loss rate
+      REAL*8            :: NCHEMSTEP 
 
       !=================================================================
       ! WRITE_DIAG03 begins here!
@@ -232,101 +234,37 @@
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1d-32
-      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1d0 ) !CDH for sea salt loss rat         
+      NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1d0 ) 
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND03 HG-SRCE diagnostic tracers
       DO M = 1, TMAX(3)
 
          ! Get ND03 tracer #
          N = TINDEX(3,M)
 
          ! Pick the proper array & dimensions
-         IF ( N == 1 .or. N == 3 .or. N == 4  .or.
-     &        N == 5 .or. N == 6 .or. N == 9 .or. N==13 .or. N==14 .or.
-     &        N == 15.or. N == 18 ) THEN
-               
-            !--------------------------------
-            ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N)
-
-         ELSE IF ( N == 2 .or. N == 7 ) THEN
+         IF ( N == 2 .or. N == 7 .or. N == 10 .or. N == 11 ) THEN
 
             !--------------------------------
-            ! #2,7: Hg0, Hg2 ocean masses
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
-               
-         ELSE IF ( N == 8 ) THEN
-            
-            !--------------------------------
-            ! #8: Hg2_tot sinking               !anls
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N)
-
-         ELSE IF ( N == 10 ) THEN
-               
-            !--------------------------------
-            ! #10: Hg_tot
+            ! #2,7,10,11: Hg0, Hg2, Hg(P), Hg_tot ocean masses
             ! Divide by # of emiss timesteps
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg' !'cm/h'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
-
-         ELSE IF ( N == 11 ) THEN
-
-            !--------------------------------
-            ! #11: Hg(P) ocean mass             !anls
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
             UNIT              = 'kg'
             LMAX              = 1
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N) / SCALE
-
-         ELSE IF ( N == 12 ) THEN
-
+               
+         ELSE IF ( N <= 18 ) THEN
+            
             !--------------------------------
+            ! #1,3,4,5,6,9,13,14,15,18: Hg emissions
+            ! #8: Hg2_tot sinking
             ! #12: Carbon sinking               !anls
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N)
-
-         ELSE IF (N == 16)  THEN
-            
-            !--------------------------------
             ! #16: Flux-up (Hg0 volat from ocean)
-            !--------------------------------
-            CATEGORY          = 'HG-SRCE'
-            UNIT              = 'kg'
-            LMAX              = 1
-            NN                = N
-            ARRAY(:,:,1)      = AD03(:,:,N)
-            
-         ELSE IF (N == 17)  THEN
-
-            !--------------------------------
             ! #17: Flux-down (Hg0 dry dep to ocean)
             !--------------------------------
             CATEGORY          = 'HG-SRCE'
@@ -335,100 +273,115 @@
             NN                = N
             ARRAY(:,:,1)      = AD03(:,:,N)
 
-!        ELSE IF ( N == 18 ) THEN
-         ELSE IF ( N == 19 ) THEN
+         ELSE
 
             !--------------------------------
-            ! #19: Production of Hg2 from Hg0
+            ! Otherwise skip to next N
+            !--------------------------------
+            CYCLE
+
+         ENDIF
+
+         ! Write data to disk
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, NN,
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
+      ENDDO
+
+
+      ! Loop over ND03 PL-HG2-$ diagnostics
+      DO N=1, PD03_PL
+
+
+         ! Pick array and units
+         IF ( N == 1 ) THEN
+
+            !--------------------------------
+            ! #1: Production of Hg2 from Hg0
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = LD03
-            NN                = 1
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Hg0(:,:,1:LMAX)
 
-!         ELSE IF ( N == 19 ) THEN
-         ELSE IF ( N == 20 ) THEN
+         ELSE IF ( N == 2 ) THEN
 
             !--------------------------------
-            ! #20: Prod of Hg(II) from rxn w/OH
+            ! #2: Prod of Hg(II) from rxn w/OH
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = LD03
-            NN                = 2
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Hg2_OH(:,:,1:LMAX)
 
-!         ELSE IF ( N == 20 ) THEN
-         ELSE IF ( N == 21 ) THEN
+         ELSE IF ( N == 3 ) THEN
 
             !--------------------------------
-            ! #21: Prod of Hg(II) from rxn w/O3
+            ! #3: Prod of Hg(II) from rxn w/O3
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = LD03
-            NN                = 3
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Hg2_O3(:,:,1:LMAX)
       
-!         ELSE IF ( N == 21 ) THEN
-         ELSE IF ( N == 22 ) THEN
+         ELSE IF ( N == 4 ) THEN
             
             !--------------------------------
-            ! #22: Loss of Hg2 from rxn w/sea salt
+            ! #4: Loss of Hg2 from rxn w/sea salt
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = N_Hg_CATS
-            NN                = 4
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Hg2_SS(:,:,1:LMAX)
       
-!         ELSE IF ( N == 22 ) THEN
-         ELSE IF ( N == 23 ) THEN
+         ELSE IF ( N == 5 ) THEN
             
             !--------------------------------
-            ! #23: Loss of Hg2 from rxn w/sea salt
+            ! #5: Loss of Hg2 from rxn w/sea salt
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = '/s'
             LMAX              = 1
-            NN                = 5
+            NN                = N
             ARRAY(:,:,1)      = AD03_Hg2_SSR(:,:) / NCHEMSTEP
 
-!         ELSE IF ( N == 23 ) THEN
-         ELSE IF ( N == 24 ) THEN
+         ELSE IF ( N == 6 ) THEN
 
             !--------------------------------
-            ! #24: Prod of Hg(II) from rxn w/Br 
+            ! #6: Prod of Hg(II) from rxn w/Br 
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'kg'
             LMAX              = LD03
-            NN                = 6
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Hg2_Br(:,:,1:LMAX)
       
-!         ELSE IF ( N == 24 ) THEN
-         ELSE IF ( N == 25 ) THEN
+         ELSE IF ( N == 7 ) THEN
 
             !--------------------------------
-            ! #25: Br concentration
+            ! #7: Br concentration
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'molec/cm3'
             LMAX              = LD03
-            NN                = 7
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,1) / NCHEMSTEP
       
-!         ELSE IF ( N == 25 ) THEN
-         ELSE IF ( N == 26 ) THEN
+         ELSE IF ( N == 8 ) THEN
 
             !--------------------------------
-            ! #26: Br concentration
+            ! #8: BrO concentration
             !--------------------------------
             CATEGORY          = 'PL-HG2-$'
             UNIT              = 'molec/cm3'
             LMAX              = LD03
-            NN                = 8
+            NN                = N
             ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,2) / NCHEMSTEP
 
          ELSE
@@ -507,7 +460,6 @@
       ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
 
-      !cdh added diagnostic
       ALLOCATE( AD03_Hg2_Br( IIPAR, JJPAR, LD03 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br' )
 
@@ -520,15 +472,11 @@
       ALLOCATE( AD03_nat( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_nat' )
 
-      !begin CDH for sea salt loss rate
       ALLOCATE( AD03_Hg2_SSR( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
-      !End CDH
 
-      !begin CDH for bromine
       ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_BR' )
-      !End CDH
 
       ! Zero arrays
       CALL ZERO_DIAG03
@@ -562,12 +510,12 @@
       IF ( ALLOCATED( AD03         ) ) DEALLOCATE( AD03         ) 
       IF ( ALLOCATED( AD03_Hg2_Hg0 ) ) DEALLOCATE( AD03_Hg2_Hg0 )
       IF ( ALLOCATED( AD03_Hg2_OH  ) ) DEALLOCATE( AD03_Hg2_OH  )
-      IF ( ALLOCATED( AD03_Hg2_Br  ) ) DEALLOCATE( AD03_Hg2_Br  )!cdh new diag
+      IF ( ALLOCATED( AD03_Hg2_Br  ) ) DEALLOCATE( AD03_Hg2_Br  )
       IF ( ALLOCATED( AD03_Hg2_O3  ) ) DEALLOCATE( AD03_Hg2_O3  )
       IF ( ALLOCATED( AD03_Hg2_SS  ) ) DEALLOCATE( AD03_Hg2_SS  )
       IF ( ALLOCATED( AD03_nat     ) ) DEALLOCATE( AD03_nat     )
-      IF ( ALLOCATED( AD03_Hg2_SSR ) ) DEALLOCATE( AD03_Hg2_SSR ) !CDH sea salt rate
-      IF ( ALLOCATED( AD03_Br      ) ) DEALLOCATE( AD03_Br ) !CDH Bromine
+      IF ( ALLOCATED( AD03_Hg2_SSR ) ) DEALLOCATE( AD03_Hg2_SSR ) 
+      IF ( ALLOCATED( AD03_Br      ) ) DEALLOCATE( AD03_Br ) 
 
       END SUBROUTINE CLEANUP_DIAG03
 !EOC

@@ -222,6 +222,7 @@
 !  (53) Use updated volcanic emissions from 1979 to 2009
 !  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
 !  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
+!  07 Sep 2011 - P. Kasibathla - Modified to include GFED3
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -466,11 +467,16 @@
 !  (6 ) Now handle gravitational settling of SO4s, NITs (bec, bmy, 4/13/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Remove reference to MAKE_RH, it's not needed here (bmy, 3/16/06)
+!  05 Oct 2011 - R. Yantosca - SUNCOS is no longer needed here
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,        ONLY : AD,     AIRDEN,  CLDF
-      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+!      USE DAO_MOD,        ONLY : SUNCOS, CONVERT_UNITS
+!------------------------------------------------------------------------------
+      USE DAO_MOD,        ONLY : CONVERT_UNITS
       USE DRYDEP_MOD,     ONLY : DEPSAV
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE GLOBAL_OH_MOD,  ONLY : GET_GLOBAL_OH
@@ -1643,10 +1649,6 @@
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         !---------------------------------------------------------------------
-         ! Prior to 5/21/11:
-         !LWC     = GET_LWC( TK ) * FC
-         !---------------------------------------------------------------------
          ! LWC as returned from the GET_LWC function is the in-cloud liquid
          ! water content.  To improve the representation of sulfate chemistry, 
          ! we use this LWC to compute the aqueous sulfate chemistry.  We then
@@ -3879,6 +3881,7 @@
       USE TRACERID_MOD,      ONLY : IDTDMS,     IDTSO2 
       USE TRACERID_MOD,      ONLY : IDTSO4,     IDTNH3
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       USE LOGICAL_MOD,       ONLY : LANTHRO, LBIOFUEL
 
       USE CMN_SIZE_MOD            ! Size parameters
@@ -3978,7 +3981,8 @@
 
       ENDIF
 
-      IF(  ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) .AND. 
+      IF(  ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or.
+     &       ITS_A_NEW_MONTH() ) .AND. 
      &     ( LBIOMASS )  ) THEN 
          CALL GET_BIOMASS_SO2
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSSULFATE: GET_BM_SO2')

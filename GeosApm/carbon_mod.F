@@ -2275,10 +2275,6 @@
          ! Compute oxidation of hydrocarbons by O3, OH, NO3
          ! ALPHA is a module variable now (ccc, 2/2/10)
          !CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, ALPHA, GM0 )
-!------------------------------------------------------------------------------
-! Prior to 2/15/11:
-!         CALL CHEM_NVOC( I, J, L, KO3, KOH, KNO3, GM0 )
-!------------------------------------------------------------------------------
 #if      defined( APM )
          CALL CHEM_NVOC( I, J, L, RTEMP,FAC,KO3, KOH, KNO3, GM0 )
 #else

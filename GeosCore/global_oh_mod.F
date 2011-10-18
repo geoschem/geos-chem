@@ -74,6 +74,7 @@
       USE BPCH2_MOD,     ONLY : READ_BPCH2
       USE DIRECTORY_MOD, ONLY : OH_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE DAO_MOD,       ONLY : AIRDEN_FULLGRID, AIRDEN, AIRQNT_FULLGRID
 
       USE CMN_SIZE_MOD                  ! Size parameters
 !
@@ -140,8 +141,34 @@
      &                 XTAU,      IIPAR,     JJPAR,      
      &                 LGLOB,     ARRAY,     QUIET=.TRUE. )
 
+
+#if defined( GRIDREDUCED )
+
+      ! Calculate the number density of air on the full vertical grid
+      CALL AIRQNT_FULLGRID
+
+      ! Convert molec/cm3 -> mixing ratio (molec m3 kg-1 cm-3)
+      ! because regridding requires mixing ratio quantity
+      ! Note that peculiar units don't matter because we immediately
+      ! convert back after regridding
+      DO L=1, LGLOB
+         ARRAY(:,:,L) = ARRAY(:,:,L) / AIRDEN_FULLGRID(L,:,:)
+      ENDDO
+         
       ! Assign data from ARRAY to the module variable OH
       CALL TRANSFER_3D( ARRAY, OH )
+      
+      ! convert mixing ratio (molec m3 kg-1 cm-3) -> molec/cm3
+      DO L=1, LLPAR
+         OH(:,:,L) = OH(:,:,L) * AIRDEN(L,:,:)
+      ENDDO
+
+#else
+
+      ! Assign data from ARRAY to the module variable OH
+      CALL TRANSFER_3D_NOLUMP( ARRAY, OH )
+
+#endif
 
       END SUBROUTINE GET_GLOBAL_OH
 !EOC

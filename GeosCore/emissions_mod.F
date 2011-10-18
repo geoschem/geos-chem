@@ -172,7 +172,7 @@
 !  17 Aug 2011 - R. Yantosca - Added call to RETRO anthro emissions
 !EOP
 !------------------------------------------------------------------------------
-!BOC
+!BOCca
 !
 ! !LOCAL VARIABLES:
 !
@@ -266,8 +266,9 @@
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
 #endif
          ! Read VISTAS (USA) emissions once per month
-         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) 
-     &        CALL EMISS_VISTAS_ANTHRO
+         IF ( LVISTAS .and. ITS_A_NEW_MONTH() ) THEN
+            CALL EMISS_VISTAS_ANTHRO
+         ENDIF
 
          ! Read BRAVO (Mexico) emissions once per year
 #if defined( DEVEL )

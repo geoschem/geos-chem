@@ -501,10 +501,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!---------------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!---------------------------------
       DO N = 1, N_TOT_TRC
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -634,10 +630,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ID_EMITTED' )
       ID_EMITTED = 0
 
-!-----------------------------------------------------------------------------
-! Prior to 2/16/11:
-!      ALLOCATE( TCVV( N_TRACERS ), STAT=AS )
-!-----------------------------------------------------------------------------
       ALLOCATE( TCVV( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCVV' )
       TCVV = 0d0
@@ -666,18 +658,10 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TRACER_N_CONST' )
       TRACER_N_CONST = 0
 
-!-----------------------------------------------------------------------------
-! Prior to 2/16/11:
-!      ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TRACERS ), STAT=AS )
-!-----------------------------------------------------------------------------
       ALLOCATE( STT( IIPAR, JJPAR, LLPAR, N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'STT' )
       STT = 0d0      
 
-!-----------------------------------------------------------------------------
-! Prior to 2/16/11:
-!      ALLOCATE( XNUMOL( N_TRACERS ), STAT=AS )
-!-----------------------------------------------------------------------------
       ALLOCATE( XNUMOL( N_TOT_TRC ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'XNUMOL' )
       XNUMOL = 0

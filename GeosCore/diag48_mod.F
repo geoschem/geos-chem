@@ -675,14 +675,6 @@
             UNIT     = 'hPa'
             GMTRC    = 1            
             
-            !---------------------------------------------------------
-            ! Prior to 11/12/10:
-            ! Now save the pressure at all requested levels, rather
-            ! than the Psurface-PTOP. (bmy, 11/12/10)
-            !IF ( K == 1 ) THEN
-            !   Q(1) = GET_PEDGE(I,J,1) - PTOP
-            !ENDIF
-            !---------------------------------------------------------
             DO L = 1, K
                Q(L) = GET_PEDGE( I, J, K )
             ENDDO

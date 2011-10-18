@@ -567,10 +567,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
 
       ! Convert all tracers in STT from [kg] -> [v/v] 
-!---------------------------------------------------------
-! Prior to 2/16/11:
-!      CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT )
-!---------------------------------------------------------
       CALL CONVERT_UNITS( 1, N_TOT_TRC, TCVV, AD, STT )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
 
@@ -640,10 +636,6 @@
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
  
       ! Convert STT from [v/v] -> [kg]
-!---------------------------------------------------------
-! Prior to 2/16/11:
-!      CALL CONVERT_UNITS( 2, N_TRACERS, TCVV, AD, STT )
-!---------------------------------------------------------
       CALL CONVERT_UNITS( 2, N_TOT_TRC, TCVV, AD, STT )
 
       ! We have already gone thru one chemistry iteration
@@ -1673,10 +1665,6 @@
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         !---------------------------------------------------------------------
-         ! Prior to 5/21/11:
-         !LWC     = GET_LWC( TK ) * FC
-         !---------------------------------------------------------------------
          ! LWC as returned from the GET_LWC function is the in-cloud liquid
          ! water content.  To improve the representation of sulfate chemistry, 
          ! we use this LWC to compute the aqueous sulfate chemistry.  We then
@@ -4233,10 +4221,6 @@
       !=================================================================
       IF ( IDTDMS /= 0 ) CALL SRCDMS( STT(:,:,:,IDTDMS)          )
       IF ( IDTSO2 /= 0 ) CALL SRCSO2( STT(:,:,:,IDTSO2), NSEASON )
-!----------------------------------------------------------------------------
-! Prior to 2/16/11:
-!      IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4)          )
-!----------------------------------------------------------------------------
 #if   defined( APM )
       IF ( IDTSO4 /= 0 ) CALL SRCSO4( STT(:,:,:,IDTSO4), SO4BIN  )
 #else

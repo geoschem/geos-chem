@@ -2546,12 +2546,6 @@
       ! INIT_EPA_NEI begins here!
       !=================================================================
 
-      !------------------------------------
-      ! Prior to 2/7/11:
-      ! Return if we LNEI99 = .FALSE.
-      !IF ( .not. LNEI99 ) RETURN
-      !------------------------------------
-
       ! Return if we have not selected LNEI99 (or LNEI05, since we
       ! must read the EPA/NEI99 biofuels when using EPA/NEI05 anthro)
       ! (bmy, 2/7/11)

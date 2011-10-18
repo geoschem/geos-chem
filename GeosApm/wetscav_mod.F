@@ -16,6 +16,7 @@
 ! !USES:
 !
       IMPLICIT NONE
+#     include "define.h"
       PRIVATE
 !
 ! !PUBLIC DATA MEMBERS:
@@ -144,11 +145,6 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      !-----------------------------------------------------------------------
-      ! Prior to 3/25/11:
-      ! Need to increase NSOLMAX for APM microphysics (bmy, 3/25/11)
-      !INTEGER, PARAMETER   :: NSOLMAX = 50      ! Max # of soluble tracers
-      !-----------------------------------------------------------------------
       INTEGER, PARAMETER   :: NSOLMAX = 100     ! Max # of soluble tracers
       REAL*8,  PARAMETER   :: EPSILON = 1d-32   ! A very small positive #
 !
@@ -2064,6 +2060,10 @@
          ! Force not to be lost in convective updraft for now
          F    = 0d0
 
+      ELSE IF ( (N >= IDTCTSEA .and. N<(IDTCTSEA+NCTSEA)) .or.
+     &          (N >= IDTSEABIN1 .and. N<(IDTSEABIN1+NSEA)) ) THEN
+         CALL F_AEROSOL( KC, F )
+
       ELSE IF ( (N >= IDTCTDST .and. N<(IDTCTDST+NCTDST)) .or.
      &          (N >= IDTDSTBIN1 .and. N<(IDTDSTBIN1+NDSTB)) ) THEN
          CALL F_AEROSOL( KC, F )
@@ -3399,11 +3399,6 @@
       !------------------------------
       ELSE IF ( N == IDTH2O2 ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,        
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3412,11 +3407,6 @@
       !------------------------------
       ELSE IF ( N == IDTCH2O ) THEN 
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 3.0d3, -7.2d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3432,11 +3422,6 @@
          ! dependence for CH2O works well for glyoxal,
          !      so we use the same H298_R as CH2O
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 3.6d5, -7.2d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3450,11 +3435,6 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 3.71d3 M/atm;  
          ! H298_R = -7.5d3 K
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 3.7d3, -7.5d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3467,11 +3447,6 @@
          ! from Betterton and Hoffman 1988): Kstar298 = 4.6d4 M/atm;  
          ! H298_R = -4.6d3 K
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 4.1d4, -4.6d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3480,11 +3455,6 @@
       !------------------------------
       ELSE IF ( N == IDTMP ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 3.1d2, -5.2d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3493,11 +3463,6 @@
       !------------------------------
       ELSE IF ( N == IDTMOBA ) THEN       
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 2.6d4, -6.3d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3506,11 +3471,6 @@
       !------------------------------
       ELSE IF ( N == IDTISOPN ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS(17d3, -9.2d3 , PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,     DT,       F,      
      &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
@@ -3519,11 +3479,6 @@
       !------------------------------
       ELSE IF ( N == IDTMMN ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 17d3, -9.2d3, PP,     DT,       F,     
      &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
@@ -3532,11 +3487,6 @@
       !------------------------------
       ELSE IF ( N == IDTPROPNN ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 1.0d3, 0.0d0, PP,     DT,       F,      
      &                          DZ,    TK,    K_WASH, WASHFRAC, AER )
 
@@ -3546,11 +3496,6 @@
       ELSE IF ( N == IDTRIP ) THEN
          !USE H2O2 
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3559,11 +3504,6 @@
       !------------------------------
       ELSE IF ( N == IDTMAP ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 8.4d2, -5.3d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3572,11 +3512,6 @@
       !------------------------------
       ELSE IF ( N == IDTIEPOX ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 8.3d4, -7.4d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3637,11 +3572,6 @@
       !------------------------------
       ELSE IF ( N == IDTNH3 ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP, DT, 
-!     &                                F,      DZ,    TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 3.3d6, -4.1d3, PP,     DT,       F,      
      &                          DZ,     TK,    K_WASH, WASHFRAC, AER )
 
@@ -3693,11 +3623,6 @@
       !------------------------------
       ELSE IF ( N == IDTALPH ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP, DT, 
-!     &                                F,       DZ,   TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 0.023d0, 0.d0, PP,     DT,       F,       
      &                          DZ,      TK,   K_WASH, WASHFRAC, AER )
 
@@ -3706,11 +3631,6 @@
       !------------------------------
       ELSE IF ( N == IDTLIMO ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP, DT, 
-!     &                                F,      DZ,   TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 0.07d0, 0.d0, PP,     DT,       F,      
      &                          DZ,     TK,   K_WASH, WASHFRAC, AER )
 
@@ -3719,11 +3639,6 @@
       !------------------------------
       ELSE IF ( N == IDTALCO ) THEN
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP, DT, 
-!     &                                F,     DZ,   TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 54.d0, 0.d0, PP,     DT,       F,     
      &                          DZ,    TK,   K_WASH, WASHFRAC, AER )
 
@@ -3734,11 +3649,6 @@
      &          N == IDTSOG3 .or. N == IDTSOG4  .or.  
      &          N == IDTSOG5                    ) THEN   
          AER      = .FALSE.
-!------------------------------------------------------------------------------
-! Prior to 8/1/11:
-!         WASHFRAC = WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP, DT, 
-!     &                                F,      DZ,      TK, K_WASH )
-!------------------------------------------------------------------------------
          CALL WASHFRAC_LIQ_GAS( 1.0d5, -6.039d3, PP,     DT,       F,      
      &                          DZ,     TK,      K_WASH, WASHFRAC, AER )
 
@@ -3776,11 +3686,6 @@
             ! Assume Hg2 is in gas phase and equilibrates with precip
             ! according to Henry's law
             AER      = .FALSE.
-!---------------------------------------------------------------------------
-! Prior to 8/1/11:
-!            WASHFRAC = WASHFRAC_LIQ_GAS( 1.4d+6, -8.4d3, PP, DT, 
-!     &                                   F,       DZ,    TK, K_WASH )
-!---------------------------------------------------------------------------
 
             ! hma, 10-Jan-2011, Henry's law constant for HgCl2 = 1.4d+6 M/atm
             ! Ref: Lindqvist and Rhode, 1985
@@ -5625,11 +5530,6 @@
             ! the atmosphere in the gas phase in grid box (I,J,L).
             GAINED  = DSTT(NN,L+1,I,J) * ALPHA2
 
-#if   defined( APM )
-            ! Archive GAINED for APM microphysics
-            SO2GAINED(I,J,L) = GAINED * 96D0 / 64D0
-#endif
-
             ! Amount of aerosol lost to washout in grid box
             ! (qli, bmy, 10/29/02)
             WETLOSS = STT(I,J,L,N) * WASHFRAC - GAINED
@@ -5643,6 +5543,11 @@
             IF ( N == IDTSO2 ) THEN
                STT(I,J,L,IDTSO4) = STT(I,J,L,IDTSO4) 
      &                           + GAINED * 96D0 / 64D0
+
+#if   defined( APM )
+               ! Archive GAINED for APM microphysics
+               SO2GAINED(I,J,L) = GAINED * 96D0 / 64D0
+#endif
 
                STT(I,J,L,N)      = STT(I,J,L,N) *
      &                                          ( 1d0 - WASHFRAC )
@@ -5658,16 +5563,6 @@
             ! Add the washed out tracer from grid box (I,J,L) to 
             ! DSTT.  Also add the amount of tracer coming down
             ! from grid box (I,J,L+1) that does NOT re-evaporate.
-            !---------------------------------------------------------------
-            ! Prior to 5/27/11:
-            ! Restructure IF statement to avoid floating point errors
-            ! (bmy, 5/27/11)
-            !IF ( F_RAINOUT == 0D0 ) THEN 
-            !   DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-            !ELSE
-            !   DSTT(NN,L,I,J) = DSTT(NN,L,I,J) + WETLOSS
-            !ENDIF
-            !---------------------------------------------------------------
             IF ( F_RAINOUT > 0d0 ) THEN 
                DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
             ELSE
@@ -5709,16 +5604,6 @@
             STT(I,J,L,N) = STT(I,J,L,N) - WETLOSS  
             
             ! Add washout losses in grid box (I,J,L) to DSTT 
-            !-------------------------------------------------------------
-            ! Prior to 5/27/11:
-            ! Restructure IF statement to avoid floating point errors.
-            ! (bmy, 5/27/11)
-            !IF ( F_RAINOUT == 0d0 )THEN 
-            !   DSTT(NN,L,I,J) = DSTT(NN,L+1,I,J) + WETLOSS
-            !ELSE
-            !   DSTT(NN,L,I,J) = DSTT(NN,L,I,J)   + WETLOSS
-            !ENDIF
-            !-------------------------------------------------------------
             IF ( F_RAINOUT > 0d0 ) THEN
                DSTT(NN,L,I,J) = DSTT(NN,L,  I,J) + WETLOSS
             ELSE
@@ -6279,10 +6164,6 @@
       NSOL = 0
 
       ! Sort soluble tracers into IDWETD
-!-----------------------------------------
-! Prior to 2/16/11:
-!      DO N = 1, N_TRACERS
-!-----------------------------------------
       DO N = 1, N_TOT_TRC
 
          !-----------------------------
@@ -6566,10 +6447,6 @@
       WRITE( 6, '(a)'     ) '                      Number g/mole'
       WRITE( 6, '(a)'     ) REPEAT( '-', 36 )
 
-!-----------------------------
-! Prior to 2/16/11:
-!      DO NN = 1, NSOL
-!-----------------------------
       DO NN = 1, N_TOT_SOL
          N = IDWETD(NN)
          WRITE( 6, '(i3,3x,a14,3x,i3,3x,f6.1)' )

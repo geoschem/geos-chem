@@ -29,6 +29,7 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
+      PUBLIC  :: AIRQNT_FULLGRID
       PUBLIC  :: CLEANUP_DAO
       PUBLIC  :: CONVERT_UNITS
       PUBLIC  :: COPY_I6_FIELDS
@@ -98,6 +99,7 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOMAS  (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SNOW    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS  (:  )
+      REAL*8,  ALLOCATABLE, PUBLIC :: SUNCOS_MID(:  )
       REAL*8,  ALLOCATABLE, PUBLIC :: TO31    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO32    (:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: TO3     (:,:)
@@ -174,6 +176,8 @@
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMEU    (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMMD    (:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC :: ZMMU    (:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: AIRDEN_FULLGRID(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC :: T_FULLGRID     (:,:,:)
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -234,6 +238,10 @@
 !  18 Aug 2010 - R. Yantosca - Added modifications for MERRA data
 !  18 Aug 2010 - R. Yantosca - Move F77_CMN_SIZE, F77_CMN_DIAG to top of module
 !  25 Aug 2010 - R. Yantosca - Now read LWI (land/water/ice) for MERRA met
+!  05 Oct 2011 - R. Yantosca - Add SUNCOS_30 array to hold the cos(SZA)
+!                              computed @ 30 mins after each GMT hour.
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -488,6 +496,122 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE AIRQNT
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: airqnt_fullgrid
+!
+! !DESCRIPTION: Subroutine AIRQNT_FULLGRID calculates the same quantities as 
+!  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE AIRQNT_FULLGRID
+!
+! !USES:
+!
+      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE PRESSURE_MOD, ONLY : GET_PEDGE_FULLGRID
+!
+! !REMARKS:
+!  DAO met fields updated by AIRQNT_FULLGRID:
+!  ========================================================================
+!  (1 ) AIRDEN_FULLGRID (REAL*8 ) : Density of air  in a grid box   [kg/m^3  ]
+!
+!  NOTES:
+!  (1 ) Modified from AIRQNT in DAO_MOD (cdh, 1/22/09)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER             :: I,  J,  L
+      REAL*8              :: P1, P2, AREA_M2, DELP_TMP
+      REAL*8              :: BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP
+
+      !=================================================================
+      ! AIRQNT_FULLGRID begins here! 
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, AREA_M2, P1, P2 )
+!$OMP+PRIVATE( DELP_TMP, BXHEIGHT_TMP, AIRVOL_TMP, AD_TMP )
+      DO L = 1, LGLOB
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [m2]
+         AREA_M2 = GET_AREA_M2( J )
+
+         DO I = 1, IIPAR
+               
+            ! Pressure at bottom edge of grid box [hPa]
+            P1          = GET_PEDGE_FULLGRID(I,J,L)
+
+            ! Pressure at top edge of grid box [hPa]
+            P2          = GET_PEDGE_FULLGRID(I,J,L+1)
+
+            ! Pressure difference between top & bottom edges [hPa]
+            DELP_TMP = P1 - P2
+            
+            !===========================================================
+            ! BXHEIGHT is the height (Delta-Z) of grid box (I,J,L) 
+            ! in meters. 
+            !
+            ! The formula for BXHEIGHT is just the hydrostatic eqn.  
+            ! Rd = 287 J/K/kg is the value for the ideal gas constant
+            ! R for air (M.W = 0.02897 kg/mol),  or 
+            ! Rd = 8.31 J/(mol*K) / 0.02897 kg/mol. 
+            !===========================================================
+            BXHEIGHT_TMP = Rdg0 * T_FULLGRID(I,J,L) * LOG( P1 / P2 )
+
+            !===========================================================
+            ! AIRVOL is the volume of grid box (I,J,L) in meters^3
+            !
+            ! AREA_M2 is the Delta-X * Delta-Y surface area of grid
+            ! boxes (I,J,L=1), that is, at the earth's surface.
+            !
+            ! Since the thickness of the atmosphere is much smaller 
+            ! than the radius of the earth, we can make the "thin 
+            ! atmosphere" approximation, namely:
+            !
+            !               (Rearth + h) ~ Rearth
+            !
+            ! Therefore, the Delta-X * Delta-Y surface area of grid
+            ! boxes that are above the earth's surface will be 
+            ! approx. the same as AREA_M2.  Thus we are justified 
+            ! in using AREA_M2 for grid boxes (I, J, L > 1)
+            !===========================================================
+            AIRVOL_TMP = BXHEIGHT_TMP * AREA_M2
+
+            !===========================================================
+            ! AD = (dry) mass of air in grid box (I,J,L) in kg, 
+            ! given by:        
+            !
+            !  Mass    Pressure        100      1        Surface area 
+            !        = difference   *  ---  *  ---   *   of grid box 
+            !          in grid box      1       g          AREA_M2
+            !
+            !   kg         mb          Pa      s^2           m^2
+            !  ----  =    ----      * ----  * -----  *      -----
+            !    1          1          mb       m             1
+            !===========================================================
+            AD_TMP = DELP_TMP * G0_100 * AREA_M2
+
+            !===========================================================
+            ! AIRDEN = density of air (AD / AIRVOL) in kg / m^3 
+            !===========================================================
+            AIRDEN_FULLGRID(L,I,J) = AD_TMP / AIRVOL_TMP
+         ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE AIRQNT_FULLGRID
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1444,27 +1568,48 @@
 !
 ! !IROUTINE: cossza
 !
-! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle.
+! !DESCRIPTION: COSSZA computes the cosine of the solar zenith angle at
+!  the current time, and at the midpoint of the chemistry timestep interval.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COSSZA( JDAY, SUNCOS )
+      SUBROUTINE COSSZA( JDAY, SUNCOS, SUNCOS_MID )
 !
 ! !USES:
 !
       USE GRID_MOD, ONLY : GET_YMID_R
+      USE TIME_MOD, ONLY : GET_HOUR
+      USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_SUN_2
+      USE TIME_MOD, ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)  :: JDAY             ! Day of year (0-365)
+      INTEGER, INTENT(IN)  :: JDAY              ! Day of year (0-365)
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)    ! COS( Solar zenith angle )
-! 
+      REAL*8,  INTENT(OUT) :: SUNCOS(MAXIJ)     ! cos(SZA) @ current time
+      REAL*8,  INTENT(OUT) :: SUNCOS_MID(MAXIJ) ! cos(SZA) @ midpt of chem step
+!
+! !REMARKS:
+!  Hour angle (AHR) is a function of longitude.  AHR is zero at solar noon, 
+!  and increases by 15 deg for every hour before or after solar noon.  Hour 
+!  angle can be thought of as the time in hours since the sun last passed
+!  the meridian (i.e. the time since the last local noon).
+!                                                                             .
+!  The cosine of the solar zenith angle (SZA) is given by:
+!                                                                             .
+!     cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+!                                                                             .
+!  where LAT = the latitude angle, 
+!        DEC = the solar declination angle,  
+!        AHR = the hour angle, all in radians. 
+!                                                                             .
+!  If SUNCOS < 0, then the sun is below the horizon, and therefore does not 
+!  contribute to any solar heating.  
+!
 ! !REVISION HISTORY: 
 !  21 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) COSSZA is written in Fixed-Form Fortran 90.
@@ -1489,14 +1634,21 @@
 !        (i.e. the chemistry timestep).   Also make the A and B coefficients
 !        parameters instead of variables. (bmy, 4/27/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  05 Oct 2011 - R. Yantosca - Now also return the cosine of the solar 
+!                              zenith angle at 30m after the GMT hour.
+!  07 Oct 2011 - R. Yantosca - Now return SUNCOS_MID, the cos(SZA) at the
+!                              midpt of the chem step (not always at 00:30).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !      
-      INTEGER            :: I, IJLOOP, J
-      REAL*8             :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+      INTEGER            :: FACTOR, I,        IJLOOP,  J
+      INTEGER            :: HOUR,   MINUTE,   TS_SUN
+      REAL*8             :: AHR,    GMT_MID,  R,       TIMLOC
+      REAL*8             :: DEC,    C_DEC,    S_DEC
+      REAL*8             :: YMID_R, C_YMID_R, S_YMID_R
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1510,20 +1662,31 @@
       REAL*8,  PARAMETER :: B3 = 0.000148d0
 
       !=================================================================
-      ! COSSZA begins here!   
+      ! Initialization   
       !=================================================================
 
-      ! 1/2 of the time interval (normally the chemistry timestep)
-      ! for computing SUNCOS.  Convert from minutes to hours.
-      OFFSET = GET_TS_SUN_2() / 60d0
+      ! Quantities for central chemistry timestep
+      TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
+      HOUR     = GET_HOUR()                            ! Current hour
+      MINUTE   = GET_MINUTE()                          ! Current minutes
+      FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
+
+      ! GMT at the midpoint of the chemistry timestep
+      GMT_MID  = ( DBLE( GET_HOUR()      )        )    ! Start of hour
+     &         + ( DBLE( TS_SUN * FACTOR ) / 60d0 )    ! + steps already done
+     &         + ( DBLE( TS_SUN / 2      ) / 60d0 )    ! + 1/2 chem timestep
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
-      R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+      R        = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
 
-      ! Solar declination angle (low precision formula)
-      DEC = A0 - A1*COS(     R ) + B1*SIN(     R )
-     &         - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
-     &         - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+      ! Solar declination angle (low precision formula) [radians]
+      DEC      = A0 - A1*COS(     R ) + B1*SIN(     R )
+     &              - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
+     &              - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+
+      ! Pre-compute sin & cos of DEC outside of DO loops (for efficiency)
+      S_DEC    = SIN( DEC )
+      C_DEC    = COS( DEC )
 
       !=================================================================
       ! Compute cosine of solar zenith angle
@@ -1531,54 +1694,52 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+!$OMP+PRIVATE( I, J, YMID_R, S_YMID_R, C_YMID_R, IJLOOP, TIMLOC, AHR )
 
       ! Loop over latitude
       DO J = 1, JJPAR
 
          ! Latitude of grid box [radians]
-         YMID_R = GET_YMID_R( J )
+         YMID_R   = GET_YMID_R( J )
+
+         ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
+         S_YMID_R = SIN( YMID_R )
+         C_YMID_R = COS( YMID_R )
 
          ! Loop over longitude
          DO I = 1, IIPAR
 
             ! 1-D grid box index
-            IJLOOP = ( (J-1) * IIPAR ) + I
+            IJLOOP             = ( (J-1) * IIPAR ) + I
 
             !===========================================================
-            ! TIMLOC = Local Time in Hours                   
-            !
-            ! Hour angle (AHR) is a function of longitude.  AHR is 
-            ! zero at solar noon, and increases by 15 deg for every 
-            ! hour before or after solar noon.  
-            !
-            ! Hour angle can be thought of as the time in hours since 
-            ! the sun last passed the meridian (i.e. the time since the
-            ! last local noon).  Convert to radians for the COS below.
+            ! Compute cosine of SZA at the current GMT time
             !===========================================================
 
             ! Local time at box (I,J) [hours]
-            TIMLOC = GET_LOCALTIME( I, OFFSET )
+            TIMLOC             = GET_LOCALTIME( I )
 
             ! Hour angle at box (I,J) [radians]
-            AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
             
+            ! Cosine of solar zenith angle at box (I,J) [unitless]
+            SUNCOS(IJLOOP)     = ( S_YMID_R * S_DEC              ) 
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
+
             !===========================================================
-            ! The cosine of the solar zenith angle (SZA) is given by:
-            !     
-            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
-            !                   
-            ! where LAT = the latitude angle, 
-            !       DEC = the solar declination angle,  
-            !       AHR = the hour angle, all in radians. 
-            !
-            ! If SUNCOS < 0, then the sun is below the horizon, and 
-            ! therefore does not contribute to any solar heating.  
+            ! Compute cosine(SZA) at the midpoint of the chem timestep
+            ! Required for photolysis, chemistry, emissions, drydep
             !===========================================================
-               
-            ! Compute cos(SZA) at box (I,J) [unitless]
-            SUNCOS(IJLOOP) = SIN( YMID_R ) * SIN( DEC ) +
-     &                       COS( YMID_R ) * COS( DEC ) * COS( AHR )
+
+            ! Local time [hours] at box (I,J) at 30 minutes after the GMT hour
+            TIMLOC             = GET_LOCALTIME( I, GMT=GMT_MID )
+
+            ! Hour angle at box (I,J) [radians]
+            AHR                = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            
+            ! Corresponding cosine( SZA ) at box (I,J) [unitless]
+            SUNCOS_MID(IJLOOP) = ( S_YMID_R * S_DEC              )
+     &                         + ( C_YMID_R * C_DEC * COS( AHR ) )
 
          ENDDO
       ENDDO
@@ -1778,54 +1939,6 @@
       !=================================================================
       ! COPY_I6_FIELDS begins here!
       !=================================================================
-!-----------------------------------------------------------------------------
-! Prior to 8/20/10:
-! Rewrite #if block for clarity
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!         ! Copy surface pressure
-!         PS1(I,J)   = PS2(I,J) 
-!
-!#if   !defined( GEOS_5 )
-!         ! Tropopause pressure (except for GEOS-5)
-!         TROPP1(I,J) = TROPP2(I,J)
-!#endif
-!
-!#if   defined( GEOS_3 )
-!         ! Also copy surface albedo (GEOS-1, GEOS-S, GEOS-3 only)
-!         ALBD1(I,J) = ALBD2(I,J)  
-!#endif
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#if   defined( GEOS_3 )
-!
-!      !=================================================================
-!      ! GEOS-1, GEOS-S, GEOS-3: UWND, VWND, SPHU, TMPU are I-6 fields
-!      ! so we need to copy these too.  (These are A-6 in GEOS-4.)
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L )
-!      DO L = 1, LLPAR
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!         UWND1(I,J,L) = UWND2(I,J,L)
-!         VWND1(I,J,L) = VWND2(I,J,L)
-!         TMPU1(I,J,L) = TMPU2(I,J,L)
-!         SPHU1(I,J,L) = SPHU2(I,J,L)
-!      ENDDO
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!#endif
-!-----------------------------------------------------------------------------
 
 #if   defined( GCAP )
 
@@ -2103,10 +2216,25 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
 
+      ! Cosine of solar zenith angle (computed @ midpt of chem timestep)
+      ALLOCATE( SUNCOS_MID( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS_MID' )
+      SUNCOS_MID = 0d0
+
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'T' )
       T = 0d0
+
+      ! Temperature on full vertical grid 
+      ALLOCATE( T_FULLGRID( IIPAR, JJPAR, LGLOB ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'T_FULLGRID' )
+      T_FULLGRID = 0d0
+
+      ! Number density of air on full vertical grid
+      ALLOCATE( AIRDEN_FULLGRID( LGLOB, IIPAR, JJPAR ), STAT=AS ) 
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIRDEN_FULLGRID' )
+      AIRDEN_FULLGRID = 0d0
 
       ! Tropopause pressure
       ALLOCATE( TROPP( IIPAR, JJPAR ), STAT=AS ) 
@@ -2670,6 +2798,7 @@
 !  (15) Remove obsolete SUNCOSB (bmy, 4/28/10)
 !  16 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  18 Aug 2010 - R. Yantosca - Now deallocate MERRA met field arrays
+!  05 Oct 2011 - R. Yantosca - Now deallocate SUNCOS_MID
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2775,6 +2904,7 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
+      IF ( ALLOCATED( SUNCOS_MID ) ) DEALLOCATE( SUNCOS_MID )
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )
@@ -2805,6 +2935,8 @@
       IF ( ALLOCATED( ZMMD     ) ) DEALLOCATE( ZMMD     )
       IF ( ALLOCATED( ZMMU     ) ) DEALLOCATE( ZMMU     )
       IF ( ALLOCATED( EFLUX    ) ) DEALLOCATE( EFLUX    )
+      IF ( ALLOCATED( AIRDEN_FULLGRID ) ) DEALLOCATE( AIRDEN_FULLGRID )
+      IF ( ALLOCATED( T_FULLGRID      ) ) DEALLOCATE( T_FULLGRID      )
 
       END SUBROUTINE CLEANUP_DAO
 !EOC

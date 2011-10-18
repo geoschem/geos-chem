@@ -66,8 +66,6 @@ c        (tmf, ccc, 1/7/09)
 !------------NQQQ = no. additional J-values from X-sects (O2,O3P,O3D+NQQQ)
 !- NQQQ is changed to NJVAL-1 because there are 2 dummy species at the end
 ! used for acetone pressure dependency only. (ccc, 4/20/09)
-!- prior to 4/20/09
-!      NQQQ = NJVAL-3
       NQQQ = NJVAL-1
       read(NJ1,102) (WBIN(IW),IW=1,NWWW)
       read(NJ1,102) (WBIN(IW+1),IW=1,NWWW)

@@ -1,24 +1,23 @@
-!-----------------------------------------------------------------------
-!          University of Minnesota Atmospheric Chemistry Group
-!-----------------------------------------------------------------------
-
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: retro_mod 
+!
+! !DESCRIPTION: Module RETRO\_MOD reads emissions from the RETRO emissions 
+!  inventory
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE RETRO_MOD
 
-!***********************************************************************
-!  Module RETRO_MOD reads emissions from the RETRO emissions inventory
-!  (wfr 3/8/11)
-!***********************************************************************
-
       IMPLICIT NONE
-
-      !Make everything PRIVATE...
       PRIVATE
-
-      !...except these routines
-      PUBLIC :: CLEANUP_RETRO
-      PUBLIC :: EMISS_RETRO
-      PUBLIC :: GET_RETRO_ANTHRO
-      
+!
+! !PUBLIC DATA MEMBERS:
+!      
       REAL*4, ALLOCATABLE :: RETRO_ALK4(:,:)
       REAL*4, ALLOCATABLE :: RETRO_ACET(:,:)
       REAL*4, ALLOCATABLE :: RETRO_MEK(:,:)
@@ -32,10 +31,27 @@
       REAL*4, ALLOCATABLE :: RETRO_XYLE(:,:)
       REAL*4, ALLOCATABLE :: RETRO_C2H4(:,:)
       REAL*4, ALLOCATABLE :: RETRO_C2H2(:,:)
-
-      !========================================
-      !  MODULE ROUTINES -- follow "CONTAINS"
-      !========================================
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!  
+      PUBLIC  :: CLEANUP_RETRO
+      PUBLIC  :: EMISS_RETRO
+      PUBLIC  :: GET_RETRO_ANTHRO
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: INIT_RETRO
+      PRIVATE :: READ_RETRO
+      PRIVATE :: TOTAL_ANTHRO_Tg
+!
+! !REVISION HISTORY:
+!  08 Mar 2011 - W. Reinhart - Initial version
+!  18 Aug 2011 - D. Millet   - Partition ketones into 25% MEK and 75% ACET
+!  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       CONTAINS
 
 !-----------------------------------------------------------------------
@@ -49,9 +65,13 @@
 !  each month. (wfr, 3/8/11)
 !***********************************************************************
 
-      !References to F90 modules
-      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE FILE_MOD,             ONLY : IU_FILE, IOERROR
+!
+! !USES:
+!
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,            ONLY : GET_RES_EXT
+      USE FILE_MOD,             ONLY : IU_FILE
+      USE FILE_MOD,             ONLY : IOERROR
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
@@ -59,8 +79,8 @@
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
       USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
       USE LOGICAL_MOD,          ONLY : LFUTURE
-      USE TIME_MOD,             ONLY : EXPAND_DATE, GET_MONTH
-
+      USE TIME_MOD,             ONLY : EXPAND_DATE
+      USE TIME_MOD,             ONLY : GET_MONTH
       USE CMN_SIZE_MOD               ! Size parameters
 
 #if defined( DEVEL )
@@ -70,14 +90,20 @@
       USE TRACER_MOD,           ONLY : N_TRACERS, TRACER_MW_KG
       USE GRID_MOD,             ONLY : GET_AREA_CM2
 #endif
-
-      !Local variables
-      LOGICAL, SAVE                 :: FIRST = .TRUE.
-      INTEGER                       :: I, J, THISMONTH, YYYYMMDD
-      REAL*8                        :: ALK4ff, PRPEff, C3H8ff
-      REAL*8                        :: C2H6ff, VOCff
-      
-      CHARACTER(LEN=255)            :: FILENAME
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial version
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: I,      J,      THISMONTH, YYYYMMDD
+      REAL*8             :: ALK4ff, PRPEff, C3H8ff
+      REAL*8             :: C2H6ff, VOCff
+      CHARACTER(LEN=255) :: FILENAME
 
 #if defined( DEVEL )
       REAL*8, INTENT(INOUT)         :: EMISSIONS(IIPAR,JJPAR,N_TRACERS)
@@ -201,58 +227,80 @@
 
       ! Return to calling program
       END SUBROUTINE EMISS_RETRO
-
-!-----------------------------------------------------------------------
-
-      SUBROUTINE READ_RETRO( FILENAME, ALK4, ACET, MEK, ALD2, PRPE,
-     &                       C3H8, C2H6, CH2O, BENZ, TOLU, XYLE, C2H4,
-     &                       C2H2 )                       
-
-!***********************************************************************
-!  Subroutine READ_RETRO reads a BPCH file created from RETRO data.
-!***********************************************************************
-
-      ! Reference to F90 modules
+!EOC
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_retro
+!
+! !DESCRIPTION: Subroutine READ\_RETRO reads a BPCH file created from 
+!  RETRO data.  The data has units of [atoms C/cm2/s].
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_RETRO( FILENAME, ALK4, ACET, MEK,  ALD2, PRPE,
+     &                       C3H8,     C2H6, CH2O, BENZ, TOLU, XYLE, 
+     &                       C2H4,     C2H2                          )
+!
+! !USES:
+!
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
       USE TIME_MOD,         ONLY : GET_YEAR
-
       USE CMN_SIZE_MOD           ! Size parameters
       USE CMN_O3_MOD             ! FSCLYR
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: FILENAME
-      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: ACET(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,  JJPAR)
-      REAL*4,           INTENT(INOUT) :: ALD2(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: BENZ(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: TOLU(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: XYLE(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: C2H4(IIPAR, JJPAR)
-      REAL*4,           INTENT(INOUT) :: C2H2(IIPAR, JJPAR)
-
-      ! Local variables
-      INTEGER                         :: I, J, L, N, IOS
-      INTEGER                         :: NI, NJ, NL
-      INTEGER                         :: IFIRST, JFIRST, LFIRST
-      INTEGER                         :: NTRACER, NSKIP
-      INTEGER                         :: HALFPOLAR, CENTER180
-      INTEGER                         :: SCALEYEAR, BASEYEAR
-      REAL*4                          :: LONRES, LATRES
-      REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
-      REAL*4                          :: SC(IIPAR,JJPAR)
-      REAL*8                          :: ZTAU0, ZTAU1
-      CHARACTER(LEN=20)               :: MODELNAME
-      CHARACTER(LEN=40)               :: CATEGORY
-      CHARACTER(LEN=40)               :: UNIT
-      CHARACTER(LEN=40)               :: RESERVED
+!
+! !INPUT PARAMETERS: 
+!
+      ! Name of file to read
+      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME 
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      ! RETRO emissions for various VOC species [molec/cm2/s]
+      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: MEK (IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: ALD2(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: BENZ(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: TOLU(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: XYLE(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C2H4(IIPAR,JJPAR)
+      REAL*4,           INTENT(INOUT) :: C2H2(IIPAR,JJPAR)
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial Version 
+!  18 Aug 2011 - D. Millet   - Remove call to GET_ANNUAL_SCALAR
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, J, L, N, IOS
+      INTEGER           :: NI, NJ, NL
+      INTEGER           :: IFIRST, JFIRST, LFIRST
+      INTEGER           :: NTRACER, NSKIP
+      INTEGER           :: HALFPOLAR, CENTER180
+      INTEGER           :: SCALEYEAR  !, BASEYEAR (dbm, 8/18/11)
+      REAL*4            :: LONRES, LATRES
+      REAL*4            :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4            :: SC(IIPAR,JJPAR)
+      REAL*8            :: ZTAU0, ZTAU1
+      CHARACTER(LEN=20) :: MODELNAME
+      CHARACTER(LEN=40) :: CATEGORY
+      CHARACTER(LEN=40) :: UNIT
+      CHARACTER(LEN=40) :: RESERVED
 
       !=================================================================
       !  READ_RETRO begins here
@@ -337,52 +385,72 @@
          SCALEYEAR = FSCALYR
       ENDIF
 
-      BASEYEAR=2000
+!------------------------------------------------------------------------------
+! Prior to 8/18/11:
+! This shouldn't be here (dbm, 8/18/2011)
+!      ! Set base year to 2000
+!      BASEYEAR = 2000
+!
+!      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
+!      ALK4(:,:) = ALK4(:,:) * SC(:,:)
+!------------------------------------------------------------------------------
 
-      CALL GET_ANNUAL_SCALAR( 71, BASEYEAR, SCALEYEAR, SC)
-      ALK4(:,:) = ALK4(:,:) * SC(:,:)
-
-      ! Return to calling program
       END SUBROUTINE READ_RETRO
-
-!-----------------------------------------------------------------------
-
-      SUBROUTINE TOTAL_ANTHRO_TG( THISMONTH )
-
-!***********************************************************************
-!  Subroutine to print total RETRO anthropogenic emissions each month
-!  in TgC
-!***********************************************************************
-
-      ! References to F90 modules
+!EOC
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: TOTAL_ANTHRO_Tg
+!
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_Tg to print total RETRO 
+!  anthropogenic VOC emissions each month in [Tg C].
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE TOTAL_ANTHRO_Tg( THISMONTH )
+!
+! !USES:
+!
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTALK4, IDTMEK,  IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
-
       USE CMN_SIZE_MOD       ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial Version 
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
 
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
-      INTEGER             :: I, J
-      REAL*8              :: ALK4, MEK,  ALD2, PRPE, C3H8, CH2O
-      REAL*8              :: BENZ, TOLU, XYLE, C2H4, C2H2, C2H6, ACET
-      REAL*8              :: F_ALK4, F_MEK,  F_PRPE, F_C3H8, F_CH2O
-      REAL*8              :: F_BENZ, F_TOLU, F_XYLE, F_C2H4, F_C2H2
-      REAL*8              :: F_C2H6, F_ALD2, F_ACET
-      REAL*8              :: A
-      CHARACTER(LEN=6)    :: UNIT
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: I, J
+      REAL*8           :: ALK4, MEK,  ALD2, PRPE, C3H8, CH2O
+      REAL*8           :: BENZ, TOLU, XYLE, C2H4, C2H2, C2H6, ACET
+      REAL*8           :: F_ALK4, F_MEK,  F_PRPE, F_C3H8, F_CH2O
+      REAL*8           :: F_BENZ, F_TOLU, F_XYLE, F_C2H4, F_C2H2
+      REAL*8           :: F_C2H6, F_ALD2, F_ACET
+      REAL*8           :: A
+      CHARACTER(LEN=6) :: UNIT
 
       ! Days per month
-      INTEGER             :: D(12) = (/ 31, 28, 31, 30, 31, 30,
-     &                                  31, 31, 30, 31, 30, 31 /)
+      INTEGER          :: D(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                               31, 31, 30, 31, 30, 31 /)
 
       !=================================================================
-      !  TOTAL_ANTHRO_TG begins here
+      ! TOTAL_ANTHRO_Tg begins here
       !=================================================================
 
       ! Summing variables for anthro
@@ -464,8 +532,6 @@
          !==============================================================
          !  Print info
          !==============================================================
-
-         ! Anthro
          WRITE( 6, '(a)' )
          WRITE( 6, 100   ) 'ALK4', THISMONTH, ALK4, ' C'
          WRITE( 6, 100   ) 'ACET', THISMONTH, ACET, ' C'
@@ -483,30 +549,52 @@
  100     FORMAT( 'Total anthro ', a4, ' for 2000/',
      &           i2.2, ': ', f13.6, ' Tg', a2 )
 
-         ! Return to calling program
          END SUBROUTINE TOTAL_ANTHRO_TG
-
-!-----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_retro_anthro
+!
+! !DESCRIPTION: Function GET\_RETRO\_ANTHRO returns the monthly average
+!  anthropogenic VOC emissions at GEOS-Chem grid box (I,J).  Data will
+!  be returned in units of [atoms C/cm2/s].
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_RETRO_ANTHRO( I, J, N ) RESULT( RETRO )
-
-!***********************************************************************
-!  Returns the monthly avg anthropogenic emissions at (I,J)
-!***********************************************************************
-
-      ! References to F90 modules
+!
+! !USES:
+!
       USE TRACERID_MOD, ONLY : IDTALK4, IDTMEK,  IDTPRPE, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTC2H6, IDTBENZ, IDTTOLU
       USE TRACERID_MOD, ONLY : IDTXYLE, IDTC2H4, IDTC2H2
       USE TRACERID_MOD, ONLY : IDTACET, IDTALD2
-
       USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J, N
-
-      ! Local variables
-      REAL*8              :: RETRO
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN) :: N   ! GEOS-Chem tracer index
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: RETRO   ! RETRO emissions [mole
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial Version 
+!  18 Aug 2011 - D. Millet   - Partition RETRO ketones into 75% acetone 
+!                              and 25% MEK
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
 
       !=================================================================
       !  GET_RETRO_ANTHRO begins here
@@ -514,10 +602,17 @@
 
       IF ( N == IDTALK4 )      THEN
          RETRO = RETRO_ALK4(I,J)
+!------------------------------------------------------------------------------
+!      ! Partition RETRO ketones into 75% acetone and 25% MEK (dbm, 8/18/2011)
+!      ELSE IF ( N == IDTACET ) THEN
+!         RETRO = RETRO_ACET(I,J)
+!      ELSE IF ( N == IDTMEK )  THEN
+!         RETRO = RETRO_MEK(I,J)
+!------------------------------------------------------------------------------
       ELSE IF ( N == IDTACET ) THEN
-         RETRO = RETRO_ACET(I,J)
+         RETRO = 0.75d0*RETRO_MEK(I,J)   ! RETRO ketones --> 75% ACET
       ELSE IF ( N == IDTMEK )  THEN
-         RETRO = RETRO_MEK(I,J)
+         RETRO = 0.25d0*RETRO_MEK(I,J)   ! RETRO ketones --> 25% MEK 
       ELSE IF ( N == IDTALD2 ) THEN
          RETRO = RETRO_ALD2(I,J)
       ELSE IF ( N == IDTPRPE ) THEN
@@ -542,24 +637,38 @@
          RETRO = -1d0
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_RETRO_ANTHRO
-
-!----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_retro
+!
+! !DESCRIPTION: Subroutine INIT\_RETRO allocates and zeroes all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_RETRO
-
-!***********************************************************************
-!  Subroutine allocates and zeroes all module arrays
-!***********************************************************************
-
-      ! References to F90 modules
+!
+! !USES:
+!
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LRETRO
-
       USE CMN_SIZE_MOD      ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial Version 
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
 
-      ! Local variables
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
       INTEGER :: AS
 
       !=================================================================
@@ -621,21 +730,31 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RETRO_C2H2' )
       RETRO_C2H2 = 0e0
 
-      ! Return to calling program
       END SUBROUTINE INIT_RETRO
-
-!----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!             University of Minnesota Atmospheric Chemistry Group
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_retro
+!
+! !DESCRIPTION: Subroutine CLEANUP\_RETRO deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_RETRO
-!**********************************************************************
-!  Subroutine deallocates all module arrays
-!**********************************************************************
-
+! 
+! !REVISION HISTORY: 
+!  08 Mar 2011 - W. Reinhart - Initial Version 
+!  22 Aug 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       !  CLEANUP_RETRO begins here
       !=================================================================
-
-      ! Fossil fuel
       IF ( ALLOCATED( RETRO_ALK4 ) ) DEALLOCATE( RETRO_ALK4 )
       IF ( ALLOCATED( RETRO_ACET ) ) DEALLOCATE( RETRO_ACET )
       IF ( ALLOCATED( RETRO_MEK  ) ) DEALLOCATE( RETRO_MEK  )
@@ -650,9 +769,6 @@
       IF ( ALLOCATED( RETRO_C2H4 ) ) DEALLOCATE( RETRO_C2H4 )
       IF ( ALLOCATED( RETRO_C2H2 ) ) DEALLOCATE( RETRO_C2H2 )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_RETRO
-
-!----------------------------------------------------------------------
-
+!EOC
       END MODULE RETRO_MOD

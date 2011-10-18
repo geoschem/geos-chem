@@ -859,9 +859,6 @@
          !--------------------------------------------------------------
          ! Store in EMISRR array and archive diagnostics
          !--------------------------------------------------------------
-!--- Prior to (gvinken, 11/16/10). Emissions already present in EMISRR
-!     no longer get overwritten.
-!         EMISRR(I,J,N) = EMX(1) * XNUMOL(NN) / DTSRCE
          EMISRR(I,J,N) = EMISRR(I,J,N) + EMX(1) * XNUMOL(NN) / DTSRCE
 
          ! ND29 = CO source diagnostic... 

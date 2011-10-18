@@ -33,8 +33,6 @@ c  only covers the jpnl levels actually needed by the CTM.
 
       USE FJX_ACET_MOD
 
-!#     include "define.h"
-      
       USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
       USE JV_CMN_MOD
 
@@ -100,11 +98,6 @@ c  only covers the jpnl levels actually needed by the CTM.
          L = jpdep(J)
 
 !        To choose different forms of pres. dependancy. (ccc, 4/20/09)
-!------------------------------------------------------------------------------
-! Prior to 8/25/11:
-! Rewrite IF statement to prevent PF from being uninitialized (bmy, 8/25/11)
-!         if ( L.ne.0 ) PF = pdepf(L)
-!------------------------------------------------------------------------------
          if ( L.ne.0 ) then
             PF = pdepf(L)
          else

@@ -137,6 +137,7 @@
 !  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
 !  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
 !  15 Feb 2011 - R. Yantosca - Add modifications for APM from G. Luo
+!  29 Aug 2011 - R. Yantosca - Bug fix: reposition #if defined(APM) statement
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,13 +149,6 @@
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
-
-      ! Pick the proper # of tracers
-#if   defined( APM )  
-      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
-#else                                    !  the G-C advected tracers +
-      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
-#endif
 
 #if   defined( GCAP ) 
 
@@ -171,11 +165,12 @@
       ! GEOS-3 met fields
       !=================================================================
 
-      !-----------------------------------------------------------------------
-      ! Prior to 2/15/11:
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      !CALL NFCLDMX( N_TRACERS, TCVV, CLDMAS, DTRAIN, STT )
-      !-----------------------------------------------------------------------
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       ! Call the S-J Lin convection routine for GEOS-3
       CALL NFCLDMX( N_TOT_TRC, TCVV, CLDMAS, DTRAIN, STT )
@@ -195,6 +190,13 @@
       ! GEOS-5 met fields
       !=================================================================
 
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
+
       ! Call the S-J Lin convection routine for GEOS-5
       CALL NFCLDMX( N_TOT_TRC, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
@@ -210,7 +212,7 @@
       TYPE(SPEC_2_TRAC)  :: COEF
       TYPE(GC_OPTIONS)   :: OPTIONS
       TYPE(ID_TRAC)      :: IDT
-                         
+                   
       ! Scalars          
       INTEGER            :: I, J, L, N, NN, RC, TS_DYN
       REAL*8             :: AREA_M2, DT
@@ -229,6 +231,13 @@
       !-----------------------------------------------------------------
       ! Initialization
       !-----------------------------------------------------------------
+
+      ! Pick the proper # of tracers
+#if   defined( APM )  
+      N_TOT_TRC = N_TRACERS + N_APMTRA   ! If APM is used, then convect
+#else                                    !  the G-C advected tracers +
+      N_TOT_TRC = N_TRACERS              !  the APM aerosol tracers
+#endif
 
       ! Define variables and object fields
       TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
@@ -476,11 +485,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11)
-!      DO N = 1, N_TRACERS
-!---------------------------------------------------------------------------
       DO N = 1, N_TOT_TRC
 
          ! Get fraction of tracer scavenged and the soluble tracer 
@@ -551,11 +555,6 @@
 
       ! Call the fvDAS convection routines (originally from NCAR!)
       CALL FVDAS_CONVECT( TDT,   
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11)   
-!     &                    N_TRACERS, 
-!---------------------------------------------------------------------------
      &                    N_TOT_TRC, 
      &                    STT   (:,:,LLPAR:1:-1,:),    
      &                    RPDEL,         
@@ -576,11 +575,6 @@
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
 !$OMP+PRIVATE( N, L, J, I )
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11)  
-!      DO N = 1,N_TRACERS
-!---------------------------------------------------------------------------
       DO N = 1,N_TOT_TRC
       DO L = 1,LLPAR
       DO J = 1,JJPAR
@@ -701,11 +695,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, ISOL )
 !$OMP+SCHEDULE( DYNAMIC )
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11) 
-!      DO N = 1, N_TRACERS
-!---------------------------------------------------------------------------
       DO N = 1, N_TOT_TRC
 
          ! Get fraction of tracer scavenged and the soluble tracer 
@@ -778,11 +767,6 @@
       ! Call the GCAP convection routines 
       CALL GCAP_CONVECT( TDT, 
      &                   STT      (:,:,LLPAR:1:-1,:), 
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11)    
-!     &                   N_TRACERS,   
-!---------------------------------------------------------------------------
      &                   N_TOT_TRC,
      &                   DP, ! I think this is the correct way (bmy, 5/25/05)
      &                   NSTEP, 
@@ -802,11 +786,6 @@
 !$OMP PARALLEL DO        
 !$OMP+DEFAULT( SHARED   )
 !$OMP+PRIVATE( N, L, J, I )
-!---------------------------------------------------------------------------
-! Prior to 2/15/11:
-! Loop over the proper # of tracers (w/ and w/o APM) (G. Luo, bmy, 2/15/11) 
-!      DO N = 1,N_TRACERS
-!---------------------------------------------------------------------------
       DO N = 1,N_TOT_TRC
       DO L = 1,LLPAR
       DO J = 1,JJPAR
@@ -2350,14 +2329,6 @@
                   !------------------------------------------------------------
                   IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
                      DIAG38(K,IC) = DIAG38(K,IC)
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use WETLOSS instead of T0_SUM in the ND38 diagnostic below the cloud
-! base.  WETLOSS is the loss in this level, but T0_SUM is the loss summed
-! over the entire column.  Using T0_SUM leads us to over-count the tracer
-! scavenged out of the column. (jaf, hamos, bmy, 8/16/11)
-!     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
-!------------------------------------------------------------------------------
      &                            + ( WETLOSS * AREA_M2 / TCVV_DNS )
                   ENDIF
                 
@@ -2381,11 +2352,6 @@
             !--------------------------------------
             ! Hg2 
             !--------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use IS_Hg2 array to test for Hg2 tagged tracers (jaf, bmy, 8/16/11)
-!            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
-!------------------------------------------------------------------------------
             IF ( IS_Hg .and. IS_Hg2( IC ) ) THEN
 
                ! Wet scavenged Hg(II) in [kg/s]
@@ -2402,11 +2368,6 @@
             !--------------------------------------
             ! HgP
             !--------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 8/16/11:
-! Now use IS_HgP array to test for HgP tagged tracers (jaf, bmy, 8/16/11)
-!            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
-!------------------------------------------------------------------------------
             IF ( IS_Hg .and. IS_HgP( IC ) ) THEN
 
                ! Wet scavenged Hg(P) in [kg/s]

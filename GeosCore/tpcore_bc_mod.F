@@ -401,10 +401,6 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!            DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
             DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
@@ -433,10 +429,6 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!            DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
             DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
@@ -466,10 +458,6 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!            DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
             DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
@@ -499,10 +487,6 @@
             CALL OPEN_BC_FILE( FOR_WRITE=.TRUE., WINDOW=IC)
 
             ! Loop over each tracer
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!            DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
             DO N = 1, N_TOT_TRC
 
                ! Save concentrations in WINDOW REGION to disk
@@ -592,10 +576,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
 
@@ -635,10 +615,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
 
@@ -720,10 +696,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC
@@ -740,10 +712,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC
@@ -760,10 +728,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_NA
@@ -780,10 +744,6 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_EU
@@ -800,10 +760,6 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
-!------------------------------------------------------------------------------
-! Prior to 2/16/11:
-!        DO N = 1, N_TRACERS
-!------------------------------------------------------------------------------
          DO N = 1, N_TOT_TRC
          DO L = 1, LLPAR
          DO J = 1, JM_BC_CH

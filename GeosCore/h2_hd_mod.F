@@ -34,6 +34,7 @@
 ! !REVISION HISTORY:
 !  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager -- Initial version
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  07 Sep 2011 - P. Kasibhatla - Modified to include GFED3 (psk, 1/5/11)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -120,7 +121,7 @@
       USE GEIA_MOD,      ONLY : GET_IHOUR,   GET_DAY_INDEX, READ_GEIA
       USE GEIA_MOD,      ONLY : READ_LIQCO2, READ_TOTCO2,   READ_TODX
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET,   GET_AREA_CM2
-      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB
+      USE LOGICAL_MOD,      ONLY : LANTHRO,     LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,      ONLY : LBIOMASS,    LBIOFUEL,      LNEI99
       USE LOGICAL_MOD,      ONLY : LSTREETS,    LEDGAR,        LBRAVO
       USE MEGANUT_MOD,      ONLY : XLTMMP
@@ -396,7 +397,7 @@
       ! For HD, we include an isotopic signature of -290 permil from
       ! Quay and Gerst (2001).
       !
-      ! GFED2 CO biomass burning emissions are not scaled in a full
+      ! GFED CO biomass burning emissions are not scaled in a full
       ! chemistry, meaning that VOC oxidation is already included.
       ! Then formula below for CO->H2 is modified to account for 
       ! that assumption (phs).
@@ -425,6 +426,9 @@
             ! Scale by 0.29 mol H2/mol CO and increase by 
             ! 0.11*H2CO_YIELD to account for voc oxidation.
             IF ( LGFED2BB ) THEN
+               BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
+     &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
+            ELSE IF ( LGFED3BB ) THEN
                BIOMASS(I,J,IDBCO) = BIOMASS(I,J,IDBCO) *
      &              ( H2CO_YIELD(I,J,1) + ( 0.29d0 / 0.11d0 ) )
             ELSE

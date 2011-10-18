@@ -65,9 +65,10 @@
 !  (5 ) error_mod.f               : Module w/ I/O error and NaN check routines
 !  (6 ) gc_biomass_mod.f          : Module w/ routines for default G-C biomass
 !  (7 ) gfed2_biomass_mod.f       : Module w/ routines for GFED2 biomass 
-!  (8 ) grid_mod.f                : Module w/ horizontal grid information
-!  (9 ) logical_mod.f             : Module w/ GEOS-CHEM logical switches
-!  (10) time_mod.f                : Module w/ routines for computing time/ date
+!  (8 ) gfed3_biomass_mod.f       : Module w/ routines for GFED3 biomass 
+!  (9 ) grid_mod.f                : Module w/ horizontal grid information
+!  (10 ) logical_mod.f             : Module w/ GEOS-CHEM logical switches
+!  (11) time_mod.f                : Module w/ routines for computing time/ date
 !
 !  NOTES:  
 !  (1 ) Rewrote so that all 15 biomass species (from either GFED2 or Duncan
@@ -82,6 +83,7 @@
 !        transfered from gc_biomass_mod.f (jaf, mak, 2/6/09)
 !  (6 ) Now always scale biomass CO regardless of inventory (jaf, mak, 11/6/09)
 !  (7 ) Updates to remove all hard-wired order. (fp, 2/2/10)
+!  (8)  Updates to include GFED3 (psk, 1/5/11)
 !******************************************************************************
 !
       USE CMN_SIZE_MOD               ! Size parameters
@@ -211,8 +213,10 @@
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_NH3
       USE GC_BIOMASS_MOD,    ONLY : GC_READ_BIOMASS_SO2
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_COMPUTE_BIOMASS
-      USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_COMPUTE_BIOMASS
+      USE LOGICAL_MOD,       ONLY : LBIOMASS, LGFED2BB, LGFED3BB
       USE LOGICAL_MOD,       ONLY : L8DAYBB,  LSYNOPBB, L3HRBB
+      USE LOGICAL_MOD,       ONLY : L8DAYBB3,  LSYNOPBB3, L3HRBB3
       USE TIME_MOD,          ONLY : ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : ITS_A_CO2_SIM
       USE TRACER_MOD,        ONLY : ITS_A_H2HD_SIM
@@ -238,6 +242,8 @@
       LOGICAL, SAVE              :: FIRST = .TRUE.
       LOGICAL                    :: DO_ND28, DO_ND29, DO_ND32
       LOGICAL, SAVE              :: USE_GFED
+      LOGICAL, SAVE              :: USE_GFED2
+      LOGICAL, SAVE              :: USE_GFED3
       INTEGER                    :: I,       J,       N,      N_BIOB
       REAL*8                     :: BXHT_CM, DTSRCE
       
@@ -252,7 +258,10 @@
          IF ( FIRST ) THEN
             CALL INIT_BIOMASS
             FIRST    = .FALSE.
-            USE_GFED = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED2 = LGFED2BB .or. L8DAYBB .or. LSYNOPBB .or. L3HRBB
+            USE_GFED3 = LGFED3BB .or.
+     &                  L8DAYBB3 .or. LSYNOPBB3 .or. L3HRBB3
+            USE_GFED = USE_GFED2. or. USE_GFED3
          ENDIF
          
          ! Define diagnostic flags
@@ -263,7 +272,7 @@
          !==============================================================
          ! GFED2 updates BIOMASS if needed (phs, 12/17/08)
          !==============================================================
-         IF ( USE_GFED ) THEN
+         IF ( USE_GFED2 ) THEN
 
             ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
             CALL GFED2_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
@@ -282,6 +291,25 @@
                ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
                   BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
                ENDIF
+            ENDIF
+
+         !==============================================================
+         ! GFED3 updates BIOMASS if needed (psk, 1/5/11)
+         !==============================================================
+         ELSE IF ( USE_GFED3 ) THEN
+
+            ! Get emissions [molec/cm2/s] or [atoms C/cm2/s]
+            CALL GFED3_COMPUTE_BIOMASS( YEAR, MONTH, BIOMASS )
+
+            ! Irrespective of inventory type, we need to scale biomass
+            ! CO to account for CO production from VOC's that are not
+            ! explicitly carried in the chemistry mechanisms. This used
+            ! to be done in gc_biomass_mod.f but then is not used for
+            ! GFED3, FLAMBE, etc. (jaf, mak, 2/6/09)
+            IF ( ITS_A_FULLCHEM_SIM() ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.05d0
+            ELSE IF ( ITS_A_TAGCO_SIM() ) THEN
+               BIOMASS(:,:,IDBCO) = BIOMASS(:,:,IDBCO) * 1.11d0
             ENDIF
 
          !==============================================================

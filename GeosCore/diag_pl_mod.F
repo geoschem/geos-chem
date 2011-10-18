@@ -525,15 +525,15 @@
 
             ENDIF        
             
-           !### Debug (FP 6/2009)
-      IF ( LPRT ) THEN
-         CALL DEBUG_MSG( '### SETPL' )
-            WRITE(6,*) NAMEGAS(IFAM(N))
-            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
-     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
-            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
-     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
-      ENDIF
+!           !### Debug (FP 6/2009)
+!      IF ( LPRT ) THEN
+!         CALL DEBUG_MSG( '### SETPL' )
+!            WRITE(6,*) NAMEGAS(IFAM(N))
+!            WRITE( 6, '(i4,1x,16(a,'':'')))' ) 
+!     &           NK, ( TRIM(NAMEGAS(IRM(J,NK,NCS))), J=1,NREAD )
+!            WRITE( 6, '(i4,1x,4f4.1,''/'',12f4.1)' ) 
+!     &           NK, ( FKOEF(J,NK,NCS), J=1,NREAD )
+!      ENDIF
 
          ENDDO             
       ENDDO
@@ -1018,7 +1018,12 @@
 
       ! If the next chemistry timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
+!-----------------------------------------------------------------------
+! Prior to 9/27/11:
+! Fix for centralizing the chemistry time step (lzh, mpayer, 9/27/11)
+!      IF ( MOD( HOUR + CHEM, 24d0 ) == 0 ) THEN
+!-----------------------------------------------------------------------
+      IF ( HOUR + CHEM >= 24d0 ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + CHEM
          RETURN

@@ -95,23 +95,6 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      !--------------------------------------------------------------------
-      ! Prior to 8/3/10:
-      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
-      ! parameters in F77_CMN_DIAG.  This will prevent out-of bounds errors
-      ! when these parameters are extended to add more tracers.
-      ! (psk, bmy, 8/3/10)
-      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
-      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
-      !--------------------------------------------------------------------
-      !--------------------------------------------------------------------
-      ! Prior to 12/7/10:
-      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
-      ! AD44 holds the data for deposition velocity and deposition flux)
-      ! So MAXTRACER must be defined as 2*MAX_TRACER
-      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
-      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
-      !--------------------------------------------------------------------
       INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
       INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
@@ -982,36 +965,6 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-      !------------------------------------------------------------------------
-      ! Prior to 9/21/10:
-      ! Remove duplicate definitions of diagnostics.  These should be in kg/s
-      ! so they need to have a diagnostic offset of 3000. (bmy, ccc, 9/27/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'CV-FLX-$'
-      !DESCRIPT(N) = 'Upward flux from wet conv'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'TURBMC-$'
-      !DESCRIPT(N) = 'Upward flux from PBL mixing'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'EW-FLX-$'
-      !DESCRIPT(N) = 'E/W transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'NS-FLX-$'
-      !DESCRIPT(N) = 'N/S transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !
-      !N           = N + 1
-      !CATEGORY(N) = 'UP-FLX-$'
-      !DESCRIPT(N) = 'Up/down transport flux'
-      !OFFSET(N)   = SPACING * 4
-      !------------------------------------------------------------------------
-
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
@@ -1136,15 +1089,6 @@
       CATEGORY(N) = 'WD-CVW-$'
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
-
-      !--------------------------------------------------------------------
-      ! Prior to 10/21/10:
-      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
-      !N           = N + 1
-      !CATEGORY(N) = 'MC-FRC-$'
-      !DESCRIPT(N) = 'Moist conv fraction'
-      !OFFSET(N)   = SPACING * 30
-      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
@@ -1379,7 +1323,7 @@
 !
 ! !USES:
 !
-      USE DIAG03_MOD,   ONLY : ND03, PD03
+      USE DIAG03_MOD,   ONLY : ND03, PD03, PD03_PL
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
       USE DIAG42_MOD,   ONLY : ND42
@@ -1455,8 +1399,6 @@
       INTEGER :: N, NN, NYMDb, NHMSb, T
       LOGICAL :: DO_TIMESERIES
 
-      ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1549,9 +1491,7 @@
          
          ! Number of tracers:
          ! PD03     = max # of tracers for HG-SRCE
-         ! PD03_PL  = max # of tracers for HG-SRCE + PL-HG2-$
-         PD03_PL = PD03 + 8
-         
+         ! PD03_PL  = max # of tracers for PL-HG2-$
 
          ! Loop over tracers for HG-SRCE
 !         DO T = 1, NTRAC(03)
@@ -1619,9 +1559,12 @@
                CASE( 12 )
 !                  NAME (T,03) = 'Hg_to_C'
 !                  FNAME(T,03) = 'Hg converted to colloidal'
-                  NAME (T,03) = 'Hg_to_P'
-                  FNAME(T,03) = 'Hg converted to particulate'
-                  UNIT (T,03) = 'kg/m2/s'
+!                  NAME (T,03) = 'Hg_to_P'
+!                  FNAME(T,03) = 'Hg converted to particulate'
+!                  UNIT (T,03) = 'kg/m2/s'
+                  NAME (T,03) = 'JorgC'
+                  FNAME(T,03) = 'Mass of orgC sunk in ocean'
+                  UNIT (T,03) = 'kg'
                   INDEX(T,03) = T + ( SPACING * 34 )
                CASE( 13 )
                   NAME (T,03) = 'Hg_bb'
@@ -1658,7 +1601,7 @@
          ENDDO
          
          ! Loop over tracers for PL-HG2-$
-         DO N = 1, 8
+         DO N = 1, PD03_PL
             T = N + PD03
 
             ! Define quantities
@@ -1669,37 +1612,37 @@
 
 
             ! Get name, long-name, index, and new units
-            SELECT CASE( T )
-               CASE( 19 )
+            SELECT CASE( N )
+               CASE( 1 )
                   NAME (T,03) = 'Hg2_Hg0'
                   FNAME(T,03) = 'Prod of Hg2 from Hg0'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 20 )
+               CASE( 2 )
                   NAME (T,03) = 'Hg2_OH'
                   FNAME(T,03) = 'Prod of Hg2 from OH'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 21 )
+               CASE( 3 )
                   NAME (T,03) = 'Hg2_O3'
                   FNAME(T,03) = 'Prod of Hg2 from O3'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 22 )
+               CASE( 4 )
                   NAME (T,03) = 'Hg2_SS'
                   FNAME(T,03) = 'Loss of Hg2 from sea salt'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 23 )
+               CASE( 5 )
                   NAME (T,03) = 'Hg2_SSR'
                   FNAME(T,03) = 'Loss rate Hg2 from sea salt'
                   UNIT (T,03) = '/s'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 24 )
+               CASE( 6 )
                   NAME (T,03) = 'Hg2_Br'
                   FNAME(T,03) = 'Prod of Hg2 from Br'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 25 )
+               CASE( 7 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 26 )
+               CASE( 8 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
@@ -1711,7 +1654,7 @@
          ! Loop over tracers for OCEAN-HG
          DO N = 1, N_TRACERS
          
-            T = N + PD03_PL
+            T = N + PD03 + PD03_PL
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -1735,7 +1678,7 @@
          ! Loop over tracers for SNOW-HG
          DO N = 1, 1
          
-            T = N + PD03_PL + N_TRACERS
+            T = N + PD03 + PD03_PL + N_TRACERS
 
             ! Define quantities
             UNIT (T,03) = 'kg'
@@ -2800,12 +2743,6 @@
       !-------------------------------------      
       ! Surface pressure (ND31)
       !-------------------------------------   
-      !-------------------------------------------------------------
-      ! Prior to 11/12/10:
-      ! Need to save out surface pressure line to tracerinfo.dat
-      ! for the timeseries diagnostics (bmy, 11/12/10)
-      !IF ( ND31 > 0 ) THEN
-      !-------------------------------------------------------------
       IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
      &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
      &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN

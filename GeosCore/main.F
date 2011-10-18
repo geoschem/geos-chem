@@ -1,10 +1,12 @@
+!BOC
 #if !defined(ESMF_)
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !PROGRAM: geos_chem 
+! !MODULE: geos_chem 
 !
 ! !DESCRIPTION: Program GEOS\_CHEM is the main level driver program for the 
 !  GEOS-Chem model of atmospheric chemistry and composition.
@@ -46,7 +48,7 @@
       USE DAO_MOD,           ONLY : INTERP,          PS1
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
-      USE DAO_MOD,           ONLY : SUNCOS
+      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOS_MID
       USE DAO_MOD,           ONLY : MAKE_RH
       !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
       USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
@@ -220,6 +222,9 @@
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  19 Aug 2010 - R. Yantosca - Now call MERRA met field reader routines
 !  02 Feb 2011 - S. Kim      - Call Compute_OD after wet deposition
+!  05 Oct 2011 - R. Yantosca - Now get SUNCOS30 array from routine COSSZA
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -890,9 +895,14 @@
          ENDIF
 
          ! Fossil fuel emissions (SMVGEAR)
+         ! NOTE: Only call ANTHROEMS if it's time to do emissions;
+         ! this will function properly for the central chemistry time step
+         ! (bmy, 10/14/11)
          IF ( ITS_A_FULLCHEM_SIM() .or. ITS_A_TAGCO_SIM() ) THEN
-            IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
-               CALL ANTHROEMS( SEASON )              
+            IF ( ITS_TIME_FOR_EMIS() ) THEN 
+               IF ( LEMIS .and. ITS_A_NEW_SEASON() ) THEN
+                  CALL ANTHROEMS( SEASON )              
+               ENDIF
             ENDIF
          ENDIF
 
@@ -954,8 +964,14 @@
          ! Compute airmass quantities at each grid box 
          CALL AIRQNT
 
-         ! Compute the cosine of the solar zenith angle array SUNCOS
-         CALL COSSZA( DAY_OF_YEAR, SUNCOS )
+         ! Compute the cosine of the solar zenith angle array
+         ! SUNCOS     = cos(SZA) at the current time
+         ! SUNCOS_MID = cos(SZA) at the midpt of the chemistry timestep
+!------------------------------------------------------------------------------
+! Prior to 10/7/11:
+!         CALL COSSZA( DAY_OF_YEAR, SUNCOS )
+!------------------------------------------------------------------------------
+         CALL COSSZA( DAY_OF_YEAR, SUNCOS, SUNCOS_MID )
 
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL DIAG_TROPOPAUSE
@@ -1498,7 +1514,7 @@
 ! file buffers to disk. 
 !\\
 !\\
-! CTM_FLUSH should normally be called after each diagnostic output, so that 
+! CTM\_FLUSH should normally be called after each diagnostic output, so that 
 ! in case the run dies, the output files from the last diagnostic timestep 
 ! will not be lost.  
 !\\

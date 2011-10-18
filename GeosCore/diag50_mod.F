@@ -689,14 +689,6 @@
                !--------------------------------------
                ! PEDGE-$ [hPa]
                !--------------------------------------
-               !------------------------------------------------------------
-               ! Prior to 11/12/10:
-               ! Now archive pressure at level edges (bottom edges) for 
-               ! all requested levels (bmy, 11/12/10)
-               !IF ( K == 1 ) THEN
-               !   Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) - PTOP ) 
-               !ENDIF
-               !------------------------------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PEDGE( I, J, K )
 
             ELSE IF ( N == 100 ) THEN 
@@ -1192,11 +1184,6 @@
             !---------------------
             CATEGORY  = 'PEDGE-$'
             UNIT      = 'hPa'
-            !-------------------------------------------------
-            ! Prior to 11/12/10:
-            ! Save out PEDGE-$ for all requested levels.
-            !GMNL      = 1
-            !-------------------------------------------------
             GMNL      = ND50_NL
             GMTRC     = 1
 

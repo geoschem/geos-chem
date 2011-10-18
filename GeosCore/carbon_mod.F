@@ -172,6 +172,7 @@
 !        Group. (amv, clh, bmy, 12/21/09)
 !  (25) Bug fix for EMIS_SAVE in EMITHIGH (bmy, 1/11/10)
 !  (26) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
+!  (27) Modified to include GFED3 (psk, 1/5/11)
 !******************************************************************************
 !
       USE LOGICAL_MOD,    ONLY : LNLPBL ! (Lin,03/31/09)
@@ -1668,11 +1669,16 @@
 !        to recommendations of Aerosol Working Group (clh, bmy, 12/21/09)
 !  (5 ) Now only print out debug info when LPRT=T (bmy, 4/21/10)
 !  (6 ) Bug fix: call SOA_PARA_INIT (ensberg, bmy, 6/30/10)
+!  05 Oct 2011 - R. Yantosca - SUNCOS is not needed, so remove
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
-      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
+!------------------------------------------------------------------------------
+! Prior to 10/5/11: 
+!      USE DAO_MOD,      ONLY : T, AD, AIRVOL, SUNCOS
+!------------------------------------------------------------------------------
+      USE DAO_MOD,      ONLY : T, AD, AIRVOL
       USE DIAG_MOD,     ONLY : AD07_HC
       USE TRACER_MOD,   ONLY : STT 
       USE TRACERID_MOD, ONLY : IDTALCO, IDTALPH, IDTLIMO, IDTOCPI
@@ -3982,6 +3988,7 @@ c
       USE TIME_MOD,          ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE TRACER_MOD,        ONLY : STT
       USE GFED2_BIOMASS_MOD, ONLY : GFED2_IS_NEW
+      USE GFED3_BIOMASS_MOD, ONLY : GFED3_IS_NEW
       !USE TRACERID_MOD
 
       USE CMN_SIZE_MOD    ! Size parameters
@@ -4091,7 +4098,8 @@ c
       !-----------------------------------
       IF ( .not. USE_BOND_BIOBURN ) THEN
 
-         IF ( GFED2_IS_NEW() .or. ITS_A_NEW_MONTH() ) THEN 
+         IF ( GFED2_IS_NEW() .or. GFED3_IS_NEW() .or. 
+     &        ITS_A_NEW_MONTH() ) THEN 
             CALL BIOMASS_CARB_GEOS
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSCARB: a BB_CRB_GEOS' )
          ENDIF
@@ -4265,12 +4273,20 @@ c
 !  (7 ) Change LMEGAN switch to LMEGANMONO switch (ccc, 3/2/09)
 !  (8 ) Update MEGAN calculations to MEGAN v2.1 (mpb, ccc, 11/19/09)
 !  (9 ) Use speciated information from MEGAN v2.1 (hotp, 3/16/10)
+!  05 Oct 2011 - R. Yantosca - Now use SUNCOS30, which is the cos(SZA)
+!                              computed @ 30 mins after each GMT hour
+!  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
+!                              cos(SZA) at the midpt of the chemistry timestep
 !******************************************************************************
 !
       ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D,  GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,         READ_BPCH2
-      USE DAO_MOD,       ONLY : SUNCOS
+!-----------------------------------------------------------------------------
+! Prior to 10/7/11:
+!      USE DAO_MOD,       ONLY : SUNCOS
+!-----------------------------------------------------------------------------
+      USE DAO_MOD,       ONLY : SUNCOS_MID
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE LOGICAL_MOD,   ONLY : LMEGANMONO,       LSOA
       USE MEGAN_MOD,     ONLY : GET_EMMONOT_MEGAN
@@ -4348,7 +4364,12 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
+!            SC   = SUNCOS(IJLOOP)   
+!------------------------------------------------------------------------------
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4433,7 +4454,12 @@ c
             ! ** MEGAN v2.1 **
             ! Cosine of solar zenith angle   (mpb,2009) 
             ! Diffuse and direct PAR         (mpb,2009)
-            SC   = SUNCOS(IJLOOP)   
+!------------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now compute MEGAN with the cos(SZA) @ 30 mins after the hour (bmy, 10/5/11)
+!            SC   = SUNCOS(IJLOOP)   
+!------------------------------------------------------------------------------
+            SC   = SUNCOS_MID(IJLOOP)   
             PDR  = PARDR(I,J)
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
@@ -4452,10 +4478,16 @@ c
             !---------------------------------------------------
             ! Impose a diurnal variation on NVOC during the day
             !---------------------------------------------------
-            IF ( SUNCOS(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
+            IF ( SUNCOS_MID(IJLOOP) > 0d0 .and. TCOSZ(I,J) > 0d0 ) THEN
                DIUR_ORVC(I,J) = GEIA_ORVC(I,J)*
-     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
-     &                          ( 1440d0        / GET_TS_CHEM() )
+!-----------------------------------------------------------------------------
+! Prior to 10/5/11:
+! Now use SUNCOS_MID array instead of SUNCOS (bmy, 10/5/11)
+!     &                          ( SUNCOS(IJLOOP) / TCOSZ(I,J) ) *
+!     &                          ( 1440d0        / GET_TS_CHEM() )
+!-----------------------------------------------------------------------------
+     &                          ( SUNCOS_MID(IJLOOP) / TCOSZ(I,J) ) *
+     &                          ( 1440d0           / GET_TS_CHEM() )
 
                ! Make sure ORVC is not negative
                DIUR_ORVC(I,J) = MAX( DIUR_ORVC(I,J), 0d0 )
