@@ -150,6 +150,8 @@
       LOGICAL :: LMODISLAI       ! MODIS LAI (mpb, 2009)
       LOGICAL :: LPECCA          ! PCEEA BVOC emission model (mpb,2009)
       LOGICAL :: LRETRO          ! RETRO anthropogenic emissions (wfr, 3/8/11)
+      LOGICAL :: LRCP            ! RCP anthropogenic emissions (cdh, 10/14/11)
+      LOGICAL :: LRCPSHIP        ! RCP anthropogenic SHIP emissions (cdh, 10/14/11)
 
       !%%%% Transport and strat BC's %%%%
       LOGICAL :: LFILL           ! Fill negative values in TPCORE?

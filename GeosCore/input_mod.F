@@ -1392,7 +1392,8 @@
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
       USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-      
+      USE LOGICAL_MOD, ONLY : LRCP, LRCPSHIP  !(cdh, 10/18/11)
+      USE RCP2_MOD,    ONLY : RCPNAME, RCPYEAR
 
       USE CMN_SIZE_MOD      ! Size parameters
       USE CMN_O3_MOD        ! FSCALYR
@@ -1508,6 +1509,18 @@
       ! Use RETRO emissions? (wfr, 3/8/11)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11' )
       READ( SUBSTRS(1:N), * ) LRETRO
+
+      ! Use RCP emissions? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11b' )
+      READ( SUBSTRS(1:N), * ) LRCP
+
+      ! Which RCP scenario? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11c' )
+      READ( SUBSTRS(1:N), * ) RCPNAME
+
+      ! Which RCP year? (cdh, 10/18/11)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:11d' )
+      READ( SUBSTRS(1:N), * ) RCPYEAR
 
       ! Use EPA/NEI99 emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:12' )
@@ -1633,6 +1646,10 @@
       ! Use ICOADS (NOx, SO2, CO) ship  emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
       READ( SUBSTRS(1:N), * ) LICOADSSHIP
+
+      ! Use RCP (NOx, SO2, CO) ship  emissions?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43b' )
+      READ( SUBSTRS(1:N), * ) LRCPSHIP
 
       ! Use ship EMEP emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )

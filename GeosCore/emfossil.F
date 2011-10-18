@@ -31,7 +31,9 @@
       USE LOGICAL_MOD,        ONLY : LEMEPSHIP,        LVISTAS
       USE LOGICAL_MOD,        ONLY : LICARTT,          LNEI05
       USE LOGICAL_MOD,        ONLY : LRETRO
+      USE LOGICAL_MOD,        ONLY : LRCP,             LRCPSHIP
       USE RETRO_MOD,          ONLY : GET_RETRO_ANTHRO
+      USE RCP2_MOD,           ONLY : GET_RCP_EMISSION
       USE NEI2005_ANTHRO_MOD, ONLY : GET_NEI2005_ANTHRO
       USE NEI2005_ANTHRO_MOD, ONLY : NEI05_MASK => USA_MASK
       USE LOGICAL_MOD,        ONLY : LICOADSSHIP !(cklee, 6/30/09)
@@ -147,7 +149,7 @@
       REAL*8  :: XEMISRN(NOXLEVELS)
       REAL*8  :: BRAVO, EPA_NEI, EMEP,   EDGAR, STREETS
       REAL*8  :: CAC,   SHIP,    VISTAS, NEI05
-      REAL*8  :: RETRO
+      REAL*8  :: RETRO, RCP
 
       !=================================================================
       ! EMFOSSIL begins here!
@@ -198,7 +200,7 @@
             EMX(LL)  = TODX * EMISRN(IREF,JREF,LL)
 
             !-----------------------------------------------------------
-            ! Get NOx from the EDGAR inventory (global)
+            ! Get NOx from the EDGAR or RCP inventory (global)
             !-----------------------------------------------------------
 
             ! If we are using EDGAR emissions
@@ -222,6 +224,29 @@
                   EMX(LL) = 0d0                   
                   
                ENDIF
+
+            ! If we are using RCP emissions
+            ELSEIF ( LRCP ) THEN
+
+               ! Put all emissions into 1st level
+               IF ( LL == 1 ) THEN
+                  
+                  ! Get RCP emissions for NOx [molec/cm2/s]
+                  RCP   = GET_RCP_EMISSION( I, J, NN, 
+     &                                      LAND=.TRUE., SHIP=.FALSE. )
+
+                  ! Apply EDGAR time-of-day factor
+                  RCP   = RCP * TODX
+
+                  ! Replace GEIA with RCP emissions at surface
+                  EMX(LL) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+
+               ELSE 
+            
+                  ! Zero RCP emissions in the 2nd level 
+                  EMX(LL) = 0d0                   
+                  
+               ENDIF                  
             ENDIF
 
             !-----------------------------------------------------------
@@ -479,6 +504,13 @@
                   SHIP = GET_EDGAR_NOx( I, J, 
      &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
                   
+               ! RCP ship emissions (cdh, 10/14/11)
+               ELSE IF ( LRCPSHIP ) THEN
+
+                  ! Get SHIP RCP emissions for NOx [molec/cm2/s]
+                  SHIP = GET_RCP_EMISSION( I, J, NN,  
+     &                 LAND=.FALSE., SHIP=.TRUE.)
+
                ! ICOADS ship emissions (cklee,7/09/09)
                ELSE IF ( LICOADSSHIP ) THEN
 
@@ -580,7 +612,7 @@
          ENDIF
 
          !--------------------------------------------------------------
-         ! Get CO emissions from RETRO inventory
+         ! Get hydrocarbon emissions from RETRO inventory
          !--------------------------------------------------------------
         
         ! If we are using RETRO emissions ...
@@ -600,6 +632,37 @@
 	    EMX(1) = RETRO * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
 
 	    ENDIF  
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! Get CO & hydrocarbons emissions from RCP inventory
+         !--------------------------------------------------------------
+
+         IF ( LRCP ) THEN
+
+	    ! Get RCP emissions
+            IF (NN==IDTCO) THEN
+               ! Ship CO emissions are handled separately below
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.FALSE. )
+            ELSE
+               ! Land and ship emissions for all hydrocarbons
+               RCP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.TRUE., SHIP=.TRUE. )
+            ENDIF
+
+	    ! -1 indicates tracer NN does not have RCP emissions
+            IF ( RCP > 0d0 ) THEN
+
+	       ! Apply time-of-day factor
+	       RCP = RCP * TODX
+
+               ! Convert from molec/cm2/s to kg/box/timestep in order
+               ! to be in the proper units for EMISRR array
+               EMX(1) = RCP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN)	    
+
+	    ENDIF  
+
          ENDIF
 
          !--------------------------------------------------------------
@@ -842,6 +905,11 @@
             ELSE IF ( LICOADSSHIP ) THEN
 
                SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
+
+            ELSE IF ( LRCPSHIP ) THEN
+
+               SHIP = GET_RCP_EMISSION( I, J, NN, 
+     &              LAND=.FALSE., SHIP=.TRUE. )
 
             ENDIF
 

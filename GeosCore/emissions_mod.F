@@ -121,7 +121,10 @@
 
       USE CMN_SIZE_MOD                 ! Size parameters
       USE CMN_O3_MOD                   ! FSCLYR
-!
+      
+      !cdh
+      USE RCP2_MOD,               ONLY : EMISS_RCP
+!     
 ! !REVISION HISTORY: 
 !  (1 ) Now references DEBUG_MSG from "error_mod.f" (bmy, 8/7/03)
 !  (2 ) Now calls Kr85 emissions if NSRCX == 12 (jsw, bmy, 8/20/03)
@@ -184,7 +187,6 @@
          YEAR = FSCALYR
       ENDIF
 
-
       ! Get biomass burning emissions for use below
       IF ( LBIOMASS ) THEN
 !#### HARDWIRE SWITCH : use YEAR instead of GET_YEAR() to use the same
@@ -218,6 +220,9 @@
 
          ! Read RETRO emissions once per month (wfr, 3/8/11)
          IF ( LRETRO .and. ITS_A_NEW_MONTH() ) CALL EMISS_RETRO
+
+         ! Read RCP emissions once per month (cdh, 10/14/11)
+         IF ( LRCP  .and. ITS_A_NEW_MONTH() ) CALL EMISS_RCP
 
          ! Read EPA/NEI99 (USA) emissions once per month
          IF ( LNEI99 .and. ITS_A_NEW_MONTH() ) CALL EMISS_EPA_NEI
