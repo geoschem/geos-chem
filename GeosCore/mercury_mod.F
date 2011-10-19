@@ -160,6 +160,8 @@
       ! References to F90 modules
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT, LGCAPEMIS, LPOLARBR
       ! Added LVEGEMIS, distinct from LGCAPEMIS (jaf, eds, 4/1/11)
+      USE OCEAN_MERCURY_MOD, ONLY : LGEIA05
+      !Added 2005 GEIA inventory flag (eck, 10/19/11)
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
 !      USE OCEAN_MERCURY_MOD, ONLY : LHGSNOW,     LHg2HalfAerosol
@@ -3223,6 +3225,34 @@
 
             ! Convert from [kg/yr] to [kg/s]
             EHg0_an = EHg0_an / SEC_PER_YR            
+        
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions inventory (eck, 10/19/11)
+   
+            ! Mercury data is for 2005
+            NYMD     = ( 2005 * 10000 ) + 0101
+            XTAU     = GET_TAU0( 1, 1, 2005 )
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1 )       // 
+     &           'mercury_201002/GEIA_Hg0.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 1, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+            
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg0_an = EHg0_an / SEC_PER_YR            
 
 
          ELSE
@@ -3309,9 +3339,18 @@
          ! Convert from Mg/yr to kg/s; multiply by 50%
          ! need more source: try 75%
          EHg0_am = Ehg0_am * 1D3 / SEC_PER_YR * 0.75d0
-      
+
+         !Artisanal mining is included in the 2006 Streets and 2005
+         !GEIA emissions inventories. Here, we don't add it if those
+         !flags are set. (eck, 10/19/11)
+         IF (LGCAPEMIS) THEN
+            EHg0_an = EHg0_an
+         ELSEIF (LGEIA05) THEN
+            EHg0_an = EHg0_an
+         ELSE
          ! Add artisanal mining to anthropogenic
          EHg0_an = EHg0_an + EHg0_am
+         ENDIF
 
          !---------------------------
          ! Anthropogenic Hg(II) emissions [kg/s]
@@ -3327,6 +3366,31 @@
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
             XTAU     = GET_TAU0( 1, 1, 2006 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 6, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg2_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHg2_an = EHg2_an / SEC_PER_YR
+        
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions (eck, 10/19/11)
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1 )               // 
+     &           'mercury_201002/GEIA_Hg2.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+            XTAU     = GET_TAU0( 1, 1, 2005 )
 
             ! Echo info
             WRITE( 6, 100 ) TRIM( FILENAME )
@@ -3379,6 +3443,30 @@
             ! Filename for anthropogenic mercury source
             FILENAME = TRIM( DATA_DIR_1x1)   //
      &           'mercury_201002/GEIA_Streets_HgP.geos.1x1.YYYY'
+
+            ! Add year to the filename
+            CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
+
+            ! Echo info
+            WRITE( 6, 100 ) TRIM( FILENAME )
+
+            ! Read data in [kg/yr]
+            CALL READ_BPCH2( FILENAME, 'HG-SRCE', 9, 
+     &           XTAU,      I1x1,     J1x1,    
+     &           1,         ARRAY1,   QUIET=.TRUE. )
+
+            ! Regrid from 1x1 to the current grid
+            CALL DO_REGRID_1x1( 'kg', ARRAY1, EHgP_an )
+
+            ! Convert from [kg/yr] to [kg/s]
+            EHgP_an = EHgP_an / SEC_PER_YR
+
+         ELSEIF (LGEIA05) THEN
+            ! Use GEIA 2005 emissions (eck, 10/19/11)
+
+            ! Filename for anthropogenic mercury source
+            FILENAME = TRIM( DATA_DIR_1x1)   //
+     &           'mercury_201002/GEIA_HgP.geos.1x1.YYYY'
 
             ! Add year to the filename
             CALL EXPAND_DATE( FILENAME, NYMD, 000000 )
@@ -5182,10 +5270,13 @@ c$$$      ENDIF
       ! This is temporary
       ! Bess's changes: rescale GEIA to use Streets' 2006 regional totals
       ! With these emissions, Bess found the best chemistry results
-      LGCAPEMIS=.TRUE.
+      LGCAPEMIS=.FALSE.
+      ! Use GEIA 2005 inventory
+      LGEIA05=.TRUE.
+
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
-
+     
       ! Switch adds bromine explosion in Northern springtime
       LPOLARBR=.TRUE.
 
