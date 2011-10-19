@@ -87,7 +87,10 @@
 !  (6 ) Clever, Johnson and Derrick (1985).  The Solubility of Mercury and some
 !        sparingly soluble mercury salts in water and aqueous electrolyte
 !        solutions.  J. Phys. Chem. Ref. Data, Vol. 14, No. 3, 1985.
-!
+!  (7 ) Sunderland, E. M. and R. Mason (2007), Human impacts on open 
+!        ocean mercury concentrations, Global Biogeochemical Cycles, 21, GB4022,
+!        doi:10.1029/2006GB002876, 2007.
+!  
 !  Nomenclature: 
 !  ============================================================================
 !  (1 ) Hg(0)  a.k.a. Hg0 : Elemental   mercury
@@ -3076,6 +3079,7 @@ c$$$
  
 
       ! Set up concentrations of Hg(0), Hg(II), Hg(C) in deep ocean REDALERT
+ 
       IF (LPREINDHG) THEN
          CDEEP    = (/ 2d-11, 1.67d-10, 1.67d-10 /)
          CDEEPATL = (/ 2d-11, 1.67d-10, 1.67d-10 /)
@@ -3088,7 +3092,11 @@ c$$$
          CDEEP    = (/ 1.0d-10, 4.0d-10, 4.0d-10 /)
          CDEEPATL = (/ 1.4d-10, 9.3d-10, 9.3d-10 /)  
          CDEEPNAT = (/ 1.5d-10, 8.2d-10, 8.2d-10 /)
-         CDEEPSAT = (/ 1.0d-10, 5.0d-10, 5.0d-10 /)   !(anls,100114)
+!         CDEEPSAT = (/ 1.0d-10, 5.0d-10, 5.0d-10 /)   !(anls,100114)
+         CDEEPSAT = (/0.8d-10,4.1d-10,4.1d-10/)  !eck, 10/19/11
+         !reduce intermediate water mercury concentration in
+         !Southern Ocean to 0.9pM total
+         !ref: low end of uncertainty range Sunderland and Mason '07
          CDEEPANT = (/ 1.0d-10, 3.2d-10, 3.2d-10 /)
          CDEEPARC = (/ 1.2d-10, 7.5d-10, 7.5d-10 /)
          CDEEPNPA = (/ 1.0d-10, 6.0d-10, 6.0d-10 /)        

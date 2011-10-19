@@ -142,6 +142,9 @@
 !       and land surface evapotranspiration derived from observed
 !       precipitation and surface air temperature." J. Appl. Meteorol. 32 (8), 
 !       1305-1334.
+!  (7 ) Soerensen, A. et al. (2010), An improved global model for air-sea 
+!       exchange of mercury: High concentrations over the North Atlantic, 
+!       Environ. Sci. Technol., 44, 8574-8580, 2010
 !
 !  NOTES:
 !  (1 ) Updated for reduction rxn and online Hg0 ocean flux.  Now use 
@@ -3621,6 +3624,11 @@
       ! Convert from [kg/yr] to [kg/s]
       EHg0_nt = EHg0_nt / SEC_PER_YR 
 
+      !Recommended for v8-03-02 and later: 
+      !Reduce Geogenic emissions by 50%
+      !Ref: Soerensen et al., 2010
+      EHg0_nt = EHg0_nt *0.5d0
+
       !=================================================================
       ! Read offline ocean Hg0 emissions (if LDYNOCEAN = .FALSE.)
       ! 
@@ -3958,7 +3966,11 @@
       ! during springtime bromine explosion. Based on DOAS observations
       ! at Alert (Simpson et al. ACP 2007). This concentration applies
       ! only under stable atmospheric conditions.
-      REAL*8, PARAMETER   :: BRO_POLAR=10D0
+      !REAL*8, PARAMETER   :: BRO_POLAR=10D0
+      ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
+      ! Ref low end of uncertainty range in Holmes et al. 2010
+      ! Ref low [BrO] observed Neuman et al 2010
+      REAL*8, PARAMETER   :: BRO_POLAR=5D0
 
       ! Parameters for calculating Br/BrO photostationary state
       ! BrO J value, /s 
