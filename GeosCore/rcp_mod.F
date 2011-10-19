@@ -290,7 +290,7 @@
           CHARACTER(LEN=25)  :: longname
           CHARACTER(LEN=25)  :: units !CDH caution using fixed length
           
-          REAL*8             :: totIn, totOut, press
+          REAL*8             :: totIn, totOut, press, molWt
 
           LOGICAL            :: FOUND
 
@@ -371,6 +371,9 @@
                 STOP
           END SELECT
 
+          ! Check the molecular weight for varname
+          CALL GET_NETCDF_ATT_FLOAT( filename, varname, 
+     &         'molecular_weight', molWt )
 
           !-----------------------
           ! Read volume data from netCDF
@@ -564,6 +567,11 @@
           ! Print annual emissions
           CALL EXPAND_RCP_VARNAME( varname, longname )
           print '(3X,A25,F8.2," Tg")', longname, totOut/1d9
+
+          ! UNITS for GEOS-Chem
+          ! Convert kg/y -> molec/s for each month
+          outEmission = outEmission / (molWt/1D3) * 6.02D23 / 
+     &         (365D0 *86400D0)
 
           !-----------------------
           ! Cleanup

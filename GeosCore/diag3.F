@@ -83,7 +83,7 @@
       USE LOGICAL_MOD,  ONLY : LCARB,       LCRYST,      LDUST    
       USE LOGICAL_MOD,  ONLY : LSHIPSO2,    LSOA,        LSSALT
       USE LOGICAL_MOD,  ONLY : LEDGARSHIP,  LARCSHIP,    LEMEPSHIP
-      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LGTMM
+      USE LOGICAL_MOD,  ONLY : LICOADSSHIP, LRCPSHIP,    LGTMM
 
       USE TIME_MOD,     ONLY : GET_DIAGb,   GET_DIAGe,   GET_CT_A3   
       USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_CHEM, GET_CT_CONV 
@@ -1137,7 +1137,7 @@
          !==============================================================
          ! Add ICOADSSHIP (cklee, 6/30/09)
          IF ( LSHIPSO2 .OR. LEDGARSHIP .OR. LARCSHIP .OR.
-     $        LEMEPSHIP .OR. LICOADSSHIP ) THEN
+     $        LEMEPSHIP .OR. LICOADSSHIP .OR. LRCPSHIP ) THEN
             
             CATEGORY     = 'SO2-SHIP'
             ARRAY(:,:,1) = AD13_SO2_sh(:,:)

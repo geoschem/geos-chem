@@ -1018,7 +1018,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               streets_anthro_mod.o    tracerid_mod.o         \
                               tracer_mod.o            tropopause_mod.o       \
                               uvalbedo_mod.o          vdiff_pre_mod.o        \
-                              wetscav_mod.o
+                              wetscav_mod.o           rcp2_mod.o
 
 sunparam.o                  : sunparam.F
 

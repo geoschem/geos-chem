@@ -109,6 +109,8 @@
       USE MEGANUT_MOD,       ONLY : XLTMMP
       !FP_ISOP (6/2009)
       USE EMISSIONS_MOD,     ONLY : ISOP_SCALING 
+      USE LOGICAL_MOD,       ONLY : LRCPAIR
+      USE RCP2_MOD,          ONLY : RCP_AIREMISS
 
  
       USE CMN_SIZE_MOD     ! Size parameters
@@ -280,7 +282,13 @@
 !-----------------------------------------------------------------------------
 ! AIRCRAFT emissions NOx [molecules/cm3/s]
 !
-            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) CALL AIREMISS
+            IF ( LAIRNOX .AND. I == 1 .AND. J == 1 ) THEN
+               IF (LRCPAIR) THEN
+                  CALL RCP_AIREMISS
+               ELSE
+                  CALL AIREMISS
+               ENDIF
+            ENDIF
 !-----------------------------------------------------------------------------
 ! NOx AND CO from biofuel combustion [kg/box]  
 !

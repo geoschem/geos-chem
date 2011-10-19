@@ -6915,6 +6915,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE RCP2_MOD,             ONLY : GET_RCP_EMISSION
       USE ARCTAS_SHIP_EMISS_MOD,ONLY : GET_ARCTAS_SHIP
       USE ICOADS_SHIP_MOD,      ONLY : GET_ICOADS_SHIP   !(cklee, 7/09/09)
       USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
@@ -6926,7 +6927,7 @@
       USE GRID_MOD,             ONLY : GET_AREA_CM2
       USE LOGICAL_MOD,          ONLY : LEDGARSHIP,      LFUTURE, 
      &                                 LARCSHIP,        LSHIPSO2,
-     $                                 LEMEPSHIP
+     $                                 LEMEPSHIP,       LRCPSHIP
       USE LOGICAL_MOD,          ONLY : LICOADSSHIP  !(cklee, 6/30/09)
       USE TRACER_MOD,           ONLY : XNUMOL
       USE TRACERID_MOD,         ONLY : IDTSO2
@@ -6979,6 +6980,39 @@
             ENDIF
 
          ENDDO 
+         ENDDO
+!$OMP END PARALLEL DO
+
+      !-----------------------------------------------------------
+      ! Or RCP SHIP emissions (EDGAR 2006 update) 
+      !-----------------------------------------------------------
+      ELSE IF ( LRCPSHIP ) THEN
+            
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J )
+         DO J = 1, JJPAR
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( J )
+            
+            DO I = 1, IIPAR
+
+               ! Read ARCTAS SO2 emissions in [molec/cm2/s]
+               ESO2_sh(I,J) = GET_RCP_EMISSION( I, J, IDTSO2,  
+     &                                          SHIP=.TRUE. )
+               
+               ! Convert molec/cm2/s -> kg SO2/BOX/s
+               ESO2_sh(I,J) = ESO2_sh(I,J) * AREA_CM2 / XNUMOL(IDTSO2)
+
+               IF ( LEMEPSHIP ) THEN
+                  IF ( GET_EUROPE_MASK(I,J) > 0d0 )
+     $                 ESO2_sh(I,J) = GET_EMEP_ANTHRO(I, J, IDTSO2, 
+     &                 KG_S=.TRUE.,
+     $                 SHIP=.TRUE.)
+               ENDIF
+
+            ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
 

@@ -1392,7 +1392,7 @@
       USE EMISSIONS_MOD, ONLY : ISOP_SCALING 
       USE EMISSIONS_MOD, ONLY : NOx_SCALING
       USE LOGICAL_MOD, ONLY : LRETRO  !(wfr, 3/8/11)
-      USE LOGICAL_MOD, ONLY : LRCP, LRCPSHIP  !(cdh, 10/18/11)
+      USE LOGICAL_MOD, ONLY : LRCP, LRCPSHIP, LRCPAIR  !(cdh, 10/18/11)
       USE RCP2_MOD,    ONLY : RCPNAME, RCPYEAR
 
       USE CMN_SIZE_MOD      ! Size parameters
@@ -1614,6 +1614,10 @@
       ! Use aircraft NOx
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35' )
       READ( SUBSTRS(1:N), * ) LAIRNOX
+
+      ! Use aircraft NOx from RCP
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:35b' )
+      READ( SUBSTRS(1:N), * ) LRCPAIR
 
       ! Use lightning NOx
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:36' )
