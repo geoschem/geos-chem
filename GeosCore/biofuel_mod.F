@@ -780,6 +780,9 @@
          ! Loop over all biofuel tracers
          DO N = 1, NBFTRACE
 
+            ! NN is the actual CTM tracer number of species N
+            NN = BFTRACE(N)
+
             ! Biofuel emissions in [molec/cm3/s]
             BIOFUEL(N,I,J) = BIOFUEL_KG(N,I,J)                  * 
      &                       ( 6.023d23 / MOLWT(N)            ) /
