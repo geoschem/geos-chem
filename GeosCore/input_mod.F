@@ -5908,6 +5908,9 @@
       USE LOGICAL_MOD,   ONLY : LSHIPTAG,    LPLANETAG
       USE LOGICAL_MOD,   ONLY : LCHEMCO2
       USE LOGICAL_MOD,   ONLY : LRETRO   !(wfr, 3/8/11)
+      USE LOGICAL_MOD,   ONLY : LRCP     !(cdh, 10/18/11)
+      USE LOGICAL_MOD,   ONLY : LRCPSHIP !(cdh, 10/18/11)
+      USE LOGICAL_MOD,   ONLY : LRCPAIR  !(cdh, 10/18/11)
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -6040,7 +6043,10 @@
       LCHEMCO2     = .FALSE.
 
       LRETRO       = .FALSE.  !(wfr, 3/8/11)
-      
+      LRCP         = .FALSE.  !(cdh, 10/18/11)
+      LRCPSHIP     = .FALSE.  !(cdh, 10/18/11)
+      LRCPAIR      = .FALSE.  !(cdh, 10/18/11)
+
       ! Initialize counters
       CT1          = 0
       CT2          = 0

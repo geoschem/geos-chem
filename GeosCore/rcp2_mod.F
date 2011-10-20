@@ -398,13 +398,24 @@
 
       ! References to F90 modules
       USE DAO_MOD,                ONLY : BXHEIGHT
-      USE AIRCRAFT_NOX_MOD,       ONLY : EMIS_AC_NOx
+      USE AIRCRAFT_NOX_MOD,       ONLY : EMIS_AC_NOx, READAIR
       USE DIAG_MOD,               ONLY : AD32_AC
-      USE CMN_DIAG_MOD  ! Diagnostic switches
+      USE CMN_DIAG_MOD       ! Diagnostic switches
+      USE CMN_SIZE_MOD       ! Size parameters      
+
+      ! Local variables
+      INTEGER          :: I, J, L
+      LOGICAL, SAVE    :: FIRST=.TRUE.
 
       !=================================================================
       !  RCP_AIREMISS begins here
       !=================================================================
+
+      ! Allocate and initialize arrays
+      IF ( FIRST ) THEN 
+         CALL READAIR ! use this only because init_aircraft_nox is private
+         FIRST = .FALSE.
+      ENDIF
 
       ! Convert  -> molec/cm3/s
       EMIS_AC_NOx = RCP_NO_AIR
@@ -412,7 +423,14 @@
       ! ND32 -- save NOx in [molec/cm2], will convert to
       ! [molec/cm2/s] in subroutine "diag3.f" (bmy, 3/16/00)
       IF ( ND32 > 0 ) THEN
-         AD32_ac = AD32_ac + ( EMIS_AC_NOx * BXHEIGHT * 1d2 )
+         DO L=1, LLPAR
+         DO J=1, JJPAR
+         DO I=1, IIPAR
+            AD32_ac(I,J,L) = AD32_ac(I,J,L) + 
+     &           ( EMIS_AC_NOx(I,J,L) * BXHEIGHT(I,J,L) * 1d2 )
+         ENDDO
+         ENDDO
+         ENDDO
       ENDIF
 
       ! Return to calling program
@@ -687,7 +705,7 @@
       ! Local variables
       REAL*8                        :: EMISS
       CHARACTER(LEN=20)             :: STR
-      LOGICAL                       :: DOLAND, DOSHIP
+      LOGICAL                       :: DOLAND, DOSHIP, TRACERFOUND
       INTEGER                       :: K
 
       !=================================================================
@@ -713,11 +731,13 @@
       ENDIF
       
       EMISS = 0d0
+      TRACERFOUND = .FALSE.
 
       IF ( DOLAND ) THEN
          DO K=1, SIZE(IDTRCP)
             IF (N == IDTRCP(K)) THEN
                EMISS = EMISS + RCP_LAND(I,J,K)
+               TRACERFOUND=.TRUE.
             ENDIF
          ENDDO
       ENDIF
@@ -726,10 +746,13 @@
          DO K=1, SIZE(IDTRCP_SHIP)
             IF (N == IDTRCP_SHIP(K)) THEN
                EMISS = EMISS + RCP_SHIP(I,J,K)
+               TRACERFOUND=.TRUE.
             ENDIF
          ENDDO
       ENDIF
 
+      ! Return -1 if there are no emissions for tracer N
+      IF (.NOT. TRACERFOUND) EMISS = -1d0
       
       ! Return to calling program
       END FUNCTION GET_RCP_EMISSION

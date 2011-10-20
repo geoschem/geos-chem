@@ -194,7 +194,6 @@
          ! from EDGAR (amv, phs, 3/10/08)
          TODX = GET_EDGAR_TODN(I,J,HOUR)
 
-         
          ! Loop over all of the emission levels for NOx (e.g. surface, 100m)
          DO LL = 1, NOXLEVELS
             EMX(LL)  = TODX * EMISRN(IREF,JREF,LL)
@@ -651,8 +650,8 @@
      &              LAND=.TRUE., SHIP=.TRUE. )
             ENDIF
 
-	    ! -1 indicates tracer NN does not have RCP emissions
-            IF ( RCP > 0d0 ) THEN
+	    ! -1 means tracer NN does not have RCP emissions
+            IF ( RCP >= 0d0 ) THEN
 
 	       ! Apply time-of-day factor
 	       RCP = RCP * TODX

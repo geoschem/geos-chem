@@ -6998,7 +6998,7 @@
             
             DO I = 1, IIPAR
 
-               ! Read ARCTAS SO2 emissions in [molec/cm2/s]
+               ! Read RCP SO2 emissions in [molec/cm2/s]
                ESO2_sh(I,J) = GET_RCP_EMISSION( I, J, IDTSO2,  
      &                                          SHIP=.TRUE. )
                

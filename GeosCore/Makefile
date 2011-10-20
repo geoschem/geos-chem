@@ -1124,5 +1124,7 @@ xtra_read_mod.o             : xtra_read_mod.F         dao_mod.o             \
 
 rcp_mod.o                   : rcp_mod.F
 
-rcp2_mod.o                  : rcp2_mod.F              rcp_mod.o
+rcp2_mod.o                  : rcp2_mod.F              rcp_mod.o             \
+                              aircraft_nox_mod.o      dao_mod.o             \
+                              diag_mod.o
 #EOC

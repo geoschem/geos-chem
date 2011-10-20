@@ -2617,7 +2617,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2' )
       EDGAR_SO2 = 0d0
 
-      IF ( LEDGARSHIP ) THEN
+!      IF ( LEDGARSHIP ) THEN
 
          ALLOCATE( EDGAR_SO2_SHIP( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_SO2_SHIP' )
@@ -2631,7 +2631,7 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_CO_SHIP' )
          EDGAR_CO_SHIP = 0d0
  
-      ENDIF
+!      ENDIF
 
       ALLOCATE( EDGAR_TODN( IIPAR, JJPAR, N_HOURS ), STAT=AS )
       IF (AS /= 0 ) CALL ALLOC_ERR( 'EDGAR_TODN' )
