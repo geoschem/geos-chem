@@ -817,6 +817,7 @@
             IF (N == IDTRCP_LAND(K)) THEN
                EMISS = EMISS + RCP_LAND(I,J,K)
                TRACERFOUND=.TRUE.
+               EXIT
             ENDIF
          ENDDO
       ENDIF
@@ -826,6 +827,7 @@
             IF (N == IDTRCP_SHIP(K)) THEN
                EMISS = EMISS + RCP_SHIP(I,J,K)
                TRACERFOUND=.TRUE.
+               EXIT
             ENDIF
          ENDDO
       ENDIF
