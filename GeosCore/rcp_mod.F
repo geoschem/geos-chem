@@ -566,7 +566,7 @@
           
           ! Print annual emissions
           CALL EXPAND_RCP_VARNAME( varname, longname )
-          print '(3X,A25,F8.2," Tg")', longname, totOut/1d9
+!          print '(3X,A25,F8.2," Tg")', longname, totOut/1d9
 
           ! UNITS for GEOS-Chem
           ! Convert kg/y -> molec/s for each month

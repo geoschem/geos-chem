@@ -72,7 +72,7 @@
       REAL*4, ALLOCATABLE :: RCP_SHIP(:,:,:)
 
       CHARACTER(LEN=20)   :: RCPNAME, RCPYEAR
-      INTEGER             :: IDTRCP(20), IDTRCP_SHIP(20)
+      INTEGER             :: IDTRCP_LAND(20), IDTRCP_SHIP(20)
 
       !========================================
       !  MODULE ROUTINES -- follow "CONTAINS"
@@ -139,6 +139,7 @@
      &                  GET_RES_EXT()    // '.bpch' 
 
       XTAU = GET_TAU0( 1, 1, 2000 ) 
+
       ! Read data
       CALL READ_RCP( FILENAME, SHIP=.FALSE. )
 
@@ -194,14 +195,8 @@
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE, IOERROR
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
-      USE SCALE_ANTHRO_MOD, ONLY : GET_ANNUAL_SCALAR
-      
-      USE TIME_MOD,         ONLY : GET_YEAR
       USE ERROR_MOD,        ONLY : ERROR_STOP
-
-      USE COMODE_LOOP_MOD,      ONLY : IDEMS
-      USE TRACER_MOD, ONLY      : TRACER_NAME
-
+      USE TRACERID_MOD           ! tracer ID numbers
       USE CMN_SIZE_MOD           ! Size parameters
 
       ! Arguments
@@ -211,7 +206,7 @@
 
 
       ! Local variables
-      INTEGER                         :: I, J, L, N, IOS, K
+      INTEGER                         :: I, J, L, N, IOS, K, IDT 
       INTEGER                         :: NI, NJ, NL
       INTEGER                         :: IFIRST, JFIRST, LFIRST
       INTEGER                         :: NTRACER, NSKIP
@@ -219,7 +214,7 @@
       INTEGER                         :: SCALEYEAR, BASEYEAR
       REAL*4                          :: LONRES, LATRES
       REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
-      REAL*4                          :: SC(IIPAR,JJPAR)
+      REAL*4                          :: TMP(IIPAR,JJPAR)
       REAL*8                          :: ZTAU0, ZTAU1
       CHARACTER(LEN=20)               :: MODELNAME
       CHARACTER(LEN=40)               :: CATEGORY
@@ -278,8 +273,61 @@
             IF (ZTAU0 /= TAU0) CYCLE
          ENDIF
             
-         ! Tracer number must be positive
-         IF (NTRACER > 0 .AND. NTRACER <= SIZE(TRACER_NAME) ) THEN
+         IDT = 0
+
+         ! Find GEOS-Chem tracer ID for each species in file
+         ! In most cases these ID numbers will be the same, but we do this
+         ! in case the GEOS-Chem tracer numbers change in the future
+         SELECT CASE ( NTRACER )
+         CASE ( 1  )
+            IDT = IDTNOx
+         CASE ( 4  )
+            IDT = IDTCO
+         CASE ( 5  )
+            IDT = IDTALK4
+         CASE ( 9  ) 
+            CALL ERROR_STOP( 'RCP file unexpectely contains ACET: ' // 
+     &           FILENAME, 'READ_RCP ' )
+!            IDT = IDTACET
+         CASE ( 10 )
+            IDT = IDTMEK
+         CASE ( 11 ) 
+            IDT = IDTALD2
+         CASE ( 18 ) 
+            IDT = IDTPRPE
+         CASE ( 19 ) 
+            IDT = IDTC3H8
+         CASE ( 20 ) 
+            IDT = IDTCH2O
+         CASE ( 21 ) 
+            IDT = IDTC2H6
+         CASE ( 26 ) 
+            IDT = IDTSO2
+         CASE ( 30 ) 
+            IDT = IDTNH3
+         CASE ( 36 ) 
+            IDT = IDTBCPO
+         CASE ( 37 )
+            IDT = IDTOCPO
+         CASE ( 59 )
+            IDT = IDTBENZ
+         CASE ( 60 ) 
+            IDT = IDTTOLU
+         CASE ( 61 ) 
+            IDT = IDTXYLE
+         CASE ( 65 ) 
+            IDT = IDTC2H4
+         CASE ( 66 )
+            IDT = IDTC2H2
+         CASE ( 76 )
+            IDT = IDTHCOOH
+         CASE DEFAULT
+            ! DO NOTHING
+         END SELECT
+
+         ! Tracer number must be positive, 
+         ! otherwise it's not used for this simulation type
+         IF ( IDT > 0 ) THEN
 
             ! Increment tracer counter
             K = K + 1 
@@ -287,10 +335,45 @@
             ! Save emissions and tracer number
             IF (SHIP) THEN
                CALL TRANSFER_2D( ARRAY(:,:,1), RCP_SHIP(:,:,K) )
-               IDTRCP_SHIP(K) = NTRACER 
+               IDTRCP_SHIP(K) = IDT 
             ELSE
                CALL TRANSFER_2D( ARRAY(:,:,1), RCP_LAND(:,:,K) )
-               IDTRCP(K) = NTRACER 
+               IDTRCP_LAND(K) = IDT
+            ENDIF
+
+            !==============================================================
+            ! Special case for MEK
+            ! Partition ketones into 75% acetone and 25% MEK
+            ! In the file, MEK contains all ketones.
+            ! As done for RETRO (cdh, 10/18/11; dbm, 8/18/2011)
+            !==============================================================
+            
+            IF (IDT == IDTMEK) THEN
+               
+               ! Reduce MEK emissions
+               IF (SHIP) THEN  
+                  RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K) * 0.25D0
+               ELSE
+                  RCP_LAND(:,:,K) = RCP_LAND(:,:,K) * 0.25D0
+               ENDIF
+
+               IF (IDTACET > 0d0) THEN
+
+                  ! Increment tracer counter
+                  K = K + 1 
+                  
+                  ! Save ACET emissions (75% of original MEK = 3*25%
+                  IF (SHIP) THEN  
+                     RCP_SHIP(:,:,K) = RCP_SHIP(:,:,K-1) * 3d0
+                     IDTRCP_SHIP(K)  = IDTACET 
+                  ELSE
+                     RCP_LAND(:,:,K) = RCP_LAND(:,:,K-1) * 3d0
+                     IDTRCP_LAND(K)  = IDTACET
+                  ENDIF
+
+               ENDIF
+
+
             ENDIF
                
          ENDIF
@@ -475,9 +558,9 @@
       !==============================================================
 
       WRITE( 6, '(a)' )
-      DO K=1, SIZE(IDTRCP)
+      DO K=1, SIZE(IDTRCP_LAND)
          
-         IF (IDTRCP(K) < 1) CYCLE
+         IF (IDTRCP_LAND(K) < 1) CYCLE
 
          !==============================================================
          ! Global total emission
@@ -495,7 +578,7 @@
             
             ! Anthro emissions
             TOTAL = TOTAL + SUM(RCP_LAND(:,J,K)) * A * 
-     &           TRACER_MW_KG(IDTRCP(K)) 
+     &           TRACER_MW_KG(IDTRCP_LAND(K)) 
             
          ENDDO
 
@@ -503,7 +586,7 @@
          !  Units
          !==============================================================
 
-         SELECT CASE ( TRACER_NAME(IDTRCP(K)) )
+         SELECT CASE ( TRACER_NAME(IDTRCP_LAND(K)) )
          CASE ( 'NOx' ) 
             UNIT='NO2'
          CASE ( 'CO'  ) 
@@ -520,10 +603,8 @@
          !  Print info
          !==============================================================
 
-         IF ( TOTAL > 0d0 ) THEN
-            WRITE( 6, 100 ) TRACER_NAME(IDTRCP(K)), THISMONTH, 
-     &           TOTAL, UNIT
-         ENDIF
+         WRITE( 6, 100 ) TRACER_NAME(IDTRCP_LAND(K)), THISMONTH, 
+     &        TOTAL, UNIT
  100     FORMAT( 'Anthro Land ', a4, ' for month ',
      &           i2.2, ': ',  f13.6, ' Tg ', a3 )
 
@@ -579,10 +660,8 @@
          !  Print info
          !==============================================================
 
-         IF ( TOTAL > 0d0 ) THEN
-            WRITE( 6, 101 ) TRACER_NAME(IDTRCP_SHIP(K)), THISMONTH, 
+         WRITE( 6, 101 ) TRACER_NAME(IDTRCP_SHIP(K)), THISMONTH, 
      &           TOTAL, UNIT
-         ENDIF
  101     FORMAT( 'Anthro Ship ', a4, ' for month ',
      &           i2.2, ': ',  f13.6, ' Tg ', a3 )
 
@@ -734,8 +813,8 @@
       TRACERFOUND = .FALSE.
 
       IF ( DOLAND ) THEN
-         DO K=1, SIZE(IDTRCP)
-            IF (N == IDTRCP(K)) THEN
+         DO K=1, SIZE(IDTRCP_LAND)
+            IF (N == IDTRCP_LAND(K)) THEN
                EMISS = EMISS + RCP_LAND(I,J,K)
                TRACERFOUND=.TRUE.
             ENDIF
@@ -781,7 +860,7 @@
       ! Return if we LRCP = .FALSE.
       IF (.not. LRCP ) RETURN
 
-      IDTRCP = 0d0
+      IDTRCP_LAND = 0d0
       IDTRCP_SHIP = 0d0
 
       ALLOCATE( RCP_NO( IIPAR, JJPAR ), STAT=AS )
@@ -956,7 +1035,7 @@
 
 
       ! Alternative method
-      ALLOCATE( RCP_LAND( IIPAR, JJPAR, SIZE(IDTRCP) ), STAT=AS )
+      ALLOCATE( RCP_LAND( IIPAR, JJPAR, SIZE(IDTRCP_LAND) ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RCP_LAND' )
       RCP_LAND = 0e0
 
