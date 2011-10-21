@@ -290,11 +290,8 @@
       !REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
       ! Literature range is 70-240e-9. ARCTAS gives 80-130e-9 
       ! Choose 100e-9 (Holmes et al. 2010 )
-      !REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
-      ! update to match Soerensen et al. 2010 (minor change)
-      ! eck, 10/19/11
-      REAL*8, PARAMETER     :: BBRatio_Hg_CO = 1.05D-7
-
+      REAL*8,  PARAMETER   :: BBRatio_Hg_CO = 1d-7
+ 
       ! External functions
       REAL*8,  EXTERNAL      :: BOXVL
 

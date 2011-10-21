@@ -4301,7 +4301,9 @@
                NTRAIND(NUMDEP) = ID_Hg2(ID_Hg_tot)
                NDVZIND(NUMDEP) = NUMDEP
                DEPNAME(NUMDEP) = 'Hg2'
-               HSTAR(NUMDEP)   = 1.0d+6
+               HSTAR(NUMDEP)   = 1.0d+14
+               ! Change from 1d6 to 1d14 per HAmos 9/23/11
+               ! implemented 10/19/11 eck
                F0(NUMDEP)      = 0.0d0
                XMW(NUMDEP)     = 201d-3
                AIROSOL(NUMDEP) = .FALSE. 

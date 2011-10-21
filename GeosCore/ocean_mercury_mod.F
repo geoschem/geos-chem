@@ -637,7 +637,11 @@ c$$$
       REAL*8, PARAMETER     :: EC_w      = 0.0145d0       
       REAL*8, PARAMETER     :: EC_doc    = 0.654d0
       REAL*8, PARAMETER     :: C_doc     = 1.5d0 
-      REAL*8, PARAMETER     :: k_radbase = 1.73d-6                     
+      !REAL*8, PARAMETER     :: k_radbase = 1.73d-6    
+      !decrease photoreduction in atm & surf ocean
+      ! per H. Amos 23 Sep 2011 to multiply by 0.9d0
+      ! implemented by eck 10/19/11
+      REAL*8, PARAMETER     :: k_radbase = 1.557d-6
       REAL*8, PARAMETER     :: k_biobase = 4.1d-10    
       REAL*8, PARAMETER     :: k_oxbase  = 6.64d-6 
 #if defined ( LINUX_PGI )

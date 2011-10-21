@@ -567,7 +567,11 @@
       ! K for reduction, using J_NO2, [unitless scale factor]
       ! Source: Holmes et al. 2010
       ! 3.5D-3 for Hg+Br simulation; 1.3D-2 for Hg+OH/O3 simulation
-      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3 
+
+      ! Reduce K_RED_JNO2 for GEIA 2005 inventory
+      ! recommended by Helen Amos, 23 Sep 2011
+      ! change implemented 10/19/11 by eck
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0 
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
@@ -3255,7 +3259,15 @@
             CALL DO_REGRID_1x1( 'kg', ARRAY1, EHg0_an )
 
             ! Convert from [kg/yr] to [kg/s]
-            EHg0_an = EHg0_an / SEC_PER_YR            
+            EHg0_an = EHg0_an / SEC_PER_YR    
+
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 90:7:3.
+            !Fossil fuels make up ~47% of total global anthro emis
+            !Change from Helen Amos 23 Sep 2011
+            !Implemented 10/19/11 by eck
+            EHg0_an=1.27d0*EHg0_an
+            
 
 
          ELSE
@@ -3409,6 +3421,13 @@
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
 
+           ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 90:7:3.
+            !Fossil fuels make up ~47% of total global anthro emis
+            !Change from Helen Amos 23 Sep 2011
+            !Implemented 10/19/11 by eck
+            EHg2_an=0.40d0*EHg2_an
+
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
 
@@ -3488,6 +3507,12 @@
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
 
+              ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 90:7:3.
+            !Fossil fuels make up ~47% of total global anthro emis
+            !Change from Helen Amos 23 Sep 2011
+            !Implemented 10/19/11 by eck
+            EHgP_an=0.51d0*EHgP_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -3567,7 +3592,16 @@
       IF ( LPREINDHG ) THEN
 !         FILENAME='/as/home/eck/depoproject/bugfix3map.bpch'
          FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201007/soilhg.preind.cdh.bpch'
+     &        'mercury_201007/soilHg.preind.4.bpch'
+      !        !add H. Amos soil spinup for chemistry tuning 9/23/11
+         !implemented 10/19/11 eck
+!     &        'mercury_201007/soilhg.preind.cdh.bpch'
+      ELSEIF (LGEIA05) THEN
+         !add H. Amos soil spinup for chemistry tuning 9/23/11
+         !implemented 10/19/11 eck for GEIA 05 inventory
+         FILENAME=TRIM( DATA_DIR )           //
+     &        'mercury_201007/soilHg.presentday.bpch'
+
       ELSE
 !         FILENAME='/as/home/eck/depoproject/bugfix3current.bpch'
          FILENAME=TRIM( DATA_DIR )           //
