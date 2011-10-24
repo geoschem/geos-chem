@@ -1588,11 +1588,17 @@ c$$$
 
       ! TAU0 values (uses year 2003)
       TAU = GET_TAU0( THISMONTH, 1, 2003 )      
-
+#if defined (GRID2x25)
       ! Read data
-      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,  
+      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    0,  
      &                 TAU,       IIPAR,        JJPAR,      
      &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
+#else 
+
+     CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,
+     &                 TAU,       IIPAR,        JJPAR,
+     &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
+#endif
 
       ! Resize and cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), CHL )
