@@ -3592,7 +3592,7 @@
       IF ( LPREINDHG ) THEN
 !         FILENAME='/as/home/eck/depoproject/bugfix3map.bpch'
          FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201007/soilHg.preind.4.bpch'
+     &        'mercury_201007/soilHg.preind.10.bpch'
       !        !add H. Amos soil spinup for chemistry tuning 9/23/11
          !implemented 10/19/11 eck
 !     &        'mercury_201007/soilhg.preind.cdh.bpch'
@@ -3600,7 +3600,7 @@
          !add H. Amos soil spinup for chemistry tuning 9/23/11
          !implemented 10/19/11 eck for GEIA 05 inventory
          FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201007/soilHg.presentday.bpch'
+     &        'mercury_201007/soilHg.102311.presentday.bpch'
 
       ELSE
 !         FILENAME='/as/home/eck/depoproject/bugfix3current.bpch'
