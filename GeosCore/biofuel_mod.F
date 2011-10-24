@@ -780,7 +780,7 @@
          ! Loop over all biofuel tracers
          DO N = 1, NBFTRACE
 
-            ! NN is the actual CTM tracer number of species N
+            ! Get GEOS-CHEM tracer number
             NN = BFTRACE(N)
 
             ! Biofuel emissions in [molec/cm3/s]
@@ -865,8 +865,16 @@
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
 
-                  BIOFUEL(N,I,J) = 0.d0
+                  ! Only zero BIOFUEL for tracers included in Streets inventory
+                  IF ( (NN /= IDTGLYX) .AND. (NN /= IDTMGLY) .AND.
+     &                 (NN /= IDTGLYC) .AND. (NN /= IDTHAC ) .AND.
+     &                 (NN /= IDTBENZ) .AND. (NN /= IDTTOLU) .AND.
+     &                 (NN /= IDTXYLE) .AND. (NN /= IDTC2H4) .AND. 
+     &                 (NN /= IDTC2H2) ) THEN
 
+                     BIOFUEL(N,I,J) = 0.d0
+
+                  ENDIF
                ENDIF
             ENDIF
 
