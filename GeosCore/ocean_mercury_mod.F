@@ -115,25 +115,13 @@
       PRIVATE
 
       ! ... except these routines
-!      PUBLIC :: ADD_Hg2_DD
-!      PUBLIC :: ADD_Hg2_WD
-!      PUBLIC :: ADD_HgP_DD
-!      PUBLIC :: ADD_HgP_WD
       PUBLIC :: INIT_OCEAN_MERCURY
       PUBLIC :: CLEANUP_OCEAN_MERCURY
       PUBLIC :: OCEAN_MERCURY_FLUX
       PUBLIC :: READ_OCEAN_Hg_RESTART
       PUBLIC :: MAKE_OCEAN_Hg_RESTART
-!      PUBLIC :: RESET_HG_DEP_ARRAYS
-     
-!      PUBLIC :: IS_LAND_FIX      !cdh
-!      PUBLIC :: IS_WATER_FIX     !cdh
-!      PUBLIC :: IS_ICE_FIX       !cdh
-!      PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
-!      PUBLIC :: SNOW_HG ! CDH snowpack
       PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
       PUBLIC :: LVEGEMIS ! jaf
-!      PUBLIC :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       PUBLIC :: LRED_JNO2,   LGEOSLWC
       PUBLIC :: LHg2HalfAerosol,        LHg_WETDasHNO3
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
@@ -161,13 +149,9 @@
       REAL*8   :: CDEEPNPA(3)
 
       ! Arrays
-!      REAL*8,  ALLOCATABLE :: DD_Hg2(:,:,:)
-!      REAL*8,  ALLOCATABLE :: DD_HgP(:,:,:)
-       
       REAL*8,  ALLOCATABLE :: dMLD(:,:)
       REAL*8,  ALLOCATABLE :: Hg0aq(:,:,:)
       REAL*8,  ALLOCATABLE :: Hg2aq(:,:,:)
-!      REAL*8,  ALLOCATABLE :: HgC(:,:)
       REAL*8,  ALLOCATABLE :: HgPaq(:,:)
       REAL*8,  ALLOCATABLE :: MLD(:,:)
       REAL*8,  ALLOCATABLE :: MLDav(:,:)
@@ -175,16 +159,12 @@
       REAL*8,  ALLOCATABLE :: NPP(:,:)
       REAL*8,  ALLOCATABLE :: RAD(:,:)
       REAL*8,  ALLOCATABLE :: UPVEL(:,:)
-!      REAL*8,  ALLOCATABLE :: WD_Hg2(:,:,:)
-!      REAL*8,  ALLOCATABLE :: WD_HgP(:,:,:)
-!      REAL*8,  ALLOCATABLE :: SNOW_HG(:,:,:) !CDH Hg stored in snow+ice
       REAL*8,  ALLOCATABLE :: CHL(:,:)                              
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
       LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
       LOGICAL   :: LVEGEMIS ! jaf
-!      LOGICAL   :: LRED_JNO2,   LGEOSLWC,  LHGSNOW
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
       LOGICAL   :: LHg2HalfAerosol,        LHg_WETDasHNO3
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
@@ -204,217 +184,6 @@
       CONTAINS
 
 !-------------------------------------------------------------------------
-c$$$
-c$$$      SUBROUTINE ADD_Hg2_DD( I, J, N, DRY_Hg2)
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine ADD_Hg2_WD computes the amount of Hg(II) dry deposited 
-c$$$!  out of the atmosphere into the column array DD_Hg2. 
-c$$$!  (sas, cdh, bmy, 1/19/05, 3/28/06)
-c$$$! 
-c$$$!  Arguments as Input:
-c$$$!  ============================================================================
-c$$$!  (1 ) I       (INTEGER) : GEOS-CHEM longitude index
-c$$$!  (2 ) J       (INTEGER) : GEOS-CHEM latitude  index
-c$$$!  (3 ) N       (INTEGER) : GEOS-CHEM tracer    index
-c$$$!  (4 ) DRY_Hg2 (REAL*8 ) : Hg(II) dry deposited out of the atmosphere [kg]
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-c$$$!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
-c$$$!******************************************************************************
-c$$$!
-c$$$      ! References to F90 modules
-c$$$      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
-c$$$      USE TRACERID_MOD, ONLY : GET_Hg2_CAT
-c$$$
-c$$$      ! Arguments as input
-c$$$      INTEGER, INTENT(IN)   :: I, J, N
-c$$$      REAL*8,  INTENT(IN)   :: DRY_Hg2
-c$$$      
-c$$$      ! Local variables
-c$$$      INTEGER               :: NN
-c$$$      
-c$$$      !=================================================================
-c$$$      ! ADD_Hg2_DD begins here!
-c$$$      !=================================================================
-c$$$
-c$$$      ! Get the index for DD_Hg2 based on the tracer number
-c$$$      NN = GET_Hg2_CAT( N )
-c$$$
-c$$$      ! Store dry deposited Hg(II) into DD_Hg2 array
-c$$$      IF ( NN > 0 ) THEN
-c$$$         DD_Hg2(I,J,NN) = DD_Hg2(I,J,NN) + DRY_Hg2
-c$$$        
-c$$$      ENDIF
-c$$$      
-c$$$     
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE ADD_Hg2_DD
-c$$$
-c$$$!---------------------------------------------------------------------------
-c$$$
-c$$$      SUBROUTINE ADD_Hg2_WD( I, J, N, WET_Hg2 )
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine ADD_Hg2_WD computes the amount of Hg(II) wet scavenged 
-c$$$!  out of the atmosphere into the column array WD_Hg2. 
-c$$$!  (sas, cdh, bmy, 1/19/05, 3/28/06)
-c$$$! 
-c$$$!  Arguments as Input:
-c$$$!  ============================================================================
-c$$$!  (1 ) I       (INTEGER) : GEOS-CHEM longitude index
-c$$$!  (2 ) J       (INTEGER) : GEOS-CHEM latitude  index
-c$$$!  (3 ) N       (INTEGER) : GEOS-CHEM tracer    index
-c$$$!  (4 ) WET_Hg2 (REAL*8 ) : Hg(II) scavenged out of the atmosphere
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-c$$$!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
-c$$$!******************************************************************************
-c$$$!
-c$$$      ! References to F90 modules
-c$$$      USE TRACERID_MOD, ONLY : GET_Hg2_CAT
-c$$$
-c$$$      ! Arguments as input
-c$$$      INTEGER, INTENT(IN)   :: I, J, N
-c$$$      REAL*8,  INTENT(IN)   :: WET_Hg2
-c$$$ 
-c$$$      ! Local variables
-c$$$      INTEGER               :: NN
-c$$$
-c$$$      !=================================================================
-c$$$      ! ADD_Hg2_WD begins here!
-c$$$      !=================================================================
-c$$$
-c$$$      ! Get Hg2 category number
-c$$$      NN = GET_Hg2_CAT( N ) 
-c$$$     
-c$$$      ! Store wet deposited Hg(II) into WD_Hg2 array
-c$$$      IF ( NN > 0 ) THEN
-c$$$         WD_Hg2(I,J,NN) = WD_Hg2(I,J,NN) + WET_Hg2
-c$$$         
-c$$$      ENDIF
-c$$$
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE ADD_Hg2_WD
-c$$$
-c$$$!!--------------------------------------------------------------------
-c$$$      SUBROUTINE ADD_HgP_DD( I, J, N, DRY_HgP )
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine ADD_Hg2_WD computes the amount of Hg(II) dry deposited 
-c$$$!  out of the atmosphere into the column array DD_Hg2. 
-c$$$!  (sas, cdh, bmy, 1/19/05, 3/28/06)
-c$$$! 
-c$$$!  Arguments as Input:
-c$$$!  ============================================================================
-c$$$!  (1 ) I       (INTEGER) : GEOS-CHEM longitude index
-c$$$!  (2 ) J       (INTEGER) : GEOS-CHEM latitude  index
-c$$$!  (3 ) N       (INTEGER) : GEOS-CHEM tracer    index
-c$$$!  (4 ) DRY_Hg2 (REAL*8 ) : Hg(II) dry deposited out of the atmosphere [kg]
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-c$$$!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
-c$$$!******************************************************************************
-c$$$!
-c$$$      ! References to F90 modules
-c$$$      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
-c$$$      USE TRACERID_MOD, ONLY : GET_HgP_CAT
-c$$$
-c$$$      ! Arguments as input
-c$$$      INTEGER, INTENT(IN)   :: I, J, N
-c$$$      REAL*8,  INTENT(IN)   :: DRY_HgP
-c$$$ 
-c$$$      ! Local variables
-c$$$      INTEGER               :: NN
-c$$$
-c$$$      !=================================================================
-c$$$      ! ADD_HgP_DD begins here!
-c$$$      !=================================================================
-c$$$      
-c$$$      ! Get the index for DD_Hg2 based on the tracer number
-c$$$      NN = GET_HgP_CAT( N )
-c$$$
-c$$$      ! Store dry deposited Hg(II) into DD_Hg2 array
-c$$$      IF ( NN > 0 ) THEN
-c$$$         DD_HgP(I,J,NN) = DD_HgP(I,J,NN) + DRY_HgP
-c$$$        
-c$$$      ENDIF
-c$$$
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE ADD_HgP_DD
-c$$$
-c$$$!-----------------------------------------------------------------------
-c$$$
-c$$$      SUBROUTINE ADD_HgP_WD( I, J, N, WET_HgP )
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine ADD_Hg2_WD computes the amount of Hg(II) wet scavenged 
-c$$$!  out of the atmosphere into the column array WD_Hg2. 
-c$$$!  (sas, cdh, bmy, 1/19/05, 3/28/06)
-c$$$! 
-c$$$!  Arguments as Input:
-c$$$!  ============================================================================
-c$$$!  (1 ) I       (INTEGER) : GEOS-CHEM longitude index
-c$$$!  (2 ) J       (INTEGER) : GEOS-CHEM latitude  index
-c$$$!  (3 ) N       (INTEGER) : GEOS-CHEM tracer    index
-c$$$!  (4 ) WET_Hg2 (REAL*8 ) : Hg(II) scavenged out of the atmosphere
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) DD_Hg2 is now a 3-D array.  Also pass N via the argument list. Now 
-c$$$!        call GET_Hg2_CAT to return the Hg category #. (cdh, bmy, 3/28/06)
-c$$$!******************************************************************************
-c$$$!
-c$$$      ! References to F90 modules
-c$$$      USE TRACERID_MOD, ONLY : GET_HgP_CAT
-c$$$
-c$$$      ! Arguments as input
-c$$$      INTEGER, INTENT(IN)   :: I, J, N
-c$$$      REAL*8,  INTENT(IN)   :: WET_HgP
-c$$$ 
-c$$$      ! Local variables
-c$$$      INTEGER               :: NN
-c$$$
-c$$$      !=================================================================
-c$$$      ! ADD_Hg2_WD begins here!
-c$$$      !=================================================================
-c$$$      
-c$$$      ! Get Hg2 category number
-c$$$      NN = GET_HgP_CAT( N ) 
-c$$$
-c$$$      ! Store wet deposited Hg(II) into WD_Hg2 array
-c$$$      IF ( NN > 0 ) THEN
-c$$$         WD_HgP(I,J,NN) = WD_HgP(I,J,NN) + WET_HgP
-c$$$        
-c$$$      ENDIF
-c$$$      
-c$$$      ! Return to calling program
-c$$$      END SUBROUTINE ADD_HgP_WD
-c$$$
-c$$$!-----------------------------------------------------------------------------
-c$$$
-c$$$      SUBROUTINE RESET_HG_DEP_ARRAYS
-c$$$!
-c$$$!******************************************************************************
-c$$$!  Subroutine RESET_HG_DEP_ARRAYS resets the wet and dry deposition arrays for
-c$$$!  Hg(II) and Hg(p) to zero. This allows us to call OCEAN_MERCURY_FLUX and
-c$$$!  LAND_MERCURY_FLUX in any order in MERCURY_MOD. (cdh, 9/2/08)
-c$$$!
-c$$$!  NOTES:
-c$$$!  (1 ) 
-c$$$!******************************************************************************
-c$$$
-c$$$         ! Reset deposition arrays.
-c$$$         DD_Hg2 = 0d0
-c$$$         WD_Hg2 = 0d0
-c$$$         DD_HgP = 0d0
-c$$$         WD_HgP = 0d0
-c$$$
-c$$$      END SUBROUTINE RESET_HG_DEP_ARRAYS
-c$$$
-!-----------------------------------------------------------------------------
 
       SUBROUTINE OCEAN_MERCURY_FLUX( FLUX )
 !
@@ -570,24 +339,19 @@ c$$$
 !******************************************************************************
 !
       ! References to F90 modules
-      ! Add reference to IS_WATER for Holmes et al. 2010 version (jaf, 4/11/11)
-      USE DAO_MOD,       ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
-!--jaf.start
-      USE DAO_MOD,       ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
-!--jaf.end
-      USE DIAG03_MOD,    ONLY : AD03, ND03
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE GRID_MOD,      ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
-      USE LOGICAL_MOD,   ONLY : LSPLIT
-      USE TIME_MOD,      ONLY : GET_TS_EMIS,     GET_MONTH 
-      USE TIME_MOD,      ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
-!--jaf.start
-      USE TIME_MOD,      ONLY : GET_YEAR 
-!--jaf.end
-      USE TRACER_MOD,    ONLY : STT,             TRACER_MW_KG
-      USE TRACERID_MOD,  ONLY : ID_Hg_tot,       ID_Hg_oc
-      USE TRACERID_MOD,  ONLY : ID_Hg0,          N_Hg_CATS
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+      USE DAO_MOD,          ONLY : AIRVOL, ALBD, TSKIN, RADSWG, IS_WATER 
+      USE DAO_MOD,          ONLY : FRLAND, FROCEAN, FRSEAICE, SEAICE00 ! jaf
+      USE DIAG03_MOD,       ONLY : AD03, ND03
+      USE DIRECTORY_MOD,    ONLY : DATA_DIR
+      USE GRID_MOD,         ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
+      USE LOGICAL_MOD,      ONLY : LSPLIT
+      USE TIME_MOD,         ONLY : GET_TS_EMIS,     GET_MONTH 
+      USE TIME_MOD,         ONLY : ITS_A_NEW_MONTH, ITS_MIDMONTH
+      USE TIME_MOD,         ONLY : GET_YEAR 
+      USE TRACER_MOD,       ONLY : STT,             TRACER_MW_KG
+      USE TRACERID_MOD,     ONLY : ID_Hg_tot,       ID_Hg_oc
+      USE TRACERID_MOD,     ONLY : ID_Hg0,          N_Hg_CATS
+      USE TRANSFER_MOD,     ONLY : TRANSFER_2D
       USE DEPO_MERCURY_MOD, ONLY: DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
  
 
@@ -605,15 +369,12 @@ c$$$
       INTEGER               :: I,         J,        NN, C
       INTEGER               :: N,         N_tot_oc
       INTEGER               :: NEXTMONTH, THISMONTH
-!--jaf.start
       INTEGER               :: THISYEAR
-!--jaf.end
 
       REAL*8                :: A_M2,     DTSRCE,   MLDCM
       REAL*8                :: CHg0aq,   CHg0,     vi,       JorgC_kg           
       REAL*8                :: TC,       TK,       Kw
       REAL*8                :: Sc,       ScCO2,    USQ,      MHg
-!      REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgC_SUNK
       REAL*8                :: Hg2_RED,  Hg2_GONE, Hg2_CONV, HgPaq_SUNK
       REAL*8                :: FRAC_L,   FRAC_O,   H,        TOTDEP
       REAL*8                :: oldMLD,   XTAU,     TOTDEPall                   
@@ -771,8 +532,7 @@ c$$$
 
          ! Initialize values
          Kw         = 0d0
-!         HgC_SUNK   = 0d0
-         HgPaq_SUNK   = 0d0
+         HgPaq_SUNK = 0d0
          Hg2_CONV   = 0d0
          TK         = 0d0
          TC         = 0d0 
@@ -1084,8 +844,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                   ENDIF
@@ -1104,8 +862,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                   ENDIF
@@ -1125,8 +881,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(3) )
                   ENDIF
@@ -1146,8 +900,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(3) )
                   ENDIF
@@ -1166,8 +918,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(3) )
                   ENDIF
@@ -1186,8 +936,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(3) )
                   ENDIF
@@ -1203,8 +951,6 @@ c$$$
 
                   ! Hg particulate
                   IF ( C == 1 ) THEN
-!                     HgC(I,J)   = HgC(I,J) + UPVEL(I,J) 
-!     &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(3) )
                      HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) 
      &                 * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(3) )
                   ENDIF
@@ -1235,8 +981,6 @@ c$$$
                
                   ! Hg particulate
                   IF ( NN == 1 ) THEN
-!                     HgC(I,J)  = HgC(I,J) 
-!     &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) )
                      HgPaq(I,J)  = HgPaq(I,J) 
      &                * ( 1d0 + UPVEL(I,J) * DTSRCE / ( MLDcm * 1d-2 ) )
                   ENDIF
@@ -1282,7 +1026,6 @@ c$$$
                TOTDEP        = TOTDEPall * FRAC_O
 
                ! Add deposited Hg(II) to the Hg(II)tot ocean mass [kg]
-!               Hg2aq_tot     = Hg2aq(I,J,NN) + HgC(I,J) + TOTDEP      
                Hg2aq_tot     = Hg2aq(I,J,NN) + HgPaq(I,J) + TOTDEP      
 
                Hg2aq(I,J,NN) = Hg2aq_tot * Frac_Hg2               
@@ -1316,26 +1059,17 @@ c$$$
                IF ( NN == 1 ) THEN
 
                   ! HgP ocean mass after conversion
-!                  HgC(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
                   HgPaq(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
-                     
 
                   !----------------------------------------------------
                   ! Conversion between OC and Hg                          
                   !----------------------------------------------------
                   ! Hg/C ratio based on HgP(kg) and Stock of organic C(kg)
                   ! HgPaq_sunk funtion of C sunk and HgP/C ratio   
-        
-!                  HgC_SUNK  = JorgC_kg * ( HgC(I,J) / OC_tot_kg)          
                   HgPaq_SUNK  = JorgC_kg * ( HgPaq(I,J) / OC_tot_kg)          
 
 
                   ! HgP ocean mass after sinking [kg]
-
-!                  HgC(I,J)   = HgC(I,J) - HgC_SUNK
-
-!                  HgC(I,J)   = MAX ( HgC(I,J) , 0.0 )                 
-
                   HgPaq(I,J)   = HgPaq(I,J) - HgPaq_SUNK
 
                   HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0d0 )                 
@@ -1450,7 +1184,6 @@ c$$$
                AD03(I,J,10) =AD03(I,J,10) + Hgaq_tot        
  
                ! HgP ocean mass [kg]
-!               AD03(I,J,11) = AD03(I,J,11) + HgC(I,J) 
                AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
 
                ! flux up and down (eck)
@@ -1663,9 +1396,7 @@ c$$$
       USE BPCH2_MOD,     ONLY : GET_TAU0, GET_RES_EXT, READ_BPCH2
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-!--jaf.start
       USE TIME_MOD,      ONLY : ITS_A_LEAPYEAR
-!--jaf.end
 
       USE CMN_SIZE_MOD      ! Size parameters
 
@@ -1678,24 +1409,20 @@ c$$$
       REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
       REAL*8                 :: TAU
       CHARACTER(LEN=255)     :: FILENAME
-!--jaf.start
       INTEGER                :: DAYS_IN_MONTH
       INTEGER                :: M(12) = (/ 31, 28, 31, 30, 31, 30,
      &                                     31, 31, 30, 31, 30, 31 /)
-!--jaf.end
 
       !=================================================================
       ! GET_MLD_FOR_NEXT_MONTH begins here!
       !=================================================================
       
-!--jaf.start
       ! Calculate days in this month (jaf, 7/6/11)
       IF ( THISMONTH == 2 .and. ITS_A_LEAPYEAR( THISYEAR ) ) THEN
          DAYS_IN_MONTH = M(THISMONTH) + 1
       ELSE
          DAYS_IN_MONTH = M(THISMONTH)
       ENDIF
-!--jaf.end
 
       ! MLD file name
       FILENAME = TRIM( DATA_DIR )       // 
@@ -1725,7 +1452,6 @@ c$$$
       ! get rate of change of MLD; convert [cm/month] -> [cm/s] 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-!--jaf.start
          ! This calculation can result in negative values of MLD at the
          ! end of the the month when there are more than 30.5 days in
          ! the month. Now use actual number of days per month (jaf, 
@@ -1733,7 +1459,6 @@ c$$$
          !dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) / ( 3.6d3 *24d0 * 30.5d0 )
          dMLD(I,J) = (newMLD(I,J) - MLD(I,J)) /
      &               ( 3.6d3 *24d0 * DAYS_IN_MONTH )
-!--jaf.end
       ENDDO
       ENDDO
 
@@ -1799,7 +1524,6 @@ c$$$
       A_M2   = GET_AREA_M2( J )
 
       ! Fraction of box that is ocean
-!--jaf.start
       ! Use fractional land type information in MERRA (jaf, 4/26/11)
       ! FROCEAN is a constant, so to get correct ocean fraction we
       ! need to subtract the sea ice fraction.
@@ -1808,7 +1532,6 @@ c$$$
 #else
       FRAC_O = 1d0 - FRCLND(I,J)
 #endif
-!--jaf.end
       
       ! Molecular weight of Hg (valid for all tagged tracers)
       MHg    = TRACER_MW_KG(ID_Hg_tot)
@@ -1857,9 +1580,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepatl(3) * MHg * A_M2 * FRAC_O )
-
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepatl(3) * MHg * A_M2 * FRAC_O )
 
@@ -1879,8 +1599,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                ENDIF
@@ -1899,8 +1617,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
                ENDIF
@@ -1919,8 +1635,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepnat(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepnat(3) * MHg * A_M2 * FRAC_O )
 
@@ -1940,8 +1654,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepsat(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepsat(3) * MHg * A_M2 * FRAC_O )
 
@@ -1960,8 +1672,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeepant(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeepant(3) * MHg * A_M2 * FRAC_O )
 
@@ -1981,8 +1691,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                 + ( DELTAH * CDeeparc(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                 + ( DELTAH * CDeeparc(3) * MHg * A_M2 * FRAC_O )
 
@@ -1999,8 +1707,6 @@ c$$$
 
                ! HgP
                IF ( C == 1 ) THEN
-!                  HgC(I,J)   = HgC(I,J)          
-!     &                    + ( DELTAH * CDeep(3) * MHg * A_M2 * FRAC_O )
                   HgPaq(I,J)   = HgPaq(I,J)          
      &                    + ( DELTAH * CDeep(3) * MHg * A_M2 * FRAC_O )
                ENDIF
@@ -2027,7 +1733,6 @@ c$$$
             ENDDO
             
             ! Update colloidal Hg
-!            HgC(I,J) = HgC(I,J) * ( MLDnew / MLDold )
             HgPaq(I,J) = HgPaq(I,J) * ( MLDnew / MLDold )
          
          ENDIF
@@ -2167,14 +1872,12 @@ c$$$
                ! Store ocean Hg(0) in Hg0aq array
                Hg0aq(:,:,NN)   = Hg_OCEAN(:,:,1)
                
-!--jaf.start
                ! Check for negative concentrations (jaf, 7/6/11)
                DO I = 1, IIPAR
                DO J = 1, JJPAR
                   IF ( Hg0aq(I,J,NN) .LT. 0 ) Hg0aq(I,J,NN) = 0d0
                ENDDO
                ENDDO
-!--jaf.end
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -2191,14 +1894,12 @@ c$$$
                ! Store ocean Hg(II) in Hg2_aq array
                Hg2aq(:,:,NN)   = Hg_OCEAN(:,:,1)
 
-!--jaf.start
                ! Check for negative concentrations (jaf, 7/6/11)
                DO I = 1, IIPAR
                DO J = 1, JJPAR
                   IF ( Hg2aq(I,J,NN) .LT. 0 ) Hg2aq(I,J,NN) = 0d0
                ENDDO
                ENDDO
-!--jaf.end
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -2212,14 +1913,12 @@ c$$$
                ! Particulate Hg
                HgPaq(:,:)        = Hg_OCEAN(:,:,1)
 
-!--jaf.start
                ! Check for negative concentrations (jaf, 7/6/11)
                DO I = 1, IIPAR
                DO J = 1, JJPAR
                   IF ( HgPaq(I,J) .LT. 0 ) HgPaq(I,J) = 0d0
                ENDDO
                ENDDO
-!--jaf.end
 
                ! Increment NCOUNT
                NCOUNT(NTRACER) = NCOUNT(NTRACER) + 1
@@ -2280,7 +1979,6 @@ c$$$
       ENDDO
 
       ! HgP
-!      WRITE( 6, 140 ) 3, 'HgC       ', SUM( HgC ), 'kg'
       WRITE( 6, 140 ) 3, 'HgP       ', SUM( HgPaq ), 'kg'
 
       ! Format strings
@@ -2459,7 +2157,6 @@ c$$$
       ! Total HgP in ocean
       !---------------------------
       N            = 3
-!      ARRAY(:,:,1) = HgC(:,:)
       ARRAY(:,:,1) = HgPaq(:,:)
 
       CALL BPCH2( IU_FILE,   MODELNAME, LONRES,   LATRES,
@@ -2500,7 +2197,6 @@ c$$$
          ENDDO
       ENDIF
 
-      !CDH snowpack
       !---------------------------
       ! Total Hg in snowpack
       !---------------------------
@@ -3093,17 +2789,7 @@ c$$$
       ENDIF
 
       
-      ! Allocate arrays
-c$$$      ALLOCATE( DD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_Hg2' )
-c$$$      DD_Hg2 = 0d0
-c$$$
-c$$$      ALLOCATE( DD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DD_HgP' )
-c$$$      DD_HgP = 0d0
-
-      
-
+      ! Allocate arrays     
       ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'dMLD' )
       dMLD = 0d0
@@ -3116,9 +2802,6 @@ c$$$      DD_HgP = 0d0
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
       Hg2aq = 0d0
 
-!      ALLOCATE( HgC( IIPAR, JJPAR ), STAT=AS )
-!      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgC' )
-!      HgC = 0d0
       ALLOCATE( HgPaq( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
       HgPaq = 0d0
@@ -3143,27 +2826,9 @@ c$$$      DD_HgP = 0d0
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CHL' )
       CHL = 0d0
 
-!      ALLOCATE( SNOW_HT( IIPAR, JJPAR ), STAT=AS ) !eds
-!      IF ( AS /= 0) CALL ALLOC_ERR( 'SNOW_HT' )
-!      SNOW_HT = 0d0 
-
       ALLOCATE( UPVEL( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UPVEL' )
       UPVEL = 0d0
-
-c$$$      ALLOCATE( WD_Hg2( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_Hg2' )
-c$$$      WD_Hg2 = 0d0
-c$$$
-c$$$      ALLOCATE( WD_HgP( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
-c$$$      WD_HgP = 0d0
-
-      ! CDH for snowpack
-c$$$      ALLOCATE( SNOW_HG( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-c$$$      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SNOW_HG' )
-c$$$      SNOW_HG = 0d0
-      
 
       ! Return to calling program
       END SUBROUTINE INIT_OCEAN_MERCURY
@@ -3187,12 +2852,9 @@ c$$$      SNOW_HG = 0d0
       !=================================================================
       ! CLEANUP_OCEAN_MERCURY begins here!
       !=================================================================
-!      IF ( ALLOCATED( DD_Hg2  ) ) DEALLOCATE( DD_Hg2  )
-!      IF ( ALLOCATED( DD_HgP  ) ) DEALLOCATE( DD_HgP  )
       IF ( ALLOCATED( dMLD    ) ) DEALLOCATE( dMLD    )
       IF ( ALLOCATED( Hg0aq   ) ) DEALLOCATE( Hg0aq   )  
       IF ( ALLOCATED( Hg2aq   ) ) DEALLOCATE( Hg2aq   )
-!      IF ( ALLOCATED( HgC     ) ) DEALLOCATE( HgC     )  
       IF ( ALLOCATED( HgPaq   ) ) DEALLOCATE( HgPaq   )  
       IF ( ALLOCATED( MLD     ) ) DEALLOCATE( MLD     )
       IF ( ALLOCATED( MLDav   ) ) DEALLOCATE( MLDav   )
@@ -3200,9 +2862,6 @@ c$$$      SNOW_HG = 0d0
       IF ( ALLOCATED( NPP     ) ) DEALLOCATE( NPP     )
       IF ( ALLOCATED( CHL     ) ) DEALLOCATE( CHL     )
       IF ( ALLOCATED( UPVEL   ) ) DEALLOCATE( UPVEL   )
-!      IF ( ALLOCATED( WD_Hg2  ) ) DEALLOCATE( WD_Hg2  )
-!      IF ( ALLOCATED( WD_HgP  ) ) DEALLOCATE( WD_HgP  )
-!      IF ( ALLOCATED( SNOW_HG ) ) DEALLOCATE( SNOW_HG ) !CDH for snowpack
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_OCEAN_MERCURY
