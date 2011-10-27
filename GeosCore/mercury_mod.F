@@ -571,7 +571,13 @@
       ! Reduce K_RED_JNO2 for GEIA 2005 inventory
       ! recommended by Helen Amos, 23 Sep 2011
       ! change implemented 10/19/11 by eck
+#if defined (GRID4x5)
       REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0 
+#elif defined (GRID2x25)
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3*2d0
+#else
+      REAL*8, PARAMETER     :: K_RED_JNO2 = 3.5D-3/2d0
+#endif      
 
       ! K for sea salt (eck, bmy, 4/6/06) [/s]
       REAL*8, PARAMETER     :: K_SALT_FIXED   = 3.8d-5
