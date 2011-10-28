@@ -572,7 +572,11 @@
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
 !      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
+#if defined (GRID4x5)
       REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
+#elif defined(GRID2x25)
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+#endif
 
       !=================================================================
       ! SOILEMIS begins here!

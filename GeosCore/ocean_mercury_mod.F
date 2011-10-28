@@ -1428,6 +1428,10 @@ c$$$
 !                  FDOWN(I,J,NN) = STT(I,J,1,N) / DTSRCE
 !               ENDIF
 
+               ! make sure Fup and Fdown do not underflow either
+               ! debug 2x2.5 diagnostic?
+               FUP(I,J,NN) = MAX (FUP(I,J,NN), SMALLNUM )
+               FDOWN(I,J,NN) = MAX (FDOWN(I,J,NN),SMALLNUM )
                !--------------------------------------------------------
                ! Remove amt of Hg(0) that is leaving the ocean [kg]
                !--------------------------------------------------------
