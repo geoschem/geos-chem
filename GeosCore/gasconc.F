@@ -31,6 +31,8 @@
 !       the READ_CSPEC value. (hotp, 2/26/09)
 !  (11) For SOA add check for LxRO2y species in globchem.dat and initialise. 
 !       (dkh, 03/12/10)
+!  18 Oct 2011 - M. Payer    - Do not overwrite CSPEC with CSPEC_FULL prior
+!                              to partitioning (D. Henze)
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -240,9 +242,16 @@
       ! is turned on. (bdf, phs, bmy, 10/3/06)
       ! NOTE : 
       ! (1 ) copy CSPEC_FULL to CSPEC depending on READ_CSPEC (hotp, 2/25/09)
-      ! IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
 
-      IF ( LVARTROP .or. FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
+!-----------------------------------------------------------------------
+! Prior to 10/18/11:
+! Do not overwrite CSPEC with CSPEC_FULL prior to partitioning 
+! (dkh, mpayer, 10/18/11)
+!      ! IF ( LVARTROP .or. FIRSTCHEM ) CALL COPY_FULL_TROP
+!
+!      IF ( LVARTROP .or. FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
+!-----------------------------------------------------------------------
+      IF ( FIRSTCHEM .or. READ_CSPEC ) CALL COPY_FULL_TROP
 
 !  ********************************************************************
 !  *            Update starting concentrations for plumes             *

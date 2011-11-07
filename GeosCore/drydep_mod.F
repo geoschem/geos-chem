@@ -3510,7 +3510,7 @@
             NTRAIND(NUMDEP) = IDTHNO3
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'HNO3'
-            HST AR(NUMDEP)  = 1.0d+14
+            HSTAR(NUMDEP)   = 1.0d+14
             F0(NUMDEP)      = 0.0d0
             XMW(NUMDEP)     = 63d-3
             AIROSOL(NUMDEP) = .FALSE.
