@@ -1332,7 +1332,7 @@
      &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
 #else 
 
-     CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,
+      CALL READ_BPCH2( FILENAME, 'CHLO-A-$',    1,
      &                 TAU,       IIPAR,        JJPAR,
      &                 1,         ARRAY(:,:,1), QUIET=.FALSE. )
 #endif
