@@ -425,7 +425,8 @@
          DO I=1, IIPAR
             XEDGE(I) = get_XEDGE( I )
          ENDDO
-         XEDGE(IIPAR+1) = XEDGE(1)
+         XEDGE(IIPAR+1) = XEDGE(1) + 360d0
+         XEDGE = XEDGE + 360d0
 
          ! Create array of latitude edges
          DO I=1, JJPAR
@@ -709,7 +710,8 @@
          DO I=1, IIPAR
             XEDGE(I) = get_XEDGE( I )
          ENDDO
-         XEDGE(IIPAR+1) = XEDGE(1)
+         XEDGE(IIPAR+1) = XEDGE(1) + 360d0
+         XEDGE = XEDGE + 360d0
 
          ! Create array of latitude edges
          DO I=1, JJPAR
