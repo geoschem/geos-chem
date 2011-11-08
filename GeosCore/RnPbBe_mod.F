@@ -72,6 +72,7 @@
 !  (15) Now references "tropopause_mod.f"
 !  (16) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  19 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -312,6 +313,7 @@
 !  (18) Remove reference to CMN; it's obsolete.  Now use inquiry functions
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,7 +523,7 @@
             STT(I,J,L,3) = STT(I,J,L,3) + ADD_Be
 
             ! ND01 diag: 7Be emission [kg/s]
-            IF ( ND01 > 0 ) THEN
+            IF ( ND01 > 0 .and. L <= LD01 ) THEN
                AD01(I,J,L,3) = AD01(I,J,L,3) + ( ADD_Be / DTSRCE )
             ENDIF
          ENDDO 
@@ -579,6 +581,7 @@
 !  (11) Remove reference to CMN; it's obsolete.  Now use inquiry functions 
 !        from "tropopause_mod.f" to diagnose strat boxes. (bmy, 8/15/05)
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!  08 Nov 2011 - R. Yantosca - Prevent out-of-bounds errors in diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -629,7 +632,7 @@
          Rn_LOST(I,J,L) = STT(I,J,L,1) * ( 1d0 - EXP_Rn )
 
          ! ND02 diag: 222Rn lost to decay [kg/s]
-         IF ( ND02 > 0 ) THEN
+         IF ( ND02 > 0 .and. L <= LD02 ) THEN
             AD02(I,J,L,1) = AD02(I,J,L,1) + ( Rn_LOST(I,J,L) / DTCHEM )
          ENDIF
 
@@ -661,7 +664,7 @@
             ENDIF
 
             ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
-            IF ( ND01 > 0 ) THEN
+            IF ( ND01 > 0 .and. L <= LD01 ) THEN
                AD01(I,J,L,2) = AD01(I,J,L,2) + ( ADD_Pb / DTCHEM )
             ENDIF
 
@@ -673,7 +676,7 @@
             Pb_LOST = STT(I,J,L,2) * ( 1d0 - EXP_Pb )
 
             ! ND02 diag: 210Pb lost to decay [kg/s]
-            IF ( ND02 > 0 ) THEN
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
                AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
             ENDIF
 
@@ -701,7 +704,7 @@
             Be_LOST = STT(I,J,L,3) * ( 1d0 - EXP_Be )
 
             ! ND02 diag: 7Be lost to decay [kg/s]
-            IF ( ND02 > 0 ) THEN
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
                AD02(I,J,L,3) = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
             ENDIF
 
