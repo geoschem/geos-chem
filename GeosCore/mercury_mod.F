@@ -717,6 +717,11 @@
             K_RED = K_RED_OH * FA * C_OH
          ENDIF
 
+         ! Round very small K_OX, K_RED to prevent numerical errors
+         ! (jaf, cdh, 11/17/11)
+         IF ( K_OX  < 1D-10 ) K_OX  = 0d0
+         IF ( K_RED < 1D-10 ) K_RED = 0d0
+
          ! Define K for dry deposition, [/s]
          K_DRYD0 = V_DEP_HG0(I,J)
          K_DRYD2 = V_DEP_HG2(I,J)
