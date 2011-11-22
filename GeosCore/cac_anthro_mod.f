@@ -301,11 +301,11 @@
          ENDIF
             
          IF ( ( THISYEAR .le. 2002 ) .OR. 
-     &        ( THISYEAR .ge. 2005 ) ) THEN
+     &        ( THISYEAR .ge. 2010 ) ) THEN
  
             ! TAU values for 2002/2005
-            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2005 ) )
-            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2005 )
+            TAU = GET_TAU0( 1, 1, MIN( MAX( THISYEAR, 2002 ), 2010 ) )
+            WRITE( SYEAR, '(i4)' ) MIN( MAX( THISYEAR, 2002 ), 2010 )
 
             ! File name
             FILENAME  = TRIM( DATA_DIR_1x1 ) // 'CAC_200801/CAC' // 

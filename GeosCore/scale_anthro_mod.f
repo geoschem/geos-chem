@@ -161,11 +161,11 @@
       ! GET_ANNUAL_SCALAR_1x1 begins here!
       !=================================================================
 
-      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_200911/'
+      SCALE_DIR = TRIM( DATA_DIR_1x1 ) // 'anth_scale_factors_201111/'
 
       ! limit scaling between available years
-      BASE_YEAR = MAX( MIN( B_YEAR, 2006 ), 1985 )
-      TARG_YEAR = MAX( MIN( T_YEAR, 2006 ), 1985 )
+      BASE_YEAR = MAX( MIN( B_YEAR, 2010 ), 1985 )
+      TARG_YEAR = MAX( MIN( T_YEAR, 2010 ), 1985 )
 
       WRITE( BASE_YYYY_STR, '(i4.4)' ) BASE_YEAR
       WRITE( TARG_YYYY_STR, '(i4.4)' ) TARG_YEAR
@@ -197,8 +197,13 @@
 
          ENDIF
 
-         ! Get Tau    
-         TAU = GET_TAU0(1,1,BASE_YEAR)
+         ! Get Tau. Only NOx scaling exists after 2006   
+         
+         IF ( BASE_YEAR >=2006 .and. TRACER.ne.71) THEN
+             TAU = GET_TAU0(1,1,2005)
+         ELSE 
+             TAU = GET_TAU0(1,1,BASE_YEAR)
+         ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
@@ -238,13 +243,18 @@
 
          ENDIF
 
-         ! Calc Tau
-         TAU = GET_TAU0(1,1,TARG_YEAR)
+         ! Calc Tau. Only NOx scaling exists after 2006 
+         IF ( TARG_YEAR >=2006 .and. TRACER.ne.71 ) THEN
+             TAU = GET_TAU0(1,1,2005)
+         ELSE 
+             TAU = GET_TAU0(1,1,TARG_YEAR)
+         ENDIF
 
          ! Echo filename
          WRITE( 6, 100 ) TRIM( FILENAME )
 
          ! Read data
+
          CALL READ_BPCH2( FILENAME, 'RATIO-2D', TRACER,
      &                    TAU,  I1x1,       J1x1,
      &                    1,        T_1x1,      QUIET=.TRUE. )

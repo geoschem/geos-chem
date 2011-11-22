@@ -209,8 +209,8 @@
       ENDIF
 
       ! cap maximum scaling year
-      IF ( THISYEAR .gt. 2007 ) THEN
-         THISYEAR = 2007
+      IF ( THISYEAR .gt. 2010 ) THEN
+         THISYEAR = 2010
       ENDIF
 
       SNAME = 'NOx'

@@ -462,12 +462,17 @@
       ! NOx, CO, NH3 and include SOx (amv, 06/04/08)
       !=================================================================
 
-      IF ( SCALEYEAR > 1989 ) THEN
+      IF ( SCALEYEAR > 1989) THEN
 
          ! new EMEP data is only defined from 1990-2007
          EMEP_YEAR = MIN( SCALEYEAR, 2007 )
 
          CALL READ_EMEP_UPDATED(  1, EMEP_YEAR, EMEP_NOx, 0 )
+         IF ( SCALEYEAR >2007 .AND. SCALEYEAR <=2010 ) THEN
+         CALL GET_ANNUAL_SCALAR( 71, 2007, SCALEYEAR, Sc )
+         EMEP_NOx(:,:) = EMEP_NOx(:,:) * Sc(:,:)
+         END IF
+
          CALL READ_EMEP_UPDATED(  4, EMEP_YEAR, EMEP_CO, 0 )
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2, 0 )
          CALL READ_EMEP_UPDATED( 30, EMEP_YEAR, EMEP_NH3, 1 )
@@ -477,6 +482,7 @@
          CALL READ_EMEP_UPDATED( 26, EMEP_YEAR, EMEP_SO2_SHIP, 2 )
 
       ! Need to use for SOx/NH3 anyways, but SOx scale back further
+
       ELSE
 
          CALL READ_EMEP_UPDATED( 26, 1990, EMEP_SO2, 0 )
