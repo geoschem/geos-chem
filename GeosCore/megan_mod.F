@@ -148,7 +148,8 @@
 !  20 Aug 2010 - R. Yantosca - Now set DAY_DIM = 24 for MERRA, since the
 !                              surface temperature is now an hourly field.
 !  01 Sep 2010 - R. Yantosca - Bug fix in INIT_MEGAN: now only read in 
-!                              NUM_DAYS (instead of 15) days of sfc temp data 
+!                              NUM_DAYS (instead of 15) days of sfc temp data
+!  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2555,6 +2556,7 @@
 !                              been hardwired to 15 days previously)
 !  07 Feb 2011 - R. Yantosca - Fix typos: make sure to zero out the proper 
 !                              PARDF_* and PARDR_* arrays after allocation
+!  22 Nov 2011 - R. Yantosca - Do not use erroneous AEF's for nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2678,12 +2680,36 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PARDF_DAILY' )
       PARDF_DAILY = 0d0
 
-      ! Get annual emission factors for MEGAN inventory
-#if   defined( GRID05x0666 )
-      CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
-#else
-      CALL GET_AEF             ! Global simulations
-#endif 
+!------------------------------------------------------------------------------
+! Prior to 11/22/11:
+! Lin Zhang (linzhang@fas.harvard.edu) wrote:
+!
+! I want to bring up an error in the MEGAN biogenic emissions with the nested 
+! model in the latest versions (eg. v9-01-01).  The MEGAN emissions have been 
+! updated from MEGAN 2.0 to MEGAN 2.1 since v8-02-04 in the standard model 
+! with 4x5 or 2x2.5 resolution, however, they are not fully implemented in the 
+! nested model.  The nested model for allregions still uses some old annual 
+! emission factors (as we can see in the module megan_mod.f, subroutine 
+! GET_AEF vs. GET_AEF_05x0666).  This error would cause biogenic isoprene 
+! emissions (with MEGAN 2.1) over the US a factor of two higher in the nested 
+! NA model than that in the 2x2.5 model. It can also affect the CH and EU 
+! nested models.
+!
+! A quick fix can be implemented calling GET_AEF for both nested & global
+! grids.  In this case, the model would read the annual emission factors at 
+! 1x1 resolution and then regrid to the underlying resolution.
+!
+! Comment this out:
+!      ! Get annual emission factors for MEGAN inventory
+!#if   defined( GRID05x0666 )
+!      CALL GET_AEF_05x0666     ! GEOS-5 nested grids only
+!#else
+!      CALL GET_AEF             ! Global simulations
+!#endif 
+!------------------------------------------------------------------------------
+
+      ! For global and nested simulations (lzh, bmy, 11/22/11)
+      CALL GET_AEF
 
       ! Initialize LAI arrays
       CALL INIT_LAI
