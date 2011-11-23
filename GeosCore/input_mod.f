@@ -310,6 +310,9 @@
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
             CALL READ_ND51b_MENU  
 
+         ELSE IF ( INDEX( LINE, 'ND59 MENU'        ) > 0 ) THEN
+            CALL READ_ND59_MENU                   
+
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
             CALL READ_PROD_LOSS_MENU               
                                                   
@@ -3249,13 +3252,6 @@
       CALL SET_TINDEX( 58, ND58, SUBSTRS(2:N), N-1, PD58 )
 
       !--------------------------
-      ! ND59: Free
-      !--------------------------
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:58' )
-      READ( SUBSTRS(1), * ) ND59
-      CALL SET_TINDEX( 59, ND59, SUBSTRS(2:N), N-1, PD59 )
-
-      !--------------------------
       ! ND60: Wetland Fraction 
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:59' )
@@ -4120,6 +4116,106 @@
       END SUBROUTINE READ_ND51b_MENU
 
 !------------------------------------------------------------------------------
+
+      SUBROUTINE READ_ND59_MENU
+!
+!******************************************************************************
+!  Subroutine READ_ND59_MENU reads the ND59 MENU section of the GEOS-CHEM 
+!  input file. (gvinken, 02/25/11)
+!
+!  NOTES:
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE DIAG59_MOD, ONLY : INIT_DIAG59
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+
+#     include "CMN_SIZE"   ! Size parameters
+
+      ! Local variables
+      LOGICAL             :: DO_ND59
+      INTEGER             :: N,    I,         AS
+      ! Increased to 121 from 100 (mpb,2009)
+      INTEGER             :: ND59, N_TRACERS, TRACERS(121)
+      INTEGER             :: IMIN, IMAX,      FREQ
+      INTEGER             :: JMIN, JMAX,      N_ND59
+      CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM), MSG
+      CHARACTER(LEN=255)  :: FILE
+
+      !=================================================================
+      ! READ_ND59_MENU begins here!
+      !=================================================================
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & TRACER MENU must be read in first!'
+         CALL ERROR_STOP( MSG, 'READ_ND59_MENU ("input_mod.f")' )
+      ENDIF
+
+      ! Initialize
+      ND59       = 0
+      TRACERS(:) = 0
+
+      ! Turn on ND59 diagnostic
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd59_menu:1' )
+      READ( SUBSTRS(1:N), * ) DO_ND59
+
+      ! Instantaneous 3-D timeseries file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd59_menu:2' )
+      READ( SUBSTRS(1:N), '(a)' ) FILE
+
+      ! Tracers to include
+      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND59, -1, 'read_nd59_menu:3' )
+      DO N = 1, N_ND59
+         READ( SUBSTRS(N), * ) TRACERS(N)
+      ENDDO
+
+      ! FREQ
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd59_menu:4' )
+      READ( SUBSTRS(1:N), * ) FREQ
+
+      ! IMIN, IMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd59_menu:5' )
+      READ( SUBSTRS(1:N), * ) IMIN, IMAX
+
+      ! JMIN, JMAX
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd59_menu:6' )
+      READ( SUBSTRS(1:N), * ) JMIN, JMAX
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd59_menu:8' )
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      WRITE( 6, '(/,a)' ) 'ND59 3-D INSTANTANEOUS TIMESERIES MENU'
+      WRITE( 6, '(  a)' ) '--------------------------------------'
+      WRITE( 6, 100     ) 'Turn on ND59 timeseries?    : ', DO_ND59
+      WRITE( 6, 110     ) 'ND59 timeseries file name   : ', TRIM( FILE )
+      WRITE( 6, 120     ) 'ND59 timeseries tracers     : ', 
+     &                     ( TRACERS(N), N=1, N_ND59 )
+      WRITE( 6, 130     ) 'ND59 save frequency [min]   : ', FREQ
+      WRITE( 6, 130     ) 'ND59 longitude limits       : ', IMIN, IMAX
+      WRITE( 6, 130     ) 'ND59 latitude  limits       : ', JMIN, JMAX
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+ 120  FORMAT( A, 100I3 )
+ 130  FORMAT( A, 2I5   )
+
+      !=================================================================
+      ! Call setup routines from other F90 modules
+      !=================================================================
+
+      ! Initialize for ND59 timeseries
+      CALL INIT_DIAG59( DO_ND59, N_ND59, TRACERS, IMIN, 
+     &                  IMAX,    JMIN,   JMAX,  FREQ,   FILE )
+
+      ! Return to calling program
+      END SUBROUTINE READ_ND59_MENU
+
+!-------------------------------------------------------------------------------
 
       SUBROUTINE READ_PROD_LOSS_MENU
 !

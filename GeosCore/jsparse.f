@@ -494,11 +494,16 @@ C *********************************************************************
 C                SET A SLIGHTLY MORE EFFICIENT PHOTO ARRAY 
 C *********************************************************************
 C
+c       DO 243 J          = 1, JPHOTRAT(NCS)
+c        NK               = NKPHOTRAT(J,NCS)
+c        NKN              = NEWFOLD(NK,NCS)
+c        NKNPHOTRT(J,NCS) = NKN
+c 243   CONTINUE
+
        DO 243 J          = 1, JPHOTRAT(NCS)
-        NK               = NKPHOTRAT(J,NCS)
-        NKN              = NEWFOLD(NK,NCS)
-        NKNPHOTRT(J,NCS) = NKN
+         NKNPHOTRT(J,NCS) = NKPHOTRAT(J,NCS)
  243   CONTINUE
+
 C
  245   FORMAT('JSPARSE: IC NE NALLRAT =',2(I5))
 C

@@ -243,6 +243,7 @@
       REAL*8,  ALLOCATABLE :: SPHU2(:,:,:)
       REAL*8,  ALLOCATABLE :: SPHU (:,:,:)
       REAL*8,  ALLOCATABLE :: SUNCOS(:)
+      REAL*8,  ALLOCATABLE :: SUNCOS5(:)
       REAL*8,  ALLOCATABLE :: T(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLI(:,:,:)
       REAL*8,  ALLOCATABLE :: TAUCLW(:,:,:)
@@ -1428,6 +1429,147 @@
 
 !------------------------------------------------------------------------------
 
+      SUBROUTINE COSSZA5( JDAY, SUNCOS5 )
+!
+!******************************************************************************
+!  COSSZA computes the cosine of the solar zenith angle. (bmy 1/21/98, 4/27/10)
+!
+!  Arguments as input:
+!  ============================================================================
+!  (1 ) JDAY   (INTEGER) : The current day of the year (0-365 or 0-366)
+!
+!  Arguments as output:
+!  ===========================================================================
+!  (2 ) SUNCOS (REAL*8 ) : 1D Array of cos(SZA) for each grid box (in radians)
+!
+!  NOTES:
+!  (1 ) COSSZA is written in Fixed-Form Fortran 90.
+!  (2 ) Use IMPLICIT NONE to declare all variables explicitly.                
+!  (3 ) Use C-preprocessor #include statement to include CMN_SIZE, which 
+!        has IIPAR, JJPAR, LLPAR, IGLOB, JGLOB, LGLOB. 
+!  (4 ) Use IM and JM (in CMN_SIZE) as loop limits.
+!  (5 ) Include Harvard CTM common blocks and rename variables where needed.  
+!  (6 ) Use SUNCOS(MAXIJ) instead of a 2D array, in order for compatibility
+!        with the Harvard CTM subroutines.  SUNCOS loops over J, then I.
+!  (7 ) Added DO WHILE loops to reduce TIMLOC into the range 0h - 24h.
+!  (8 ) Cosmetic changes.  Also use F90 declaration statements (bmy, 6/5/00)
+!  (9 ) Added to "dao_mod.f".  Also updated comments. (bmy, 9/27/01)
+!  (10) Replaced all instances of IM with IIPAR and JM with JJPAR, in order
+!        to prevent namespace confusion for the new TPCORE (bmy, 6/25/02)
+!  (11) Deleted obsolete code from 6/02 (bmy, 8/21/02)
+!  (12) Removed RLAT and XLON from the arg list.  Now compute these using 
+!        functions from "grid_mod.f" (bmy, 2/3/03)
+!  (13) Now uses GET_LOCALTIME from "time_mod.f" to get the local time. 
+!        Added parallel DO loop. Removed NHMSb, NSEC arguments. (bmy, 2/13/07)
+!  (14) Now compute SUNCOS at the midpoint of the relevant time interval
+!        (i.e. the chemistry timestep).   Also make the A and B coefficients
+!        parameters instead of variables. (bmy, 4/27/10)
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE GRID_MOD,    ONLY : GET_YMID_R
+      USE TIME_MOD,    ONLY : GET_LOCALTIME, GET_TS_SUN_2
+
+#     include "CMN_SIZE"    ! Size parameters
+#     include "CMN_GCTM"    ! Physical constants
+
+      ! Arguments
+      INTEGER, INTENT(IN)  :: JDAY
+      REAL*8,  INTENT(OUT) :: SUNCOS5(MAXIJ)
+      
+      ! Local variables
+      INTEGER              :: I, IJLOOP, J
+      REAL*8               :: R, AHR, DEC, TIMLOC, YMID_R, OFFSET
+
+      ! Coefficients for solar declination angle
+      REAL*8,  PARAMETER   :: A0 = 0.006918d0
+      REAL*8,  PARAMETER   :: A1 = 0.399912d0
+      REAL*8,  PARAMETER   :: A2 = 0.006758d0
+      REAL*8,  PARAMETER   :: A3 = 0.002697d0
+      REAL*8,  PARAMETER   :: B1 = 0.070257d0
+      REAL*8,  PARAMETER   :: B2 = 0.000907d0
+      REAL*8,  PARAMETER   :: B3 = 0.000148d0
+
+      !=================================================================
+      ! COSSZA5 begins here!   
+      !=================================================================
+
+      ! 1/2 of the time interval (normally the chemistry timestep)
+      ! for computing SUNCOS.  Convert from minutes to hours.
+      OFFSET = (GET_TS_SUN_2() / 60d0) - 5D0
+
+      ! Path length of earth's orbit traversed since Jan 1 [radians]
+      R   = ( 2d0 * PI / 365d0 ) * DBLE( JDAY - 1 ) 
+
+      ! Solar declination angle (low precision formula)
+      DEC = A0 - A1*COS(     R ) + B1*SIN(     R )
+     &         - A2*COS( 2d0*R ) + B2*SIN( 2d0*R )
+     &         - A3*COS( 3d0*R ) + B3*SIN( 3d0*R )
+
+      !=================================================================
+      ! Compute cosine of solar zenith angle 5 hours ago
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, YMID_R, IJLOOP, TIMLOC, AHR )
+
+      ! Loop over latitude
+      DO J = 1, JJPAR
+
+         ! Latitude of grid box [radians]
+         YMID_R = GET_YMID_R( J )
+
+         ! Loop over longitude
+         DO I = 1, IIPAR
+
+            ! 1-D grid box index
+            IJLOOP = ( (J-1) * IIPAR ) + I
+
+            !===========================================================
+            ! TIMLOC = Local Time in Hours                   
+            !
+            ! Hour angle (AHR) is a function of longitude.  AHR is 
+            ! zero at solar noon, and increases by 15 deg for every 
+            ! hour before or after solar noon.  
+            !
+            ! Hour angle can be thought of as the time in hours since 
+            ! the sun last passed the meridian (i.e. the time since the
+            ! last local noon).  Convert to radians for the COS below.
+            !===========================================================
+
+            ! Local time at box (I,J) [hours]
+            TIMLOC = GET_LOCALTIME( I, OFFSET )
+
+            ! Hour angle at box (I,J) [radians]
+            AHR    = ABS( TIMLOC - 12d0 ) * 15d0 * PI_180
+            
+            !===========================================================
+            ! The cosine of the solar zenith angle (SZA) is given by:
+            !     
+            !  cos(SZA) = sin(LAT)*sin(DEC) + cos(LAT)*cos(DEC)*cos(AHR) 
+            !                   
+            ! where LAT = the latitude angle, 
+            !       DEC = the solar declination angle,  
+            !       AHR = the hour angle, all in radians. 
+            !
+            ! If SUNCOS < 0, then the sun is below the horizon, and 
+            ! therefore does not contribute to any solar heating.  
+            !===========================================================
+               
+            ! Compute cos(SZA) at box (I,J) [unitless]
+            SUNCOS5(IJLOOP) = SIN( YMID_R ) * SIN( DEC ) +
+     &                       COS( YMID_R ) * COS( DEC ) * COS( AHR )
+
+         ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Return to calling program 
+      END SUBROUTINE COSSZA5
+      
+!------------------------------------------------------------------------------
+
       SUBROUTINE CONVERT_UNITS( IFLAG, N_TRACERS, TCVV, AD, STT ) 
 !
 !******************************************************************************
@@ -1856,6 +1998,11 @@
       ALLOCATE( SUNCOS( MAXIJ ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS' )
       SUNCOS = 0d0
+
+      ! Cosine of solar zenith angle 5 hours ago
+      ALLOCATE( SUNCOS5( MAXIJ ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUNCOS5' )
+      SUNCOS5 = 0d0
 
       ! Temperature
       ALLOCATE( T( IIPAR, JJPAR, LLPAR ), STAT=AS )
@@ -2375,6 +2522,7 @@
       IF ( ALLOCATED( SPHU2    ) ) DEALLOCATE( SPHU2    )
       IF ( ALLOCATED( SPHU     ) ) DEALLOCATE( SPHU     )
       IF ( ALLOCATED( SUNCOS   ) ) DEALLOCATE( SUNCOS   )
+      IF ( ALLOCATED( SUNCOS5  ) ) DEALLOCATE( SUNCOS5  )
       IF ( ALLOCATED( T        ) ) DEALLOCATE( T        )
       IF ( ALLOCATED( TAUCLI   ) ) DEALLOCATE( TAUCLI   )
       IF ( ALLOCATED( TAUCLW   ) ) DEALLOCATE( TAUCLW   )

@@ -440,60 +440,8 @@
             ! from 1990 with EMEP 2005 (phs, 6/08)
             ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
             !-----------------------------------------------------------
-            ! DO it only once (1st level)
-            IF ( LL == 1 ) THEN
 
-               ! Reset
-               SHIP = 0D0
-
-               ! handle global inventory first
-               IF ( LEDGARSHIP ) THEN 
-
-                  ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
-                  SHIP = GET_EDGAR_NOx( I, J, 
-     &                                  MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
-                  
-               ! ICOADS ship emissions (cklee,7/09/09)
-               ELSE IF ( LICOADSSHIP ) THEN
-
-                  ! Get ICOADS  emissions for NOx [molec/cm2/s]
-                  SHIP = GET_ICOADS_SHIP( I, J, NN, MOLEC_CM2_S=.TRUE. )
-                  
-               ENDIF
-
-               ! Overwrite Europe
-               IF ( LEMEPSHIP ) THEN
-                 
-                  IF ( GET_EUROPE_MASK( I, J ) > 0d0 )
-
-                  ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
-     &            SHIP = GET_EMEP_ANTHRO( I, J, NN, SHIP=.TRUE.)
-
-               ENDIF
-                  
-               ! Convert molec/cm2/s to kg/box/timestep to get same
-               ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
-               SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
-         
-               ! Store as HNO3 and O3
-               EMISRR(I,J,IDEHNO3) = SHIP * XNUMOL(IDTHNO3) / DTSRCE
-               EMISRR(I,J,IDEOX)   = 10D0 * SHIP * 
-     &                               XNUMOL(IDTOX) / DTSRCE
-               
-               ! ND36 = Anthro source diagnostic...store as [molec/cm2]
-               ! and convert to [molec/cm2/s] in DIAG3.F
-               IF ( ND36 > 0 ) THEN
-
-                  AD36(I,J,IDEHNO3) = AD36(I,J,IDEHNO3) + SHIP * 
-     &                                XNUMOL(IDTHNO3) / AREA_CM2
-
-                  AD36(I,J,IDEOX) = AD36(I,J,IDEOX) + SHIP * 
-     &                              10D0 * XNUMOL(IDTOX) / AREA_CM2
-                  
-               ENDIF
-               
-            ENDIF
-
+            !SHIP EMISSIONS NOW DONE IN CALCRATE.F (gvinken, 07/27/10)
 
             !-----------------------------------------------------------
             ! Store in EMISRRN array and archive diagnostics

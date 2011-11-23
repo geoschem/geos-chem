@@ -62,11 +62,13 @@
       USE DIAG50_MOD,        ONLY : DIAG50,          DO_SAVE_DIAG50
       USE DIAG51_MOD,        ONLY : DIAG51,          DO_SAVE_DIAG51
       USE DIAG51b_MOD,       ONLY : DIAG51b,         DO_SAVE_DIAG51b
+      USE DIAG59_MOD,        ONLY : DIAG59,          ITS_TIME_FOR_DIAG59
       USE DIAG_OH_MOD,       ONLY : PRINT_DIAG_OH
       USE DAO_MOD,           ONLY : AD,              AIRQNT  
       USE DAO_MOD,           ONLY : AVGPOLE,         CLDTOPS
       USE DAO_MOD,           ONLY : CONVERT_UNITS,   COPY_I6_FIELDS
       USE DAO_MOD,           ONLY : COSSZA,          INIT_DAO
+      USE DAO_MOD,           ONLY : COSSZA5
       USE DAO_MOD,           ONLY : INTERP,          PS1
       USE DAO_MOD,           ONLY : PS2,             PSC2          
       USE DAO_MOD,           ONLY : T,               TS            
@@ -75,7 +77,7 @@
 ! Remove obsolete SUNCOSB (bmy, 4/28/10)
 !      USE DAO_MOD,           ONLY : SUNCOS,          SUNCOSB
 !----------------------------------------------------------------------
-      USE DAO_MOD,           ONLY : SUNCOS
+      USE DAO_MOD,           ONLY : SUNCOS, SUNCOS5
       USE DAO_MOD,           ONLY : MAKE_RH
       !Add MAKE_GTMM_RESTART for mercury simulation (ccc, 11/19/09)
       USE DEPO_MERCURY_MOD,  ONLY : MAKE_GTMM_RESTART, UPDATE_DEP
@@ -781,6 +783,9 @@
          ! Compute the cosine of the solar zenith angle array SUNCOS
          CALL COSSZA( DAY_OF_YEAR, SUNCOS )
 
+         ! Compute the cosine of the solar zenith angle 5 hours ago in array SUNCOS5
+         CALL COSSZA5( DAY_OF_YEAR, SUNCOS5 )
+
          ! Compute tropopause height for ND55 diagnostic
          IF ( ND55 > 0 ) CALL TROPOPAUSE
 
@@ -1080,6 +1085,10 @@
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49() ) CALL DIAG49
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
+
+         ! Ship timeseries
+         IF ( ITS_TIME_FOR_DIAG59() ) CALL DIAG59
+         IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: after DIAG59' )
 
          ! Morning or afternoon timeseries
          IF ( DO_SAVE_DIAG51 ) CALL DIAG51 

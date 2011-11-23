@@ -86,6 +86,33 @@
       USE GCKPP_GLOBAL,    ONLY : IND
       USE LOGICAL_MOD,     ONLY : LNLPBL, LKPP ! (Lin, 03/31/09)
 
+c      UPDATE BY GVINKEN, USE FOR SHIPS EMISSIONS
+      USE ICOADS_SHIP_MOD,       ONLY : GET_ICOADS_SHIP !(cklee, 7/09/09)
+      USE ICOADS_SHIP_MOD,       ONLY : INTERPOLATE_LUT2 !(gvinken, 6/07/2010)
+      USE LOGICAL_MOD,           ONLY : LICOADSSHIP !(cklee, 6/30/09)
+
+      USE LOGICAL_MOD,           ONLY : LEDGARSHIP,       LARCSHIP
+      USE LOGICAL_MOD,           ONLY : LEMEPSHIP,        LVISTAS
+      USE EDGAR_MOD,             ONLY : GET_EDGAR_NOx
+      USE EMEP_MOD,              ONLY : GET_EMEP_ANTHRO, GET_EUROPE_MASK
+
+      USE TRACER_MOD,            ONLY : XNUMOL
+      USE TIME_MOD,              ONLY : GET_TS_EMIS
+      USE GRID_MOD,              ONLY : GET_AREA_CM2
+      
+      USE TRACERID_MOD,          ONLY : IDTNOX, IDO3, IDNO,IDNO2, IDTOX
+      USE TRACERID_MOD,          ONLY : IDHNO3, IDOX
+      USE TRACERID_MOD,          ONLY : CTRMB,  IDENOX, IDEOX, IDEHNO3
+      USE TRACERID_MOD,          ONLY : IDTHNO3, IDEMIS
+      
+      USE PBL_MIX_MOD,       ONLY : GET_PBL_TOP_L
+      USE PRESSURE_MOD,      ONLY : GET_PEDGE     
+      
+      USE COMODE_MOD,      ONLY :  VOLUME
+      
+      USE DIAG_MOD,        ONLY : AD32_an,  AD36,  AD59
+      USE DIAG59_MOD,   ONLY:  DO_SAVE_DIAG59
+      USE EMISSIONS_MOD,     ONLY : NOx_SCALING      
 
       IMPLICIT NONE
 
@@ -96,11 +123,19 @@
 #     include "CMN_DIAG"  ! ND22, LD22, ND52, LD52
       ! added FRCLND (jaegle 02/26/09)
 #     include "CMN_DEP"  ! FRCLND
+#     include "CMN_O3"    ! for jvalues (gvinken, 6/09/10)
       
       ! Local variables
       INTEGER :: KLOOP,JLOOP,I,NK,JOLD2,JOLD,NK1,NKN,NH,MLOOP,J
       INTEGER :: NP,K,IFNC,IBRCH,IX,IY,IZ,IJWINDOW,INDEX,NN,ii,jj
       INTEGER :: PHOTVAL,KSUN
+
+      ! Added by GVINKEN
+      REAL*8                :: SHIP
+      REAL*8                :: DTSRCE, AREA_CM2
+      real                  :: fraction_nox, int_ope 
+      INTEGER             :: L, TOP
+      REAL*8              :: EMIS_BL, COEF1,   TOTPRES, DELTPRES
 
       REAL*8  :: ARRNK,FCVNK,FCT1,FCT2,FCT,XYRAT,BLOG,FEXP,RATE3M
 C      REAL*8  :: CONSTC,RATE2AIR,RATE3H2O,RIS,RST,TBEGIN,TFINISH
@@ -338,64 +373,6 @@ C
      1              * EXP(KCRR(NK,NCS) / T3K(KLOOP))
  50         CONTINUE
  52      CONTINUE
-
-C
-C *********************************************************************
-C ******                   SET EMISSION RATES                    ******
-C *********************************************************************
-C
-! Add option for non-local PBL mixing (Lin, 03/31/09)
-
-      IF (LNLPBL) THEN
-
-         DO I = 1,NEMIS(NCS)
-C get tracer number corresponding to emission species I
-            NN = IDEMS(I)
-            IF (NN.NE.0) THEN
-C find reaction number for emission of tracer NN
-               NK = NTEMIS(NN,NCS)
-               IF (NK.NE.0) THEN
-                  DO KLOOP = 1,KTLOOP
-                     JLOOP = LREORDER(KLOOP+JLOOPLO)
-                     RRATE(KLOOP,NK) = 0.d0
-                     ! Surface emissions of gases are constrained to the 
-                     ! lowest model layer, and are considered in the 
-                     ! PBL mixing module vdiff_mod, not anymore in SMVGEAR.
-                     ! Emissions at higher levels (e.g. aircraft) are still
-                     ! managed by SMVGEAR. 
-                     !*** As of 05/02/08, REMIS only contains emissions of 
-                     ! gases for the SMVGEAR mechanism. (Lin, 05/02/08)
-                     !RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                     IZ    = IZSAVE(JLOOP)
-                     if (IZ .EQ. 1) then
-                        RRATE(KLOOP,NK) = 0.D0
-                     else
-                        RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                     endif
-                  ENDDO
-               ENDIF
-            ENDIF
-         ENDDO
-
-      ELSE
-
-         DO I = 1,NEMIS(NCS)
-C get tracer number corresponding to emission species I
-            NN = IDEMS(I)
-            IF (NN.NE.0) THEN
-C find reaction number for emission of tracer NN
-               NK = NTEMIS(NN,NCS)
-               IF (NK.NE.0) THEN
-                  DO KLOOP = 1,KTLOOP
-                     RRATE(KLOOP,NK) = 0.d0
-                     JLOOP = LREORDER(KLOOP+JLOOPLO)
-                     RRATE(KLOOP,NK) = REMIS(JLOOP,I)
-                  ENDDO
-               ENDIF
-            ENDIF
-         ENDDO
-
-      ENDIF
 
 C
 C *********************************************************************
@@ -937,69 +914,7 @@ C Change yield for HAC
 
       ENDIF
 C     ENDIF NCS.EQ.1 OR 2
-C
-C *********************************************************************
-C *********************************************************************
-C *             REORDER RRATE ARRAY THEN CALL SOLVER                  * 
-C *                                                                   *
-C * NOTE: If after this point you want to reference a SMVGEAR rxn #,  *
-C * then you must use NOLDFNEW(NK,1) instead of NK. (bmy, 8/8/03)     *
-C *********************************************************************
-C
-      NFDH3              = ITHRR(NCS) 
-      NFDL2              = NFDH3  + 1 
-      NFDREP             = INOREP(NCS)
-      NFDREP1            = NFDREP + 1
-      NFDH2              = NFDH3  + ITWOR(NCS) 
-      NFDL1              = NFDH2  + 1
-      NFDH1              = NFDH2  + IONER(NCS) 
-      NFDL0              = NFDH1  + 1 
-      NALLR              = NALLRAT(NCS) 
 
-C
-      DO 730 NKN         = 1, NALLR
-         NK                = NOLDFNEW(NKN,NCS)
-         IRMA(NKN)         = IRM2(1,NK,NCS) 
-         IRMB(NKN)         = IRM2(2,NK,NCS) 
-         IRMC(NKN)         = IRM2(3,NK,NCS) 
- 730  CONTINUE 
-C
-C *********************************************************************
-C                        REORDER RRATE ARRAY 
-C *********************************************************************
-C                 TRATE USED HERE AS A DUMMY ARRAY 
-C *********************************************************************
-C
-C
-      DO 745 NK          = 1, NTRATES(NCS)
-         DO 740 KLOOP      = 1, KTLOOP
-            TRATE(KLOOP,NK)  = RRATE(KLOOP,NK)
- 740     CONTINUE
- 745  CONTINUE
-C
-      DO 755 NKN         = 1, NALLR
-         NK                = NOLDFNEW(NKN,NCS)
-         DO 750 KLOOP      = 1, KTLOOP
-            RRATE(KLOOP,NKN) = TRATE(KLOOP,NK)
- 750     CONTINUE
- 755  CONTINUE
-C
-C *********************************************************************
-C REPLACE INACTIVE REACTION RATE COEFFICIENT ARRAY WITH NEW ARRAY 
-C THESE REACTIONS HAVE NO ACTIVE LOSS TERMS. PHOTORATE TERMS HERE
-C ARE REPLACED IN UPDATE.F .
-C *********************************************************************
-C                 TRATE USED HERE AS A REAL ARRAY 
-C *********************************************************************
-C
-      DO 765 NKN          = NFDL0, NALLR
-         NH                 = NKN + NALLR
-         DO 760 KLOOP       = 1, KTLOOP
-            TRATE(KLOOP,NKN)  =  RRATE(KLOOP,NKN)
-            TRATE(KLOOP,NH)   = -RRATE(KLOOP,NKN)
- 760     CONTINUE
- 765  CONTINUE
-C
 C *********************************************************************
 C              Photorates for Harvard Geos Code
 C *********************************************************************
@@ -1143,9 +1058,8 @@ c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
       ENDIF
 
       !=================================================================
-      ! Store J-values for 5 rxns + POH in ND22 diagnostic 
+      ! Store J-values for J(NO2) and J(O1D) for ship emissions 
       !=================================================================
-      IF ( ND22 > 0 ) THEN
          DO I  = 1, JPHOTRAT(NCS)
             NK  = NRATES(NCS) + I
             NKN = NKNPHOTRT(I,NCS)
@@ -1183,8 +1097,21 @@ c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
                ! I-J-L indices
                IX = IXSAVE(JLOOP)
                IY = IYSAVE(JLOOP)
-               IZ = IZSAVE(JLOOP)               
+               IZ = IZSAVE(JLOOP)   
+               
+               ! Store for ship emissions (gvinken, 6/09/10)      
+               IF ( (INDEX == 1) .AND. ( IZ ==1 ) ) THEN
+                   jvalues(IX,IY,1)  = RRATE(KLOOP,NKN)    ! store J(NO2)
+               ENDIF
+               IF ( (INDEX == 5) .AND. ( IZ ==1 ) ) THEN
+                   jvalues(IX,IY,2) = DUMMY(KLOOP)!RRATE(KLOOP,NKN)    ! store J(O3)
+               ENDIF
+               
 
+      !=================================================================
+      ! Store J-values for 5 rxns + POH in ND22 diagnostic 
+      !=================================================================
+      IF ( ND22 > 0 ) THEN
                ! Save J-values for 2PM diagnostic boxes
                ! Use AD22 array for J-value diagnostic (bmy, 9/30/99)
                IF ( LTJV(IX,IY) > 0 .and. IZ <= LD22 ) THEN
@@ -1203,9 +1130,450 @@ c     $            3.20d-11 * EXP( 70.d0*T3I(KLOOP)) * CONCO2(KLOOP)    )
      &                    AD22(IX,IY,IZ,INDEX) + RRATE(KLOOP,NKN)
                   ENDIF
                ENDIF
+      ENDIF
+
             ENDDO
          ENDDO
+
+C      
+C**********************************************************************         
+C             UPDATE SHIP EMISSIONS NOW THAT J-VALUES ARE KNOWN         
+C**********************************************************************
+
+      DO KLOOP = 1, KTLOOP
+c        JLOOP = LREORDER( KLOOP + JLOOPLO )
+        JLOOP = KLOOP + JLOOPLO   
+             
+        ! I-J-L indices
+        IX = IXSAVE(JLOOP)
+        IY = IYSAVE(JLOOP)
+        IZ = IZSAVE(JLOOP)   
+
+        !-----------------------------------------------------------
+        ! Add ship emissions emitted as HNO3 and 10*O3,
+        ! i.e., ozone production efficiency (OPE)=10.
+        ! See : Chen, G., et al. (2005), An investigation of the 
+        ! chemistry of ship emission plumes during ITCT 2002, 
+        ! J. Geophys. Res., 110, D10S90, doi:10.1029/2004JD005236.
+        ! (djj, phs, 3/4/08)
+        ! Now also process EMEP NOx ship emissions, available
+        ! from 1990 with EMEP 2005 (phs, 6/08)
+        ! Correctly handle LEMEPSHIP=.TRUE. (phs 7/9/09) 
+        !-----------------------------------------------------------
+        ! DO it only once (1st level)
+        IF ( IZ == 1 ) THEN
+
+           ! Emission timestep [s]
+            DTSRCE   = GET_TS_EMIS() * 60d0
+
+           ! Surface area of grid box
+           AREA_CM2 = GET_AREA_CM2( IY )
+
+           NN = IDTNOX
+
+           ! Reset
+           SHIP = 0D0
+
+c           if ((IX .eq. 59) .and. (IY .eq. 69)) then
+c               print*,"We are using EDGAR ", LEDGARSHIP
+c               print*,"We are using IDOADS ", LICOADSSHIP
+c               print*,"We are using EMEP ", LEMEPSHIP
+c               print*,"@@For 59,69 Europe mask is: ",
+c     &                  GET_EUROPE_MASK(IX,IY)
+c           endif  
+
+           ! handle global inventory first
+           IF ( LEDGARSHIP ) THEN 
+
+           ! Get SHIP EDGAR emissions for NOx [molec/cm2/s]
+           SHIP = GET_EDGAR_NOx( IX, IY, 
+     &                        MOLEC_CM2_S=.TRUE., SHIP=.TRUE.)
+                         
+                  
+           ! ICOADS ship emissions (cklee,7/09/09)
+           ELSE IF ( LICOADSSHIP ) THEN
+
+              ! Get ICOADS  emissions for NOx [molec/cm2/s]
+              SHIP = GET_ICOADS_SHIP( IX, IY, NN, MOLEC_CM2_S=.TRUE. )
+                  
+           ENDIF
+
+c           if ((IX .eq. 59) .and. (IY .eq. 69)) then             THIS WAS USED TO TEST EMEP
+c               JLOOP   = JLOP(IX,IY,1)
+c               print*,"@@In atlantic ocean, after ICOADS: ",
+c     &                  SHIP
+c           endif  
+
+           ! Overwrite Europe
+           IF ( LEMEPSHIP ) THEN
+                 
+             ! Prevent overwriting ICOADS data with a 0 value from EMEP 
+             IF (GET_EUROPE_MASK( IX, IY ) > 0d0) THEN
+           
+             ! Get SHIP EMEP emissions for NOx [molec/cm2/s]
+             SHIP = GET_EMEP_ANTHRO( IX, IY, NN, SHIP=.TRUE.)
+             ENDIF
+           ENDIF
+
+c           if ((IX .eq. 59) .and. (IY .eq. 69)) then             THIS IS TO TEST THE EMEP ROUTINE
+c               JLOOP   = JLOP(IX,IY,1)
+c               print*,"@@In atlantic ocean, after EMEP: ",
+c     &                  SHIP
+c           endif  
+                  
+           ! Convert molec/cm2/s to kg/box/timestep to get same
+           ! units as EMISRN, ie default GEIA emiss (phs, 7/9/09)
+           SHIP = SHIP * ( DTSRCE * AREA_CM2 ) / XNUMOL(NN) 
+         
+           ! Add possible scaling of NOx emissions
+           SHIP = SHIP * NOx_SCALING
+         
+           CALL INTERPOLATE_LUT2(IX,IY,CBLK(KLOOP,IDO3),
+     &                 CBLK(KLOOP,IDNO),CBLK(KLOOP,IDNO2),
+     &                 DENAIR(KLOOP),fraction_nox,int_ope)
+               
+               
+           !=============================================
+           ! STORE EMISSIONS DIRECTLY IN REMIS ARRAY, based on setemis.f
+           !=============================================
+            
+           !===========================================================
+           ! For GEOS-3: distribute surface emissions throughout the
+           ! entire boundary layer.  Define some variables here.
+           ! (bdf, 6/15/01)
+           !===========================================================
+
+           ! Top level of the boundary layer
+           ! guard for b.l. being in first level.
+           TOP = FLOOR( GET_PBL_TOP_L( IX, IY ) )
+           IF ( TOP == 0 ) TOP = 1
+
+           ! Check for possible emissions above PBL (phs, 27/10/09)
+           ! Not necessary as ship emissions occur only in lowest level
+           !TOPMIX = MIN( TOP, NOXEXTENT )
+           
+           ! Add option for non-local PBL (Lin, 03/31/09)
+           IF (LNLPBL) TOP = 1
+
+           ! Pressure thickness of entire boundary layer [hPa]
+           TOTPRES = GET_PEDGE(IX,IY,1) - GET_PEDGE(IX,IY,TOP+1)
+
+           !========================================================
+           ! SHIP NO emissions [molec/box/s]
+           ! Distribute emissions thru the entire boundary layer
+           !========================================================
+
+           ! COEF1 = molecules of emission species / molecules of tracer
+           
+           COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   !NN is IDTNOX
+
+
+           ! Loop over the boundary layer
+           DO L = 1, TOP
+             JLOOP   = JLOP(IX,IY,L)
+             EMIS_BL = 0d0
+                  
+             IF ( JLOOP /= 0 ) THEN
+                     
+                ! Thickness of level L [mb]
+                DELTPRES = GET_PEDGE(IX,IY,L) - 
+     &                              GET_PEDGE(IX,IY,L+1)
+                     
+                ! Add option for non-local PBL (Lin, 03/31/09)
+                IF (LNLPBL) DELTPRES = TOTPRES
+                     
+                ! Of the total anthro NOx, the fraction DELTPRES/TOTPRES
+                ! goes into level L, since that is the fraction of the
+                ! boundary layer occupied by level L.  Also divide NOx 
+                ! by COEF1 to convert from [molec NOx/box/s] to 
+                ! [molec NO/box/s], which is really what gets emitted.
+                !
+                ! Convert SHIP (kg/box/timestep) to the REMIS format 
+                ! (molec NO/box/s) and multiply by the fraction of NOx
+                ! remaining
+                    
+                EMIS_BL = ( (SHIP*fraction_nox* XNUMOL(NN) / DTSRCE )    
+     &                            / COEF1   ) * ( DELTPRES / TOTPRES )
+                    
+                ! Convert anthro NOx emissions from [molec NO/box/s]
+                ! to [molec NO/cm3/s] and add to the REMIS array
+                REMIS(JLOOP,IDENOX) = REMIS(JLOOP,IDENOX) + 
+     &                                    EMIS_BL / VOLUME(JLOOP)
+             ENDIF
+           ENDDO
+
+           !========================================================
+           ! SHIP HNO3 emissions [molec/box/s]
+           ! Distribute emissions thru the entire boundary layer
+           !========================================================
+
+           NN = IDTHNO3
+
+           ! COEF1 = molecules of emission species / molecules of tracer
+           COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
+
+           ! Loop over the boundary layer
+           DO L = 1, TOP
+             JLOOP   = JLOP(IX,IY,L)
+             EMIS_BL = 0d0
+                  
+             IF ( JLOOP /= 0 ) THEN
+                     
+                ! Thickness of level L [mb]
+                DELTPRES = GET_PEDGE(IX,IY,L) - 
+     &                              GET_PEDGE(IX,IY,L+1)
+                     
+                ! Add option for non-local PBL (Lin, 03/31/09)
+                IF (LNLPBL) DELTPRES = TOTPRES
+                     
+                ! Of the total ship HNO3, the fraction DELTPRES/TOTPRES
+                ! goes into level L, since that is the fraction of the
+                ! boundary layer occupied by level L.  Also divide HNO3 
+                ! by COEF1 to convert from [molec NOx/box/s] to 
+                ! [molec NO/box/s], which is really what gets emitted.
+                !
+                ! Convert SHIP (kg/box/timestep) to the REMIS format 
+                ! (molec NO/box/s) and multiply by the 1 - fraction of 
+                ! NOx remaining
+                    
+                EMIS_BL = ( (SHIP*(1D0 - fraction_nox)* XNUMOL(NN) 
+     &                        / DTSRCE )    
+     &                            / COEF1   ) * ( DELTPRES / TOTPRES )
+                    
+                ! Convert ship HNO3 emissions from [molec NO/box/s]
+                ! to [molec NO/cm3/s] and store in the REMIS array
+                REMIS(JLOOP,IDEHNO3) = REMIS(JLOOP,IDEHNO3) + 
+     &                                    EMIS_BL / VOLUME(JLOOP)
+             ENDIF
+           ENDDO
+
+           !========================================================
+           ! SHIP O3 emissions [molec/box/s]
+           ! Distribute emissions thru the entire boundary layer
+           !========================================================
+
+           NN = IDTOX
+
+           ! COEF1 = molecules of emission species / molecules of tracer
+           COEF1 = 1.0 + CTRMB(NN, IDEMIS(NN))   
+
+           ! Loop over the boundary layer
+           DO L = 1, TOP
+             JLOOP   = JLOP(IX,IY,L)
+             EMIS_BL = 0d0
+                  
+             IF ( JLOOP /= 0 ) THEN
+                     
+                ! Thickness of level L [mb]
+                DELTPRES = GET_PEDGE(IX,IY,L) - 
+     &                              GET_PEDGE(IX,IY,L+1)
+                     
+                ! Add option for non-local PBL (Lin, 03/31/09)
+                IF (LNLPBL) DELTPRES = TOTPRES
+                     
+                ! Of the total ship O3, the fraction DELTPRES/TOTPRES
+                ! goes into level L, since that is the fraction of the
+                ! boundary layer occupied by level L.  Also divide O3 
+                ! by COEF1 to convert from [molec NOx/box/s] to 
+                ! [molec NO/box/s], which is really what gets emitted.
+                !
+                ! Convert SHIP (kg/box/timestep) to the REMIS format 
+                ! (molec NO/box/s)
+c                EMIS_BL = ( (int_ope * fraction_nox * SHIP    
+                EMIS_BL = ( (int_ope * (1D0 - fraction_nox) * SHIP  
+     &                        * XNUMOL(NN) / DTSRCE )    
+     &                            / COEF1   ) * ( DELTPRES / TOTPRES )
+                    
+                ! Convert ship O3 emissions from [molec NO/box/s]
+                ! to [molec NO/cm3/s] and store in the REMIS array
+                REMIS(JLOOP,IDEOX) = REMIS(JLOOP,IDEOX) + 
+     &                                    EMIS_BL / VOLUME(JLOOP)
+             ENDIF
+           ENDDO
+           
+           !===================================================
+           ! Update diagnostics
+           !===================================================
+           !ND36 = Anthro source diagnostic...store as [molec/cm2]
+           !and convert to [molec/cm2/s] in DIAG3.F
+           IF ( ND36 > 0 ) THEN
+
+              AD36(IX,IY,IDEHNO3) = AD36(IX,IY,IDEHNO3) + SHIP * 
+     &                            (1D0 - fraction_nox) *
+     &                            XNUMOL(IDTHNO3) / AREA_CM2
+
+              AD36(IX,IY,IDEOX) = AD36(IX,IY,IDEOX) + SHIP * 
+     &                          int_ope * (1D0 - fraction_nox)* 
+     &                          XNUMOL(IDTOX) / AREA_CM2
+    
+              AD36(IX,IY,IDENOX) = AD36(IX,IY,IDENOX) + SHIP * 
+     &                           fraction_nox * 
+     &                           XNUMOL(IDTNOX) / AREA_CM2                
+            ENDIF
+
+            ! ND32 = save anthro NOx for levels L=1,NOXEXTENT [molec/cm2/s]
+            IF ( ND32 > 0 ) THEN
+               AD32_an(IX,IY,IZ) = AD32_an(IX,IY,IZ) + 
+     &              ( SHIP * fraction_nox * XNUMOL(NN) / 
+     &                              ( DTSRCE * AREA_CM2 ) )   
+            ENDIF
+
+            ! ND59 = save the fraction of NOx remaining and integrated OPE + extra stuff
+            IF ( DO_SAVE_DIAG59 ) THEN
+               AD59(IX,IY,1) = fraction_nox
+               AD59(IX,IY,2) = int_ope
+               AD59(IX,IY,3) = fraction_nox * SHIP ! unit is kg/box/timestep
+               AD59(IX,IY,4) = int_ope * (1D0 - fraction_nox) * SHIP ! same unit as 3
+               AD59(IX,IY,5) = SHIP ! unit is kg/box/timestep
+            ENDIF
+
+!            JLOOP   = JLOP(IX,IY,1)
+            if ((IX .eq. 108) .and. (IY .eq. 49)) then
+               print*,"In calcrate.f: ",fraction_nox, int_ope
+               print*,"NOx scaling: ",NOx_SCALING
+!               print*,"In calcrate.f: remis(ox),(hno3),(nox) after: ",
+!     &                 REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
+!     &                       REMIS(JLOOP,IDENOX)
+!               print*,"This is values for emisison of ship after jval"
+!               print*,"------------END CALCRATE.F-----------------"
+            endif    
+            if ((IX .eq. 73) .and. (IY .eq. 76)) then
+               JLOOP   = JLOP(IX,IY,1)
+               print*,"In calcrate.f, north sea: ",
+     &                  fraction_nox,int_ope
+               print*,"In calcrate.f, north sea: remis(ox),(hno3),",
+     &                 "(nox) after: ",
+     &                 REMIS(JLOOP,IDEOX), REMIS(JLOOP,IDEHNO3),
+     &                       REMIS(JLOOP,IDENOX)
+            endif                    
+               
+        ENDIF
+
+
+      ENDDO  
+
+C
+C *********************************************************************
+C ******                   SET EMISSION RATES                    ******
+C *********************************************************************
+C
+! Add option for non-local PBL mixing (Lin, 03/31/09)
+
+      IF (LNLPBL) THEN
+
+         DO I = 1,NEMIS(NCS)
+C get tracer number corresponding to emission species I
+            NN = IDEMS(I)
+            IF (NN.NE.0) THEN
+C find reaction number for emission of tracer NN
+               NK = NTEMIS(NN,NCS)
+               IF (NK.NE.0) THEN
+                  DO KLOOP = 1,KTLOOP
+                     JLOOP = LREORDER(KLOOP+JLOOPLO)
+                     RRATE(KLOOP,NK) = 0.d0
+                     ! Surface emissions of gases are constrained to the 
+                     ! lowest model layer, and are considered in the 
+                     ! PBL mixing module vdiff_mod, not anymore in SMVGEAR.
+                     ! Emissions at higher levels (e.g. aircraft) are still
+                     ! managed by SMVGEAR. 
+                     !*** As of 05/02/08, REMIS only contains emissions of 
+                     ! gases for the SMVGEAR mechanism. (Lin, 05/02/08)
+                     !RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+                     IZ    = IZSAVE(JLOOP)
+                     if (IZ .EQ. 1) then
+                        RRATE(KLOOP,NK) = 0.D0
+                     else
+                        RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+                     endif
+                  ENDDO
+               ENDIF
+            ENDIF
+         ENDDO
+
+      ELSE
+
+         DO I = 1,NEMIS(NCS)
+C get tracer number corresponding to emission species I
+            NN = IDEMS(I)
+            IF (NN.NE.0) THEN
+C find reaction number for emission of tracer NN
+               NK = NTEMIS(NN,NCS)
+               IF (NK.NE.0) THEN
+                  DO KLOOP = 1,KTLOOP
+                     RRATE(KLOOP,NK) = 0.d0
+                     JLOOP = LREORDER(KLOOP+JLOOPLO)
+                     RRATE(KLOOP,NK) = REMIS(JLOOP,I)
+                  ENDDO
+               ENDIF
+            ENDIF
+         ENDDO
+
       ENDIF
+
+C
+C *********************************************************************
+C *********************************************************************
+C *             REORDER RRATE ARRAY THEN CALL SOLVER                  * 
+C *                                                                   *
+C * NOTE: If after this point you want to reference a SMVGEAR rxn #,  *
+C * then you must use NOLDFNEW(NK,1) instead of NK. (bmy, 8/8/03)     *
+C *********************************************************************
+C
+      NFDH3              = ITHRR(NCS) 
+      NFDL2              = NFDH3  + 1 
+      NFDREP             = INOREP(NCS)
+      NFDREP1            = NFDREP + 1
+      NFDH2              = NFDH3  + ITWOR(NCS) 
+      NFDL1              = NFDH2  + 1
+      NFDH1              = NFDH2  + IONER(NCS) 
+      NFDL0              = NFDH1  + 1 
+      NALLR              = NALLRAT(NCS) 
+
+C
+      DO 730 NKN         = 1, NALLR
+         NK                = NOLDFNEW(NKN,NCS)
+         IRMA(NKN)         = IRM2(1,NK,NCS) 
+         IRMB(NKN)         = IRM2(2,NK,NCS) 
+         IRMC(NKN)         = IRM2(3,NK,NCS) 
+ 730  CONTINUE 
+C
+C *********************************************************************
+C                        REORDER RRATE ARRAY 
+C *********************************************************************
+C                 TRATE USED HERE AS A DUMMY ARRAY 
+C *********************************************************************
+C
+C
+      DO 745 NK          = 1, NTRATES(NCS)
+         DO 740 KLOOP      = 1, KTLOOP
+            TRATE(KLOOP,NK)  = RRATE(KLOOP,NK)
+ 740     CONTINUE
+ 745  CONTINUE
+C
+      DO 755 NKN         = 1, NALLR
+         NK                = NOLDFNEW(NKN,NCS)
+         DO 750 KLOOP      = 1, KTLOOP
+            RRATE(KLOOP,NKN) = TRATE(KLOOP,NK)
+ 750     CONTINUE
+ 755  CONTINUE
+C
+C *********************************************************************
+C REPLACE INACTIVE REACTION RATE COEFFICIENT ARRAY WITH NEW ARRAY 
+C THESE REACTIONS HAVE NO ACTIVE LOSS TERMS. PHOTORATE TERMS HERE
+C ARE REPLACED IN UPDATE.F .
+C *********************************************************************
+C                 TRATE USED HERE AS A REAL ARRAY 
+C *********************************************************************
+C
+      DO 765 NKN          = NFDL0, NALLR
+         NH                 = NKN + NALLR
+         DO 760 KLOOP       = 1, KTLOOP
+            TRATE(KLOOP,NKN)  =  RRATE(KLOOP,NKN)
+            TRATE(KLOOP,NH)   = -RRATE(KLOOP,NKN)
+ 760     CONTINUE
+ 765  CONTINUE
+C
+
 C
 C *********************************************************************
 C                         RESET NCSP  

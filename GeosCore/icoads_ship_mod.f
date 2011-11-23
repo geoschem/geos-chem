@@ -34,6 +34,8 @@
       PUBLIC :: CLEANUP_ICOADS_SHIP
       PUBLIC :: EMISS_ICOADS_SHIP
       PUBLIC :: GET_ICOADS_SHIP
+      PUBLIC :: INTERPOLATE_LUT
+      PUBLIC :: INTERPOLATE_LUT2
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -574,6 +576,563 @@
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_ICOADS_SHIP
+!EOC
+!------------------------------------------------------------------------------
+
+      subroutine INTERPOLATE_LUT(I,J,fraction_nox,int_ope) 
+    !=======================================================================
+    !
+    ! INTERPOLATE_LUT:    Return FracNOx or IntOPE from the lookup table
+    !
+    ! temp   : model temperature
+    ! jno2   : J(NO2) value
+    ! cao3   : concentration O3 in ambient air
+    ! alfa0 : solar zenith angle 5 hours ago
+    ! alfa5 : solar zenith angle at this time
+    ! jo1d   : ratio J(O1D)/J(NO2)
+    ! caco   : concentration CO in ambient air 
+    !
+    !
+    !                   G.C.M. Vinken, KNMI, june 2010
+    !=======================================================================
+      USE DAO_MOD, ONLY : TS, AD, SUNCOS, SUNCOS5
+      USE TRACERID_MOD, ONLY : IDO3,      IDTOX,      IDTCO
+      USE TRACER_MOD, ONLY : STT, TCVV
+      USE TIME_MOD, ONLY   : GET_LOCALTIME
+
+! already called in calling program apparently.. #     include "CMN_SIZE"               ! Size parameters
+#     include "cmn_fj.h"               ! Photolysis parameters
+#     include "CMN_O3"                 ! fracnox, intope, jvalues
+
+      INTEGER,    INTENT(IN)        :: I, J
+      REAL,       INTENT(OUT)       :: fraction_nox,int_ope
+
+      ! Local Variables
+      INTEGER                       :: IJLOOP
+      integer,parameter             :: ntemp  = 4
+      integer,parameter             :: njno2  = 4
+      integer,parameter             :: ncao3  = 4
+      integer,parameter             :: nalfa0 = 12
+      integer,parameter             :: nalfa5 = 12
+      integer,parameter             :: njo1d  = 4
+      integer,parameter             :: ncaco  = 4 
+ 
+      real,dimension(ntemp)         :: templev
+      real,dimension(njno2)         :: jno2lev
+      real,dimension(ncao3)         :: cao3lev
+      real,dimension(nalfa0)        :: alfa0lev
+      real,dimension(nalfa5)        :: alfa5lev      
+      real,dimension(njo1d)         :: jo1dlev
+      real,dimension(ncaco)         :: cacolev
+
+      real              :: temp_tmp,jno2_tmp,cao3_tmp                    ! Temporary variable storage
+      REAL              :: alfa0_tmp,alfa5_tmp,jo1d_tmp,caco_tmp
+      
+      real,dimension(2) :: xtemp,xjno2,xcao3,xalfa0                     ! Interpolation parameters
+      real,dimension(2) :: xalfa5,xjo1d,xcaco                           ! Interpolation parameters
+      
+      ! For loops
+      integer           :: itemp, ijno2, icao3, ialfa0
+      integer           :: ialfa5, ijo1d, icaco
+      integer           :: i0,i1,i2,i3,i4,i5,i6,i7
+ 
+      REAL,DIMENSION(7) :: var_array                                    ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, caco
+
+      ! Set the levels that were chosen in the look up table
+      templev = (/ 275. , 280. , 285. , 300. /)
+      jno2lev = (/ 5.e-4, 0.0025, 0.0050, 0.012 /)
+      cao3lev = (/ 5., 20., 35., 75. /)
+      alfa0lev = (/ -90., -60., -45., -30., -15., 0., 15., 30.,
+     $              45., 60., 75., 90. /)
+      alfa5lev = (/ -90., -60., -45., -30., -15., 0., 15., 30.,
+     $              45., 60., 75., 90. /)
+      jo1dlev = (/ 5.e-4, 0.0015, 0.0025, 0.0055 /)
+      cacolev = (/ 50., 100., 150., 1200. /) 
+
+c      print*,"Temperature levels are: ",templev
+c      print*,"This is grid cell: ",I,J
+      
+      ! Temperature
+c      print*,"Temperature here is: ",TS(I,J)
+c      print*,"USA: ",TS(32,64)
+
+      ! Tracer concentrations in v/v
+c      print*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
+c      print*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
+c      print*,"IDTOX is: ", IDTOX
+c      print*,"IDO3 is: ", IDO3
+c      print*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
+      
+      ! SOLAR ZENITH ANGLES IN DEGREES
+c      IJLOOP = ( (J-1) * IIPAR ) + I
+c      print*,"Local Time: ",GET_LOCALTIME(I)
+c      print*,"Solar Zenith Angle at this location: ", 
+c     $            ASIND(SUNCOS(IJLOOP))
+c      IJLOOP = ( (64-1) * IIPAR ) + 32
+c      print*,"Local USA time: ", GET_LOCALTIME(32)
+c      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS(IJLOOP))
+c      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS5(IJLOOP))
+      
+      ! Set the variables
+      IJLOOP = ( (J-1) * IIPAR ) + I
+      var_array(1) = TS(I,J)                                            ! Temperature
+      var_array(2) = jvalues(I,J,1)                                     ! J(NO2)
+      var_array(3) = STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX) * 1.E9   ! [O3] in ppbv
+      var_array(4) = ASIND(SUNCOS5(IJLOOP))                             ! alfa0
+      var_array(5) = ASIND(SUNCOS(IJLOOP))                              ! alfa5
+      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)                    ! J(O1D)/J(NO2)
+      var_array(7) = STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO) * 1.E9   ! [CO] in ppbv
+      
+      if (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.                     ! prevent NaN when jvalues are 0.
+      
+      ! First some error checking
+c     ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
+ 
+      !
+      ! Determine reference index (itemp,ijno2,icao3,ialfa0,ialfa5,ialfajo1d,icaco)
+      !
+      !===========================================================================
+      ! Find smallest temperature reference level (i) for which actual temperature
+      ! is smaller, then do
+      !
+      ! x(1) = (  temperature_level(i+1) - actual temperature  )
+      !        ------------------------------------------------- 
+      !        ( temperature_level(i+1) - temperature_level(i) )
+      !
+      ! then x(2) = 1.0 - x(1)
+      !
+      !===========================================================================
+
+      ! Temperature:
+      temp_tmp = var_array(1)
+      if ( var_array(1) > templev(ntemp) ) temp_tmp = templev(ntemp)        ! If temperature larger than largest in LUT, assign largest temp
+      if ( var_array(1) < templev(1) ) temp_tmp = templev(1)        ! If temp smaller, assign smallest temp level
+      do i0=1,ntemp-1
+         itemp = i0
+         if( templev(itemp+1) > temp_tmp ) exit 
+      end do
+      xtemp(1)=(templev(itemp+1)-temp_tmp)/
+     $                        (templev(itemp+1)-templev(itemp))
+      xtemp(2)=1.0-xtemp(1)       
+
+      ! J(NO2):
+      jno2_tmp = var_array(2)
+      if ( var_array(2) > jno2lev(njno2) ) jno2_tmp = jno2lev(njno2)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(2) < jno2lev(1) ) jno2_tmp = jno2lev(1)        ! If smaller, assign smallest level value
+      do i0=1,njno2-1
+         ijno2 = i0
+         if( jno2lev(ijno2+1) > jno2_tmp ) exit 
+      end do
+      xjno2(1)=(jno2lev(ijno2+1)-jno2_tmp)/
+     $                        (jno2lev(ijno2+1)-jno2lev(ijno2))
+      xjno2(2)=1.0-xjno2(1)       
+
+      ! [O3]:
+      cao3_tmp = var_array(3)
+      if ( var_array(3) > cao3lev(ncao3) ) cao3_tmp = cao3lev(ncao3)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(3) < cao3lev(1) ) cao3_tmp = cao3lev(1)                ! If smaller, assign smallest level value
+      do i0=1,ncao3-1
+         icao3 = i0
+         if( cao3lev(icao3+1) > cao3_tmp ) exit 
+      end do
+      xcao3(1)=(cao3lev(icao3+1)-cao3_tmp)/
+     $                        (cao3lev(icao3+1)-cao3lev(icao3))
+      xcao3(2)=1.0-xcao3(1)       
+
+      ! alfa0:
+      alfa0_tmp = var_array(4)
+      if ( var_array(4) > alfa0lev(nalfa0) ) alfa0_tmp = 
+     $                                          alfa0lev(nalfa0)   ! If larger than largest in LUT, assign largest level values
+      if ( var_array(4) < alfa0lev(1) ) alfa0_tmp = alfa0lev(1)             ! If smaller, assign smallest level value
+      do i0=1,nalfa0-1
+         ialfa0 = i0
+         if( alfa0lev(ialfa0+1) > alfa0_tmp ) exit 
+      end do
+      xalfa0(1)=(alfa0lev(ialfa0+1)-alfa0_tmp)/
+     $                        (alfa0lev(ialfa0+1)-alfa0lev(ialfa0))
+      xalfa0(2)=1.0-xalfa0(1)       
+
+      ! alfa5:
+      alfa5_tmp = var_array(5)
+      if ( var_array(5) > alfa5lev(nalfa5) ) alfa5_tmp = 
+     $                                          alfa5lev(nalfa5)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(5) < alfa5lev(1) ) alfa5_tmp = alfa5lev(1)                ! If smaller, assign smallest level value
+      do i0=1,nalfa5-1
+         ialfa5 = i0
+         if( alfa5lev(ialfa5+1) > alfa5_tmp ) exit 
+      end do
+      xalfa5(1)=(alfa5lev(ialfa5+1)-alfa5_tmp)/
+     $                        (alfa5lev(ialfa5+1)-alfa5lev(ialfa5))
+      xalfa5(2)=1.0-xalfa5(1)       
+
+      ! jo1d:
+      jo1d_tmp = var_array(6)
+      if ( var_array(6) > jo1dlev(njo1d) ) jo1d_tmp = jo1dlev(njo1d)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(6) < jo1dlev(1) ) jo1d_tmp = jo1dlev(1)                ! If smaller, assign smallest level value
+      do i0=1,njo1d-1
+         ijo1d = i0
+         if( jo1dlev(ijo1d+1) > jo1d_tmp ) exit 
+      end do
+      xjo1d(1)=(jo1dlev(ijo1d+1)-jo1d_tmp)/
+     $                        (jo1dlev(ijo1d+1)-jo1dlev(ijo1d))
+      xjo1d(2)=1.0-xjo1d(1)       
+
+      ! [CO]:
+      caco_tmp = var_array(7)
+      if ( var_array(7) > cacolev(ncaco) ) caco_tmp = cacolev(ncaco)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(7) < cacolev(1) ) caco_tmp = cacolev(1)                ! If smaller, assign smallest level value
+      do i0=1,ncaco-1
+         icaco = i0
+         if( cacolev(icaco+1) > caco_tmp ) exit 
+      end do
+      xcaco(1)=(cacolev(icaco+1)-caco_tmp)/
+     $                        (cacolev(icaco+1)-cacolev(icaco))
+      xcaco(2)=1.0-xcaco(1)       
+
+c      print*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
+c     $                            ialfa5, ijo1d, icaco
+c      print*,"Variables are: ", var_array
+c      print*,"For testing, xtemp: ",xtemp
+      
+      !
+      ! Linear interpolation
+      !
+      fraction_nox=0.0
+      int_ope = 0.0
+      do i1=1,2
+       do i2=1,2
+        do i3=1,2
+         do i4=1,2
+          do i5=1,2
+           do i6=1,2
+            do i7=1,2 
+              IF (fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,ialfa0+i4-1,     !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
+     $        ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1) .LT. 0.) print*,"##E#"
+              IF ((ialfa0+i4-1 .eq. 6) .and. (ialfa5+i5-1 .eq. 6) ) 
+     $                        CYCLE   !Cycle if both angles are 0   
+              fraction_nox=fraction_nox+xtemp(i1)*xjno2(i2)*
+     $           xcao3(i3)*xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcaco(i7)* 
+     $                  fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,          ! fracnox is the array with the actual lut data
+     $                  ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1)
+              int_ope=int_ope+xtemp(i1)*xjno2(i2)*xcao3(i3)* 
+     $                  xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcaco(i7)* 
+     $                  intope(itemp+i1-1,ijno2+i2-1,icao3+i3-1,           ! intope is the array with the actual lut data
+     $                  ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icaco+i7-1)
+            end do
+           end do
+          end do
+         end do
+        end do
+       end do
+      end do
+      
+      if ((I .eq. 108) .and. (J .eq. 49)) then
+           print*,"----INTERPOLATE_LUT-----"
+           print*,"fraction_nox and int_OPE: ",fraction_nox,
+     &                                            int_ope
+           print*,"Jvalues are: ",jvalues(I, J,:)
+           print*,"Vars are: ",var_array
+           print*,"[O3] in interpolate_lut: ",var_array(3)
+           print*,"[CO] in interpolate_lut: ",var_array(7)
+           print*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
+     $                            ialfa5, ijo1d, icaco
+       endif
+               
+c      print*,"fraction_nox is: ",fraction_nox
+c      print*,"integrated OPE: ",int_ope
+      
+      end subroutine INTERPOLATE_LUT
+
+!EOC
+!------------------------------------------------------------------------------
+
+      subroutine INTERPOLATE_LUT2(I,J,o3,no,no2,dens,fraction_nox,
+     &                            int_ope) 
+    !=======================================================================
+    !
+    ! INTERPOLATE_LUT:    Return FracNOx or IntOPE from the lookup table
+    !
+    ! temp   : model temperature
+    ! jno2   : J(NO2) value
+    ! cao3   : concentration O3 in ambient air
+    ! alfa0 : solar zenith angle 5 hours ago
+    ! alfa5 : solar zenith angle at this time
+    ! jo1d   : ratio J(O1D)/J(NO2)
+    ! canox  : concentration NOx in ambient air 
+    ! 
+    ! o3     : incoming o3 concentration
+    ! no     : incoming no
+    ! no2    : incoming no2
+    ! dens   : incoming air density
+    !
+    !
+    !                   G.C.M. Vinken, KNMI, june 2010
+    ! 02-21-2011: Updated for NOx in LUT
+    !=======================================================================
+      USE DAO_MOD, ONLY : TS, SUNCOS, SUNCOS5
+      USE TIME_MOD, ONLY   : GET_LOCALTIME
+
+! already called in calling program apparently.. #     include "CMN_SIZE"               ! Size parameters
+#     include "cmn_fj.h"               ! Photolysis parameters
+#     include "CMN_O3"                 ! fracnox, intope, jvalues
+
+      INTEGER,    INTENT(IN)        :: I, J
+      REAL*8,       INTENT(IN)        :: o3,no,no2,dens
+      REAL,       INTENT(OUT)       ::  fraction_nox,int_ope
+
+      ! Local Variables
+      INTEGER                       :: IJLOOP
+      integer,parameter             :: ntemp  = 4
+      integer,parameter             :: njno2  = 4
+      integer,parameter             :: ncao3  = 4
+      integer,parameter             :: nalfa0 = 12
+      integer,parameter             :: nalfa5 = 12
+      integer,parameter             :: njo1d  = 4
+      integer,parameter             :: ncanox = 5 
+ 
+      real,dimension(ntemp)         :: templev
+      real,dimension(njno2)         :: jno2lev
+      real,dimension(ncao3)         :: cao3lev
+      real,dimension(nalfa0)        :: alfa0lev
+      real,dimension(nalfa5)        :: alfa5lev      
+      real,dimension(njo1d)         :: jo1dlev
+      real,dimension(ncanox)         :: canoxlev
+
+      real              :: temp_tmp,jno2_tmp,cao3_tmp                    ! Temporary variable storage
+      REAL              :: alfa0_tmp,alfa5_tmp,jo1d_tmp,canox_tmp
+      
+      real,dimension(2) :: xtemp,xjno2,xcao3,xalfa0                     ! Interpolation parameters
+      real,dimension(2) :: xalfa5,xjo1d,xcanox                           ! Interpolation parameters
+      
+      ! For loops
+      integer           :: itemp, ijno2, icao3, ialfa0
+      integer           :: ialfa5, ijo1d, icanox
+      integer           :: i0,i1,i2,i3,i4,i5,i6,i7
+ 
+      REAL,DIMENSION(7) :: var_array                                    ! array contain temp, jno2, cao3, alfa_0, alfa_5, jo1d, canox
+
+      ! Set the levels that were chosen in the look up table
+      templev = (/ 275. , 280. , 285. , 310. /)
+      jno2lev = (/ 5.e-4, 0.0025, 0.0050, 0.012 /)
+      cao3lev = (/ 5., 20., 35., 75. /)
+      alfa0lev = (/ -90., -60., -45., -30., -15., 0., 15., 30.,
+     $              45., 60., 75., 90. /)
+      alfa5lev = (/ -90., -60., -45., -30., -15., 0., 15., 30.,
+     $              45., 60., 75., 90. /)
+      jo1dlev = (/ 5.e-4, 0.0015, 0.0025, 0.0055 /)
+      canoxlev = (/ 10., 200., 1000., 2000.,6000. /) 
+
+c      print*,"Temperature levels are: ",templev
+c      print*,"This is grid cell: ",I,J
+      
+      ! Temperature
+c      print*,"Temperature here is: ",TS(I,J)
+c      print*,"USA: ",TS(32,64)
+
+      ! Tracer concentrations in v/v
+c      print*,"[O3] is: ",STT(I,J,1,IDTOX)/ AD(I,J,1) * TCVV(IDTOX)
+c      print*,"[CO] is: ",STT(I,J,1,IDTCO)/ AD(I,J,1) * TCVV(IDTCO)
+c      print*,"IDTOX is: ", IDTOX
+c      print*,"IDO3 is: ", IDO3
+c      print*,"In USA: ",STT(32,64,1,IDTOX)/ AD(32,64,1) * TCVV(IDTOX)
+      
+      ! SOLAR ZENITH ANGLES IN DEGREES
+c      IJLOOP = ( (J-1) * IIPAR ) + I
+c      print*,"Local Time: ",GET_LOCALTIME(I)
+c      print*,"Solar Zenith Angle at this location: ", 
+c     $            ASIND(SUNCOS(IJLOOP))
+c      IJLOOP = ( (64-1) * IIPAR ) + 32
+c      print*,"Local USA time: ", GET_LOCALTIME(32)
+c      print*,"Solar Zenith Angle at USA: ", ASIND(SUNCOS(IJLOOP))
+c      print*,"Solar Zenith Angle at USA - 5: ",ASIND(SUNCOS5(IJLOOP))
+      
+      ! Set the variables
+      IJLOOP = ( (J-1) * IIPAR ) + I
+      var_array(1) = TS(I,J)                                            ! Temperature
+      var_array(2) = jvalues(I,J,1)                                     ! J(NO2)
+      var_array(3) = o3 / dens * 1.E9                                   ! [O3] in ppbv
+      var_array(4) = ASIND(SUNCOS5(IJLOOP))                             ! alfa0
+      var_array(5) = ASIND(SUNCOS(IJLOOP))                              ! alfa5
+      var_array(6) = jvalues(I,J,2) / jvalues(I,J,1)                    ! J(O1D)/J(NO2)
+      var_array(7) = (no + no2) / dens * 1.E12                          ! [NOx] in pptv
+      
+      if (jvalues(I,J,1) .eq. 0.) var_array(6) = 0.                     ! prevent NaN when jvalues are 0.
+
+      ! First some error checking
+c     ########### MAYBE CHECK HERE FOR NEGATIVE VALUES?##########
+ 
+      !
+      ! Determine reference index (itemp,ijno2,icao3,ialfa0,ialfa5,ialfajo1d,icaco)
+      !
+      !===========================================================================
+      ! Find smallest temperature reference level (i) for which actual temperature
+      ! is smaller, then do
+      !
+      ! x(1) = (  temperature_level(i+1) - actual temperature  )
+      !        ------------------------------------------------- 
+      !        ( temperature_level(i+1) - temperature_level(i) )
+      !
+      ! then x(2) = 1.0 - x(1)
+      !
+      !===========================================================================
+
+      ! Temperature:
+      temp_tmp = var_array(1)
+      if ( var_array(1) > templev(ntemp) ) temp_tmp = templev(ntemp)        ! If temperature larger than largest in LUT, assign largest temp
+      if ( var_array(1) < templev(1) ) temp_tmp = templev(1)        ! If temp smaller, assign smallest temp level
+      do i0=1,ntemp-1
+         itemp = i0
+         if( templev(itemp+1) > temp_tmp ) exit 
+      end do
+      xtemp(1)=(templev(itemp+1)-temp_tmp)/
+     $                        (templev(itemp+1)-templev(itemp))
+      xtemp(2)=1.0-xtemp(1)       
+
+      ! J(NO2):
+      jno2_tmp = var_array(2)
+      if ( var_array(2) > jno2lev(njno2) ) jno2_tmp = jno2lev(njno2)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(2) < jno2lev(1) ) jno2_tmp = jno2lev(1)        ! If smaller, assign smallest level value
+      do i0=1,njno2-1
+         ijno2 = i0
+         if( jno2lev(ijno2+1) > jno2_tmp ) exit 
+      end do
+      xjno2(1)=(jno2lev(ijno2+1)-jno2_tmp)/
+     $                        (jno2lev(ijno2+1)-jno2lev(ijno2))
+      xjno2(2)=1.0-xjno2(1)       
+
+      ! [O3]:
+      cao3_tmp = var_array(3)
+      if ( var_array(3) > cao3lev(ncao3) ) cao3_tmp = cao3lev(ncao3)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(3) < cao3lev(1) ) cao3_tmp = cao3lev(1)                ! If smaller, assign smallest level value
+      do i0=1,ncao3-1
+         icao3 = i0
+         if( cao3lev(icao3+1) > cao3_tmp ) exit 
+      end do
+      xcao3(1)=(cao3lev(icao3+1)-cao3_tmp)/
+     $                        (cao3lev(icao3+1)-cao3lev(icao3))
+      xcao3(2)=1.0-xcao3(1)       
+
+      ! alfa0:
+      alfa0_tmp = var_array(4)
+      if ( var_array(4) > alfa0lev(nalfa0) ) alfa0_tmp = 
+     $                                          alfa0lev(nalfa0)   ! If larger than largest in LUT, assign largest level values
+      if ( var_array(4) < alfa0lev(1) ) alfa0_tmp = alfa0lev(1)             ! If smaller, assign smallest level value
+      do i0=1,nalfa0-1
+         ialfa0 = i0
+         if( alfa0lev(ialfa0+1) > alfa0_tmp ) exit 
+      end do
+      xalfa0(1)=(alfa0lev(ialfa0+1)-alfa0_tmp)/
+     $                        (alfa0lev(ialfa0+1)-alfa0lev(ialfa0))
+      xalfa0(2)=1.0-xalfa0(1)       
+
+      ! alfa5:
+      alfa5_tmp = var_array(5)
+      if ( var_array(5) > alfa5lev(nalfa5) ) alfa5_tmp = 
+     $                                          alfa5lev(nalfa5)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(5) < alfa5lev(1) ) alfa5_tmp = alfa5lev(1)                ! If smaller, assign smallest level value
+      do i0=1,nalfa5-1
+         ialfa5 = i0
+         if( alfa5lev(ialfa5+1) > alfa5_tmp ) exit 
+      end do
+      xalfa5(1)=(alfa5lev(ialfa5+1)-alfa5_tmp)/
+     $                        (alfa5lev(ialfa5+1)-alfa5lev(ialfa5))
+      xalfa5(2)=1.0-xalfa5(1)       
+
+      ! jo1d:
+      jo1d_tmp = var_array(6)
+      if ( var_array(6) > jo1dlev(njo1d) ) jo1d_tmp = jo1dlev(njo1d)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(6) < jo1dlev(1) ) jo1d_tmp = jo1dlev(1)                ! If smaller, assign smallest level value
+      do i0=1,njo1d-1
+         ijo1d = i0
+         if( jo1dlev(ijo1d+1) > jo1d_tmp ) exit 
+      end do
+      xjo1d(1)=(jo1dlev(ijo1d+1)-jo1d_tmp)/
+     $                        (jo1dlev(ijo1d+1)-jo1dlev(ijo1d))
+      xjo1d(2)=1.0-xjo1d(1)       
+
+      ! [NOx]:
+      canox_tmp = var_array(7)
+      if ( var_array(7) > canoxlev(ncanox) ) canox_tmp = 
+     $                                         canoxlev(ncanox)        ! If larger than largest in LUT, assign largest level values
+      if ( var_array(7) < canoxlev(1) ) canox_tmp = canoxlev(1)                ! If smaller, assign smallest level value
+      do i0=1,ncanox-1
+         icanox = i0
+         if( canoxlev(icanox+1) > canox_tmp ) exit 
+      end do
+      xcanox(1)=(canoxlev(icanox+1)-canox_tmp)/
+     $                        (canoxlev(icanox+1)-canoxlev(icanox))
+      xcanox(2)=1.0-xcanox(1)       
+
+c      print*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
+c     $                            ialfa5, ijo1d, icanox
+c      print*,"Variables are: ", var_array
+c      print*,"For testing, xtemp: ",xtemp
+      
+      !
+      ! Linear interpolation
+      !
+      fraction_nox=0.0
+      int_ope = 0.0
+      do i1=1,2
+       do i2=1,2
+        do i3=1,2
+         do i4=1,2
+          do i5=1,2
+           do i6=1,2
+            do i7=1,2 
+              IF (fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,ialfa0+i4-1,     !IF ENCOUNTER -999 IN THE LUT PRINT ERROR!!       
+     $      ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1) .LT. 0.) print*,"##E#"
+              fraction_nox=fraction_nox+xtemp(i1)*xjno2(i2)
+     $             *xcao3(i3)*xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*
+     $             xcanox(i7)*fracnox(itemp+i1-1,ijno2+i2-1,icao3+i3-1,          ! fracnox is the array with the actual lut data
+     $             ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1)
+              int_ope=int_ope+xtemp(i1)*xjno2(i2)*xcao3(i3)* 
+     $                  xalfa0(i4)*xalfa5(i5)*xjo1d(i6)*xcanox(i7)* 
+     $                  intope(itemp+i1-1,ijno2+i2-1,icao3+i3-1,           ! intope is the array with the actual lut data
+     $                  ialfa0+i4-1,ialfa5+i5-1,ijo1d+i6-1,icanox+i7-1)
+            end do
+           end do
+          end do
+         end do
+        end do
+       end do
+      end do
+      !
+      
+      if ((I .eq. 108) .and. (J .eq. 49)) then
+           print*,"-----INTERPOLATE_LUT2, for 108,49-----"
+           print*,"Fraction_nox and int_OPE: ",fraction_nox,
+     &                                            int_ope
+           print*,"Jvalues are: ",jvalues(I, J,:)
+           print*,"Vars are: ",var_array
+           print*,"[O3] in interpolate_lut: ",var_array(3)
+           print*,"[NOx] in interpolate_lut: ",var_array(7)
+           print*,"J(O1D)/J(NO2) : ",var_array(6)
+           print*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
+     $                            ialfa5, ijo1d, icanox
+           print*,"Interpolation parameters: ",xtemp,xjno2,xcao3,
+     $                  xalfa0,xalfa5,xjo1d,xcanox 
+           print*,"---------------------------------"
+      endif
+       
+      if ((I .eq. 73) .and. (J .eq. 76)) then
+           print*,"-----INTERPOLATE_LUT2, for 73,76-----"
+           print*,"Fraction_nox and int_OPE: ",fraction_nox,
+     &                                            int_ope
+           print*,"Jvalues are: ",jvalues(I, J,:)
+           print*,"Vars are: ",var_array
+           print*,"[O3] in interpolate_lut: ",var_array(3)
+           print*,"[NOx] in interpolate_lut: ",var_array(7)
+           print*,"J(O1D)/J(NO2) : ",var_array(6)
+           print*,"The i-values are:", itemp, ijno2, icao3, ialfa0,
+     $                            ialfa5, ijo1d, icanox
+           print*,"Interpolation parameters: ",xtemp,xjno2,xcao3,
+     $                  xalfa0,xalfa5,xjo1d,xcanox 
+           print*,"------------------------------------"
+      endif
+      
+      end subroutine INTERPOLATE_LUT2
+
 !EOC
 !------------------------------------------------------------------------------
 

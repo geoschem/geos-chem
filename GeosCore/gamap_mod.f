@@ -1330,6 +1330,12 @@
       DESCRIPT(N) = 'Wetland Fraction'
       OFFSET(N)   = SPACING * 51
 
+      N           = N + 1
+      CATEGORY(N) = 'SHIP-$$$'
+      DESCRIPT(N) = 'Ship diagnostics'
+      OFFSET(N)   = SPACING * 59
+
+
 ! NEED TO DO THAT AT ONE POINT      
 !      ! New for CSPEC
 !      N           = N + 1
@@ -1371,6 +1377,7 @@
       USE DIAG51_MOD,   ONLY : DO_SAVE_DIAG51
       USE DIAG51b_MOD,  ONLY : DO_SAVE_DIAG51b
       USE DIAG56_MOD,   ONLY : ND56
+      USE DIAG59_MOD,   ONLY:  DO_SAVE_DIAG59
       USE DIAG_PL_MOD,  ONLY : DO_SAVE_PL,  GET_NFAM
       USE DIAG_PL_MOD,  ONLY : GET_FAM_MWT, GET_FAM_NAME
       USE DRYDEP_MOD,   ONLY : DEPNAME,     NUMDEP,    NTRAIND
@@ -3580,6 +3587,52 @@
             SCALE(T,58) = 1e0
          ENDDO
       ENDIF
+
+      !-------------------------------------      
+      ! SHIP DIAGNOSTICS (ND59)
+      !-------------------------------------      
+      IF ( DO_SAVE_DIAG59 ) THEN 
+
+         ! Number of tracers
+         NTRAC(59) = 5
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(59)
+
+            ! Define quantities
+            INDEX(T,59) = T + ( SPACING * 59 )
+            MOLC (T,59) = 0
+            MWT  (T,59) = 0e0
+            SCALE(T,59) = 1e0
+            UNIT (T,59) = 'unitless'
+
+            ! Get name, long-name (and others where necessary)
+            SELECT CASE( T )
+               CASE( 1  )
+                  NAME (T,59) = 'Frac_NOx'
+                  FNAME(T,59) = 'Fraction of NOx remaining'
+               CASE( 2  )
+                  NAME (T,59) = 'IntOPE'
+                  FNAME(T,59) = 'Integrated OPE'
+               CASE( 3  )
+                  NAME (T,59) = 'Frac_NOx*SHIP'
+                  FNAME(T,59) = 'Integrated OPE'
+                  UNIT (T,59) = 'kg/box/timestep'
+               CASE( 4  )
+                  NAME (T,59) = 'IntOPE*(1-Frac_NOx)*SHIP'
+                  FNAME(T,59) = 'Integrated OPE'
+                  UNIT (T,59) = 'kg/box/timestep'
+               CASE( 5  )
+                  NAME (T,59) = 'Ship_emissions'
+                  FNAME(T,59) = 'Ship emissions'
+                  UNIT (T,59) = 'kg/box/timestep'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
+      ENDIF
+
 
       !-------------------------------------      
       ! Wetland Fraction (ND60)

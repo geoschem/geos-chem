@@ -252,8 +252,23 @@
      $        CALL EMISS_ARCTAS_SHIP( YEAR )
 
          ! Read ICOADS ship emissions once per month (cklee, 7/09/09)
-         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) 
-     &        CALL EMISS_ICOADS_SHIP
+         IF ( LICOADSSHIP .and. ITS_A_NEW_MONTH() ) THEN 
+              CALL EMISS_ICOADS_SHIP
+              open (unit=97, 
+     $        file="/data/vinken/ships/lookuptables/" // 
+     $             "FracNOx_binary_5hrs_20gs.dat", 
+     $         form="binary")
+              read (97) fracnox
+              !print*,"binary_fracnox: ",fracnox(1:4,1,1,2,3,4,4)      
+              close(97)
+              open (unit=98, 
+     $         file="/data/vinken/ships/lookuptables/" //
+     $              "IntOPE_binary_5hrs_20gs.dat", 
+     $         form="binary")
+              read (98) intope
+              !print*,"binary_intope: ",intope(1:4,1,1,2,3,4,4)      
+              close(98)
+         ENDIF
 
          ! NOx-Ox-HC (w/ or w/o aerosols)
          CALL EMISSDR
