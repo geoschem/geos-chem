@@ -2746,11 +2746,11 @@
             EHg0_an = EHg0_an / SEC_PER_YR    
 
             ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-            ! from 50:40:10 to 90:7:3.
-            !Fossil fuels make up ~47% of total global anthro emis
-            !Change from Helen Amos 23 Sep 2011
-            !Implemented 10/19/11 by eck
-            EHg0_an=1.27d0*EHg0_an
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHg0_an=1.24d0*EHg0_an
             
 
 
@@ -2904,12 +2904,12 @@
             ! Convert from [kg/yr] to [kg/s]
             EHg2_an = EHg2_an / SEC_PER_YR
 
-           ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-            ! from 50:40:10 to 90:7:3.
-            !Fossil fuels make up ~47% of total global anthro emis
-            !Change from Helen Amos 23 Sep 2011
-            !Implemented 10/19/11 by eck
-            EHg2_an=0.40d0*EHg2_an
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHg2_an=0.45d0*EHg2_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
@@ -2990,12 +2990,12 @@
             ! Convert from [kg/yr] to [kg/s]
             EHgP_an = EHgP_an / SEC_PER_YR
 
-              ! For GEIA 2005, change Hg0:Hg2:HgP ratio
-            ! from 50:40:10 to 90:7:3.
-            !Fossil fuels make up ~47% of total global anthro emis
-            !Change from Helen Amos 23 Sep 2011
-            !Implemented 10/19/11 by eck
-            EHgP_an=0.51d0*EHgP_an
+            ! For GEIA 2005, change Hg0:Hg2:HgP ratio
+            ! from 50:40:10 to 86.5:9.9:3.6 for fossil fuel emissions.
+            ! Fossil fuels make up ~47% of total global anthro emis
+            ! Refs: Amos et al. (2011, ACPD), Y. Zhang et al. (2011, in prep)
+            ! Implemented 10/19/11 by eck
+            EHgP_an=0.55d0*EHgP_an
 
          ELSE
             ! Otherwise use Selin et al. 2008 emissions
