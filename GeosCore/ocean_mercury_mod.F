@@ -2761,6 +2761,8 @@
 !        Hg restart file to READ_OCEAN_Hg_RESTART.  Now make Hg0aq and Hg2aq
 !        3-D arrays. Now pass Hg_RST_FILE and USE_CHECKS from "input_mod.f"
 !        via the argument list. (cdh, sas, bmy, 2/27/06)
+!  29 Nov 2011 - R. Yantosca - Updated erroneous comment.  "Southern Ocean"
+!                               should be "South Atlantic Ocean".
 !******************************************************************************
 !
       ! References to F90 modules
@@ -2805,7 +2807,7 @@
 !         CDEEPSAT = (/ 1.0d-10, 5.0d-10, 5.0d-10 /)   !(anls,100114)
          CDEEPSAT = (/0.8d-10,4.1d-10,4.1d-10/)  !eck, 10/19/11
          !reduce intermediate water mercury concentration in
-         !Southern Ocean to 0.9pM total
+         !South Atlantic Ocean to 0.9pM total
          !ref: low end of uncertainty range Sunderland and Mason '07
          CDEEPANT = (/ 1.0d-10, 3.2d-10, 3.2d-10 /)
          CDEEPARC = (/ 1.2d-10, 7.5d-10, 7.5d-10 /)
