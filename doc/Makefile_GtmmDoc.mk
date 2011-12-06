@@ -24,6 +24,7 @@
 # !REVISION HISTORY: 
 #  14 Sep 2010 - R. Yantosca - Initial version, split off from Makefile
 #  16 Dec 2010 - R. Yantosca - Renamed output files to "GC_Ref_Vol_4.*"
+#  19 Jul 2011 - R. Yantosca - Changed *.f* to *.F* for ESMF compatibility
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -31,43 +32,43 @@
 # List of source code files (order is important)
 SRC4 :=                                    \
 ./intro.gtmm                               \
-$(GTMM)/GTMM.f90                           \
-$(GTMM)/CasaRegridModule.f90               \
-$(GTMM)/defineArrays.f90                   \
-$(GTMM)/defineConstants.f90                \
-$(GTMM)/dorestart_mod.f90                  \
-$(GTMM)/input_gtmm_mod.f90                 \
-$(GTMM)/loadCASAinput.f90                  \
+$(GTMM)/GTMM.F90                           \
+$(GTMM)/CasaRegridModule.F90               \
+$(GTMM)/defineArrays.F90                   \
+$(GTMM)/defineConstants.F90                \
+$(GTMM)/dorestart_mod.F90                  \
+$(GTMM)/input_gtmm_mod.F90                 \
+$(GTMM)/loadCASAinput.F90                  \
 ./subs.gtmm                                \
-$(GTMM)/CleanupCASAarrays.f90              \
-$(GTMM)/GTMM_coupled.f90                   \
-$(GTMM)/HgOutForGEOS.f90                   \
-$(GTMM)/assignAgeClassToRunningPool.f90    \
-$(GTMM)/assignRanPoolToAgeClass.f90        \
-$(GTMM)/doFPARandLAI.f90                   \
-$(GTMM)/doHerbCarbon.f90                   \
-$(GTMM)/doHerbCarbonHg.f90                 \
-$(GTMM)/doHerbivory.f90                    \
-$(GTMM)/doHgDeposition.f90                 \
-$(GTMM)/doLatitude.f90                     \
-$(GTMM)/doLeafRootShedding.f90             \
-$(GTMM)/doMaxHg.f90                        \
-$(GTMM)/doNPP.f90                          \
-$(GTMM)/doOptimumTemperature.f90           \
-$(GTMM)/doPET.f90                          \
-$(GTMM)/doSoilMoisture.f90                 \
-$(GTMM)/doTreeCarbon.f90                   \
-$(GTMM)/doTreeCarbonHg.f90                 \
-$(GTMM)/getAgeClassBF.f90                  \
-$(GTMM)/getFireParams.f90                  \
-$(GTMM)/getFuelWood.f90                    \
-$(GTMM)/getSoilMoistParams.f90             \
-$(GTMM)/getSoilParams.f90                  \
-$(GTMM)/loadHgDeposition.f90               \
-$(GTMM)/load_GC_data.f90                   \
-$(GTMM)/organizeAgeClasses.f90             \
-$(GTMM)/processData.f90                    \
-$(GTMM)/sort_pick_veg.f90
+$(GTMM)/CleanupCASAarrays.F90              \
+$(GTMM)/GTMM_coupled.F90                   \
+$(GTMM)/HgOutForGEOS.F90                   \
+$(GTMM)/assignAgeClassToRunningPool.F90    \
+$(GTMM)/assignRanPoolToAgeClass.F90        \
+$(GTMM)/doFPARandLAI.F90                   \
+$(GTMM)/doHerbCarbon.F90                   \
+$(GTMM)/doHerbCarbonHg.F90                 \
+$(GTMM)/doHerbivory.F90                    \
+$(GTMM)/doHgDeposition.F90                 \
+$(GTMM)/doLatitude.F90                     \
+$(GTMM)/doLeafRootShedding.F90             \
+$(GTMM)/doMaxHg.F90                        \
+$(GTMM)/doNPP.F90                          \
+$(GTMM)/doOptimumTemperature.F90           \
+$(GTMM)/doPET.F90                          \
+$(GTMM)/doSoilMoisture.F90                 \
+$(GTMM)/doTreeCarbon.F90                   \
+$(GTMM)/doTreeCarbonHg.F90                 \
+$(GTMM)/getAgeClassBF.F90                  \
+$(GTMM)/getFireParams.F90                  \
+$(GTMM)/getFuelWood.F90                    \
+$(GTMM)/getSoilMoistParams.F90             \
+$(GTMM)/getSoilParams.F90                  \
+$(GTMM)/loadHgDeposition.F90               \
+$(GTMM)/load_GC_data.F90                   \
+$(GTMM)/organizeAgeClasses.F90             \
+$(GTMM)/processData.F90                    \
+$(GTMM)/sort_pick_veg.F90
 
 
 # Output file names
