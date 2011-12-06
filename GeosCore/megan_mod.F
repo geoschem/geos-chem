@@ -654,61 +654,72 @@
 
       END FUNCTION GET_EMMONOG_MEGAN
 !EOC
-
 !------------------------------------------------------------------------------
-! evf -- modify dbm's get_emmoh_megan for acetone (5/24/2011)
-! returns acetone emissions in atomsC/box/step
-
-      FUNCTION GET_EMACET_MEGAN( I , J , SUNCOS , TS, Q_DIR ,
-     &                            Q_DIFF , XNUMOL ) 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_emacet_megan
+!
+! !DESCRIPTION: Subroutine GET\_EMACET\_MEGAN computes acetone emissions in
+!  units of [atomsC/box] using the MEGAN inventory.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_EMACET_MEGAN( I,     J ,     SUNCOS , TS,
+     &                           Q_DIR, Q_DIFF, XNUMOL ) 
      &            RESULT( EMACET )
 !
-!******************************************************************************
-!  Subroutine GET_EMACET_MEGAN computes Acetone EMISSIONS in units of 
-!  [atoms C/box] using the new v2.1 
-!  MEGAN inventory emission factor maps. (mpb,2008)  
+! !USES:
 !
-!  Function GET_EMACET_MEGAN is called from "acetone_mod.f"
+      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
+      USE LOGICAL_MOD, ONLY : LPECCA 
+
+      USE CMN_SIZE_MOD      ! Size parameters
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I      (INTEGER )               : GEOS-CHEM longitude index
-!  (2 ) J      (INTEGER )               : GEOS-CHEM latitude index
-!  (3 ) SUNCOS (REAL*8  )               : Cos( solar zenith angle )
-!  (4 ) Q_DIR  (REAL*8  )               : flux of direct PAR above canopy (W m-2)
-!  (5 ) Q_DIFF (REAL*8  )               : flux of diffuser PAR above canopy (W m-2) 
-!  (6 ) TS     (REAL*8  )               : Local surface air temperature (K)
-!  (7 ) XNUMOL (REAL*8  )               : Number of atoms C / kg C 
-!  (8 ) GWTRT  (REAL*8  )               : Root zone wetness (GWETROOT from GMAO).
-!                                         Unitless. Ratio of volumetric water content
-!                                         to porosity.
+! !INPUT PARAMETERS: 
 !
+      INTEGER, INTENT(IN) :: I,  J   ! GEOS-Chem lon & lat indices
+      REAL*8,  INTENT(IN) :: SUNCOS  ! Solar zenith angle [unitless]
+      REAL*8,  INTENT(IN) :: TS      ! Surface temperature [K]
+      REAL*8,  INTENT(IN) :: Q_DIR   ! Flux of direct PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: Q_DIFF  ! Flux of diffuse PAR above canopy [W/m2]
+      REAL*8,  INTENT(IN) :: XNUMOL  ! Number of atoms C / kg C 
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EMACET  ! Acetone emissions [atoms C/box]
+! 
+! !REMARKS:
 !  References (see above for full citations):
 !  ============================================================================
 !  (1 ) Guenther et al, 1995, 1999, 2004, 2006
 !  (2 ) Guenther et al, 2007, MEGAN v2.1 User Manual
 !
-!  Notes:
-!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by dsa,tmf.
+! !REVISION HISTORY:
+!  (1 ) Written by Michael Barkley (2008), based on old monoterpene code by 
+!       dsa,tmf.
 !  (2 ) Uses gamma factors instead of exchange factors, this includes
-!        calling of a new temperature algorithm which use a beta factor.(mpb,2008)
-!  (3 ) Modified by dbm for eoh and moh
-!  (4)  Modified by evf for acetone
-!  
-!******************************************************************************
+!        calling of a new temperature algorithm which use a beta factor.
+!        (mpb,2008) 
+!  24 May 2011 - E. Fischer  - Modified for acetone. Function GET_EMACET_MEGAN
+!                              is called from "acetone_mod.f"
+!  06 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE LAI_MOD,     ONLY : ISOLAI, MISOLAI, PMISOLAI, DAYS_BTW_M
-      USE LOGICAL_MOD, ONLY : LPECCA 
-
-      USE CMN_SIZE_MOD      ! Size parameters      
-
-      ! Arguments
-      INTEGER, INTENT(IN)           :: I,  J
-      REAL*8,  INTENT(IN)           :: TS, XNUMOL, Q_DIR, Q_DIFF
-      REAL*8,  INTENT(IN)           :: SUNCOS
-
-      ! Local variable
+! !DEFINED PARAMETERS:
+!
+      ! Fraction of emission that is light dependent (A. Guenther 5/25/2011)
+      REAL*8, PARAMETER   :: LDF    = 0.20d0
+      ! Temperature response factor for light-independent emissions
+      ! (A. Guenther 5/25/2011)
+      REAL*8, PARAMETER   :: BETA   = 0.10d0
+!
+! !LOCAL VARIABLES:
+!
       INTEGER             :: IJLOOP
       REAL*8              :: GAMMA_LAI
       REAL*8              :: GAMMA_LEAF_AGE
@@ -716,18 +727,11 @@
       REAL*8              :: GAMMA_T
       REAL*8              :: GAMMA_SM
       REAL*8              :: D_BTW_M
-      ! Actone-specific parameters
-      ! Fraction of emission that is light dependent
-      ! LDF from Alex Guenther 5/25/2011
-      REAL*8, PARAMETER   :: LDF    = 0.20d0
-      ! Temperature response factor for light independent emissions
-      ! Beta from Alex Guenther 5/25/2011
-      REAL*8, PARAMETER   :: BETA   = 0.10d0
       REAL*8              :: Q_DIR_2, Q_DIFF_2
 
-      ! Function return value
-      REAL*8              :: EMACET
-
+      !=================================================================
+      ! GET_EMACET_MEGAN begins here!
+      !================================================================= 
 
       ! Initialize return value & activity factors
       EMACET          = 0.d0
@@ -829,7 +833,6 @@
       ! Convert from [kg/box] to [atoms C/box]
       EMACET  = EMACET * XNUMOL
 
-      ! return to calling program
       END FUNCTION GET_EMACET_MEGAN
 !EOC
 !------------------------------------------------------------------------------
