@@ -786,7 +786,6 @@
 
       USE CMN_SIZE_MOD                  ! Size parameters
       USE CMN_DIAG_MOD                  ! ND11
-      USE CMN_MONOT_MOD                 ! BASEMONOT
 !
 ! !INPUT PARAMETERS: 
 !
@@ -834,6 +833,7 @@
 !                              and the temperature response factor (beta) is
 !                              0.10 as recommended by Alex Guenther. The
 !                              dependency on GEIA has been removed.
+!  08 Dec 2011 - M. Payer    - Remove use of obsolete CMN_MONOT_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC

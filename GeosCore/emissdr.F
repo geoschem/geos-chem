@@ -83,6 +83,7 @@
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
 !  06 Dec 2011 - E. Fischer  - Change biogenic acetone emissions to MEGAN
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
@@ -125,7 +126,6 @@
       USE COMODE_LOOP_MOD     ! IVERT?
       USE CMN_O3_MOD       ! Emissions arrays
       USE CMN_DIAG_MOD     ! Diagnostic arrays and switches
-      USE CMN_MONOT_MOD    ! Monoterpenes
       USE CMN_NOX_MOD      ! GEMISNOX2
 
       IMPLICIT NONE
@@ -151,8 +151,7 @@
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
 
       ! External functions
-      REAL*8, EXTERNAL       :: BOXVL,   EMISOP 
-      REAL*8, EXTERNAL       :: EMMONOT, EMISOP_MB, EMISOP_GRASS
+      REAL*8, EXTERNAL       :: BOXVL
 
       ! Add in new monoterpene species (mpb,2009)
       REAL*8                 :: APINE  , BPINE , LIMON , SABIN 
@@ -182,14 +181,6 @@
       I0 = GET_XOFFSET()
       J0 = GET_YOFFSET()
 
-      IF ( FIRSTEMISS ) THEN
-          CALL RDLIGHT
-          CALL RDISOPT( CONVERT )
-          CALL RDMONOT( GMONOT  )
-          CALL SETBASE( CONVERT, GMONOT )
-          FIRSTEMISS = .FALSE.
-      ENDIF
-!
 !******************************************************************************
 !  BE CAREFUL WITH USING A WINDOW RELATIVE TO THE EMISSIONS WINDOW
 !  NEED SPECIFY THE OFFSET OF THE SUB-WINDOW
@@ -300,7 +291,7 @@
                ! Temperature
                TMMP  = XLTMMP(I,J,IJLOOP)
             
-               ! Modified to choose MEGAN/GEIA inventory indenpendantly 
+               ! Modified to choose MEGAN inventory indenpendantly 
                ! for ISOP and MONX/MBO. (ccc, 1/20/09)
                IF ( LMEGAN ) THEN
 
@@ -325,27 +316,10 @@
                   EMIS = GET_EMISOP_MEGAN(  I, J,     SC, TMMP, 
      &                                      PDR, PDF, XNUMOL_C )
 
-               ELSE  
-
-                  !------------------
-                  ! GEIA Isoprene 
-                  !------------------
-
-                  ! Isoprene
-!------------------------------------------------------------------------------
-! Prior to 10/5/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMIS = EMISOP(   I, J, IJLOOP, SUNCOS, TMMP, XNUMOL_C)
-!------------------------------------------------------------------------------
-                  EMIS = EMISOP( I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C )
-
                ENDIF
  
                !FP_ISOP (6/2009)
                EMIS = ISOP_SCALING * EMIS
-
-
 
                IF ( LMEGANMONO ) THEN
 
@@ -391,51 +365,7 @@
                   EMMO = APINE + BPINE + LIMON + SABIN + 
      &                   MYRCN + CAREN + OCIMN
 
-
-               ELSE  
-
-                  !------------------
-                  ! GEIA biogenics 
-                  !------------------
-
-                  ! Monoterpenes
-                  EMMO = EMMONOT(          IJLOOP,       
-     &                              TMMP, XNUMOL_C )
-             
-                  ! Methyl Butenol
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
-!------------------------------------------------------------------------------
-                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS_MID, 
-     &                              TMMP, XNUMOL_C )
-
                ENDIF
-
-
-               ! Isoprene emissions from grasslands (use GEIA always)
-               !
-               ! Note from May Fu (cetmfu@polyu.edu.hk), 02 Dec 2008:
-               ! 
-               ! EMISOP_GRASS calculates isoprene emission from grasslands
-               ! using the GEIA inventory; this is used only in EMISS_BIOACET
-               ! below to calculate grassland acetone emission.
-               ! 
-               ! EMISOP (GEIA) and GET_EMISOP_MEGAN (MEGAN) already contains
-               ! the full isoprene emission, including grasslands.  Therefore 
-               ! EMISOP_GRASS should NOT be considered as an additional
-               ! isoprene source.
-               !--------------------------------------------------------------
-!------------------------------------------------------------------------------
-! Prior to 10/7/11:
-! Now call GEIA emissions with the cos(SZA) computed @ the midpoint of
-! the chemistry timestep (bmy, 10/7/11)
-!                  EMMB = EMISOP_MB( I, J, IJLOOP, SUNCOS, 
-!               GRASS = EMISOP_GRASS(I, J,IJLOOP, SUNCOS, TMMP, XNUMOL_C) 
-!------------------------------------------------------------------------------
-               GRASS = EMISOP_GRASS(I,J,IJLOOP,SUNCOS_MID,TMMP,XNUMOL_C) 
 
                ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
                ! Store BVOC emissions for diagnositics 48,49,51 (mpb,2009)

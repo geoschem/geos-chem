@@ -4254,6 +4254,7 @@ c
 !                              computed @ 30 mins after each GMT hour
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
+!  08 Dec 2011 - M. Payer    - Remove GEIA biogenic emissions option
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4301,23 +4302,10 @@ c
       REAL*8                 :: SC, PDF, PDR
 
       ! External functions
-!-- Moved to meganut_mod.f
-!      REAL*8,  EXTERNAL      :: XLTMMP
-      REAL*8,  EXTERNAL      :: EMMONOT
 
       !=================================================================
       ! BIOGENIC_OC begins here!
       !=================================================================
-
-      ! Get ISOPRENE baseline emissions (first-time only)
-      IF ( FIRST ) THEN
-         CALL RDISOPT( CONVERT )
-         CALL RDMONOT( GMONOT  )
-         CALL SETBASE( CONVERT, GMONOT )
-
-         ! Resety first-time flag
-         FIRST = .FALSE.
-      ENDIF
 
       !=================================================================
       ! If secondary organic aerosols are turned off ...
@@ -4351,16 +4339,10 @@ c
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                EMMO = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! EMMO = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               EMMO = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             ! Fraction of EMMO that converts into OC [kg/box/timestep]
@@ -4441,15 +4423,10 @@ c
             PDF  = PARDF(I,J)
             ! +++++++++++++++++++++++++++++++++++++++++
 
-            ! Get monoterpenes from MEGAN or GEIA [kg C/box]
+            ! Get monoterpenes from MEGAN [kg C/box]
             IF ( LMEGANMONO ) THEN
-               ! +++++++++++++++++++++++++++++++++++++++++
-               ! New formulation for MEGAN (mpb,2009)
                TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, SC, TMMP,
      &                                   PDR, PDF, 1d0 )               
-               ! TERP_ORGC(I,J) = GET_EMMONOT_MEGAN( I, J, TMMP, 1d0 )
-            ELSE
-               TERP_ORGC(I,J) = EMMONOT( IJLOOP, TMMP, 1d0 )
             ENDIF
 
             !---------------------------------------------------
