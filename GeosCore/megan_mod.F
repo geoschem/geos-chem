@@ -2037,18 +2037,18 @@
             
          ENDDO
       ENDDO
+
       !---------------------------------------------
       ! Read in Acetone Annual Emission Factors
       ! evf, (5/24/2011)
       !---------------------------------------------
 
       ! 1x1 file name
-!     ! FILENAME = TRIM( DATA_DIR_1x1 ) //
-!     &           'MEGAN_200510/MEGAN_AEF_MTP.geos.1x1' 
-      ! base emission factors in ug(acetone)/m2/hr (evf, 5/24/2011 - AEF file from dbm)
+      ! Base emission factors in ug(acetone)/m2/hr (evf, 5/24/2011 -
+      ! AEF file from dbm)
+      FILENAME = TRIM( DATA_DIR_1x1 ) //
+     &    TRIM( MEGAN_SUBDIR ) // 'MEGANv2.1_AEF_ACET.geos.1x1'
 
-      FILENAME = '/mnt/lstr04/srv/home/efischer/geoschemv9/' //
-     &     'MEGAN_AEF_ACET.geos.1x1' 
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
 
