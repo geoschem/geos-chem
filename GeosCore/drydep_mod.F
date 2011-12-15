@@ -111,6 +111,10 @@
 !        Global Budget of Molecular Hydrogen and its Deuterium Content: 
 !        Constraints from Ground Station, Cruise, and Aircraft Observations,
 !        submitted to J. Geophys. Res., 2007.
+!  (16) Karl, T., Harley, P., Emmons, L., Thornton, B., Guenther, A., Basu, C.,
+!        Turnipseed, A., and Jardine, K.: Efficient Atmospheric Cleansing of
+!        Oxidized Organic Trace Gases by Vegetation, Science, 330, 816-819,
+!        10.1126/science.1192534, 2010. 
 !!
 !  NOTES:
 !  (1 ) Bug fix: Do not assume NO2 is the 2nd drydep species.  This causes
@@ -3379,6 +3383,8 @@
 !  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
 !  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
 !        (bmy, 10/19/09)
+!  15 Dec 2011 - M. Payer    - Update OVOC drydep according to Karl et al. 2010
+!                              and add drydep for MVK and MACR. (J. Mao)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -3419,6 +3425,8 @@
       USE TRACERID_MOD, ONLY : IDTRIP, IDTIEPOX, IDTPYPAN
       USE TRACERID_MOD, ONLY : IDTMAP
       USE TRACERID_MOD, ONLY : IDTACET
+      !add drydep for MVK and MACR (jmao,4/2011)
+      USE TRACERID_MOD, ONLY : IDTMVK, IDTMACR
       
       USE CMN_SIZE_MOD       ! Size parameters
 
@@ -3616,7 +3624,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'CH2O'
             HSTAR(NUMDEP)   = 6.0d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 30d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3629,7 +3637,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYX'
             HSTAR(NUMDEP)   = 3.6d+5
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 58d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3640,7 +3648,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'MGLY'
             HSTAR(NUMDEP)   = 3.7d+3
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 72d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3651,7 +3659,7 @@
             NDVZIND(NUMDEP) = NUMDEP
             DEPNAME(NUMDEP) = 'GLYC'
             HSTAR(NUMDEP)   = 4.1d+4
-            F0(NUMDEP)      = 0.0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 60d-3
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3792,7 +3800,7 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'RIP'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3803,7 +3811,7 @@
             NDVZIND(NUMDEP) = DRYDH2O2 !USE H2O2
             DEPNAME(NUMDEP) = 'IEPOX'
             HSTAR(NUMDEP)   = 0d0
-            F0(NUMDEP)      = 0d0
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
             XMW(NUMDEP)     = 0d0
             AIROSOL(NUMDEP) = .FALSE.
 
@@ -3817,6 +3825,29 @@
             F0(NUMDEP)      = 1.0d0  !Assume reactive
             XMW(NUMDEP)     = 76d-3
             AIROSOL(NUMDEP) = .FALSE.
+            
+         !MVK
+         ELSE IF ( N == IDTMVK ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTMVK
+            NDVZIND(NUMDEP) = NUMDEP !USE H2O2
+            DEPNAME(NUMDEP) = 'MVK'
+            HSTAR(NUMDEP)   = 4.4d1 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Karl et al. 2010(science)
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !MACR
+         ELSE IF ( N == IDTMACR ) THEN
+            NUMDEP          = NUMDEP + 1
+            NDVZIND(NUMDEP) = NUMDEP
+            NTRAIND(NUMDEP) = IDTMACR
+            DEPNAME(NUMDEP) = 'MACR'
+            HSTAR(NUMDEP)   = 6.5d0 !from R. Sander
+            F0(NUMDEP)      = 1.0d0 !Assume reactive
+            XMW(NUMDEP)     = 70d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers
