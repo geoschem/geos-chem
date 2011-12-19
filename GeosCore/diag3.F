@@ -1538,6 +1538,7 @@
 !  (6 ) Now scale online dust fields by SCALECHEM (bmy, 4/9/04)
 !  (7 ) Also save out extra diagnostics for cryst sulfur tracers (bmy, 1/5/05)
 !  (8 ) Save out extra diagnostics for dust AOD in each size bin (clh, 5/7/10)
+!  (9 ) Bug fix, don't write out obsolete tracer #3 for ND21 (bmy, 12/16/11)
 !******************************************************************************
 !
       IF ( ND21 > 0 ) THEN
@@ -1553,6 +1554,10 @@
                
             ! Select proper unit string (cf list above)
             SELECT CASE( N ) 
+               CASE ( 3 )
+                  ! This diagnostic is for a GEOS-1/GEOS-STRAT field
+                  ! so skip it! (bmy, 12/16/11)
+                  CYCLE
                CASE ( 5, 8, 11, 14, 17, 20 )
                   UNIT = 'cm2/cm3'
                CASE DEFAULT
