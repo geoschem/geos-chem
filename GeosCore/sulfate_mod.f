@@ -633,6 +633,9 @@
 !  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
 !  (3 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
 !         argument (phs, 5/1/08)
+!  (4 ) Bug fixes to the Gerber hygroscopic growth for sea salt aerosols (jaegle, 5/5/11)
+!  (5 ) Update hygroscopic growth to Lewis and Schwartz formulation (2006) and density
+!       calculation based on Tang et al. (1997) (bec, jaegle 5/5/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -659,10 +662,13 @@
       REAL*8                 :: P,      DP,    PDP,      TEMP        
       REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
       REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
-      REAL*8                 :: RCM,    RWET,  RATIO_R,  RHO
+      ! replace RCM (radius in CM with RUM radius in microns) jaegle 5/11/11
+      REAL*8                 :: RUM,    RWET,  RATIO_R,  RHO 
       REAL*8                 :: TOT1,   TOT2
       REAL*8                 :: VTS(LLPAR)  
       REAL*8                 :: TC0(LLPAR)
+      ! added variables for density calculation (jaegle, bec 5/11/11)
+      REAL*8                 :: RHO1, WTP
       
       ! Parameters
       REAL*8,  PARAMETER     :: C1 =  0.7674d0 
@@ -670,6 +676,16 @@
       REAL*8,  PARAMETER     :: C3 =  2.573d-11
       REAL*8,  PARAMETER     :: C4 = -1.424d0
       REAL*8,  PARAMETER     :: DEN = 2200.0d0 ! [kg/m3] sea-salt density
+      ! Parameters for polynomial coefficients to derive seawater
+      ! density. From Tang et al. (1997) (bec, jaegle, 5/11/11)
+      REAL*8,  PARAMETER     :: A1 =  7.93d-3 !from Tang et al., 1997 (bec, 6/17/10)
+      REAL*8,  PARAMETER     :: A2 =  -4.28d-5
+      REAL*8,  PARAMETER     :: A3 =  2.52d-6
+      REAL*8,  PARAMETER     :: A4 = -2.35d-8
+      REAL*8,  PARAMETER     :: EPSI = 1.0D-4 
+
+
+      
 
       ! Arrays
       INTEGER              :: IDDEP(2)
@@ -700,17 +716,26 @@
       REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
             
       ! Sea salt radius [cm]
-      RCM  = REFF * 100d0  
+      !RCM  = REFF * 100d0  
+      ! The Gerber formula for hygroscopic growth uses the radius in micrometers
+      ! instead of centimeters. This fix is implemented by using RUM instead of RCM
+      ! RCM is changed to RUM below
+      ! (jaegle 5/5/11)
+      ! Sea salt radius [um]
+      RUM  = REFF * 1d6
+
 
       ! Exponential factors
-      FAC1 = C1 * ( RCM**C2 )
-      FAC2 = C3 * ( RCM**C4 )
+      ! replace with radius in microns (jaegle 5/5/11)
+      FAC1 = C1 * ( RUM**C2 )
+      FAC2 = C3 * ( RUM**C4 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
+!$OMP+PRIVATE( RHO1,    WTP                                           ) !bec (5/11/11)
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -737,13 +762,44 @@
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)
-            RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+            !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RUM**3.d0)**0.33d0
+            ! Several bug fixes to the Gerber formulation: a log10 (instead of ln) should be used and 
+            ! the dry radius should be expressed in micrometers (instead of cm) also add more significant digits to the exponent
+            ! (jaegle 5/5/11)
+            !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.d0)**0.33333d0
+
+            ! Use equation 5 in Lewis and Schwartz (2006) [m] for sea salt growth (jaegle 5/11/11)
+            RWET = REFF * (4.d0 / 3.7d0) *
+     &                  ( (2.d0 - RHB)/(1.d0 - RHB) )**(1.d0/3.d0)
+
 
             ! Ratio dry over wet radii at the cubic power
             RATIO_R = ( REFF / RWET )**3.d0
 
             ! Density of the wet aerosol (kg/m3)
-            RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
+            !RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
+
+
+            ! Above density calculation is chemically unsound because it ignores chemical solvation.  
+            ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+            ! (bec, jaegle 5/11/11)
+            RATIO_R = ( REFF / RWET )
+            ! Assume an initial density of 1000 kg/m3
+            RHO  = 1000.D0
+            RHO1 = 0.d0 !initialize (bec, 6/21/10)
+            DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
+                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+                WTP    = 100.d0 * DEN/RHO * RATIO_R**3.d0
+                ! Then calculate density of wet aerosol using equation 5 
+                ! in Tang et al., 1997 [kg/m3]
+                RHO1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
+     $               (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+                ! Now calculate new weight percent using above density calculation
+                WTP    = 100.d0 * DEN/RHO1 * RATIO_R**3.d0
+                ! Now recalculate new wet density [kg/m3]
+                RHO   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
+     $              (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+            ENDDO
 
             ! Dp = particle diameter [um]
             DP      = 2.d0 * RWET * 1.d6        

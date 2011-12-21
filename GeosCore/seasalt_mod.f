@@ -26,6 +26,7 @@
 !  (8 ) SS_DEN   (REAL*8 ) : Sea salt density [kg/m3]
 !  (9 ) ALK_EMIS (REAL*8 ) : Array for alkalinity [kg]
 !  (10) N_DENS   (REAL*8 ) : Number density of seasalt emissions [#/m3]
+!  (11) SALT_V   (REAL*8)  : Log-normal volum size distribution for sea salt
 !
 !  Module Routines:
 !  ============================================================================
@@ -91,6 +92,10 @@
 
       ! Make everyting PRIVATE ...
       PRIVATE
+ 
+      ! ... except these variables (jaegle 5/11/11)
+      PUBLIC :: SALT_V
+      PUBLIC :: DMID
 
       ! ... except these routines
       PUBLIC :: CHEMSEASALT
@@ -115,6 +120,9 @@
       REAL*8,  ALLOCATABLE :: SRC_N(:,:)   
       REAL*8,  ALLOCATABLE :: ALK_EMIS(:,:,:,:)
       REAL*8,  ALLOCATABLE :: N_DENS(:,:,:,:)    
+      ! Add SALT_V and DMID (jaegle 5/11/11)
+      REAL*8,  ALLOCATABLE :: SALT_V(:)
+      REAL*8,  ALLOCATABLE :: DMID(:)
       REAL*8               :: SS_DEN(NSALT)    = (/ 2200.d0, 2200.d0 /)
 
       !=================================================================
@@ -191,7 +199,10 @@
       CALL WET_SETTLING( STT(:,:,:,IDTSALA), 1 )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
 
-      IF ( LDRYD ) THEN
+      !IF ( LDRYD ) THEN
+      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
+      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
+      IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALA), 1 )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Accum' )
       ENDIF
@@ -202,7 +213,10 @@
       CALL WET_SETTLING( STT(:,:,:,IDTSALC), 2 )
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
 
-      IF ( LDRYD ) THEN
+      !IF ( LDRYD ) THEN
+      ! If LNLPBL (non local PBL mixing) is turned on, do sea salt
+      ! dry deposition in vdiff as for all the other aerosols (jaegle 5/11/11)
+      IF ( LDRYD .AND. .NOT. LNLPBL ) THEN
          CALL DRY_DEPOSITION( STT(:,:,:,IDTSALC), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
       ENDIF
@@ -234,6 +248,10 @@
 !  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
 !  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
 !         argument (phs, 5/1/08)
+!  (5 ) Update sea salt density calculation using Tang et al. (1997) (bec, jaegle 5/11/11)
+!  (6 ) Update hygroscopic growth for sea salt using Lewis and Schwartz (2006) and and density
+!       calculation based on Tang et al. (1997) (bec, jaegle 5/11/11)
+!  (7 ) Itegrate settling velocity over entire size distribution (jaegle 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -245,6 +263,8 @@
       USE TRACERID_MOD,  ONLY : IDTSALA,       IDTSALC
       USE TIME_MOD,      ONLY : GET_TS_CHEM
       USE GRID_MOD,      ONLY : GET_AREA_CM2
+      ! add (jaegle 5/11/11)
+      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
 
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_GCTM"      ! g0
@@ -260,16 +280,43 @@
       REAL*8                 :: P,      DP,    PDP,      TEMP        
       REAL*8                 :: CONST,  SLIP,  VISC,     FAC1
       REAL*8                 :: FAC2,   FLUX,  AREA_CM2, RHB
-      REAL*8                 :: RCM,    RWET,  RATIO_R,  RHO
+      ! replace RCM with RUM (radis in micron) jaegle 5/11/11
+      REAL*8                 :: RUM,    RWET,  RATIO_R,  RHO
       REAL*8                 :: TOT1,   TOT2,  DTCHEM
       REAL*8                 :: VTS(LLPAR)  
       REAL*8                 :: TC0(LLPAR)
+      ! New variables (jaegle 5/11/11)
+      REAL*8                 :: SW
+      REAL*8                 :: R0,       R1, NR, DEDGE, SALT_MASS
+      REAL*8                 :: SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW
+      REAL*8                 :: WTP, RHO1 
+      INTEGER                :: ID
+      LOGICAL, SAVE          :: FIRST = .TRUE.
       
       ! Parameters
       REAL*8,  PARAMETER     :: C1 =  0.7674d0 
       REAL*8,  PARAMETER     :: C2 =  3.079d0 
       REAL*8,  PARAMETER     :: C3 =  2.573d-11
       REAL*8,  PARAMETER     :: C4 = -1.424d0
+      ! Parameters for polynomial coefficients to derive seawater
+      ! density. From Tang et al. (1997) (jaegle 5/11/11)
+      REAL*8,  PARAMETER     :: A1 =  7.93d-3
+      REAL*8,  PARAMETER     :: A2 = -4.28d-5
+      REAL*8,  PARAMETER     :: A3 =  2.52d-6
+      REAL*8,  PARAMETER     :: A4 = -2.35d-8
+      ! increment of radius for integration of settling velocity (um)
+      REAL*8, PARAMETER      :: DR    = 5.d-2
+      ! parameter for convergence
+      REAL*8,  PARAMETER     :: EPSI = 1.0D-4
+      ! parameters for assumed size distribution of acc and coarse mode
+      ! sea salt aerosols (jaegle 5/11/11)
+      ! geometric dry mean diameters (microns)
+      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
+      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      ! sigma of the size distribution
+      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
+      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+
 
       !=================================================================
       ! WET_SETTLING begins here!
@@ -285,27 +332,89 @@
       SELECT CASE ( N )
 
          ! Accum mode
+         ! add R0 and R1 = edges if the sea salt size bins (jaegle 5/11/11)
          CASE( 1 )
             REFF = 0.5d-6 * ( SALA_REDGE_um(1) + SALA_REDGE_um(2) )
+            R0 = SALA_REDGE_um(1)
+            R1 = SALA_REDGE_um(2)
 
          ! Coarse mode
          CASE( 2 ) 
             REFF = 0.5d-6 * ( SALC_REDGE_um(1) + SALC_REDGE_um(2) )
+            R0 = SALC_REDGE_um(1)
+            R1 = SALC_REDGE_um(2)
             
       END SELECT
 
+      ! Number of dry radius size bins between lowest radius (accumulation
+      ! mode) and largest radii (coarse mode) (jaegle 5/11/11)
+      
+      NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR ) 
+     &                  + 0.5d0 )
+
+      ! Error check
+      IF ( NR > NR_MAX ) THEN
+        CALL ERROR_STOP( 'Too many bins!', 'SRCSALT (seasalt_mod.f)')
+      ENDIF
+
+      !=================================================================
+      ! Define the volume size distribution of sea-salt. This only has
+      ! to be done once. We assume that sea-salt is the combination of a coarse mode
+      ! and accumulation model log-normal distribution functions (jaegle 5/11/11)
+      !=================================================================
+      IF ( FIRST) THEN
+
+        ! Lower edge of 0th bin
+	DEDGE=SALA_REDGE_um(1) * 2d0
+
+	! Loop over diameters
+        DO ID = 1, NR
+           ! Diameter of mid-point in microns
+           DMID(ID)  = DEDGE + ( DR )
+
+	   ! Calculate the dry volume size distribution as the sum of two log-normal
+	   ! size distributions. The parameters for the size distribution are
+	   ! based on Reid et al. and Quinn et al.
+	   ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols are
+	   ! chosen to obtain a realistic distribution  
+	   ! SALT_V (D) = dV/dln(D) [um3]
+	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
+     &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
+     &                   LOG(SIG_A)**2d0 )
+     &         /( sqrt(2d0 * PI) * LOG(SIG_A) )  +
+     &         0.8d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2d0) )**2d0/
+     &                   LOG(SIG_C)**2d0)
+     &         /( sqrt(2d0 * PI) * LOG(SIG_C) )  )
+	   ! update the next edge
+	   DEDGE = DEDGE + DR*2d0
+        ENDDO
+
+        ! Reset after the first time
+        IF ( FIRST ) FIRST = .FALSE.
+      ENDIF
+
+
       ! Sea salt radius [cm]
-      RCM  = REFF * 100d0  
+      !RCM  = REFF * 100d0  
+      ! The radius used in the Gerber formulation for hygroscopic growth
+      ! of sea salt should be in microns (RUM) instead of cm (RCM). Replace RCM
+      ! with RUM (jaegle 5/11/11)
+      !RUM  = REFF * 1d6  
 
       ! Exponential factors
-      FAC1 = C1 * ( RCM**C2 )
-      FAC2 = C3 * ( RCM**C4 )
+      !FAC1 = C1 * ( RCM**C2 )
+      !FAC2 = C3 * ( RCM**C4 )
+      ! Replace with RUM (jaegle 5/11/11)
+      !FAC1 = C1 * ( RUM**C2 )
+      !FAC2 = C3 * ( RUM**C4 )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,       J,     L,    VTS,  P,        TEMP, RHB,  RWET ) 
 !$OMP+PRIVATE( RATIO_R, RHO,   DP,   PDP,  CONST,    SLIP, VISC, TC0  )
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
+!$OMP+PRIVATE( SW,      ID,    SALT_MASS_TOTAL,      VTS_WEIGHT       ) !jaegle 5/11/11
+!$OMP+PRIVATE( DMIDW,   RHO1,  WTP                                    ) !jaegle 5/11/11
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -332,13 +441,43 @@
 
             ! Aerosol growth with relative humidity in radius [m] 
             ! (Gerber, 1985)
-            RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+            !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHB))+RCM**3.d0)**0.33d0
+	    ! Fix bugs in the Gerber formula:  a log10 (instead of ln) should be used and the 
+	    ! dry radius should be expressed in micrometers (instead of cm) also add more significant 
+	    ! digits to the exponent (should be 1/3) (jaegle 5/11/11)
+            !RWET    = 1d-6*(FAC1/(FAC2-LOG10(RHB))+RUM**3.d0)**0.33333d0
+
+            ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth (bec, jaegle 5/11/11)
+            RWET = REFF * (4.d0 / 3.7d0) *
+     &              ( (2.d0 - RHB)/(1.d0 - RHB) )**(1.d0/3.d0)
+
 
             ! Ratio dry over wet radii at the cubic power
             RATIO_R = ( REFF / RWET )**3.d0
 
             ! Density of the wet aerosol (kg/m3)
             RHO     = RATIO_R * DEN + ( 1.d0 - RATIO_R ) * 1000.d0
+
+            ! Above density calculation is chemically unsound because it ignores chemical solvation.  
+            ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+            ! (bec, jaegle 5/11/11)
+            RATIO_R = ( REFF / RWET )
+            ! Assume an initial density of 1000 kg/m3
+            RHO  = 1000.D0
+            RHO1 = 0.d0 !initialize (bec, 6/21/10)
+            DO WHILE ( ABS( RHO1-RHO ) .gt. EPSI )
+                ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+                WTP    = 100.d0 * DEN/RHO * RATIO_R**3.d0
+                ! Then calculate density of wet aerosol using equation 5 
+                ! in Tang et al., 1997 [kg/m3]
+                RHO1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
+     $               (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+                ! Now calculate new weight percent using above density calculation
+                WTP    = 100.d0 * DEN/RHO1 * RATIO_R**3.d0
+                ! Now recalculate new wet density [kg/m3]
+                RHO   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2.d0) + 
+     $              (A3 * WTP**3.d0) + (A4 * WTP**4.d0) ) * 1000.d0
+            ENDDO
 
             ! Dp = particle diameter [um]
             DP      = 2.d0 * RWET * 1.d6        
@@ -377,6 +516,41 @@
 
             ! Settling velocity [m/s]
             VTS(L) = CONST * Slip / VISC
+
+            ! This settling velocity is for the mid-point of the size bin. 
+            ! In the following we derive scaling factors to take into account
+	    ! the strong dependence on radius of the settling velocity and the
+	    ! mass size distribution:
+	    !  VTS_WEIGHTED = total( M(k) x VTS(k)) / total( M(k) ) 
+	    ! The settling velocity is a function of the radius squared (see definition
+	    ! of CONST above) 
+	    ! so VTS(k) = VTS * (RMID(k)/RWET)^2
+            ! (jaegle 5/11/11)
+
+	    SALT_MASS_TOTAL = 0d0
+	    VTS_WEIGHT      = 0d0
+	    DO ID = 1, NR
+	       ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
+	       ! dM/dlnDw = dV/dlnDw * RHO, we assume that the density of sea-salt
+	       ! doesn't change much over the size range.
+	       ! and 
+	       ! dV/dlnDw = dV/dlnD * dlnD/dlnDw = dV/dlnD * Dw/D = dV/dlnD * Rwet/Rdry
+	       ! Further convert to dM/dDw = dM/dln(Dw) * dln(Dw)/Dw = dM/dln(Dw)/Dw
+	       ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * RHO /Rw
+	       ! 
+	       IF (DMID(ID) .ge. R0*2d0 .and. DMID(ID) .le. R1*2d0 ) THEN
+	         DMIDW = DMID(ID) * RWET/REFF  ! wet radius [um]
+	         SALT_MASS   = SALT_V(ID) * RWET/REFF * RHO / (DMIDW*0.5d0)
+	         VTS_WEIGHT  = VTS_WEIGHT + 
+     &              SALT_MASS * VTS(L) * (DMIDW/(RWET*1d6*2d0) )**2d0 *
+     &                            (2d0 * DR *  RWET/REFF)
+	         SALT_MASS_TOTAL=SALT_MASS_TOTAL+SALT_MASS *
+     &                            (2d0 * DR *  RWET/REFF)
+	       ENDIF
+
+            ENDDO
+            ! Calculate the weighted settling velocity:
+            VTS(L) = VTS_WEIGHT/SALT_MASS_TOTAL
          ENDDO
 
          ! Method is to solve bidiagonal matrix which is
@@ -452,6 +626,10 @@
 !
 !  NOTES:
 !  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (2 ) Update to calculate the drydep throughout the entire PBL instead of just
+!       at the surface. This is more in line with what is done in dry_dep.f. This
+!       is only used if LNLPBL is turned off (or for GEOS-4 and prior met fields).
+!       (jaegle 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -461,6 +639,9 @@
       USE TRACERID_MOD, ONLY : IDTSALA,   IDTSALC
       USE TIME_MOD,     ONLY : GET_MONTH, GET_TS_CHEM
       USE GRID_MOD,     ONLY : GET_AREA_CM2
+      ! Add PBL variables (jaegle  5/5/11)
+      USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
@@ -476,6 +657,9 @@
       REAL*8                 :: DIAM,     U_TS0, REYNOL, ALPHA 
       REAL*8                 :: BETA,     GAMMA, DENS,   FLUX 
       REAL*8                 :: AREA_CM2, TOT1,  TOT2
+      ! New variables for applying dry dep thoughout the PBL (jaegle 5/11/11)
+      INTEGER                :: PBL_MAX
+      REAL*8                 :: F_UNDER_TOP, FREQ
 
       ! Parameters
       REAL*8,  PARAMETER     :: RHOA = 1.25d-3
@@ -487,10 +671,18 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM() * 60d0
 
+      ! Maximum extent of the PBL [model layers] (jaegle 5/11/11)
+      PBL_MAX = GET_PBL_MAX_L()
+
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, AREA_CM2, OLD, NEW, FLUX )
+!$OMP+PRIVATE( L, F_UNDER_TOP   , FREQ ) ! (jaegle 5/11/11)
 !$OMP+SCHEDULE( DYNAMIC )
+
+      ! Loop over levels under PBL
+      DO L = 1, PBL_MAX
 
       ! Loop over latitudes
       DO J = 1, JJPAR
@@ -501,11 +693,29 @@
          ! Loop over longitudes
          DO I = 1, IIPAR
 
+            ! Fraction of box (I,J,L) under PBL top [unitless]
+	    F_UNDER_TOP = GET_FRAC_UNDER_PBLTOP( I, J, L )
+
+            ! Only apply drydep to boxes w/in the PBL
+            IF ( F_UNDER_TOP > 0d0 ) THEN
+
+              ! Sea salt dry deposition frequency [1/s] accounting
+              ! for fraction of each grid box located beneath the PBL top
+              FREQ = DEPSAV(I,J,IDDEP(N)) * F_UNDER_TOP
+              ! Only apply drydep loss if FREQ is nonzero
+              IF ( FREQ > 0d0 ) THEN
+                  ! Old tracer concentration [kg]
+                  OLD  = TC(I,J,L)
+
+                  ! New tracer concentration [kg]
+                  NEW  = OLD * EXP( -FREQ * DTCHEM )
+
+
             ! Old tracer concentration [kg]
-            OLD  = TC(I,J,1)
+            !OLD  = TC(I,J,1)
 
             ! New tracer concentration [kg]
-            NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
+            !NEW  = OLD * EXP( -DEPSAV(I,J,IDDEP(N)) * DTCHEM  )
 
             !===========================================================
             ! ND44 diagnostic: sea salt drydep loss [molec/cm2/s]
@@ -521,7 +731,10 @@
             ENDIF
 
             ! Update tracer array
-            TC(I,J,1) = NEW 
+            TC(I,J,L) = NEW 
+                  ENDIF
+            ENDIF
+         ENDDO
          ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -623,13 +836,21 @@
       SUBROUTINE SRCSALT( TC, N )
 !
 !******************************************************************************
-!  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
-!  aerosols for NSALT size bins.  The generation of sea salt aerosols
-!  has been parameterized following Monahan et al. [1986] parameterization
-!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
+!  The new SRCSALT is based on the sea salt source function of Gong (2003) with
+!  the empirical sea surface temperature (SST) dependence of Jaegle et al. (2011). This
+!  SST dependence was derived based on comparisons to cruise observations of
+!  coarse mode sea salt mass concentrations.
 ! 
-!  Contact: Becky Alexander (bec@io.harvard.edu) or 
-!           Rokjin Park     (rjp@io.harvard.edu)
+!  Contact: Lyatt Jaegle (jaegle@uw.edu)
+!
+! Old:
+!!  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
+!!  aerosols for NSALT size bins.  The generation of sea salt aerosols
+!!  has been parameterized following Monahan et al. [1986] parameterization
+!!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
+! 
+!!  Contact: Becky Alexander (bec@io.harvard.edu) or 
+!!           Rokjin Park     (rjp@io.harvard.edu)
 ! 
 !  Arguments as Input:
 !  ============================================================================
@@ -649,6 +870,13 @@
 !  (2 ) Gong, S., L. Barrie, and J.-P. Blanchet, "Modeling sea-salt
 !        aerosols in the atmosphere. 1. Model development", J. Geophys. Res.,
 !        v. 102, 3805-3818, 1997.
+!  (3 ) Gong, S. L., "A parameterization of sea-salt aerosol source function
+!        for sub- and super-micron particles", Global Biogeochem.  Cy., 17(4), 
+!        1097, doi:10.1029/2003GB002079, 2003.
+!  (4 ) Jaegle, L., P.K. Quinn, T.S. Bates, B. Alexander, J.-T. Lin, "Global
+!        distribution of sea salt aerosols: New constraints from in situ and 
+!        remote sensing observations", Atmos. Chem. Phys., 11, 3137-3157, 
+!        doi:10.5194/acp-11-3137-2011.
 ! 
 !  NOTES:
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
@@ -664,10 +892,14 @@
 !        instead of 1.  Also now use LOG10 instead of LOG in the expressions
 !        for the seasalt base source, since we need the logarithm to the base
 !        10. (jaegle, bec, bmy, 11/23/09)
+!  (6 ) Update to use the Gong (2003) source function (jaegle 5/11/11)
+!  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003) (jaegle 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
       USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
+      ! Add TSKIN (jaegle 5/11/11)
+      USE DAO_MOD,       ONLY : TSKIN ! jaegle
       USE DIAG_MOD,      ONLY : AD08
       USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
       USE GRID_MOD,      ONLY : GET_AREA_M2
@@ -692,6 +924,8 @@
       REAL*8                 :: FEMIS, A_M2
       REAL*8                 :: SALT(IIPAR,JJPAR)
       REAL*8                 :: SALT_N(IIPAR,JJPAR)
+      ! New variables (jaegle 5/11/11)
+      REAL*8                 :: A, B, SST, SCALE
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
@@ -707,13 +941,18 @@
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
 
+      ! no longer used (jaegle 5/11/11)
       ! Constant [volume * time * other stuff??] 
-      CONST   = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
+      !CONST   = 4d0/3d0 * PI * DR * DTEMIS * 1.d-18 * 1.373d0
 
-      ! Constant for converting to [#/m2] (bec, bmy, 4/13/05)
-      CONST_N = DTEMIS * DR * 1.373d0
+      !CONST_N = DTEMIS * DR * 1.373d0
+      !  Constant for converting from [#/m2/s/um] to [#/m2]
+      CONST_N = DTEMIS * (DR * BETHA)
 
       ! Lower and upper limit of size bin N [um]
+      ! Note that these are dry size bins. In order to
+      ! get wet (RH=80%) sizes, we need to multiply by
+      ! BETHA.
       SELECT CASE( N ) 
        
          ! Accum mode
@@ -766,6 +1005,23 @@
             ! Upper edge of IRth bin
             REDGE(R,N) = REDGE(R-1,N) + DR 
 
+
+            ! Sea salt base source [#/m2]. Note that the Gong formulation
+            ! is for r80 (radius at 80% RH), so we need to multiply RMID
+            ! by the scaling factor BETHA=2.
+            A =  4.7*(1.+30.*(BETHA*RMID(R,N)))
+     &                       **(-0.017*(BETHA*RMID(R,N))**(-1.44))
+            B =  (0.433d0-LOG10(BETHA*RMID(R,N))) / 0.433d0
+            SRC_N(R,N) = CONST_N * 1.373 * (1.d0/(BETHA*RMID(R,N))**(A))
+     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**3.45d0)
+     &           * 10d0**(1.607d0*EXP(-(B**2)))
+
+            ! Sea salt base source [kg/m2]: multiply the number of particles
+            ! by the dry volume multiplied by the dry density of sea-salt.
+            SRC(R,N)  =   SRC_N(R,N) * 4d0/3d0 * PI * 1.d-18
+     &           *  SS_DEN( N )  *  (RMID(R,N))**3
+
+
             !-----------------------------------------------------------
             ! IMPORTANT NOTE!
             !
@@ -777,18 +1033,20 @@
             ! (jaegle, bmy, 11/23/09)
             !-----------------------------------------------------------
 
-            ! Sea salt base source [kg/m2]
-            SRC(R,N)  = CONST * SS_DEN( N )
-     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
-     &           * 10d0**( 1.19d0*
-     &             EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
-     &           / BETHA**2
+!            ! Old Monahan et al. (1986) formulation
+!            ! Sea salt base source [kg/m2]
+!            CONST_N = DTEMIS * (DR * BETHA)
+!            SRC(R,N)  = CONST * SS_DEN( N )
+!     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
+!     &           * 10d0**( 1.19d0*
+!     &             EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
+!     &           / BETHA**2
 
-            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
-            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
-     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
-     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))
-     &           /0.65d0)**2))/ BETHA**2
+!            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
+!            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
+!     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
+!     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG10(BETHA*RMID(R,N)))
+!     &           /0.65d0)**2))/ BETHA**2
 
 !### Debug
 !###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
@@ -805,6 +1063,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, R, A_M2, W10M )
+!$OMP+PRIVATE( SST , SCALE         ) !(jaegle 5/11/11)
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
@@ -822,17 +1081,36 @@
                ! Wind speed at 10 m altitude [m/s]
                W10M = SQRT( SFCWINDSQR(I,J) )
 
+               ! Sea surface temperature in Celcius (jaegle 5/11/11)
+               SST = TSKIN(I,J) - 273.15d0
+               ! Limit SST to 0-30C range
+               SST = MAX( SST , 0d0 ) ! limit to  0C
+               SST = MIN( SST , 30d0 ) ! limit to 30C
+               ! Empirical SST scaling factor (jaegle 5/11/11)
+               SCALE = 0.329d0 + 0.0904d0*SST -
+     &                 0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+
+               ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
+	       !SCALE = 1.0d0
+
+! The source function calculated with GEOS-4 2x2.5 wind speeds is too high compared to GEOS-5
+! at the same resolution. The 10m winds in GEOS-4 are too rapid. To correct this, apply a global
+! scaling factor of 0.72 (jaegle 5/11/11)
+#if   defined( GEOS_4 )
+                SCALE = SCALE * 0.72d0
+#endif
+
                ! Loop over size bins
                DO R = 1, NR
 
                   ! Update seasalt source into SALT [kg]
                   SALT(I,J)   = SALT(I,J) + 
-     &                          ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+     &               ( SCALE * SRC(R,N)   * A_M2 * W10M**3.41d0 )
 
                   ! Update seasalt source into SALT_N [#] 
                   ! (bec, bmy, 4/13/05)
                   SALT_N(I,J) = SALT_N(I,J) +
-     &                          ( SRC_N(R,N) * A_M2 * W10M**3.41d0 )
+     &               ( SCALE * SRC_N(R,N) * A_M2 * W10M**3.41d0 )
 
                ENDDO
             ENDIF
@@ -1076,6 +1354,7 @@
 !  NOTES:
 !  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
 !        ALK_EMIS & N_DENS.  Now reference CMN_SIZE. (bec, bmy, 4/13/05)
+!  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1119,6 +1398,14 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'N_DENS' )
       N_DENS = 0d0
 
+      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      SALT_V = 0d0
+
+      ALLOCATE( DMID( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      DMID = 0d0
+
       ! Reset IS_INIT
       IS_INIT = .TRUE.
 
@@ -1135,6 +1422,7 @@
 !
 !  NOTES:
 !  (1 ) Now deallocates ALK_EMIS, N_DENS, SRC_N (bec, bmy, 4/13/05)
+!  (2 ) Deallocated SALT_V and DMID (jaegle 5/11/11)
 !******************************************************************************
 !
       !=================================================================
@@ -1146,6 +1434,9 @@
       IF ( ALLOCATED( SRC_N    ) ) DEALLOCATE( SRC_N    )
       IF ( ALLOCATED( ALK_EMIS ) ) DEALLOCATE( ALK_EMIS )
       IF ( ALLOCATED( N_DENS   ) ) DEALLOCATE( N_DENS   )      
+      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
+      IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
+
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_SEASALT

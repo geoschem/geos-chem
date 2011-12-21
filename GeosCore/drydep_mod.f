@@ -164,6 +164,7 @@
 !  (30) Add new species. Some tracers give 2 deposition species: ISOPN-> ISOPNB
 !       and ISOPND. (fp)
 !  (31) Updates for mercury simulation (ccc, 5/17/10)
+!  (32) Updates for sea salt (jaegle 5/11/11)
 !******************************************************************************
 !
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -210,6 +211,8 @@
       !FP_ISOP (6/2009)
       INTEGER              :: DRYDH2O2
       INTEGER              :: NUMDEP,   NWATER
+      ! Add max number of radius bins for sea salt (jaegle 5/11/11)
+      INTEGER, PARAMETER   :: NR_MAX = 200
 
       ! Arrays
       LOGICAL              :: AIROSOL(MAXDEP)
@@ -234,6 +237,10 @@
       REAL*8               :: A_RADI(MAXDEP)
       REAL*8               :: A_DEN(MAXDEP)
       CHARACTER(LEN=14)    :: DEPNAME(MAXDEP)
+      ! Add arrays for diameters and volume distribution of sea salt aerosols
+      ! (jaegle 5/11/11)
+      REAL*8, ALLOCATABLE  :: DMID(:)
+      REAL*8, ALLOCATABLE  :: SALT_V(:)
 
       ! Additional variables for mercury sim (cdh, 9/1/09)
       INTEGER              :: DRYHg0, DRYHg2, DryHgP
@@ -326,6 +333,8 @@
       REAL*8            :: CFRAC(MAXIJ),      RADIAT(MAXIJ)
       REAL*8            :: USTAR(MAXIJ),      RHB(MAXIJ)
       REAL*8            :: DVEL(MAXIJ,MAXDEP)
+      ! add pressure and 10m wind (jaegle 5/11/11)
+      REAL*8            :: PRESSU(MAXIJ), W10(MAXIJ)
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -342,19 +351,25 @@
       IF ( FIRST ) THEN
          CALL RDDRYCF
          CALL MODIN
+         ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
+         ! sea salt aerosols (jaegle 5/11/11)
+         CALL INIT_WEIGHTSS
          FIRST = .FALSE.
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
+      ! Added SLP as PRESSU and 10m windspeed as W10 (jaegle 5/11/11)
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
-     &             AZO, USTAR, ZH,  LSNOW, RHB )
+     &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
 
       !=================================================================
       ! Call DEPVEL to compute dry deposition velocities [m/s]
+      ! Added  PRESSU, W10 as arguments (jaegle 5/11/11)
       !=================================================================
       CALL DEPVEL( MAXIJ, RADIAT,  TC0,   SUNCOS, F0,  HSTAR, 
      &             XMW,   AIROSOL, USTAR, CZ1,    OBK, CFRAC,  
-     &             ZH,    LSNOW,   DVEL,  AZO,    RHB ) 
+     &             ZH,    LSNOW,   DVEL,  AZO,    RHB,
+     &             PRESSU,         W10) 
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -487,7 +502,7 @@
 !------------------------------------------------------------------------------
 
       SUBROUTINE METERO( CZ1, TC0,  OBK, CFRAC, RADIAT, 
-     &                   AZO, USTR, ZH,  LSNOW, RHB )
+     &                   AZO, USTR, ZH,  LSNOW, RHB, PRESSU, W10 )
 !
 !******************************************************************************
 !  Subroutine METERO calculates meteorological constants needed for the      
@@ -505,6 +520,8 @@
 !  (8 ) ZH     (REAL*8 ) : Height of the mixed layer (aka PBL)      [m]
 !  (9 ) LSNOW  (LOGICAL) : Flag to denote ice & snow (ALBEDO < 0.4)
 !  (10) RHB    (REAL*8 ) : Relative humidity at surface             [unitless]
+!  (11) PRESSU (REAL*8 ) : Sea level pressure                       [Pa]
+!  (12) W10M   (REAL*8)  : 10 meter windspeed                       [m/s]
 !
 !  References (see full citations above):
 !  ============================================================================
@@ -535,11 +552,14 @@
 !        fields.  Remove obsolete variables. (swu, bmy, 5/25/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (8 ) Move XLTMMP function to module MEGANUT_MOD. (ccc, 11/20/09)
+!  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules 
       USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
       USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
+      ! Add SLP (jaegle 5/11/11)
+      USE DAO_MOD,      ONLY : SLP
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
                                   
@@ -556,6 +576,9 @@
       REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)
       REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)
       REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)
+      !  add the following 2 outputs (jaegle 5/5/11)
+      REAL*8,  INTENT(OUT)  :: PRESSU(MAXIJ)
+      REAL*8,  INTENT(OUT)  :: W10(MAXIJ)
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
 #if   defined( GCAP )
@@ -571,6 +594,8 @@
       ! External functions
 !-- Moved to megan_mod.f. (ccc, 11/20/09)
 !      REAL*8, EXTERNAL      :: XLTMMP
+      ! Surface wind speed (jaegle, 5/11/11)
+      REAL*8, EXTERNAL      :: SFCWINDSQR
 
       !=================================================================
       ! METERO begins here!
@@ -630,7 +655,17 @@
          ZH(IJLOOP)     = GET_PBL_TOP_m( I, J )
 
          ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
-         RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
+         !RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
+         !  changed to 98% due to vapor pressure lowering above sea sater (Lewis & Schwartz, 2004)
+         !  jaegle (5/11/11)
+         RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
+
+         ! Sea level pressure (jaegle 5/11/11). 
+         ! SLP is in hPa, convert from hPa to Pa for PRESSU.
+         PRESSU(IJLOOP) = SLP(I,J) * 1.d2
+
+         ! 10m windspeed (jaegle 5/11/11)
+         W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
 
       ENDDO
       ENDDO
@@ -1170,7 +1205,8 @@
 
       SUBROUTINE DEPVEL( NPTS, RADIAT,  TEMP,  SUNCOS, F0,  HSTAR,
      &                   XMW,  AIROSOL, USTAR, CZ1,    OBK, CFRAC,
-     &                   ZH,   LSNOW,   DVEL,  ZO,     RHB )
+     &                   ZH,   LSNOW,   DVEL,  ZO,     RHB,
+     &                   PRESSU, W10 )
 
       ! References to F90 modules (bmy, 3/8/01)
       USE ERROR_MOD, ONLY : IT_IS_NAN
@@ -1196,6 +1232,9 @@ C**                             not grow hygroscopically.  Added RHB as
 C**                             an input argument.
 C** Version 3.9    5/25/05  -- Now restore GISS-specific code for GCAP model
 C** Version 3.9.1  11/17/05 -- change Reynolds # criterion from 1 to 0.1
+C  Updates:
+C   +Updated to use actual Sea level pressure instead of 1000 hPa (jaegle 5/11/11)
+C   +Modified to used Slinn & Slinn (1980) over Ocean surfaces (jaegle 5/11/11)
 C
 C***********************************************************************
 C   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1273,6 +1312,8 @@ C     TEMP(IJLOOP)   - Surface air temperature in K
 C     SUNCOS(IJLOOP) - Cosine of solar zenith angle
 C     LSNOW(IJLOOP)  - Logical for snow and sea ice
 C     RHB(IJLOOP)    - Relative humidity at the surface
+C     PRESSU(IJLOOP) - Sea level pressure
+C     W10(IJLOOP)    - 10m wind speed
 C
 C Need as input for each species K (passed):
 C     F0(K)          - reactivity factor for oxidation of biological substances
@@ -1326,6 +1367,8 @@ C***********************************************************************
 
       ! Added relative humidity array (bec, bmy, 4/13/05)
       REAL*8 :: RHB(MAXIJ)
+      !  Added SLP and W10 array (jaegle,5/5/11)
+      REAL*8 :: PRESSU(MAXIJ),W10(MAXIJ)
 
       REAL*8  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
@@ -1545,8 +1588,11 @@ C*
 C** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
-               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
-     C              DIFFG(TEMPK,PRESS,XMW(K))
+!               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
+!     C              DIFFG(TEMPK,PRESS,XMW(K))
+C* Replace PRESS with actual sea level pressure (PRESSU) (jaegle 5/11/11)
+               RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
+     C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
                RLUXX = 1.D12
                IF (RLU(LDT).LT.9999.D0)
@@ -1615,9 +1661,15 @@ C** equations (15)-(17) of Walcek et al. [1986]
 !---------------------------------------------------------------------------
 
                   ! [Zhang et al., 2001]
+		  ! Modified to use actual slp in instead of fixed value
+		  ! also added W10 (10m windspeed) (jaegle 5/11/11)
+!                  RSURFC(K,LDT) = 
+!     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
+!     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
                   RSURFC(K,LDT) = 
-     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
-     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
+     &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
+     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
+     &                             W10(IJLOOP) )
 
                ELSE IF ( ( DEPNAME(K) == 'DST1' )  .OR. 
      &                   ( DEPNAME(K) == 'DST2' )  .OR. 
@@ -1636,8 +1688,11 @@ C** equations (15)-(17) of Walcek et al. [1986]
 !     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
 
                   ! [Zhang et al., 2001]
+                  ! Modified to use actual slp (jaegle 5/11/11)
                   RSURFC(K,LDT) = 
-     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+!     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+     &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK, 
+     &             USTAR(IJLOOP))
 
                ELSE 
 
@@ -2273,7 +2328,8 @@ C** Load array DVEL
 
 !------------------------------------------------------------------------------
 
-      FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB ) RESULT(RS)
+      FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, 
+     &                             W10 ) RESULT(RS)
 !
 !******************************************************************************
 !  Function AERO_SFCRSII computes the aerodynamic resistance of seasalt aerosol
@@ -2288,6 +2344,7 @@ C** Load array DVEL
 !  (4 ) TEMP  (REAL*8 ) : Temperature [K]
 !  (5 ) USTAR (REAL*8 ) : Friction Velocity [m/s]
 !  (6 ) RHB   (REAL*8)  : Relative humidity (fraction)
+!  (7 ) W10    (REAL*8) : 10m windspeed [m/s]
 !
 !  Function Value
 !  ============================================================================
@@ -2298,8 +2355,17 @@ C** Load array DVEL
 !        (bmy, 4/1/04)
 !  (2 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
 !         argument (phs, 6/11/08)
+!  (3 ) Bug fixes to the Gerber (1985) growth function (jaegle 5/11/11)
+!  (4)  Update growth function to Lewis and Schwartz (2006) and density
+!       calculation based on Tang et al. (1997) (bec, jaegle 5/11/11)
+!  (5 ) Updates of sea salt deposition over water to follow the Slinn & Slinn (1980)
+!       formulation over water surface. Described in Jaegle et al. (ACP, 11, 2011) (jaegle 5/11/11)
 !******************************************************************************
 !
+      ! References to F90 module 
+      ! Added for size distribution (jaegle 5/11/11)
+      USE TRACER_MOD,   ONLY  : SALA_REDGE_um, SALC_REDGE_um
+
       ! Arguments
       INTEGER, INTENT(IN) :: K     ! INDEX OF NUMDEP
       INTEGER, INTENT(IN) :: II    ! Surface type index of GEOS-CHEM
@@ -2307,6 +2373,8 @@ C** Load array DVEL
       REAL*8,  INTENT(IN) :: TEMP  ! Temperature (K)    
       REAL*8,  INTENT(IN) :: USTAR ! Friction velocity (m/s)
       REAL*8,  INTENT(IN) :: RHB   ! Relative humidity (fraction)
+      ! Added 10m windspeed (jaegle 5/11/11)
+      REAL*8,  INTENT(IN) :: W10   ! 10 meter windspeed
 
       ! Function value
       REAL*8              :: RS    ! Surface resistance for particles [s/m]
@@ -2330,9 +2398,41 @@ C** Load array DVEL
       REAL*8  :: SC, ST      ! Schmidt and Stokes number (nondim)
       REAL*8  :: RHBL        ! Relative humidity local
 
-      REAL*8  :: DIAM, DEN, RATIO_R, RWET, RCM
+      ! replace RCM with RUM (radius in microns instead of cm)  - jaegle 5/11/11
+      !REAL*8  :: DIAM, DEN, RATIO_R, RWET, RCM
+      REAL*8  :: DIAM, DEN, RATIO_R, RWET, RUM
       REAL*8  :: FAC1, FAC2
       REAL*8  :: EB, EIM, EIN, R1, AA, VTS
+      ! New variables added (jaegle 5/11/11)
+      REAL*8  :: SW
+      REAL*8  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! for weighting the settling velocity
+      REAL*8  :: D0, D1  !lower and upper bounds of sea-salt dry diameter bins 
+      REAL*8  :: DEDGE
+      REAL*8  :: DEN1, WTP 
+      INTEGER :: ID,NR
+      LOGICAL, SAVE          :: FIRST = .TRUE.
+
+      !increment of radius for integration of settling velocity (um)
+      REAL*8, PARAMETER      :: DR    = 5.d-2
+
+      ! Parameters for polynomial coefficients to derive seawater
+      ! density. From Tang et al. (1997) - jaegle 5/11/11
+      REAL*8,  PARAMETER     :: A1 =  7.93d-3
+      REAL*8,  PARAMETER     :: A2 = -4.28d-5
+      REAL*8,  PARAMETER     :: A3 =  2.52d-6
+      REAL*8,  PARAMETER     :: A4 = -2.35d-8
+      REAL*8,  PARAMETER     :: EPSI = 1.0D-4
+
+      ! parameters for assumed size distribution of accumulation and coarse mode
+      ! sea salt aerosols, as described in Jaegle et al. (ACP, 11, 2011) (jaegle, 5/11/11)
+      ! 1) geometric dry mean diameters (microns)
+      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
+      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      ! 2) sigma of the size distribution
+      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
+      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+      REAL*8,  PARAMETER     :: PI =3.14159D0
+
 
 !=======================================================================
 !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -2470,28 +2570,107 @@ C** Load array DVEL
       !
       !      R1 (Particle rebound)  = exp(-St^0.5)
       !=================================================================
+      !      Update (jaegle 5/11/2011): The above formulation of Zhang et al (2001)
+      !      is valid for land surfaces and was originally based on the work
+      !      of Slinn (1982). Over water surfaces, the work of reference is that
+      !      of Slinn and Slinn (1980) who use the term "viscous sublayer" to
+      !      refer to the thin layer extending 0.1-1mm above the water surface.
+      !      Due to the proximity of the water, the RH in this layer is much higher 
+      !      than the ambient RH in the surface layer. According to Lewis and 
+      !      Schwartz (2004): "Relative humidities of 99% and 100% were considered
+      !      by Slinn and Slinn for the viscous sublayer, however near the ocean
+      !      surface RH would be limited to near 98% because of the vapor pressure
+      !      lowering of water over seawater due to the salt content". We will
+      !      thus use a constant value RH=98% over all ocean boxes. This affects
+      !      the growth of particles (the wet radius at RH=98% is x4 the dry radius)
+      !      and thus affects all the terms depending on particle size.
+      !      
+      !      Other updates for ocean surfaces:
+      !         a)   Over ocean surfaces the formulation from Slinn & Slinn for the
+      !              resistance in the viscous layer is 
+      !                Rs = 1 / (Cd/XCKMAN*U10m*(Eb+Eim)+VTS)
+      !              with  Cd=(Ustar/U10m)**2, and VTS is the gravitational settling
+      !              in the viscous layer. Note that the gravitational settling calculated
+      !              here for the viscous layer is >> than the one calculated for the
+      !              surface layer in seasalt_mod.f because of the higher RH.
+      !         b)   Eim = 10^(-3/St) based on Slinn and Slinn (1980)
+      !
+      ! References:
+      !  LEWIS and SCHWARTZ (2004) "SEA SALT AEROSOL PRODUCTION, MECHANISMS, METHODS
+      !                 AND MODELS" AGU monograph 152.
+      !  SLINN and SLINN (1980), "PREDICTIONS FOR PARTICLE DEPOSITION ON NATURAL-WATERS" 
+      !                Atmos Environ (1980) vol. 14 (9) pp. 1013-1016.
+      !  SLINN (1982), "PREDICTIONS FOR PARTICLE DEPOSITION TO VEGETATIVE CANOPIES"
+      !                Atmos Environ (1982) vol. 16 (7) pp. 1785-1794.
+      !==================================================================
+
+      ! Number of bins for sea salt size distribution
+      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
+     &                  + 0.5d0 )
 
       ! Particle radius [cm]
-      RCM  = A_RADI(K) * 1.d2
+      ! Bug fix: The Gerber [1985] growth should use the dry radius 
+      ! in micromenters and not cm. Replace RCM with RUM (jaegle 5/11/11)
+      !RCM  = A_RADI(K) * 1.d2
+      RUM  = A_RADI(K) * 1.d6
       
       ! Exponential factors used for hygroscopic growth
-      FAC1 = C1 * ( RCM**C2 )
-      FAC2 = C3 * ( RCM**C4 )
+      ! Replace RCM with RUM (jaegle 5/11/11)
+      !FAC1 = C1 * ( RCM**C2 )
+      !FAC2 = C3 * ( RCM**C4 )
+      FAC1 = C1 * ( RUM**C2 )
+      FAC2 = C3 * ( RUM**C4 )
 
       ! Aerosol growth with relative humidity in radius [m] 
       ! (Gerber, 1985) (bec, 12/8/04)
       ! Added safety check for LOG (phs, 6/11/08)
       RHBL    = MAX( TINY(RHB), RHB )
-      RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHBL))+RCM**3.d0)**0.33d0
+
+      ! Check whether we are over the oceans or not:
+      ! Over oceans the RH in the viscous sublayer is set to 98%, following
+      ! Lewis and Schwartz (2004), see discussion above (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+          RHBL = 0.98
+      ENDIF
+      ! Corrected bug in Gerber formulation: use of LOG10  (jaegle 5/11/11)
+      !RWET    = 0.01d0*(FAC1/(FAC2-DLOG(RHBL))+RCM**3.d0)**0.33d0
+      !RWET = 1.d-6*(FAC1/(FAC2-LOG10(RHBL))+RUM**3.d0)**0.33333d0
+
+      ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth [m] (jaegle 5/11/11)
+      RWET = A_RADI(K) * (4.d0 / 3.7d0) *
+     &          ( (2.d0 - RHBL)/(1.d0 - RHBL) )**(1.d0/3.d0)
 
       ! Ratio dry over wet radii at the cubic power
-      RATIO_R = ( A_RADI(K) / RWET )**3.d0
+      !RATIO_R = ( A_RADI(K) / RWET )**3.d0
 
       ! Diameter of the wet aerosol [m]
       DIAM  = RWET * 2.d0  
 
       ! Density of the wet aerosol [kg/m3] (bec, 12/8/04)
-      DEN   = RATIO_R * A_DEN(K) + ( 1.d0 - RATIO_R ) * 1000.d0 
+      !DEN   = RATIO_R * A_DEN(K) + ( 1.d0 - RATIO_R ) * 1000.d0 
+
+      ! Above density calculation is chemically unsound because it ignores chemical solvation.  
+      ! Iteratively solve Tang et al., 1997 equation 5 to calculate density of wet aerosol (kg/m3) 
+      ! (bec, 6/17/10, jaegle 5/11/11)
+      ! Redefine RATIO_R
+      RATIO_R = A_RADI(K) / RWET
+
+      ! Assume an initial density of 1000 kg/m3
+      DEN  = 1000.D0
+      DEN1 = 0.d0 !initialize (bec, 6/21/10)
+      DO WHILE ( ABS( DEN1-DEN ) .gt. EPSI )
+         ! First calculate weight percent of aerosol (kg_RH=0.8/kg_wet) 
+         WTP    = 100.d0 * A_DEN(K)/DEN * RATIO_R**3.d0
+         ! Then calculate density of wet aerosol using equation 5 
+         ! in Tang et al., 1997 [kg/m3]
+         DEN1   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2) + 
+     $               (A3 * WTP**3) + (A4 * WTP**4) ) * 1000.d0
+         ! Now calculate new weight percent using above density calculation
+         WTP    = 100.d0 * A_DEN(K)/DEN1 * RATIO_R**3
+         ! Now recalculate new wet density [kg/m3]
+         DEN   = ( 0.9971d0 + (A1 * WTP) + (A2 * WTP**2) + 
+     $              (A3 * WTP**3) + (A4 * WTP**4) ) * 1000.d0
+      ENDDO
 
       ! Dp [um] = particle diameter
       DP    = DIAM * 1.d6 
@@ -2532,6 +2711,42 @@ C** Load array DVEL
       ! Settling velocity [m/s]
       VTS  = CONST * SLIP / VISC
 
+      ! This settling velocity is for the mid-point of the size bin.
+      ! Need to integrate over the size bin, taking into account the
+      ! mass distribution of sea-salt and the dependence of VTS on aerosol
+      ! size. See WET_SETTLING in SEASALT_MOD.f for more details. (jaegle 5/11/11)
+      SALT_MASS_TOTAL = 0d0
+      VTS_WEIGHT      = 0d0
+      ! Check what the min/max range of the SS size bins are
+      IF ( RUM .le. SALA_REDGE_um(2) ) THEN
+        D0 = SALA_REDGE_um(1)*2d0
+        D1 = SALA_REDGE_um(2)*2d0
+      ELSE 
+        D0 = SALC_REDGE_um(1)*2d0
+        D1 = SALC_REDGE_um(2)*2d0
+      ENDIF
+     
+
+      DO ID = 1, NR
+      ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
+      ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * DEN /Rw
+        IF (DMID(ID) .ge. D0 .and. DMID(ID) .le. D1 ) THEN
+           DMIDW = DMID(ID) * RWET/A_RADI(K)   ! wet radius [um]
+           SALT_MASS   = SALT_V(ID) * RWET/A_RADI(K) * DEN / 
+     &                    (DMIDW*0.5d0)
+           VTS_WEIGHT  = VTS_WEIGHT + 
+     &              SALT_MASS * VTS * (DMIDW/(RWET*1d6*2d0) )**2d0 *
+     &                            (2d0 * DR *  RWET/A_RADI(K))
+           SALT_MASS_TOTAL=SALT_MASS_TOTAL+SALT_MASS *
+     &                            (2d0 * DR *  RWET/A_RADI(K))
+        ENDIF
+
+      ENDDO
+
+      ! Final mass weighted setting velocity:
+      VTS = VTS_WEIGHT/SALT_MASS_TOTAL
+
+
       ! Brownian diffusion constant for particle (m2/s)
       DIFF = BOLTZ * TEMP * SLIP 
      &      / (3.d0 * 3.141592d0 * VISC * DIAM)  
@@ -2549,9 +2764,14 @@ C** Load array DVEL
          EIN  = 0.5d0 * ( DIAM / AA )**2
       ENDIF
 
-      EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
-
-      EIM  = MIN( EIM, 0.6D0 )
+      ! Use the formulation of Slinn and Slinn (1980) for the impaction over
+      ! water surfaces (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+         EIM  = 10.d0**( -3.d0/ ST )   ! for water surfaces
+      ELSE
+         EIM  = ( ST / ( ALPHA(LUC) + ST ) )**(BETA)
+         EIM  = MIN( EIM, 0.6D0 )
+      ENDIF
 
       IF (LUC == 11 .OR. LUC == 13 .OR. LUC == 14) THEN
          R1 = 1.D0
@@ -2560,11 +2780,93 @@ C** Load array DVEL
       ENDIF
 
       ! surface resistance for particle
-      RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+      ! Use the formulation of Slinn and Slinn (1980) for the impaction over
+      ! water surfaces (jaegle 5/11/11)
+      IF (LUC == 14) THEN
+         RS   = 1.D0 / (USTAR**2.d0/ (W10*XCKMAN) * (EB + EIM ) + VTS)
+      ELSE
+         RS   = 1.D0 / (E0 * USTAR * (EB + EIM + EIN) * R1 )
+      ENDIF
 
       ! Return to calling program
       END FUNCTION AERO_SFCRSII
 
+!------------------------------------------------------------------------------
+!
+      SUBROUTINE INIT_WEIGHTSS
+!
+!******************************************************************************
+! Subroutine that calculates the volume size distribution of sea-salt. This only has
+! to be done once. We assume that sea-salt is the combination of a coarse mode
+! and accumulation model log-normal distribution functions. The resulting
+! arrays are:
+!   DMID   = diameter of bin
+!   SALT_V = dV/dln(D) [in um3] 
+! 
+! jaegle 5/11/11
+!******************************************************************************
+!
+      ! References to F90 modules
+      USE TRACER_MOD,   ONLY  : SALA_REDGE_um, SALC_REDGE_um
+
+      ! Local variables
+      INTEGER             :: N
+
+      REAL*8  :: SALT_MASS, SALT_MASS_TOTAL, VTS_WEIGHT, DMIDW ! jaegle, for weighting the settling vel.
+      REAL*8  :: DEDGE
+      INTEGER :: ID,NR
+
+      ! increment of radius for integration of settling velocity (um)
+      REAL*8, PARAMETER      :: DR    = 5.d-2
+
+      ! parameters for assumed size distribution of acc and coarse mode
+      ! sea salt aerosols
+      ! geometric dry mean diameters (microns)
+      REAL*8,  PARAMETER     ::   RG_A = 0.085d0
+      REAL*8,  PARAMETER     ::   RG_C = 0.4d0
+      ! sigma of the size distribution
+      REAL*8,  PARAMETER     ::   SIG_A = 1.5d0
+      REAL*8,  PARAMETER     ::   SIG_C = 1.8d0
+      REAL*8, PARAMETER   :: PI =3.14159D0
+
+
+      ! Number of bins between the lowest bound of of the accumulation mode
+      ! sea salt and the upper bound of the coarse mode sea salt.
+      NR =INT((( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR )
+     &                  + 0.5d0 )
+
+      !=================================================================
+      ! Define the volume size distribution of sea-salt. This only has
+      ! to be done once. We assume that sea-salt is the combination of a coarse mode
+      ! and accumulation model log-normal distribution functions
+      !=================================================================
+
+       ! Lower edge of 0th bin diameter [um]
+       DEDGE=SALA_REDGE_um(1) * 2d0
+
+       ! Loop over diameters
+       DO ID = 1, NR
+
+           ! Diameter of mid-point in microns
+           DMID(ID)  = DEDGE + ( DR )
+
+	   ! Calculate the dry volume size distribution as the sum of two log-normal
+	   ! size distributions. The parameters for the size distribution are
+	   ! based on Reid et al. and Quinn et al.
+	   ! The scaling factors 13. and 0.8 for acc and coarse mode aerosols are
+	   ! chosen to obtain a realistic distribution  
+	   ! SALT_V (D) = dV/dln(D) [um3]
+	   SALT_V(ID) = PI / 6d0* (DMID(ID)**3) * (
+     &         13d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_A*2d0) )**2d0/
+     &                   LOG(SIG_A)**2d0 )
+     &         /( sqrt(2d0 * PI) * LOG(SIG_A) )  +
+     &         0.8d0*exp(-0.5*( LOG(DMID(ID))-LOG(RG_C*2d0) )**2d0/
+     &                   LOG(SIG_C)**2d0)
+     &         /( sqrt(2d0 * PI) * LOG(SIG_C) )  )
+           ! update the next edge
+           DEDGE = DEDGE + DR*2d0
+        ENDDO
+      END SUBROUTINE INIT_WEIGHTSS
 !------------------------------------------------------------------------------
 
       FUNCTION DUST_SFCRSI( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
@@ -3323,6 +3625,8 @@ C** Load array DVEL
 !  (14) Add dicarbonyl chemistry species (tmf, ccc, 3/6/09)
 !  (15) Minor bug fix: ALPH, LIMO should have molwt = 136.23, not 136 even
 !        (bmy, 10/19/09)
+!  (16) Add allocation for size distribution of sea salt SALT_V and 
+!       DMID (jaegle, 5/11/11)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4316,10 +4620,20 @@ C** Load array DVEL
 
       !=================================================================
       ! Allocate arrays
+      ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
       ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
       DEPSAV = 0d0
+
+      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      SALT_V = 0d0
+
+      ALLOCATE( DMID( NR_MAX ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      DMID = 0d0
+
 
       !=================================================================
       ! Echo information to stdout
@@ -4350,12 +4664,15 @@ C** Load array DVEL
 ! 
 !  NOTES:
 !  (1 ) Remove reference to PBLFRAC array; it's obsolete (bmy, 2/22/05)
+!  (2 ) Added SALT_V and DMID (jaegle, 5/11/11)
 !******************************************************************************
 !
       !=================================================================
       ! CLEANUP_DRYDEP begins here!
       !=================================================================
       IF ( ALLOCATED( DEPSAV  ) ) DEALLOCATE( DEPSAV  )
+      IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
+      IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DRYDEP
