@@ -1,35 +1,33 @@
-! $Id: upbdflx_mod.f,v 1.3 2009/10/19 14:31:58 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: upbdflx_mod
+!
+! !DESCRIPTION: Module UPBDFLX\_MOD contains subroutines which impose 
+!  stratospheric boundary conditions on O3 and NOy.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE UPBDFLX_MOD
 !
-!******************************************************************************
-!  Module UPBDFLX_MOD contains subroutines which impose stratospheric boundary
-!  conditions on O3 and NOy (qli, bdf, mje, bmy, 6/28/01, 7/8/09)
+! !USES:
 !
-!  Module Variables:
-!  ===========================================================================
-!  (1 ) IORD (INTEGER)   : TPCORE E/W      transport option flag 
-!  (2 ) JORD (INTEGER)   : TPCORE N/S      transport option flag
-!  (3 ) KORD (INTEGER)   : TPCORE vertical transport option flag
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_UPBDFLX       : Driver for stratospheric flux boundary conditions
-!  (2 ) UPBDFLX_O3       : Computes flux of O3 from stratosphere, using Synoz
-!  (3 ) UPBDFLX_NOY      : Computes flux of NOy from stratosphere
-!  (4 ) INIT_UPBDFLX     : Gets IORD, JORD, KORD values from "input_mod.f"
-!  (5 ) UPBDFLX_HD       : Computes flux of HD from stratosphere
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: DO_UPBDFLX
+      PUBLIC  :: UPBDFLX_O3
+      PUBLIC  :: UPBDFLX_NOY
+      PUBLIC  :: UPBDFLX_HD
+      PUBLIC  :: INIT_UPBDFLX
 !
-!  GEOS-CHEM modules referenced by upbdflx_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f      : Module w/ routines for binary punch file I/O
-!  (2 ) error_mod.f      : Module w/ NaN and other error check routines
-!  (3 ) logical_mod.f    : Module w/ GEOS-CHEM logical switches
-!  (4 ) pressure_mod.f   : Module w/ routines to compute P(I,J,L)
-!  (5 ) tracer_mod.f     : Module w/ GEOS-CHEM tracer array STT etc.
-!  (6 ) tracerid_mod.f   : Module w/ pointers to tracers & emissions
-!  (7 ) tropopause_mod.f : Module w/ routines to read ann mean tropopause
-!
-!  NOTES: 
+! !REVISION HISTORY:
+!  28 Jun 2001 - Q. Li, B. Field, M. Evans, R. Yantosca - Initial version
 !  (1 ) Routine "upbdflx_noy" now correctly reprocessed P(NOy) files from
 !        /data/ctm/GEOS_4x5/pnoy_200106 or /data/ctm/GEOS_2x2.5/pnoy_200106.
 !        (mje, bmy, 6/28/01)
@@ -63,61 +61,58 @@
 !  (24) Modifications for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (25) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  (26) Added support for LINOZ (dbj, jliu, bmy, 10/16/09)
-!******************************************************************************
-!      
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "upbdflx_mod.f"
-      !=================================================================
-      
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC  :: DO_UPBDFLX
-      PUBLIC  :: UPBDFLX_O3
-      PUBLIC  :: UPBDFLX_NOY
-      PUBLIC  :: UPBDFLX_HD
-      PUBLIC  :: INIT_UPBDFLX
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
+      ! TPCORE transport option flags
       INTEGER :: IORD, JORD, KORD
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_upbdflx
+!
+! !DESCRIPTION: Subroutine DO\_UPBDFLX is the driver routine for the 
+!  stratospheric (upper-boundary) routines for Ox and NOy.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_UPBDFLX
 !
-!******************************************************************************
-!  Subroutine DO_UPBDFLX is the driver routine for the stratospheric (upper-
-!  boundary) routines for Ox and NOy. (bmy, 3/11/03, 10/16/09)
-!  
-!  NOTES:
+! !USES:
+!
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD, ONLY : LLINOZ
+      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_TAGOX_SIM
+      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
+      USE LINOZ_MOD,   ONLY : DO_LINOZ
+
+#     include "CMN_SIZE"  ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  11 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Removed IORD, JORD, KORD from the arg list.  Now references LPRT
 !        from "logical_mod.f".  Now references ITS_A_FULLCHEM_SIM and
 !        ITS_A_TAGOX_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now references ITS_A_H2HD_SIM from "tracer_mod.f".  Now call routine
 !        UPBDFLX_HD for H2/HD simulation. (lyj, phs, 9/18/07)
 !  (3 ) Added support for LINOZ (dbm, jliu, bmy, 10/16/09)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT, LLINOZ
-      USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
-      USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
-      USE LINOZ_MOD,   ONLY : DO_LINOZ
-
-#     include "CMN_SIZE"  ! Size parameters
-
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! DO_UPBDFLX begins here!
       !=================================================================
@@ -167,36 +162,64 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_UPBDFLX: after strat fluxes' )
 
-      ! Return to calling program
       END SUBROUTINE DO_UPBDFLX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: upbdflx_O3  
+!
+! !DESCRIPTION: Subroutine UPBDFLX\_O3 establishes the flux boundary condition 
+!  for Ozone coming down from the stratosphere, using the Synoz algorithm of
+!  McLinden et al, 2000. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UPBDFLX_O3      
 !
-!******************************************************************************
-!  Subroutine UPBDFLX_O3 establishes the flux boundary condition for Ozone
-!  coming down from the stratosphere, using the Synoz algorithm of
-!  McLinden et al, 2000. (qli, bmy, 12/13/99, 10/16/09)
+! !USES:
 !
+      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE LOGICAL_MOD,    ONLY : LVARTROP 
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
+      USE TAGGED_OX_MOD,  ONLY : ADD_STRAT_POX
+      USE TIME_MOD,       ONLY : GET_TS_DYN
+      USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
+      USE TRACERID_MOD,   ONLY : IDTOX
+      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
+      
+#     include "CMN_SIZE"       ! Size parameters
+#     include "CMN_GCTM"       ! Rdg0
+!
+! !REMARKS:
 !  Reference:
 !  ===========================================================================
 !  C. A. McLinden, S. Olsen, B. Hannegan, O. Wild, M. J. Prather, and
 !  J. Sundet, "Stratospheric Ozone in 3-D models: A simple chemistry
 !  and the cross-tropopause flux".
-!
-!  NOTES:
+!                                                                             .
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!  %%%% NOTE: This SYNOZ scheme is now obsolete, replaced by LINOZ   %%%%
+!  %%%% We keep this for backwards compatibility w/ older met fields %%%%
+!  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! 
+! !REVISION HISTORY:
+!  13 Dec 1999 - Q. Li, R. Martin - Initial version
 !  (1 ) The parameter Rdg0 from "CMN_GCTM" = R / g0 = 28.97. 
 !  (2 ) Pass PW = PS - PTOP to UPBDFLX via "CMN".
 !  (3 ) Now pass IORD, JORD, KORD as arguments (bmy, 12/6/00)
 !  (4 ) Now compute the proper value of PO3_vmr that will yield 475 Tg O3/yr
 !        for various settings of IORD, JORD, KORD (rvm, bey, bmy, 12/5/00)
-!
+!                                                                             .
 !        **************************************************************
 !        ***** You must use this version of UPBDFLX_O3 if you are *****
 !        ***** using the Parallel Processor TPCORE v. 7.1         *****
 !        **************************************************************
-!
+!                                                                             .
 !  (5 ) Added to "upbdflx_mod.f".  Also updated comments and made some
 !        cosmetic changes. (bmy, 6/28/01)
 !  (6 ) Now reference CMN_SETUP for LSPLIT.  Also store strat O3 into
@@ -237,29 +260,20 @@
 !  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
 !  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
 !  (28) Now do not call ADD_STRAT_POx for tagged Ox (dbj, bmy, 10/16/09)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD, BXHEIGHT, T, TROPP
-      USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE LOGICAL_MOD,    ONLY : LVARTROP 
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE, GET_PCENTER
-      USE TAGGED_OX_MOD,  ONLY : ADD_STRAT_POX
-      USE TIME_MOD,       ONLY : GET_TS_DYN
-      USE TRACER_MOD,     ONLY : STT, ITS_A_TAGOX_SIM
-      USE TRACERID_MOD,   ONLY : IDTOX
-      USE TROPOPAUSE_MOD, ONLY : GET_TPAUSE_LEVEL
-      
-#     include "CMN_SIZE"       ! Size parameters
-#     include "CMN_GCTM"       ! Rdg0
-
-      ! Local variables
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      INTEGER                 :: I, J, L, L70mb
-      INTEGER                 :: NTRACER, NTRACE2
-      REAL*8                  :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8                  :: DTDYN, H70mb, PO3, PO3_vmr
-      REAL*8                  :: STFLUX(IIPAR,JJPAR,LLPAR)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 (bmy, 8/13/10)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE        :: FIRST = .TRUE.
+      INTEGER              :: I, J, L, L70mb
+      INTEGER              :: NTRACER, NTRACE2
+      REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
+      REAL*8               :: DTDYN, H70mb, PO3, PO3_vmr
+      REAL*8               :: STFLUX(IIPAR,JJPAR,LLPAR)
 
       ! Select the grid boxes at the edges of the O3 release region, 
       ! for the proper model resolution (qli, bmy, 12/1/04)
@@ -330,7 +344,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -479,25 +493,49 @@
          FIRST = .FALSE.
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE UPBDFLX_O3 
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: upbdflx_NOy
+!
+! !DESCRIPTION: Subroutine UPBDFLX\_NOy imposes NOy (NOx + HNO3) upper 
+!  boundary condition in the stratosphere. The production rates for NOy are 
+!  provided by Dylan Jones, along with NOx and HNO3 concentrations. 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE UPBDFLX_NOy( IFLAG )
+!
+! !USES:
+!
+      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
+      USE DAO_MOD,        ONLY : AD
+      USE DIRECTORY_MOD,  ONLY : DATA_DIR
+      USE ERROR_MOD,      ONLY : ERROR_STOP    
+      USE TRACERID_MOD,   ONLY : IDTNOX,       IDTHNO3
+      USE TIME_MOD,       ONLY : GET_TS_DYN,   GET_MONTH
+      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
+      USE TRACER_MOD,     ONLY : STT,          XNUMOLAIR
+      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
+      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
 
-      SUBROUTINE UPBDFLX_NOY( IFLAG )
+#     include "CMN_SIZE"       ! Size parameters
 !
-!******************************************************************************
-!  Subroutine UPBDFLX_NOY imposes NOy (NOx + HNO3) upper boundary condition
-!  in the stratosphere. The production rates for NOy are provided by Dylan
-!  Jones, along with NOx and HNO3 concentrations. 
-!  (qli, rvm, mje, bmy, 12/22/99, 8/4/06)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as input:
-!  ===========================================================================
-!  (1) IFLAG : IFLAG=1 will partition    [NOy] before transport
-!              IFLAG=2 will re-partition [NOy] after  transport
-!
-!  NOTES:
+      ! IFLAG=1 will partition    [NOy] before transport
+      ! IFLAG=2 will re-partition [NOy] after  transport
+      INTEGER, INTENT(IN) :: IFLAG
+! 
+! !REVISION HISTORY: 
+!  22 Dec 1999 - Q. Li, R. Martin - Initial version
 !  (1 ) Use READ_BPCH2 to read data from disk in binary punch file format.
 !  (2 ) Now partition total [NOy] into [NOx] and [HNO3], instead of
 !        partitioning P(NOy) into P(NOx) and P(HNO3).  (qli, bmy, 12/22/1999)
@@ -544,28 +582,13 @@
 !        to LPAUSE with ITS_IN_THE_STRAT from "tropopause_mod.f" (bmy, 11/1/05)
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Cap 1-XRATIO to avoid numerical problems later (bmy, 6/30/08)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
-      USE DAO_MOD,        ONLY : AD
-      USE DIRECTORY_MOD,  ONLY : DATA_DIR
-      USE ERROR_MOD,      ONLY : ERROR_STOP    
-      USE TRACERID_MOD,   ONLY : IDTNOX,       IDTHNO3
-      USE TIME_MOD,       ONLY : GET_TS_DYN,   GET_MONTH
-      USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
-      USE TRACER_MOD,     ONLY : STT,          XNUMOLAIR
-      USE TRANSFER_MOD,   ONLY : TRANSFER_ZONAL
-      USE TROPOPAUSE_MOD, ONLY : GET_MIN_TPAUSE_LEVEL
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: IFLAG
-
-      ! Local variables
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER              :: I, J, L, LMIN
       INTEGER, SAVE        :: LASTMONTH = -99
 
@@ -797,38 +820,26 @@
 
       ENDIF
 
-      ! Return to calling program
-      END SUBROUTINE UPBDFLX_NOY 
-
+      END SUBROUTINE UPBDFLX_NOy
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: upbdflx_HD
+!
+! !DESCRIPTION: Subroutine UPBDFLX\_HD establishes the flux boundary condition 
+!  for HD coming down from the stratosphere. This is adapted from the 
+!  UPBDFLX\_O3 routine.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE UPBDFLX_HD
 !
-!******************************************************************************
-!  Subroutine UPBDFLX_HD establishes the flux boundary condition for HD
-!  coming down from the stratosphere. This is adapted from the UPBDFLX_O3
-!  routine. (lyj, hup, phs, 9/18/07, 7/8/09)
+! !USES:
 !
-!  Instead of calculating the fractionation of H2 in the stratosphere
-!  (where we would have to take into account fractionation of CH4),
-!  we simply set the HD tracer concentrations in the stratosphere to
-!  reproduce observed profiles in the UT/LS.
-!
-!  References:
-!  ===========================================================================
-!  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
-!        Constraints from Ground Station, Cruise, and Aircraft Observations" 
-!        Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
-!        submitted to J. Geophys. Res., 2007.
-!
-!  NOTES:
-!  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
-!        Added parallel DO loops. (phs, 9/18/07)
-!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
-!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE DAO_MOD,      ONLY : AD, BXHEIGHT, T
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE PRESSURE_MOD, ONLY : GET_PEDGE, GET_PCENTER
@@ -838,13 +849,39 @@
       
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! Rdg0
-
-      ! Local variables
-      INTEGER               :: I, J, L, L70mb
-      INTEGER               :: NTRACER
-      REAL*8                :: P1, P2, P3, T1, T2, DZ, ZUP
-      REAL*8                :: DTDYN, H70mb, PO3_vmr!,PO3
-      REAL*8                :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
+!
+! !REMARKS:
+!  Instead of calculating the fractionation of H2 in the stratosphere 
+!  (where we would have to take into account fractionation of CH4),
+!  we simply set the HD tracer concentrations in the stratosphere to
+!  reproduce observed profiles in the UT/LS.
+!                                                                             .
+!  References:
+!  ===========================================================================
+!  (1) "Global Budget of Molecular Hydrogen and its Deuterium Content: 
+!        Constraints from Ground Station, Cruise, and Aircraft Observations" 
+!        Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon, 
+!        submitted to J. Geophys. Res., 2007.
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2007 - L. Jaegle, H. U. Price, P. Le Sager - Initial version
+!  (1 ) First adapted from UPBDFLX_O3 (G-C v5-05-03) then merged w/ v7-04-12.
+!        Added parallel DO loops. (phs, 9/18/07)
+!  (26) Now set J30S and J30N for GEOS-5 nested grid (yxw, dan, bmy, 11/6/08)
+!  (27) Remove support for COMPAQ compiler (bmy, 7/8/09)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER              :: I, J, L, L70mb
+      INTEGER              :: NTRACER
+      REAL*8               :: P1, P2, P3, T1, T2, DZ, ZUP
+      REAL*8               :: DTDYN, H70mb, PO3_vmr!,PO3
+      REAL*8               :: PHD, PHD_vmr, SCALE_HD!, HD_AVG
 
       ! Select the grid boxes at the edges of the HD release region, 
       ! for the proper model resolution 
@@ -908,7 +945,7 @@
 
       PO3_vmr = 5.14d-14                                 ! 3,3,7
 
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
 
       ! For now assume GEOS-5 has same PO3_vmr value 
       ! as GEOS-4; we can redefine later (bmy, 5/25/05)
@@ -1025,23 +1062,35 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE UPBDFLX_HD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_upbdflx
+!
+! !DESCRIPTION: Subroutine INIT\_UPBDFLX passes IORD, JORD, and KORD values 
+!  from "input\_mod.f" to "upbdflx\_mod.f"
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_UPBDFLX( I_ORD, J_ORD, K_ORD )
 !
-!******************************************************************************
-!  Subroutine INIT_UPBDFLX passes IORD, JORD, and KORD values from 
-!  "input_mod.f" to "upbdflx_mod.f" (bmy, 7/20/04)
-! 
-!  NOTES:
-!******************************************************************************
+! !INPUT PARAMETERS: 
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I_ORD, J_ORD, K_ORD
- 
+      INTEGER, INTENT(IN) :: I_ORD   ! TPCORE IORD parameter (for E/W)
+      INTEGER, INTENT(IN) :: J_ORD   ! TPCORE JORD parameter (for N/S)
+      INTEGER, INTENT(IN) :: K_ORD   ! TPCORE KORD parameter (for Vertical)
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! SET_UPBDFLX begins here!
       !=================================================================
@@ -1049,10 +1098,6 @@
       JORD = J_ORD
       KORD = K_ORD 
 
-      ! Return to calling program
       END SUBROUTINE INIT_UPBDFLX
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE UPBDFLX_MOD

@@ -1,22 +1,20 @@
-! $Id: readlai.f,v 1.2 2009/11/30 19:57:56 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: READLAI
+! !ROUTINE: readlai
 !
 ! !DESCRIPTION: Subroutine READLAI reads the leaf area indices from disk 
 !  for two months. (yhw, gmg, djj, 1994; bmy, 12/20/04)
 !\\
 !\\
-! !INTERFACE
+! !INTERFACE:
 !
       SUBROUTINE READLAI( MM, YYYY )
 !
 ! !USES:
 !
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE FILE_MOD,      ONLY : IU_FILE
       USE LOGICAL_MOD,   ONLY : LAVHRRLAI
@@ -33,7 +31,7 @@
       INTEGER, INTENT(IN) :: MM
       INTEGER, INTENT(IN) :: YYYY ! (mpb,2009)
 !
-!  !REVISION HISTORY:
+! !REVISION HISTORY:
 !  06 Oct 1999 - R. Yantosca - Be sure to force double precision with the 
 !                              DBLE function and the "D" exponent, wherever 
 !                              necessary             
@@ -103,13 +101,9 @@
             ! Filename 
             WRITE( YEAR , '(I4)' ) IYYYY
             
-            !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/' 
             FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/' // 
      &                 YEAR // '/lai' // CMONTH(MM) // '.global'
-
-            print*, 'The LAI filename is: ', FILENAME
          ELSE 
-            !FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAIv_v5/1985/' 
             FILENAME = TRIM( DATA_DIR ) // 'MODIS_LAI_200911/1985/' //
      &                 'lai' // CMONTH(MM) // '.global'
          END IF
@@ -185,6 +179,5 @@
       ! Close file
  40   CLOSE( IU_FILE )
       
-      ! Return to calling program
       END SUBROUTINE READLAI
 !EOC

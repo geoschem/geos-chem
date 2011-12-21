@@ -5,7 +5,7 @@
 !  Module SULFATE_MOD contains arrays and routines for performing either a
 !  coupled chemistry/aerosol run or an offline sulfate aerosol simulation.
 !  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (rjp, bdf, bmy, 6/22/00, 6/30/10)
+!  (rjp, bdf, bmy, 6/22/00, 8/26/10)
 !
 !  Module Variables:
 !  ============================================================================
@@ -217,6 +217,11 @@
 !  (49) Fixes in SRCSO2 for SunStudio compiler (bmy, 12/3/09)
 !  (50) Standardized patch in READ_ANTHRO_NH3 (dkh, bmy, 3/5/10)
 !  (51) Use LWC from GEOS-5 met fields (jaf, bmy, 6/30/10)
+!  (52) Add module parameters MNYEAR_VOLC and MXYEAR_VOLC to define the 1st 
+!       and last year with data for volcanic emissions. (ccc, 9/30/10)
+!  (53) Use updated volcanic emissions from 1979 to 2009
+!  26 Aug 2010 - R. Yantosca - Add modifications for MERRA
+!  12 Nov 2010 - R. Yantosca - Avoid div-by-zero when computing L2S, L3S
 !******************************************************************************
 !
       USE LOGICAL_MOD,   ONLY : LNLPBL ! (Lin, 03/31/09)
@@ -282,8 +287,11 @@
       REAL*8,  ALLOCATABLE :: VCLDF(:,:,:)
       REAL*8,  ALLOCATABLE :: COSZM(:,:)
 
-      ! Volcano levels (jaf, 8/7/09)
-      INTEGER, PARAMETER   :: LVOLC=20
+      ! Volcanic emissions parameters (ccc, 9/30/10)
+      INTEGER, PARAMETER   :: LVOLC=20            ! Volcano levels
+      INTEGER, PARAMETER   :: MNYEAR_VOLC = 1979  ! Min year of data
+      INTEGER, PARAMETER   :: MXYEAR_VOLC = 2009  ! Max year of data
+
 
       ! Eruptive volcanoes
       REAL*8,  ALLOCATABLE :: EEV(:,:,:)
@@ -315,6 +323,7 @@
 !  (1) Sundqvist et al. [1989]
 !
 !  NOTES:
+!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -333,6 +342,11 @@
       !=================================================================
       ! GET_VCLDF begins here!
       !=================================================================
+
+      ! Exit if we VCLDF is not allocated.  We will now get the cloud
+      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
+      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
@@ -374,14 +388,16 @@
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 1/14/03)
+!  Function GET_LWC returns the cloud liquid water content [m3 H2O/m3 air] at 
+!  a  GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  1/14/03)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
-!
+! 
 !  NOTES:
+!  18 Jan 2011 - R. Yantosca - Updated comments 
 !******************************************************************************
 !
       ! Arguments
@@ -410,6 +426,7 @@
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
+      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
       LWC = LWC * 1.D-6         
 
       ! Return to calling program
@@ -1396,7 +1413,7 @@
 !
 !******************************************************************************
 !  Subroutine CHEM_SO2 is the SO2 chemistry subroutine 
-!  (rjp, bmy, 11/26/02, 6/30/10) 
+!  (rjp, bmy, 11/26/02, 8/26/10) 
 !                                                                          
 !  Module variables used:
 !  ============================================================================
@@ -1452,6 +1469,10 @@
 !        terms. (win, bmy, 1/4/10)
 !  (14) Added extra error checks to prevent negative L2S, L3S (bmy, 4/28/10)
 !  (15) Use liq. water content from met fields in GEOS-5 (jaf, bmy, 6/30/10)
+!  26 Aug 2010 - R. Yantosca - Use liquid water content from MERRA
+!  12 Nov 2010 - R. Yantosca - Prevent div-by-zero when computing L2S and L3S
+!  27 May 2011 - L. Zhang    - Divide LWC by cloud fraction for GEOS/MERRA
+!                              and adjust the L2S and L3S rates accordingly
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
@@ -1460,6 +1481,7 @@
       USE DRYDEP_MOD,      ONLY : DEPSAV
       USE DIRECTORY_MOD,   ONLY : DATA_DIR
       USE ERROR_MOD,       ONLY : IS_SAFE_EXP
+      USE ERROR_MOD,       ONLY : SAFE_DIV
       USE GLOBAL_HNO3_MOD, ONLY : GET_GLOBAL_HNO3
       USE GRID_MOD,        ONLY : GET_AREA_CM2
       USE PBL_MIX_MOD,     ONLY : GET_FRAC_UNDER_PBLTOP
@@ -1644,30 +1666,48 @@
          ! Update SO2 concentration after cloud chemistry          
          ! SO2 chemical loss rate = SO4 production rate [v/v/timestep]
          !==============================================================
-#if   defined ( GEOS_5 )
+#if   defined ( GEOS_5 ) || defined( MERRA )
 
-         !----------------------------------------
-         ! GEOS-5: Get LWC, FC from met fields
+         !---------------------------------------------
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
          ! (jaf, bmy, 6/30/10)
-         !----------------------------------------
+         !---------------------------------------------
 
          ! Get cloud fraction from met fields
          FC      = CLDF(L,I,J)
 
-         ! Get liquid water content within cloud from met fields (kg/kg)
-         ! Convert to m3/m3 averaged over grid box
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
 
+         ! LWC is a grid-box averaged quantity. To improve the representation 
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+         ! compute sulfate chemistry based on the LWC within the cloud.  We 
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC     = SAFE_DIV( LWC, FC, 0d0 )
+
 #else
-         !----------------------------------------
+         !---------------------------------------------
          ! Otherwise, compute FC, LWC as before
-         !----------------------------------------
+         !---------------------------------------------
 
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [m3/m3]
-         LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! Prior to 5/21/11:
+         !LWC     = GET_LWC( TK ) * FC
+         !---------------------------------------------------------------------
+         ! LWC as returned from the GET_LWC function is the in-cloud liquid
+         ! water content.  To improve the representation of sulfate chemistry, 
+         ! we use this LWC to compute the aqueous sulfate chemistry.  We then
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying by FC AFTER computing the aqueous sulfur chemistry
+         ! within the cloud. (lzh, jaf, bmy, 5/27/11)
+         LWC = GET_LWC( TK )
 
 #endif
 
@@ -1772,7 +1812,7 @@
             XX  = ( SO2_ss - H2O20 ) * KaqH2O2 * DTCHEM
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ H2O2 [v/v/timestep]
                L2  = EXP( XX )
@@ -1806,7 +1846,7 @@
             XX = ( SO2_ss - O3 ) * KaqO3 * DTCHEM 
 
             ! Test if EXP(XX) can be computed w/o numerical exception
-            IF ( IS_SAFE_EXP( XX ) ) THEN
+            IF ( IS_SAFE_EXP( XX ) .and. ABS( XX ) > 0d0 ) THEN
 
                ! Aqueous phase SO2 loss rate w/ O3 [v/v/timestep]
                L3  = EXP( XX )
@@ -1825,6 +1865,15 @@
                ENDIF
             ENDIF
 
+            ! We have used the in-cloud LWC to compute the sulfate
+            ! aqueous chemistry.  We get the appropriate grid-box averaged 
+            ! mass of SO2 and sulfate by multiplying the reaction rates
+            ! L2S and L3s by the cloud fraction after the aqueous chemistry
+            ! has been done.  (lzh, jaf, bmy, 5/27/11)
+            L2S =  L2S * FC
+            L3S =  L3S * FC    
+
+            ! Make sure SO2_ss and H2O20 are in the proper range
             SO2_ss = MAX( SO2_ss - ( L2S + L3S ), MINDAT )
             H2O20  = MAX( H2O20  - L2S,           MINDAT )
 
@@ -5835,6 +5884,9 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !******************************************************************************
 ! 
       ! References to F90 modules
@@ -5864,8 +5916,11 @@
 
       ! Set year based on availability of volcanic emission files
       THISYEAR = INYEAR
-      IF ( INYEAR < 1985 ) THISYEAR = 1985
-      IF ( INYEAR > 2007 ) THISYEAR = 2007
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years.
+!      IF ( INYEAR < 1985 ) THISYEAR = 1985
+!      IF ( INYEAR > 2007 ) THISYEAR = 2007
+      THISYEAR = MAX( INYEAR, MNYEAR_VOLC )
+      THISYEAR = MIN( INYEAR, MXYEAR_VOLC )
 
       ! Need to deal with leap years for which there is no data (i.e.
       ! 2008). Assume emissions on Feb. 29th are identical to emissions
@@ -5877,8 +5932,13 @@
       YYYYMMDD = 10000 * THISYEAR + 100 * INMONTH + THISDAY
 
       ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!      FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &           'volcano_SO2_200909/' //
+!     &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
+
       FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &           'volcano_SO2_200909/' //
+     &           'volcano_SO2_201010/' //
      &           'YYYY/SO2_volc.nonerup.YYYYMM.generic.1x1'
 
       ! Replace YYYY/MM in the file name
@@ -5939,6 +5999,9 @@
 !  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5 ) Complete re-write as volcanic emissions are now monthly and
 !	stored as BPCH files (jaf, bmy, 10/15/09)
+!  (6 ) Now use MNYEAR_VOLC and MXYEAR_VOLC as 1st and last year of emissions.
+!       (ccc, 9/30/10)
+!  (7 ) Volcanic data have been updated. Use a new directory. (ccc, 9/30/10)
 !*****************************************************************************
 !
       ! References to F90 modules
@@ -5968,14 +6031,22 @@
 
       ! If the current year falls within the range of available data,
       ! get eruptive volcanic emissions (jaf, 10/15/09)
-      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!      IF ( ( INYEAR .GE. 1985 ) .AND. ( INYEAR .LE. 2007 ) ) THEN
+      IF ( ( INYEAR .GE. MNYEAR_VOLC )  .AND. 
+     &     ( INYEAR .LE. MXYEAR_VOLC ) ) THEN
 
          ! Set date
          YYYYMMDD = 10000 * INYEAR + 100 * INMONTH + INDAY
 
          ! File name
+!-- Previous to (ccc, 9/30/10). New directory.
+!         FILENAME = TRIM( DATA_DIR_1x1 )  //
+!     &              'volcano_SO2_200909/' //
+!     &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
+
          FILENAME = TRIM( DATA_DIR_1x1 )  //
-     &              'volcano_SO2_200909/' //
+     &              'volcano_SO2_201010/' //
      &              'YYYY/SO2_volc.erup.YYYYMM.generic.1x1'
 
          ! Replace YYYY/MM in the file name
@@ -6014,12 +6085,23 @@
 
       ! If no data are available for current year, set eruptive
       ! emissions to zero and print a warning message.
-      ! Current data range is 1985-2007 (jaf, 10/15/09)
+      ! Current data range is MNYEAR_VOLC - MXYEAR_VOLC (jaf, 10/15/09)
+      ! Year parameters are defined at the beginning of the module.
+      ! (ccc, 9/30/10)
       ELSE
 
-         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
-     &               ' for 1985-2007. You are outside the window.'
+!-- Previous to (ccc, 9/30/10). Add parameters for edge years
+!         WRITE(6, *) 'WARNING: Eruptive SO2 emissions only available'//
+!     &               ' for 1985-2007. You are outside the window.'
+!         WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+
+         WRITE(6, 110) MNYEAR_VOLC, MXYEAR_VOLC
          WRITE(6, *) 'Eruptive SO2 emissions are being set to zero!'
+
+ 110     FORMAT( 'WARNING: Eruptive SO2 emissions only available for ', 
+     &        i4,'-',i4,'. You are outside the window.')
+
 
          EEV = 0d0
 
@@ -7859,9 +7941,13 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOx_SCALE' )
       SOx_SCALE = 0d0
 
+#if   !defined( GEOS_5 ) && !defined( MERRA )
+      ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
+      ! directly from the met fields.  (skim, bmy, 1/14/10)
       ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
       VCLDF = 0d0
+#endif
 
       !=================================================================
       ! Only initialize the following for offline aerosol simulations

@@ -1,83 +1,81 @@
-! $Id: diag41_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag41_mod
+!
+! !DESCRIPTION: Module DIAG41\_MOD contains arrays and routines for 
+!  archiving the ND41 diagnostic -- Afternoon PBL heights.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG41_MOD
 !
-!******************************************************************************
-!  Module DIAG41_MOD contains arrays and routines for archiving the ND41
-!  diagnostic -- Afternoon PBL heights. (bmy, 2/17/05, 9/5/06) 
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD41     (REAL*4 ) : Array for afternoon PBL height
-!  (2 ) GOOD_CT  (INTEGER) : Counter of grid boxes where it's afternoon
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ZERO_DIAG41        : Sets all module arrays to zero
-!  (2 ) WRITE_DIAG41       : Writes data in module arrays to bpch file
-!  (3 ) DIAG41             : Archives afternoon PBL heights
-!  (4 ) INIT_DIAG41        : Allocates all module arrays
-!  (4 ) CLEANUP_DIAG41     : Deallocates all module arrays
+! !PUBLIC DATA MEMBERS:
 !
-!  GEOS-CHEM modules referenced by diag41_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f        : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f        : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f         : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f         : Module w/ horizontal grid information
-!  (5 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
-!  (6 ) time_mod.f         : Module w/ routines to compute date & time!      
+      INTEGER, PUBLIC            :: ND41
+      INTEGER, PUBLIC, PARAMETER :: PD41 = 2
 !
-!  NOTES:
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC :: ZERO_DIAG41
+      PUBLIC :: WRITE_DIAG41
+      PUBLIC :: DIAG41
+      PUBLIC :: INIT_DIAG41
+      PUBLIC :: CLEANUP_DIAG41
+!
+! !REVISION HISTORY:
+!  17 Feb 2005 - R. Yantosca - Initial version
 !  (1 ) Updated for GCAP grid (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag41_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC ...
-      PUBLIC
-
-      ! ... except these routines
-      PRIVATE :: AD41
-      PRIVATE :: GOOD_CT
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Scalars
-      INTEGER              :: ND41
-      INTEGER, PARAMETER   :: PD41 = 2
-
-      ! Arrays
-      INTEGER, ALLOCATABLE :: GOOD_CT(:)
-      REAL*4,  ALLOCATABLE :: AD41(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
+      INTEGER, ALLOCATABLE :: GOOD_CT(:)     ! Counter of afternoon data pts
+      REAL*4,  ALLOCATABLE :: AD41(:,:,:)    ! Array for afternoon PBL ht
 
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag41
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG41 zeroes the ND41 diagnostic arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG41
 !
-!******************************************************************************
-!  Subroutine ZERO_DIAG41 zeroes the ND41 diagnostic arrays (bmy, 2/17/05)
-!
-!  NOTES:
-!******************************************************************************
+! !USES:
 !
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  17 Feb 2005 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, N
 
       !=================================================================
@@ -105,41 +103,59 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE ZERO_DIAG41
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag41
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG41 writes the ND41 diagnostic arrays 
+!  to the binary punch file at the proper time.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG41
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG41 writes the ND41 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 2/17/05, 10/3/05)
+! !USES:
 !
+      USE BPCH2_MOD, ONLY : BPCH2
+      USE BPCH2_MOD, ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD, ONLY : GET_MODELNAME 
+      USE FILE_MOD,  ONLY : IU_BPCH
+      USE GRID_MOD,  ONLY : GET_XOFFSET
+      USE GRID_MOD,  ONLY : GET_YOFFSET
+      USE TIME_MOD,  ONLY : GET_CT_EMIS
+      USE TIME_MOD,  ONLY : GET_DIAGb
+      USE TIME_MOD,  ONLY : GET_DIAGe
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_DIAG"  ! TINDEX
+!
+! !REMARKS:
 !  ND41: Afternoon PBL depth (between 1200 and 1600 Local Time)
-!
-!   #  Field    : Description                 : Units     : Scale factor
-!  --------------------------------------------------------------------------
-!  (1) PBLDEPTH : Afternoon PBL heights       : m         : GOOD_CT
-!
-!  NOTES:
+!                                                                             .
+!   #  Field    : Description             : Units  : Scale factor
+!  -------------------------------------------------------------------
+!  (1) PBLDEPTH : Afternoon PBL heights   : m      : GOOD_CT
+! 
+! !REVISION HISTORY:
+!  17 Feb 2005 - R. Yantosca - Initial version
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
 !  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (3 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD, ONLY : BPCH2, GET_HALFPOLAR, GET_MODELNAME 
-      USE FILE_MOD,  ONLY : IU_BPCH
-      USE GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,  ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DIAG"  ! TINDEX
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I,         J,           M,      N
       INTEGER            :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER            :: JFIRST,    LFIRST,      LMAX
@@ -200,23 +216,34 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG41
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diag41
+!
+! !DESCRIPTION: Subroutine DIAG41 produces monthly mean boundary layer 
+!  height in meters  between 1200-1600 local time for the U.S. geographical 
+!  domain. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAG41 
 !
-!******************************************************************************
-!  Subroutine DIAG41 produces monthly mean boundary layer height in meters 
-!  between 1200-1600 local time for the U.S. geographical domain. 
-!  (amf, swu, bmy, 11/18/99, 11/6/03)
+! !USES:
 !
-!  Input via "CMN" header file:
-!  ===========================================================================
-!  (1 ) XTRA2 : Height of PBL in boxes
-!
-!  NOTES:
+      USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_L
+      USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_m
+      USE TIME_MOD,    ONLY : GET_LOCALTIME
+
+#     include "CMN_SIZE"    ! Size parameters
+! 
+! !REVISION HISTORY:
+!  18 Nov 1999 - A. Fiore, S. Wu - Initial version
 !  (1 ) DIAG41 is written in Fixed-Format F90. 
 !  (2 ) XTRA2 must be computed by turning TURBDAY on first.  Also,
 !        XTRA2 is a global-size array, so use window offsets IREF, JREF
@@ -238,17 +265,15 @@
 !        from "dao_mod.f".  Bug fix: now use barometric law to compute PBL 
 !        height in meters for GEOS-1, GEOS-STRAT, GEOS-3.  This eliminates an 
 !        overprediction of the PBL height. (swu, bmy, 11/6/03)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE TIME_MOD,    ONLY : GET_LOCALTIME
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Local variables
-      INTEGER              :: I, J, N, GOOD(IIPAR)
-      REAL*8               :: LT, PBLTOP
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, N, GOOD(IIPAR)
+      REAL*8  :: LT, PBLTOP
 
       !=================================================================
       ! DIAG41 begins here!
@@ -303,26 +328,39 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DIAG41
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag41
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG41 allocates and zeroes all 
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG41
 !
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG41 allocates all module arrays (bmy, 2/17/05)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
    
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
-      INTEGER            :: AS
+! 
+! !REVISION HISTORY: 
+!  17 Feb 2005 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
       
       !=================================================================
       ! INIT_DIAG41 begins here!
@@ -342,29 +380,34 @@
       ! Zero arrays
       CALL ZERO_DIAG41
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG41
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag41
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG41 deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG41
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG41 deallocates all module arrays (bmy, 2/17/05)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  17 Feb 2005 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG41 begins here!
       !=================================================================
       IF ( ALLOCATED( AD41    ) ) DEALLOCATE( AD41    ) 
       IF ( ALLOCATED( GOOD_CT ) ) DEALLOCATE( GOOD_CT )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG41
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG41_MOD

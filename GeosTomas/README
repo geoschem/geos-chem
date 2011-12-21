@@ -1,5 +1,5 @@
 README -- describes contents of GeosTomas directory
-26 Jan 2010
+21 Jan 2011
 Bob Yantosca and Claire Carouge
 geos-chem-support@as.harvard.edu
 
@@ -34,4 +34,21 @@ tpcore_window_mod.f	   necessary for TOMAS, it was quicker to
 tracerid_mod.f		   implement the TOMAS code in a separate
 wetscav_mod.f		   subdirectory.  
 xtra_read_mod.f				-- Bob Y. (1/25/10)
+
+
+
+NOTE TO TOMAS DEVELOPERS: 
+-------------------------
+The wet scavenging algorithms in wetscav_mod.f have
+been totally rewritten.  We therefore now have the following modules:
+
+wetscav_mod.f_orig : The "original", untouched code from v8-03-02
+wetscav_mod.f_new  : The "new" wet scavenging code from v9-01-01
+wetscav_mod.f      : Right now this is a copy of wetscav_f.orig
+
+You will therefore have to put all of the TOMAS microphysics into the 
+wetscav_mod.f_new file in routines WETDEP and WETDEP_MERRA.  This task
+is beyond the scope of the GEOS-Chem Support Team. 
+
+-- Bob Yantosca (21 Jan 2011)
 

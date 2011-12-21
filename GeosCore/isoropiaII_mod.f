@@ -1,4 +1,3 @@
-! $Id: isoropiaII_mod.f,v 1.1 2010/02/02 16:57:52 bmy Exp $
 !------------------------------------------------------------------------------
 !         Caltech Department of Chemical Engineering / Seinfeld Group         !
 !------------------------------------------------------------------------------
@@ -699,7 +698,7 @@
 ! !IROUTINE: get_gno3
 !
 ! !DESCRIPTION: Function GET\_GNO3 returns the gas-phase HNO3 [v/v] for 
-!  calculation of sea-salt chemistry in sulfate_mod (SEASALT\_CHEM). 
+!  calculation of sea-salt chemistry in sulfate\_mod (SEASALT\_CHEM). 
 !\\
 !\\
 ! !INTERFACE:
@@ -743,7 +742,7 @@
 !
 ! !IROUTINE: init_isoropiaII
 !
-! !DESCRIPTION: Subroutine INIT_ISOROPIAII initializes all module arrays.
+! !DESCRIPTION: Subroutine INIT\_ISOROPIAII initializes all module arrays.
 !\\
 !\\
 ! !INTERFACE:

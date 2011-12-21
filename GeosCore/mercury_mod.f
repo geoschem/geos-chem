@@ -154,6 +154,7 @@
 !  (6 ) Various updates added for tagged Hg sim. (eck, sas, cdh, bmy, 4/6/06)
 !  (7 ) Now includes LPREINDHG logical switch for preindustrial simulation 
 !       (eds 7/30/08)
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -448,7 +449,8 @@
 !        rate is tuned with the OH oxidation rate to match the global Hg(0) 
 !        concentration and seasonal cycle.
 ! 
-!  (3 ) Hg(II) is dry-deposited,        kd calculated by drydep_mod [/s]        !
+!  (3 ) Hg(II) is dry-deposited,        kd calculated by drydep_mod [/s]    
+!
 !  (4 ) Hg(0) is dry deposited,         kd calculated by drydep_mod [/s]
 !         The ocean module separately cacluates Hg(0) dry deposition over
 !         ocean, so this module only includes Hg(0) dry deposition over land.
@@ -466,6 +468,9 @@
 !        of Hg2 lost to rxn w/ seasalt. (eck, cdh, sas, bmy, 4/6/06)
 !  (5 ) Added Hg0 dry deposition (eck)
 !  (6 ) Chemistry and dry deposition now occur simultaneously. (cdh, 7/9/08)
+!  13 Aug 2010 - R. Yantosca - Treat MERRA like GEOS-5 
+!  14 Jan 2011 - R. Yantosca - Now get volume cloud fraction directly
+!                              from GEOS-5 and MERRA met fields
 !******************************************************************************
 !
       ! References to F90 modules
@@ -599,7 +604,67 @@
          C_OH        = GET_OH( I, J, L )
          C_BR        = GET_BR( I, J, L, C_BRO )
 
-         ! Get volume fraction of gridbox containing cloud [dimensionless]
+!------------------------------------------------------------------------------
+! Prior to 1/10/11:
+! Get values directly from GEOS-5/MERRA met fields (skim, bmy, 1/14/10)
+!         ! Get volume fraction of gridbox containing 
+!         ! cloud [unitless], following Sundqvist et al 1989.
+!         FC          = GET_VCLDF( I, J, L )
+!
+!         ! Get liquid water content for entire grid box,
+!         ! based on formula for LWC in cloud (m3/m3)
+!         LWC         = GET_LWC( T(I,J,L) ) * FC 
+!
+!         ! There should be no liquid water when T < 258K 
+!         IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+!
+!#if   defined( GEOS_5 ) || defined( MERRA )
+!         IF ( LGEOSLWC ) THEN
+!
+!            ! Get grid-averaged liquid water content from met fields (kg/kg)
+!            ! Convert to m3/m3
+!            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+!
+!         ENDIF
+!#endif
+!------------------------------------------------------------------------------
+#if   defined( GEOS_5 ) || defined( MERRA ) 
+
+         !---------------------------------------------
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
+         ! (skim, bmy, 1/14/10)
+         !---------------------------------------------
+
+         ! Get cloud fraction from met fields [unitless]
+         FC = CLDF(L,I,J)
+
+         IF ( LGEOSLWC ) THEN
+
+            ! Get liquid water content [m3 H2O/m3 air] within cloud from met
+            ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
+            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
+
+            !%%% NOTE: Someone should investigate effect of dividing LWC by the
+            !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+
+         ELSE
+
+            ! Get liquid water content for entire grid box,
+            ! based on formula for LWC in cloud [m3 H2O/m3 air]
+            LWC = GET_LWC( T(I,J,L) ) * FC 
+
+            ! There should be no liquid water when T < 258K 
+            IF ( T(I,J,L) < 258D0 )  LWC = 0D0
+
+         ENDIF
+
+#else
+         !---------------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !---------------------------------------------    
+
+         ! Get volume fraction of gridbox containing 
+         ! cloud [unitless], following Sundqvist et al 1989.
          FC          = GET_VCLDF( I, J, L )
 
          ! Get liquid water content for entire grid box,
@@ -609,14 +674,6 @@
          ! There should be no liquid water when T < 258K 
          IF ( T(I,J,L) < 258D0 )  LWC = 0D0
 
-#if defined( GEOS_5 )
-         IF (LGEOSLWC) THEN
-
-            ! Get grid-averaged liquid water content from met fields (kg/kg)
-            ! Convert to m3/m3
-            LWC = QL(I,J,L) * AIRDEN(L,I,J) * 1D-3
-
-         ENDIF
 #endif
 
          ! Define fraction of Hg(II) which is in aqueous solution
@@ -704,7 +761,7 @@
          ! Disable dry deposition of Hg(0) to ice because we do not have
          ! an ice emission model. Perennial ice should have equal emission
          ! and deposition averaged over multiple years. (cdh, 9/11/09)
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
          ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
          SNOW_HT = SNOMAS(I,J)
 #else
@@ -2037,7 +2094,7 @@
 !      DO I  = 1, IIPAR
 !      DO NN = 1, N_Hg_CATS
 !    
-!#if defined( GEOS_5 )
+!#if   defined( GEOS_5 ) || defined( MERRA )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
 !         SNOW_HT = SNOMAS(I,J)
 !#else
@@ -2361,7 +2418,7 @@
 !      DO J=1, JJPAR
 !      DO I=1, IIPAR
 !         
-!#if defined( GEOS_5 )
+!#if   defined( GEOS_5 ) || defined( MERRA )
 !         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
 !         SNOW_HT = SNOMAS(I,J)
 !#else
@@ -3539,14 +3596,16 @@
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 12/7/04)
+!  Function GET_LWC returns the cloud liquid water content [m3 H2O/m3 air] at 
+!  a GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  12/7/04)
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) T (REAL*8) : Temperature value at a GEOS-CHEM grid box [K]
 !
 !  NOTES:
+!  18 Jan 2011 - R. Yantosca - Updated comments
 !******************************************************************************
 !
       ! Arguments
@@ -3574,6 +3633,7 @@
       ENDIF
 
       ! Convert from [g/m3] to [m3/m3]
+      ! Units: [g H2O/m3 air] * [1 kg H2O/1000g H2O] * [m3 H2O/1000kg H2O]
       LWC = LWC * 1.D-6         
 
       ! Return to calling program
@@ -4407,7 +4467,7 @@ c$$$         ! Get HgP category number
 c$$$         NN = GET_HgP_CAT( N ) 
 c$$$      ENDIF
 c$$$
-c$$$#if defined( GEOS_5 )
+c$$$#if   defined( GEOS_5 ) || defined( MERRA )
 c$$$      ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
 c$$$      SNOW_HT = SNOMAS(I,J)
 c$$$#else

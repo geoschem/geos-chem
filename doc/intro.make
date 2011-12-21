@@ -1,11 +1,10 @@
-# $Id: make.intro,v 1.2 2010/02/02 16:57:45 bmy Exp $
 #------------------------------------------------------------------------------
 #          Harvard University Atmospheric Chemistry Modeling Group            !
 #------------------------------------------------------------------------------
 #BOI
-# !TITLE: The GEOS-Chem Model: Makefile Reference
+# !TITLE: GEOS-Chem Reference, Vol. 1: Makefiles
 # !AUTHORS: Bob Yantosca, Claire Carouge, and Philippe Le Sager
 # !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
-# !DATE: January 28, 2010
+# !DATE: December 16, 2010
 #EOI
 #------------------------------------------------------------------------------

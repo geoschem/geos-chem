@@ -1,90 +1,55 @@
-! $Id: epa_nei_mod.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: epa_nei_mod
+!
+! !DESCRIPTION: !  Module EPA_NEI_MOD contains variables and routines to read 
+!  the weekday/weekend emissions from the EPA/NEI99 emissions inventory.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE EPA_NEI_MOD
 !
-!******************************************************************************
-!  Module EPA_NEI_MOD contains variables and routines to read the
-!  weekday/weekend emissions from the EPA/NEI emissions inventory.
-!  (rch, bmy, 11/10/04, 12/18/09)
+! !USES:
+! 
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) USA_MASK        : Array used to mask out the continental USA
-!  (2 ) EPA_WD_AN_NOX   : Avg weekday NOX  anthro  emissions [  molec/cm2/s]
-!  (3 ) EPA_WD_AN_CO    : Avg weekday CO   anthro  emissions [  molec/cm2/s]
-!  (4 ) EPA_WD_AN_ALK4  : Avg weekday ALK4 anthro  emissions [atoms C/cm2/s]
-!  (5 ) EPA_WD_AN_ACET  : Avg weekday ACET anthro  emissions [atoms C/cm2/s]
-!  (6 ) EPA_WD_AN_MEK   : Avg weekday MEK  anthro  emissions [atoms C/cm2/s]
-!  (7 ) EPA_WD_AN_PRPE  : Avg weekday PRPE anthro  emissions [atoms C/cm2/s]
-!  (8 ) EPA_WD_AN_C2H6  : Avg weekday C2H6 anthro  emissions [atoms C/cm2/s]
-!  (9 ) EPA_WD_AN_C3H8  : Avg weekday C3H8 anthro  emissions [atoms C/cm2/s] 
-!  (10) EPA_WD_AN_CH2O  : Avg weekday CH2O anthro  emissions [  molec/cm2/s]
-!  (11) EPA_WD_AN_NH3   : Avg weekday NH3  anthro  emissions [  molec/cm2/s]
-!  (12) EPA_WD_AN_SO2   : Avg weekday SO2  anthro  emissions [  molec/cm2/s]   
-!  (13) EPA_WD_AN_SO4   : Avg weekday SO4  anthro  emissions [  molec/cm2/s]   
-!  (14) EPA_WE_AN_NOX   : Avg weekend NOX  anthro  emissions [  molec/cm2/s]
-!  (15) EPA_WE_AN_CO    : Avg weekend CO   anthro  emissions [atoms C/cm2/s]
-!  (16) EPA_WE_AN_ALK4  : Avg weekend ALK4 anthro  emissions [atoms C/cm2/s]
-!  (17) EPA_WE_AN_ACET  : Avg weekend ACET anthro  emissions [atoms C/cm2/s]
-!  (18) EPA_WE_AN_MEK   : Avg weekend MEK  anthro  emissions [atoms C/cm2/s] 
-!  (19) EPA_WE_AN_PRPE  : Avg weekend PRPE anthro  emissions [atoms C/cm2/s]
-!  (20) EPA_WE_AN_C2H6  : Avg weekend C2H6 anthro  emissions [atoms C/cm2/s]
-!  (21) EPA_WE_AN_C3H8  : Avg weekend C3H8 anthro  emissions [atoms C/cm2/s]
-!  (22) EPA_WE_AN_CH2O  : Avg weekend CH2O anthro  emissions [  molec/cm2/s]
-!  (23) EPA_WE_AN_NH3   : Avg weekend NH3  anthro  emissions [  molec/cm2/s]
-!  (24) EPA_WE_AN_SO2   : Avg weekend SO2  anthro  emissions [  molec/cm2/s]
-!  (25) EPA_WE_AN_SO4   : Avg weekend SO4  anthro  emissions [  molec/cm2/s]
-!  (26) EPA_WD_BF_NOX   : Avg weekday NOX  anthro  emissions [  molec/cm2/s]
-!  (27) EPA_WD_BF_CO    : Avg weekday CO   anthro  emissions [  molec/cm2/s]
-!  (28) EPA_WD_BF_ALK4  : Avg weekday ALK4 anthro  emissions [atoms C/cm2/s]
-!  (29) EPA_WD_BF_ACET  : Avg weekday ACET anthro  emissions [atoms C/cm2/s]
-!  (30) EPA_WD_BF_MEK   : Avg weekday MEK  anthro  emissions [atoms C/cm2/s]
-!  (31) EPA_WD_BF_PRPE  : Avg weekday PRPE anthro  emissions [atoms C/cm2/s]
-!  (32) EPA_WD_BF_C2H6  : Avg weekday C2H6 anthro  emissions [atoms C/cm2/s]
-!  (33) EPA_WD_BF_C3H8  : Avg weekday C3H8 anthro  emissions [atoms C/cm2/s] 
-!  (34) EPA_WD_BF_CH2O  : Avg weekday CH2O anthro  emissions [  molec/cm2/s]
-!  (35) EPA_WD_BF_NH3   : Avg weekday NH3  anthro  emissions [  molec/cm2/s]
-!  (36) EPA_WD_BF_SO2   : Avg weekday SO2  anthro  emissions [  molec/cm2/s]   
-!  (37) EPA_WD_BF_SO4   : Avg weekday SO4  anthro  emissions [  molec/cm2/s]   
-!  (38) EPA_WE_BF_NOX   : Avg weekend NOX  anthro  emissions [  molec/cm2/s]
-!  (39) EPA_WE_BF_CO    : Avg weekend CO   anthro  emissions [atoms C/cm2/s]
-!  (40) EPA_WE_BF_ALK4  : Avg weekend ALK4 anthro  emissions [atoms C/cm2/s]
-!  (41) EPA_WE_BF_ACET  : Avg weekend ACET anthro  emissions [atoms C/cm2/s]
-!  (42) EPA_WE_BF_MEK   : Avg weekend MEK  anthro  emissions [atoms C/cm2/s] 
-!  (43) EPA_WE_BF_PRPE  : Avg weekend PRPE anthro  emissions [atoms C/cm2/s]
-!  (44) EPA_WE_BF_C2H6  : Avg weekend C2H6 anthro  emissions [atoms C/cm2/s]
-!  (45) EPA_WE_BF_C3H8  : Avg weekend C3H8 anthro  emissions [atoms C/cm2/s]
-!  (46) EPA_WE_BF_CH2O  : Avg weekend CH2O anthro  emissions [  molec/cm2/s]
-!  (47) EPA_WE_BF_NH3   : Avg weekend NH3  anthro  emissions [  molec/cm2/s]
-!  (48) EPA_WE_BF_SO2   : Avg weekend SO2  anthro  emissions [  molec/cm2/s]
-!  (49) EPA_WE_BF_SO4   : Avg weekend SO4  anthro  emissions [  molec/cm2/s]
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) EMISS_EPA       : Driver routine for EPA emissions
-!  (2 ) READ_EPA        : Reads EPA emissions from disk
-!  (2b) READ_EPA_05x0666 : Reads EPA emissions from disk
-!  (3 ) READ_USA_MASK   : Reads USA Mask from disk
-!  (3b) READ_USA_MASK_05x0666 : Reads USA Mask from disk
-!  (4 ) TOTAL_ANTHRO_TG : Prints monthly anthro  emission sums in Tg or Tg C
-!  (5 ) TOTAL_BIOFUEL_TG: Prints monthly biofuel emission sums in Tg or Tg C
-!  (6 ) GET_USA_MASK    : Returns value of USA mask  at a (I,J) location
-!  (7 ) GET_EPA_ANTHRO  : Gets EPA anthro  emissions at a (I,J) location
-!  (8 ) GET_EPA_BIOFUEL : Gets EPA biofuel emissions at a (I,J) location 
-!  (9 ) INIT_EPA_NEI    : Allocates and zeroes module arrays 
-!  (10) CLEANUP_EPA_NEI : Deallocates all module arrays
+      PUBLIC  :: CLEANUP_EPA_NEI
+      PUBLIC  :: EMISS_EPA_NEI
+      PUBLIC  :: GET_USA_MASK
+      PUBLIC  :: GET_EPA_ANTHRO
+      PUBLIC  :: GET_EPA_BIOFUEL 
 !
-!  GEOS-CHEM modules referenced by epa_nei_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f            : Module w/ routines for binary punch file I/O
-!  (2 ) directory_mod.f        : Module w/ GEOS-CHEM met field and data dirs
-!  (3 ) error_mod.f            : Module w/ I/O error and NaN check routines
-!  (3 ) file_mod.f             : Module w/ file unit numbers and error checks
-!  (4 ) future_emissions_mod.f : Module w/ routines for IPCC future emissions
-!  (5 ) logical_mod.f          : Module w/ GEOS-Chem logical switches
-!  (6 ) time_mod.f             : Module w/ routines for computing time & date
-!  (7 ) transfer_mod.f         : Module w/ routines to cast & resize arrays
+! !PRIVATE MEMBER FUNCTIONS:
 !
-!  NOTES:
+      PRIVATE :: EMISS_EPA_NEI_AN
+      PRIVATE :: EMISS_EPA_NEI_BF
+      PRIVATE :: INIT_EPA_NEI
+      PRIVATE :: READ_USA_MASK
+      PRIVATE :: READ_USA_MASK_05x0666
+      PRIVATE :: READ_EPA
+      PRIVATE :: READ_EPA_05x0666
+      PRIVATE :: TOTAL_ANTHRO_Tg
+      PRIVATE :: TOTAL_BIOFUEL_Tg
+!
+! !REMARKS:
+!  When you use EPA/NEI99 emissions (LNEI99=T), then the routines in this
+!  module will read and process in the anthropogenic and biofuel emissions
+!  from the EPA/NEI99 inventory.
+!                                                                             .
+!  When you use the EPA/NEI05 emissions (LNEI99=F and LNEI05=T), then the
+!  routines in this module will read and process only the biofuel emissions
+!  from the EPA/NEI99 inventory.  The EPA/NEI05 inventory only contains
+!  anthropogenic emissions, so we are constrained to use the EPA/NEI99 
+!  biofuel data.
+! 
+! !REVISION HISTORY:
 !  (1 ) Prevent out of bounds errors in routines TOTAL_ANTHRO_TG and 
 !        TOTAL_BIOFUEL_TG (bmy, 1/26/05)
 !  (2 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
@@ -98,29 +63,12 @@
 !        (b) Hudman et al., 2008, Geophys. Res. Lett., 35, L04801, 
 !             doi:10.1029/2007GL032393
 !  (8 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
-!******************************************************************************
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "epa_nei_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: CLEANUP_EPA_NEI
-      PUBLIC :: EMISS_EPA_NEI
-      PUBLIC :: GET_USA_MASK
-      PUBLIC :: GET_EPA_ANTHRO
-      PUBLIC :: GET_EPA_BIOFUEL 
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! USA Mask
       REAL*8,  ALLOCATABLE :: USA_MASK(:,:)
 
@@ -184,67 +132,424 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-      
+! Prior to 2/7/11:
+! Preserve original code here (bmy, 2/7/11)
+!      
+!      SUBROUTINE EMISS_EPA_NEI
+!!
+!!******************************************************************************
+!!  Subroutine EMISS_EPA_NEI reads all EPA emissions from disk at the start
+!!  of a new month. (rch, bmy, 11/10/04, 12/18/09)
+!!
+!!  NOTES:
+!!  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!!  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
+!!  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
+!!******************************************************************************
+!!                               
+!      ! References to F90 modules
+!      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
+!      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff  
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_CObf  
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an 
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
+!      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
+!      USE LOGICAL_MOD,          ONLY : LFUTURE, LICARTT
+!      USE TIME_MOD,             ONLY : EXPAND_DATE,     GET_MONTH
+!
+!#     include "CMN_SIZE"             ! Size parameters
+!
+!      ! Local variables
+!      LOGICAL, SAVE                 :: FIRST = .TRUE.
+!      INTEGER                       :: I, J, THISMONTH, YYYYMMDD
+!      REAL*8                        :: ALK4ff, C2H6ff, C3H8ff, COff
+!      REAL*8                        :: NH3an,  NOxff,  PRPEff, SO2ff
+!      REAL*8                        :: TONEff, VOCff,  CObf,   NH3bf
+!      REAL*8                        :: NOxbf,  SO2bf,  VOCbf 
+!      CHARACTER(LEN=255)            :: FILENAME
+!
+!      !=================================================================
+!      ! EMISS_EPA_NEI begins here!
+!      !=================================================================
+!      
+!      ! First-time initialization
+!      IF ( FIRST ) THEN
+!
+!         ! Allocate arrays
+!         CALL INIT_EPA_NEI
+!
+!         ! Read mask over the USA
+!#if   defined(GRID05_0666)
+!         CALL READ_USA_MASK_05x0666
+!#else
+!         CALL READ_USA_MASK
+!#endif
+!
+!         ! Reset first-time flag
+!         FIRST = .FALSE.
+!      ENDIF
+!
+!      ! Get the current month
+!      THISMONTH = GET_MONTH()
+!
+!      ! Get date for 1999 emissions
+!      YYYYMMDD = 19990000 + ( THISMONTH * 100 ) + 01
+!      
+!      ! Echo info
+!      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!      WRITE( 6, 100   ) 
+! 100  FORMAT( 'E P A  /  N E I   E M I S S I O N S',
+!     &       '  -- Baseline Year: 1999', / )
+!    
+!      !=================================================================
+!      ! Read EPA weekday average anthropogenic emissions
+!      !=================================================================
+!
+!      ! Weekday anthro file name
+!      IF ( LICARTT ) THEN
+!         
+!        FILENAME = TRIM( DATA_DIR )                         // 
+!     &             'EPA_NEI_200806/wkday_avg_an.YYYYMM.'    //
+!     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+!      ELSE
+!         FILENAME = TRIM( DATA_DIR )                         // 
+!     &              'EPA_NEI_200708/wkday_avg_an.YYYYMM.'    //
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+!      ENDIF
+!         
+!      ! Replace date in filename
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+!
+!      ! Read weekday data 
+!#if defined(GRID05x0666)
+!      CALL READ_EPA_05x0666( FILENAME,
+!     &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4,
+!     &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE,
+!     &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6,
+!     &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3, 0)
+!#else
+!      CALL READ_EPA( FILENAME,       
+!     &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4, 
+!     &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE, 
+!     &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6, 
+!     &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3 )
+!#endif
+!
+!      !=================================================================
+!      ! Read EPA weekend average anthropogenic emissions
+!      !=================================================================
+!
+!      ! Weekday anthro file name
+!      IF ( LICARTT ) THEN
+!         
+!        FILENAME = TRIM( DATA_DIR )                         // 
+!     &             'EPA_NEI_200806/wkend_avg_an.YYYYMM.'    //
+!     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+!      ELSE
+!         FILENAME = TRIM( DATA_DIR )                         // 
+!     &              'EPA_NEI_200708/wkend_avg_an.YYYYMM.'    //
+!     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+!      ENDIF
+!
+!      ! Replace date in filename
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+!
+!      ! Read weekend data 
+!#if defined(GRID05x0666)
+!      CALL READ_EPA_05x0666( FILENAME,
+!     &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4,
+!     &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE,
+!     &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6,
+!     &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3, 0)
+!#else
+!      CALL READ_EPA( FILENAME,       
+!     &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4, 
+!     &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE, 
+!     &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6, 
+!     &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3 )
+!#endif
+!
+!      !=================================================================
+!      ! Read EPA weekday average biofuel emissions
+!      !=================================================================
+!
+!      ! Weekday biofuel file name
+!      FILENAME = TRIM( DATA_DIR )                         // 
+!     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.'    //
+!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+!
+!      ! Replace date in filename
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+!
+!      ! Read weekday data 
+!#if defined(GRID05x0666)
+!      CALL READ_EPA_05x0666( FILENAME,
+!     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4,
+!     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE,
+!     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6,
+!     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3, 1)
+!#else
+!      CALL READ_EPA( FILENAME,       
+!     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4, 
+!     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE, 
+!     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6, 
+!     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3 )
+!#endif
+!
+!      !=================================================================
+!      ! Read EPA weekend average biofuel emissions
+!      !=================================================================
+!
+!      ! Weekend biofuel file name
+!      FILENAME = TRIM( DATA_DIR )                         // 
+!     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.'    //
+!     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()  
+!
+!      ! Replace date in filename
+!      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+!
+!      ! Read weekend data 
+!#if defined(GRID05x0666)
+!      CALL READ_EPA_05x0666( FILENAME,
+!     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4,
+!     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE,
+!     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6,
+!     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3, 1)
+!#else
+!      CALL READ_EPA( FILENAME,       
+!     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4, 
+!     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE, 
+!     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6, 
+!     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3 )
+!#endif
+!
+!      !=================================================================
+!      ! Apply USA Mask (keep emissions over US, zero elsewhere)
+!      !=================================================================
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,     J,     ALK4ff, C2H6ff, C3H8ff, COff  )
+!!$OMP+PRIVATE( NH3an, NOxff, PRPEff, SO2ff,  TONEff, VOCff )         
+!!$OMP+PRIVATE( CObf,  NH3bf, NOxbf,  SO2bf,  VOCbf         )
+!!$OMP+SCHEDULE( DYNAMIC )
+!      DO J = 1, JJPAR
+!      DO I = 1, IIPAR
+!
+!         ! Weekday avg anthro
+!         EPA_WD_AN_NOX (I,J) = EPA_WD_AN_NOX (I,J) * USA_MASK(I,J)
+!         EPA_WD_AN_CO  (I,J) = EPA_WD_AN_CO  (I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_ALK4(I,J) = EPA_WD_AN_ALK4(I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_ACET(I,J) = EPA_WD_AN_ACET(I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_MEK (I,J) = EPA_WD_AN_MEK (I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_PRPE(I,J) = EPA_WD_AN_PRPE(I,J) * USA_MASK(I,J)      
+!         EPA_WD_AN_C3H8(I,J) = EPA_WD_AN_C3H8(I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_CH2O(I,J) = EPA_WD_AN_CH2O(I,J) * USA_MASK(I,J) 
+!         EPA_WD_AN_C2H6(I,J) = EPA_WD_AN_C2H6(I,J) * USA_MASK(I,J)
+!         EPA_WD_AN_SO2 (I,J) = EPA_WD_AN_SO2 (I,J) * USA_MASK(I,J)   
+!         EPA_WD_AN_SO4 (I,J) = EPA_WD_AN_SO4 (I,J) * USA_MASK(I,J)  
+!         EPA_WD_AN_NH3 (I,J) = EPA_WD_AN_NH3 (I,J) * USA_MASK(I,J) 
+!                             
+!         ! Weekend avg anthro     
+!         EPA_WE_AN_NOX (I,J) = EPA_WE_AN_NOX (I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_CO  (I,J) = EPA_WE_AN_CO  (I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_ALK4(I,J) = EPA_WE_AN_ALK4(I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_ACET(I,J) = EPA_WE_AN_ACET(I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_MEK (I,J) = EPA_WE_AN_MEK (I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_PRPE(I,J) = EPA_WE_AN_PRPE(I,J) * USA_MASK(I,J)   
+!         EPA_WE_AN_C3H8(I,J) = EPA_WE_AN_C3H8(I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_CH2O(I,J) = EPA_WE_AN_CH2O(I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_C2H6(I,J) = EPA_WE_AN_C2H6(I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * USA_MASK(I,J)
+!         EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * USA_MASK(I,J)
+!                              
+!         ! Weekday avg biofuel    
+!         EPA_WD_BF_NOX (I,J) = EPA_WD_BF_NOX (I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_CO  (I,J) = EPA_WD_BF_CO  (I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_ALK4(I,J) = EPA_WD_BF_ALK4(I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_ACET(I,J) = EPA_WD_BF_ACET(I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_MEK (I,J) = EPA_WD_BF_MEK (I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_PRPE(I,J) = EPA_WD_BF_PRPE(I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_C3H8(I,J) = EPA_WD_BF_C3H8(I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_CH2O(I,J) = EPA_WD_BF_CH2O(I,J) * USA_MASK(I,J)    
+!         EPA_WD_BF_C2H6(I,J) = EPA_WD_BF_C2H6(I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_SO2 (I,J) = EPA_WD_BF_SO2 (I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_SO4 (I,J) = EPA_WD_BF_SO4 (I,J) * USA_MASK(I,J)
+!         EPA_WD_BF_NH3 (I,J) = EPA_WD_BF_NH3 (I,J) * USA_MASK(I,J)
+!
+!         ! Weekend avg biofuel    
+!         EPA_WE_BF_NOX (I,J) = EPA_WE_BF_NOX (I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_CO  (I,J) = EPA_WE_BF_CO  (I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_ALK4(I,J) = EPA_WE_BF_ALK4(I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_ACET(I,J) = EPA_WE_BF_ACET(I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_MEK (I,J) = EPA_WE_BF_MEK (I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_PRPE(I,J) = EPA_WE_BF_PRPE(I,J) * USA_MASK(I,J)   
+!         EPA_WE_BF_C3H8(I,J) = EPA_WE_BF_C3H8(I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_CH2O(I,J) = EPA_WE_BF_CH2O(I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_C2H6(I,J) = EPA_WE_BF_C2H6(I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_SO2 (I,J) = EPA_WE_BF_SO2 (I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_SO4 (I,J) = EPA_WE_BF_SO4 (I,J) * USA_MASK(I,J)
+!         EPA_WE_BF_NH3 (I,J) = EPA_WE_BF_NH3 (I,J) * USA_MASK(I,J)
+!
+!         !----------------------------------------------
+!         ! Compute IPCC future emissions (if necessary)
+!         !----------------------------------------------
+!         IF ( LFUTURE .and. USA_MASK(I,J) > 0d0 ) THEN
+!
+!            ! Future anthro scale factors
+!            ALK4ff = GET_FUTURE_SCALE_ALK4ff( I, J )
+!            C2H6ff = GET_FUTURE_SCALE_C2H6ff( I, J )
+!            C3H8ff = GET_FUTURE_SCALE_C3H8ff( I, J )
+!            COff   = GET_FUTURE_SCALE_COff(   I, J )
+!            NH3an  = GET_FUTURE_SCALE_NH3an(  I, J )
+!            NOxff  = GET_FUTURE_SCALE_NOxff(  I, J )
+!            PRPEff = GET_FUTURE_SCALE_PRPEff( I, J )
+!            TONEff = GET_FUTURE_SCALE_TONEff( I, J )
+!            SO2ff  = GET_FUTURE_SCALE_SO2ff(  I, J )
+!            VOCff  = GET_FUTURE_SCALE_VOCff(  I, J )
+!
+!            ! Future biofuel scale factors            
+!            CObf   = GET_FUTURE_SCALE_CObf(   I, J )
+!            NH3bf  = GET_FUTURE_SCALE_NH3bf(  I, J )
+!            NOxbf  = GET_FUTURE_SCALE_NOXbf(  I, J )
+!            SO2bf  = GET_FUTURE_SCALE_SO2bf(  I, J )
+!            VOCbf  = GET_FUTURE_SCALE_VOCbf(  I, J )
+!
+!            ! Future weekday avg anthro
+!            EPA_WD_AN_NOX (I,J) = EPA_WD_AN_NOX (I,J) * NOxff
+!            EPA_WD_AN_CO  (I,J) = EPA_WD_AN_CO  (I,J) * COff
+!            EPA_WD_AN_ALK4(I,J) = EPA_WD_AN_ALK4(I,J) * ALK4ff
+!            EPA_WD_AN_ACET(I,J) = EPA_WD_AN_ACET(I,J) * TONEff
+!            EPA_WD_AN_MEK (I,J) = EPA_WD_AN_MEK (I,J) * TONEff
+!            EPA_WD_AN_PRPE(I,J) = EPA_WD_AN_PRPE(I,J) * PRPEff
+!            EPA_WD_AN_C3H8(I,J) = EPA_WD_AN_C3H8(I,J) * C3H8ff 
+!            EPA_WD_AN_CH2O(I,J) = EPA_WD_AN_CH2O(I,J) * VOCff
+!            EPA_WD_AN_C2H6(I,J) = EPA_WD_AN_C2H6(I,J) * C2H6ff
+!            EPA_WD_AN_SO2 (I,J) = EPA_WD_AN_SO2 (I,J) * SO2ff
+!            EPA_WD_AN_SO4 (I,J) = EPA_WD_AN_SO4 (I,J) * SO2ff
+!            EPA_WD_AN_NH3 (I,J) = EPA_WD_AN_NH3 (I,J) * NH3an 
+!                             
+!            ! Weekend avg anthro     
+!            EPA_WE_AN_NOX (I,J) = EPA_WE_AN_NOX (I,J) * NOxff
+!            EPA_WE_AN_CO  (I,J) = EPA_WE_AN_CO  (I,J) * COff
+!            EPA_WE_AN_ALK4(I,J) = EPA_WE_AN_ALK4(I,J) * ALK4ff
+!            EPA_WE_AN_ACET(I,J) = EPA_WE_AN_ACET(I,J) * TONEff
+!            EPA_WE_AN_MEK (I,J) = EPA_WE_AN_MEK (I,J) * TONEff
+!            EPA_WE_AN_PRPE(I,J) = EPA_WE_AN_PRPE(I,J) * PRPEff
+!            EPA_WE_AN_C3H8(I,J) = EPA_WE_AN_C3H8(I,J) * C3H8ff
+!            EPA_WE_AN_CH2O(I,J) = EPA_WE_AN_CH2O(I,J) * VOCff
+!            EPA_WE_AN_C2H6(I,J) = EPA_WE_AN_C2H6(I,J) * C2H6ff 
+!            EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * SO2ff
+!            EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * SO2ff
+!            EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * NH3an 
+!                              
+!            ! Weekday avg biofuel    
+!            EPA_WD_BF_NOX (I,J) = EPA_WD_BF_NOX (I,J) * NOxbf
+!            EPA_WD_BF_CO  (I,J) = EPA_WD_BF_CO  (I,J) * CObf
+!            EPA_WD_BF_ALK4(I,J) = EPA_WD_BF_ALK4(I,J) * VOCbf
+!            EPA_WD_BF_ACET(I,J) = EPA_WD_BF_ACET(I,J) * VOCbf
+!            EPA_WD_BF_MEK (I,J) = EPA_WD_BF_MEK (I,J) * VOCbf
+!            EPA_WD_BF_PRPE(I,J) = EPA_WD_BF_PRPE(I,J) * VOCbf 
+!            EPA_WD_BF_C3H8(I,J) = EPA_WD_BF_C3H8(I,J) * VOCbf 
+!            EPA_WD_BF_CH2O(I,J) = EPA_WD_BF_CH2O(I,J) * VOCbf     
+!            EPA_WD_BF_C2H6(I,J) = EPA_WD_BF_C2H6(I,J) * VOCbf 
+!            EPA_WD_BF_SO2 (I,J) = EPA_WD_BF_SO2 (I,J) * SO2bf 
+!            EPA_WD_BF_SO4 (I,J) = EPA_WD_BF_SO4 (I,J) * SO2bf
+!            EPA_WD_BF_NH3 (I,J) = EPA_WD_BF_NH3 (I,J) * NH3bf
+!            
+!            ! Weekend avg biofuel    
+!            EPA_WE_BF_NOX (I,J) = EPA_WE_BF_NOX (I,J) * NOxbf
+!            EPA_WE_BF_CO  (I,J) = EPA_WE_BF_CO  (I,J) * CObf
+!            EPA_WE_BF_ALK4(I,J) = EPA_WE_BF_ALK4(I,J) * VOCbf 
+!            EPA_WE_BF_ACET(I,J) = EPA_WE_BF_ACET(I,J) * VOCbf 
+!            EPA_WE_BF_MEK (I,J) = EPA_WE_BF_MEK (I,J) * VOCbf 
+!            EPA_WE_BF_PRPE(I,J) = EPA_WE_BF_PRPE(I,J) * VOCbf   
+!            EPA_WE_BF_C3H8(I,J) = EPA_WE_BF_C3H8(I,J) * VOCbf 
+!            EPA_WE_BF_CH2O(I,J) = EPA_WE_BF_CH2O(I,J) * VOCbf 
+!            EPA_WE_BF_C2H6(I,J) = EPA_WE_BF_C2H6(I,J) * VOCbf 
+!            EPA_WE_BF_SO2 (I,J) = EPA_WE_BF_SO2 (I,J) * SO2bf
+!            EPA_WE_BF_SO4 (I,J) = EPA_WE_BF_SO4 (I,J) * SO2bf
+!            EPA_WE_BF_NH3 (I,J) = EPA_WE_BF_NH3 (I,J) * NH3bf
+!         ENDIF
+!      ENDDO
+!      ENDDO
+!!$OMP END PARALLEL DO
+!
+!      ! Print totals to the log file
+!      CALL TOTAL_ANTHRO_TG( THISMONTH )
+!      CALL TOTAL_BIOFUEL_TG( THISMONTH )
+!
+!      ! Fancy output
+!      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!
+!      ! Return to calling program
+!      END SUBROUTINE EMISS_EPA_NEI
+!
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_epa_nei
+!
+! !DESCRIPTION: Subroutine EMISS\_EPA\_NEI reads all EPA emissions from disk 
+!  at the start of a new month.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_EPA_NEI
 !
-!******************************************************************************
-!  Subroutine EMISS_EPA_NEI reads all EPA emissions from disk at the start
-!  of a new month. (rch, bmy, 11/10/04, 12/18/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
-!  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
-!  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
-!******************************************************************************
-!                               
-      ! References to F90 modules
-      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE DIRECTORY_MOD,        ONLY : DATA_DIR
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff  
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_CObf  
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an 
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
-      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
-      USE LOGICAL_MOD,          ONLY : LFUTURE, LICARTT
-      USE TIME_MOD,             ONLY : EXPAND_DATE,     GET_MONTH
-
-#     include "CMN_SIZE"             ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE                 :: FIRST = .TRUE.
-      INTEGER                       :: I, J, THISMONTH, YYYYMMDD
-      REAL*8                        :: ALK4ff, C2H6ff, C3H8ff, COff
-      REAL*8                        :: NH3an,  NOxff,  PRPEff, SO2ff
-      REAL*8                        :: TONEff, VOCff,  CObf,   NH3bf
-      REAL*8                        :: NOxbf,  SO2bf,  VOCbf 
-      CHARACTER(LEN=255)            :: FILENAME
-
-      !=================================================================
-      ! EMISS_EPA_NEI begins here!
-      !=================================================================
+      USE LOGICAL_MOD, ONLY : LNEI05 
+      USE LOGICAL_MOD, ONLY : LNEI99
+!
+! !REMARKS:
+!  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
+!  Read EPA/NEI05 anthro + EPA/NEI99 biofuel if LNEI99=F but LNEI05=T
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  07 Feb 2011 - R. Yantosca - Now reads anthro & biofuel emissions separately
+!   7 Feb 2011 - R. Yantosca - Now reads biofuel only when LNEI05=T
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
       
+      !=================================================================
       ! First-time initialization
+      !=================================================================
       IF ( FIRST ) THEN
 
          ! Allocate arrays
          CALL INIT_EPA_NEI
 
-         ! Read mask over the USA
-#if   defined(GRID05_0666)
+#if   defined( GRID05_0666 )
+         ! Read mask over the USA, nested-grid resolution
          CALL READ_USA_MASK_05x0666
 #else
+         ! Read mask over the USA, global resolution
          CALL READ_USA_MASK
 #endif
 
@@ -252,50 +557,150 @@
          FIRST = .FALSE.
       ENDIF
 
+      !=================================================================
+      ! Read data
+      !=================================================================
+
+      ! Echo info
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+      WRITE( 6, 100   ) 
+ 100  FORMAT( 'E P A  /  N E I 9 9   E M I S S I O N S', / )
+
+      IF ( LNEI99 ) THEN
+
+         ! If we are using EPA/NEI99, then we will read both the anthro
+         ! and biofuel emissions data from disk for each month.
+         WRITE( 6, 120 )
+         CALL EMISS_EPA_NEI_AN
+         CALL EMISS_EPA_NEI_BF
+
+      ELSE 
+
+         ! If we are not using EPA/NEI99, then check if we are using 
+         ! EPA/NEI05.  The EPA/NEI05 inventory only has anthro emissions.  
+         ! In this case, we must read the EPA/NEI99 biofuel emissions, since 
+         ! these data are better defined over the USA than the "default"
+         ! biomass data from Yevich & Logan 2003.
+         IF ( LNEI05 ) THEN
+            WRITE( 6, 130 )
+            CALL EMISS_EPA_NEI_BF
+         ENDIF
+
+      ENDIF
+
+      ! Echo info
+      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+      ! FORMATs
+ 120  FORMAT( '%%% Using EPA/NEI99 anthro + EPA/NEI99 biofuel %%%', / )
+ 130  FORMAT( '%%% Using EPA/NEI05 anthro + EPA/NEI99 biofuel %%%', / )
+
+      END SUBROUTINE EMISS_EPA_NEI
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_epa_nei_an
+!
+! !DESCRIPTION: Subroutine EMISS\_EPA\_NEI\_AN reads only the EPA/NEI99
+!  anthropogenic emissions from disk at the start of a new month.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISS_EPA_NEI_AN
+!
+! !USES:
+!
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,            ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_ALK4ff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C2H6ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_C3H8ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_COff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3an 
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxff 
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_PRPEff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2ff
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_TONEff  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCff
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LICARTT
+      USE TIME_MOD,             ONLY : EXPAND_DATE
+      USE TIME_MOD,             ONLY : GET_MONTH
+
+#     include "CMN_SIZE"             ! Size parameters
+!
+! !REMARKS:
+!  Split off from EMISS_EPA_NEI.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
+!  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
+!  07 Feb 2011 - R. Yantosca - Now only read anthro emissions.
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I,      J,      THISMONTH, YYYYMMDD
+      REAL*8             :: ALK4ff, C2H6ff, C3H8ff,    COff
+      REAL*8             :: NH3an,  NOxff,  PRPEff,    SO2ff
+      REAL*8             :: TONEff, VOCff 
+      CHARACTER(LEN=255) :: FILENAME
+
+      !=================================================================
+      ! EMISS_EPA_NEI_AN begins here!
+      !=================================================================
+      
       ! Get the current month
       THISMONTH = GET_MONTH()
 
       ! Get date for 1999 emissions
       YYYYMMDD = 19990000 + ( THISMONTH * 100 ) + 01
       
-      ! Echo info
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, 100   ) 
- 100  FORMAT( 'E P A  /  N E I   E M I S S I O N S',
-     &       '  -- Baseline Year: 1999', / )
-    
       !=================================================================
       ! Read EPA weekday average anthropogenic emissions
       !=================================================================
 
       ! Weekday anthro file name
       IF ( LICARTT ) THEN
-         
-        FILENAME = TRIM( DATA_DIR )                         // 
-     &             'EPA_NEI_200806/wkday_avg_an.YYYYMM.'    //
-     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'EPA_NEI_200806/wkday_avg_an.YYYYMM.'    //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
       ELSE
          FILENAME = TRIM( DATA_DIR )                         // 
      &              'EPA_NEI_200708/wkday_avg_an.YYYYMM.'    //
-     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+     &               GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
       ENDIF
          
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-      ! Read weekday data 
-#if defined(GRID05x0666)
+#if   defined( GRID05x0666 )
+
+      ! Read weekday data, nested grids
       CALL READ_EPA_05x0666( FILENAME,
      &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4,
      &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE,
      &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6,
      &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3, 0)
+
 #else
+
+      ! Read weekday data, global grids
       CALL READ_EPA( FILENAME,       
      &               EPA_WD_AN_NOX,  EPA_WD_AN_CO,   EPA_WD_AN_ALK4, 
      &               EPA_WD_AN_ACET, EPA_WD_AN_MEK,  EPA_WD_AN_PRPE, 
      &               EPA_WD_AN_C3H8, EPA_WD_AN_CH2O, EPA_WD_AN_C2H6, 
      &               EPA_WD_AN_SO2,  EPA_WD_AN_SO4,  EPA_WD_AN_NH3 )
+
 #endif
 
       !=================================================================
@@ -304,10 +709,9 @@
 
       ! Weekday anthro file name
       IF ( LICARTT ) THEN
-         
-        FILENAME = TRIM( DATA_DIR )                         // 
-     &             'EPA_NEI_200806/wkend_avg_an.YYYYMM.'    //
-     &             GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
+         FILENAME = TRIM( DATA_DIR )                         // 
+     &              'EPA_NEI_200806/wkend_avg_an.YYYYMM.'    //
+     &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()     
       ELSE
          FILENAME = TRIM( DATA_DIR )                         // 
      &              'EPA_NEI_200708/wkend_avg_an.YYYYMM.'    //
@@ -317,73 +721,24 @@
       ! Replace date in filename
       CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
 
-      ! Read weekend data 
-#if defined(GRID05x0666)
+#if   defined( GRID05x0666 )
+
+      ! Read weekend data, nested grid
       CALL READ_EPA_05x0666( FILENAME,
      &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4,
      &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE,
      &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6,
      &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3, 0)
+
 #else
+
+      ! Read weekend data, global grids
       CALL READ_EPA( FILENAME,       
      &               EPA_WE_AN_NOX,  EPA_WE_AN_CO,   EPA_WE_AN_ALK4, 
      &               EPA_WE_AN_ACET, EPA_WE_AN_MEK,  EPA_WE_AN_PRPE, 
      &               EPA_WE_AN_C3H8, EPA_WE_AN_CH2O, EPA_WE_AN_C2H6, 
      &               EPA_WE_AN_SO2,  EPA_WE_AN_SO4,  EPA_WE_AN_NH3 )
-#endif
 
-      !=================================================================
-      ! Read EPA weekday average biofuel emissions
-      !=================================================================
-
-      ! Weekday biofuel file name
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.'    //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
-
-      ! Replace date in filename
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Read weekday data 
-#if defined(GRID05x0666)
-      CALL READ_EPA_05x0666( FILENAME,
-     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4,
-     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE,
-     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6,
-     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3, 1)
-#else
-      CALL READ_EPA( FILENAME,       
-     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4, 
-     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE, 
-     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6, 
-     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3 )
-#endif
-
-      !=================================================================
-      ! Read EPA weekend average biofuel emissions
-      !=================================================================
-
-      ! Weekend biofuel file name
-      FILENAME = TRIM( DATA_DIR )                         // 
-     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.'    //
-     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()  
-
-      ! Replace date in filename
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
-
-      ! Read weekend data 
-#if defined(GRID05x0666)
-      CALL READ_EPA_05x0666( FILENAME,
-     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4,
-     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE,
-     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6,
-     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3, 1)
-#else
-      CALL READ_EPA( FILENAME,       
-     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4, 
-     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE, 
-     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6, 
-     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3 )
 #endif
 
       !=================================================================
@@ -394,7 +749,6 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,     J,     ALK4ff, C2H6ff, C3H8ff, COff  )
 !$OMP+PRIVATE( NH3an, NOxff, PRPEff, SO2ff,  TONEff, VOCff )         
-!$OMP+PRIVATE( CObf,  NH3bf, NOxbf,  SO2bf,  VOCbf         )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -426,6 +780,198 @@
          EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * USA_MASK(I,J)
          EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * USA_MASK(I,J)
          EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * USA_MASK(I,J)
+                              
+         !----------------------------------------------
+         ! Compute IPCC future emissions (if necessary)
+         !----------------------------------------------
+         IF ( LFUTURE .and. USA_MASK(I,J) > 0d0 ) THEN
+
+            ! Future anthro scale factors
+            ALK4ff = GET_FUTURE_SCALE_ALK4ff( I, J )
+            C2H6ff = GET_FUTURE_SCALE_C2H6ff( I, J )
+            C3H8ff = GET_FUTURE_SCALE_C3H8ff( I, J )
+            COff   = GET_FUTURE_SCALE_COff(   I, J )
+            NH3an  = GET_FUTURE_SCALE_NH3an(  I, J )
+            NOxff  = GET_FUTURE_SCALE_NOxff(  I, J )
+            PRPEff = GET_FUTURE_SCALE_PRPEff( I, J )
+            TONEff = GET_FUTURE_SCALE_TONEff( I, J )
+            SO2ff  = GET_FUTURE_SCALE_SO2ff(  I, J )
+            VOCff  = GET_FUTURE_SCALE_VOCff(  I, J )
+
+            ! Future weekday avg anthro
+            EPA_WD_AN_NOX (I,J) = EPA_WD_AN_NOX (I,J) * NOxff
+            EPA_WD_AN_CO  (I,J) = EPA_WD_AN_CO  (I,J) * COff
+            EPA_WD_AN_ALK4(I,J) = EPA_WD_AN_ALK4(I,J) * ALK4ff
+            EPA_WD_AN_ACET(I,J) = EPA_WD_AN_ACET(I,J) * TONEff
+            EPA_WD_AN_MEK (I,J) = EPA_WD_AN_MEK (I,J) * TONEff
+            EPA_WD_AN_PRPE(I,J) = EPA_WD_AN_PRPE(I,J) * PRPEff
+            EPA_WD_AN_C3H8(I,J) = EPA_WD_AN_C3H8(I,J) * C3H8ff 
+            EPA_WD_AN_CH2O(I,J) = EPA_WD_AN_CH2O(I,J) * VOCff
+            EPA_WD_AN_C2H6(I,J) = EPA_WD_AN_C2H6(I,J) * C2H6ff
+            EPA_WD_AN_SO2 (I,J) = EPA_WD_AN_SO2 (I,J) * SO2ff
+            EPA_WD_AN_SO4 (I,J) = EPA_WD_AN_SO4 (I,J) * SO2ff
+            EPA_WD_AN_NH3 (I,J) = EPA_WD_AN_NH3 (I,J) * NH3an 
+                             
+            ! Weekend avg anthro     
+            EPA_WE_AN_NOX (I,J) = EPA_WE_AN_NOX (I,J) * NOxff
+            EPA_WE_AN_CO  (I,J) = EPA_WE_AN_CO  (I,J) * COff
+            EPA_WE_AN_ALK4(I,J) = EPA_WE_AN_ALK4(I,J) * ALK4ff
+            EPA_WE_AN_ACET(I,J) = EPA_WE_AN_ACET(I,J) * TONEff
+            EPA_WE_AN_MEK (I,J) = EPA_WE_AN_MEK (I,J) * TONEff
+            EPA_WE_AN_PRPE(I,J) = EPA_WE_AN_PRPE(I,J) * PRPEff
+            EPA_WE_AN_C3H8(I,J) = EPA_WE_AN_C3H8(I,J) * C3H8ff
+            EPA_WE_AN_CH2O(I,J) = EPA_WE_AN_CH2O(I,J) * VOCff
+            EPA_WE_AN_C2H6(I,J) = EPA_WE_AN_C2H6(I,J) * C2H6ff 
+            EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * SO2ff
+            EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * SO2ff
+            EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * NH3an 
+                              
+         ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Print totals to the log file
+      CALL TOTAL_ANTHRO_TG( THISMONTH )
+
+      END SUBROUTINE EMISS_EPA_NEI_AN
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_epa_nei_bf
+!
+! !DESCRIPTION: Subroutine EMISS\_EPA\_NEI\_BF reads only the EPA/NEI99
+!  biofuel emissions from disk at the start of a new month.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE EMISS_EPA_NEI_BF
+!
+! !USES:
+!
+      USE BPCH2_MOD,            ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,            ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD,        ONLY : DATA_DIR
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_CObf  
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NH3bf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_NOxbf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_SO2bf
+      USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_SCALE_VOCbf
+      USE LOGICAL_MOD,          ONLY : LFUTURE
+      USE LOGICAL_MOD,          ONLY : LICARTT
+      USE TIME_MOD,             ONLY : EXPAND_DATE
+      USE TIME_MOD,             ONLY : GET_MONTH
+
+#     include "CMN_SIZE"             ! Size parameters
+
+!
+! !REMARKS:
+!  Split off from EMISS_EPA_NEI.
+! 
+! !REVISION HISTORY: 
+!  (1 ) Now can read data for both GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Modified for IPCC future emissions (swu, bmy, 5/30/06)
+!  (3 ) Now can read 0.5 x 0.667 nested grid emissions (amv, bmy, 12/18/09)
+!  07 Feb 2011 - R. Yantosca - Now only read biofuel emissions
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I,     J,     THISMONTH, YYYYMMDD
+      REAL*8             :: CObf,  NH3bf, NOxbf,     SO2bf,   VOCbf 
+      CHARACTER(LEN=255) :: FILENAME
+
+      !=================================================================
+      ! EMISS_EPA_NEI_BF begins here!
+      !=================================================================
+      
+      ! Get the current month
+      THISMONTH = GET_MONTH()
+
+      ! Get date for 1999 emissions
+      YYYYMMDD = 19990000 + ( THISMONTH * 100 ) + 01
+      
+      !=================================================================
+      ! Read EPA weekday average biofuel emissions
+      !=================================================================
+
+      ! Weekday biofuel file name
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkday_avg_bf.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
+
+      ! Replace date in filename
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+
+#if   defined( GRID05x0666 )
+
+      ! Read weekday data, nested grids
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4,
+     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE,
+     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6,
+     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3, 1)
+
+#else
+
+      ! Read weekday data, global grids
+      CALL READ_EPA( FILENAME,       
+     &               EPA_WD_BF_NOX,  EPA_WD_BF_CO,   EPA_WD_BF_ALK4, 
+     &               EPA_WD_BF_ACET, EPA_WD_BF_MEK,  EPA_WD_BF_PRPE, 
+     &               EPA_WD_BF_C3H8, EPA_WD_BF_CH2O, EPA_WD_BF_C2H6, 
+     &               EPA_WD_BF_SO2,  EPA_WD_BF_SO4,  EPA_WD_BF_NH3 )
+
+#endif
+
+      !=================================================================
+      ! Read EPA weekend average biofuel emissions
+      !=================================================================
+
+      ! Weekend biofuel file name
+      FILENAME = TRIM( DATA_DIR )                         // 
+     &           'EPA_NEI_200411/wkend_avg_bf.YYYYMM.'    //
+     &           GET_NAME_EXT_2D() // '.' // GET_RES_EXT()  
+
+      ! Replace date in filename
+      CALL EXPAND_DATE( FILENAME, YYYYMMDD, 000000 )
+
+#if   defined( GRID05x0666 )
+
+      ! Read weekend data, nested-grids
+      CALL READ_EPA_05x0666( FILENAME,
+     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4,
+     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE,
+     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6,
+     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3, 1 )
+
+#else
+
+      ! Read weekend data, global grids
+      CALL READ_EPA( FILENAME,       
+     &               EPA_WE_BF_NOX,  EPA_WE_BF_CO,   EPA_WE_BF_ALK4, 
+     &               EPA_WE_BF_ACET, EPA_WE_BF_MEK,  EPA_WE_BF_PRPE, 
+     &               EPA_WE_BF_C3H8, EPA_WE_BF_CH2O, EPA_WE_BF_C2H6, 
+     &               EPA_WE_BF_SO2,  EPA_WE_BF_SO4,  EPA_WE_BF_NH3 )
+
+#endif
+
+      !=================================================================
+      ! Apply USA Mask (keep emissions over US, zero elsewhere)
+      !=================================================================
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, CObf, NH3bf, NOxbf, SO2bf, VOCbf )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
                               
          ! Weekday avg biofuel    
          EPA_WD_BF_NOX (I,J) = EPA_WD_BF_NOX (I,J) * USA_MASK(I,J)
@@ -460,52 +1006,12 @@
          !----------------------------------------------
          IF ( LFUTURE .and. USA_MASK(I,J) > 0d0 ) THEN
 
-            ! Future anthro scale factors
-            ALK4ff = GET_FUTURE_SCALE_ALK4ff( I, J )
-            C2H6ff = GET_FUTURE_SCALE_C2H6ff( I, J )
-            C3H8ff = GET_FUTURE_SCALE_C3H8ff( I, J )
-            COff   = GET_FUTURE_SCALE_COff(   I, J )
-            NH3an  = GET_FUTURE_SCALE_NH3an(  I, J )
-            NOxff  = GET_FUTURE_SCALE_NOxff(  I, J )
-            PRPEff = GET_FUTURE_SCALE_PRPEff( I, J )
-            TONEff = GET_FUTURE_SCALE_TONEff( I, J )
-            SO2ff  = GET_FUTURE_SCALE_SO2ff(  I, J )
-            VOCff  = GET_FUTURE_SCALE_VOCff(  I, J )
-
             ! Future biofuel scale factors            
             CObf   = GET_FUTURE_SCALE_CObf(   I, J )
             NH3bf  = GET_FUTURE_SCALE_NH3bf(  I, J )
             NOxbf  = GET_FUTURE_SCALE_NOXbf(  I, J )
             SO2bf  = GET_FUTURE_SCALE_SO2bf(  I, J )
             VOCbf  = GET_FUTURE_SCALE_VOCbf(  I, J )
-
-            ! Future weekday avg anthro
-            EPA_WD_AN_NOX (I,J) = EPA_WD_AN_NOX (I,J) * NOxff
-            EPA_WD_AN_CO  (I,J) = EPA_WD_AN_CO  (I,J) * COff
-            EPA_WD_AN_ALK4(I,J) = EPA_WD_AN_ALK4(I,J) * ALK4ff
-            EPA_WD_AN_ACET(I,J) = EPA_WD_AN_ACET(I,J) * TONEff
-            EPA_WD_AN_MEK (I,J) = EPA_WD_AN_MEK (I,J) * TONEff
-            EPA_WD_AN_PRPE(I,J) = EPA_WD_AN_PRPE(I,J) * PRPEff
-            EPA_WD_AN_C3H8(I,J) = EPA_WD_AN_C3H8(I,J) * C3H8ff 
-            EPA_WD_AN_CH2O(I,J) = EPA_WD_AN_CH2O(I,J) * VOCff
-            EPA_WD_AN_C2H6(I,J) = EPA_WD_AN_C2H6(I,J) * C2H6ff
-            EPA_WD_AN_SO2 (I,J) = EPA_WD_AN_SO2 (I,J) * SO2ff
-            EPA_WD_AN_SO4 (I,J) = EPA_WD_AN_SO4 (I,J) * SO2ff
-            EPA_WD_AN_NH3 (I,J) = EPA_WD_AN_NH3 (I,J) * NH3an 
-                             
-            ! Weekend avg anthro     
-            EPA_WE_AN_NOX (I,J) = EPA_WE_AN_NOX (I,J) * NOxff
-            EPA_WE_AN_CO  (I,J) = EPA_WE_AN_CO  (I,J) * COff
-            EPA_WE_AN_ALK4(I,J) = EPA_WE_AN_ALK4(I,J) * ALK4ff
-            EPA_WE_AN_ACET(I,J) = EPA_WE_AN_ACET(I,J) * TONEff
-            EPA_WE_AN_MEK (I,J) = EPA_WE_AN_MEK (I,J) * TONEff
-            EPA_WE_AN_PRPE(I,J) = EPA_WE_AN_PRPE(I,J) * PRPEff
-            EPA_WE_AN_C3H8(I,J) = EPA_WE_AN_C3H8(I,J) * C3H8ff
-            EPA_WE_AN_CH2O(I,J) = EPA_WE_AN_CH2O(I,J) * VOCff
-            EPA_WE_AN_C2H6(I,J) = EPA_WE_AN_C2H6(I,J) * C2H6ff 
-            EPA_WE_AN_SO2 (I,J) = EPA_WE_AN_SO2 (I,J) * SO2ff
-            EPA_WE_AN_SO4 (I,J) = EPA_WE_AN_SO4 (I,J) * SO2ff
-            EPA_WE_AN_NH3 (I,J) = EPA_WE_AN_NH3 (I,J) * NH3an 
                               
             ! Weekday avg biofuel    
             EPA_WD_BF_NOX (I,J) = EPA_WD_BF_NOX (I,J) * NOxbf
@@ -540,50 +1046,29 @@
 !$OMP END PARALLEL DO
 
       ! Print totals to the log file
-      CALL TOTAL_ANTHRO_TG( THISMONTH )
       CALL TOTAL_BIOFUEL_TG( THISMONTH )
 
-      ! Fancy output
-      WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
-      ! Return to calling program
-      END SUBROUTINE EMISS_EPA_NEI
-
+      END SUBROUTINE EMISS_EPA_NEI_BF
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_epa
+!
+! !DESCRIPTION: Subroutine READ\_EPA reads an EPA data file (biomass or anthro)
+!  from disk.  The entire file is read through on one pass for better I/O 
+!  optimization.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_EPA( FILENAME, NOX,  CO,   ALK4, ACET, MEK,       
      &                     PRPE,     C3H8, CH2O, C2H6, SO2,  SO4,  NH3 )
 !
-!******************************************************************************
-!  Subroutine READ_EPA reads an EPA data file (biomass or anthro) from disk.
-!  The entire file is read through on one pass for better I/O optimization.
-!  (rch, bmy, 7/1/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FILENAME (CHARACTER) : Name of anthro or biomass file to read
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) NOx      (REAL*4   ) : Array for NOx  anthro or biomass data
-!  (3 ) CO       (REAL*4   ) : Array for CO   anthro or biomass data
-!  (4 ) ALK4     (REAL*4   ) : Array for ALK4 anthro or biomass data
-!  (5 ) ACET     (REAL*4   ) : Array for ACET anthro or biomass data
-!  (6 ) MEK      (REAL*4   ) : Array for MEK  anthro or biomass data
-!  (7 ) PRPE     (REAL*4   ) : Array for PRPE anthro or biomass data 
-!  (8 ) C3H8     (REAL*4   ) : Array for C3H8 anthro or biomass data 
-!  (9 ) CH2O     (REAL*4   ) : Array for CH2O anthro or biomass data 
-!  (10) C2H6     (REAL*4   ) : Array for C2H6 anthro or biomass data
-!  (11) NH3      (REAL*4   ) : Array for NH3  anthro or biomass data
-!  (12) SO2      (REAL*4   ) : Array for SO4  anthro or biomass data 
-!  (13) SO4      (REAL*4   ) : Array for SO4  anthro or biomass data 
-!
-!  NOTES:
-!    (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
-!    (2 ) Now accounts for FSCLYR (phs, 3/17/08)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,        ONLY : OPEN_BPCH2_FOR_READ
       USE FILE_MOD,         ONLY : IU_FILE, IOERROR
       USE LOGICAL_MOD,      ONLY : LICARTT
@@ -593,37 +1078,51 @@
    
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_O3"               ! FSCLYR
-  
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
-      REAL*4,           INTENT(INOUT) :: NOX(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: CO(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)      
-      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: SO2(IIPAR,JJPAR)  
-      REAL*4,           INTENT(INOUT) :: SO4(IIPAR,JJPAR)  
-      REAL*4,           INTENT(INOUT) :: NH3(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER                         :: I,  J,  L,  N,  IOS
-      INTEGER                         :: NTRACER,   NSKIP
-      INTEGER                         :: HALFPOLAR, CENTER180
-      INTEGER                         :: NI,        NJ,        NL
-      INTEGER                         :: IFIRST,    JFIRST,    LFIRST
-      INTEGER                         :: SCALEYEAR, BASEYEAR
-      REAL*4                          :: ARRAY(IGLOB,JGLOB,1)
-      REAL*4                          :: LONRES,    LATRES
-      REAL*8                          :: ZTAU0,     ZTAU1
-      REAL*4                          :: SC(IIPAR,JJPAR)
-      CHARACTER(LEN=20)               :: MODELNAME
-      CHARACTER(LEN=40)               :: CATEGORY
-      CHARACTER(LEN=40)               :: UNIT     
-      CHARACTER(LEN=40)               :: RESERVED
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME            ! File to read
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*4,           INTENT(INOUT) :: NOX(IIPAR,JJPAR)    ! NOx  data
+      REAL*4,           INTENT(INOUT) :: CO(IIPAR,JJPAR)     ! CO   data
+      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)   ! ALK4 data
+      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)   ! ACET data
+      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,JJPAR)    ! MEK  data
+      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)   ! PRPE data  
+      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)   ! C3H8 data
+      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)   ! CH2O data
+      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)   ! C2H6 data
+      REAL*4,           INTENT(INOUT) :: SO2(IIPAR,JJPAR)    ! SO2  data
+      REAL*4,           INTENT(INOUT) :: SO4(IIPAR,JJPAR)    ! SO4  data
+      REAL*4,           INTENT(INOUT) :: NH3(IIPAR,JJPAR)    ! NH3  data
+!
+! !REVISION HISTORY: 
+!  01 Jul 2004 - R. Hudman   - Initial version
+!  (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
+!  (2 ) Now accounts for FSCLYR (phs, 3/17/08)
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I,  J,  L,  N,  IOS
+      INTEGER           :: NTRACER,   NSKIP
+      INTEGER           :: HALFPOLAR, CENTER180
+      INTEGER           :: NI,        NJ,        NL
+      INTEGER           :: IFIRST,    JFIRST,    LFIRST
+      INTEGER           :: SCALEYEAR, BASEYEAR
+      REAL*4            :: ARRAY(IGLOB,JGLOB,1)
+      REAL*4            :: LONRES,    LATRES
+      REAL*8            :: ZTAU0,     ZTAU1
+      REAL*4            :: SC(IIPAR,JJPAR)
+      CHARACTER(LEN=20) :: MODELNAME
+      CHARACTER(LEN=40) :: CATEGORY
+      CHARACTER(LEN=40) :: UNIT     
+      CHARACTER(LEN=40) :: RESERVED
 
       !=================================================================
       ! READ_EPA begins here!
@@ -723,44 +1222,29 @@
       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
       SO4(:,:) = SO4(:,:) * SC(:,:)
 
-      ! Return to calling program
       END SUBROUTINE READ_EPA
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_epa_05x0666
+!
+! !DESCRIPTION: Subroutine READ\_EPA reads an EPA data file (biomass or anthro,
+!  0.5 x 0.666 resolution) from disk.  The entire file is read through on one 
+!  pass for better I/O  optimization.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_EPA_05x0666( FILENAME, NOX,  CO,   ALK4, ACET, 
+     &                             MEK,      PRPE, C3H8, CH2O, C2H6, 
+     &                             SO2,      SO4,  NH3,  BF )
 
-      SUBROUTINE READ_EPA_05x0666( FILENAME, NOX, CO, ALK4, ACET, MEK,
-     &                     PRPE,  C3H8, CH2O, C2H6, SO2,  SO4,  NH3, BF)
 !
-!******************************************************************************
-!  Subroutine READ_EPA reads an EPA data file (biomass or anthro) from disk.
-!  The entire file is read through on one pass for better I/O optimization.
-!  (rch, bmy, 7/1/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) FILENAME (CHARACTER) : Name of anthro or biomass file to read
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (2 ) NOx      (REAL*4   ) : Array for NOx  anthro or biomass data
-!  (3 ) CO       (REAL*4   ) : Array for CO   anthro or biomass data
-!  (4 ) ALK4     (REAL*4   ) : Array for ALK4 anthro or biomass data
-!  (5 ) ACET     (REAL*4   ) : Array for ACET anthro or biomass data
-!  (6 ) MEK      (REAL*4   ) : Array for MEK  anthro or biomass data
-!  (7 ) PRPE     (REAL*4   ) : Array for PRPE anthro or biomass data
-!  (8 ) C3H8     (REAL*4   ) : Array for C3H8 anthro or biomass data
-!  (9 ) CH2O     (REAL*4   ) : Array for CH2O anthro or biomass data
-!  (10) C2H6     (REAL*4   ) : Array for C2H6 anthro or biomass data
-!  (11) NH3      (REAL*4   ) : Array for NH3  anthro or biomass data
-!  (12) SO2      (REAL*4   ) : Array for SO4  anthro or biomass data
-!  (13) SO4      (REAL*4   ) : Array for SO4  anthro or biomass data
-!
-!  NOTES:
-!    (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
-!    (2 ) Now accounts for FSCLYR (phs, 3/17/08)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,        ONLY : READ_BPCH2, GET_TAU0
       USE LOGICAL_MOD,      ONLY : LICARTT
       USE TRANSFER_MOD,     ONLY : TRANSFER_2D
@@ -769,37 +1253,53 @@
 
 #     include "CMN_SIZE"             ! Size parameters
 #     include "CMN_O3"               ! FSCLYR
-
-      ! Arguments
-      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME
-      REAL*4,           INTENT(INOUT) :: NOX(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: CO(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: SO2(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: SO4(IIPAR,JJPAR)
-      REAL*4,           INTENT(INOUT) :: NH3(IIPAR,JJPAR)
-      INTEGER,          INTENT(IN)    :: BF
-
-      ! Local variables
-      INTEGER                         :: I,  J,  L,  N,  IOS
-      INTEGER                         :: NTRACER,   NSKIP
-      INTEGER                         :: HALFPOLAR, CENTER180
-      INTEGER                         :: SCALEYEAR, BASEYEAR
-      REAL*4                          :: ARRAY(IIPAR,JJPAR,1)
-      REAL*4                          :: LONRES,    LATRES
-      REAL*8                          :: ZTAU0,     ZTAU1, XTAU
-      REAL*4                          :: SC(IIPAR,JJPAR)
-      CHARACTER(LEN=20)               :: MODELNAME
-      CHARACTER(LEN=40)               :: CATEGORY
-      CHARACTER(LEN=40)               :: UNIT
-      CHARACTER(LEN=40)               :: RESERVED
-      CHARACTER(LEN=8)                :: CAT
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN)    :: FILENAME            ! File to read
+      INTEGER,          INTENT(IN)    :: BF                  ! Read biofuels
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*4,           INTENT(INOUT) :: NOX(IIPAR,JJPAR)    ! NOx  data 
+      REAL*4,           INTENT(INOUT) :: CO(IIPAR,JJPAR)     ! CO   data
+      REAL*4,           INTENT(INOUT) :: ALK4(IIPAR,JJPAR)   ! ALK4 data
+      REAL*4,           INTENT(INOUT) :: ACET(IIPAR,JJPAR)   ! ACET data
+      REAL*4,           INTENT(INOUT) :: MEK(IIPAR,JJPAR)    ! MEK  data
+      REAL*4,           INTENT(INOUT) :: PRPE(IIPAR,JJPAR)   ! PRPE data
+      REAL*4,           INTENT(INOUT) :: C3H8(IIPAR,JJPAR)   ! C3H8 data
+      REAL*4,           INTENT(INOUT) :: CH2O(IIPAR,JJPAR)   ! CH2O data
+      REAL*4,           INTENT(INOUT) :: C2H6(IIPAR,JJPAR)   ! C2H6 data
+      REAL*4,           INTENT(INOUT) :: SO2(IIPAR,JJPAR)    ! SO2  data
+      REAL*4,           INTENT(INOUT) :: SO4(IIPAR,JJPAR)    ! SO4  data
+      REAL*4,           INTENT(INOUT) :: NH3(IIPAR,JJPAR)    ! NH3  data
+!
+! !REMARKS:
+!  Modified for nested grids (A. van Donkelaar)
+! 
+! !REVISION HISTORY: 
+!  (1 ) now apply yearly scale factor (amv, phs, 3/10/08)
+!  (2 ) Now accounts for FSCLYR (phs, 3/17/08)
+!  07 Feb 2011 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I,  J,  L,  N,  IOS
+      INTEGER           :: NTRACER,   NSKIP
+      INTEGER           :: HALFPOLAR, CENTER180
+      INTEGER           :: SCALEYEAR, BASEYEAR
+      REAL*4            :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4            :: LONRES,    LATRES
+      REAL*8            :: ZTAU0,     ZTAU1, XTAU
+      REAL*4            :: SC(IIPAR,JJPAR)
+      CHARACTER(LEN=20) :: MODELNAME
+      CHARACTER(LEN=40) :: CATEGORY
+      CHARACTER(LEN=40) :: UNIT
+      CHARACTER(LEN=40) :: RESERVED
+      CHARACTER(LEN=8)  :: CAT
 
       !=================================================================
       ! READ_EPA begins here!
@@ -880,44 +1380,59 @@
       CALL GET_ANNUAL_SCALAR( 73, 1999, SCALEYEAR, SC)
       SO4(:,:) = SO4(:,:) * SC(:,:)
 
-      ! Return to calling program
       END SUBROUTINE READ_EPA_05x0666
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE READ_USA_MASK
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine READ_USA_MASK reads the USA mask from disk.   The USA mask is
+! !IROUTINE: read_usa_mask
+!
+! !DESCRIPTION: Subroutine READ\_USA\_MASK reads the USA mask from disk.   The USA mask is
 !  the fraction of the grid box (I,J) which lies w/in the continental USA.
-!  (rch, bmy, 11/10/04, 10/3/05)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
-!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
-!       regional inventories are used. From README file:
-!       "the mask files have been updated to deal correctly with the boxes on
-!       the border. They are simply set to include boxes where EPA emissions
-!       are non-zero. We assume that BRAVO and CAC are also used when EPA is
-!       used. If you use neither BRAVO nor CAC, you should use the older masks
-!       to avoid missing emissions along the borders. Masks for the
-!       case that either BRAVO or CAC (but not both) is used w/ EPA have not
-!       been produced" (phs, 12/23/08)
-!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
-!       the NA window, are available) nested NA runs.
-!******************************************************************************
+      SUBROUTINE READ_USA_MASK
+
 !
-      ! Reference to F90 modules
+! !USES:
+!
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+#     include "CMN_SIZE"      ! Size parameters
+!
+! !REMARKS:
+!  From README file:
+!    "The mask files have been updated to deal correctly with the boxes on
+!     the border. They are simply set to include boxes where EPA emissions
+!     are non-zero. We assume that BRAVO and CAC are also used when EPA is
+!     used. If you use neither BRAVO nor CAC, you should use the older masks
+!     to avoid missing emissions along the borders. Masks for the
+!     case that either BRAVO or CAC (but not both) is used w/ EPA have not
+!     been produced" (phs, 12/23/08)
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman - Initial version
+!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
+!       regional inventories are used. 
+!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
+!       the NA window, are available) nested NA runs.
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4             :: ARRAY(IGLOB,JGLOB,1)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
@@ -942,7 +1457,7 @@
       MASK_DIR = 'EPA_NEI_200411'
 #endif
 
-      
+      ! Create filename
       FILENAME = TRIM( DATA_DIR )         //
      &           MASK_DIR // '/usa_mask.' // GET_NAME_EXT_2D() //
      &           '.'                      // GET_RES_EXT()
@@ -962,35 +1477,26 @@
       ! Cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), USA_MASK )
 
-      ! Return to calling program
       END SUBROUTINE READ_USA_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_usa_mask_05x0666
+!
+! !DESCRIPTION: Subroutine READ\_USA\_MASK\_05x0666 reads the USA mask from 
+!  disk, at 0.5 x 0.666 resolution.  The USA mask is the fraction of the grid 
+!  box (I,J) which lies w/in the continental USA.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_USA_MASK_05x0666
 !
-!******************************************************************************
-!  Subroutine READ_USA_MASK reads the USA mask from disk.   The USA mask is
-!  the fraction of the grid box (I,J) which lies w/in the continental USA.
-!  (rch, bmy, 11/10/04, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
-!       regional inventories are used. From README file:
-!       "the mask files have been updated to deal correctly with the boxes on
-!       the border. They are simply set to include boxes where EPA emissions
-!       are non-zero. We assume that BRAVO and CAC are also used when EPA is
-!       used. If you use neither BRAVO nor CAC, you should use the older masks
-!       to avoid double counting emissions along the borders. Masks for the
-!       case that either BRAVO or CAC (but not both) is used w/ EPA have not
-!       been produced" (phs, 12/23/08)
-!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
-!       the NA window, are available) nested NA runs.
-!******************************************************************************
-!
-      ! Reference to F90 modules
       USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
       USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
       USE LOGICAL_MOD,   ONLY : LCAC,            LBRAVO
@@ -998,8 +1504,31 @@
       USE TRANSFER_MOD,  ONLY : TRANSFER_2D
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+!
+! !REMARKS:
+!  From README file:
+!    "The mask files have been updated to deal correctly with the boxes on
+!     the border. They are simply set to include boxes where EPA emissions
+!     are non-zero. We assume that BRAVO and CAC are also used when EPA is
+!     used. If you use neither BRAVO nor CAC, you should use the older masks
+!     to avoid missing emissions along the borders. Masks for the
+!     case that either BRAVO or CAC (but not both) is used w/ EPA have not
+!     been produced" (phs, 12/23/08) 
+! 
+! !REVISION HISTORY: 
+!  (1 ) Now can read data for GEOS and GCAP grids (bmy, 8/16/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Read larger mask for correct overlap with BRAVO and CAC, if these
+!       regional inventories are used.
+!  (4 ) Temporary fix (until larger masks at 1x1 and 0.5x0.667, and cut to
+!       the NA window, are available) nested NA runs.
+!  07 Feb 2011 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*4             :: ARRAY(IIPAR,JJPAR,1)
       REAL*8             :: XTAU
       CHARACTER(LEN=255) :: FILENAME
@@ -1023,8 +1552,8 @@
 #if   defined( NESTED_NA )
       MASK_DIR = 'EPA_NEI_200411'
 #endif
-
-
+      
+      ! Create filename
       FILENAME = TRIM( DATA_DIR )         //
      &           MASK_DIR // '/usa_mask.' // GET_NAME_EXT_2D() //
      &           '.'                      // GET_RES_EXT()
@@ -1044,27 +1573,39 @@
       ! Cast to REAL*8
       CALL TRANSFER_2D( ARRAY(:,:,1), USA_MASK )
 
-      ! Return to calling program
       END SUBROUTINE READ_USA_MASK_05x0666
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: total_anthro_Tg
+!
+! !DESCRIPTION: Subroutine TOTAL\_ANTHRO\_TG prints the amount of EPA/NEI99
+!  anthropogenic emissions that are emitted each month in Tg or Tg C.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE TOTAL_ANTHRO_Tg( THISMONTH )
+!
+! !USES:
+!
+      USE GRID_MOD,     ONLY : GET_AREA_CM2
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
+      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
+      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
+      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-      SUBROUTINE TOTAL_ANTHRO_TG( THISMONTH )
+#     include "CMN_SIZE"                 ! Size parameters
 !
-!******************************************************************************
-!  Subroutine TOTAL_ANTHRO_TG prints the amount of EPA/NEI anthropogenic
-!  emissions that are emitted each month in Tg or Tg C. 
-!  (rch, bmy, 11/10/04, 10/25/05)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1  ) FFARRAY  (REAL*8 ) : Fossil Fuel CO emissions [molec (C)/cm2/month]
-!  (2-4) IX,JX,LX (INTEGER) : Dimensions of FFARRAY 
-!  (5  ) MOLWT    (REAL*8 ) : Molecular wt [kg/mole] for the given tracer
-!  (6  ) NAME     (REAL*8 ) : Tracer name
-!  (7  ) NSEASON  (INTEGER) : Number of the season, for seasonal NOx/SOX
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
 !  (1) Scale factors were determined by Jennifer Logan (jal@io.harvard.edu),
 !      Bryan Duncan (bnd@io.harvard.edu), and Daniel Jacob (djj@io.harvard.edu)
 !  (2) Now replace DXYP(J)*1d4 with routine GET_AREA_CM2 from "grid_mod.f".
@@ -1072,36 +1613,29 @@
 !  (3) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
 !  (4) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (5) Now replace FMOL with TRACER_MW_KG (bmy, 10/25/05) 
-!******************************************************************************
+
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE TRACER_MOD,   ONLY : TRACER_MW_KG
-      USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
-      USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
-      USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
-
-#     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
-      INTEGER             :: I, J
-      REAL*8              :: WD_NOX,  WD_CO,   WD_ALK4, WD_ACET
-      REAL*8              :: WD_MEK,  WD_PRPE, WD_C2H6, WD_C3H8
-      REAL*8              :: WD_CH2O, WD_NH3,  WD_SO2,  WD_SO4,  A
-      REAL*8              :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
-      REAL*8              :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
-      REAL*8              :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
-      REAL*8              :: F_NOX,   F_CO,    F_ALK4,  F_ACET
-      REAL*8              :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
-      REAL*8              :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
-      CHARACTER(LEN=6)    :: UNIT
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: I, J
+      REAL*8           :: WD_NOX,  WD_CO,   WD_ALK4, WD_ACET
+      REAL*8           :: WD_MEK,  WD_PRPE, WD_C2H6, WD_C3H8
+      REAL*8           :: WD_CH2O, WD_NH3,  WD_SO2,  WD_SO4,  A
+      REAL*8           :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
+      REAL*8           :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
+      REAL*8           :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
+      REAL*8           :: F_NOX,   F_CO,    F_ALK4,  F_ACET
+      REAL*8           :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
+      REAL*8           :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
+      CHARACTER(LEN=6) :: UNIT
 
       ! Days per month
-      INTEGER             :: D(12) = (/ 31, 28, 31, 30, 31, 30,
-     &                                  31, 31, 30, 31, 30, 31 /)
+      INTEGER          :: D(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                               31, 31, 30, 31, 30, 31 /)
 
       !=================================================================
       ! TOTAL_ANTHRO_TG begins here!
@@ -1246,27 +1780,25 @@
  110  FORMAT( 'Total weekend avg anthro ', a4, ' for 1999/', 
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-      ! Return to calling program
       END SUBROUTINE TOTAL_ANTHRO_TG
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE TOTAL_BIOFUEL_TG( THISMONTH )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine TOTAL_BIOFUEL_TG prints the amount of EPA/NEI biofuel emissions
-!  that are emitted each month in Tg or Tg C. (rch, bmy, 11/10/04, 1/26/05)
-!  
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number
+! !IROUTINE: total_biofuel_Tg
 !
-!  NOTES:
-!  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
-!  (2 ) Now replace FMOL with TRACER_MW_KG
-!******************************************************************************
+! !DESCRIPTION: Subroutine TOTAL\_BIOFUEL\_Tg prints the amount of EPA/NEI99
+!  biofuel emissions that are emitted each month in Tg or Tg C.
+!\\
+!\\
+! !INTERFACE:
 !
-      ! References to F90 modules
+      SUBROUTINE TOTAL_BIOFUEL_Tg( THISMONTH )
+!
+! !USES:
+!
       USE GRID_MOD,     ONLY : GET_AREA_CM2
       USE TRACER_MOD,   ONLY : TRACER_MW_KG
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
@@ -1274,26 +1806,37 @@
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH
-
-      ! Local variables
-      INTEGER             :: I, J
-      REAL*8              :: WD_NOX,  WD_CO,   WD_ALK4, WD_ACET
-      REAL*8              :: WD_MEK,  WD_PRPE, WD_C2H6, WD_C3H8
-      REAL*8              :: WD_CH2O, WD_NH3,  WD_SO2,  WD_SO4,  A
-      REAL*8              :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
-      REAL*8              :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
-      REAL*8              :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
-      REAL*8              :: F_NOX,   F_CO,    F_ALK4,  F_ACET
-      REAL*8              :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
-      REAL*8              :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
-      CHARACTER(LEN=6)    :: UNIT
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  (1 ) Prevent out of bounds error when tracers are undefined (bmy, 1/25/05)
+!  (2 ) Now replace FMOL with TRACER_MW_KG
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: I, J
+      REAL*8           :: WD_NOX,  WD_CO,   WD_ALK4, WD_ACET
+      REAL*8           :: WD_MEK,  WD_PRPE, WD_C2H6, WD_C3H8
+      REAL*8           :: WD_CH2O, WD_NH3,  WD_SO2,  WD_SO4,  A
+      REAL*8           :: WE_NOX,  WE_CO,   WE_ALK4, WE_ACET
+      REAL*8           :: WE_MEK,  WE_PRPE, WE_C2H6, WE_C3H8
+      REAL*8           :: WE_CH2O, WE_NH3,  WE_SO2,  WE_SO4
+      REAL*8           :: F_NOX,   F_CO,    F_ALK4,  F_ACET
+      REAL*8           :: F_MEK,   F_PRPE,  F_C2H6,  F_C3H8
+      REAL*8           :: F_CH2O,  F_SO2,   F_SO4,   F_NH3
+      CHARACTER(LEN=6) :: UNIT
 
       ! Days per month
-      INTEGER             :: D(12) = (/ 31, 28, 31, 30, 31, 30,
-     &                                  31, 31, 30, 31, 30, 31 /)
+      INTEGER          :: D(12) = (/ 31, 28, 31, 30, 31, 30,
+     &                               31, 31, 30, 31, 30, 31 /)
 
       !=================================================================
       ! TOTAL_BIOFUEL_TG begins here!
@@ -1437,76 +1980,94 @@
  110  FORMAT( 'Total weekend avg biofuel ', a4, ' for 1999/', 
      &         i2.2, ': ', f13.6, ' Tg', a2 )
 
-      ! Return to calling program
       END SUBROUTINE TOTAL_BIOFUEL_TG
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_usa_mask
+!
+! !DESCRIPTION: Function GET\_USA\_MASK returns the value of the USA mask 
+!  (i.e. the fraction of a grid box which lies w/in the continental USA) 
+!  at a given (I,J) location. (rch, bmy, 11/10/04)
 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_USA_MASK( I, J ) RESULT( USA )
 !
-!******************************************************************************
-!  Function GET_USA_MASK returns the value of the USA mask (i.e. the fraction
-!  of a grid box which lies w/in the continental USA) at a given (I,J)
-!  location. (rch, bmy, 11/10/04)
+! !INPUT PARAMETERS: 
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I (INTEGER) : Longitude index
-!  (2 ) J (INTEGER) : Latitude index
+      INTEGER, INTENT(IN) :: I     ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN) :: J     ! GEOS-Chem latitude index
 !
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Arguments
-      INTEGER, INTENT(IN) :: I, J
-
-      ! Local variables
-      REAL*8              :: USA 
-
+      REAL*8              :: USA   ! Fraction of box in continental USA
+!
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_USA_MASK begins here!
       !=================================================================
       USA = USA_MASK(I,J)
       
-      ! Return to calling program
       END FUNCTION GET_USA_MASK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_epa_anthro
+!
+! !DESCRIPTION: Function GET\_EPA\_ANTHRO returns the EPA/NEI99 weekday avg or 
+!  weekend avg anthropogenic emissions at a (I,J) location.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_EPA_ANTHRO( I, J, N, WEEKDAY ) RESULT( EPA_NEI )
 !
-!******************************************************************************
-!  Function GET_EPA_ANTHRO returns the EPA weekday avg or weekend avg 
-!  anthropogenic emissions at a (I,J) location. (rch, bmy, 11/10/04, 10/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I       (INTEGER) : Longitude index
-!  (2 ) J       (INTEGER) : Latitude index
-!  (3 ) N       (INTEGER) : Tracer index (i.e. as listed in "inptr.ctm")
-!  (4 ) WEEKDAY (LOGICAL) : Fla for weekday (=T) or weekend (=F) emissions
-!
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
-!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
-!  (2 ) Default value changed to -1 to identify tracers without EPA/NEI 
-!        emissions. (hotp, ccc, 5/29/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_SIZE"               ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN) :: WEEKDAY   ! =T if it's a weekday, =F if weekend
+      INTEGER, INTENT(IN) :: I         ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN) :: J         ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN) :: N         ! GEOS-Chem tracer number
+!
+! !RETURN VALUE:
+!
+      REAL*8              :: EPA_NEI   ! Anthropogenic Emissions [molec/cm2/s] 
+                                       !  or [atoms C/cm2/s] for some HC's
+! 
+! !REVISION HISTORY: 
+!  07 Feb 2011 - R. Yantosca - Initial version
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
+!  (2 ) Default value changed to -1 to identify tracers without EPA/NEI 
+!        emissions. (hotp, ccc, 5/29/09)
 
-      ! Arguments
-      LOGICAL, INTENT(IN) :: WEEKDAY
-      INTEGER, INTENT(IN) :: I, J, N
-      
-      ! Local variables
-      REAL*8              :: EPA_NEI
-
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_EPA_ANTHRO begins here!
       !=================================================================
@@ -1610,43 +2171,50 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_EPA_ANTHRO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_epa_biofuel
+!
+! !DESCRIPTION: Function GET\_EPA\_BIOFUEL returns the EPA/NEI99 weekday avg 
+!  or weekend avg biofuel emissions at a (I,J) location. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_EPA_BIOFUEL( I, J, N, WEEKDAY ) RESULT( EPA_NEI )
 !
-!******************************************************************************
-!  Function GET_EPA_BIOFUEL returns the EPA weekday avg or weekend avg 
-!  biofuel emissions at a (I,J) location. (rch, bmy, 11/10/04, 10/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I       (INTEGER) : Longitude index
-!  (2 ) J       (INTEGER) : Latitude index
-!  (3 ) N       (INTEGER) : Tracer index (i.e. as listed in "inptr.ctm")
-!  (4 ) WEEKDAY (LOGICAL) : Fla for weekday (=T) or weekend (=F) emissions
-!
-!  NOTES:
-!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
-!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TRACERID_MOD, ONLY : IDTACET, IDTALK4, IDTC2H6, IDTC3H8
       USE TRACERID_MOD, ONLY : IDTCH2O, IDTCO,   IDTMEK,  IDTNOX
       USE TRACERID_MOD, ONLY : IDTNH3,  IDTPRPE, IDTSO2,  IDTSO4  
 
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      LOGICAL, INTENT(IN) :: WEEKDAY
-      INTEGER, INTENT(IN) :: I, J, N
-      
-      ! Local variables
+#     include "CMN_SIZE"               ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL, INTENT(IN) :: WEEKDAY   ! =T if it's a weekday, =F if weekend
+      INTEGER, INTENT(IN) :: I         ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN) :: J         ! GEOS-Chem latitude index
+      INTEGER, INTENT(IN) :: N         ! GEOS-Chem tracer number
+!
+! !RETURN VALUE:
+!
       REAL*8              :: EPA_NEI
-
+!
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  (1 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
+!        to BPCH2_MOD and TRACERID_MOD, they're not needed.  (bmy, 10/3/05)
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_EPA_BIOFUEL begins here!
       !=================================================================
@@ -1746,35 +2314,62 @@
 
       ENDIF
 
-      ! Return to calling program
       END FUNCTION GET_EPA_BIOFUEL
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_epa_nei
+!
+! !DESCRIPTION: Subroutine INIT\_EPA\_NEI allocates and zeroes all module 
+!  arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_EPA_NEI
 !
-!******************************************************************************
-!  Subroutine INIT_EPA_NEI allocates and zeroes all module arrays.
-!  (rch, bmy, 11/10/04)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,   ONLY : ALLOC_ERR
       USE LOGICAL_MOD, ONLY : LNEI99
+      USE LOGICAL_MOD, ONLY : LNEI05
 
 #     include "CMN_SIZE"  ! Size parameters
-
-      ! Local variables
+!
+! !REMARKS:
+!  Read EPA/NEI99 anthro + EPA/NEI99 biofuel if LNEI99=T, or
+!  Read EPA/NEI05 anthro + EPA/NEI99 biofuel if LNEI99=F but LNEI05=T
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       
       !=================================================================
       ! INIT_EPA_NEI begins here!
       !=================================================================
 
+      !------------------------------------
+      ! Prior to 2/7/11:
       ! Return if we LNEI99 = .FALSE.
-      IF ( .not. LNEI99 ) RETURN
+      !IF ( .not. LNEI99 ) RETURN
+      !------------------------------------
+
+      ! Return if we have not selected LNEI99 (or LNEI05, since we
+      ! must read the EPA/NEI99 biofuels when using EPA/NEI05 anthro)
+      ! (bmy, 2/7/11)
+      IF ( .not. LNEI99 ) THEN
+         IF  ( .not. LNEI05 ) RETURN
+      ENDIF
 
       ! USA Mask
       ALLOCATE( USA_MASK( IIPAR, JJPAR ), STAT=AS )
@@ -1784,104 +2379,112 @@
       !-----------------------
       ! Anthro - weekday avg
       !-----------------------
-      ALLOCATE( EPA_WD_AN_NOX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NOX' )
-      EPA_WD_AN_NOX = 0e0
+      IF ( .not. LNEI05 ) THEN 
+   
+         ALLOCATE( EPA_WD_AN_NOX( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NOX' )
+         EPA_WD_AN_NOX = 0e0
+   
+         ALLOCATE( EPA_WD_AN_CO( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CO' )
+         EPA_WD_AN_CO = 0e0
+   
+         ALLOCATE( EPA_WD_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ALK4' )
+         EPA_WD_AN_ALK4 = 0e0
+   
+         ALLOCATE( EPA_WD_AN_ACET( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ACET' )
+         EPA_WD_AN_ACET = 0e0
+   
+         ALLOCATE( EPA_WD_AN_MEK( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_MEK' )
+         EPA_WD_AN_MEK = 0e0
+   
+         ALLOCATE( EPA_WD_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_PRPE' )
+         EPA_WD_AN_PRPE = 0e0
+   
+         ALLOCATE( EPA_WD_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C2H6' )
+         EPA_WD_AN_C2H6 = 0e0
+   
+         ALLOCATE( EPA_WD_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C3H8' )
+         EPA_WD_AN_C3H8 = 0e0
+   
+         ALLOCATE( EPA_WD_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CH2O' )
+         EPA_WD_AN_CH2O = 0e0
+   
+         ALLOCATE( EPA_WD_AN_NH3( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NH3' )
+         EPA_WD_AN_NH3 = 0e0
+   
+         ALLOCATE( EPA_WD_AN_SO2( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO2' )
+         EPA_WD_AN_SO2 = 0e0
+   
+         ALLOCATE( EPA_WD_AN_SO4( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO4' )
+         EPA_WD_AN_SO4 = 0e0
 
-      ALLOCATE( EPA_WD_AN_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CO' )
-      EPA_WD_AN_CO = 0e0
-
-      ALLOCATE( EPA_WD_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ALK4' )
-      EPA_WD_AN_ALK4 = 0e0
-
-      ALLOCATE( EPA_WD_AN_ACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_ACET' )
-      EPA_WD_AN_ACET = 0e0
-
-      ALLOCATE( EPA_WD_AN_MEK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_MEK' )
-      EPA_WD_AN_MEK = 0e0
-
-      ALLOCATE( EPA_WD_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_PRPE' )
-      EPA_WD_AN_PRPE = 0e0
-
-      ALLOCATE( EPA_WD_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C2H6' )
-      EPA_WD_AN_C2H6 = 0e0
-
-      ALLOCATE( EPA_WD_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_C3H8' )
-      EPA_WD_AN_C3H8 = 0e0
-
-      ALLOCATE( EPA_WD_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_CH2O' )
-      EPA_WD_AN_CH2O = 0e0
-
-      ALLOCATE( EPA_WD_AN_NH3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_NH3' )
-      EPA_WD_AN_NH3 = 0e0
-
-      ALLOCATE( EPA_WD_AN_SO2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO2' )
-      EPA_WD_AN_SO2 = 0e0
-
-      ALLOCATE( EPA_WD_AN_SO4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WD_AN_SO4' )
-      EPA_WD_AN_SO4 = 0e0
+      ENDIF
 
       !-----------------------
       ! Anthro - weekend avg
       !-----------------------
-      ALLOCATE( EPA_WE_AN_NOX( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NOX' )
-      EPA_WE_AN_NOX = 0e0
+      IF ( .not. LNEI05 ) THEN
 
-      ALLOCATE( EPA_WE_AN_CO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CO' )
-      EPA_WE_AN_CO = 0e0
+         ALLOCATE( EPA_WE_AN_NOX( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NOX' )
+         EPA_WE_AN_NOX = 0e0
+   
+         ALLOCATE( EPA_WE_AN_CO( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CO' )
+         EPA_WE_AN_CO = 0e0
+   
+         ALLOCATE( EPA_WE_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ALK4' )
+         EPA_WE_AN_ALK4 = 0e0
+   
+         ALLOCATE( EPA_WE_AN_ACET( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ACET' )
+         EPA_WE_AN_ACET = 0e0
+   
+         ALLOCATE( EPA_WE_AN_MEK( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_MEK' )
+         EPA_WE_AN_MEK = 0e0
+   
+         ALLOCATE( EPA_WE_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_PRPE' )
+         EPA_WE_AN_PRPE = 0e0
+   
+         ALLOCATE( EPA_WE_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C2H6' )
+         EPA_WE_AN_C2H6 = 0e0
+   
+         ALLOCATE( EPA_WE_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C3H8' )
+         EPA_WE_AN_C3H8 = 0e0
+   
+         ALLOCATE( EPA_WE_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CH2O' )
+         EPA_WE_AN_CH2O = 0e0
+   
+         ALLOCATE( EPA_WE_AN_NH3( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NH3' )
+         EPA_WE_AN_NH3 = 0e0
+   
+         ALLOCATE( EPA_WE_AN_SO2( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO2' )
+         EPA_WE_AN_SO2 = 0e0
+   
+         ALLOCATE( EPA_WE_AN_SO4( IIPAR, JJPAR ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO4' )
+         EPA_WE_AN_SO4 = 0e0
 
-      ALLOCATE( EPA_WE_AN_ALK4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ALK4' )
-      EPA_WE_AN_ALK4 = 0e0
-
-      ALLOCATE( EPA_WE_AN_ACET( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_ACET' )
-      EPA_WE_AN_ACET = 0e0
-
-      ALLOCATE( EPA_WE_AN_MEK( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_MEK' )
-      EPA_WE_AN_MEK = 0e0
-
-      ALLOCATE( EPA_WE_AN_PRPE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_PRPE' )
-      EPA_WE_AN_PRPE = 0e0
-
-      ALLOCATE( EPA_WE_AN_C2H6( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C2H6' )
-      EPA_WE_AN_C2H6 = 0e0
-
-      ALLOCATE( EPA_WE_AN_C3H8( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_C3H8' )
-      EPA_WE_AN_C3H8 = 0e0
-
-      ALLOCATE( EPA_WE_AN_CH2O( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_CH2O' )
-      EPA_WE_AN_CH2O = 0e0
-
-      ALLOCATE( EPA_WE_AN_NH3( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_NH3' )
-      EPA_WE_AN_NH3 = 0e0
-
-      ALLOCATE( EPA_WE_AN_SO2( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO2' )
-      EPA_WE_AN_SO2 = 0e0
-
-      ALLOCATE( EPA_WE_AN_SO4( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_AN_SO4' )
-      EPA_WE_AN_SO4 = 0e0
+      ENDIF
 
       !-----------------------
       ! Biofuel - weekday avg
@@ -1985,20 +2588,28 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EPA_WE_BF_SO4' )
       EPA_WE_BF_SO4 = 0e0
 
-      ! Return to calling program
       END SUBROUTINE INIT_EPA_NEI
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_epa_nei
+!
+! !DESCRIPTION: Subroutine CLEANUP\_EPA\_NEI deallocates all module arrays 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_EPA_NEI
-!
-!******************************************************************************
-!  Subroutine CLEANUP_EPA_NEI deallocates all module arrays 
-!  (rch, bmy, 11/10/04)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  10 Nov 2004 - R. Hudman   - Initial version
+!  07 Feb 2011 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_EPA_NEI begins here!
       !=================================================================
@@ -2062,9 +2673,6 @@
       IF ( ALLOCATED( EPA_WE_BF_SO2  ) ) DEALLOCATE( EPA_WE_BF_SO2  )
       IF ( ALLOCATED( EPA_WE_BF_SO4  ) ) DEALLOCATE( EPA_WE_BF_SO4  )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_EPA_NEI
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE EPA_NEI_MOD

@@ -1,11 +1,30 @@
-! $Id: rdlight.f,v 1.1 2009/09/16 14:06:13 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdlight
+!
+! !DESCRIPTION: Subroutine RDLIGHT reads the polynomial coefficients for 
+!  isoprene emissions from disk.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDLIGHT
 !
-!******************************************************************************
-!  Subroutine RDLIGHT reads the polynomial coefficients for isoprene
-!  emissions from disk. (yhw, bmy, 7/6/01, 7/20/04)
+! !USES:
 !
-!  NOTES:
+      USE DIRECTORY_MOD, ONLY : DATA_DIR 
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"  ! Size parameters
+#     include "CMN_ISOP"  ! SOPCOEFF
+! 
+! !REVISION HISTORY: 
+!  06 Jul 2001 - Y. H. Wang, R. Yantosca - Initial version
 !  (1 ) Now use F90 syntax.  Now reads the file "light.table" directly
 !        from DATA_DIR so that symbolic links are unnecessary.  Also use 
 !        IOERROR to trap I/O errors.  Updated comments and made cosmetic 
@@ -18,17 +37,13 @@
 !        IOERROR from "file_mod.f".  Now use IU_FILE instead of IUNIT as
 !        the file unit number. (bmy, 6/27/02)
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIRECTORY_MOD, ONLY : DATA_DIR 
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_ISOP"  ! SOPCOEFF
-
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I, IOS
       CHARACTER(LEN=80)  :: DUM
       CHARACTER(LEN=255) :: FILENAME
@@ -58,5 +73,5 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE RDLIGHT
+!EOC

@@ -5,20 +5,20 @@
 !
 ! !MODULE: defineConstants
 !
-! !DESCRIPTION: Define some constants for the run. Including input and output
-!  directories
-!
+! !DESCRIPTION: Define some constants for the run, including input and output
+!  directories.
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE defineConstants
 !
-! !USES
+! !USES:
 !
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Adapted to restart simulations.
+!  09 July 2010 - C. Carouge  - Adapted to restart simulations.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,4 +93,3 @@ MODULE defineConstants
   
 END MODULE defineConstants
 !EOC
-!------------------------------------------------------------------------------

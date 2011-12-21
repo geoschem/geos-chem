@@ -1,69 +1,48 @@
-! $Id: gamap_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: gamap_mod
+!
+! !DESCRIPTION: Module GAMAP\_MOD contains routines to create GAMAP 
+!  "tracerinfo.dat" and "diaginfo.dat" files which are customized to each
+!   particular GEOS-Chem simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE GAMAP_MOD
 !
-!******************************************************************************
-!  Module GAMAP_MOD contains routines to create GAMAP "tracerinfo.dat" and
-!  "diaginfo.dat" files which are customized to each particular GEOS-Chem
-!  simulation. (bmy, 5/3/05, 12/18/09)
+! !USES:
+!
+      IMPLICIT NONE
+      PRIVATE
+
+#     include "CMN_SIZE"              ! Dimensions of arrays
+#     include "CMN_DIAG"              ! Diagnostic parameters
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: DO_GAMAP
+!
+! !PRIVATE MEMBER FUNCTIONS:
 ! 
-!  Module Variables:
-!  ============================================================================
-!  (1 ) MAXCAT    (INTEGER ) : Maximum # of GAMAP diagnostic categories
-!  (2 ) SPACING   (INTEGER ) : Spacing between GAMAP diagnostic categories
-!  (3 ) NCATS     (INTEGER ) : Counter for number of defined GAMAP categories
-!  (4 ) OFFSET    (INTEGER ) : GAMAP offset for each diagnostic category
-!  (5 ) CATEGORY  (CHAR*40 ) : GAMAP category name
-!  (6 ) DESCRIPT  (CHAR*40 ) : GAMAP category description
-!  (7 ) DFILE     (CHAR*255) : Path name of the GAMAP "diaginfo.dat" file
-!  (8 ) MAXDIAG   (INTEGER ) : Maximum # of GEOS-CHEM diagnostics
-!  (9 ) MAXTRACER (INTEGER ) : Maximum # of tracers per GEOS-CHEM diagnostic
-!  (10) NTRAC     (INTEGER ) : Number of tracers for each GEOS-CHEM diagnostic
-!  (11) INDEX     (INTEGER ) : Diagnostic tracer numbers
-!  (12) MOLC      (INTEGER ) : Ratio of (moles C) / (moles tracer)
-!  (13) MWT       (REAL*4  ) : Tracer molecular weights
-!  (14) SCALE     (REAL*4  ) : GAMAP scale factors (e.g. 1e9 for v/v -> ppbv)
-!  (15) NAME      (CHAR*40 ) : Tracer names
-!  (16) FNAME     (CHAR*40 ) : Full tracer names
-!  (17) UNIT      (CHAR*40 ) : Unit string for each tracer
-!  (18) TFILE     (CHAR*255) : Path name of the GAMAP "tracerinfo.dat" file
-!  (19) STAMP     (CHAR*16 ) : Timestamp w/ system date & time
-!  (20) SIM_NAME  (CHAR*40 ) : Name of the GEOS-CHEM simulation 
+      PRIVATE :: CREATE_DINFO
+      PRIVATE :: CREATE_TINFO
+      PRIVATE :: WRITE_TINFO
+      PRIVATE :: WRITE_SEPARATOR
+      PRIVATE :: INIT_DIAGINFO
+      PRIVATE :: INIT_TRACERINFO
+      PRIVATE :: INIT_GAMAP
+      PRIVATE :: CLEANUP_GAMAP
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_GAMAP             : Driver routine
-!  (2 ) CREATE_DINFO         : Writes customized "diaginfo.dat" file
-!  (3 ) CREATE_TINFO         : Writes customized "tracerinfo.dat" file
-!  (4 ) WRITE_TINFO          : Writes one line to disk for "tracerinfo.dat" 
-!  (5 ) WRITE_SEPARATOR      : Writes separator blocks to "tracerinfo.dat"
-!  (6 ) INIT_DIAGINFO        : Initializes arrays for diaginfo.dat file
-!  (7 ) INIT_TRACERINFO      : Initializes arrays for tracerinfo.dat file
-!  (8 ) INIT_GAMAP           : Allocates and initializes all module arrays
-!  (9 ) CLEANUP_GAMAP        : Deallocates all module arrays
+! !REMARKS:
+!  For more information, please see the GAMAP Online Users' Manual:
+!   http://acmg.seas.harvard.edu/gamap/doc/index.html
 !
-!  GEOS-CHEM modules referenced by "gamap_mod.f"
-!  ============================================================================
-!  (1 ) diag03_mod.f         : Module w/ routines for mercury diagnostics
-!  (2 ) diag41_mod.f         : Module w/ routines for afternoon PBL diag's
-!  (3 ) diag48_mod.f         : Module w/ routines for station timeseries
-!  (4 ) diag49_mod.f         : Module w/ routines for inst timeseries
-!  (5 ) diag50_mod.f         : Module w/ routines for 24hr avg timeseries
-!  (6 ) diag51_mod.f         : Module w/ routines for morning/aft timeseries
-!  (7 ) diag_pl_mod.f        : Module w/ routines for saving family P & L
-!  (8 ) drydep_mod.f         : Module w/ GEOS-CHEM drydep routines
-!  (9 ) error_mod.f          : Module w/ error and NaN check routines
-!  (10) file_mod.f           : Module w/ file unit numbers & I/O error checks
-!  (11) time_mod.f           : Module w/ routines for computing time & date
-!  (12) tracer_mod.f         : Module w/ GEOS-CHEM tracer array STT etc.
-!  (13) tracerid_mod.f       : Module w/ GEOS-CHEM tracer ID flags
-!  (14) wetscav_mod.f        : Module w/ routines for wetdep/scavenging
-!
-!  References:
-!  ============================================================================
-!  (1 ) For more information, please see the GAMAP Online Users' Manual:
-!        http://www-as.harvard.edu/chemistry/trop/gamap/documentation/
-!
-!  NOTES:
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
 !  (1 ) Minor bug fix for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added ND09 diagnostic for HCN/CH3CN simulation. (bmy, 6/30/05)
 !  (3 ) Added ND04 diagnostic for CO2 simulation (bmy, 7/25/05)
@@ -90,27 +69,21 @@
 !  (20) Minor bug fixes (dkh, bmy, 11/19/09)
 !  (21) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
 !        nm from 400 nm.  Add additional dust AOD bins.  Output values to 
-!        hdf_mod. (amv, bmy, 12/1
-!  (20) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
-!******************************************************************************
+!        hdf_mod. (amv, bmy, 12/1/09)
+!  (22) Increase MAXTRACER from 120 to 325 (win, 6/25/09) 
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Aug 2010 - R. Yantosca - Now move the #include "CMN_SIZE" and
+!                              #include "CMN_DIAG" to the top of module
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA
+!  21 Sep 2010 - R. Yantosca - Removed duplicates in INIT_DIAGINFO
+!  21 Oct 2010 - R. Yantosca - Bug fix in INIT_DIAGINFO
+!  09 Dec 2010 - C. Carouge  - Modify MAXTRACER definition to account for 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "gamap_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: DO_GAMAP
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+!
       ! For "diaginfo.dat"
       INTEGER,           PARAMETER   :: MAXCAT    = 150
       INTEGER,           PARAMETER   :: SPACING   = 1000
@@ -121,8 +94,25 @@
       CHARACTER(LEN=255)             :: DFILE
 
       ! For "tracerinfo.dat"
-      INTEGER,           PARAMETER   :: MAXDIAG   = 70   
-      INTEGER,           PARAMETER   :: MAXTRACER = 325 !(win, 6/35/09)  
+      !--------------------------------------------------------------------
+      ! Prior to 8/3/10:
+      ! For consistency, define MAXDIAG and MAXTRACER from the equivalent 
+      ! parameters in CMN_DIAG.  This will prevent out-of bounds errors
+      ! when these parameters are extended to add more tracers.
+      ! (psk, bmy, 8/3/10)
+      !INTEGER,           PARAMETER   :: MAXDIAG   = 70  
+      !INTEGER,           PARAMETER   :: MAXTRACER = 120  
+      !--------------------------------------------------------------------
+      !--------------------------------------------------------------------
+      ! Prior to 12/7/10:
+      ! Some diagnostics hold up to 2 times the number of tracers (e.g.
+      ! AD44 holds the data for deposition velocity and deposition flux)
+      ! So MAXTRACER must be defined as 2*MAX_TRACER
+      !INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG  
+      !INTEGER,           PARAMETER   :: MAXTRACER = MAX_TRACER  
+      !--------------------------------------------------------------------
+      INTEGER,           PARAMETER   :: MAXDIAG   = MAX_DIAG
+      INTEGER,           PARAMETER   :: MAXTRACER = 2 * MAX_TRACER
       INTEGER,           ALLOCATABLE :: NTRAC(:)
       INTEGER,           ALLOCATABLE :: INDEX(:,:)
       INTEGER,           ALLOCATABLE :: MOLC(:,:)
@@ -137,35 +127,39 @@
       CHARACTER(LEN=16)              :: STAMP
       CHARACTER(LEN=40)              :: SIM_NAME
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_gamap
+!
+! !DESCRIPTION: Subroutine DO\_GAMAP is the driver program for creating 
+!  the customized GAMAP files "diaginfo.dat" and "tracerinfo.dat". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GAMAP( DIAGINFO, TRACERINFO )  
 !
-!******************************************************************************
-!  Subroutine DO_GAMAP is the driver program for creating the customized GAMAP
-!  files "diaginfo.dat" and "tracerinfo.dat". (bmy, 5/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
-!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
-!
-!  NOTES: 
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TIME_MOD,   ONLY : SYSTEM_TIMESTAMP
       USE TRACER_MOD, ONLY : GET_SIM_NAME 
-
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
-
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path of "diaginfo.dat"
+      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path of "tracerinfo.dat"
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! DO_GAMAP begins here!
       !=================================================================
@@ -188,25 +182,37 @@
       ! Deallocate variables
       CALL CLEANUP_GAMAP
 
-      ! Return to calling program
       END SUBROUTINE DO_GAMAP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: create_dinfo
+!
+! !DESCRIPTION: Subroutine CREATE\_DINFO writes information about diagnostic 
+!  categories to a customized "diaginfo.dat" file. (bmy, 5/3/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CREATE_DINFO
 !
-!******************************************************************************
-!  Subroutine CREATE_DINFO  writes information about diagnostic categories
-!  to a customized "diaginfo.dat" file. (bmy, 5/3/05)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!                                
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR, IU_FILE
-
-      ! Local variables
-      INTEGER           :: IOS, N
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IOS, N
 
       !=================================================================
       ! CREATE_DINFO begins here!
@@ -268,35 +274,44 @@
       ! Close file
       CLOSE( IU_FILE )
 
-      ! Return to calling program
       END SUBROUTINE CREATE_DINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: create_tinfo
+!
+! !DESCRIPTION: Subroutine CREATE\_TINFO writes information about tracers to 
+!  a customized tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CREATE_TINFO
 !
-!******************************************************************************
-!  Subroutine CREATE_TINFO writes information about tracers to a customized
-!  "tracerinfo.dat" file. (bmy, 4/21/05, 2/6/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
-!  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
-!******************************************************************************
-!      
-      ! References to F90 modules
       USE FILE_MOD,    ONLY : IOERROR, IU_FILE
       USE LOGICAL_MOD, ONLY : LSOA
       USE LOGICAL_MOD, ONLY : LTOMAS    !(win, 7/9/09)
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Local variables
-      INTEGER              :: D, IOS, N, T
-      REAL*4               :: SCALE_NEW
-      CHARACTER(LEN=2)     :: C
-      CHARACTER(LEN=40)    :: UNIT_NEW, NAME_NEW
+! 
+! !REVISION HISTORY: 
+!  21 Apr 2005 - R. Yantosca - Initial version
+!  (1 ) Now write out tracers in ug/m3 (dkh, bmy, 5/22/06)
+!  (2 ) Now write out GPROD & APROD info (tmf, havala, bmy, 2/6/07)
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: D, IOS, N, T
+      REAL*4            :: SCALE_NEW
+      CHARACTER(LEN=2)  :: C
+      CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -554,40 +569,47 @@
          ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE CREATE_TINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_tinfo
+!
+! !DESCRIPTION: Subroutine WRITE\_TINFO writes one line to the customized 
+!  "tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_TINFO( NAME, FNAME, MWT, MOLC, SCALE, UNIT, N )
 !
-!******************************************************************************
-!  Subroutine WRITE_TINFO writes one line to the customized "tracerinfo.dat" 
-!  file. (bmy, 5/3/05)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) NAME  (CHARACTER) : GAMAP short tracer name
-!  (2 ) FNAME (CHARACTER) : GAMAP long tracer name
-!  (3 ) MWT   (REAL*8   ) : Molecular weight [kg/mole]
-!  (4 ) MOLC  (REAL*8   ) : Moles C per mole tracer (for hydrocarbons)
-!  (5 ) SCALE (REAL*8   ) : GAMAP scale factor (e.g. 1e+9 scales v/v --> ppbv)
-!  (6 ) UNIT  (CHARACTER) : Unit string
-!  (7 ) N     (INTEGER  ) : Tracer number
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_FILE, IOERROR
-
-      ! Argumetns
-      INTEGER,          INTENT(IN) :: MOLC, N
-      REAL*4,           INTENT(IN) :: MWT,  SCALE
-      CHARACTER(LEN=*), INTENT(IN) :: NAME, FNAME, UNIT
-
-      ! Local variables
-      INTEGER                      :: IOS
+!
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=*), INTENT(IN) :: NAME    ! GAMAP short tracer name
+      CHARACTER(LEN=*), INTENT(IN) :: FNAME   ! GAMAP long tracer name
+      REAL*4,           INTENT(IN) :: MWT     ! Molecular weight [kg/mole]
+      INTEGER,          INTENT(IN) :: MOLC    ! Moles C/mole tracer (for HC's)
+      INTEGER,          INTENT(IN) :: N       ! Tracer number
+      REAL*4,           INTENT(IN) :: SCALE   ! GAMAP scale factor
+      CHARACTER(LEN=*), INTENT(IN) :: UNIT    ! Unit string
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: IOS
 
       !=================================================================
       ! WRITE_TINFO begins here!
@@ -604,35 +626,44 @@
       ! FORMAT string
  100  FORMAT( a8, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
 
-      ! Return to calling program
       END SUBROUTINE WRITE_TINFO
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_separator
 
+!
+! !DESCRIPTION: Subroutine WRITE\_SEPARATOR writes a separator block to the 
+!  customized "tracerinfo.dat" file. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_SEPARATOR( DIAG )
 !
-!******************************************************************************
-!  Subroutine WRITE_SEPARATOR writes a separator block to the customized
-!  "tracerinfo.dat" file. (bmy, 5/3/05, 2/6/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAG (INTEGER) : GEOS-CHEM diagnostic number 
-!
-!  NOTES:
-!  (1 ) Added new header for GPROD & APROD info (bmy, 2/6/07)
-!  (2 ) Added new header for TOMAS aerosol rate (win, 7/9/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE FILE_MOD, ONLY : IU_FILE, IOERROR
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: DIAG
-
-      ! Local variables
-      INTEGER             :: IOS
-      CHARACTER(LEN=79)   :: SEPARATOR
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: DIAG   ! GEOS-Chem diagnostic number
+! 
+! !REVISION HISTORY: 
+!  03 May 2005 - R. Yantosca - Initial version
+!  06 Feb 2007 - R. Yantosca - Added new header for GPROD & APROD info
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: IOS
+      CHARACTER(LEN=79) :: SEPARATOR
 
       !=================================================================
       ! WRITE_SEPARATOR begins here! 
@@ -685,19 +716,26 @@
  170  FORMAT( '# ND', i2.2, ' diagnostic quantities' )
  180  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
      
-      ! Return to calling program
       END SUBROUTINE WRITE_SEPARATOR
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diaginfo
+!
+! !DESCRIPTION: Subroutine INIT\_DIAGINFO initializes the CATEGORY, DESCRIPT, 
+!  and OFFSET variables, which are used to define the "diaginfo.dat" file 
+!  for GAMAP.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAGINFO
-!
-!******************************************************************************
-!  Subroutine INIT_DIAGINFO initializes the CATEGORY, DESCRIPT, and OFFSET
-!  variables, which are used to define the "diaginfo.dat" file for GAMAP.
-!  (bmy, 10/17/06, 11/16/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  17 Oct 1996 - R. Yantosca - Initial version
 !  (1 ) Split this code off from INIT_GAMAP, for clarity.  Now declare biomass
 !        burning emissions w/ offset of 45000.  Now declare time in the 
 !        troposphere diagnostic with offset of 46000. (phs, bmy, 10/17/06)
@@ -708,13 +746,19 @@
 !  (4 ) Change diagnostic category for ND31 diagnostic from "PS-PTOP" 
 !        to "PEDGE-$" (bmy, 11/16/07)
 !  (5 ) Add categories CH4-LOSS, CH4-EMISS and WET-FRAC (kjw, 8/18/09)
-!  (6 ) Add new diagnostic for TOMAS aerosol emissions and microphysics 
-!        processes rates (win, 7/9/09)
-!  (7 ) Modify category 'TOMAS-3D' to use OFFSET 7 (win, 7/9/09)
-!  (8 ) Add potential temperature category. (fp, 2/26/10)
-!******************************************************************************
+!  (6 ) Add potential temperature category. (fp, 2/26/10)
+!  21 May 2010 - C. Carouge  - Add diagnostic for mercury simulation
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  21 Sep 2010 - R. Yantosca - Remove duplicate definitions of CV-FLX-$,
+!                              TURBMC-$, EW-FLX-$, NS-FLX-$, UP-FLX-$
+!  21 Oct 2010 - R. Yantosca - Bug fix: MC-FRC-$ should have an offset of 
+!                              SPACING*3 since it has units of kg/s.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables 
+! !LOCAL VARIABLES:
+! 
       INTEGER :: N
 
       !=================================================================
@@ -839,6 +883,11 @@
       N           = N + 1
       CATEGORY(N) = 'WETDLS-$'
       DESCRIPT(N) = 'Wet deposition'
+      OFFSET(N)   = SPACING * 3
+
+      N           = N + 1
+      CATEGORY(N) = 'MC-FRC-$'
+      DESCRIPT(N) = 'Moist conv fraction'
       OFFSET(N)   = SPACING * 3
 
       N           = N + 1
@@ -976,73 +1025,36 @@
       DESCRIPT(N) = 'Tracer mass (kg)'
       OFFSET(N)   = SPACING * 4
 
-      N           = N + 1
-      CATEGORY(N) = 'CV-FLX-$'
-      DESCRIPT(N) = 'Upward flux from wet conv'
-      OFFSET(N)   = SPACING * 4
+      !------------------------------------------------------------------------
+      ! Prior to 9/21/10:
+      ! Remove duplicate definitions of diagnostics.  These should be in kg/s
+      ! so they need to have a diagnostic offset of 3000. (bmy, ccc, 9/27/10)
+      !N           = N + 1
+      !CATEGORY(N) = 'CV-FLX-$'
+      !DESCRIPT(N) = 'Upward flux from wet conv'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'TURBMC-$'
+      !DESCRIPT(N) = 'Upward flux from PBL mixing'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'EW-FLX-$'
+      !DESCRIPT(N) = 'E/W transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'NS-FLX-$'
+      !DESCRIPT(N) = 'N/S transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !
+      !N           = N + 1
+      !CATEGORY(N) = 'UP-FLX-$'
+      !DESCRIPT(N) = 'Up/down transport flux'
+      !OFFSET(N)   = SPACING * 4
+      !------------------------------------------------------------------------
 
-      N           = N + 1
-      CATEGORY(N) = 'TURBMC-$'
-      DESCRIPT(N) = 'Upward flux from PBL mixing'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'EW-FLX-$'
-      DESCRIPT(N) = 'E/W transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'NS-FLX-$'
-      DESCRIPT(N) = 'N/S transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1
-      CATEGORY(N) = 'UP-FLX-$'
-      DESCRIPT(N) = 'Up/down transport flux'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'TMS-COND'
-      DESCRIPT(N) = 'Condensation change'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'TMS-COAG'
-      DESCRIPT(N) = 'Coagulation change'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'TMS-NUCL'
-      DESCRIPT(N) = 'Nucleation change'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'TMS-AQOX'
-      DESCRIPT(N) = 'Aqueous oxidation change'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'TMS-SOA'
-      DESCRIPT(N) = 'SOA condensation rate'
-      OFFSET(N)   = SPACING * 4
-
-      N           = N + 1           !(win, 7/9/09)
-      CATEGORY(N) = 'AERO-FIX'
-      DESCRIPT(N) = 'Error fixing during aerosol microphysics'
-      OFFSET(N)   = SPACING * 4
-
-!--- Previous to (ccc, 3/17/10)------------------
-! Category names for GPROD and APROD have changed
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-GPROD'
-!      DESCRIPT(N) = 'SOA GPROD restart'
-!      OFFSET(N)   = SPACING * 6
-!
-!      N           = N + 1
-!      CATEGORY(N) = 'IJ-APROD'
-!      DESCRIPT(N) = 'SOA APROD restart'
-!      OFFSET(N)   = SPACING * 6
-!-------------------------------------------------
       N           = N + 1
       CATEGORY(N) = 'SOAGPROD'
       DESCRIPT(N) = 'SOA GPROD restart'
@@ -1173,10 +1185,14 @@
       DESCRIPT(N) = 'Convective washout'
       OFFSET(N)   = SPACING * 29
 
-      N           = N + 1
-      CATEGORY(N) = 'MC-FRC-$'
-      DESCRIPT(N) = 'Moist conv fraction'
-      OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
+      ! Prior to 10/21/10:
+      ! MC-FRC-$ is in kg/s, so this should be SPACING*3 (bmy, 10/21/10)
+      !N           = N + 1
+      !CATEGORY(N) = 'MC-FRC-$'
+      !DESCRIPT(N) = 'Moist conv fraction'
+      !OFFSET(N)   = SPACING * 30
+      !--------------------------------------------------------------------
 
       N           = N + 1
       CATEGORY(N) = 'COBUDGET'
@@ -1391,42 +1407,26 @@
       ! Number of categories
       NCATS = N
       
-      ! Return to calling program
       END SUBROUTINE INIT_DIAGINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_tracerinfo
+!
+! !DESCRIPTION: Subroutine INIT\_TRACERINFO initializes the NAME, FNAME, 
+!  MWT, MOLC, INDEX, MOLC, UNIT arrays which are used to define the 
+!  "tracerinfo.dat" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_TRACERINFO
 !
-!******************************************************************************
-!  Subroutine INIT_TRACERINFO initializes the NAME, FNAME, MWT, MOLC, INDEX,
-!  MOLC, UNIT arrays which are used to define the "tracerinfo.dat" file.
-!  (bmy, phs, 10/17/06, 11/19/09)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
-!        biomass burning emissions w/ offset of 45000.  Bug fix: write out
-!        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
-!        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
-!  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
-!  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
-!        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
-!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
-!  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
-!  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
-!  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
-!        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
-!  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
-!  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
-!        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
-!  (9 ) Add iniformation for ND61 (win, 7/9/09)
-!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
-!        only numbers are real drydep species while the mass species just 
-!        tag along but we need them to show up in diagnostic too.  Reference  
-!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG03_MOD,   ONLY : ND03, PD03
       USE DIAG04_MOD,   ONLY : ND04
       USE DIAG41_MOD,   ONLY : ND41
@@ -1472,16 +1472,46 @@
       USE TOMAS_MOD,    ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : IDTNK1     !(win, 7/14/09)
       USE TRACERID_MOD, ONLY : N_Hg_CATS  !CDH for snowpack
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! NDxx flags
-
-      ! Local variables
-      INTEGER               :: N, NN, NYMDb, NHMSb, T
-      LOGICAL               :: DO_TIMESERIES
+! 
+! !REVISION HISTORY: 
+!  17 Oct 1996 - R. Yantosca & P. Le Sager - Initial version
+!  (1 ) Split this code off from INIT_GAMAP, for clarity.  Also now declare
+!        biomass burning emissions w/ offset of 45000.  Bug fix: write out
+!        26 tracers for ND48, ND49, ND50, ND51 timeseries.  Also define
+!        ND54 diagnostic with offset of 46000. (bmy, 10/17/06)
+!  (2 ) Modifications for H2/HD in ND10, ND44 diagnostics (phs, 9/18/07)
+!  (3 ) Now write out PBLDEPTH diagnostic information to "tracerinfo.dat" if 
+!        any of ND41, ND48, ND49, ND50, ND51 are turned on.  Also set the
+!        unit to "kg/s" for the Rn-Pb-Be ND44 drydep diag. (cdh, bmy, 2/22/08)
+!  (4 ) Added C2H4 in ND46 (ccc, 2/2/09)
+!  (5 ) Add EFLUX to ND67 (lin, ccc, 5/29/08)
+!  (6 ) Bug fix in ND28: ALD2 should have 2 carbons, not 3.  Also bug fix
+!        in ND66 to print out the name of ZMMU correctly. (dbm, bmy, 10/9/09)
+!  (7 ) Previous bug fix was erroneous; now corrected (dkh, bmy, 11/19/09)
+!  (8 ) Include second satellite overpass diagnostic.  Adjust AOD name to 550 
+!        nm from 400 nm.  Add additional dust AOD bins (amv, bmy, 12/18/09)
+!  (9 ) Add iniformation for ND61 (win, 7/9/09)
+!  (10) Manually add info for ND44 when TOMAS aerosols dry deposition because
+!        only numbers are real drydep species while the mass species just 
+!        tag along but we need them to show up in diagnostic too.  Reference  
+!        to TOMAS_MOD and use IDTNK1 from TRACERID_MOD (win, 7/14/09)
+!  20 Jul 2010 - C. Carouge  - Modifications to ND03 for mercury.
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  02 Sep 2010 - R. Yantosca - In ND28: Omit SOA tracers if LSOA = .FALSE.
+!  12 Nov 2010 - R. Yantosca - Need to save out surface pressure line to 
+!                              tracerinfo.dat for the timeseries diagnostics
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: N, NN, NYMDb, NHMSb, T
+      LOGICAL :: DO_TIMESERIES
 
       ! For Hg diagnostic: some max number of tracers per diagnostic.
-      INTEGER               :: PD03_PL
+      INTEGER :: PD03_PL
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1567,6 +1597,8 @@
       !
       ! Updated for tagged Hg simulation
       ! (cdh, bmy, 1/9/06)
+      ! Modified to avoid over-sized arrays.
+      ! (ccc, 7/20/10)
       !-------------------------------------
       IF ( ND03 > 0 ) THEN
          
@@ -1783,9 +1815,11 @@
       IF ( ND04 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(04) = 6
+         ! Increased from 6 to 10. (rnassar, 30/08/10)
+!         NTRAC(04) = 6
+         NTRAC(04) = 10
 
-         ! Loop over tracers: HG-SRCE
+         ! Loop over tracers: CO2-SRCE
          DO T = 1, NTRAC(04)
 
             ! Define quantities
@@ -1796,11 +1830,14 @@
             SCALE(T,04) = 1e0
 
             ! Get name, long-name
+            ! Names updated (rnassar, 30/08/10)
             SELECT CASE( T )
                CASE( 1  )
                   NAME (T,04) = 'CO2ff'
                   FNAME(T,04) = 'CO2 fossil fuel emiss'
                CASE( 2  )
+!                  NAME (T,04) = 'CO2ocn'
+!                  FNAME(T,04) = 'CO2 ocean exchange'
                   NAME (T,04) = 'CO2oc'
                   FNAME(T,04) = 'CO2 ocean emissions'
                CASE( 3  )
@@ -1813,8 +1850,21 @@
                   NAME (T,04) = 'CO2bf'
                   FNAME(T,04) = 'CO2 biofuel emission'
                CASE( 6  )
-                  NAME (T,04) = 'CO2net'
+!                  NAME (T,04) = 'CO2net'
+                  NAME (T,04) = 'CO2nte'
                   FNAME(T,04) = 'CO2 net terr exchange'
+               CASE( 7  )
+                  NAME (T,04) = 'CO2shp'
+                  FNAME(T,04) = 'CO2 ship emissions'
+               CASE( 8  )
+                  NAME (T,04) = 'CO2pln'
+                  FNAME(T,04) = 'CO2 aircraft emissions'
+               CASE( 9  )
+                  NAME (T,04) = 'CO2che'
+                  FNAME(T,04) = 'CO2 chemical oxidation'
+               CASE( 10  )
+                  NAME (T,04) = 'CO2sur'
+                  FNAME(T,04) = 'CO2 chem surf correction'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -2561,7 +2611,15 @@
 
             ! Number of tracers
             ! Add GLYX, MGLY, GLYC, HAC, C2H2,BENZ, TOLU, XYLE, C2H4
-            NTRAC(28) = 23
+            !-----------------------------------------------------------------
+            ! Bug fix: omit SOA tracers if not needed. (bmy, 9/2/10)
+            !NTRAC(28) = 23
+            !-----------------------------------------------------------------
+            IF ( LSOA ) THEN
+               NTRAC(28) = 23    ! SOA simulation
+            ELSE
+               NTRAC(28) = 14    ! Standard simulation
+            ENDIF
 
             ! Loop over tracers
             DO T = 1, NTRAC(28)
@@ -2575,154 +2633,154 @@
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
                   
-               ELSEIF( T == IDBCO ) THEN
+               ELSE IF ( T == IDBCO ) THEN
                   NAME (T,28) = 'CO'
                   INDEX(T,28) = IDTCO + ( SPACING * 45 )
                   MWT  (T,28) = 28e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBALK4 ) THEN
+               ELSE IF ( T == IDBALK4 ) THEN
                   NAME (T,28) = 'ALK4'
                   INDEX(T,28) = IDTALK4 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 4
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBACET ) THEN
+               ELSE IF ( T == IDBACET ) THEN
                   NAME (T,28) = 'ACET'
                   INDEX(T,28) = IDTACET + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBMEK ) THEN
+               ELSE IF ( T == IDBMEK ) THEN
                   NAME (T,28) = 'MEK'
                   INDEX(T,28) = IDTMEK + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 4
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBALD2 ) THEN
+               ELSE IF ( T == IDBALD2 ) THEN
                   NAME (T,28) = 'ALD2'
                   INDEX(T,28) = IDTALD2 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBPRPE ) THEN
+               ELSE IF ( T == IDBPRPE ) THEN
                   NAME (T,28) = 'PRPE'
                   INDEX(T,28) = IDTPRPE + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC3H8 ) THEN
+               ELSE IF ( T == IDBC3H8 ) THEN
                   NAME (T,28) = 'C3H8'
                   INDEX(T,28) = IDTC3H8 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 3
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBCH2O ) THEN
+               ELSE IF ( T == IDBCH2O ) THEN
                   NAME (T,28) = 'CH2O'
                   INDEX(T,28) = IDTCH2O + ( SPACING * 45 )
                   MWT  (T,28) = 30e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBC2H6 ) THEN
+               ELSE IF ( T == IDBC2H6 ) THEN
                   NAME (T,28) = 'C2H6'
                   INDEX(T,28) = IDTC2H6 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBSO2 ) THEN
+               ELSE IF ( T == IDBSO2 ) THEN
                   NAME (T,28) = 'SO2'
                   INDEX(T,28) = IDTSO2 + ( SPACING * 45 )
                   MWT  (T,28) = 32e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms S/cm2/s'
 
-               ELSEIF( T == IDBNH3 ) THEN
+               ELSE IF ( T == IDBNH3 ) THEN
                   NAME (T,28) = 'NH3'
                   INDEX(T,28) = IDTNH3 + ( SPACING * 45 )
                   MWT  (T,28) = 17e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBBC ) THEN
+               ELSE IF ( T == IDBBC ) THEN
                   NAME (T,28) = 'BC'
                   INDEX(T,28) = IDTBCPI + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBOC ) THEN
+               ELSE IF ( T == IDBOC ) THEN
                   NAME (T,28) = 'OC'
                   INDEX(T,28) = IDTOCPI + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBGLYX ) THEN
+               ELSE IF ( T == IDBGLYX ) THEN
                   NAME (T,28) = 'GLYX'
                   INDEX(T,28) = IDTGLYX + ( SPACING * 45 )
                   MWT  (T,28) = 58e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBMGLY ) THEN
+               ELSE IF ( T == IDBMGLY ) THEN
                   NAME (T,28) = 'MGLY'
                   INDEX(T,28) = IDTMGLY + ( SPACING * 45 )
                   MWT  (T,28) = 72e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBBENZ ) THEN
+               ELSE IF ( T == IDBBENZ ) THEN
                   NAME (T,28) = 'BENZ'
                   INDEX(T,28) = IDTBENZ + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 6
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBTOLU ) THEN
+               ELSE IF ( T == IDBTOLU ) THEN
                   NAME (T,28) = 'TOLU'
                   INDEX(T,28) = IDTTOLU + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 7
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBXYLE ) THEN
+               ELSE IF ( T == IDBXYLE ) THEN
                   NAME (T,28) = 'XYLE'
                   INDEX(T,28) = IDTXYLE + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 8
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC2H4 ) THEN
+               ELSE IF ( T == IDBC2H4 ) THEN
                   NAME (T,28) = 'C2H4'
                   INDEX(T,28) = IDTC2H4 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBC2H2 ) THEN
+               ELSE IF ( T == IDBC2H2 ) THEN
                   NAME (T,28) = 'C2H2'
                   INDEX(T,28) = IDTC2H2 + ( SPACING * 45 )
                   MWT  (T,28) = 12e-3
                   MOLC (T,28) = 2
                   UNIT (T,28) = 'atoms C/cm2/s'
 
-               ELSEIF( T == IDBGLYC ) THEN
+               ELSE IF ( T == IDBGLYC ) THEN
                   NAME (T,28) = 'GLYC'
                   INDEX(T,28) = IDTGLYC + ( SPACING * 45 )
                   MWT  (T,28) = 60e-3
                   MOLC (T,28) = 1
                   UNIT (T,28) = 'molec/cm2/s'
 
-               ELSEIF( T == IDBHAC ) THEN
+               ELSE IF ( T == IDBHAC ) THEN
                   NAME (T,28) = 'HAC'
                   INDEX(T,28) = IDTHAC + ( SPACING * 45 )
                   MWT  (T,28) = 74e-3
@@ -2796,8 +2854,16 @@
 
       !-------------------------------------      
       ! Surface pressure (ND31)
-      !-------------------------------------      
-      IF ( ND31 > 0 ) THEN
+      !-------------------------------------   
+      !-------------------------------------------------------------
+      ! Prior to 11/12/10:
+      ! Need to save out surface pressure line to tracerinfo.dat
+      ! for the timeseries diagnostics (bmy, 11/12/10)
+      !IF ( ND31 > 0 ) THEN
+      !-------------------------------------------------------------
+      IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
+     &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
+     &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN
          T           = 1
          NTRAC(31)   = T
          NAME (T,31) = 'PSURF'
@@ -3778,7 +3844,7 @@ c$$$            ENDDO
 #if   defined( GEOS_4 )
                   NAME(T,66) = 'ZMMU'
                   UNIT(T,66) = 'Pa/s'
-#elif defined( GEOS_5 )
+#elif defined( GEOS_5 ) || defined( MERRA )
                   NAME(T,66) = 'CMFMC'
                   UNIT(T,66) = 'kg/m2/s'
 #else
@@ -3958,23 +4024,45 @@ c$$$            ENDDO
          SCALE(T,69) = 1e0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_TRACERINFO
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_gamap
+!
+! !DESCRIPTION: Subroutine INIT\_GAMAP allocates and initializes all 
+!  module variables.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GAMAP( DIAGINFO, TRACERINFO )
 !
-!******************************************************************************
-!  Subroutine INIT_GAMAP allocates and initializes all module variables.  
-!  (bmy, 4/22/05, 8/4/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DIAGINFO   (CHARACTER) : Path name of the GAMAP "diaginfo.dat"   file
-!  (2 ) TRACERINFO (CHARACTER) : Path name of the GAMAP "tracerinfo.dat" file
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
+      USE LOGICAL_MOD, ONLY : LND50_HDF,   LND51_HDF, LND51b_HDF
+      USE HDF_MOD,     ONLY : INIT_HDF
+      USE HDF_MOD,     ONLY : HDFCATEGORY
+      USE HDF_MOD,     ONLY : HDFDESCRIPT
+      USE HDF_MOD,     ONLY : HDFNAME
+      USE HDF_MOD,     ONLY : HDFFNAME
+      USE HDF_MOD,     ONLY : HDFUNIT
+      USE HDF_MOD,     ONLY : HDFMOLC
+      USE HDF_MOD,     ONLY : HDFMWT
+      USE HDF_MOD,     ONLY : HDFSCALE
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO    ! Path for "diaginfo.dat"
+      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO  ! Path for "tracerinfo.dat"
+!
+! !REVISION HISTORY:
+!  22 Apr 2005 - R. Yantosca - Initial version 
 !  (1 ) Now add proper UNIT & SCALE for Rn/Pb/Be simulations (bmy, 5/11/05)
 !  (2 ) Added HCN & CH3CN source & sink info for ND09 (bmy, 6/27/05)
 !  (3 ) Bug fix: removed duplicate category names.  Updated for CO2-SRCE 
@@ -3995,32 +4083,14 @@ c$$$            ENDDO
 !  (10) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (11) Split into INIT_DIAGINFO, INIT_TRACERINFO for clarity (bmy, 9/28/06)
 !  (12) Save output to HDF_MOD (amv, bmy, 12/18/09)
-!******************************************************************************
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
-      USE TIME_MOD,    ONLY : EXPAND_DATE, GET_NHMSb, GET_NYMDb
-      USE LOGICAL_MOD, ONLY : LND50_HDF, LND51_HDF, LND51b_HDF
-
-      USE HDF_MOD, ONLY : INIT_HDF
-      USE HDF_MOD, ONLY : HDFCATEGORY
-      USE HDF_MOD, ONLY : HDFDESCRIPT
-      USE HDF_MOD, ONLY : HDFNAME
-      USE HDF_MOD, ONLY : HDFFNAME
-      USE HDF_MOD, ONLY : HDFUNIT
-      USE HDF_MOD, ONLY : HDFMOLC
-      USE HDF_MOD, ONLY : HDFMWT
-      USE HDF_MOD, ONLY : HDFSCALE
-
-#     include "CMN_SIZE"    ! Size parameters
-#     include "CMN_DIAG"    ! NDxx flags
-
-      ! Arguments
-      CHARACTER(LEN=255), INTENT(IN) :: DIAGINFO  
-      CHARACTER(LEN=255), INTENT(IN) :: TRACERINFO
-
-      ! Local variables
-      INTEGER                        :: AS, NYMDb, NHMSb
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS, NYMDb, NHMSb
 
       !=================================================================
       ! INIT_GAMAP begins here!
@@ -4103,28 +4173,37 @@ c$$$            ENDDO
 
          HDFCATEGORY(:) = CATEGORY(:)
          HDFDESCRIPT(:) = DESCRIPT(:)
-         HDFNAME(:,:) = NAME(:,:)
-         HDFFNAME(:,:) = FNAME(:,:)
-         HDFUNIT(:,:) = UNIT(:,:)
-         HDFMOLC(:,:) = MOLC(:,:)
-         HDFMWT(:,:) = MWT(:,:)
-         HDFSCALE(:,:) = SCALE(:,:)
+         HDFNAME(:,:)   = NAME(:,:)
+         HDFFNAME(:,:)  = FNAME(:,:)
+         HDFUNIT(:,:)   = UNIT(:,:)
+         HDFMOLC(:,:)   = MOLC(:,:)
+         HDFMWT(:,:)    = MWT(:,:)
+         HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE INIT_GAMAP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_gamap
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GAMAP deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GAMAP
-!
-!******************************************************************************
-!  Subroutine CLEANUP_GAMAP deallocates all module arrays (bmy, 4/25/05)
 ! 
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  25 Apr 2005 - R. Yantosca - Initial version
+!  03 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !===================================================================
       ! CLEANUP_GAMAP begins here!
       !===================================================================
@@ -4140,10 +4219,6 @@ c$$$            ENDDO
       IF ( ALLOCATED( SCALE    ) ) DEALLOCATE( SCALE    )
       IF ( ALLOCATED( UNIT     ) ) DEALLOCATE( UNIT     )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GAMAP
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE GAMAP_MOD

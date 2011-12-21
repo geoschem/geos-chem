@@ -1,14 +1,36 @@
-! $Id: rdsoil.f,v 1.1 2009/09/16 14:06:13 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdsoil
+!
+! !DESCRIPTION: Subroutine RDSOIL reads in soiltype data, fertilizer data, 
+!  and monthly soil precipitation data.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDSOIL
 !
-!******************************************************************************
-!  Subroutine RDSOIL reads in soiltype data, fertilizer data, and monthly
-!  soil precipitation data. (yhw, gmg, djj, bmy, 1994, 7/20/04)
+! !USES:
 !
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,      ONLY : GET_MONTH
+      
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "commsoil.h" ! Soil variables
+!
+! !REMARKS:
 !  RDSOIL is one of the original GEOS-CHEM subroutines, and has its origins
 !  from the GISS-II model that was used at Harvard in the early 90's.  This
 !  was cleaned up and improved error checking was added. (bmy, 4/2/02)
-!
+!                                                                             .
 !  Variables from "commsoil.h" header file:
 !  ============================================================================
 !  (1 ) NCONSOIL  (INTEGER) : Olson -> soil type mapping index                
@@ -16,7 +38,7 @@
 !  (3 ) SOILFERT  (REAL*8 ) : Array containing fertilizer NOx [ng N/m2/s]  
 !  (4 ) SOILPREP  (REAL*8 ) : Array containing 2 months of observed
 !                              soil precipitation [mm/day]    
-!
+!                                                                             .
 !  Files read in by "rdsoil.f":
 !  ============================================================================
 !  (1 ) DATA_DIR/soil_NOx_200203/soiltype.dat       : Olson and soil land types
@@ -25,7 +47,8 @@
 !                                climatprep2x25.dat : 2x2.5 monthly soil precip
 !                                climatprep1x1.dat  : 4x5   monthly soil precip
 ! 
-!  NOTES:
+! !REVISION HISTORY: 
+!  05 Jan 1994 - Y. H. Wang, G. M. Gardner, - Initial version
 !  (1 ) Be sure to force double precision with the DBLE function and the "D" 
 !        exponent, wherever necessary (bmy, 10/6/99)            *
 !  (2 ) Now read soil data files directly from the from 
@@ -41,21 +64,13 @@
 !  (5 ) Now use function GET_MONTH from "time_mod.f".  Now make MONTH a local
 !        variable. (bmy, 2/11/03)
 !  (6 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_RES_EXT
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE FILE_MOD,      ONLY : IU_FILE, IOERROR
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,      ONLY : GET_MONTH
-      
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "commsoil.h" ! Soil variables
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE      :: FIRST   = .TRUE.
       INTEGER, SAVE      :: MONSAVE = 0 
       INTEGER            :: I, IUNIT, IOS, J, K, KK, M, M1, MONTH

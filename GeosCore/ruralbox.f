@@ -1,25 +1,44 @@
-! $Id: ruralbox.f,v 1.2 2010/02/25 21:07:03 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ruralbox
+!
+! !DESCRIPTION: Subroutine RURALBOX computes which boxes are tropospheric 
+!  and which are stratospheric.  SMVGEAR arrays are initialized with 
+!  quantities from tropospheric boxes.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RURALBOX( AD, T, AVGW, ALBD, SUNCOS )
 !
-!******************************************************************************
-!  Subroutine RURALBOX computes which boxes are tropospheric and which
-!  are stratospheric.  SMVGEAR arrays are initialized with quantities from 
-!  tropospheric boxes.  (amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) AD     (REAL*8 ) : Array for dry air mass               [   kg   ]
-!  (2 ) T      (REAL*8 ) : Array for grid box temperatures      [   K    ]
-!  (3 ) AVGW   (REAL*8 ) : Array for mixing ratio of water      [  v/v   ]
-!  (4 ) ALBD   (REAL*8 ) : Array for visible albedo             [unitless]
-!  (5 ) SUNCOS (REAL*8 ) : Array for COS( Solar Zenith Angle )  [unitless]
-!  (6 ) LEMBED (LOGICAL) : Switch for embedded chemistry region [ T or F ]
-!  (7 ) IEBD1  (INTEGER) : Lon: lower right corner }  of the    [unitless] 
-!  (8 ) IEBD2  (INTEGER) : Lon: upper left  corner } embedded   [unitless]
-!  (9 ) JEBD1  (INTEGER) : Lat: lower right corner } chemistry  [unitless]
-!  (10) JEBD2  (INTEGER) : Lat: upper left  corner }  region    [unitless]
+      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS,  IXSAVE, IYSAVE
+      USE COMODE_MOD,     ONLY : IZSAVE, JLOP,     PRESS3, T3,  VOLUME 
+      USE PRESSURE_MOD,   ONLY : GET_PCENTER,      GET_PEDGE
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"       ! Size parameters
+#     include "comode.h"       ! NPVERT
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(IN) :: AD(IIPAR,JJPAR,LLPAR)     ! Air mass [kg]
+      REAL*8,  INTENT(IN) :: T(IIPAR,JJPAR,LLPAR)      ! Temperature [K]
+      REAL*8,  INTENT(IN) :: AVGW(IIPAR,JJPAR,LLPAR)   ! Mix rat. of H2O [v/v]
+      REAL*8,  INTENT(IN) :: ALBD(IIPAR,JJPAR)         ! Sfc albedo [unitless]
+      REAL*8,  INTENT(IN) :: SUNCOS(MAXIJ)             ! Cos of SZA [unitless]
+!
+! !REMARKS:
+!  Developers: amf, bey, ljm, lwh, gmg, bdf, bmy, 7/16/01, 2/25/10)
+! 
+! !REVISION HISTORY: 
+!  01 Oct 1995 - M. Prather  - Initial version
 !  (1 ) Remove PTOP from the arg list.  PTOP is now a parameter
 !        in "CMN_SIZE". (bmy, 2/10/00)
 !  (2 ) Add C-preprocessor switch LSLOWJ to bracket code for 
@@ -48,27 +67,13 @@
 !        LPAUSE from the arg list (bmy, 8/22/05)
 !  (14) Remove ALT and CLOUDS from arg list -- they are obsolete (bmy, 4/10/06)
 !  (15) Remove obsolete embedded chemistry stuff (bmy, 2/25/10)
-!******************************************************************************
+!  10 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,     ONLY : ABSHUM, AIRDENS, IXSAVE, IYSAVE, 
-     &                           IZSAVE, JLOP,    PRESS3, T3,  VOLUME 
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER, GET_PEDGE
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_STRAT, ITS_IN_THE_TROP,
-     &                           GET_TPAUSE_LEVEL
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"       ! Size parameters
-#     include "comode.h"       ! NPVERT
-
-      REAL*8,  INTENT(IN)     :: AD(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)     :: T(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)     :: AVGW(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)     :: ALBD(IIPAR,JJPAR)
-      REAL*8,  INTENT(IN)     :: SUNCOS(MAXIJ)
-
-      ! Local variables      
+! !LOCAL VARIABLES:
+!
       LOGICAL                 :: LDEBUG
       INTEGER                 :: I, J, L, JLOOP, IJLOOP
 
@@ -191,5 +196,5 @@
       ! NTLOOP is the number of total tropospheric boxes
       NTLOOP = JLOOP
 
-      ! Return to calling program
       END SUBROUTINE RURALBOX
+!EOC

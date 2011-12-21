@@ -17,9 +17,9 @@
 !        distribution of carbon dioxide emissions from fossil fuel 
 !        consumption and cement manufacture}, \underline{Glob. Biogeochem. 
 !        Cycles}, \textbf{10}, 419-429, 1996.
-!  \item Corbett & Koehler (2003) \emph{Updated emissions from ocean shipping},
-!        \underline{J. Geophys. Res.}, \textbf{108}, D20, 4650.
-!  \item Corbett & Koehler (2004) \emph{Considering alternative input 
+!  \item Corbett and Koehler (2003) \emph{Updated emissions from ocean 
+!        shipping}, \underline{J. Geophys. Res.}, \textbf{108}, D20, 4650.
+!  \item Corbett and Koehler (2004) \emph{Considering alternative input 
 !        parameters in an activity-based ship fuel consumption and emissions 
 !        model: Reply ...} \underline{J. Geophys. Res.}, D23303.
 !  \item Endresen et al. (2007) \emph{A historical reconstruction of ships 
@@ -116,6 +116,7 @@
 !  (5 ) Implemented CO2 emissions from shipping and aviation (R.Nassar 2010)
 !  (6 ) Implemented monthly CO2 chemical production and surface correction 
 !        (R.Nassar 2010)   
+!  25 Feb 2011 - R. Nassar  - Now read updated CDIAC CO2 emissions data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,7 +704,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE EMISSCO2 
 !EOC
 !------------------------------------------------------------------------------
@@ -778,7 +778,6 @@
       ! assume that incoming data is on the same vertical grid
       CHEMCO2 = DBLE(ARRAY)
 
-      ! Return to calling program
       END SUBROUTINE READ_CHEMCO2   
 !EOC
 !------------------------------------------------------------------------------
@@ -824,6 +823,9 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -883,7 +885,13 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'       // 
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.' // 
      &              YEAR_STR          // '.'                        //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -892,8 +900,14 @@
       ELSE IF ( LMONFF ) THEN
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
-         FILENAME = TRIM( DATA_DIR )                                // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+         FILENAME = TRIM( DATA_DIR )                                //
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)                          // 
+!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.'//
      &              YEAR_STR          // MONTH_STR // '.'           //
      &              GET_NAME_EXT_2D() // '.' // GET_RES_EXT()
 
@@ -962,7 +976,10 @@
 !
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
-!EOP
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
+!EOP!EOP
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -1041,7 +1058,13 @@
 
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)                   
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'        // 
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'  // 
      &              YEAR_STR          // '.'                         //
      &              GET_NAME_EXT_2D() // '.'       //  GET_RES_EXT()
 
@@ -1049,7 +1072,13 @@
 
          TAU      = GET_TAU0( MONTH, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                                 // 
-     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)    
+!     &              'CO2_201003/fossilfuel_andres/monthly/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/monthly_v2010/ff.' //  
      &              YEAR_STR          // MONTH_STR // '.'            //
      &              GET_NAME_EXT_2D() // '.'       // GET_RES_EXT()
 
@@ -1230,7 +1259,6 @@
 
  200  FORMAT( A, F9.5, A ) 
 
-      ! Return to calling program
       END SUBROUTINE CHEM_SURF  
 !EOC
 !------------------------------------------------------------------------------
@@ -1270,6 +1298,9 @@
 
 ! !REVISION HISTORY: 
 !  18 May 2010 - R. Nassar, D. Jones - Initial version 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1287,7 +1318,7 @@
       REAL*8             :: ANN_FOSS_NOAREA(IIPAR,JJPAR)
 
       !-----------------------------------------------------------------
-	! Read Generic or annual fossil fuel emissions file
+      ! Read Generic or annual fossil fuel emissions file
       !-----------------------------------------------------------------
       YEAR   = GET_YEAR()
       WRITE( YEAR_STR, '(i4)' ) YEAR 
@@ -1302,7 +1333,13 @@
       ELSE
          TAU      = GET_TAU0( 1, 1, YEAR )
          FILENAME = TRIM( DATA_DIR )                               // 
-     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
+!------------------------------------------------------------------------------
+! Prior to 2/25/11: 
+! Now use updated CO2 annual emissions from CDIAC (cf Bob Andres)
+! (rnassar, bmy, 2/25/11)        
+!     &              'CO2_201003/fossilfuel_andres/annual/ff.'      //  
+!------------------------------------------------------------------------------
+     &              'CO2_201003/fossilfuel_andres/annual_v2010/ff.'//  
      &              YEAR_STR          // '.'                       //
      &              GET_NAME_EXT_2D() // '.'   //  GET_RES_EXT()
       ENDIF
@@ -1396,7 +1433,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_oceanco2
 !
 ! !DESCRIPTION: Subroutine READ\_OCEANCO2 reads in either
 !
@@ -1430,6 +1467,9 @@
 ! !REVISION HISTORY: 
 !  16 Aug 2005 - P. Suntharalingam   - Initial version
 !  18 May 2010 - R. Nassar, D. Jones - Updated 
+!  25 Feb 2011 - R. Nassar           - Now point to annual_v2010 and
+!                                      monthly_v2010 directories, which
+!                                      contain updated CO2 data from CDIAC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1730,9 +1770,9 @@
 !  the current resolution is carried out in the code.
 !                                                                             .
 !  References:
-!  (1) Corbett & Koehler (2003) "Updated emissions from ocean shipping", 
+!  (1) Corbett and Koehler (2003) "Updated emissions from ocean shipping", 
 !       JGR 108, D20, 4650.
-!  (2) Corbett & Koehler (2004) "Considering alternative input parameters in 
+!  (2) Corbett and Koehler (2004) "Considering alternative input parameters in 
 !       an activity-based ship fuel consumption and emissions model: Reply ..."
 !       JGR, 109, D23303.
 !  (3) Endresen et al. (2007) "A historical reconstruction of ships fuel 
@@ -1837,7 +1877,6 @@
          EMSHIPCO2(:,J) = EMSHIPCO2(:,J)*(GlobSTotNew(n)/GlobSTot)
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE READ_SHIPCO2_ICOADS
 !EOC
 !------------------------------------------------------------------------------
@@ -1846,11 +1885,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: read_aviation_co2
 !
 ! !DESCRIPTION: Subroutine READ\_AVIATION\_CO2 reads monthly mean aircraft 
 !  fuel emissions and converts them to CO2 emissions.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -2069,9 +2107,8 @@
 !
 ! !IROUTINE: read_annual_bionet_co2
 !
-! !DESCRIPTION: Subroutine READ_ANNUAL_BIONET_CO2 reads in annual mean 
+! !DESCRIPTION: Subroutine READ\_ANNUAL\_BIONET\_CO2 reads in annual mean 
 !  values of for Net Terrestrial exchange from a binary punch file.
-
 !\\
 !\\
 ! !INTERFACE:
@@ -2525,7 +2562,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: def_biosph_co2_regions_f
 !
 ! !DESCRIPTION: Subroutine DEF\_BIOSPH\_CO2\_REGIONS defines the land 
 !  biospheric and ocean CO2 exchange regions.
@@ -3244,7 +3281,6 @@
       ! Reset IS_INIT flag
       IS_INIT = .TRUE.
       
-      ! Return to calling program
       END SUBROUTINE INIT_CO2 
 !EOC
 !------------------------------------------------------------------------------

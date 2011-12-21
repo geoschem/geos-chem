@@ -145,7 +145,6 @@
       ! Add the terms to get the Julian Day number 
       JULIANDAY = B + C + D + DD + 1720994.5d0
    
-      ! Return to calling program
       END FUNCTION JULDAY
 !EOC
 !------------------------------------------------------------------------------
@@ -189,7 +188,6 @@
          VALUE =  INT( ABS( X ) )        
       ENDIF
    
-      ! Return to calling program
       END FUNCTION MINT
 !EOC
 !------------------------------------------------------------------------------
@@ -291,7 +289,6 @@
       SS     = ( MM - INT( MM ) ) * 60d0   
       HHMMSS = ( INT( HH ) * 10000 ) + ( INT( MM ) * 100 ) + INT( SS )
       
-      ! Return to calling program
       END SUBROUTINE CALDATE
 !EOC
       END MODULE JULDAY_MOD

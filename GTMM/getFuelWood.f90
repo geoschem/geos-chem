@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: getFuelWood
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE getFuelWood
@@ -20,11 +21,10 @@ SUBROUTINE getFuelWood
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
-!BOP
+!BOC
 !
 ! !LOCAL VARIABLES
 !
@@ -49,4 +49,3 @@ SUBROUTINE getFuelWood
 
 END SUBROUTINE getFuelWood
 !EOC
-!------------------------------------------------------------------------------

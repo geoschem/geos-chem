@@ -1,24 +1,58 @@
-! $Id: diag_2pm.f,v 1.2 2010/03/15 19:33:24 ccarouge Exp $
-      SUBROUTINE DIAG_2PM
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!*****************************************************************************
-!  Subroutine DIAG_2PM (bmy, 3/26/99, 11/18/08) constructs the diagnostic 
-!  flag arrays : 
-!      LTJV  : J-values           (ND22)
-!      LTOH  : OH concentrations  (ND43)
-!      LTNO  : NO concentrations  (ND43)
-!      LTNO2 : NO2 concentrations (ND43)
-!      LTHO2 : HO2 concentrations (ND43)
-!      LTOTH : used for tracers   (ND45)
-!      LTO3  : for O3             (ND45) 
+! !ROUTINE: diag_2pm
+!
+! !DESCRIPTION: Subroutine DIAG\_2PM constructs the diagnostic flag arrays:
+!
+! \begin{itemize}
+! \item LTJV: J-values (ND22)
+! \item LTOH: OH concentrations  (ND43)
+! \item LTNO: NO concentrations  (ND43)
+! \item LTNO2: NO2 concentrations (ND43)
+! \item LTHO2: HO2 concentrations (ND43)
+! \item LTOTH: used for tracers (ND45)
+! \item LTO3: for O3 (ND45)
+! \end{itemize}
 !
 !  These arrays are either 1 (if it is within a certain time interval)   
 !  or 0 (if it is not within a certain time interval).  The limits of
 !  the time intervals for CTOTH and CTJV are now defined in input.geos
 !  The arrays CTOTH, CTOH, CTNO, CTJV count the number of times the 
 !  diagnostics are accumulated for each grid box (i.e LTOTH is 1)
+!\\
+!\\
+! !INTERFACE:
 !
-!  NOTES:
+      SUBROUTINE DIAG_2PM
+!
+! !USES:
+!
+      USE DIAG_MOD,       ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
+      USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
+      USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
+      USE DIAG_MOD,       ONLY : CTO3_24h, LTO3
+      USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
+      USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
+      USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
+      USE DIAG_MOD,       ONLY : CTLBRO2H, CTLBRO2N
+      USE DIAG_MOD,       ONLY : CTLTRO2H, CTLTRO2N
+      USE DIAG_MOD,       ONLY : CTLXRO2H, CTLXRO2N
+      USE TIME_MOD,       ONLY : GET_LOCALTIME
+      USE TIME_MOD,       ONLY : ITS_TIME_FOR_DIAG, ITS_TIME_FOR_CHEM
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,       ONLY : GET_TS_DIAG
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! HR_OH1, HR_OH2, etc.
+!
+! !REVISION HISTORY:
+!  26 Mar 1999 - R. Yantosca - Initial version
 !  (1 ) Now use F90 syntax (bmy, 3/26/99)
 !  (2 ) Now reference LTNO2, CTNO2, LTHO2, CTHO2 arrays from "diag_mod.f".  
 !        Updated comments, cosmetic changes.  (rvm, bmy, 2/27/02)
@@ -34,39 +68,18 @@
 !       (ccc, 6/12/09)
 !  (8 ) Add LTO3 to accumulate O3 in ND45 at the same place as the
 !        chemistry (ccc, 7/17/09)
-!*****************************************************************************
-!     
-      ! References to F90 modules
-      USE DIAG_MOD,       ONLY : LTJV,  CTJV,  LTNO,  CTNO,  CTO3
-      USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
-      USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
-      USE DIAG_MOD,       ONLY : CTO3_24h, LTO3
-      ! update for arom (dkh, 06/22/07)  
-      USE DIAG_MOD,       ONLY : LTLBRO2H, LTLBRO2N
-      USE DIAG_MOD,       ONLY : LTLTRO2H, LTLTRO2N
-      USE DIAG_MOD,       ONLY : LTLXRO2H, LTLXRO2N
-      USE DIAG_MOD,       ONLY : CTLBRO2H, CTLBRO2N
-      USE DIAG_MOD,       ONLY : CTLTRO2H, CTLTRO2N
-      USE DIAG_MOD,       ONLY : CTLXRO2H, CTLXRO2N
-      USE TIME_MOD,       ONLY : GET_LOCALTIME
-      USE TIME_MOD,       ONLY : ITS_TIME_FOR_DIAG, ITS_TIME_FOR_CHEM
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-      ! Used for new diagnostic time (ccc, 6/12/09)
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "CMN_DIAG"   ! HR_OH1, HR_OH2, etc.
-
-      ! Local variables
-      LOGICAL             :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
-      LOGICAL             :: IS_ND47, IS_ND65, ITS_AFTER_DIAG
-      LOGICAL             :: IS_CHEM
-      INTEGER             :: I,       J,       L
-      INTEGER             :: PREV_TS
-      REAL*8              :: LT(IIPAR)
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
+      LOGICAL :: IS_ND47, IS_ND65, ITS_AFTER_DIAG
+      LOGICAL :: IS_CHEM
+      INTEGER :: I,       J,       L
+      INTEGER :: PREV_TS
+      REAL*8  :: LT(IIPAR)
 
       !=================================================================
       ! DIAG_2PM begins here!
@@ -244,5 +257,5 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DIAG_2PM
+!EOC

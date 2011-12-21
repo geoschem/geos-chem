@@ -1,11 +1,10 @@
-! $Id: geos_chem.intro,v 1.1 2009/09/16 19:20:27 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOI
-! !TITLE: The GEOS-Chem Model: Source Code Reference
+! !TITLE: GEOS-Chem Reference, Vol. 3: "Core" Modules and Routines
 ! !AUTHORS: Bob Yantosca, Philippe Le Sager, and Claire Carouge
 ! !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
-! !DATE: September 16, 2009
+! !DATE: December 16, 2010
 !EOI
 !------------------------------------------------------------------------------

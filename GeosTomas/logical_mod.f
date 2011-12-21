@@ -1,4 +1,3 @@
-! $Id: logical_mod.f,v 1.2 2010/03/15 19:33:19 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -6,8 +5,8 @@
 !
 ! !MODULE: logical_mod.f
 !
-! !DESCRIPTION: Module LOGICAL_MOD contains all of the logical switches 
-!  used by GEOS-CHEM.
+! !DESCRIPTION: Module LOGICAL\_MOD contains all of the logical switches 
+!  used by GEOS-Chem.
 !\\
 !\\
 ! !INTERFACE:

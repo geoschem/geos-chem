@@ -6,7 +6,8 @@
 ! !MODULE: defineArrays
 !
 ! !DESCRIPTION: Module defineArrays defines all allocatable arrays for GTMM
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 MODULE defineArrays
@@ -15,9 +16,9 @@ MODULE defineArrays
 !  
   USE defineConstants
   
-  implicit none
+  IMPLICIT NONE
 !
-! !PUBLIC MEMBERS VARIABLE
+! !PUBLIC DATA MEMBERS:
 !  
   ! in getSoilParams
   CHARACTER(5), dimension(20000) :: years 
@@ -638,7 +639,8 @@ CONTAINS
 ! !IROUTINE: makeCASAarrays
 !
 ! !DESCRIPTION: Subroutine makeCASAarrays allocate all allocatable arrays.
-!
+!\\
+!\\
 ! !INTERFACE:
 !
   SUBROUTINE makeCASAarrays
@@ -1122,7 +1124,8 @@ CONTAINS
 ! !IROUTINE: initialize
 !
 ! !DESCRIPTION: Subroutine initialize initialize all allocatable arrays to 0
-!
+!\\
+!\\
 ! !INTERFACE:
 !   
   SUBROUTINE initialize

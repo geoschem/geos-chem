@@ -54,7 +54,7 @@
 !  96            : Sea level pressure                       [hPa      ]
 !  97            : Zonal wind (a.k.a. U-wind)               [m/s      ]
 !  98            : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  99            : P(surface) - PTOP                        [hPa      ]
+!  99            : PEDGE-$ (Pressure at level edges)        [hPa      ]
 !  100           : Temperature                              [K        ]
 !  115-121       : size resolved dust optical depth         [unitless   ]
 !  
@@ -146,6 +146,8 @@
 !        tracer #17 under "TIME-SER" category. (cdh, bmy, 2/11/08)
 !  (8 ) Bug fix: replace "PS-PTOP" with "PEDGE-$". (phs, bmy, 10/7/08)
 !  (9 ) Now save SLP under tracer #18 in "DAO-FLDS" (tai, bmy, 10/13/09)
+!  12 Nov 2010 - R. Yantosca - Save out PEDGE-$ (pressure @ level edges) rather
+!                              than PSURFACE - PTOP.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -655,9 +657,17 @@
             UNIT     = 'hPa'
             GMTRC    = 1            
             
-            IF ( K == 1 ) THEN
-               Q(1) = GET_PEDGE(I,J,1) - PTOP
-            ENDIF
+            !---------------------------------------------------------
+            ! Prior to 11/12/10:
+            ! Now save the pressure at all requested levels, rather
+            ! than the Psurface-PTOP. (bmy, 11/12/10)
+            !IF ( K == 1 ) THEN
+            !   Q(1) = GET_PEDGE(I,J,1) - PTOP
+            !ENDIF
+            !---------------------------------------------------------
+            DO L = 1, K
+               Q(L) = GET_PEDGE( I, J, K )
+            ENDDO
 
          ELSE IF ( N == 100 ) THEN
 

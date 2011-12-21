@@ -1,37 +1,46 @@
-! $Id: findmon.f,v 1.2 2009/11/30 19:57:57 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: findmon
+!
+! !DESCRIPTION: Function FINDMON finds which month JDAY (day of this year) 
+!  is in.  FINDMON is called by the Leaf Area Index routine rdlai.f.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE FINDMON( JDAY, INMONTH, INYEAR, MM, YYYY, STARTDAY )
 !
-!******************************************************************************
-!  Function FINDMON finds which month JDAY (day of this year) is in.  
-!  FINDMON is called by the Leaf Area Index routine rdlai.f.
-!  (yhw, gmg, djj, 1994; bmy, 4/4/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) JDAY     (INTEGER) : Current day of year (0-365 or 0-366, leap years)
-!  (2 ) INMONTH  (INTEGER) : Current month (1-12)
-!  (3 ) INYEAR   (INTEGER) : Current simulation year
-!  (6 ) STARTDAY (INTEGER) : Array of starting days for LAI monthly data
+      IMPLICIT NONE
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (4 ) MM       (INTEGER) : Output month number (1-12)
-!  (5 ) YYYY     (INTEGER) : Output correct year for the LAI data 
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)  :: JDAY           ! Current day of year
+      INTEGER, INTENT(IN)  :: INMONTH        ! Current month
+      INTEGER, INTENT(IN)  :: INYEAR         ! Current year
+      INTEGER, INTENT(IN)  :: STARTDAY(13)   ! Starting days for LAI data
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: MM             ! Output month for LAI
+      INTEGER, INTENT(OUT) :: YYYY           ! Output year for LAI
+!
+! !REVISION HISTORY: 
+!  05 Jan 1994 - Y. H. Wang, G.M. Gardner, D. Jacob - Initial version
 !  (1 ) Updated comments, cosmetic changes (bmy, 4/4/03)
 !  (2 ) Add the current simulation year as input & the current LAI as output.
 !       This is necessary for reading in MODIS LAI (mpb,2009).
-!******************************************************************************
+!  08 Dec 2009 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: JDAY, INMONTH, STARTDAY(13)
-      INTEGER, INTENT(IN)  :: INYEAR ! (mpb,2008)
-      INTEGER, INTENT(OUT) :: MM
-      INTEGER, INTENT(OUT) :: YYYY   ! (mpb,2008)
-
+! !LOCAL VARIABLES:
+!
       !=================================================================
       ! FINDMON begins here!
       !=================================================================
@@ -46,5 +55,5 @@
          YYYY = INYEAR           ! (mpb,2008)
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE FINDMON
+!EOC

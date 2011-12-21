@@ -1,10 +1,9 @@
-! $Id: vdiff_mod.f90,v 1.3 2009/11/19 14:48:55 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: VDIFF_MOD
+! !MODULE: vdiff_mod
 !
 ! !DESCRIPTION: Module VDIFF\_MOD includes all routines for the non-local PBL
 !  mixing scheme.
@@ -16,16 +15,14 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
-  USE TRACER_MOD, ONLY : pcnst => N_TRACERS
-  
+  USE TRACER_MOD,    ONLY : pcnst => N_TRACERS
   USE VDIFF_PRE_MOD, ONLY : LLPAR
-  
-  USE LOGICAL_MOD,  ONLY : LPRT
+  USE LOGICAL_MOD,   ONLY : LPRT
   USE ERROR_MOD,     ONLY : DEBUG_MSG
   
-  implicit none
+  IMPLICIT NONE
   
-  private
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -37,40 +34,45 @@ MODULE VDIFF_MOD
   
   integer, parameter :: plev = LLPAR, plevp = plev + 1
   
-  real*8, parameter :: &
-       rearth = 6.37122e6, & ! radius earth (m)
-       cpwv   = 1.81e3, &
-       cpair  = 1004.64, &
-       rair   = 287.04, &
-       rh2o   = 461., &
+  real*8, parameter ::          &
+       rearth = 6.37122d6,      & ! radius earth (m)
+       cpwv   = 1.81d3,         &
+       cpair  = 1004.64d0,      &
+       rair   = 287.04d0,       &
+       rh2o   = 461.d0,         &
        zvir   = rh2o/rair - 1., &
-       gravit = 9.80616, &
-       ra     = 1./rearth, &
-       epsilo = 0.622, &
-       latvap = 2.5104e06, &
-       latice = 3.336e5, &
-       cappa  = rair/cpair, &
-       rhoh2o = 1.e3, &
-       r_g    = rair / gravit, &
-       tfh2o  = 273.16
+       gravit = 9.80616d0,      &
+       ra     = 1.d0/rearth,    &
+       epsilo = 0.622d0,        &
+       latvap = 2.5104d06,      &
+       latice = 3.336d5,        &
+       cappa  = rair/cpair,     &
+       rhoh2o = 1.d3,           &
+       r_g    = rair / gravit,  &
+       tfh2o  = 273.16d0
 
 !-----------------------------------------------------------------------
 ! 	... pbl constants
 !-----------------------------------------------------------------------
-  real*8 :: &
-       betam = 15., &   ! constant in wind gradient expression
-       betas = 5., &    ! constant in surface layer gradient expression
-       betah = 15., &   ! constant in temperature gradient expression 
-       fak = 8.5, &     ! constant in surface temperature excess         
-       g, &             ! gravitational acceleration
-       onet, &          ! 1/3 power in wind gradient expression
-       fakn = 7.2, &    ! constant in turbulent prandtl number
-       ricr = .3, &     ! critical richardson number
-       sffrac = .1, &   ! surface layer fraction of boundary layer
-       vk = .4, &       ! von karmans constant
-       ccon, &          ! fak * sffrac * vk
-       binm, &          ! betam * sffrac
-       binh             ! betah * sffrac
+
+  ! These are constants, so use PARAMETER tag
+  real*8, parameter ::   &
+       betam  = 15.d0,   & ! constant in wind gradient expression
+       betas  =  5.d0,   & ! constant in surface layer gradient expression
+       betah  = 15.d0,   & ! constant in temperature gradient expression 
+       fak    =  8.5d0,  & ! constant in surface temperature excess         
+       fakn   =  7.2d0,  & ! constant in turbulent prandtl number
+       ricr   =   .3d0,  & ! critical richardson number
+       sffrac =   .1d0,  & ! surface layer fraction of boundary layer
+       vk     =   .4d0     ! von karmans constant
+
+  ! These are assigned later, so we can't use the PARAMETER tag
+  real*8 ::              & 
+       g,                & ! gravitational acceleration
+       onet,             & ! 1/3 power in wind gradient expression
+       ccon,             & ! fak * sffrac * vk
+       binm,             & ! betam * sffrac
+       binh                ! betah * sffrac
 
 !-----------------------------------------------------------------------
 ! 	... constants used in vertical diffusion and pbl
@@ -85,20 +87,29 @@ MODULE VDIFF_MOD
        ntopfl, &        ! top level to which vertical diffusion is applied.
        npbl             ! maximum number of levels in pbl from surface
 
-  logical :: divdiff = .true. , arvdiff = .false.
+  logical, parameter :: divdiff = .true. , arvdiff = .false.
   
-  logical :: pblh_ar = .true.
+  logical, parameter :: pblh_ar = .true.
   
-  logical :: pbl_mean_drydep = .false. ! use mean concentration within the 
-                                       !  PBL for calculating drydep fluxes
-  logical :: drydep_back_cons = .false. ! backward consistency with previous 
-                                        !  GEOS-Chem drydep budgets 
-                                        !-- useless when 
-                                        !    pbl_mean_drydep = .false.
+  logical, parameter :: pbl_mean_drydep = .false.  ! use mean concentration 
+                                                   !  within the  PBL for 
+                                                   ! calculating drydep fluxes
+  logical, parameter :: drydep_back_cons = .false. ! backward consistency 
+                                                   !  with previous GEOS-Chem 
+                                                   !  drydep budgets 
+                                                   !-- useless when 
+                                                   !   pbl_mean_drydep=.false.
 !
 ! !REVISION HISTORY:
 !  (1 ) This code is modified from mo_vdiff.F90 in MOZART-2.4. (lin, 5/14/09)
 !  07 Oct 2009 - R. Yantosca - Added CVS Id Tag
+!  24 Sep 2010 - J. Lin      - Modified ND15 to account for all mixing
+!                              processes but not dry deposition and emissions.
+!  17 Dec 2010 - R. Yantosca - Declare constants w/ the PARAMETER attribute
+!  20 Dec 2010 - R. Yantosca - Bug fixes for the parallelization
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
+!  25 Mar 2011 - R. Yantosca - Corrected bug fixes noted by Jintai Lin
 !EOP
 !------------------------------------------------------------------------------
 
@@ -109,7 +120,7 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBINTI
+! !IROUTINE: pbinti
 !
 ! !DESCRIPTION: Subroutine PBINTI initializes time independent variables 
 !  of pbl package
@@ -129,6 +140,8 @@ contains
     real*8, intent(in) :: gravx     !  acceleration of gravity
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,7 +152,7 @@ contains
 ! 	... basic constants
 !-----------------------------------------------------------------------
     g    = gravx
-    onet = 1./3.
+    onet = 1d0/3.d0
     
 !-----------------------------------------------------------------------
 ! 	... derived constants
@@ -159,21 +172,6 @@ contains
 ! !DESCRIPTION:
 !  Subroutine vdiff is the driver routine to compute vertical diffusion of 
 !  momentum, moisture, trace constituents and potential temperature. 
-!
-!  Free atmosphere diffusivities are computed first; then modified by the 
-!  boundary layer scheme; then passed to individual parameterizations mvdiff, 
-!  qvdiff.
-!
-!  The free atmosphere diffusivities are based on standard mixing length forms 
-!  for the neutral diffusivity multiplied by functions of Richardson number. 
-!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum, 
-!  potential temperature, and constitutents.
-!
-!  The stable Richardson num function (ri>0) is taken from Holtslag and 
-!  Beljaars (1989), ECMWF proceedings. f = 1 / (1 + 10*ri*(1 + 8*ri)).
-!  The unstable richardson number function (ri<0) is taken from ccm1.
-!  f = sqrt(1 - 18*ri)
-!
 !\\
 !\\
 ! !INTERFACE:
@@ -187,6 +185,11 @@ contains
 !
 ! !USES:
 !
+    USE DIAG_MOD,     ONLY : TURBFLUP
+    USE VDIFF_PRE_MOD, ONLY : ND15
+    USE TRACER_MOD,   ONLY : TCVV
+    USE DAO_MOD,      ONLY : AD
+
     implicit none
 !
 ! !INPUT PARAMETERS: 
@@ -232,10 +235,28 @@ contains
     real*8, intent(inout) :: pblh_arg(:,:) ! boundary-layer height [m]
 
 !
-! !REVISION HISTORY:
+! !REMARKS:
+!  Free atmosphere diffusivities are computed first; then modified by the 
+!  boundary layer scheme; then passed to individual parameterizations mvdiff, 
+!  qvdiff.
 !
+!  The free atmosphere diffusivities are based on standard mixing length forms 
+!  for the neutral diffusivity multiplied by functions of Richardson number. 
+!  k = l^2 * |dv/dz| * f(ri). The same functions are used for momentum, 
+!  potential temperature, and constitutents.
+!
+!  The stable Richardson num function (ri>0) is taken from Holtslag and 
+!  Beljaars (1989), ECMWF proceedings. f = 1 / (1 + 10*ri*(1 + 8*ri)).
+!  The unstable richardson number function (ri<0) is taken from ccm1.
+!  f = sqrt(1 - 18*ri)
+!
+! !REVISION HISTORY:
 ! (1 ) All arguments are full arrays now. Latitude slices are copied in local
-!      variables. (ccc, 11/19/09) 
+!      variables. (ccc, 11/19/09)
+!  24 Sep 2010 - J. Lin      - Moved call to ND15 at the end of vdiff.
+!                              Modified to account for all mixing processes.
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -244,7 +265,7 @@ contains
 !
     integer :: &
          i, &                   ! longitude index
-         k, &                   ! vertical index
+         k, l, &                ! vertical index
          m                      ! constituent index
     integer :: &
          indx(plonl), &         ! array of indices of potential q<0
@@ -314,17 +335,20 @@ contains
          cgs(plonl,plevp)          ! counter-grad star (cg/flux)
 
     real*8 :: &
-        taux(plonl), &            ! x surface stress (n)
-        tauy(plonl), &            ! y surface stress (n)
-        ustar(plonl)              ! surface friction velocity
+        taux(plonl), &             ! x surface stress (n)
+        tauy(plonl), &             ! y surface stress (n)
+        ustar(plonl)               ! surface friction velocity
 
-    real*8 :: pblh(plonl) ! boundary-layer height [m]
+    real*8 :: pblh(plonl)          ! boundary-layer height [m]
+
+    real*8 :: qp0(plonl,plev,pcnst) ! To store initial concentration values
+                                    ! (as2)
 
     !=================================================================
     ! vdiff begins here!
     !=================================================================
 
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
@@ -341,6 +365,7 @@ contains
     cflx   = sflx(:,lat,:)
     wvflx  = wvflx_arg(:,lat)
     qp1    = as2(:,lat,:,:)
+    qp0    = as2(:,lat,:,:)
     shp1   = shp(:,lat,:)
     thp    = thp_arg(:,lat,:)
     kvh    = kvh_arg(:,lat,:)
@@ -354,11 +379,10 @@ contains
     IF (PRESENT(tauy_arg )) tauy  = tauy_arg(:,lat)
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
 
-
 !-----------------------------------------------------------------------
 ! 	... convert the surface fluxes to lowest level tendencies
 !-----------------------------------------------------------------------
-    rcpair = 1./cpair
+    rcpair = 1.d0/cpair
     do i = 1,plonl
        tmp1(i)      = ztodt*gravit*rpdel(i,plev)
        ! simplified treatment -- dubot and dvbot are not used under current PBL scheme, anyway
@@ -369,7 +393,7 @@ contains
        endif
        dshbot(i)    = wvflx(i)*tmp1(i)
        dtbot(i)     = shflx(i)*tmp1(i)*rcpair
-       kvf(i,plevp) = 0.
+       kvf(i,plevp) = 0.d0
     end do
     do m = 1,pcnst
        dqbot(:plonl,m) = cflx(:plonl,m)*tmp1(:plonl)
@@ -383,7 +407,7 @@ contains
 ! 	... set the vertical diffusion coefficient above the top diffusion level
 !-----------------------------------------------------------------------
     do k = 1,ntopfl
-       kvf(:plonl,k) = 0.
+       kvf(:plonl,k) = 0.d0
     end do
 
 !-----------------------------------------------------------------------
@@ -411,23 +435,23 @@ contains
 ! 	... vertical shear squared, min value of (delta v)**2 prevents zero shear.
 !-----------------------------------------------------------------------
           dvdz2 = (um1(i,k) - um1(i,k+1))**2 + (vm1(i,k) - vm1(i,k+1))**2
-          dvdz2 = max( dvdz2,1.e-36 )
+          dvdz2 = max( dvdz2,1.d-36 )
           dz    = zm(i,k) - zm(i,k+1)
           dvdz2 = dvdz2/(dz**2)
 !-----------------------------------------------------------------------
 ! 	... static stability (use virtual potential temperature)
 !-----------------------------------------------------------------------
-          sstab = gravit*2.*(thv(i,k) - thv(i,k+1))/((thv(i,k) + thv(i,k+1))*dz)
+          sstab = gravit*2.d0*(thv(i,k) - thv(i,k+1))/((thv(i,k) + thv(i,k+1))*dz)
 !-----------------------------------------------------------------------
 ! 	... richardson number, stable and unstable modifying functions
 !-----------------------------------------------------------------------
           rinub = sstab/dvdz2
-          fstab = 1.0/(1.0 + 10.0*rinub*(1.0 + 8.0*rinub))
-          funst = max( 1. - 18.*rinub,0. )
+          fstab = 1.0d0/(1.0d0 + 10.0d0*rinub*(1.0d0 + 8.0d0*rinub))
+          funst = max( 1.d0 - 18.d0*rinub,0.d0 )
 !-----------------------------------------------------------------------
 ! 	... select the appropriate function of the richardson number
 !-----------------------------------------------------------------------
-          if( rinub < 0. ) then
+          if( rinub < 0.d0 ) then
              fstab = sqrt( funst )
           end if
 !-----------------------------------------------------------------------
@@ -443,7 +467,7 @@ contains
        end do
     end do
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
@@ -471,7 +495,7 @@ contains
                     wvflx, cgsh, plonl, ustar=ustar )
     endif
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
@@ -496,7 +520,7 @@ contains
     end do
     do k = 2,plev
        do i = 1,plonl
-          potbar(i,k) = pintm1(i,k)/(.5*(tm1(i,k) + tm1(i,k-1)))
+          potbar(i,k) = pintm1(i,k)/(.5d0*(tm1(i,k) + tm1(i,k-1)))
        end do
     end do
     do i = 1,plonl
@@ -556,6 +580,7 @@ contains
           end do
        end if
     end do
+
 !-----------------------------------------------------------------------
 ! 	... repeat above for sh
 !-----------------------------------------------------------------------
@@ -565,7 +590,7 @@ contains
 !-----------------------------------------------------------------------
 ! 	... 1.e-12 is the value of qmin (=qmincg) used in ccm2.
 !-----------------------------------------------------------------------
-          if( shmx(i,k) < 1.e-12 ) then
+          if( shmx(i,k) < 1.d-12 ) then
              adjust(i) = .true.
           end if
        end do
@@ -605,29 +630,29 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.
-       cam(i,plev) = 0.
+       cah(i,plev) = 0.d0
+       cam(i,plev) = 0.d0
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat & momentum vertical diffusion.  this term is 
 !           required in solution of tridiagonal matrix defined by implicit diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1./(1. + cah(i,ntopfl))
-       termm(i,ntopfl) = 1./(1. + cam(i,ntopfl))
+       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
+       termm(i,ntopfl) = 1.d0/(1.d0 + cam(i,ntopfl))
        zeh(i,ntopfl)   = cah(i,ntopfl)*termh(i,ntopfl)
        zem(i,ntopfl)   = cam(i,ntopfl)*termm(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1./(1. + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
-          termm(i,k) = 1./(1. + cam(i,k) + ccm(i,k) - ccm(i,k)*zem(i,k-1))
+          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
+          termm(i,k) = 1.d0/(1.d0 + cam(i,k) + ccm(i,k) - ccm(i,k)*zem(i,k-1))
           zeh(i,k)   = cah(i,k)*termh(i,k)
           zem(i,k)   = cam(i,k)*termm(i,k)
        end do
     end do
     
-!      !### Debug
+    !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
@@ -642,8 +667,8 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1, plonl )
 ! just use a simplified treatment
-    where (qp1 < 0.)
-       qp1 = 0.
+    where (qp1 < 0.d0)
+       qp1 = 0.d0
     endwhere
 
 !-----------------------------------------------------------------------
@@ -657,8 +682,8 @@ contains
 !-----------------------------------------------------------------------
 !      call shneg( 'vdiff:sh', lat, shp1, plonl )
 ! just use a simplified treatment
-    where (shp1 < 1.e-12)
-       shp1 = 0.
+    where (shp1 < 1.d-12)
+       shp1 = 0.d0
     endwhere
 
 !-----------------------------------------------------------------------
@@ -682,6 +707,35 @@ contains
     IF (PRESENT(tauy_arg )) tauy_arg(:,lat)  = tauy   
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar  
 
+    !=======================================================
+    ! ND15 Diagnostic: 
+    ! mass change due to mixing in the boundary layer
+    ! ND15 diagnostic moved here to not count the emissions
+    ! and dry deposition in the Turbulent Flux.
+    ! Needs to call qvdiff with emis+dep = 0 (dqbot) to 
+    ! account for all mixing. (ccc, 9/24/10)
+    !=======================================================
+    IF ( ND15 > 0 ) THEN
+
+       dqbot = 0d0
+       call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
+            termh, qp1, plonl )
+
+       DO M = 1, pcnst
+       DO L = 1, plev 
+       do I = 1, plonl
+          ! Arrays in vdiff are upside-down
+          K = plev - L + 1
+          ! qp1 and qp0 are volume mixing ratio
+          TURBFLUP(I,lat,k,M) = TURBFLUP(I,lat,k,M) &
+                              + (qp1(I,L,M) - qp0(I,L,M)) * AD(I,lat,k) &
+                              / ( TCVV(M) * ztodt )
+       enddo
+       enddo
+       ENDDO
+
+    ENDIF
+
   end subroutine vdiff
 !EOC
 !------------------------------------------------------------------------------
@@ -689,7 +743,7 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBLDIF
+! !IROUTINE: pbldif
 !
 ! !DESCRIPTION: Subroutine PBLDIF computes the atmospheric boundary layer.
 !  The nonlocal scheme determines eddy diffusivities based on a diagnosed 
@@ -697,15 +751,16 @@ contains
 !  effects for heat and moisture, and constituents are included, along with 
 !  temperature and humidity perturbations which measure the strength of 
 !  convective thermals in the lower part of the atmospheric boundary layer.
+!\\
+!\\
+! References:
 !
-!\subsection*{References}
 !  \begin{enumerate}
 !  \item Holtslag, A. A. M., and B. A. Boville, 1993: \emph{Local versus 
 !         nonlocal boundary-layer diffusion in a global climate model}, 
 !         \underline{J. Clim.}, \textbf{6}, 1825-1842.
 !  \end{enumerate}
-!\\
-!\\
+!
 ! !INTERFACE:
 !
   subroutine pbldif( th      ,q       ,z       ,u       ,v, &
@@ -758,13 +813,15 @@ contains
          qpert(plonl)               ! convective humidity excess
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    real*8, parameter :: tiny = 1.e-36      ! lower bound for wind magnitude
+    real*8, parameter :: tiny = 1.d-36      ! lower bound for wind magnitude
     
     integer :: &
          i, &                 ! longitude index
@@ -839,13 +896,13 @@ contains
     do k = 1,plevp
        kvm(:,k)  = kvf(:,k)
        kvh(:,k)  = kvf(:,k)
-       cgh(:,k)  = 0.
-       cgsh(:,k) = 0.
-       cgs(:,k)  = 0.
+       cgh(:,k)  = 0.d0
+       cgsh(:,k) = 0.d0
+       cgs(:,k)  = 0.d0
     end do
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.
+          cgq(:,k,m) = 0.d0
        end do
     end do
 
@@ -853,27 +910,27 @@ contains
 ! 	... compute various arrays for use later:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       thvsrf(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
-       heatv(i)  = khfs(i) + 0.61*th(i,plev)*kshfs(i)
-       wm(i)     = 0.
-       therm(i)  = 0.
-       qpert(i)  = 0.
-       tpert(i)  = 0.
-       fak3(i)   = 0.  
-       zh(i)     = 0.  
+       thvsrf(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
+       heatv(i)  = khfs(i) + 0.61d0*th(i,plev)*kshfs(i)
+       wm(i)     = 0.d0
+       therm(i)  = 0.d0
+       qpert(i)  = 0.d0
+       tpert(i)  = 0.d0
+       fak3(i)   = 0.d0  
+       zh(i)     = 0.d0  
        obklen(i) = -thvsrf(i)*ustar(i)**3 &
-                   /(g*vk*(heatv(i) + sign( 1.e-10,heatv(i) )))
+                   /(g*vk*(heatv(i) + sign( 1.d-10,heatv(i) )))
     end do
     
     if (pblh_ar) then  ! use archived PBLH
        
        do i = 1,plonl
-          if( heatv(i) > 0. ) then
+          if( heatv(i) > 0.d0 ) then
              unstbl(i) = .true.
           else
              unstbl(i) = .false.
           end if
-          thvref(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
        end do
 
     else ! use derived PBLH
@@ -885,14 +942,14 @@ contains
 !------------------------------------------------------------------------
        fac = 100.
        do i = 1,plonl
-          thvref(i) = th(i,plev)*(1.0 + 0.61*q(i,plev))
+          thvref(i) = th(i,plev)*(1.0d0 + 0.61d0*q(i,plev))
           pblh(i)   = z(i,plev)
           check(i)  = .true.
 !------------------------------------------------------------------------
 ! 	... initialization of lowest level ri number 
 !           (neglected in initial holtslag implementation)
 !------------------------------------------------------------------------
-          rino(i,plev) = 0.
+          rino(i,plev) = 0.d0
        end do
 
 !------------------------------------------------------------------------
@@ -906,7 +963,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 + &
                       fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + .61*q(i,k))
+                tkv = th(i,k)*(1. + .61d0*q(i,k))
                 rino(i,k) = g*(tkv - thvref(i))*(z(i,k)-z(i,plev))/ &
                             (thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -934,7 +991,7 @@ contains
 !           find unstable points (virtual heat flux is positive):
 !------------------------------------------------------------------------
        do i = 1,plonl
-          if( heatv(i) > 0. ) then
+          if( heatv(i) > 0.d0 ) then
              unstbl(i) = .true.
              check(i)  = .true.
           else
@@ -949,10 +1006,10 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( check(i) ) then
-             phiminv(i)   = (1. - binm*pblh(i)/obklen(i))**onet
+             phiminv(i)   = (1.d0 - binm*pblh(i)/obklen(i))**onet
              wm(i)        = ustar(i)*phiminv(i)
              therm(i)     = heatv(i)*fak/wm(i)       
-             rino(i,plev) = 0.
+             rino(i,plev) = 0.d0
              tlv(i)       = thvref(i) + therm(i)
           end if
        end do
@@ -967,7 +1024,7 @@ contains
                 vvk = (u(i,k) - u(i,plev))**2 + (v(i,k) - v(i,plev))**2 &
                       + fac*ustar(i)**2
                 vvk = max( vvk,tiny )
-                tkv = th(i,k)*(1. + 0.61*q(i,k))
+                tkv = th(i,k)*(1. + 0.61d0*q(i,k))
                 rino(i,k) = g*(tkv - tlv(i))*(z(i,k)-z(i,plev)) &
                             /(thvref(i)*vvk)
                 if( rino(i,k) >= ricr ) then
@@ -1002,7 +1059,7 @@ contains
 ! latitude value for f so that c = 0.07/f = 700.
 !------------------------------------------------------------------------
        do i = 1,plonl
-          pblmin  = 700.*ustar(i)
+          pblmin  = 700.d0*ustar(i)
           pblh(i) = max( pblh(i),pblmin )
        end do
        
@@ -1013,24 +1070,24 @@ contains
 ! 	... pblh is now available; do preparation for diffusivity calculation:
 !------------------------------------------------------------------------
     do i = 1,plonl
-       pblk(i) = 0.
+       pblk(i) = 0.d0
        fak1(i) = ustar(i)*pblh(i)*vk
 !------------------------------------------------------------------------
 ! 	... do additional preparation for unstable cases only, set temperature
 !           and moisture perturbations depending on stability.
 !------------------------------------------------------------------------
        if( unstbl(i) ) then
-          phiminv(i) = (1. - binm*pblh(i)/obklen(i))**onet
-          phihinv(i) = sqrt(1. - binh*pblh(i)/obklen(i))
+          phiminv(i) = (1.d0 - binm*pblh(i)/obklen(i))**onet
+          phihinv(i) = sqrt(1.d0 - binh*pblh(i)/obklen(i))
           wm(i)      = ustar(i)*phiminv(i)
           fak2(i)    = wm(i)*pblh(i)*vk
           wstr(i)    = (heatv(i)*g*pblh(i)/thvref(i))**onet 
           fak3(i)    = fakn*wstr(i)/wm(i)
-          tpert(i)   = max( khfs(i)*fak/wm(i),0. )   
-          qpert(i)   = max( kshfs(i)*fak/wm(i),0. )    
+          tpert(i)   = max( khfs(i)*fak/wm(i),0.d0 )   
+          qpert(i)   = max( kshfs(i)*fak/wm(i),0.d0 )    
        else
-          tpert(i)   = max( khfs(i)*fak/ustar(i),0. ) 
-          qpert(i)   = max( kshfs(i)*fak/ustar(i),0. ) 
+          tpert(i)   = max( khfs(i)*fak/ustar(i),0.d0 ) 
+          qpert(i)   = max( kshfs(i)*fak/ustar(i),0.d0 ) 
        end if
     end do
 
@@ -1046,17 +1103,17 @@ contains
           stblev(i) = .false.
           zm(i) = z(i,k)
           zp(i) = z(i,k-1)
-          if( zkmin == 0. .and. zp(i) > pblh(i) ) then
+          if( zkmin == 0.d0 .and. zp(i) > pblh(i) ) then
              zp(i) = pblh(i)
           end if
           if( zm(i) < pblh(i) ) then
-             zmzp = 0.5*(zm(i) + zp(i))
+             zmzp = 0.5d0*(zm(i) + zp(i))
              zh(i) = zmzp/pblh(i)
              zl(i) = zmzp/obklen(i)
-             if( zh(i) <= 1. ) then
-                zzh(i) = (1. - zh(i))**2
+             if( zh(i) <= 1.d0 ) then
+                zzh(i) = (1.d0 - zh(i))**2
              else
-                zzh(i) = 0.
+                zzh(i) = 0.d0
              end if
 !------------------------------------------------------------------------
 ! 	... stblev for points zm < plbh and stable and neutral
@@ -1075,7 +1132,7 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( stblev(i) ) then
-             if( zl(i) <= 1. ) then
+             if( zl(i) <= 1.d0 ) then
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(1. + betas*zl(i))
              else
                 pblk(i) = fak1(i)*zh(i)*zzh(i)/(betas + zl(i))
@@ -1104,9 +1161,9 @@ contains
 !------------------------------------------------------------------------
        do i = 1,plonl
           if( unssrf(i) ) then
-             term    = (1. - betam*zl(i))**onet
+             term    = (1.d0 - betam*zl(i))**onet
              pblk(i) = fak1(i)*zh(i)*zzh(i)*term
-             pr(i)   = term/sqrt(1. - betah*zl(i))
+             pr(i)   = term/sqrt(1.d0 - betah*zl(i))
           end if
        end do
 !------------------------------------------------------------------------
@@ -1147,15 +1204,12 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: QVDIFF
+! !IROUTINE: qvdiff
 !
 ! !DESCRIPTION: Subroutine QVDIFF solve vertical diffusion eqtn for constituent
 !  with explicit srfc flux.
-! 
-!  Procedure for solution of the implicit equation follows :
-!  Richtmyer and Morton (1967,pp 198-199)
 !\\
-!\\
+!\\ 
 ! !INTERFACE:
 !
   subroutine qvdiff( ncnst, qm1, qflx, cc, ze, &
@@ -1187,7 +1241,13 @@ contains
     real*8, intent(out) :: &
          qp1(plonl,plev,ncnst)    ! final constituent
 !
+! !REMARKS:
+!  Procedure for solution of the implicit equation follows :
+!  Richtmyer and Morton (1967,pp 198-199)
+!
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1224,7 +1284,7 @@ contains
 ! 	... bottom level: (includes  surface fluxes)
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1d(i) = 1./(1. + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
+       tmp1d(i) = 1.d0/(1.d0 + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
        ze(i,plev) = 0.
     end do
     do m = 1,ncnst
@@ -1254,17 +1314,16 @@ contains
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDIFFAR
+! !IROUTINE: vdiffar
 !
 ! !DESCRIPTION: Subroutine VDIFFAR is the driver routine to compute vertical 
 !  diffusion of trace constituents using archived coefficients for cgs and kvh.
 !  This is a gutted version of vdiff.
-!
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine vdiffar( lat   ,tadv , &
+  SUBROUTINE VDIFFAR( lat   ,tadv , &
                       pmid  ,pint ,rpdel_arg ,rpdeli_arg  ,ztodt, &
                       sflx  ,as2  ,kvh_arg   ,cgs_arg     ,plonl )
 !
@@ -1293,6 +1352,8 @@ contains
          as2(:,:,:,:)     ! moist, tracers after vert. diff
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1380,7 +1441,7 @@ contains
        end do
     end do
     do k = 2,plev
-       potbar(:,k) = pintm1(:,k)/(.5*(tm1(:,k) + tm1(:,k-1)))
+       potbar(:,k) = pintm1(:,k)/(.5d0*(tm1(:,k) + tm1(:,k-1)))
     end do
     potbar(:,plevp) = pintm1(:,plevp)/tm1(:,plev)
 
@@ -1451,7 +1512,7 @@ contains
 ! 	... the last element of the upper diagonal is zero.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       cah(i,plev) = 0.
+       cah(i,plev) = 0.d0
     end do
 !-----------------------------------------------------------------------
 ! 	... calculate e(k) for heat vertical diffusion.  this term is 
@@ -1459,12 +1520,12 @@ contains
 !           diffusion eqn.
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       termh(i,ntopfl) = 1./(1. + cah(i,ntopfl))
+       termh(i,ntopfl) = 1.d0/(1.d0 + cah(i,ntopfl))
        zeh(i,ntopfl) = cah(i,ntopfl)*termh(i,ntopfl)
     end do
     do k = ntopfl+1,plev-1
        do i = 1,plonl
-          termh(i,k) = 1./(1. + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
+          termh(i,k) = 1.d0/(1.d0 + cah(i,k) + cch(i,k) - cch(i,k)*zeh(i,k-1))
           zeh(i,k) = cah(i,k)*termh(i,k)
        end do
     end do
@@ -1478,30 +1539,29 @@ contains
 !-----------------------------------------------------------------------
 !      call qneg3( 'vdiff   ', lat, qp1(1,1,1), plonl )
 !     simplified treatment
-    where (qp1 < 0.)
-       qp1 = 0.
+    where (qp1 < 0.d0)
+       qp1 = 0.d0
     endwhere
     
     !Output values from local variables to arguments.(ccc, 11/17/09)
     as2(:,lat,:,:) = qp1
     
-  end subroutine vdiffar
+  END SUBROUTINE VDIFFAR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: PBLDIFAR
+! !IROUTINE: pbldifar
 !
-! !DESCRIPTION: Subroutine PBLDIFAR is a  modified version of pbldif which only
+! !DESCRIPTION: Subroutine PBLDIFAR is a modified version of pbldif which only
 !  calculates cgq given cgs.
-! 
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine pbldifar( t, pmid, cflx, cgs, cgq, plonl )
+  SUBROUTINE PBLDIFAR( t, pmid, cflx, cgs, cgq, plonl )
 ! 
 ! !USES:
 !
@@ -1523,6 +1583,8 @@ contains
          cgq(plonl,plevp,pcnst)  ! counter-gradient term for constituents
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1553,7 +1615,7 @@ contains
 !------------------------------------------------------------------------
     do m = 1,pcnst
        do k = 1,plevp
-          cgq(:,k,m) = 0.
+          cgq(:,k,m) = 0.d0
        end do
     end do
 !------------------------------------------------------------------------
@@ -1565,23 +1627,22 @@ contains
        end do
     end do
 
-  end subroutine pbldifar
+  END SUBROUTINE PBLDIFAR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDINTI
+! !IROUTINE: vdinti
 !
 ! !DESCRIPTION: Subroutine VDINTI initializes time independent fields for 
 !  vertical diffusion. Calls initialization routine for boundary layer scheme.
-!
 !\\
 !\\
 ! !INTERFACE:
 !
-  subroutine vdinti
+  SUBROUTINE VDINTI
 !
 ! !USES:
 ! 
@@ -1591,6 +1652,8 @@ contains
     implicit none
 !
 ! !REVISION HISTORY: 
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1613,17 +1676,19 @@ contains
 ! 	... hard-wired numbers.
 !           zkmin = minimum k = kneutral*f(ri)
 !-----------------------------------------------------------------------
-    zkmin = .01
+    zkmin = .01d0
 
 !-----------------------------------------------------------------------
 ! 	... set physical constants for vertical diffusion and pbl
 !-----------------------------------------------------------------------
+
+    ! REF_PMID is indexed with K=1 being the atm. top and K=PLEV being 
+    ! the surface.  Eliminate call to UPSIDEDOWN (bmy, 12/21/10)
     do k = 1, plev
-       ref_pmid(k) = 0.5*(GET_AP(k)*100. + GET_BP(k)*1.e5 + &
-                     GET_AP(k+1)*100. + GET_BP(k+1)*1.e5)
+       ref_pmid(plev-k+1) = 0.5d0*( GET_AP(k  )*100.d0 + GET_BP(k  )*1.d5 + &
+                                    GET_AP(k+1)*100.d0 + GET_BP(k+1)*1.d5 )
     enddo
-    call upsidedown(ref_pmid)
-      
+
 !-----------------------------------------------------------------------
 ! 	... derived constants
 !           ntopfl = top level to which v-diff is applied
@@ -1636,7 +1701,7 @@ contains
     end do
     npbl = max( 1,plev - k )
     write(*,*) 'vdinti: pbl height will be limited to bottom ',npbl, &
-               ' model levels. top is ',1.e-2*ref_pmid(plevp-npbl),' hpa'
+               ' model levels. top is ',1.d-2*ref_pmid(plevp-npbl),' hpa'
     if( plev == 1 ) then
        ntopfl = 0
     else
@@ -1646,11 +1711,11 @@ contains
 !-----------------------------------------------------------------------
 ! 	... set the square of the mixing lengths
 !-----------------------------------------------------------------------
-    ml2(1) = 0.
+    ml2(1) = 0.d0
     do k = 2,plev
-       ml2(k) = 30.**2
+       ml2(k) = (30.d0)**2
     end do
-    ml2(plevp) = 0.
+    ml2(plevp) = 0.d0
 !-----------------------------------------------------------------------
 ! 	... set the minimum mixing ratio for the counter-gradient term.
 !           normally this should be the same as qmin.
@@ -1668,33 +1733,30 @@ contains
 !-----------------------------------------------------------------------
     call pbinti( gravit)
 
-  end subroutine vdinti
+  END SUBROUTINE VDINTI
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: VDIFFDR
+! !IROUTINE: vdiffdr
 !
 ! !DESCRIPTION: Subroutine VDIFFDR calculates the vertical diffusion on a 
 !  latitude slice of data.
 !
-! !REMARKS:
 !  \begin{enumerate}
 !  \item The dummy argument as2 is in v\/v. (lin, 06/04/08)
-!  \item TCVV and TRACER_MW_KG assume 12 g/mol for all HCs. Thus, when using 
+!  \item TCVV and TRACER\_MW\_KG assume 12 g/mol for all HCs. Thus, when using 
 !         them to convert units of HCs to be the inputs for vdiffdr, the
 !         converted units are NOT kg/kg for concentrations and kg/m2/s for 
 !         surface flux. However, since the units for both inputs are 
 !         consistent, there should not be any problem. (lin, 06/04/08)
 !  \end{enumerate}
-! 
-!\\
-!\\
+!
 ! !INTERFACE:
 !
-  subroutine vdiffdr(as2)
+  SUBROUTINE VDIFFDR(as2)
 !
 ! !USES:
 ! 
@@ -1714,10 +1776,14 @@ contains
     USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m, COMPUTE_PBL_HEIGHT, &
                              GET_PBL_MAX_L, GET_FRAC_UNDER_PBLTOP
 
-    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND15, ND44, &
+!    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND15, ND44, &
+!                              NDRYDEP, emis_save
+!
+!    USE DIAG_MOD,     ONLY : TURBFLUP, AD44
+    USE VDIFF_PRE_MOD, ONLY : IIPAR, JJPAR, IDEMS, NEMIS, NCS, ND44, &
                               NDRYDEP, emis_save
 
-    USE DIAG_MOD,     ONLY : TURBFLUP, AD44
+    USE DIAG_MOD,     ONLY : AD44
     USE GRID_MOD,     ONLY : GET_AREA_M2
 
     USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM ! (cdh 8/28/09)
@@ -1728,6 +1794,7 @@ contains
     USE DAO_MOD,      ONLY : LWI, IS_ICE, IS_LAND, SNOMAS, SNOW !cdh
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
     USE DRYDEP_MOD,   ONLY : DRYHg0, DRYHg2, DRYHgP !cdh
+    USE TRACER_MOD,   ONLY: ITS_A_FULLCHEM_SIM  !bmy
 
 
 #   include "define.h"
@@ -1744,7 +1811,16 @@ contains
 !
 ! (1 ) Calls to vdiff and vdiffar are now done with full arrays as arguments.
 !       (ccc, 11/19/09)
-! 4 June 2010  - C. Carouge  - Updates for mercury simulations with GTMM 
+!  04 Jun 2010 - C. Carouge  - Updates for mercury simulations with GTMM 
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  24 Sep 2010 - J. Lin      - Move ND15 to vdiff.  
+!  21 Dec 2010 - R. Yantosca - Add logical flags for different sim types
+!  21 Dec 2010 - R. Yantosca - Now call ITS_A_FULLCHEM_SIM instead of
+!                              relying on NCS == 0
+!  22 Dec 2010 - C. Carouge  - Combine array flipping w/ unit conversion 
+!                              to save on operations
+!  02 Mar 2011 - R. Yantosca - Bug fixes for PGI compiler: these mostly
+!                              involve explicitly using "D" exponents
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1772,32 +1848,60 @@ contains
       
     REAL*8  :: DEP_KG !(cdh, 8/28/09)
 
+    ! Array to store a single level of the AS2 array,
+    ! so as not to blow up the parallelization (ccc, 12/22.10)
+    REAL*8, dimension(IIPAR, JJPAR, N_TRACERS)  :: as2_scal
+
+    ! Add flags
+    LOGICAL :: IS_CH4, IS_FULLCHEM, IS_Hg, IS_TAGOx, IS_TAGCO
+
     !=================================================================
     ! vdiffdr begins here!
     !=================================================================
 
-!      !### Debug
+    !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
     
+    ! Initialize local arrays. (ccc, 12/21/10)
+    pmid    = 0d0
+    rpdel   = 0d0
+    rpdeli  = 0d0
+    zm      = 0d0
+    pint    = 0d0
+    sflx    = 0d0
+    eflx    = 0d0
+    dflx    = 0d0
+    cgs     = 0d0
+    kvh     = 0d0
+    kvm     = 0d0
+    pblh    = 0d0
+    tpert   = 0d0
+    qpert   = 0d0
+    thp     = 0d0
+    shflx   = 0d0
+    t1      = 0d0
+    as2_scal= 0d0
+
+    ! Test for different types of simulations and save in local variables/
+    ! These are used in the parallel DO loops below (bmy, 12/21/10)
+    IS_CH4      = ITS_A_CH4_SIM()
+    IS_FULLCHEM = ITS_A_FULLCHEM_SIM()
+    IS_Hg       = ITS_A_MERCURY_SIM()
+    IS_TAGCO    = ITS_A_TAGCO_SIM()
+    IS_TAGOX    = ITS_A_TAGOX_SIM()
+
     dtime = GET_TS_CONV()*60d0 ! min -> second
     
     shflx = eflux / latvap ! latent heat -> water vapor flux
     
-    as = as2 ! save tracer MR before vdiffdr
-    
-    ! initialization
-    eflx = 0.d0
-    dflx = 0.d0
-    sflx = 0.d0
-
 !$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L )
     do J = 1, JJPAR
     do I = 1, IIPAR
 
     ! calculate variables related to pressure
     do L = 1, LLPAR
-       pmid(I,J,L) = GET_PCENTER(I,J,L)*100. ! hPa -> Pa
-       pint(I,J,L) = GET_PEDGE(I,J,L)*100. ! hPa -> Pa
+       pmid(I,J,L) = GET_PCENTER(I,J,L)*100.d0 ! hPa -> Pa
+       pint(I,J,L) = GET_PEDGE(I,J,L)*100.d0   ! hPa -> Pa
        ! calculate potential temperature
        thp(I,J,L) = tadv(I,J,L)*(p0/pmid(I,J,L))**cappa
     enddo
@@ -1843,6 +1947,10 @@ contains
 
     !!! calculate surface flux = emissions - dry deposition !!!
 
+    ! Define slice of AS2, so as not to blow up the parallelization
+    ! (ccc, bmy, 12/20/10)
+    as2_scal = as2(:,:,1,:)
+
 !$OMP PARALLEL DO       &
 !$OMP DEFAULT( SHARED ) &
 !$OMP PRIVATE( I, J, L, N, NN, JLOOP, wk1, wk2, pbl_top, DEP_KG ) &
@@ -1850,16 +1958,22 @@ contains
     do J = 1, JJPAR
     do I = 1, IIPAR
 
-       if (NCS .gt. 0) then
+       !----------------------------------------------------------------
+       ! Add emissions for full-chemistry simulation
+       !----------------------------------------------------------------
+       IF ( IS_FULLCHEM .and. NCS > 0 ) THEN
 
           do N = 1, NEMIS(NCS)
              NN = IDEMS(N)
-             if (NN == 0) CYCLE
+
              ! for emissions in the lowest model layer only
-             JLOOP = JLOP(I,J,1)
-             eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
+             IF ( NN > 0 ) THEN
+                JLOOP = JLOP(I,J,1)
+                eflx(I,J,NN) = REMIS(JLOOP,N) * TRACER_MW_KG(NN)
+             ENDIF
 
           enddo
+
           ! additional step to convert from molec spec/cm3/s to kg/m2/s
           eflx(I,J,:) = eflx(I,J,:) * BXHEIGHT(I,J,1) / 6.022d23 * 1.d6
 
@@ -1879,16 +1993,25 @@ contains
                                                          GET_TS_EMIS() / 60.d0
           enddo
 
-          ! add ITS_A_TAGCO_SIM. CO emis are considered in tagged_co_mod.f.
-          ! This over-simplified treatment may be inconsistent with the full 
-          ! chemistry simulation. Hopefully this simplification wouldn't cause 
-          ! too much problem, since the std. tagged_co simulation is also 
-          ! approximate, anyway. (Lin, 06/20/09) 
-          if ( ITS_A_TAGCO_SIM() ) eflx(I,J,:) = 0d0 
-          
-       endif ! NCS
-       
-       if ( ITS_A_CH4_SIM() ) then
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Zero emissions for tagged CO simulation
+       !
+       ! CO emis are considered in tagged_co_mod.f.  This over-
+       ! simplified treatment may be inconsistent with the full 
+       ! chemistry simulation. Hopefully this simplification wouldn't 
+       ! cause too much problem, since the std. tagged_co simulation 
+       ! is also approximate, anyway. (Lin, 06/20/09) 
+       !----------------------------------------------------------------
+       IF ( IS_TAGCO ) THEN
+          eflx(I,J,:) = 0d0 
+       ENDIF
+
+       !----------------------------------------------------------------
+       ! Add emissions for offline CH4 simulation
+       !----------------------------------------------------------------
+       IF ( IS_CH4 ) THEN
           ! add surface emis
           ! (after converting kg/box/timestep to kg/m2/s)
           ! Should NOT use ID_EMITTED here, since it is only for gases 
@@ -1899,15 +2022,19 @@ contains
           enddo
        endif
 
-       ! Add emissions for mercury simulation. May be useful for other
-       ! offline simulations
-       IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------
+       ! Add emissions for offline mercury simulation
+       !----------------------------------------------------------------
+       IF ( IS_Hg ) THEN
           do N = 1, N_TRACERS
              eflx(I,J,N) = eflx(I,J,N) + emis_save(I,J,N)/GET_AREA_M2(J)/ &
                   GET_TS_EMIS() / 60.d0
           enddo
        ENDIF
 
+       !----------------------------------------------------------------
+       ! Apply dry deposition frequencies
+       !----------------------------------------------------------------
        do N = 1, NUMDEP ! NUMDEP includes all gases/aerosols
           ! Now include sea salt dry deposition (jaegle 5/11/11)
           IF (TRIM( DEPNAME(N) ) == 'DST1'.OR. &
@@ -1950,18 +2077,22 @@ contains
                                BXHEIGHT(I,J,1) / GET_PBL_TOP_m(I,J)
              endif
           else
+
              ! only use the lowest model layer for calculating drydep fluxes
              ! given that as2 is in v/v
-             dflx(I,J,NN) = DEPSAV(I,J,N) * as2(I,J,1,NN) / TCVV(NN) 
-
+             ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+             ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+             dflx(I,J,NN) = DEPSAV(I,J,N) * as2_scal(I,J,NN) / TCVV(NN)
 
              ! If flag is set to treat Hg2 as half aerosol, half gas, then
              ! use average deposition velocity (cdh, 9/01/09)
              IF ( LHG2HALFAEROSOL .AND. IS_HG2(NN) ) THEN
 
+                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
                 dflx(I,J,NN) =  &
                      ( DEPSAV(I,J,DRYHg2) +  DEPSAV(I,J,DRYHgP) ) / 2D0 * &
-                     as2(I,J,1,NN) / TCVV(NN) 
+                     as2_scal(I,J,NN) / TCVV(NN) 
                 
              ENDIF
           endif
@@ -1974,7 +2105,7 @@ contains
           ! ocean_mercury_mod defines ocean based on fraction 
           ! land, albedo and mixed layer depth. The difference with LWI is
           ! small. (cdh, 8/28/09) 
-          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
+          IF ( IS_Hg .AND. IS_HG0(NN) .AND. LWI(I,J) == 0 ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
 
@@ -1982,14 +2113,15 @@ contains
           ! Turn off Hg(0) deposition to snow and ice because we haven't yet
           ! included emission from these surfaces and most field studies
           ! suggest Hg(0) emissions exceed deposition during sunlit hours.
-#if defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
           ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
           SNOW_HT = SNOMAS(I,J)
 #else
           ! GEOS1-4 snow heigt (water equivalent) in mm
           SNOW_HT = SNOW(I,J)
 #endif 
-          IF ( ITS_A_MERCURY_SIM() .AND. IS_HG0(NN) .AND. &
+
+          IF ( IS_Hg .AND. IS_HG0(NN) .AND. &
                ( IS_ICE(I,J) .OR. (IS_LAND(I,J) .AND. SNOW_HT > 10d0) ) ) THEN
              DFLX(I,J,NN) = 0D0
           ENDIF
@@ -1997,8 +2129,11 @@ contains
           
        enddo
 
-       ! add ITS_A_TAGOX_SIM (Lin, 06/21/08 )
-       if ( ITS_A_TAGOX_SIM() ) then
+       !----------------------------------------------------------------
+       ! Apply dry deposition frequencies for Tagged Ox simulation
+       ! (Jintai Lin, 06/21/08)
+       !----------------------------------------------------------------
+       IF ( IS_TAGOX ) THEN
           do N = 2, N_TRACERS ! the first species, Ox, has been done above
              if (pbl_mean_drydep) then
                 wk1 = 0.d0
@@ -2024,7 +2159,9 @@ contains
              else 
                 ! only use the lowest model layer for calculating drydep fluxes
                 ! given that as2 is in v/v
-                dflx(I,J,N) = DEPSAV(I,J,1) * as2(I,J,1,N) / TCVV(1) 
+                ! NOTE: Now use as2_scal(I,J,NN), instead of as2(I,J,1,NN) to 
+                ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
+                dflx(I,J,N) = DEPSAV(I,J,1) * as2_scal(I,J,N) / TCVV(1) 
              endif
           enddo
        endif
@@ -2040,11 +2177,15 @@ contains
        sflx(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
 
+       !----------------------------------------------------------------
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
-       IF ( ITS_A_MERCURY_SIM() ) THEN
+       !----------------------------------------------------------------
+       IF ( IS_Hg ) THEN
           
+          ! Loop over # of drydep species
           DO N = 1, NUMDEP
              
+             ! GEOS_Chem tracer number
              NN = NTRAIND(N)
              
              ! Deposition mass, kg
@@ -2096,7 +2237,7 @@ contains
        enddo
 
        ! Add ITS_A_TAGOX_SIM (Lin, 06/21/08)
-       if ( ITS_A_TAGOX_SIM() ) then
+       IF ( IS_TAGOX ) THEN
           ! The first species, Ox, has been done above
           do N = 2, N_TRACERS 
              ! Convert : kg/m2/s -> molec/cm2/s
@@ -2111,59 +2252,45 @@ contains
 
     endif
 
-!      !### Debug
+    !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
 
     if( divdiff ) then
-        
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
+      
+       if ( pblh_ar ) then
        do J = 1, JJPAR
        do I = 1, IIPAR
-             
-          if (pblh_ar) pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
- 
-          ! mozart is top-down and geos-chem is bottom-up
-          call upsidedown(um1(I,J,:))
-          call upsidedown(vm1(I,J,:))
-          call upsidedown(tadv(I,J,:))
-          call upsidedown(pmid(I,J,:))
-          call upsidedown(pint(I,J,:))
-          call upsidedown(rpdel(I,J,:))
-          call upsidedown(rpdeli(I,J,:))
-          call upsidedown(zm(I,J,:))
-          call upsidedown(thp(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(shp(I,J,:))
-          
+         pblh(I,J) = GET_PBL_TOP_m(I,J) ! obtain archived PBLH
        enddo
        enddo
-!$OMP END PARALLEL DO
+       endif
 
-       do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
-       enddo
-       shp(:,:,:) = shp(:,:,:) * 1.d-3 ! g/kg -> kg/kg
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       um1    = um1   ( :, :, LLPAR  :1:-1 )   
+       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
+       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       zm     = zm    ( :, :, LLPAR  :1:-1 )
+       thp    = thp   ( :, :, LLPAR  :1:-1 )
 
-!      !### Debug
+       ! Flip AS2 array in vertical (tracer concentrations)
+       ! Also convert from v/v -> m/m (i.e., kg/kg)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) / TCVV(N) 
+       ENDDO
+
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d-3 ! g/kg -> kg/kg
+
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( J )     
        do J = 1, JJPAR
-          
-!--- Previous to (ccc, 11/19/09)
-!          call vdiff( J, 1, um1(:,J,:), vm1(:,J,:), tadv(:,J,:), &
-!                      pmid(:,J,:), pint(:,J,:), rpdel(:,J,:), &
-!                      rpdeli(:,J,:), dtime, &
-!                      zm(:,J,:), hflx(:,J), sflx(:,J,:), &
-!                      thp(:,J,:), as2(:,J,:,:), pblh(:,J), &
-!                      kvh(:,J,:), &
-!                      kvm(:,J,:), tpert(:,J), qpert(:,J), &
-!                      cgs(:,J,:), shp(:,J,:), &
-!                      shflx(:,J), IIPAR, ustar=ustar(:,J))
-
           call vdiff( J, 1, um1, vm1, tadv,        &
                       pmid, pint, rpdel,           &
                       rpdeli, dtime,               &
@@ -2176,79 +2303,66 @@ contains
        enddo
 !$OMP END PARALLEL DO
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
-       do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
-       enddo
-       shp(:,:,:) = shp(:,:,:) * 1.d3 ! kg/kg -> g/kg
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       um1    = um1   ( :, :, LLPAR  :1:-1 )   
+       vm1    = vm1   ( :, :, LLPAR  :1:-1 )
+       tadv   = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       zm     = zm    ( :, :, LLPAR  :1:-1 )
+       thp    = thp   ( :, :, LLPAR  :1:-1 )
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
+       ! Flip AS2 array in vertical (tracer concentrations)
+       ! Also convert from m/m (i.e. kg/kg) -> v/v
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N) * TCVV(N)
+       ENDDO
 
-          ! mozart is top-down and geos-chem is bottom-up
-          ! resume the order of meteorological variables
-          call upsidedown(um1(I,J,:))
-          call upsidedown(vm1(I,J,:))
-          call upsidedown(tadv(I,J,:))
-          call upsidedown(thp(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(kvm(I,J,:))
-          call upsidedown(cgs(I,J,:))
-          call upsidedown(shp(I,J,:))
-
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       kvm    = kvm   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
+       shp    = shp   ( :, :, LLPAR  :1:-1 ) * 1.d3 ! kg/kg -> g/kg
 
     else if( arvdiff ) then
 !-----------------------------------------------------------------------
 !  	... vertical diffusion using archived values of cgs and kvh.
+!
+!       %%% NOTE: THIS SECTION IS NORMALLY NOT EXECUTED %%%
+!       %%% BECAUSE ARVDIFF IS SET TO .FALSE. ABOVE     %%% 
 !-----------------------------------------------------------------------
-         
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
+      
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       t1     = tadv  ( :, :, LLPAR  :1:-1 )
+       pmid   = pmid  ( :, :, LLPAR  :1:-1 )
+       pint   = pint  ( :, :, LLPAR+1:1:-1 )
+       rpdel  = rpdel ( :, :, LLPAR  :1:-1 )
+       rpdeli = rpdeli( :, :, LLPAR  :1:-1 )
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
 
-          ! not sure if it is necessary to use L specifically 
-          t1(I,J,:) = tadv(I,J,:)  ! simplified treatment
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
-          call upsidedown(t1(I,J,:))
-          call upsidedown(pmid(I,J,:))
-          call upsidedown(pint(I,J,:))
-          call upsidedown(rpdel(I,J,:))
-          call upsidedown(rpdeli(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(cgs(I,J,:))
-       enddo
-       enddo
-!$OMP END PARALLEL DO
-
+       ! Convert from v/v -> m/m (i.e., kg/kg)
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) ! v/v -> m/m (i.e., kg/kg)
+          as2(:,:,:,N) = as2(:,:,:,N) / TCVV(N) 
        enddo
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
 
 !$OMP PARALLEL DO DEFAULT( SHARED )   &
 !$OMP PRIVATE( J )
        do J = 1, JJPAR
-
-!--- Previous to (ccc,11/19/09)
-!          call vdiffar( J, tadv(:,J,:), &
-!                        pmid (:,J,:), pint(:,J,:),        &
-!                        rpdel(:,J,:), rpdeli(:,J,:), dtime, &
-!                        sflx(:,J,:), as2(:,J,:,:),                   &
-!                        kvh(:,J,:), cgs(:,J,:), IIPAR)
           call vdiffar( J, tadv, &
                         pmid, pint,        &
                         rpdel, rpdeli, dtime, &
@@ -2258,50 +2372,26 @@ contains
       enddo
 !$OMP END PARALLEL DO
 
-!      !### Debug
+       !### Debug
        IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
 
+       ! Convert from m/m (i.e. kg/kg) -> v/v
        do N = 1, N_TRACERS
-          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) ! m/m -> v/v
+          as2(:,:,:,N) = as2(:,:,:,N) * TCVV(N) 
        enddo
 
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, N )
-       do J = 1, JJPAR
-       do I = 1, IIPAR
-          call upsidedown(t1(I,J,:))
-          do N = 1, N_TRACERS
-             call upsidedown(as2(I,J,:,N))
-          enddo
-          call upsidedown(kvh(I,J,:))
-          call upsidedown(cgs(I,J,:))
-       enddo
-       enddo
-!$OMP END PARALLEL DO
+       ! Use simpler way to flip vectors in vertical (bmy, 12/17/10)
+       ! mozart is top-down and geos-chem is bottom-up
+       t1     = t1    ( :, :, LLPAR  :1:-1 )
+       kvh    = kvh   ( :, :, LLPAR+1:1:-1 )
+       cgs    = cgs   ( :, :, LLPAR+1:1:-1 )
+
+       ! Flip AS2 array in vertical (tracer concentrations)
+       DO N = 1, N_TRACERS
+          as2(:,:,:,N) = as2(:,:,LLPAR:1:-1,N)
+       ENDDO
 
     end if
-
-    !=======================================================
-    ! ND15 Diagnostic: 
-    ! mass change due to mixing in the boundary layer
-    !=======================================================
-    IF ( ND15 > 0 ) THEN
-
-!$OMP PARALLEL DO DEFAULT( SHARED ) PRIVATE( I, J, L, N )
-       DO N = 1, N_TRACERS
-       DO L = 1, LLPAR 
-       do J = 1, JJPAR
-       do I = 1, IIPAR
-          ! as and as2 are volume mixing ratio
-          TURBFLUP(I,J,L,N) = TURBFLUP(I,J,L,N) &
-                              + (as2(I,J,L,N) - as(I,J,L,N)) * AD(I,J,L) &
-                              / ( TCVV(N) * dtime )
-       enddo
-       enddo
-       ENDDO
-       ENDDO
-!$OMP END PARALLEL DO
-
-    ENDIF
 
     ! re-compute PBL variables wrt derived pblh (in m)
     if (.not. pblh_ar) then
@@ -2322,64 +2412,19 @@ contains
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
-
-  end subroutine vdiffdr
+  END SUBROUTINE VDIFFDR
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: UPSIDEDOWN
+! !IROUTINE: do_pbl_mix_2
 !
-! !DESCRIPTION: Subroutine UPSIDEDOWN flips a vector upside-down.
-! 
-!\\
-!\\
-! !INTERFACE:
-!
-  subroutine upsidedown( dat )
-!
-! !USES:
-! 
-    implicit none
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    real*8, intent(inout) :: dat(:)
-!
-! !REVISION HISTORY: 
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    real*8 :: dtmp
-    integer :: L, LSUM
-    
-    LSUM = size(dat)
-    do L = 1, int(LSUM/2)
-       dtmp = dat(L)
-       dat(L) = dat(LSUM-L+1)
-       dat(LSUM-L+1) = dtmp
-    enddo
-    
-  end subroutine upsidedown
-!EOC
-!------------------------------------------------------------------------------
-!          Harvard University Atmospheric Chemistry Modeling Group            !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: UPSIDEDOWN
-!
-! !DESCRIPTION: Subroutine DO_PBL_MIX2 is the driver routine for planetary 
+! !DESCRIPTION: Subroutine DO\_PBL\_MIX\_2 is the driver routine for planetary 
 !  boundary layer mixing. The PBL layer height and related quantities are 
-!  always computed.
-!  Mixing of tracers underneath the PBL top is toggled by the
-!  DO_TURBDAY switch. (bmy, 2/11/05)
-! 
+!  always computed.   Mixing of tracers underneath the PBL top is toggled 
+!  by the DO\_TURBDAY switch. 
 !\\
 !\\
 ! !INTERFACE:
@@ -2389,9 +2434,9 @@ contains
 ! !USES:
 !
     USE LOGICAL_MOD,   ONLY : LTURB, LPRT
-    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV
+    USE TRACER_MOD,    ONLY : N_TRACERS, STT, TCVV, ITS_A_FULLCHEM_SIM
     USE PBL_MIX_MOD,   ONLY : INIT_PBL_MIX, COMPUTE_PBL_HEIGHT 
-    
+
     USE VDIFF_PRE_MOD, ONLY : EMISRR, EMISRRN
     USE ERROR_MOD,     ONLY : DEBUG_MSG
     USE TIME_MOD,      ONLY : ITS_TIME_FOR_EMIS
@@ -2400,23 +2445,25 @@ contains
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL, INTENT(IN) :: DO_TURBDAY ! Switch which turns on PBL mixing of 
-                                      ! tracers
+    LOGICAL, INTENT(IN) :: DO_TURBDAY  ! Switch which turns on PBL mixing of 
+                                       ! tracers
 !
 ! !REVISION HISTORY: 
+!  11 Feb 2005 - R. Yantosca - Initial version
+!  21 Dec 2010 - R. Yantosca - Now only call SETEMIS for fullchem simulations
+!  22 Dec 2010 - R. Yantosca - Bug fix: print debug output only if LPRT=T
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL, SAVE       :: FIRST = .TRUE.
+    LOGICAL, SAVE :: FIRST = .TRUE.
 
     !=================================================================
     ! DO_PBL_MIX2 begins here!
     !=================================================================
-    
-    call flush(6)
+    !call flush(6)
     
     ! First-time initialization
     IF ( FIRST ) THEN
@@ -2429,18 +2476,27 @@ contains
     CALL COMPUTE_PBL_HEIGHT
 
     !=================================================================
-    ! Call SETEMIS which sets emission rates REMIS
+    ! For full-chemistry simulations, call routine SETEMIS
+    ! which sets up the emission rates array REMIS
     !=================================================================
-    IF ( ITS_TIME_FOR_EMIS() ) CALL SETEMIS( EMISRR, EMISRRN )
-    
-!      !### Debug
-    IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMIS' )
-    
-    ! Do mixing of tracers in the PBL (if necessary)
-    IF ( DO_TURBDAY ) CALL vdiffdr (STT)
+    IF ( ITS_A_FULLCHEM_SIM() ) THEN
 
-    ! Return to calling program
+       ! If it's time to do emissions, call SETEMIS
+       IF ( ITS_TIME_FOR_EMIS() ) THEN 
+          CALL SETEMIS( EMISRR, EMISRRN )
+          IF ( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: aft SETEMIS' )
+       ENDIF
+
+    ENDIF
+
+    ! Do mixing of tracers in the PBL (if necessary)
+    IF ( DO_TURBDAY ) THEN 
+       CALL VDIFFDR( STT )
+       IF( LPRT ) CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
+    ENDIF
+
+
   END SUBROUTINE DO_PBL_MIX_2
-  
-end module vdiff_mod
-!EOC
+!EOC  
+END MODULE vdiff_mod
+

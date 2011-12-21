@@ -1,4 +1,3 @@
-! $Id: pressure_mod.f,v 1.1 2009/11/20 21:43:03 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,13 +32,13 @@
 !
 ! !REMARKS:
 !
-!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 10/30/07)
+!  Hybrid Grid Coordinate Definition: (dsa, bmy, 8/27/02, 8/13/10)
 !  ============================================================================
 !                                                                             .
-!  GEOS-4 and GEOS-5 (hybrid grids):
+!  GEOS-4, GEOS-5, and MERRA (hybrid grids):
 !  ----------------------------------------------------------------------------
-!  For GEOS-4 and GEOS-5, the pressure at the bottom edge of grid box (I,J,L) 
-!  is defined as follows:
+!  For GEOS-4/GEOS-5/MERRA met data products, the pressure at the bottom edge 
+!  of grid box (I,J,L) is defined as follows:
 !                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
 !                                                                             .
@@ -57,7 +56,7 @@
 !  GEOS-3 is a pure-sigma grid.  GCAP is a hybrid grid, but its grid is
 !  defined as if it were a pure sigma grid (i.e. PTOP=150 hPa, and negative
 !  sigma edges at higher levels).  For these grids, can stil use the same
-!  formula as for GEOS-4, with one modification:
+!  formula as for GEOS-4/GEOS-5/MERRA, with one modification:
 !                                                                             .
 !     Pedge(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
 !                                                                             .
@@ -68,7 +67,7 @@
 !     Bp(L)         = SIGE(L) = bottom sigma edge of level L
 !                                                                             .
 !                                                                             .
-!  The following are true for GCAP, GEOS-3, GEOS-4:
+!  The following are true for GCAP, GEOS-3, GEOS-4, GEOS-5, MERRA:
 !  ----------------------------------------------------------------------------
 !  (1) Bp(LLPAR+1) = 0.0          (L=LLPAR+1 is the atmosphere top)
 !  (2) Bp(1)       = 1.0          (L=1       is the surface       )
@@ -87,6 +86,8 @@
 !  (9 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (10) Added Ap and Bp for GEOS-5 met fields (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Added modifications for MERRA met fields
+!  30 Aug 2010 - R. Yantosca - Updated comments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -270,11 +271,12 @@
 !  (1 ) Bug fix: use PFLT instead of PFLT-PTOP for GEOS-4 (bmy, 10/24/03)
 !  (2 ) Now treat GEOS-5 the same way as GEOS-4 (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute PEDGE for MERRA the same as for GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) || defined( GEOS_5 )
+#if   defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
       !-----------------------------
       ! GEOS-4 & GEOS-5 met fields
@@ -376,6 +378,11 @@
 !  (4 ) Now modified for both GCAP & GEOS-5 vertical grids (swu, bmy, 5/24/05)
 !  (5 ) Renamed GRID30LEV to GRIDREDUCED (bmy, 10/30/07)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  13 Aug 2010 - R. Yantosca - Compute Ap and Bp for MERRA the same way as for
+!                              GEOS-5.  The vertical grids are identical.
+!  30 Aug 2010 - R. Yantosca - Updated comments
+!  30 Nov 2010 - R. Yantosca - Further improved comments about how GEOS-4 and
+!                              GEOS-5 vertical levels are lumped together.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -403,35 +410,41 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
       !=================================================================
-      ! GEOS-5 vertical coordinates (47 or 72 levels)
+      ! GEOS-5/MERRA vertical coordinates (47 or 72 levels)
       !=================================================================
 
 #if   defined( GRIDREDUCED )
 
-      !-----------------------------------
-      ! GEOS-5 47 level grid
+      !-----------------------------------------------------------------
+      ! GEOS-5/MERRA 47-level reduced vertical grid
       !  
-      !  level  Edge     # L's
-      !  edge   Prs hPa  lumped
-      !  
-      !    48     0.0100 (4)
-      !    47     0.0660 (4)
-      !    46     0.2113 (4)
-      !    45     0.6168 (4)
-      !    44     1.6508 (4)
-      !    43     4.0766 (4)
-      !    42     9.2929 (4)
-      !    41    19.7916 (2)
-      !    40    28.3678 (2)
-      !    39    40.1754 (2)
-      !    38    56.3879 (2)
-      ! -- keep levels below this line --
-      !    37    78.5123 
-      !    36    92.3657
-      !-----------------------------------
+      !  Bottom   Bottom    # levels
+      !  edge of  edge prs  lumped 
+      !  level    (hPa)     together
+      !
+      !   PTOP       0.010   
+      !    47        0.066     4
+      !    46        0.211     4
+      !    45        0.617     4
+      !    44        1.651     4
+      !    43        4.077     4
+      !    42        9.293     4
+      !    41       19.792     4
+      !    40       28.368     2
+      !    39       40.175     2
+      !    38       56.388     2
+      !    37       78.512     2
+      ! %%%% START LUMPING LEVELS ABOVE HERE %%%%%
+      !    36       92.366       
+      !    35      108.663
+      !    34      127.837
+      !    33      150.393
+      !    32      176.930
+      ! %%%% FIXED-PRESSURE LEVELS BEGIN HERE %%%%
+      !-----------------------------------------------------------------
 
       ! Ap [hPa] for 47 levels (48 edges)
       AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
@@ -463,9 +476,9 @@
 
 #else
 
-      !--------------------------------
+      !-----------------------------------------------------------------
       ! GEOS-5 72 level grid
-      !--------------------------------
+      !-----------------------------------------------------------------
 
       ! Ap [hPa] for 72 levels (73 edges)
       AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
@@ -519,27 +532,33 @@
 
 #if   defined( GRIDREDUCED )
 
-      !-----------------------------------
-      ! GEOS-4 30 level grid
+      !-----------------------------------------------------------------
+      ! GEOS-4 30-level reduced vertical grid
       !  
-      !  level  Edge     # L's
-      !  edge   Prs hPa  lumped
+      !  Bottom    Bottom    # levels
+      !  edge of   edge prs  lumped 
+      !  level     (hPa)     together
       !  
-      !    48     0.0100 (4)
-      !    47     0.0660 (4)
-      !    46     0.2113 (4)
-      !    45     0.6168 (4)
-      !    44     1.6508 (4)
-      !    43     4.0766 (4)
-      !    42     9.2929 (4)
-      !    41    19.7916 (2)
-      !    40    28.3678 (2)
-      !    39    40.1754 (2)
-      !    38    56.3879 (2)
-      ! -- keep levels below this line --
-      !    37    78.5123 
-      !    36    92.3657
-      !-----------------------------------
+      !   PTOP       0.010   
+      !    30        0.066      4
+      !    29        0.211      4
+      !    28        0.617      4
+      !    27        1.651      4
+      !    26        4.077      4
+      !    25        9.293      4
+      !    24       19.792      4
+      !    23       28.368      2
+      !    22       40.175      2
+      !    21       56.388      2
+      !    20       78.512      2
+      ! %%%% START LUMPING LEVELS ABOVE HERE %%%%%
+      !    19       92.366       
+      !    18      108.663
+      !    17      127.837
+      !    16      150.393
+      !    15      176.930
+      ! %%%% FIXED-PRESSURE LEVELS BEGIN HERE %%%%
+      !-----------------------------------------------------------------
 
       ! Ap [hPa] for 30 levels (31 edges)
       AP = (/  0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -563,9 +582,9 @@
 
 #else
 
-      !-----------------------------------
+      !-----------------------------------------------------------------
       ! GEOS-4 55 level grid
-      !-----------------------------------
+      !-----------------------------------------------------------------
 
       ! AP [hPa] for 55 levels (56 edges)
       AP = (/ 0.000000d0,   0.000000d0,  12.704939d0,  35.465965d0, 
@@ -610,9 +629,9 @@
 
 #if   defined( GRIDREDUCED )
 
-      !-----------------------------------
+      !-----------------------------------------------------------------
       ! GEOS-3 30 level grid
-      !-----------------------------------
+      !-----------------------------------------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP
@@ -629,9 +648,9 @@
 
 #else
 
-      !-----------------------------------
+      !-----------------------------------------------------------------
       ! GEOS-3 48 level grid
-      !-----------------------------------
+      !-----------------------------------------------------------------
 
       ! AP [hPa] is just PTOP for a pure-sigma grid
       AP = PTOP

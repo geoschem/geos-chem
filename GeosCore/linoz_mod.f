@@ -1,12 +1,11 @@
-! $Id: linoz_mod.f,v 1.3 2010/02/23 20:55:44 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: linoz_mod.f
+! !MODULE: linoz_mod
 !
-! !DESCRIPTION: Module linoz_mod.f contains routines to perform the Linoz 
+! !DESCRIPTION: Module LINOZ\_MOD contains routines to perform the Linoz 
 !  stratospheric ozone chemistry.
 !\\
 !\\
@@ -163,6 +162,7 @@
 !                                      tracer to total O3 in the overworld 
 !                                      to avoid issues with spin ups
 !  08 Feb 2010 - R. Yantosca         - Deleted obsolete local variables
+!  22 Oct 2010 - R. Yantosca         - Added OMP parallel loop
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,16 +237,26 @@
 
       DO ITRC=1,NUM_TRACER     ! dbj loop for tagged
 
-      IF ( ITS_A_FULLCHEM_SIM() ) THEN
-          NTRACER = IDTOX
-      ELSE
-          NTRACER = ITRC
-      ENDIF
+         IF ( ITS_A_FULLCHEM_SIM() ) THEN
+            NTRACER = IDTOX
+         ELSE
+            NTRACER = ITRC
+         ENDIF
 
-      ! Start at top layer and continue to lowest layer for strat. chem
-      OUT_DATA = 0d0
-      DO J = 1,JM
-         DO I=1,IM
+         ! Start at top layer and continue to lowest layer for strat. chem
+         OUT_DATA = 0d0
+
+!------------------------------------------------------------------------------
+! Prior to 2/7/11:
+! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I,       J,     LBOT,   LPOS,   L    )
+!!$OMP+PRIVATE( CLIMPML, DERO3, CLIMO3, DERCO3, DCO3 )
+!!$OMP+PRIVATE( DERTMP,  DTMP,  SSO3,   DMASS        )
+!------------------------------------------------------------------------------
+         DO J = 1, JM
+         DO I = 1, IM
             LBOT = GET_TPAUSE_LEVEL(I,J)+1
             LPOS = 1
             DO WHILE (GET_PEDGE(I,J,LPOS+1) .GE. 0.3D0)
@@ -330,6 +340,11 @@
          ENDDO          ! loop over I
 
       ENDDO             ! loop pver J
+!------------------------------------------------------------------------------
+! Prior to 2/7/11:
+! Un-parallelize until further notice (ccarouge, bmy, 2/7/11)
+!!$OMP END PARALLEL DO
+!------------------------------------------------------------------------------
 
       !write our calculated column o3 maximum
       !write(6,*) 'max of columns= ',maxval(out_data)
@@ -514,7 +529,7 @@ c-------- skip interpolating, pick nearest latitude --------------------
 !
 ! !IROUTINE: linoz_strt2m
 !
-! !DESCRIPTION: Subroutine inoz_strt2m sets up a std z* atmosphere: 
+! !DESCRIPTION: Subroutine LINOZ\_STRT2M sets up a std z* atmosphere: 
 !  p = 1000 * 10**(-z*/16 km).
 !\\
 !\\
@@ -1001,9 +1016,6 @@ c907  FORMAT(20X,6E10.3/(8E10.3))
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: AS
-
-      print*, '### init_linoz'
-      call flush(6)
 
       ! For safety's sake, only allocate arrays on first call
       IF ( FIRST ) THEN 

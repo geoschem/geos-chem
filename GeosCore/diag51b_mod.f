@@ -1,72 +1,44 @@
-! $Id: diag51b_mod.f,v 1.1 2010/02/02 16:57:54 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag51b_mod 
+!
+! !DESCRIPTION: Module DIAG51b\_MOD contains variables and routines to 
+!  generate save timeseries data where the local time is between two 
+!  user-defined limits. This facilitates comparisons with morning or 
+!  afternoon-passing satellites such as GOME.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DIAG51b_MOD
 !
-!******************************************************************************
-!  Module DIAG51_MOD contains variables and routines to generate save 
-!  timeseries data where the local time is between two user-defined limits. 
-!  This facilitates comparisons with morning or afternoon-passing satellites
-!  such as GOME. (amf, bey, bdf, pip, bmy, 11/30/00, 12/21/09)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) DO_SAVE_DIAG51   (LOGICAL ) : Flag to turn on DIAG51 timseries
-!  (2 ) GOOD             (INTEGER ) : Array denoting grid boxes w/in LT limits
-!  (3 ) GOOD_CT          (INTEGER ) : # of "good" times per grid box
-!  (4 ) GOOD_CT_CHEM     (INTEGER ) : # of "good" chemistry timesteps
-!  (5 ) COUNT_CHEM3D     (INTEGER ) : Counter for 3D chemistry boxes
-!  (6 ) ND51_HR_WRITE    (INTEGER ) : Hour at which to save to disk
-!  (7 ) I0               (INTEGER ) : Offset between global & nested grid
-!  (8 ) J0               (INTEGER ) : Offset between global & nested grid
-!  (9 ) IOFF             (INTEGER ) : Longitude offset
-!  (10) JOFF             (INTEGER ) : Latitude offset
-!  (11) LOFF             (INTEGER ) : Altitude offset
-!  (12) ND51_HR1         (REAL*8  ) : Starting hour of user-defined LT interval
-!  (13) ND51_HR2         (REAL*8  ) : Ending hour of user-defined LT interval
-!  (14) ND51_IMIN        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (15) ND51_IMAX        (INTEGER ) : Maximum latitude  index for DIAG51 region
-!  (16) ND51_JMIN        (INTEGER ) : Minimum longitude index for DIAG51 region
-!  (17) ND51_JMAX        (INTEGER ) : Maximum longitude index for DIAG51 region
-!  (18) ND51_LMIN        (INTEGER ) : Minimum altitude  index for DIAG51 region
-!  (19) ND51_LMAX        (INTEGER ) : Minimum latitude  index for DIAG51 region
-!  (20) ND51_NI          (INTEGER ) : Number of longitudes in DIAG51 region 
-!  (21) ND51_NJ          (INTEGER ) : Number of latitudes  in DIAG51 region
-!  (22) ND51_NL          (INTEGER ) : Number of levels     in DIAG51 region
-!  (23) ND51_N_TRACERS   (INTEGER ) : Number of tracers for DIAG51
-!  (24) ND51_OUTPUT_FILE (CHAR*255) : Name of bpch file w  timeseries data
-!  (25) ND51_TRACERS     (INTEGER ) : Array of DIAG51 tracer numbers
-!  (26) Q                (REAL*8  ) : Accumulator array for various quantities
-!  (27) TAU0             (REAL*8  ) : Starting TAU used to index the bpch file
-!  (28) TAU1             (REAL*8  ) : Ending TAU used to index the bpch file
-!  (29) HALFPOLAR        (INTEGER ) : Used for bpch file output
-!  (30) CENTER180        (INTEGER ) : Used for bpch file output
-!  (31) LONRES           (REAL*4  ) : Used for bpch file output
-!  (32) LATRES           (REAL*4  ) : Used for bpch file output
-!  (33) MODELNAME        (CHAR*20 ) : Used for bpch file output
-!  (34) RESERVED         (CHAR*40 ) : Used for bpch file output
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Procedures:
-!  ============================================================================
-!  (1 ) DIAG51                      : Driver subroutine for US grid timeseries 
-!  (2 ) GET_LOCAL_TIME              : Computes the local times at each grid box
-!  (3 ) WRITE_DIAG51                : Writes timeseries data to a bpch file
-!  (4 ) ITS_TIME_FOR_WRITE_DIAG51   : Returns T if it's time to save to disk
-!  (5 ) ACCUMULATE_DIAG51           : Accumulates data over for later averaging
-!  (6 ) INIT_DIAG51                 : Allocates and zeroes all module arrays 
-!  (7 ) CLEANUP_DIAG51              : Deallocates all module arrays
+! !PUBLIC DATA MEMBERS:
 !
-!  GEOS-CHEM modules referenced by diag51_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f    : Module w/ routines for binary punch file I/O
-!  (2 ) dao_mod.f      : Module w/ arrays for DAO met fields
-!  (3 ) error_mod.f    : Module w/ NaN and other error check routines
-!  (4 ) file_mod.f     : Module w/ file unit numbers and error checks
-!  (5 ) grid_mod.f     : Module w/ horizontal grid information
-!  (6 ) pbl_mix_mod.f  : Module w/ routines for PBL height & mixing
-!  (7 ) pressure_mod.f : Module w/ routines to compute P(I,J,L) 
-!  (8 ) time_mod.f     : Module w/ routines to compute date & time
-!  (9 ) tracerid_mod.f : Module w/ pointers to tracers & emissions
+      LOGICAL, PUBLIC :: DO_SAVE_DIAG51b   ! On/off switch for ND51b diagnostic
 !
-!  ND51 tracer numbers:
+! !PUBLIC MEMBER FUNCTIONS:
+! 
+      PUBLIC  :: CLEANUP_DIAG51b
+      PUBLIC  :: DIAG51b
+      PUBLIC  :: INIT_DIAG51b
+!
+! !PRIVATE MEMBER FUNCTIONS:
+! 
+      PRIVATE :: ACCUMULATE_DIAG51        
+      PRIVATE :: GET_LOCAL_TIME           
+      PRIVATE :: ITS_TIME_FOR_WRITE_DIAG51
+      PRIVATE :: WRITE_DIAG51      
+!
+! !REMARKS:
+!  ND51b tracer numbers:
 !  ============================================================================
 !  1 - N_TRACERS : GEOS-CHEM transported tracers            [v/v        ]
 !  76            : OH concentration                         [molec/cm3  ]
@@ -110,7 +82,7 @@
 !  114           : Ocimene emissions                        [atomC/cm2/s]
 !  115-121       : size resolved dust optical depth         [unitless   ]
 !
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
 !  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
 !        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
@@ -135,32 +107,53 @@
 !  (19) Added MEGAN species (mpb, bmy, 12/21/09)
 !  (20) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
-!******************************************************************************
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag51_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE 
-      
-      ! ... except these variables ...
-      PUBLIC :: DO_SAVE_DIAG51b
-
-      ! ... and these routines
-      PUBLIC :: CLEANUP_DIAG51b
-      PUBLIC :: DIAG51b
-      PUBLIC :: INIT_DIAG51b
-      
+! !PRIVATE TYPES:
+!
       !=================================================================
       ! MODULE VARIABLES
+      !
+      ! GOOD             : Array denoting grid boxes w/in LT limits
+      ! GOOD_CT          : # of "good" times per grid box
+      ! GOOD_CT_CHEM     : # of "good" chemistry timesteps
+      ! COUNT_CHEM3D     : Counter for 3D chemistry boxes
+      ! ND51_HR_WRITE    : Hour at which to save to disk
+      ! I0               : Offset between global & nested grid
+      ! J0               : Offset between global & nested grid
+      ! IOFF             : Longitude offset
+      ! JOFF             : Latitude offset
+      ! LOFF             : Altitude offset
+      ! ND51_HR1         : Starting hour of user-defined LT interval
+      ! ND51_HR2         : Ending hour of user-defined LT interval
+      ! ND51_IMIN        : Minimum latitude  index for DIAG51 region
+      ! ND51_IMAX        : Maximum latitude  index for DIAG51 region
+      ! ND51_JMIN        : Minimum longitude index for DIAG51 region
+      ! ND51_JMAX        : Maximum longitude index for DIAG51 region
+      ! ND51_LMIN        : Minimum altitude  index for DIAG51 region
+      ! ND51_LMAX        : Minimum latitude  index for DIAG51 region
+      ! ND51_NI          : Number of longitudes in DIAG51 region 
+      ! ND51_NJ          : Number of latitudes  in DIAG51 region
+      ! ND51_NL          : Number of levels     in DIAG51 region
+      ! ND51_N_TRACERS   : Number of tracers for DIAG51
+      ! ND51_OUTPUT_FILE : Name of bpch file w  timeseries data
+      ! ND51_TRACERS     : Array of DIAG51 tracer numbers
+      ! Q                : Accumulator array for various quantities
+      ! TAU0             : Starting TAU used to index the bpch file
+      ! TAU1             : Ending TAU used to index the bpch file
+      ! HALFPOLAR        : Used for bpch file output
+      ! CENTER180        : Used for bpch file output
+      ! LONRES           : Used for bpch file output
+      ! LATRES           : Used for bpch file output
+      ! MODELNAME        : Used for bpch file output
+      ! RESERVED         : Used for bpch file output
       !=================================================================
       
       ! Scalars
-      LOGICAL              :: DO_SAVE_DIAG51b
       INTEGER              :: IOFF,           JOFF,    LOFF
       INTEGER              :: I0,             J0
       ! Increased to 120 from 100 (mpb,2009)
@@ -229,22 +222,34 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: diag51b
+!
+! !DESCRIPTION:  Subroutine DIAG51 generates time series (averages from !
+!  10am - 12pm LT or 1pm - 4pm LT) for the US grid area.  Output is to 
+!  binary punch files or HDF5 files.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DIAG51b
-!
-!******************************************************************************
-!  Subroutine DIAG51 generates time series (averages from 10am - 12pm LT 
-!  or 1pm - 4pm LT) for the US grid area.  Output is to binary punch files.
-!  (amf, bey, bdf, pip, bmy, 11/15/99, 9/28/04)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewritten for clarity (bmy, 7/20/04)
 !  (2 ) Added TAU_W as a local variable (bmy, 9/28/04)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*8 :: TAU_W
 
       !=================================================================
@@ -262,19 +267,33 @@
          CALL WRITE_DIAG51( TAU_W )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE DIAG51b
-
+!EOC
 !------------------------------------------------------------------------------
- 
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_local_time
+!
+! !DESCRIPTION: Subroutine GET\_LOCAL\_TIME computes the local time and 
+!  returns an array of points where the local time is between two user-defined 
+!  limits. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_LOCAL_TIME
 !
-!******************************************************************************
-!  Subroutine GET_LOCAL_TIME computes the local time and returns an array 
-!  of points where the local time is between two user-defined limits. 
-!  (bmy, 11/29/00, 12/10/08)
+! !USES:
 !
-!  NOTES:
+      USE TIME_MOD, ONLY : GET_LOCALTIME
+      USE TIME_MOD, ONLY : GET_TS_DYN
+
+#     include "CMN_SIZE"   ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) The 1d-3 in the computation of XLOCTM is to remove roundoff ambiguity 
 !        if a the local time should fall exactly on an hour boundary.
 !        (bmy, 11/29/00)
@@ -286,15 +305,13 @@
 !  (6 ) Bug fix: LT should be REAL*8 and not INTEGER (ccarouge, 12/10/08)
 !  (7 ) We need to substract TS_DYN to the time to get the local time at 
 !        the beginning of previous time step. (ccc, 8/11/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_DYN
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Local variables 
+! !LOCAL VARIABLES:
+!
       INTEGER :: I
       REAL*8  :: LT, TS_DYN
 
@@ -316,18 +333,53 @@
          ENDIF
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE GET_LOCAL_TIME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: accumulate_diag51
+!
+! !DESCRIPTION: Subroutine ACCUMULATE\_DIAG51 accumulates tracers into the 
+!  Q array. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ACCUMULATE_DIAG51
 !
-!******************************************************************************
-!  Subroutine ACCUMULATE_DIAG51 accumulates tracers into the Q array. 
-!  (bmy, 8/20/02, 4/20/10)
+! !USES:
 !
-!  NOTES:
+      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
+      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
+      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
+      ! Now included T @ 2m (mpb,2009)
+      USE DAO_MOD,        ONLY : TS
+      ! Now included PAR direct and diffuse (mpb,2009)
+      USE DAO_MOD,        ONLY : PARDF, PARDR
+      ! Now included current (MODIS) LAI (mpb,2009)
+      USE LAI_MOD,        ONLY : ISOLAI
+      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
+      USE PRESSURE_MOD,   ONLY : GET_PEDGE
+      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
+      USE TIME_MOD,       ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE TIME_MOD,       ONLY : GET_TS_DIAG,      GET_TS_EMIS
+      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
+      USE TRACER_MOD,     ONLY : N_TRACERS, XNUMOLAIR
+      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
+      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
+      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
+      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
+
+#     include "cmn_fj.h"  ! includes CMN_SIZE
+#     include "jv_cmn.h"  ! ODAER, QAA, QAA_AOD
+#     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
+#     include "CMN_GCTM"  ! SCALE_HEIGHT
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme.  Now scale optical depths
 !        to 400 nm (which is usually what QAA(2,*) is.  (bmy, 7/20/04) 
@@ -356,36 +408,14 @@
 !  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
 !        bin's individual AOD (amv, bmy, 12/21/09)
 !  (12) Added MEGAN species (mpb, bmy, 12/21/09)
-!******************************************************************************
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,        ONLY : AD,      AIRDEN, BXHEIGHT, CLDF 
-      USE DAO_MOD,        ONLY : CLDTOPS, OPTD,   RH,       T 
-      USE DAO_MOD,        ONLY : UWND,    VWND,   SLP
-      ! Now included T @ 2m (mpb,2009)
-      USE DAO_MOD,        ONLY : TS
-      ! Now included PAR direct and diffuse (mpb,2009)
-      USE DAO_MOD,        ONLY : PARDF, PARDR
-      ! Now included current (MODIS) LAI (mpb,2009)
-      USE LAI_MOD,        ONLY : ISOLAI
-      USE PBL_MIX_MOD,    ONLY : GET_PBL_TOP_L,    GET_PBL_TOP_m
-      USE PRESSURE_MOD,   ONLY : GET_PEDGE
-      USE TIME_MOD,       ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
-      USE TIME_MOD,       ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TIME_MOD,       ONLY : GET_TS_DIAG,      GET_TS_EMIS
-      USE TRACER_MOD,     ONLY : STT, TCVV, ITS_A_FULLCHEM_SIM
-      USE TRACER_MOD,     ONLY : N_TRACERS, XNUMOLAIR
-      USE TRACERID_MOD,   ONLY : IDTHNO3, IDTHNO4, IDTN2O5, IDTNOX  
-      USE TRACERID_MOD,   ONLY : IDTPAN,  IDTPMN,  IDTPPN,  IDTOX   
-      USE TRACERID_MOD,   ONLY : IDTR4N2, IDTSALA, IDTSALC 
-      USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
-
-#     include "cmn_fj.h"  ! includes CMN_SIZE
-#     include "jv_cmn.h"  ! ODAER, QAA, QAA_AOD
-#     include "CMN_O3"    ! FRACO3, FRACNO, SAVEO3, SAVENO2, SAVEHO2, FRACNO2
-#     include "CMN_GCTM"  ! SCALE_HEIGHT
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE     :: FIRST = .TRUE.
       LOGICAL, SAVE     :: IS_FULLCHEM, IS_NOx,  IS_Ox,   IS_SEASALT
       LOGICAL, SAVE     :: IS_CLDTOPS,  IS_NOy,  IS_OPTD, IS_SLP
@@ -850,12 +880,17 @@
             ELSE IF ( N == 99 ) THEN
 
                !-----------------------------------
-               ! SURFACE PRESSURE - PTOP [hPa]
+               ! PEDGE-$ (prs @ level edges) [hPa]
                !-----------------------------------
-               IF ( K == 1 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
-               ENDIF
+!-----------------------------------------------------------------------------
+! Prior to 11/12/10:
+! Now save PEDGE-$ instead of PSURFACE - PTOP (bmy, 11/12/10)
+!               IF ( K == 1 ) THEN
+!                  Q(X,Y,K,W) = Q(X,Y,K,W) + 
+!     &                         ( GET_PEDGE(I,J,K) - PTOP ) * GOOD(I)
+!               ENDIF
+!-----------------------------------------------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + ( GET_PEDGE(I,J,K) * GOOD(I) )
 
             ELSE IF ( N == 100 ) THEN 
 
@@ -1058,39 +1093,52 @@
       GOOD(:) = 0
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE ACCUMULATE_DIAG51
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_write_diag51
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG51 returns TRUE if it's 
+!  time to write the ND51 bpch file to disk.  We test the time at the next 
+!  dynamic timestep so that we can write to disk properly.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_WRITE_DIAG51 returns TRUE if it's time to write
-!  the ND51 bpch file to disk.  We test the time at the next dynamic
-!  timestep so that we can write to disk properly. (bmy, 7/20/04, 9/28/04)
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk
+      USE TIME_MOD,  ONLY : GET_HOUR
+      USE TIME_MOD,  ONLY : GET_MINUTE
+      USE TIME_MOD,  ONLY : GET_TAU
+      USE TIME_MOD,  ONLY : GET_TAUb
+      USE TIME_MOD,  ONLY : GET_TAUe
+      USE TIME_MOD,  ONLY : GET_TS_DYN
+      USE TIME_MOD,  ONLY : GET_TS_DIAG
+      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
 !
-!  NOTES:
+! !OUTPUT PARAMETERS:
+!
+      REAL*8, INTENT(OUT) :: TAU_W   ! TAU at time of disk write
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Added TAU_W so to make sure the timestamp is accurate. (bmy, 9/28/04)
 !  (2 ) Add check with TS_DIAG. (ccc, 7/21/09)
-!******************************************************************************
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE TIME_MOD, ONLY :  GET_HOUR, GET_MINUTE, GET_TAU,  
-     &                      GET_TAUb, GET_TAUe,   GET_TS_DYN,
-     &                      GET_TS_DIAG
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-
-      ! Arguments
-      REAL*8, INTENT(OUT) :: TAU_W
-
-      ! Local variables
-      LOGICAL             :: ITS_TIME
-      REAL*8              :: TAU, HOUR, DYN, TS_DIAG
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: ITS_TIME
+      REAL*8  :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE_DIAG51 begins here!
@@ -1133,24 +1181,62 @@
          RETURN
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_WRITE_DIAG51
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag51
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG51 computes the time-average of 
+!  quantities between local time limits ND51\_HR1 and ND51\_HR2 and writes 
+!  them to a bpch file or HDF5 file.  Arrays and counters are also zeroed 
+!  for the next diagnostic interval.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG51( TAU_W )
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG51 computes the time-average of quantities between
-!  local time limits ND51_HR1 and ND51_HR2 and writes them to a bpch file.
-!  Arrays and counters are also zeroed for the next diagnostic interval.
-!  (bmy, 12/1/00, 4/20/10)  
+! !USES:
+!
+      USE BPCH2_MOD,   ONLY : BPCH2
+      USE BPCH2_MOD,   ONLY : OPEN_BPCH2_FOR_WRITE
+      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE FILE_MOD,    ONLY : IU_ND51b
+      USE LOGICAL_MOD, ONLY : LND51b_HDF
+      USE TIME_MOD,    ONLY : EXPAND_DATE
+      USE TIME_MOD,    ONLY : GET_NYMD_DIAG    
+      USE TIME_MOD,    ONLY : GET_NHMS
+      USE TIME_MOD,    ONLY : GET_TAU 
+      USE TIME_MOD,    ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,    ONLY : GET_TS_DYN
+      USE TRACER_MOD,  ONLY : N_TRACERS
+
+#if   defined( USE_HDF5 )
+      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
+      USE HDF_MOD,     ONLY : OPEN_HDF
+      USE HDF_MOD,     ONLY : CLOSE_HDF
+      USE HDF_MOD,     ONLY : WRITE_HDF
+      USE HDF5,        ONLY : HID_T
+      INTEGER(HID_T)       :: IU_ND51b_HDF
+#endif
+
+#     include "CMN_SIZE"   ! Size Parameters
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8, INTENT(IN)  :: TAU_W   ! TAU value at time of disk write
 !
 !  Arguments as Input:
 !  ============================================================================
 !  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk 
 !
 !  NOTES:
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Rewrote to` remove hardwiring and for better efficiency.  Added extra
 !        diagnostics and updated numbering scheme. (bmy, 7/20/04) 
 !  (2 ) Added TAU_W to the arg list.  Now use TAU_W to set TAU0 and TAU0.
@@ -1177,31 +1263,14 @@
 !  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
 !       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
 !  (13) Added MEGAN species (mpb, bmy, 12/21/09)
-!******************************************************************************
+!  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
+!                              rather than Psurface - PTOP
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! Reference to F90 modules
-      USE BPCH2_MOD,  ONLY : BPCH2,           OPEN_BPCH2_FOR_WRITE
-      USE ERROR_MOD,  ONLY : ALLOC_ERR
-      USE FILE_MOD,   ONLY : IU_ND51b
-      USE LOGICAL_MOD, ONLY : LND51b_HDF
-      USE TIME_MOD,   ONLY : EXPAND_DATE,     GET_NYMD_DIAG    
-      USE TIME_MOD,   ONLY : GET_NHMS,        GET_TAU 
-      USE TIME_MOD,   ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE TRACER_MOD, ONLY : N_TRACERS
-
-#if   defined( USE_HDF5 )
-      ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-      USE HDF_MOD,    ONLY : OPEN_HDF, CLOSE_HDF, WRITE_HDF
-      USE HDF5,       ONLY : HID_T
-      INTEGER(HID_T)      :: IU_ND51b_HDF
-#endif
-
-#     include "CMN_SIZE"   ! Size Parameters
-
-      ! Arguments
-      REAL*8, INTENT(IN)  :: TAU_W
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I,   J,  L,  W, N, GMNL, GMTRC
       INTEGER             :: IOS, X, Y, K, NHMS
       CHARACTER(LEN=16)   :: STAMP
@@ -1226,8 +1295,6 @@
       ! Echo info
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - DIAG51b: Opening file ', a ) 
-
-      print*, '### LND51b_HDF: ', LND51b_hdf
 
       ! Open output file
       IF ( LND51b_HDF ) THEN
@@ -1583,7 +1650,11 @@
             !---------------------
             CATEGORY = 'PEDGE-$'
             UNIT     = 'hPa'
-            GMNL     = 1
+            !--------------------------
+            ! Prior to 11/12/10:
+            !GMNL     = 1
+            !--------------------------
+            GMNL     = ND51_NL
             GMTRC    = 1
 
          ELSE IF ( N == 100 ) THEN
@@ -1832,32 +1903,41 @@
       GOOD_EMIS    = 0d0
       GOOD_CT_EMIS = 0d0
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG51
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_i
+!
+! !DESCRIPTION: Function GET\_I returns the absolute longitude index (I), 
+!  given the relative longitude index (X).
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_I( X ) RESULT( I )
 !
-!******************************************************************************
-!  Function GET_I returns the absolute longitude index (I), given the 
-!  relative longitude index (X).  (bmy, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) X (INTEGER) : Relative longitude index (used by Q)
-!
-!  NOTES:
-!******************************************************************************
-!      
 #     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: X
-
-      ! Local variables
-      INTEGER             :: I
-      
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: X   ! Relative longitude index
+!
+! !RETURN VALUE:
+!
+      INTEGER             :: I   ! Absolute longitude index
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_I begins here!
       !=================================================================
@@ -1868,37 +1948,65 @@
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
 
-      ! Return to calling program
       END FUNCTION GET_I
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag51
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG51b allocates and zeroes all module 
+!  arrays.  It also gets values for module variables from "input\_mod.f".
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG51b( DO_ND51, N_ND51, TRACERS, HR_WRITE, 
      &                         HR1,     HR2,    IMIN,    IMAX,   
      &                         JMIN,    JMAX,   LMIN,    LMAX,  FILE )
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG51 allocates and zeroes all module arrays.  
-!  It also gets values for module variables from "input_mod.f". 
-!  (bmy, 7/20/04, 1/22/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_ND51  (LOGICAL ) : Switch to turn on ND51 timeseries diagnostic
-!  (2 ) N_ND51   (INTEGER ) : Number of ND51 read by "input_mod.f"
-!  (3 ) TRACERS  (INTEGER ) : Array w/ ND51 tracer #'s read by "input_mod.f"
-!  (4 ) HR_WRITE (REAL*8  ) : GMT hour of day at which to write bpch file
-!  (5 ) HR1      (REAL*8  ) : Lower limit of local time averaging bin
-!  (6 ) HR2      (REAL*8  ) : Upper limit of local time averaging bin
-!  (7 ) IMIN     (INTEGER ) : Min longitude index read by "input_mod.f"
-!  (8 ) IMAX     (INTEGER ) : Max longitude index read by "input_mod.f" 
-!  (9 ) JMIN     (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (10) JMAX     (INTEGER ) : Min latitude index read by "input_mod.f" 
-!  (11) LMIN     (INTEGER ) : Min level index read by "input_mod.f" 
-!  (12) LMAX     (INTEGER ) : Min level index read by "input_mod.f" 
-!  (13) FILE     (CHAR*255) : ND51 output file name read by "input_mod.f"
+      USE BPCH2_MOD,  ONLY : GET_MODELNAME
+      USE BPCH2_MOD,  ONLY : GET_HALFPOLAR
+      USE ERROR_MOD,  ONLY : ALLOC_ERR
+      USE ERROR_MOD,  ONLY : ERROR_STOP
+      USE GRID_MOD,   ONLY : GET_XOFFSET
+      USE GRID_MOD,   ONLY : GET_YOFFSET
+      USE GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE TIME_MOD,   ONLY : GET_TAUb
+      USE TRACER_MOD, ONLY : N_TRACERS
+  
+#     include "CMN_SIZE"   ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      ! DO_ND51 : Switch to turn on ND51 timeseries diagnostic
+      ! N_ND51  : Number of ND51 read by "input_mod.f"
+      ! TRACERS : Array w/ ND51 tracer #'s read by "input_mod.f"
+      ! HR_WRITE: GMT hour of day at which to write bpch file
+      ! HR1     : Lower limit of local time averaging bin
+      ! HR2     : Upper limit of local time averaging bin
+      ! IMIN    : Min longitude index read by "input_mod.f"
+      ! IMAX    : Max longitude index read by "input_mod.f" 
+      ! JMIN    : Min latitude index read by "input_mod.f" 
+      ! JMAX    : Min latitude index read by "input_mod.f" 
+      ! LMIN    : Min level index read by "input_mod.f" 
+      ! LMAX    : Min level index read by "input_mod.f" 
+      ! FILE    : ND51 output file name read by "input_mod.f"
+      LOGICAL,            INTENT(IN) :: DO_ND51
+      INTEGER,            INTENT(IN) :: N_ND51, TRACERS(100)
+      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
+      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
+      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
+      REAL*8,             INTENT(IN) :: HR1,    HR2
+      REAL*8,             INTENT(IN) :: HR_WRITE
+      CHARACTER(LEN=255), INTENT(IN) :: FILE
+!
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT_CHEM
 !        which is the counter array of "good" boxes at each chemistry
 !        timesteps.  Now allocate GOOD_CT_CHEM. (bmy, 10/25/04)
@@ -1909,30 +2017,15 @@
 !        equal to ND51_JMAX.  This will allow us to save out longitude or
 !        latitude transects.  Allocate COUNT_CHEM3D. (cdh, bmy, phs, 1/24/07)
 !  (5 ) Allocate GOOD_EMIS and GOOD_CT_EMIS (ccc, 12/12/09)
-!******************************************************************************
-!    
-      ! References to F90 modules
-      USE BPCH2_MOD,  ONLY : GET_MODELNAME, GET_HALFPOLAR
-      USE ERROR_MOD,  ONLY : ALLOC_ERR,   ERROR_STOP
-      USE GRID_MOD,   ONLY : GET_XOFFSET, GET_YOFFSET, ITS_A_NESTED_GRID
-      USE TIME_MOD,   ONLY : GET_TAUb
-      USE TRACER_MOD, ONLY : N_TRACERS
-  
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      LOGICAL,            INTENT(IN) :: DO_ND51
-      INTEGER,            INTENT(IN) :: N_ND51, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      REAL*8,             INTENT(IN) :: HR1,    HR2
-      REAL*8,             INTENT(IN) :: HR_WRITE
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
-
-      ! Local variables
-      INTEGER                        :: AS
-      CHARACTER(LEN=255)             :: LOCATION
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: AS
+      CHARACTER(LEN=255) :: LOCATION
       
       !=================================================================
       ! INIT_DIAG51 begins here!
@@ -2106,23 +2199,31 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG51b
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag51
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG51 deallocates all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG51b
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG51 deallocates all module arrays. 
-!  (bmy, 11/29/00, 1/24/07)
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now deallocate GOOD_CT_CHEM (bmy, 10/25/04)
 !  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/24/07)
 !  (5 ) Also deallocate Allocate GOOD_EMIS and GOOD_CT_EMIS (ccc, 12/12/09)
-!******************************************************************************
-! 
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG51 begins here!
       !=================================================================
@@ -2135,10 +2236,6 @@
       IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG51b
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG51b_MOD

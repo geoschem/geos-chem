@@ -1,35 +1,20 @@
-! $Id: rdland.f,v 1.1 2009/09/16 14:06:13 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdland
+!
+! !DESCRIPTION: Subroutine RDLAND reads the land types and fractions 
+!  (times 1000) from the "vegtype.global" file.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDLAND
 !
-!******************************************************************************
-!  Subroutine RDLAND reads the land types and fractions (times 1000)
-!  from the "vegtype.global" file.  (yhw, gmg, djj, 1994; bmy, 12/20/04)
+! !USES:
 !
-!  Common-block variables from header file "CMN_DEP":
-!  ============================================================================
-!  (1 ) FRCLND(I,J)        : Land fraction (0.0 - 1.0)
-!  (2 ) IREG(I,J)          : Number of landtypes in each grid box
-!  (3 ) ILAND(I,J,LDT)     : Land type ID for element LDT =1, IREG(I,J)
-!  (4 ) IUSE(I,J,LDT)      : Fraction (per mil) of gridbox area occupied by 
-!                             land type element LDT
-!
-!  Common-block variables from header file "CMN_VEL":
-!  ============================================================================
-!  (1 ) IJREG(IJLOOP)      : 2-D (I*J, LDT) version of IJREG  (for DEPVEL)
-!  (2 ) IJLAND(IJLOOP,LDT) : 2-D (I*J, LDT) version of IJLAND (for DEPVEL)
-!  (3 ) IJUSE(IJLOOP,LDT)  : 2-D (I*J, LDT) version of IJUSE  (for DEPVEL)
-!
-!  NOTES:
-!  (1 ) Now read the "vegtype.global" file from the leaf_area_index_200412 
-!        subdirectory of DATA_DIR.  This is the same Olson land map as was
-!        used previously.  Also updated comments and added standard GEOS-CHEM 
-!        program documentation header. (tmf, bmy, 12/6/04)
-!  (2 ) Now read the "vegtype.global" file from the leaf_area_index_200412
-!        subdirectory if LAVHRRLAI=T.  Also updated comments and added 
-!        standard GEOS-CHEM program documentation header. (bmy, 12/20/04)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIRECTORY_MOD, ONLY : DATA_DIR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GRID_MOD,      ONLY : GET_XOFFSET, GET_YOFFSET
@@ -37,11 +22,41 @@
 
       IMPLICIT NONE
 
-#     include "CMN_SIZE"  ! Size parameters
-#     include "CMN_DEP"   ! FRCLND, IREG, ILAND, IUSE
-#     include "CMN_VEL"   ! IJREG, IJLAND, IJUSE
-
-      ! Local variables
+#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_DEP"       ! FRCLND, IREG, ILAND, IUSE
+#     include "CMN_VEL"       ! IJREG, IJLAND, IJUSE
+!
+! !REMARKS:
+!  Common-block variables from header file "CMN_DEP":
+!  ============================================================================
+!  (1 ) FRCLND(I,J)        : Land fraction (0.0 - 1.0)
+!  (2 ) IREG(I,J)          : Number of landtypes in each grid box
+!  (3 ) ILAND(I,J,LDT)     : Land type ID for element LDT =1, IREG(I,J)
+!  (4 ) IUSE(I,J,LDT)      : Fraction (per mil) of gridbox area occupied by 
+!                             land type element LDT
+!                                                                             .
+!  Common-block variables from header file "CMN_VEL":
+!  ============================================================================
+!  (1 ) IJREG(IJLOOP)      : 2-D (I*J, LDT) version of IJREG  (for DEPVEL)
+!  (2 ) IJLAND(IJLOOP,LDT) : 2-D (I*J, LDT) version of IJLAND (for DEPVEL)
+!  (3 ) IJUSE(IJLOOP,LDT)  : 2-D (I*J, LDT) version of IJUSE  (for DEPVEL)
+! 
+! !REVISION HISTORY: 
+!  01 Oct 1995 - M. Prather  - Initial version
+!  (1 ) Now read the "vegtype.global" file from the leaf_area_index_200412 
+!        subdirectory of DATA_DIR.  This is the same Olson land map as was
+!        used previously.  Also updated comments and added standard GEOS-CHEM 
+!        program documentation header. (tmf, bmy, 12/6/04)
+!  (2 ) Now read the "vegtype.global" file from the leaf_area_index_200412
+!        subdirectory if LAVHRRLAI=T.  Also updated comments and added 
+!        standard GEOS-CHEM program documentation header. (bmy, 12/20/04)
+!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, K, IJLOOP, IREF, JREF
       INTEGER :: I0, J0
 
@@ -113,5 +128,5 @@
  800  CONTINUE
       CALL ERROR_STOP( 'Error reading "vegtype.global"', 'rdland.f' )
 
-      ! Return to calling program
       END SUBROUTINE RDLAND
+!EOC

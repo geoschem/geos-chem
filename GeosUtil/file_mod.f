@@ -1,4 +1,3 @@
-! $Id: file_mod.f,v 1.3 2010/03/15 19:33:19 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -46,14 +45,13 @@
       INTEGER, PUBLIC, PARAMETER :: IU_I6      = 71  ! "YYYYMMDD.i6.*"
       INTEGER, PUBLIC, PARAMETER :: IU_A6      = 72  ! "YYYYMMDD.a6.*"
       INTEGER, PUBLIC, PARAMETER :: IU_A3      = 73  ! "YYYYMMDD.a3.*"
-      INTEGER, PUBLIC, PARAMETER :: IU_KZZ     = 74  ! %%% NOW OBSOLETE %%%
+      INTEGER, PUBLIC, PARAMETER :: IU_A1      = 74  ! "YYYYMMDD.a1.*"
       INTEGER, PUBLIC, PARAMETER :: IU_GWET    = 75  ! "YYYYMMDD.gwet.*"
       INTEGER, PUBLIC, PARAMETER :: IU_XT      = 76  ! "YYYYMMDD.xtra.*"
+      INTEGER, PUBLIC, PARAMETER :: IU_CN      = 77  ! "YYYYMMDD.cn.*"
       INTEGER, PUBLIC, PARAMETER :: IU_SMV2LOG = 93  ! "smv2.log"
       INTEGER, PUBLIC, PARAMETER :: IU_DEBUG   = 98  ! Reserved for debugging
-      ! For soaprod
-      ! (dkh, 03/26/07)  
-      INTEGER, PUBLIC, PARAMETER :: IU_OAP     = 99
+      INTEGER, PUBLIC, PARAMETER :: IU_OAP     = 99  ! soaprod.YYYYMMDDhh
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -93,6 +91,8 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX headers
 !  18 Dec 2009 - Aaron van D - Added file units IU_BC_NA, IU_BC_EU, IU_BC_CH
 !  15 Mar 2010 - D. Henze    - Add IU_OAP for SOA restart file.  
+!  19 Aug 2010 - R. Yantosca - Added IU_CN and IU_A1 parameters for MERRA
+!  19 Aug 2010 - R. Yantosca - Remove IU_KZZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -383,7 +383,9 @@
 !  20 Jul 2004 - R. Yantosca - Also renamed IU_TS to IU_ND48.
 !  20 Oct 2005 - R. Yantosca - Also close IU_XT.
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
-!  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH   
+!  18 Dec 2009 - Aaron van D - Now close files IU_BC_NA, IU_BC_EU, IU_BC_CH 
+!  19 Aug 2010 - R. Yantosca - Remove IU_KZZ  
+!  19 Aug 2010 - R. Yantosca - Now close IU_A1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -410,7 +412,7 @@
       CLOSE( IU_I6      )
       CLOSE( IU_A6      )
       CLOSE( IU_A3      )
-      CLOSE( IU_KZZ     )
+      CLOSE( IU_A1      )
       CLOSE( IU_GWET    )
       CLOSE( IU_XT      )
       CLOSE( IU_SMV2LOG )

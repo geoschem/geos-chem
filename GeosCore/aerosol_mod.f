@@ -443,14 +443,23 @@
          ! chem to use just four dust bins or more flexible 
          ! calculations depending on the number of dust bins. 
          ! (rjp, 03/27/04)
+         !
+         ! Now splitting mass into bins in fractions derived from
+         ! Highwood et al. (2003).  Data is from log-normal fit of
+         ! PCASP measurements of Saharan dust (Solid line in Fig.4b)
+         ! (dar, 04/25/10)
          !===========================================================
          IF ( LDUST ) THEN
 
             ! Lump 1st dust tracer for het chem
-            DO N = 1, 4
-               SOILDUST(I,J,L,N) = 
-     &              0.25d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
-            ENDDO
+            SOILDUST(I,J,L,1) = 
+     &              0.06d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,2) =
+     &              0.12d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,3) =
+     &              0.24d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
+            SOILDUST(I,J,L,4) =
+     &              0.58d0 * STT(I,J,L,IDTDST1) / AIRVOL(I,J,L)
 
             ! Other hetchem bins
             SOILDUST(I,J,L,5) = STT(I,J,L,IDTDST2) / AIRVOL(I,J,L)

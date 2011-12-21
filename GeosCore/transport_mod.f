@@ -1,4 +1,3 @@
-! $Id: transport_mod.f,v 1.5 2010/03/15 19:33:20 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -125,6 +124,7 @@
 !        "tpcore_geos5_fvdas_window_mod.f90". (yxw, dan, bmy, 11/6/08)
 !  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
 !  26 Feb 2010 - R. Yantosca - Added ProTeX headers
+!  06 Oct 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -157,7 +157,7 @@
 #endif
       ELSE
 
-#if defined( GEOS_4 ) || defined( GEOS_5 )
+#if defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA )
 
          ! Call TPCORE w/ proper settings for GEOS-4/GEOS-5 met
          CALL GEOS4_GEOS5_GLOBAL_ADV
@@ -1196,7 +1196,7 @@
 ! !IROUTINE: set_transport
 !
 ! !DESCRIPTION: Subroutine SET\_TRANSPORT passes IORD, JORD, KORD values 
-!  from "input_mod.f".
+!  from "input\_mod.f".
 !\\
 !\\
 ! !INTERFACE:

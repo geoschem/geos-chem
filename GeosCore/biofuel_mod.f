@@ -179,7 +179,11 @@
 !        (phs, 9/18/07)
 !  (23) Switch off biofuel in S.E.-Asia if Streets 2006 inventory is used,
 !        accounting for FSCLYR from CMN_O3 (phs,3/17/08)
-!  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09) 
+!  (24) Add scaling of aromatic emissions over the US. (hotp, 11/23/09)
+!   7 Feb 2011 - R. Yantosca - If we are using the EPA/NEI05 anthropogenic
+!                              emissions, get biofuels from EPA/NEI99 over USA
+!  18 Feb 2011 - C. Carouge  - Bug fix to avoid double-counting biofuel
+!                              emissions over Asia.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -190,6 +194,7 @@
       USE DIRECTORY_MOD,        ONLY : DATA_DIR
       USE EPA_NEI_MOD,          ONLY : GET_EPA_BIOFUEL,  GET_USA_MASK
       USE LOGICAL_MOD,          ONLY : LFUTURE, LNEI99,  LSTREETS
+      USE LOGICAL_MOD,          ONLY : LNEI05
       USE STREETS_ANTHRO_MOD,   ONLY : GET_SE_ASIA_MASK
       USE TIME_MOD,             ONLY : GET_DAY_OF_WEEK,  GET_YEAR
       USE TRACER_MOD,           ONLY : ITS_A_H2HD_SIM
@@ -756,8 +761,6 @@
          SIM_YEAR = FSCALYR
       ENDIF
 
-
-
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, BXHEIGHT_CM, N, NN, EPA_NEI )
@@ -775,13 +778,16 @@
      &                       ( 6.023d23 / MOLWT(N)            ) /
      &                       ( 365d0 * 86400d0 * BOXVL(I,J,1) )
 
-
             !-----------------------------------------------------------
             ! Overwrite biofuels w/ EPA/NEI emissions over the USA
+            !
+            ! NOTE: The NEI05 inventory only contains anthro emissions,
+            ! so we are forced to take the biofuel emissions over the
+            ! USA from the NEI99 inventory.  (bmy, 2/7/11)
             !-----------------------------------------------------------
             
             ! If EPA/NEI99 emissions are turned on....
-            IF ( LNEI99 ) THEN
+            IF ( LNEI99 .or. LNEI05 ) THEN
 
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN
@@ -813,7 +819,19 @@
             ! emission year is GE 2006), set BIOFUEL to zero since they
             ! are already accounted for (phs, 3/17/08)
             !-----------------------------------------------------------
-            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
+!------------------------------------------------------------------------------
+! Prior to 2/18/11:
+! NOTE from Claire Carouge (2/18/11):
+! I found a bug in biofuel_mod.f about Streets emissions. Initially we used 
+! Streets 2000 for years <= 2005, then Streets 2006 for year >= 2006. But this 
+! was changed because of discrepancies in the total emissions between 2005 and 
+! 2006. So now we use Streets 2000 for years <=2000 and Streets 2006 for years 
+! >= 2001. The problem is that Streets 2006 contains biofuels and not Streets 
+! 2000. So in biofuel_mod.f, there is to change the following IF condition to
+! ( SIM_YEAR >= 2001 ) to avoid double counting biofuel emissions over Asia.
+!            IF ( LSTREETS .and. ( SIM_YEAR >= 2006 ) ) THEN
+!------------------------------------------------------------------------------
+            IF ( LSTREETS .and. ( SIM_YEAR >= 2001 ) ) THEN
 
                ! If we are over the SE Asia region
                IF ( GET_SE_ASIA_MASK( I, J ) > 0d0 ) THEN
@@ -861,8 +879,14 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-            ! If EPA/NEI99 emissions are turned on....
-            IF ( LNEI99 ) THEN
+            !-----------------------------------------------------------
+            ! Scale VOC's based on the EPA/NEI99 biofuels over the USA
+            !
+            ! NOTE: The NEI05 inventory only contains anthro emissions,
+            ! so we are forced to take the biofuel emissions over the
+            ! USA from the NEI99 inventory.  (bmy, 2/7/11)
+            !-----------------------------------------------------------
+            IF ( LNEI99 .or. LNEI05 ) THEN
 
                ! If we are over the USA ...
                IF ( GET_USA_MASK( I, J ) > 0d0 ) THEN

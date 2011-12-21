@@ -5,9 +5,10 @@
 !
 ! !IROUTINE: HgOutForGEOS
 !
-! !DESCRIPTION: Subroutine HgOutForGEOS converts the (n_veg,1) data to 1x1, 
-!  then to 4x5 grid then writes out the file for use by GEOS-Chem
-!
+! !DESCRIPTION: Subroutine HgOutForGEOS converts the (n\_veg,1) data to 1x1, 
+!  then to 4x5 grid then writes out the file for use by GEOS-Chem.
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
@@ -30,9 +31,7 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
   REAL*8, INTENT(OUT) :: Hg0reemit(72, 46)
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Modified to couple with GEOS-Chem
-!
+!  09 July 2010 - C. Carouge  - Modified to couple with GEOS-Chem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -171,4 +170,3 @@ SUBROUTINE HgOutForGEOS(LCPLE, Hg0reemit)
   
 END SUBROUTINE HgOutForGEOS
 !EOC
-!------------------------------------------------------------------------------

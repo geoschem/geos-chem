@@ -1,72 +1,70 @@
-! $Id: diag56_mod.f,v 1.1 2009/09/16 14:06:35 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag56_mod.f
+!
+! !DESCRIPTION: Module DIAG56\_MOD contains arrays and routines for archiving 
+!  the ND56 diagnostic -- lightning flash rates. 
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE DIAG56_MOD
 !
-!******************************************************************************
-!  Module DIAG56_MOD contains arrays and routines for archiving the ND56
-!  diagnostic -- lightning flash rates. (bmy, 5/11/06, 3/7/07) 
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) AD56 (REAL*4)  : Diagnostic array for lightning flash rates
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) ZERO_DIAG56    : Sets all module arrays to zero
-!  (2 ) WRITE_DIAG56   : Writes data in module arrays to bpch file
-!  (3 ) INIT_DIAG56    : Allocates all module arrays
-!  (4 ) CLEANUP_DIAG56 : Deallocates all module arrays
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by diag03_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f    : Module w/ routines for binary pch file I/O
-!  (2 ) error_mod.f    : Module w/ NaN and other error check routines
-!  (3 ) file_mod.f     : Module w/ file unit numbers and error checks
-!  (4 ) grid_mod.f     : Module w/ horizontal grid information
-!  (5 ) time_mod.f     : Module w/ routines to compute date & time
+      PUBLIC :: CLEANUP_DIAG56
+      PUBLIC :: INIT_DIAG56
+      PUBLIC :: WRITE_DIAG56
+      PUBLIC :: ZERO_DIAG56
 !
-!  NOTES:
+! !PUBLIC DATA MEMBERS:
+!
+      ! Scalars
+      INTEGER,              PUBLIC :: ND56
+      INTEGER, PARAMETER,   PUBLIC :: PD56 = 3
+
+      ! Arrays
+      REAL*4,  ALLOCATABLE, PUBLIC :: AD56(:,:,:)
+!
+! !REVISION HISTORY:
+!  11 May 2006 - R. Yantosca - Initial version
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Now divide AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag56_mod.f"
-      !=================================================================
-
-      ! Make everything PUBLIC
-      PUBLIC 
-
-      !=================================================================
-      ! MODULE VARIABLES 
-      !=================================================================
-
-      ! Scalars
-      INTEGER              :: ND56
-      INTEGER, PARAMETER   :: PD56 = 3
-
-      ! Arrays
-      REAL*4,  ALLOCATABLE :: AD56(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-     
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC    
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: zero_diag56
+!
+! !DESCRIPTION: Subroutine ZERO\_DIAG03 zeroes the ND03 diagnostic arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE ZERO_DIAG56
-!
-!******************************************************************************
-!  Subroutine ZERO_DIAG03 zeroes the ND03 diagnostic arrays. 
-!  (bmy, 5/11/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  11 May 2006 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! ZERO_DIAG56 begins here!
       !=================================================================
@@ -77,39 +75,53 @@
       ! Zero arrays
       AD56(:,:,:) = 0e0
 
-      ! Return to calling program
       END SUBROUTINE ZERO_DIAG56
-
+!EOC    
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write_diag56
+!
+! !DESCRIPTION: Subroutine WRITE\_DIAG56 writes the ND03 diagnostic arrays 
+!  to the binary punch file at the proper time. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE_DIAG56
 !
-!******************************************************************************
-!  Subroutine WRITE_DIAG56 writes the ND03 diagnostic arrays to the binary
-!  punch file at the proper time. (bmy, 5/11/06, 3/7/06)
+! !USES:
 !
+      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+      USE FILE_MOD,     ONLY : IU_BPCH
+      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
+      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_CT_A3
+      USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! TINDEX
+!
+! !REMARKS:
 !   # : Field    : Description              : Units          : Scale factor
 !  --------------------------------------------------------------------------
 !  (1 ) LFLASH-$ : Lightning flash rate     : flashes/min/km2 : SCALE_A6
 !  (2 ) LFLASH-$ : Intra-cloud flash rate   : flashes/min/km2 : SCALE_A6
 !  (3 ) LFLASH-$ : Cloud-ground flash rate  : flashes/min/km2 : SCALE_A6
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  11 May 2006 - R. Yantosca - Initial version
 !  (1 ) Replace TINY(1d0) with 1d-32 to avoid problems on SUN 4100 platform
 !        (bmy, 9/5/06)
 !  (2 ) Now scale AD56 by the # of A-6 timesteps (ltm, bmy, 3/7/07)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GRID_MOD,     ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_A6,   GET_DIAGb,  GET_DIAGe
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! TINDEX
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
       REAL*4                :: ARRAY(IIPAR,JJPAR,1)
@@ -137,8 +149,12 @@
       LONRES    = DISIZE
       MODELNAME = GET_MODELNAME()
       RESERVED  = ''
+#if defined( MERRA ) 
+      SCALE     = DBLE( GET_CT_A3() ) + 1d-32
+#else
       SCALE     = DBLE( GET_CT_A6() ) + 1d-32
-        
+#endif     
+  
       !=================================================================
       ! Write data to the bpch file
       !=================================================================
@@ -160,25 +176,37 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE WRITE_DIAG56
-
+!EOC    
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag56
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG56 allocates all module arrays, 5/11/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG56
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG56 allocates all module arrays (bmy, 5/11/06)
+! !USES:
 !
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ALLOC_ERR
    
 #     include "CMN_SIZE" 
-
-      ! Local variables
+! 
+! !REVISION HISTORY: 
+!  11 May 2006 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
       
       !=================================================================
@@ -195,28 +223,33 @@
       ! Zero arrays
       CALL ZERO_DIAG56
 
-      ! Return to calling program
       END SUBROUTINE INIT_DIAG56
-
+!EOC    
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag56 
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG56 deallocates all module arrays
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG56
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG56 deallocates all module arrays (bmy, 5/11/06)
-!
-!  NOTES:
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY:
+!  11 May 2006 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG56 begins here!
       !=================================================================
       IF ( ALLOCATED( AD56 ) ) DEALLOCATE( AD56 ) 
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG56
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG56_MOD

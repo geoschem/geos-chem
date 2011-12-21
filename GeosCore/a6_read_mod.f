@@ -1470,13 +1470,13 @@
       IF ( PRESENT( CLDTOPS ) .and. PRESENT( UPDN ) ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            K = 1
-            DO L = 1, LLPAR
+            CLDTOPS(I,J) = 1
+            DO L = LLPAR, 1, -1
                IF ( UPDN(I,J,L) > 0d0 ) THEN
-                  K = K + 1
+                  CLDTOPS(I,J) = L + 1
+                  EXIT
                ENDIF
             ENDDO         
-            CLDTOPS(I,J) = K
          ENDDO
          ENDDO
       ENDIF     
@@ -1497,13 +1497,12 @@
       IF ( PRESENT( CLDTOPS ) .and. PRESENT( CLDMAS ) ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            K = 1
-            DO L = 1, LLPAR
+            CLDTOPS(I,J) = 1
+            DO L = LLPAR, 1, -1
                IF ( CLDMAS(I,J,L) > 0d0 ) THEN
-                  K = K + 1
+                  CLDTOPS(I,J) = L + 1
                ENDIF
             ENDDO
-            CLDTOPS(I,J) = K
          ENDDO
          ENDDO
       ENDIF
@@ -1526,13 +1525,13 @@
       IF ( PRESENT( CLDTOPS ) .and. PRESENT( ZMMU ) ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            K = 1
-            DO L = 1, LLPAR
+            CLDTOPS(I,J) = 1
+            DO L = LLPAR, 1, -1
                IF ( ZMMU(I,J,L) > 0d0 ) THEN
-                  K = K + 1
+                  CLDTOPS(I,J) = L + 1
+                  EXIT
                ENDIF
             ENDDO         
-            CLDTOPS(I,J) = K
          ENDDO
          ENDDO
       ENDIF
@@ -1558,13 +1557,13 @@
       IF ( PRESENT( CLDTOPS ) .and. PRESENT( CMFMC ) ) THEN
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            K = 1
-            DO L = 1, LLPAR
+            CLDTOPS(I,J) = 1
+            DO L = LLPAR, 1, -1
                IF ( CMFMC(I,J,L) > 0d0 ) THEN
-                  K = K + 1
+                  CLDTOPS(I,J) = L + 1
+                  EXIT
                ENDIF
             ENDDO
-            CLDTOPS(I,J) = K
          ENDDO
          ENDDO
       ENDIF

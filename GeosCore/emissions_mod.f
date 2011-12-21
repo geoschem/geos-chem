@@ -1,13 +1,12 @@
-! $Id: emissions_mod.f,v 1.6 2010/03/15 19:33:24 ccarouge Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: EMISSIONS_MOD
+! !MODULE: emissions_mod
 !
 ! !DESCRIPTION: Module EMISSIONS\_MOD is used to call the proper emissions 
-!  subroutines for the various GEOS-CHEM simulations. (bmy, 2/11/03, 2/14/08)
+!  subroutines for the various GEOS-Chem simulations.
 !\\
 !\\
 ! !INTERFACE: 
@@ -29,6 +28,7 @@
       PUBLIC :: ISOP_SCALING,NOx_SCALING
 !
 ! !REVISION HISTORY:
+!  11 Feb 2003 - R. Yantosca - Initial version
 !  (1 ) Now references DEBUG_MSG from "error_mod.f"
 !  (2 ) Now references "Kr85_mod.f" (jsw, bmy, 8/20/03)
 !  (3 ) Now references "carbon_mod.f" and "dust_mod.f" (rjp, tdf, bmy, 4/2/04)
@@ -53,20 +53,25 @@
 !        (dan, ccc, 3/11/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  26 Fev 2010 - Fabien P.   - Add scaling for isoprene and Nox emissions
+!  07 Feb 2011 - R. Yantosca - Now use EPA/NEI99 biofuel emissions when
+!                              EPA/NEI05 anthro emissions are selected.
 !EOP
 !------------------------------------------------------------------------------
-
+!BOC
+!
+! !PRIVATE TYPES:
+!
       !FP_ISOP. For scaling Isoprene and NOx emissions.
       REAL*8              :: ISOP_SCALING,NOx_SCALING
 
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: DO_EMISSIONS
+! !IROUTINE: do_emissions
 !
 ! !DESCRIPTION: Subroutine DO\_EMISSIONS is the driver routine which calls 
 !  the appropriate emissions subroutine for the various GEOS-CHEM simulations. 
@@ -78,8 +83,6 @@
 !
 ! !USES:
 !
-! NBIOMAX has been moved to CMN_SIZE by FP (hotp 7/31/09)
-!      USE BIOMASS_MOD,            ONLY : NBIOMAX
       USE BIOMASS_MOD,            ONLY : COMPUTE_BIOMASS_EMISSIONS
       USE ARCTAS_SHIP_EMISS_MOD,  ONLY : EMISS_ARCTAS_SHIP
       USE BRAVO_MOD,              ONLY : EMISS_BRAVO
@@ -154,6 +157,7 @@
 !        (amv, 10/19/09)
 !  18 Dec 2009 - Aaron van D - Added emissions for nested grids @ 0.5 x 0.666
 !  08 Feb 2010 - NBIOMAX is now in CMN_SIZE
+!  07 Feb 2011 - R. Yantosca - Use NEI99 biofuels when useing NEI05 anthro
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,7 +235,7 @@
 
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
@@ -240,10 +244,13 @@
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
-            CALL EMISS_NEI2005_ANTHRO_05x0666
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthrho, nested
 #else
-            CALL EMISS_NEI2005_ANTHRO
+            print*, '####### here!'
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
          ENDIF
 
@@ -272,7 +279,7 @@
 
          ! Read David Streets' emisisons over China / SE ASia
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
@@ -298,10 +305,12 @@
 
          ! Read NEI2005 emissions once per month
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if    defined(GRID05x0666)
-            CALL EMISS_NEI2005_ANTHRO_05x0666
+#if    defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  global
 #else
-            CALL EMISS_NEI2005_ANTHRO
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
          ENDIF
 
@@ -310,7 +319,7 @@
 
          ! Read EMEP (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else       
             CALL EMISS_EMEP
@@ -364,16 +373,16 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (pdk, phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
-            CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
+#if   defined( GRID05x0666 )
+            CALL EMISS_STREETS_ANTHRO_05x0666   ! (dan)
 #else
-            CALL EMISS_STREETS_ANTHRO
+            CALL EMISS_STREETS_ANTHRO           
 #endif
          ENDIF
 
          ! Read CAC emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
@@ -390,10 +399,12 @@
 
          ! Read NEI2005 (USA) emissions once per year
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
-            CALL EMISS_NEI2005_ANTHRO_05x0666
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
 #else
-            CALL EMISS_NEI2005_ANTHRO
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
          ENDIF
 
@@ -440,7 +451,7 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
@@ -466,7 +477,7 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)         
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
@@ -489,7 +500,7 @@
          ! Read David Streets' emisisons over China / SE ASia
          ! Bug fix: call every month now (phs, 3/17/09)
          IF ( LSTREETS .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_STREETS_ANTHRO_05x0666      !(dan)
 #else
             CALL EMISS_STREETS_ANTHRO
@@ -503,7 +514,7 @@
 
          ! Read CAC (Canada) emissions
          IF ( LCAC .and. ITS_A_NEW_YEAR() ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_CAC_ANTHRO_05x0666
 #else
             CALL EMISS_CAC_ANTHRO
@@ -515,10 +526,12 @@
 
          ! Read NEI2005 (USA) emissions
          IF ( LNEI05 .and. ITS_A_NEW_MONTH() ) THEN
-#if   defined(GRID05x0666)
-            CALL EMISS_NEI2005_ANTHRO_05x0666
+#if   defined( GRID05x0666 )
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, nested
+            CALL EMISS_NEI2005_ANTHRO_05x0666   ! Use NEI05 anthro,  nested
 #else
-            CALL EMISS_NEI2005_ANTHRO
+            CALL EMISS_EPA_NEI                  ! Use NEI99 biofuel, global
+            CALL EMISS_NEI2005_ANTHRO           ! Use NEI05 anthro,  global
 #endif
          ENDIF
 
@@ -527,7 +540,7 @@
 
          ! Read EPA (Europe) emissions once per year
          IF ( LEMEP  .and. ITS_A_NEW_YEAR()  ) THEN
-#if   defined(GRID05x0666)
+#if   defined( GRID05x0666 )
             CALL EMISS_EMEP_05x0666
 #else
             CALL EMISS_EMEP
@@ -547,11 +560,6 @@
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG ( '### DO_EMISSIONS: a EMISSIONS' )
 
-      ! Return to calling program
       END SUBROUTINE DO_EMISSIONS
-
-!------------------------------------------------------------------------------
-
-      ! End of module
-      END MODULE EMISSIONS_MOD
 !EOC
+      END MODULE EMISSIONS_MOD

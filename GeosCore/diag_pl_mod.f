@@ -1,61 +1,53 @@
-! $Id: diag_pl_mod.f,v 1.5 2010/03/15 19:33:24 ccarouge Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: diag_pl_mod
+!
+! !DESCRIPTION: Module DIAG\_PL\_MOD contains variables and routines which are 
+!  used to compute the production and loss of chemical families in the
+!  "full chemistry" (NOx-Ox-Hydrocarbon-aerosol) mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE DIAG_PL_MOD
 !
-!******************************************************************************
-!  Module DIAG_PL_MOD contains variables and routines which are used to 
-!  compute the production and loss of chemical families in SMVGEAR chemistry.
-!  (bmy, 7/20/04, 10/26/09)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) DO_SAVE_PL (LOGICAL ) : Flag to turn on prod/loss diagnostic
-!  (2 ) DO_SAVE_O3 (LOGICAL ) : Flag to save out P(Ox), L(Ox) for TagOx sim
-!  (3 ) MAXMEM     (INTEGER ) : Max # of members per family
-!  (4 ) MMAXFAM    (INTEGER ) : Shadow variable for max # of families
-!  (5 ) NFAM       (INTEGER ) : Number of prod/loss families in "input.geos"
-!  (6 ) YYYYMMDD   (INTEGER ) : Current date 
-!  (7 ) COUNT      (INTEGER ) : Counter for timesteps per day
-!  (8 ) FAM_NMEM   (INTEGER ) : Number of members w/in each prod/loss family
-!  (9 ) TAUb       (REAL*8  ) : TAU value at start of GEOS-CHEM simulation
-!  (10) TAUe       (REAL*8  ) : TAU value at end   of GEOS-CHEM simulation
-!  (11) TAU0       (REAL*8  ) : TAU value at start of diagnostic interval
-!  (12) TAU1       (REAL*8  ) : TAU value at end of diagnostic interval
-!  (13) AD65       (REAL*8  ) : Array for prod/loss diagnostic (a.k.a. ND65)
-!  (14) PL24H      (REAL*8  ) : Array for saving P(Ox), L(Ox)  (a.k.a. ND20)
-!  (15) FAM_PL     (REAL*8  ) : Array to archive prod & loss from SMVGEAR
-!  (16) FAM_COEF   (REAL*8  ) : Coefficient for each prod/loss family member 
-!  (17) FILENAME   (CHAR*255) : Name of output file for saving P(Ox) & L(Ox)
-!  (18) FAM_NAME   (CHAR*14 ) : Array for name of each prod/loss family 
-!  (19) FAM_TYPE   (CHAR*14 ) : Type of each prod/loss family 
-!  (20) FAM_MEMB   (CHAR*14 ) : Array of members in each prod/loss family
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) SETJFAM               : Initializes SMVGEAR arrays for prod/loss diag
-!  (2 ) SETPL                 : Copies prod/loss families into SMVGEAR arrays
-!  (3 ) DO_DIAG_PL            : Driver routine for prod/loss diags (ND65, ND20)
-!  (4 ) DIAG20                : Driver routine for saving O3 P/L (a.k.a. ND20)
-!  (5 ) WRITE20               : Writes P(Ox) and L(Ox) to bpch file format
-!  (6 ) ITS_TIME_FOR_WRITE20  : Returns T if it's time to save files to disk
-!  (7 ) GET_NFAM              : Returns number of defined P/L families
-!  (8 ) GET_FAM_NAME          : Returns name of each P/L family
-!  (9 ) GET_FAM_MWT           : Returns molecular weight for each P/L family
-!  (10) INIT_DIAG_PL          : Allocates & zeroes all module arrays
-!  (11) CLEANUP_DIAG_PL       : Deallocates all module arrays
+! !PUBLIC DATA MEMBERS:
 !
-!  GEOS-CHEM modules referenced by "diag_pl_mod.f":
-!  ============================================================================
-!  (1 ) bpch2_mod.f     : Module containing routines for binary punch file I/O
-!  (2 ) comode_mod.f    : Module containing SMVGEAR allocatable arrays
-!  (3 ) directory_mod.f : Module containing GEOS-CHEM data & met field dirs 
-!  (4 ) error_mod.f     : Module containing I/O error and NaN check routines 
-!  (5 ) file_mod.f      : Module containing file unit numbers & error checks
-!  (6 ) grid_mod.f      : Module containing horizontal grid information    
-!  (7 ) time_mod.f      : Module containing routines for computing time & date 
-!  (8 ) tracer_mod.f    : Module containing GEOS-CHEM tracer array STT etc.  
-!  (9 ) tracerid_mod.f  : Module containing pointers to tracers & emissions
+      ! Scalars
+      LOGICAL, PUBLIC              :: DO_SAVE_PL
+      INTEGER, PUBLIC              :: TAGO3_PL_YEAR
+
+      ! Arrays
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD65  (:,:,:,:)
+      REAL*8,  PUBLIC, ALLOCATABLE :: FAM_PL(:,:,:,:)
 !
-!  NOTES:
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC  :: DO_DIAG_PL
+      PUBLIC  :: CLEANUP_DIAG_PL
+      PUBLIC  :: GET_FAM_MWT
+      PUBLIC  :: GET_FAM_NAME
+      PUBLIC  :: GET_NFAM
+      PUBLIC  :: INIT_DIAG_PL
+      PUBLIC  :: SETJFAM
+      PUBLIC  :: SETPL
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: DIAG20
+      PRIVATE :: ITS_TIME_FOR_WRITE20
+      PRIVATE :: WRITE20
+!
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Add TAUe as a module variable.  Bug fixes: Make sure WRITE20 uses the 
 !        global FILENAME, and also write to disk on the last timestep before
 !        the end of the simulation. (bmy, 11/15/04)
@@ -68,80 +60,63 @@
 !        in DO_DIAG_PL, DIAG20, and WRITE20 (phs, bmy, 12/4/07)
 !  (8 ) Now make COUNT a 3-D array (phs, 11/18/08)
 !  (9 ) Minor fix in DIAG20 (dbj, bmy, 10/26/09)
-!******************************************************************************
-!      
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "diag_pl_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these variables ...
-      PUBLIC :: AD65
-      PUBLIC :: DO_SAVE_PL
-      PUBLIC :: FAM_PL
-      PUBLIC :: TAGO3_PL_YEAR  ! dbj
-      
-      ! ... and these routines
-      PUBLIC :: DO_DIAG_PL
-      PUBLIC :: GET_FAM_MWT
-      PUBLIC :: GET_FAM_NAME
-      PUBLIC :: GET_NFAM
-      PUBLIC :: SETJFAM
-      PUBLIC :: SETPL
-      PUBLIC :: INIT_DIAG_PL
-      PUBLIC :: CLEANUP_DIAG_PL
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+!  16 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !PRIVATE TYPES:
+!
       ! Scalars
-      LOGICAL                        :: DO_SAVE_PL
       LOGICAL                        :: DO_SAVE_O3
-      ! MAXMEM increased and moved to CMN_SIZE by FP (hotp 7/31/09)
-      !INTEGER, PARAMETER             :: MAXMEM  = 10
-      ! MMAXFAM removed by FP (hotp 7/31/09)
-      !INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
-      INTEGER                        :: TAGO3_PL_YEAR   ! dbj
       REAL*8                         :: TAUb, TAUe, TAU0, TAU1
       CHARACTER(LEN=255)             :: FILENAME
 
       ! Arrays
       INTEGER,           ALLOCATABLE :: FAM_NMEM(:), COUNT(:,:,:)
-      REAL*4,            ALLOCATABLE :: AD65(:,:,:,:)
-      REAL*8,            ALLOCATABLE :: FAM_PL(:,:,:,:)
       REAL*8,            ALLOCATABLE :: FAM_COEF(:,:)
       REAL*8,            ALLOCATABLE :: PL24H(:,:,:,:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_NAME(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_TYPE(:)
       CHARACTER(LEN=14), ALLOCATABLE :: FAM_MEMB(:,:)
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow beneath the "CONTAINS" statement
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: setjfam
+!
+! !DESCRIPTION: Subroutine SETJFAM stores info into SMVGEAR arrays for the 
+!  ND65 prod/loss diagnostic. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SETJFAM( NACTIVE, NINAC )
 !
-!******************************************************************************
-!  Subroutine SETJFAM stores info into SMVGEAR arrays for the ND65 prod/loss
-!  diagnostic. (ljm, bmy, 1999, 7/20/04)
+! !USES:
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (1 ) NACTIVE (INTEGER) : Number of active SMVGEAR species
-!  (2 ) NINAC   (INTEGER) : Number of inactive SMVGEAR species
+#     include "CMN_SIZE"     ! Size parameters
+#     include "comode.h"     ! SMVGEAR II arrays
+
 !
-!  NOTES:
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      INTEGER, INTENT(INOUT) :: NACTIVE   ! # of active chemical species
+      INTEGER, INTENT(INOUT) :: NINAC     ! # of inactive chemical species
+!
+! !REMARKS:
+!  At present, the ND65 diagnostic works only with SMVGEAR and not with
+!  KPP.  KPP is generated automatically and lacks the code to keep track of
+!  the production/loss of chemical families. (bmy, 9/16/10)
+! 
+! !REVISION HISTORY:
+!  01 Feb 1999- L. Mickley, I. Bey, R. Yantosca - Initial version
 !  (1 ) Replace NAMESPEC with NAMEGAS for SMVGEAR II.  Added comment header
 !        and updated comments.  Now references IU_FILE and IOERROR from
 !        F90 module "file_mod.f".  Now trap I/O errors using routine IOERROR.
@@ -150,16 +125,14 @@
 !        first ND65 family.  Set NCS = NCSURBAN, since we have defined our 
 !        GEOS-CHEM mechanism in the urban slot of SMVGEAR II.(bmy, 4/21/03)
 !  (2 ) Bundled into "diag65_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-#     include "CMN_SIZE"     ! Size parameters
-#     include "comode.h"     ! SMVGEAR II arrays
-
-      ! Arguments
-      INTEGER, INTENT(INOUT) :: NACTIVE, NINAC
-      
-      ! Local variables
-      INTEGER                :: F, J, JGAS0, JGAS
+! !LOCAL VARIABLES:
+!
+      INTEGER :: F, J, JGAS0, JGAS
 
       !=================================================================
       ! SETJFAM begins here!
@@ -200,55 +173,67 @@
       WRITE( IO93, '(a,/)'      ) REPEAT( '=', 79 )
       WRITE( IO93, '(10(a7,1x))' ) ( TRIM( NAMEGAS(J) ), J=JGAS0,JGAS )
 
-      ! Return to calling program
       END SUBROUTINE SETJFAM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: setpl
+!
+! !DESCRIPTION: Subroutine SETPL flags the reactions and species which 
+!  contribute to production or loss for a given ND65 prodloss diagnostic 
+!  family.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SETPL
 !
-!******************************************************************************
-!  Subroutine SETPL flags the reactions and species which contribute to 
-!  production or loss for a given ND65 prodloss diagnostic family.  
-!  (ljm, bey, 1999; bmy, 5/1/03)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD,   ONLY : ERROR_STOP, GEOS_CHEM_STOP
+      USE ERROR_MOD,   ONLY : DEBUG_MSG
+      USE LOGICAL_MOD, ONLY : LPRT
+
+#     include "CMN_SIZE"
+#     include "comode.h"
+! 
+! !REMARKS:
+!  At present, the ND65 diagnostic works only with SMVGEAR and not with
+!  KPP.  KPP is generated automatically and lacks the code to keep track of
+!  the production/loss of chemical families. (bmy, 9/16/10)
+!
+! !REVISION HISTORY:
+!  01 Feb 1999- L. Mickley, I. Bey, R. Yantosca - Initial version
 !  (1 ) Now references "file_mod.f" and "error_mod.f".  Also now use IOERROR 
 !        to trap I/O errors, and ERROR_STOP to stop the run and deallocate
 !        all module arrays.  NAMESPEC is now NAMEGAS for SMVGEAR II. Now 
 !        uses F90 declaration syntax.  Set NCS = NCSURBAN for now, since we 
 !        have defined our GEOS-CHEM mechanism in the urban slot of SMVGEAR II
 !        Updated comments.  (bmy, 5/1/03)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ERROR_STOP, GEOS_CHEM_STOP
-      !FP_ISOP (FP 6/2009)
-      USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
-
-#     include "CMN_SIZE"
-#     include "comode.h"
-      
-      ! Parameters
-      ! NOW IN CMN SIZE (FP_ISOP) (FP 6/2009)
-      !INTEGER, PARAMETER :: MAXPL=100, MAXMEM=10
-
-      ! Local variables
-      INTEGER            :: F, ICOUNT, I, J, INDEX, IOS
-      INTEGER            :: K, M, N, NK, NREAC, NPROD, NPOS
-      INTEGER            :: IREAC1, IREAC2, IREAC3
-      INTEGER            :: IPROD1, IPROD2, IPROD3
-      INTEGER            :: NFAMMEM(MAXFAM)
-      INTEGER            :: IFAMMEM(MAXMEM,MAXFAM)
-      INTEGER            :: ITEMPREAC(NMRPROD) 
-      INTEGER            :: NNPL(MAXFAM)
-      INTEGER            :: NKPL(MAXPL,MAXFAM)
-      INTEGER            :: IPLREAC(NMRPROD,MAXPL,MAXFAM)
-      REAL*8             :: PL
-      REAL*8             :: COEFMEM(MAXMEM,MAXFAM)
-      REAL*8             :: COEFPL(MAXPL,MAXFAM)
-      CHARACTER(LEN=5)   :: EXTRACHAR
+! !LOCAL VARIABLES:
+!
+      INTEGER          :: F, ICOUNT, I, J, INDEX, IOS
+      INTEGER          :: K, M, N, NK, NREAC, NPROD, NPOS
+      INTEGER          :: IREAC1, IREAC2, IREAC3
+      INTEGER          :: IPROD1, IPROD2, IPROD3
+      INTEGER          :: NFAMMEM(MAXFAM)
+      INTEGER          :: IFAMMEM(MAXMEM,MAXFAM)
+      INTEGER          :: ITEMPREAC(NMRPROD) 
+      INTEGER          :: NNPL(MAXFAM)
+      INTEGER          :: NKPL(MAXPL,MAXFAM)
+      INTEGER          :: IPLREAC(NMRPROD,MAXPL,MAXFAM)
+      REAL*8           :: PL
+      REAL*8           :: COEFMEM(MAXMEM,MAXFAM)
+      REAL*8           :: COEFPL(MAXPL,MAXFAM)
+      CHARACTER(LEN=5) :: EXTRACHAR
 
       !=================================================================
       ! SETPL begins here!
@@ -553,31 +538,43 @@
          ENDDO             
       ENDDO
 
-      ! Return to calling program
       END SUBROUTINE SETPL
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_diag_pl 
+!
+! !DESCRIPTION: Subroutine DO\_DIAG\_PL saves info on production and loss of 
+!  families into the FAM\_PL diagnostic array.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_DIAG_PL 
 !
-!*****************************************************************************
-!  Subroutine DO_DIAG_PL saves info on production and loss of families 
-!  into the FAM_PL diagnostic array. (bey, bmy, 3/16/00, 12/4/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
-!  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
-!  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
-!*****************************************************************************
-!
-      ! References to F90 modules
       USE COMODE_MOD, ONLY : CSPEC, JLOP
 
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! LD65
 #     include "comode.h"  ! SMVGEAR II arrays
-
-      ! Local variables 
+! 
+! !REVISION HISTORY:
+!  16 Mar 2000 - I. Bey      - Initial version
+!  (1 ) Now bundled into "prod_loss_diag_mod.f" (bmy, 7/20/04)
+!  (2 ) Now only loop up thru LD65 levels (bmy, 12/4/07)
+!  (3 ) Set FAM_PL to zero in the stratosphere (phs, 11/17/08)
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: I, J, L, JLOOP, N
 
       !=================================================================
@@ -639,25 +636,45 @@
 
       IF ( DO_SAVE_O3 ) CALL DIAG20
 
-      ! Return to calling program
       END SUBROUTINE DO_DIAG_PL
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DIAG20
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DIAG20 computes production and loss rates of O3, and 
-!  then calls subroutine WRITE20 to save the these rates to disk. 
-!  (bey, bmy, 6/9/99, 10/26/09)
+! !IROUTINE: diag20
 !
-!  By saving, the production and loss rates from a full-chemistry run,
+! !DESCRIPTION: Subroutine DIAG20 computes production and loss rates of O3, 
+!  and then calls subroutine WRITE20 to save the these rates to disk.  By 
+!  saving the production and loss rates from a full-chemistry run,
 !  a user can use these archived rates to perform a quick O3 chemistry
 !  run at a later time.
+!\\
+!\\
+! !INTERFACE:
 !
+      SUBROUTINE DIAG20
+!
+! !USES:
+!
+      USE COMODE_MOD,    ONLY : JLOP
+      USE DIRECTORY_MOD, ONLY : O3PL_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
+      USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
+      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
+      USE TRACER_MOD,    ONLY : STT,           XNUMOL
+      USE TRACERID_MOD,  ONLY : IDTOX
+
+#     include "CMN_SIZE"      ! Size parameters
+#     include "CMN_DIAG"      ! LD65
+! 
+! !REMARKS:
 !  DIAG20 assumes that ND65 (P-L diagnostics) have been turned on.
 !
-!  NOTES:
+! !REVISION HISTORY:
+!  09 Jun 1999 - I. Bey      - Initial version
 !  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
 !  (2 ) Now also write to disk when it is the last timestep before the end of 
 !        the run.  Now references GET_TAUE from "time_mod.f". (bmy, 11/15/04)
@@ -671,27 +688,18 @@
 !  (7 ) Now take care of boxes that switch b/w stratospheric and tropospheric
 !        regimes (phs, 11/17/08)
 !  (8 ) Bug fix: Now just zero arrays w/o loop indices (dbj, bmy, 10/26/09)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,    ONLY : JLOP
-      USE DIRECTORY_MOD, ONLY : O3PL_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TIME_MOD,      ONLY : EXPAND_DATE,   GET_NYMD
-      USE TIME_MOD,      ONLY : GET_TAU,       GET_TAUb 
-      USE TIME_MOD,      ONLY : ITS_A_NEW_DAY, TIMESTAMP_STRING
-      USE TRACER_MOD,    ONLY : STT,           XNUMOL
-      USE TRACERID_MOD,  ONLY : IDTOX
-
-#     include "CMN_SIZE"      ! Size parameters
-#     include "CMN_DIAG"      ! LD65
-
-      ! Local variables
-      LOGICAL, SAVE          :: FIRST = .TRUE.
-      LOGICAL                :: DO_WRITE
-      INTEGER                :: I, J, L, N, JLOOP
-      REAL*8                 :: P_Ox, L_Ox
-      CHARACTER(LEN=16)      :: STAMP 
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE     :: FIRST = .TRUE.
+      LOGICAL           :: DO_WRITE
+      INTEGER           :: I, J, L, N, JLOOP
+      REAL*8            :: P_Ox, L_Ox
+      CHARACTER(LEN=16) :: STAMP 
 
       !=================================================================
       ! DIAG20 begins here!
@@ -821,26 +829,25 @@
          TAU0  = TAU1
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE DIAG20
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: write20
+!
+! !DESCRIPTION: Subroutine WRITE20 saves production and loss rates to disk, 
+!  where they will be later read by subroutine CHEMO3. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WRITE20
 !
-!******************************************************************************
-!  Subroutine WRITE20 saves production and loss rates to disk, where they 
-!  will be later read by subroutine CHEMO3. (bey, bmy, 6/9/99, 12/4/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
-!  (2 ) Bug fix: remove declaration of FILENAME which masked the global
-!        declaration (bmy, 11/15/04)
-!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE BPCH2_MOD,  ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,  ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
       USE FILE_MOD,   ONLY : IU_ND20
@@ -848,19 +855,32 @@
 
 #     include "CMN_SIZE"   ! Size parameters
 #     include "CMN_DIAG"   ! LD65
-
-      ! Local variables
-      INTEGER             :: I, J, L, N, IOS
-      INTEGER             :: IFIRST, JFIRST, LFIRST
-      INTEGER             :: HALFPOLAR 
-      INTEGER, PARAMETER  :: CENTER180 = 1 
-      REAL*4              :: LONRES, LATRES
-      REAL*4              :: ARRAY(IIPAR,JJPAR,LLTROP)
-      CHARACTER(LEN=20)   :: MODELNAME
-      CHARACTER(LEN=40)   :: CATEGORY
-      CHARACTER(LEN=40)   :: UNIT
-      CHARACTER(LEN=40)   :: RESERVED
-      CHARACTER(LEN=80)   :: TITLE
+! 
+! !REVISION HISTORY:
+!  09 Jun 1999 - I. Bey      - Initial version
+!  (1 ) Now bundled into "diag20_mod.f" (bmy, 7/20/04)
+!  (2 ) Bug fix: remove declaration of FILENAME which masked the global
+!        declaration (bmy, 11/15/04)
+!  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (4 ) Now only write up to LD65 levels (phs, bmy, 12/4/07)
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L, N, IOS
+      INTEGER            :: IFIRST, JFIRST, LFIRST
+      INTEGER            :: HALFPOLAR 
+      INTEGER, PARAMETER :: CENTER180 = 1 
+      REAL*4             :: LONRES, LATRES
+      REAL*4             :: ARRAY(IIPAR,JJPAR,LLTROP)
+      CHARACTER(LEN=20)  :: MODELNAME
+      CHARACTER(LEN=40)  :: CATEGORY
+      CHARACTER(LEN=40)  :: UNIT
+      CHARACTER(LEN=40)  :: RESERVED
+      CHARACTER(LEN=80)  :: TITLE
 
       !=================================================================
       ! WRITE20 begins here!
@@ -938,36 +958,47 @@
       ! Close BPCH file
       CLOSE( IU_ND20 )
 
-      ! Return to calling program
       END SUBROUTINE WRITE20
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: its_time_for_write20
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE20 returns TRUE if it's time to 
+!  write the ND20 ozone P/L rate file to disk.  We test the time at the next 
+!  chemistry timestep so that we can write to disk properly. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION ITS_TIME_FOR_WRITE20( TAU_W ) RESULT( ITS_TIME )
 !
-!******************************************************************************
-!  Function ITS_TIME_FOR_WRITE_DIAG51 returns TRUE if it's time to write
-!  the ND20 ozone P/L rate file to disk.  We test the time at the next 
-!  chemistry timestep so that we can write to disk properly. 
-!  (bmy, 3/3/05)
+! !USES:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) TAU_W (REAL*8) : TAU value at time of writing to disk
-!
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU
       USE TIME_MOD, ONLY : GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
-
-      ! Arguments
-      REAL*8,  INTENT(OUT) :: TAU_W
-
-      ! Local variables
-      LOGICAL              :: ITS_TIME
-      REAL*8               :: TAU, HOUR, CHEM, DYN
+!
+! !INPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(OUT) :: TAU_W      ! TAU value @ time of writing to disk
+!
+! !RETURN VALUE:
+!
+      LOGICAL              :: ITS_TIME   ! =T if its time to write to disk
+!
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL*8 :: TAU, HOUR, CHEM, DYN
 
       !=================================================================
       ! ITS_TIME_FOR_WRITE20 begins here!
@@ -1001,52 +1032,76 @@
          RETURN
       ENDIF
 
-      ! Return to calling program
       END FUNCTION ITS_TIME_FOR_WRITE20
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_nfam
+!
+! !DESCRIPTION: Function GET\_NFAM returns the number of defined P/L families. 
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_NFAM() RESULT( N_FAM )
 !
-!******************************************************************************
-!  Function GET_NFAM returns the number of defined  P/L families. (bmy, 5/2/05)
-! 
-!  NOTES:
-!******************************************************************************
+! !RETURN VALUE:
 !
-      ! Local variables
-      INTEGER :: N_FAM
-
+      INTEGER :: N_FAM    ! Number of defined P/L families
+!
+! !REVISION HISTORY:
+!  02 May 2005 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! GET_N_FAM begins here!
       !=================================================================
       N_FAM = NFAM
     
-      ! Return to calling program
       END FUNCTION GET_NFAM
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_fam_name
+!
+! !DESCRIPTION: Function GET\_FAM\_NAME returns the name of the 
+!  Nth P/L family.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FAM_NAME( N ) RESULT( NAME )
 !
-!******************************************************************************
-!  Function GET_FAM_NAME returns the name of the Nth P/L family. (bmy, 5/2/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N (INTEGER) : Number of the P/L family for which to return the name
-! 
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ERROR_STOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N
-
-      ! Local variables
-      CHARACTER(LEN=255)  :: MSG, NAME
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: N      ! Family # for desired molecular weight
+!
+! !RETURN VALUE:
+!
+      CHARACTER(LEN=255)   :: NAME   ! Name of Nth P/L family
+!
+! !REVISION HISTORY:
+!  02 May 2005 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255) :: MSG
 
       !=================================================================
       ! GET_FAM_NAME begins here!
@@ -1061,35 +1116,48 @@
       ! Get name
       NAME = TRIM( FAM_NAME( N ) )
       
-      ! Return to calling program
       END FUNCTION GET_FAM_NAME
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_fam_mwt
+!
+! !DESCRIPTION: Function GET\_FAM\_MWT returns the molecular weight of the 
+!  Nth P/L family.
+!\\
+!\\
+! !INTERFACE:
+!
       FUNCTION GET_FAM_MWT( N ) RESULT( MWT )
 !
-!******************************************************************************
-!  Function GET_FAM_NAME returns the name of the Nth P/L family. (bmy, 5/2/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N (INTEGER) : Number of the P/L family for which to return the name
-! 
-!  NOTES:
-!******************************************************************************
-!
-      ! References to F90 modules
       USE CHARPAK_MOD, ONLY : TRANUC
       USE ERROR_MOD,   ONLY : ERROR_STOP
       USE TRACER_MOD,  ONLY : N_TRACERS, TRACER_MW_KG, TRACER_NAME
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: N
-
-      ! Local variables
-      INTEGER              :: T
-      REAL*8               :: MWT
-      CHARACTER(LEN=255)   :: MSG, PL_NAME, T_NAME 
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: N     ! Family # for desired molecular weight
+!
+! !RETURN VALUE:
+!
+      REAL*8               :: MWT   ! Molecular weight
+!
+! !REVISION HISTORY:
+!  02 May 2005 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: T
+      CHARACTER(LEN=255) :: MSG, PL_NAME, T_NAME 
 
       !=================================================================
       ! GET_FAM_NAME begins here!
@@ -1136,53 +1204,73 @@
          ENDIF
       ENDDO
 
-      ! Return to calling program
       END FUNCTION GET_FAM_MWT
-
+!EOC
 !------------------------------------------------------------------------------
-      
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_diag_pl 
+!
+! !DESCRIPTION: Subroutine INIT\_DIAG\_PL takes values read from the GEOS-Chem
+!  input file and saves to module variables w/in "diag\_pl\_mod.f" 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DIAG_PL( DOPL, SAVEO3, N_FAM, NAME, 
      &                         TYPE, NMEM,   MEMB,  COEF )
 !
-!******************************************************************************
-!  Subroutine INIT_DIAG_PL takes values read from the GEOS-CHEM input file
-!  and saves to module variables w/in "diag65_mod.f" (bmy, 7/20/04, 12/4/07)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N_FAM (INTEGER  ) : Number of prod/loss families
-!  (1 ) NAME  (CHARACTER) : Prod/loss family name
-!  (2 ) TYPE  (CHARACTER) : Prod/loss family type
-!  (3 ) NMEM  (INTEGER  ) : Number of members w/in the prod/loss family  
-!  (4 ) MEMB  (CHARACTER) : Names for each prod/loss family member
-!  (5 ) COEF  (REAL*8   ) : Coefficients for each prod/loss family member
-!
-!  NOTES:
-!  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,  ONLY : ALLOC_ERR
       USE TRACER_MOD, ONLY : ITS_A_FULLCHEM_SIM
 
-#     include "CMN_SIZE"           ! Size parameters
-#     include "CMN_DIAG"           ! ND65,    LD65
-#     include "comode.h"           ! LFAMILY, NFAMILIES
+#     include "CMN_SIZE"   ! Size parameters
+#     include "CMN_DIAG"   ! ND65,    LD65
+#     include "comode.h"   ! LFAMILY, NFAMILIES
+!
+! !INPUT PARAMETERS: 
+!
+      ! Turn on P/L diagnostic?
+      LOGICAL,           INTENT(IN) :: DOPL
 
-      ! Arguments
-      LOGICAL,           INTENT(IN) :: DOPL, SAVEO3
+      ! Save out P(Ox), L(Ox) for future tagged Ox simulation?
+      LOGICAL,           INTENT(IN) :: SAVEO3
+
+      ! Number of prod/loss families
       INTEGER,           INTENT(IN) :: N_FAM
-      INTEGER,           INTENT(IN) :: NMEM(MAXFAM)
-      REAL*8,            INTENT(IN) :: COEF(MAXMEM,MAXFAM)
-      CHARACTER(LEN=14), INTENT(IN) :: NAME(MAXFAM)
-      CHARACTER(LEN=14), INTENT(IN) :: TYPE(MAXFAM)
-      CHARACTER(LEN=14), INTENT(IN) :: MEMB(MAXMEM,MAXFAM)
 
-      ! Local variables
-      INTEGER                       :: AS
+      ! Number of members w/in the prod/loss family
+      INTEGER,           INTENT(IN) :: NMEM(MAXFAM)
+
+      ! Coefficients for each prod/loss family member
+      REAL*8,            INTENT(IN) :: COEF(MAXMEM,MAXFAM)
+
+      ! Prod/loss family name
+      CHARACTER(LEN=14), INTENT(IN) :: NAME(MAXFAM)
+
+      ! Prod/loss family type
+      CHARACTER(LEN=14), INTENT(IN) :: TYPE(MAXFAM)
+
+      ! Names for each prod/loss family member
+      CHARACTER(LEN=14), INTENT(IN) :: MEMB(MAXMEM,MAXFAM)
+! 
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  (1 ) Now allocate arrays up to LD65 levels (phs, bmy, 12/4/07)
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: AS
  
       !=================================================================
-      ! INIT_DIAG65 begins here!
+      ! INIT_DIAG_PL begins here!
       !=================================================================
 
       ! Turn on prod loss diagnostic?
@@ -1271,17 +1359,28 @@
       FAM_TYPE(:)   = TYPE(:)
       FAM_MEMB(:,:) = MEMB(:,:)      
           
-      ! End of calling program
       END SUBROUTINE INIT_DIAG_PL
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_diag_pl
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DIAG\_PL deallocates all module arrays. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DIAG_PL
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DIAG_PL deallocates all module arrays. (bmy, 7/20/04)
-!******************************************************************************
-!
+! 
+! !REVISION HISTORY: 
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DIAG65 begins here!
       !=================================================================
@@ -1293,10 +1392,6 @@
       IF ( ALLOCATED( FAM_PL   ) ) DEALLOCATE( FAM_PL   )
       IF ( ALLOCATED( FAM_TYPE ) ) DEALLOCATE( FAM_TYPE )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG_PL
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DIAG_PL_MOD

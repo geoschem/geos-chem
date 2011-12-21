@@ -1,33 +1,42 @@
-! $Id: convection_mod.f,v 1.1 2009/09/16 14:06:36 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: convection_mod
+!
+! !DESCRIPTION: Module CONVECTION\_MOD contains routines which select the 
+!  proper convection code for GEOS-3, GEOS-4, GEOS-5, MERRA, or GCAP met 
+!  field data sets. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE CONVECTION_MOD
+! 
+! !USES:
 !
-!******************************************************************************
-!  Module CONVECTION_MOD contains routines which select the proper convection
-!  code for GEOS-3, GEOS-4, GEOS-5, or GCAP met field data sets. 
-!  (bmy, 6/28/03, 1/31/08)
+      USE GC_TYPE_MOD
+
+      IMPLICIT NONE
+      PRIVATE
+
+#     include "smv_errcode.h"
+#     include "smv_physconst.h"
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) DO_CONVECTION       : Wrapper routine, chooses correct convection code
-!  (2 ) DO_GEOS4_CONVECT    : Calls GEOS-4 convection routines 
-!  (3 ) DO_GCAP_CONVECT     : Calls GCAP convection routines
-!  (4 ) NFCLDMX             : Convection routine for GEOS-3 and GEOS-5 met
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by convection_mod.f
-!  ============================================================================
-!  (1 ) dao_mod.f           : Module w/ containing arrays for DAO met fields   
-!  (2 ) diag_mod.f          : Module w/ GEOS-Chem diagnostic arrays
-!  (3 ) fvdas_convect_mod.f : Module w/ convection code for fvDAS met fields
-!  (4 ) grid_mod.f          : Module w/ horizontal grid information
-!  (5 ) logical_mod.f       : Module w/ GEOS-Chem logical switches
-!  (6 ) ocean_mercury_mod.f : Module w/ routines for Hg(0) ocean flux
-!  (7 ) pressure_mod.f      : Module w/ routines to compute P(I,J,L)
-!  (8 ) time_mod.f          : Module w/ routines for computing time
-!  (9 ) tracer_mod.f        : Module w/ GEOS-Chem tracer array STT etc
-!  (10) tracerid_mod.f      : Module w/ GEOS-Chem tracer ID flags etc
-!  (11) wetscav_mod.f       : Module w/ routines for wetdep/scavenging
+      PUBLIC  :: DO_CONVECTION
 !
-!  NOTES:
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: DO_GEOS4_CONVECT
+      PRIVATE :: DO_GCAP_CONVECT
+      PRIVATE :: NFCLDMX
+      PRIVATE :: DO_MERRA_CONVECTION
+!
+! !REVISION HISTORY:
+!  27 Jan 2004 - R. Yantosca - Initial version
 !  (1 ) Contains new updates for GEOS-4/fvDAS convection.  Also now references
 !        "error_mod.f".  Now make F in routine NFCLDMX a 4-D array to avoid
 !        memory problems on the Altix. (bmy, 1/27/04)
@@ -45,108 +54,312 @@
 !  (9 ) Bug fix: now only call ADD_Hg2_WD if LDYNOCEAN=T (phs, 2/8/07)
 !  (10) Fix for GEOS-5 met fields in routine NFCLDMX (swu, 8/15/07)
 !  (11) Resize DTCSUM array in NFCLDMX to save memory (bmy, 1/31/08)
-!******************************************************************************
-!
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "convection_mod.f"
-      !=================================================================
-
-      ! Make everything PRIVATE ...
-      PRIVATE
-
-      ! ... except these routines
-      PUBLIC :: DO_CONVECTION
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
-      CONTAINS
-
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!  29 Sep 2010 - R. Yantosca - Added modifications for MERRA
+!  05 Oct 2010 - R. Yantosca - Added ND14 and ND38 diagnostics to 
+!                              DO_MERRA_CONVECTION routine
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_convection
+!
+! !DESCRIPTION: Subroutine DO\_CONVECTION calls the appropriate convection 
+!  driver program for different met field data sets.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_CONVECTION
 !
-!******************************************************************************
-!  Subroutine DO_CONVECTION calls the appropriate convection driver program
-!  for different met field data sets. (swu, bmy, 5/25/05, 2/8/07)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference "CMN_SIZE".  Now references CLDMAS, CMFMC, DTRAIN from
-!        "dao_mod.f" so that we can pass either GEOS-5 or GEOS-3 meteorology
-!        to NFCLDMX. (bmy, 2/8/07)
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE DAO_MOD,           ONLY : CLDMAS,    CMFMC, DTRAIN
-      USE MERCURY_MOD,       ONLY : PARTITIONHG
-      USE TRACER_MOD,        ONLY : N_TRACERS, TCVV
-      USE TRACER_MOD,        ONLY : STT
+      USE DAO_MOD,      ONLY : AD
+      USE DAO_MOD,      ONLY : BXHEIGHT 
+      USE DAO_MOD,      ONLY : T        
+      USE DAO_MOD,      ONLY : CLDMAS
+      USE DAO_MOD,      ONLY : CMFMC
+      USE DAO_MOD,      ONLY : DQRCU
+      USE DAO_MOD,      ONLY : DTRAIN
+      USE DAO_MOD,      ONLY : PFICU
+      USE DAO_MOD,      ONLY : PFLCU
+      USE DAO_MOD,      ONLY : REEVAPCN
+      USE DIAG_MOD,     ONLY : CONVFLUP
+      USE DIAG_MOD,     ONLY : AD38
+      USE ERROR_MOD,    ONLY : GEOS_CHEM_STOP
+      USE GRID_MOD,     ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,  ONLY : LDYNOCEAN
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TRACER_MOD,   ONLY : ITS_A_MERCURY_SIM
+      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE TRACER_MOD,   ONLY : TCVV
+      USE TRACER_MOD,   ONLY : TRACER_MW_KG
+      USE TRACER_MOD,   ONLY : STT
+      USE TRACERID_MOD, ONLY : IDTHg2
+      USE TRACERID_MOD, ONLY : IDTHgP
+      USE TIME_MOD,     ONLY : GET_TS_DYN
+      USE WETSCAV_MOD,  ONLY : COMPUTE_F
+      USE WETSCAV_MOD,  ONLY : H2O2s
+      USE WETSCAV_MOD,  ONLY : SO2s
 
-#     include "CMN_SIZE"   ! Size parameters
-
-      INTEGER :: I, J, L
-
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! Diagnostic flags
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  08 Feb 2007 - R. Yantosca - Now reference "CMN_SIZE".  Now references 
+!                              CLDMAS, CMFMC, DTRAIN from "dao_mod.f" so that 
+!                              we can pass either GEOS-5 or GEOS-3 meteorology
+!                              to NFCLDMX. 
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!  29 Sep 2010 - R. Yantosca - Now call DO_MERRA_CONVECTION for MERRA met
+!  05 Oct 2010 - R. Yantosca - Now attach diagnostics to MERRA conv routine
+!  06 Oct 2010 - R. Yantosca - Parallelized call to DO_MERRA_CONVECTION
+!  15 Oct 2010 - H. Amos     - Now get BXHEIGHT, T from dao_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get LDYNOCEAN from logical_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get ITS_A_MERCURY_SIM from tracer_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get IDTHg2, IDTHgP from tracerid_mod.f
+!  15 Oct 2010 - R. Yantosca - Now get H2O2s, SO2s from wetscav_mod.f
+!  15 Oct 2010 - H. Amos     - Now pass BXHEIGHT, T, to DO_MERRA_CONVECTION
+!  15 Oct 2010 - R. Yantosca - Now pass H2O2s, SO2s to DO_MERRA_CONVECTION
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 #if   defined( GCAP ) 
 
-      !-------------------------
+      !=================================================================
       ! GCAP met fields
-      !-------------------------
+      !=================================================================
 
-      ! Call GEOS-4 driver routine
+      ! Call GCAP driver routine
       CALL DO_GCAP_CONVECT
+
+#elif defined( GEOS_3 )
+
+      !=================================================================
+      ! GEOS-3 met fields
+      !=================================================================
+
+      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
+      CALL NFCLDMX( N_TRACERS, TCVV, CLDMAS, DTRAIN, STT )
 
 #elif defined( GEOS_4 )
 
-      !-------------------------
+      !=================================================================
       ! GEOS-4 met fields
-      !-------------------------
+      !=================================================================
 
       ! Call GEOS-4 driver routine
       CALL DO_GEOS4_CONVECT
 
 #elif defined( GEOS_5 )
 
-      !-------------------------
+      !=================================================================
       ! GEOS-5 met fields
-      !-------------------------
+      !=================================================================
 
       ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
       CALL NFCLDMX( N_TRACERS, TCVV, CMFMC(:,:,2:LLPAR+1), DTRAIN, STT )
 
-#elif defined( GEOS_3 )
+#elif defined( MERRA )
 
-      !-------------------------
-      ! GEOS-3 met fields
-      !-------------------------
+      !=================================================================
+      ! MERRA met fields
+      !=================================================================
+      
+      ! Objects
+      TYPE(GC_IDENT)     :: IDENT
+      TYPE(GC_DIMS )     :: DIMINFO
+      TYPE(SPEC_2_TRAC)  :: COEF
+      TYPE(GC_OPTIONS)   :: OPTIONS
+      TYPE(ID_TRAC)      :: IDT
+                         
+      ! Scalars          
+      INTEGER            :: I, J, L, N, NN, RC, TS_DYN
+      REAL*8             :: AREA_M2, DT
+                         
+      ! Arrays           
+      REAL*8             :: DIAG14(               LLPAR,   N_TRACERS )
+      REAL*8             :: DIAG38(               LLPAR,   N_TRACERS )
+      REAL*8             :: F     (               LLPAR,   N_TRACERS )
+      REAL*8             :: FSOL  ( IIPAR, JJPAR, LLPAR,   N_TRACERS )
+      INTEGER            :: ISOL  (                        N_TRACERS )
+      REAL*8             :: PEDGE (               LLPAR+1            )
 
-      ! Call the S-J Lin convection routine for GEOS-1, GEOS-S, GEOS-3
-      CALL NFCLDMX( N_TRACERS, TCVV, CLDMAS, DTRAIN, STT )
+      ! Parameters
+      LOGICAL, PARAMETER :: FIRST = .TRUE.
+
+      !-----------------------------------------------------------------
+      ! Initialization
+      !-----------------------------------------------------------------
+
+      ! Define variables and object fields
+      TS_DYN                  = GET_TS_DYN()         ! Dynamic timestep [min]
+      DT                      = DBLE( TS_DYN )       ! Dynamic timestep [min]
+      DIMINFO%L_COLUMN        = LLPAR                ! # of vertical levels
+      DIMINFO%N_TRACERS       = N_TRACERS            ! # of tracers
+      IDT%Hg2                 = IDTHg2               ! Tracer ID flag for Hg2
+      IDT%HgP                 = IDTHgP               ! Tracer ID flag for HgP
+      OPTIONS%USE_Hg          = ITS_A_MERCURY_SIM()  ! Mercury simulation?
+      OPTIONS%USE_Hg_DYNOCEAN = LDYNOCEAN            !  with dynamic ocean?
+      OPTIONS%USE_DIAG14      = ( ND14 > 0 )         ! Use ND14 diagnostic?
+      OPTIONS%USE_DIAG38      = ( ND38 > 0 )         ! Use ND38 diagnostic?
+
+      ! Allocate the pointer array
+      ALLOCATE( COEF%MOLWT_KG( N_TRACERS ), STAT=RC )
+      IF ( RC /= SMV_SUCCESS ) RETURN
+      COEF%MOLWT_KG = 0d0
+
+      ! Loop over advected tracers
+      DO N = 1, N_TRACERS
+
+         ! Molecular weight [kg]
+         COEF%MOLWT_KG(N) = TRACER_MW_KG(N)
+
+         ! Fraction of soluble tracer
+         CALL COMPUTE_F( N, FSOL(:,:,:,N), ISOL(N) ) 
+
+      ENDDO
+      
+      !-----------------------------------------------------------------
+      ! Do convection column by column
+      !-----------------------------------------------------------------
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, AREA_M2, I,      IDENT,  L,  PEDGE )
+!$OMP+PRIVATE( N, F,       DIAG14, DIAG38, RC, NN    ) 
+      DO J = 1, JJPAR
+
+         ! Grid box surface area [m2]
+         AREA_M2           = GET_AREA_M2( J ) 
+
+      DO I = 1, IIPAR
+
+         ! Initialize the IDENT object for error I/O
+         IDENT%STDOUT_FILE = ''                     ! Write to
+         IDENT%STDOUT_LUN  = 6                      !  stdout
+         IDENT%PET         = 0                      ! CPU #
+         IDENT%I_AM(1)     = 'MAIN'                 ! Main routine
+         IDENT%I_AM(2)     = 'DO_CONVECTION'        ! This routine
+         IDENT%LEV         = 2                      ! This level
+         IDENT%ERRMSG      = ''                     ! Error msg
+        !IDENT%VERBOSE     = ( I==23 .and. J==34 )  ! Debug box
+         IDENT%VERBOSE     = ( I==67 .and. J==31 )  ! Debug box
+
+         ! Pressure edges
+         DO L = 1, LLPAR+1
+            PEDGE(L)       = GET_PEDGE( I, J, L )
+         ENDDO
+
+         ! For some reason, the parallelization chokes if we pass an array 
+         ! slice of FSOL to DO_MERRA_CONVECTION.  It works if we manually 
+         ! copy the data into a local array and then pass that to the routine.
+         DO N = 1, N_TRACERS
+         DO L = 1, LLPAR
+            F(L,N)         = FSOL(I,J,L,N)
+         ENDDO
+         ENDDO
+
+         !--------------------------
+         ! Do the cloud convection
+         !--------------------------
+         CALL DO_MERRA_CONVECTION( IDENT    = IDENT,
+     &                             DIMINFO  = DIMINFO,
+     &                             COEF     = COEF,
+     &                             IDT      = IDT,
+     &                             OPTIONS  = OPTIONS,
+     &                             AREA_M2  = AREA_M2,
+     &                             PEDGE    = PEDGE,
+     &                             TS_DYN   = DT, 
+     &                             F        = F,
+     &                             AD       = AD      (I,J, :        ),
+     &                             BXHEIGHT = BXHEIGHT(I,J, :        ),
+     &                             CMFMC    = CMFMC   (I,J,2:LLPAR+1 ),
+     &                             DQRCU    = DQRCU   (I,J, :        ),
+     &                             DTRAIN   = DTRAIN  (I,J, :        ), 
+     &                             H2O2s    = H2O2s   (I,J, :        ),
+     &                             PFICU    = PFICU   (I,J, :        ),
+     &                             PFLCU    = PFLCU   (I,J, :        ),
+     &                             REEVAPCN = REEVAPCN(I,J, :        ),
+     &                             SO2s     = SO2s    (I,J, :        ),
+     &                             T        = T       (I,J, :        ),
+     &                             Q        = STT     (I,J, :,      :), 
+     &                             DIAG14   = DIAG14,
+     &                             DIAG38   = DIAG38,
+     &                             I        = I,
+     &                             J        = J,
+     &                             RC       = RC )
+
+         ! Stop if error is encountered
+         IF ( RC /= SMV_SUCCESS ) THEN
+            CALL GEOS_CHEM_STOP
+         ENDIF
+
+         !--------------------------
+         ! ND14 diagnostic [kg/s]
+         !--------------------------
+         IF ( ND14 > 0 ) THEN
+            DO N = 1, N_TRACERS
+            DO L = 1, LD14
+               CONVFLUP(I,J,L,N) = CONVFLUP(I,J,L,N) + DIAG14(L,N)
+            ENDDO
+            ENDDO
+         ENDIF
+
+         !--------------------------
+         ! ND38 diagnostic [kg/s]
+         !--------------------------
+         IF ( ND38 > 0 ) THEN
+            DO N = 1, N_TRACERS
+
+               ! Wetdep species for each tracer N
+               NN = ISOL(N)
+
+               ! Only archive wet-deposited species
+               IF ( NN > 0 ) THEN
+                  DO L = 1, LD38
+                     AD38(I,J,L,NN) = AD38(I,J,L,NN) + DIAG38(L,N)
+                  ENDDO
+               ENDIF
+            ENDDO
+         ENDIF
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free the memory
+      DEALLOCATE( COEF%MOLWT_KG )
 
 #endif
 
-      ! Return to calling program
       END SUBROUTINE DO_CONVECTION
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_geos4_convect
+!
+! !DESCRIPTION: Subroutine DO\_GEOS4\_CONVECT is a wrapper for the 
+!  GEOS-4/fvDAS convection code.  This was broken off from the old 
+!  DO\_CONVECTION routine above.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GEOS4_CONVECT
 !
-!******************************************************************************
-!  Subroutine DO_GEOS4_CONVECT is a wrapper for the GEOS-4/fvDAS convection 
-!  code.  This was broken off from the old DO_CONVECTION routine above.
-!  (swu, bmy, 5/25/05, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
-!        (bmy, 5/25/05)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
-!*****************************************************************************
-!     
-      ! References to F90 modules
       USE DAO_MOD,           ONLY : HKETA, HKBETA, ZMEU, ZMMU, ZMMD
       USE DIAG_MOD,          ONLY : AD37
       USE ERROR_MOD,         ONLY : DEBUG_MSG
@@ -159,16 +372,28 @@
 
 #     include "CMN_SIZE"          ! Size parameters
 #     include "CMN_DIAG"          ! ND37, LD37 
-
-      ! Local variables 
-      LOGICAL, SAVE              :: FIRST = .TRUE.
-      INTEGER                    :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER                    :: INDEXSOL(N_TRACERS) 
-      INTEGER                    :: CONVDT    
-      REAL*8                     :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                     :: RPDEL(IIPAR,JJPAR,LLPAR)
-      REAL*8                     :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8                     :: P1, P2, TDT   
+! 
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  (1 ) Now use array masks to flip arrays vertically in call to FVDAS_CONVECT
+!        (bmy, 5/25/05)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER       :: INDEXSOL(N_TRACERS) 
+      INTEGER       :: CONVDT    
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8        :: RPDEL(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: P1, P2, TDT   
 
       !=================================================================
       ! DO_GEOS4_CONVECT begins here!
@@ -307,27 +532,26 @@
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_G4_CONV: a FVDAS_CONVECT' )
 
-      ! Return to calling program
       END SUBROUTINE DO_GEOS4_CONVECT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_gcap_convect
+!
+! !DESCRIPTION: Subroutine DO\_GCAP\_CONVECT is a wrapper for the GCAP 
+!  convection code.  This was broken off from the old DO\_CONVECTION routine 
+!  above.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DO_GCAP_CONVECT
 !
-!******************************************************************************
-!  Subroutine DO_GCAP_CONVECT is a wrapper for the GCAP convection code.  
-!  This was broken off from the old DO_CONVECTION routine above.
-!  (swu, bmy, 5/25/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
-!        (bmy, 5/25/05)
-!  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
-!        (swu, bmy, 11/1/05)
-!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
-!******************************************************************************
-!     
-      ! References to F90 modules
       USE DAO_MOD,          ONLY : DETRAINE, DETRAINN, DNDE
       USE DAO_MOD,          ONLY : DNDN,     ENTRAIN,  UPDN, UPDE
       USE DIAG_MOD,         ONLY : AD37
@@ -341,16 +565,29 @@
 
 #     include "CMN_SIZE"         ! Size parameters
 #     include "CMN_DIAG"         ! ND37, LD37 
-
-      ! Local variables 
-      LOGICAL, SAVE             :: FIRST = .TRUE.
-      INTEGER                   :: I, ISOL, J, L, L2, N, NSTEP  
-      INTEGER                   :: INDEXSOL(N_TRACERS) 
-      INTEGER                   :: CONVDT    
-      REAL*8                    :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8                    :: DP(IIPAR,JJPAR,LLPAR)
-      REAL*8                    :: P1, P2, TDT   
-      REAL*8                    :: GAINMASS
+!
+! !REVISION HISTORY: 
+!  25 May 2005 - S. Wu       - Initial version
+!  (1 ) Now use array masks to flip arrays vertically in call to GCAP_CONVECT
+!        (bmy, 5/25/05)
+!  (2 ) Shut off scavenging in shallow convection for GCAP below 700 hPa
+!        (swu, bmy, 11/1/05)
+!  (3 ) Add a check to set negative values in STT to TINY (ccc, 4/15/09)
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: I, ISOL, J, L, L2, N, NSTEP  
+      INTEGER       :: INDEXSOL(N_TRACERS) 
+      INTEGER       :: CONVDT    
+      REAL*8        :: F(IIPAR,JJPAR,LLPAR,N_TRACERS)
+      REAL*8        :: DP(IIPAR,JJPAR,LLPAR)
+      REAL*8        :: P1, P2, TDT   
+      REAL*8        :: GAINMASS
 
       !=================================================================
       ! DO_GCAP_CONVECT begins here!
@@ -487,33 +724,75 @@
       !### Debug! 
       IF ( LPRT ) CALL DEBUG_MSG( '### DO_GCAP_CONV: a GCAP_CONVECT' )
 
-      ! Return to calling program
       END SUBROUTINE DO_GCAP_CONVECT
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine NFCLDMX is S-J Lin's cumulus transport module for 3D GSFC-CTM,
-!  modified for the GEOS-CHEM model.  The "NF" stands for "no flipping", and
-!  denotes that you don't have to flip the tracer array Q in the main
-!  program before passing it to NFCLDMX. (bmy, 2/12/97, 1/31/08)
+! !IROUTINE: nfcldmx
 !
+! !DESCRIPTION: Subroutine NFCLDMX is S-J Lin's cumulus transport module for 
+!  3D GSFC-CTM, modified for the GEOS-Chem model.  The "NF" stands for "no 
+!  flipping", and denotes that you don't have to flip the tracer array Q in 
+!  the main program before passing it to NFCLDMX.
+!\\
+!\\
 !  NOTE: NFCLDMX can be used with GEOS-1, GEOS-STRAT, and GEOS-3 met fields.
-!  For GEOS-4/fVDAS, you must use the routines in "fvdas_convect_mod.f"
-!  (bmy, 6/26/03)
+!  For GEOS-4/fVDAS, you must use the routines in "fvdas\_convect\_mod.f"
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as input:
-!  ==========================================================================
-!  (1 ) NC     : TOTAL number of tracers (soluble + insoluble)  [unitless]
-!  (2 ) TCVV   : MW air (g/mol) / MW of tracer (g/mol)          [unitless]
-!  (3 ) CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
-!  (4 ) DTRN   : Detrainment mass flux                          [kg/m2/s]
+      SUBROUTINE NFCLDMX( NC, TCVV, CLDMAS, DTRN, Q )
+
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (3 )  Q     : Tracer concentration                           [v/v]
+! !USES:
+!
+      USE DAO_MOD,          ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
+      USE DIAG_MOD,         ONLY : AD37, AD38,   CONVFLUP
+      USE GRID_MOD,         ONLY : GET_AREA_M2
+      USE LOGICAL_MOD,      ONLY : LDYNOCEAN, LGTMM
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
+      USE PRESSURE_MOD,     ONLY : GET_BP, GET_PEDGE
+      USE TIME_MOD,         ONLY : GET_TS_CONV
+      USE TRACER_MOD,       ONLY : ITS_A_MERCURY_SIM
+      USE TRACERID_MOD,     ONLY : IS_Hg2, IS_HgP 
+      USE WETSCAV_MOD,      ONLY : COMPUTE_F
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK !CDH
+      USE DAO_MOD,          ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "CMN_DIAG"     ! Diagnostic switches & arrays
+!
+! !INPUT PARAMETERS: 
+!
+      ! TOTAL number of tracers (soluble + insoluble)  [unitless]
+      INTEGER, INTENT(IN)    :: NC 
+
+      ! CLDMAS : Cloud mass flux (at upper edges of each level) [kg/m2/s]
+      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
+
+      ! Detrainment mass flux [kg/m2/s]
+      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
+
+      ! MW air (g/mol) / MW of tracer (g/mol) [unitless]
+      REAL*8,  INTENT(IN)    :: TCVV(NC)
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      ! Tracer concentration [v/v]
+      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
+!
+! !REMARKS:
+!  (1) The "NF" stands for "no flipping", and denotes that you don't have to 
+!  flip the tracer array Q in the main program before passing it to NFCLDMX.
+!  (bmy, 2/12/97, 1/31/08)
+!
+!  (2) This version has been customized to work with GEOS-5 met fields.
 !
 !  Reference:
 !  ============================================================================
@@ -554,16 +833,16 @@
 !            k-1      ^                      k+1      ^
 !            ---------|---------             ---------|---------
 !                     |                               |
-!                  CLDMAS(k)                       CLDMAS(k)
+!                  CMFMC(k)                       CMFMC(k)
 !             
 !                                 becomes
-!            k      DTRN(k),                 k      DTRN(k),       
+!            k     DTRAIN(k),                k     DTRAIN(k),       
 !                 QC(k), Q(k)                     QC(k), Q(k)   
 !          
 !                     ^                               ^
 !            ---------|---------             ---------|---------
 !                     |                               |   
-!            k+1   CLDMAS(k+1)               k-1   CLDMAS(k-1)
+!            k+1   CMFMC(k+1)                k-1   CMFMC(k-1)
 !
 !
 !      i.e., the lowest level    used to be  NLAY  but is now  1
@@ -571,7 +850,7 @@
 !            the level above k   used to be  k-1   but is now  k+1
 !            the top of the atm. used to be  1     but is now  NLAY.
 !
-!  The old method required that the vertical dimensions of the CLDMAS, DTRN, 
+!  The old method required that the vertical dimensions of the CMFMC, DTRAIN, 
 !  and Q arrays had to be flipped before and after calling CLDMX.  Also, 
 !  diagnostic arrays generated within CLDMX also had to be flipped.  The new 
 !  indexing eliminates this requirement (and also saves on array operations).  
@@ -582,29 +861,30 @@
 !  Original Release:  12 February 1997
 !                     Version 3, Detrainment and Entrainment are considered.
 !                     The algorithm reduces to that of version 2 if Dtrn = 0.
-! 
+!                                                                             .
 !  Modified By:       Bob Yantosca, for Harvard Atmospheric Sciences
 !  Modified Release:  27 January 1998
 !                     Version 3.11, contains features of V.3 but also 
 !                     scavenges soluble tracer in wet convective updrafts.
-!                     
+!                                                                             .
 !                     28 April 1998
 !                     Version 3.12, now includes mass flux diagnostic
-!         
+!                                                                             .
 !                     11 November 1999
 !                     Added mass-flux diagnostics
-!
+!                                                                             .
 !                     04 January 2000
 !                     Updated scavenging constant AS2
-!
+!                                                                             .
 !                     14 March 2000
 !                     Added new wet scavenging code and diagnostics
 !                     based on the GMI algorithm
-!
+!                                                                             .
 !                     02 May 2000
-!                     Added parallel loop over tracers
-!
-!  NOTES:              
+!                     Added parallel loop over tracers! 
+! 
+! !REVISION HISTORY: 
+!  12 Feb 1997 - M. Prather  - Initial version
 !  (1 ) NFCLDMX is written in Fixed-Form Fortran 90.
 !  (2 ) Added TCVV to the argument list.  Also cleaned up argument
 !        and local variable declarations. (bey, bmy, 11/10/99)
@@ -641,36 +921,13 @@
 !        (bmy, 1/31/08)
 !  (18) Add a check to set negative values in Q to TINY (ccc, 4/15/09)
 !  (19) Updates for mercury simulation (ccc, 5/17/10)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,           ONLY : AD  !,   CLDMAS, DTRN=>DTRAIN
-      USE DIAG_MOD,          ONLY : AD37, AD38,   CONVFLUP
-      USE GRID_MOD,          ONLY : GET_AREA_M2
-      USE LOGICAL_MOD,       ONLY : LDYNOCEAN, LGTMM
-!      USE OCEAN_MERCURY_MOD, ONLY : ADD_Hg2_WD
-      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD, ADD_HgP_WD
-      USE PRESSURE_MOD,      ONLY : GET_BP, GET_PEDGE
-      USE TIME_MOD,          ONLY : GET_TS_CONV
-      USE TRACER_MOD,        ONLY : ITS_A_MERCURY_SIM
-      USE TRACERID_MOD,      ONLY : IS_Hg2, IS_HgP 
-      USE WETSCAV_MOD,       ONLY : COMPUTE_F
-      USE DEPO_MERCURY_MOD,  ONLY : ADD_Hg2_SNOWPACK !CDH
-      USE DAO_MOD,           ONLY : SNOMAS, SNOW  !,   CLDMAS, DTRN=>DTRAIN
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DIAG"     ! Diagnostic switches & arrays
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: NC 
-      REAL*8,  INTENT(IN)    :: CLDMAS(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(IN)    :: DTRN(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(INOUT) :: Q(IIPAR,JJPAR,LLPAR,NC)
-      REAL*8,  INTENT(IN)    :: TCVV(NC)
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
@@ -900,6 +1157,7 @@
 
 #endif
 
+                  ! total mass of air below the cloud base
                   MB(I,J) = BMASS(I,J,1) + BMASS(I,J,2)
 
 !=============================================================================
@@ -1211,9 +1469,844 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE NFCLDMX
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: do_merra_convection
+!
+! !DESCRIPTION: Subroutine DO\_MERRA\_CONVECTION (formerly called NFCLDMX)
+!  is S-J Lin's cumulus transport module for 3D GSFC-CTM, modified for the 
+!  GEOS-Chem model.  
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_MERRA_CONVECTION( IDENT,    DIMINFO,  COEF, 
+     &                                IDT,      OPTIONS,  AD,      
+     &                                AREA_M2,  BXHEIGHT, CMFMC,   
+     &                                DQRCU,    DTRAIN,   F,       
+     &                                PEDGE,    PFICU,    PFLCU,   
+     &                                REEVAPCN, T,        TS_DYN,   
+     &                                Q,        DIAG14,   DIAG38,   
+     &                                H2O2s,    SO2s,     I,        
+     &                                J,        RC )
+!
+! !USES:
+!
+      USE ERROR_MOD,        ONLY : IT_IS_NAN, IT_IS_FINITE
+      USE ERROR_MOD,        ONLY : GEOS_CHEM_STOP  ! hma Nov 3, debug
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
+      USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
+      USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
+      USE MERCURY_MOD,      ONLY : PARTITIONHg
+      USE WETSCAV_MOD,      ONLY : WASHOUT
+      USE WETSCAV_MOD,      ONLY : LS_K_RAIN
+      USE WETSCAV_MOD,      ONLY : LS_F_PRIME
+!
+! !INPUT PARAMETERS:
+!  
+      TYPE(SPEC_2_TRAC), INTENT(IN) :: COEF        ! Obj w/ spec <-> trac map
+      TYPE(GC_DIMS),     INTENT(IN) :: DIMINFO     ! Obj w/ array dimensions
+      TYPE(ID_TRAC),     INTENT(IN) :: IDT         ! Obj w/ tracer ID flags
+      TYPE(GC_OPTIONS),  INTENT(IN) :: OPTIONS     ! Obj w/ logical switches
+      REAL*8,            INTENT(IN) :: AD(:)       ! Air mass [kg]    
+      REAL*8,            INTENT(IN) :: AREA_M2     ! Surface area [m2]
+      REAL*8,            INTENT(IN) :: BXHEIGHT(:) ! Box height [m]
+      REAL*8,            INTENT(IN) :: CMFMC(:)    ! Cloud mass flux [kg/m2/s] 
+      REAL*8,            INTENT(IN) :: DQRCU(:)    ! Precip production rate:
+                                                   !  convective [kg/kg/s]
+      REAL*8,            INTENT(IN) :: DTRAIN(:)   ! Detrainment flux [kg/m2/s]
+      REAL*8,            INTENT(IN) :: F(:,:)      ! Fraction of soluble tracer
+                                                   !  for updraft scavenging 
+                                                   !  [unitless].  ! This is 
+                                                   !  computed by routine 
+                                                   !  COMPUTE_UPDRAFT_FSOL
+      REAL*8,            INTENT(IN) :: PEDGE(:)    ! P @ level box edges [hPa]
+      REAL*8,            INTENT(IN) :: PFICU(:)    ! Dwnwd flux of convective
+                                                   !  ice precip [kg/m2/s]
+      REAL*8,            INTENT(IN) :: PFLCU(:)    ! Dwnwd flux of convective
+                                                   !  liquid precip [kg/m2/s]
+      REAL*8,            INTENT(IN) :: REEVAPCN(:) ! Evap of precip'ing conv.
+                                                   !  condensate [kg/kg/s]
+      REAL*8,            INTENT(IN) :: T(:)        ! air temperature [K]
+      REAL*8,            INTENT(IN) :: TS_DYN      ! Dynamic timestep [min]
+      INTEGER,           INTENT(IN) :: I, J        ! Lon & lat indices
+!                                                  
+! !INPUT/OUTPUT PARAMETERS:                        
+!                                                  
+      TYPE(GC_IDENT), INTENT(INOUT) :: IDENT       ! Obj w/ info from ESMF etc.
+      REAL*8,         INTENT(INOUT) :: H2O2s(:)
+      REAL*8,         INTENT(INOUT) :: SO2s(:)  
+      REAL*8,         INTENT(INOUT) :: Q(:,:)      ! Tracer conc. [mol/mol]  
+!                                                  
+! !OUTPUT PARAMETERS:                              
+!                     
+      REAL*8,           INTENT(OUT) :: DIAG14(:,:) ! Array for ND14 diagnostic
+      REAL*8,           INTENT(OUT) :: DIAG38(:,:) ! Array for ND38 diagnostic
+      INTEGER,          INTENT(OUT) :: RC          ! Return code
+!
+! !REMARKS:
+!  Reference:
+!  ============================================================================
+!  Lin, SJ.  "Description of the parameterization of cumulus transport
+!     in the 3D Goddard Chemistry Transport Model, NASA/GSFC, 1996.
+!                                                                             .
+!  Unit conversion for BMASS:
+!
+!      Ps - Pt (mb)| P2 - P1 | 100 Pa |  s^2  | 1  |  1 kg        kg
+!     -------------+---------+--------+-------+----+--------  =  -----
+!                  | Ps - Pt |   mb   | 9.8 m | Pa | m^2 s^2      m^2
+!
+!                                                                             .
+!  NOTE: We are passing I & J down to this routine so that it can call the
+!  proper code from "mercury_mod.f".  Normally, we wouldn't pass I & J as
+!  arguments to columnized code.  This prevents rewriting the mercury_mod.f
+!  routines ADD_Hg2_
+!
+! !REVISION HISTORY:
+!  15 Jul 2009 - R. Yantosca - Columnized and cleaned up.
+!                            - CLDMAS renamed to CMFMC and DTRN renamed
+!                              to DTRAIN for consistency w/ GEOS-5.
+!  17 Jul 2009 - R. Yantosca - Now do unit conversion of Q array from
+!                              [kg] --> [v/v] and vice versa internally
+!  14 Dec 2009 - R. Yantosca - Now remove internal unit conversion, since
+!                              Q now comes in as [mol/mol] (=[v/v]) from the
+!                              calling routine.
+!  14 Dec 2009 - R. Yantosca - Remove COEF from the argument list
+!  06 May 2010 - R. Yantosca - Now add IDENT via the argument list
+!  29 Sep 2010 - R. Yantosca - Modified for MERRA met fields
+!  05 Oct 2010 - R. Yantosca - Now pass COEF via the argument list
+!  05 Oct 2010 - R. Yantosca - Attach ND14 and ND38 diagnostics
+!  15 Oct 2010 - H. Amos     - Added BXHEIGHT and T as arguments
+!  15 Oct 2010 - R. Yantosca - Added I, J, H2O2s and SO2s as arguments
+!  15 Oct 2010 - H. Amos     - Added scavenging below cloud base
+!  06 Apr 2011 - M.Fu, H.Amos- Bug fix: make sure washout adheres to the same
+!                              algorithm as in the wet deposition code.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL*8, PARAMETER :: TINYNUM = 1d-14 
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      LOGICAL           :: AER,         IS_Hg 
+      INTEGER           :: IC,          ISTEP,    K,       KTOP
+      INTEGER           :: NC,          NDT,      NLAY,    NS    
+      REAL*8            :: ALPHA,       ALPHA2,   CLDBASE, CMFMC_BELOW
+      REAL*8            :: CMOUT,       DELQ,     DQ,      DNS
+      REAL*8            :: ENTRN,       QC,       QC_PRES, QC_SCAV 
+      REAL*8            :: SDT,         T0,       T0_SUM,  T1    
+      REAL*8            :: T2,          T3,       T4,      TCVV   
+      REAL*8            :: TCVV_DNS,    TSUM,     DT_DNS
+      REAL*8            :: LOST,        GAINED,   WETLOSS, MASS_WASH
+      REAL*8            :: MASS_NOWASH, QDOWN,    DT,      F_WASHOUT
+      REAL*8            :: K_RAIN,      WASHFRAC, WET_Hg2, WET_HgP 
+      REAL*8            :: MB,          QB
 
+      ! Arrays
+      REAL*8            :: BMASS ( DIMINFO%L_COLUMN  )   
+      REAL*8            :: PDOWN ( DIMINFO%L_COLUMN  )
+      REAL*8            :: QB_NUM( DIMINFO%N_TRACERS )
+
+      !========================================================================
+      ! (0)  I n i t i a l i z a t i o n
+      !========================================================================
+      
+      ! Put this routine name on error trace stack
+      IDENT%LEV               = IDENT%LEV + 1
+      IDENT%I_AM( IDENT%LEV ) = 'DO_MERRA_CONVECTION'
+
+      ! # of levels and # of tracers
+      NLAY = DIMINFO%L_COLUMN
+      NC   = DIMINFO%N_TRACERS
+
+      ! Safety check #1: Invalid NLAY w/r/t Q
+      IF ( NLAY < 1 .or. NLAY > SIZE( Q, 1 ) ) THEN
+         WRITE( IDENT%ERRMSG, 200 ) NLAY, SIZE( Q, 1 )
+         RC = SMV_FAILURE
+         RETURN
+      ENDIF
+
+      ! Safety check #2: Invalid NC w/r/t Q
+      IF ( NC < 1 .or. NC > SIZE( Q, 2 ) ) THEN
+         WRITE( IDENT%ERRMSG, 200 ) NC, SIZE( Q, 2 )
+         RC = SMV_FAILURE
+         RETURN
+      ENDIF
+
+      ! Safety check #3: Invalid NLAY & NC w/r/t F
+      IF ( NLAY > SIZE( F, 1 ) .or. NC > SIZE( F, 2 ) ) THEN
+         WRITE( IDENT%ERRMSG, 220 ) NLAY, SIZE( F, 1 ),
+     &                              NC,   SIZE( F, 2 )
+         RC = SMV_FAILURE
+         RETURN
+      ENDIF
+
+      ! Formats
+ 200  FORMAT( 'Error: NLAY = ',  i5, ' but SIZE( Q,1 ) = ', i5 )
+ 210  FORMAT( 'Error: NC = ',    i5, ' but SIZE( Q,2 ) = ', i5 )
+ 220  FORMAT( 'Error: NLAY = ',  i5, ' but SIZE( F,1 ) = ', i5,
+     &        '  or NC = ',      i5, ' but SIZE( F,2 ) = ', i5 )
+
+      ! Top level for convection
+      KTOP   = NLAY - 1
+
+      ! Convection timestep [s]
+      NDT    = TS_DYN * 60d0
+
+      ! Internal time step for convective mixing is 300 sec.
+      ! Doug Rotman (LLNL) says that 450 sec works just as well.       
+      NS     = NDT / 300
+      NS     = MAX( NS, 1 )
+      SDT    = DBLE( NDT ) / DBLE( NS )
+      DNS    = DBLE( NS )
+      DT_DNS = NDT * DNS
+      
+      !-----------------------------------------------------------------
+      ! Determine location of the cloud base, which is the level where
+      ! we start to have non-zero convective precipitation formation
+      !-----------------------------------------------------------------
+
+      ! Minimum value of cloud base is the surface level
+      CLDBASE = 1
+
+      ! Find the cloud base
+      DO K = 1, NLAY
+         IF ( DQRCU(K) > 0d0 ) THEN
+            CLDBASE = K
+            EXIT
+         ENDIF
+      ENDDO
+
+      !-----------------------------------------------------------------
+      ! Compute PDOWN and BMASS
+      !-----------------------------------------------------------------
+      DO K = 1, NLAY
+
+         ! PDOWN is the convective precipitation leaving each
+         ! box [cm3 H2O/cm2 air/s].This accounts for the 
+         ! contribution from both liquid & ice precip
+         PDOWN(K) = ( ( PFLCU(K) / 1000d0 ) 
+     &            +   ( PFICU(K) /  917d0 ) ) * 100d0
+
+         ! BMASS has units of kg/m^2 and is equivalent to AD(K) / AREA_M2
+         ! This is done to keep BMASS in the same units as CMFMC * SDT
+         BMASS(K) = AD(K)    / AREA_M2
+
+      ENDDO
+
+      !-----------------------------------------------------------------
+      ! Compute MB (the total mass of air below the cloud base)
+      ! and QB_NUM (the numerator of QB, the weighted avg mixing ratio
+      ! below the cloud base)   
+      !-----------------------------------------------------------------
+
+      ! Zero variables
+      MB      = 0d0
+      QB_NUM  = 0d0
+
+      ! Loop over up to just below the cloud base
+      DO K  = 1, CLDBASE-1
+         
+         ! Total mass of air below the cloud base
+         MB        = MB + BMASS(K)
+
+         ! numerator of QB
+         QB_NUM(:) = QB_NUM(:) + Q(K,:) * ( PEDGE(K) - PEDGE(K+1) )
+
+      ENDDO
+
+      ! Is this a Hg simulation?
+      IS_Hg = ( OPTIONS%USE_Hg .and. OPTIONS%USE_Hg_DYNOCEAN )
+
+      !========================================================================
+      ! (1)  T r a c e r   L o o p 
+      !========================================================================
+      DO IC = 1, NC
+
+         ! Initialize
+         DIAG14(:,IC) = 0d0                            ! ND14 diag array      
+         DIAG38(:,IC) = 0d0                            ! ND38 diag array
+         TCVV         = MW_AIR / COEF%MOLWT_KG(IC)     ! Air MW/tracer MW
+         TCVV_DNS     = TCVV * DNS                     ! TCVV * DNS
+
+         !=====================================================================
+         ! (2)  I n t e r n a l   T i m e   S t e p   L o o p
+         !=====================================================================
+         DO ISTEP = 1, NS
+
+            ! Initialize
+            QC     = 0d0                      
+            T0_SUM = 0d0  
+
+            !----------------------------------------------------------
+            ! B e l o w   C l o u d   B a s e   (K < CLDBASE) 
+            !
+            ! QB is the "weighted avg" mixing ratio below the cloud
+            ! base. QB is used to compute QC, which is the mixing 
+            ! ratio of the air that moved in cumulus transport up to
+            ! the next level. MB is the total mass of air below the
+            ! the cloud base
+            !-----------------------------------------------------------
+
+            ! We need to make this a nested IF statement so that we don't
+            ! get an out-of-bounds error when CLDBASE=1 (bmy, 11/18/10)
+            IF ( CLDBASE > 1 ) THEN
+               
+               IF ( CMFMC(CLDBASE-1) > TINYNUM ) THEN
+ 
+                  !-----------------------------------------------------
+                  ! %%% Non-negligible Cloud mass flux %%% 
+                  !-----------------------------------------------------
+
+                  ! Compute the weighted avg mixing ratio below
+                  ! the cloud base
+                  QB = QB_NUM(IC) / ( PEDGE(1) - PEDGE(CLDBASE) )
+
+                  !        Total mass of tracer below cloud base  +   
+                  !        Subsidence into cloud base from above  
+                  ! QC =  --------------------------------------------
+                  !            Total air mass below cloud base 
+                  !
+                  QC = ( MB*QB + CMFMC(CLDBASE-1) * 
+     &                           Q(CLDBASE,IC)    * SDT  ) /
+     &                 ( MB    + CMFMC(CLDBASE-1) * SDT  ) 
+
+
+                  ! Copy QC to all levels of the tracer array Q
+                  ! that are below the cloud base level
+                  Q(1:CLDBASE-1,IC) = QC
+
+               ELSE                  
+
+                  !-----------------------------------------------------
+                  ! %%% Negligible cloud mass flux %%% 
+                  !-----------------------------------------------------
+
+                  ! When CMFMC is negligible, then set to the tracer
+                  ! concentration at the cloud base level
+                  QC = Q(CLDBASE,IC)
+   
+               ENDIF
+
+            ELSE
+               
+               !-----------------------------------------------------
+               ! If the cloud base happens at level 1, then just
+               ! set QC to the tracer at the surface level
+               !-----------------------------------------------------
+               QC = Q(CLDBASE,IC) 
+
+            ENDIF
+
+            !==================================================================
+            ! (3)  A b o v e   C l o u d   B a s e
+            !==================================================================
+            DO K = CLDBASE, KTOP
+               
+               ! Initialize
+               ALPHA   = 0d0
+               ALPHA2  = 0d0
+               CMOUT   = 0d0
+               ENTRN   = 0d0
+               QC_PRES = 0d0
+               QC_SCAV = 0d0
+               
+               ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
+               ! grid box (K) from the box immediately below (K-1).
+               IF ( K == 1 ) THEN
+                  CMFMC_BELOW = 0d0
+               ELSE
+                  CMFMC_BELOW = CMFMC(K-1)
+               ENDIF
+
+               ! If we have a nonzero air mass flux coming from 
+               ! grid box (K-1) into (K) ...
+               IF ( CMFMC_BELOW > TINYNUM ) THEN
+
+                  !------------------------------------------------------------
+                  ! (3.1)  M a s s   B a l a n c e   i n   C l o u d
+                  !
+                  ! F(K,IC) = fraction of tracer IC in level K that is 
+                  !           available for wet-scavenging by cloud updrafts.  
+                  !
+                  ! If ENTRN > 0 then compute the new value of QC:
+                  !
+                  !      tracer mass from below      (i.e. level K-1) + 
+                  !      tracer mass from this level (i.e. level K)
+                  !  = -----------------------------------------------------
+                  !             total mass coming into cloud
+                  !
+                  ! Otherwise, preserve the previous value of QC.  This will 
+                  ! ensure that TERM1 - TERM2 is not a negative quantity (see 
+                  ! below).
+                  !  
+                  ! Entrainment must be >= 0 (since we cannot have a negative 
+                  ! flux of air into the cloud).  This condition is strong 
+                  ! enough to ensure that CMOUT > 0 and will prevent floating-
+                  ! point exception.
+                  !------------------------------------------------------------
+
+                  ! Air mass flowing out of cloud at grid box (K)
+                  CMOUT   = CMFMC(K) + DTRAIN(K)
+
+                  ! Air mass flowing into cloud at grid box (K)
+                  ENTRN   = CMOUT - CMFMC_BELOW
+
+                  ! Amount of QC preserved against scavenging
+                  QC_PRES = QC * ( 1d0 - F(K,IC) )
+
+                  ! Amount of QC lost to scavenging
+                  ! QC_SCAV = 0 for non-soluble tracer
+                  QC_SCAV = QC * F(K,IC)
+
+                  ! - - - - - - - - FOR SOLUBLE TRACERS ONLY - - - - - - - - - 
+                  IF ( QC_SCAV > 0d0 ) THEN 
+
+                     ! The fraction ALPHA is the fraction of raindrops that 
+                     ! will re-evaporate soluble tracer while falling from 
+                     ! grid box K+1 down to grid box K.  Avoid div-by-zero.
+
+                     ! Initialize 
+                     ALPHA = 0d0
+                     
+                     IF ( PDOWN(K+1)  > TINYNUM ) THEN 
+
+                        ! %%%% CASE 1 %%%%
+                        ! Partial re-evaporation. Less precip is leaving 
+                        ! the grid box then entered from above.
+                        IF ( PDOWN(K+1) > PDOWN(K) .AND.
+     &                       PDOWN(K)   > TINYNUM        ) THEN
+
+                           ! Define ALPHA, the fraction of raindrops that 
+                           ! re-evaporate when falling from grid box
+                           ! (I,J,L+1) to (I,J,L)
+                           ALPHA = ( REEVAPCN(K) * AD(K)           )
+     &                           / ( PDOWN(K+1)  * AREA_M2 * 10d0  )
+
+                           ! Restrict ALPHA to be less than 1 
+                           ! (>1 is unphysical)  (hma, 24-Dec-2010)  
+                           IF ( ALPHA > 1d0 ) THEN 
+                              ALPHA = 1d0 
+                           ENDIF
+
+                           ! We assume that 1/2 of the soluble tracer w/in 
+                           ! the raindrops actually gets resuspended into 
+                           ! the atmosphere
+                           ALPHA2   = ALPHA * 0.5d0
+
+                        ENDIF
+
+                        ! %%%% CASE 2 %%%%
+                        ! Total re-evaporation. Precip entered from above, 
+                        ! but no precip is leaving grid box (ALPHA = 2 so 
+                        ! that  ALPHA2 = 1)
+                        IF ( PDOWN(K) < TINYNUM ) THEN
+                           ALPHA2 = 1d0
+                        ENDIF
+                        
+                     ENDIF
+                    
+                     ! The resuspension takes 1/2 the amount of the scavenged
+                     ! aerosol (QC_SCAV) and adds that back to QC_PRES ...
+                     QC_PRES  = QC_PRES + ( ALPHA2 * QC_SCAV )
+                    
+                     ! ... then we decrement QC_SCAV accordingly
+                     QC_SCAV  = QC_SCAV * ( 1d0    - ALPHA2     )
+
+                  ENDIF
+                  !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+                  ! Update QC taking entrainment into account
+                  ! Prevent div by zero condition
+                  IF ( ENTRN >= 0d0 .and. CMOUT > 0d0 ) THEN
+                     QC   = ( CMFMC_BELOW * QC_PRES   + 
+     &                       ENTRN       * Q(K,IC) ) / CMOUT
+                  ENDIF
+
+                  !------------------------------------------------------------
+                  ! (3.2)  M a s s   B a l a n c e   i n   L e v e l  ==> Q
+                  !
+                  ! Terminology:
+                  !
+                  !  C_k-1   = cloud air mass flux from level k-1 to level k
+                  !  C_k     = cloud air mass flux from level k   to level k+1
+                  !  QC_k-1  = mixing ratio of tracer INSIDE CLOUD at level k-1
+                  !  QC_k    = mixing ratio of tracer INSIDE CLOUD at level k
+                  !  Q_k     = mixing ratio of tracer in level k
+                  !  Q_k+1   = mixing ratio of tracer in level k+1
+                  ! 
+                  ! For convenience we denote:
+                  !
+                  !  QC_SCAV = Amount of tracer wet-scavenged in updrafts
+                  !          = QC_k-1 * F(k,IC)
+                  !
+                  !  QC_PRES = Amount of tracer preserved against
+                  !            wet-scavenging in updrafts
+                  !          = QC_k-1 * ( 1 - F(k,IC) )
+                  !
+                  ! Where F(k,IC) is the fraction of tracer IC in level k
+                  ! that is available for wet-scavenging by cloud updrafts.
+                  ! F(k,IC) is computed by routine COMPUTE_UPDRAFT_FSOL
+                  ! and passed to this routine as an argument.
+                  !
+                  ! The cumulus transport above the cloud base is done as 
+                  ! follows:
+                  !  
+                  !                 ||///////////////////||
+                  !                 ||//// C L O U D ////||
+                  !                 ||                   ||
+                  !   k+1     ^     ||         ^         ||3)   C_k * Q_k+1
+                  !           |     ||         |         ||         |
+                  !   --------|-----++---------|---------++---------|--------
+                  !           |     ||         |         ||         |
+                  !   k      C_k    ||2)   C_k * QC_k    ||         V
+                  !                 ||                   ||
+                  !                 ||                   ||
+                  !           ^     ||         ^         ||4)   C_k-1 * Q_k 
+                  !           |     ||         |         ||         |
+                  !   --------|-----++---------|---------++---------|--------
+                  !           |     ||         |         ||         |
+                  !   k-1   C_k-1   ||1) C_k-1 * QC_k-1  ||         V
+                  !                 ||         * (1 - F) ||
+                  !                 ||                   ||
+                  !                 ||//// C L O U D ////||
+                  !                 ||///////////////////||
+                  !
+                  ! There are 4 terms that contribute to mass flow in 
+                  ! and out of level k:
+                  !
+                  ! 1) C_k-1 * QC_PRES = tracer convected from k-1 to k 
+                  ! 2) C_k   * QC_k    = tracer convected from k   to k+1 
+                  ! 3) C_k   * Q_k+1   = tracer subsiding from k+1 to k 
+                  ! 4) C_k-1 * Q_k     = tracer subsiding from k   to k-1 
+                  !
+                  ! Therefore the change in tracer concentration is given by
+                  !
+                  !    DELQ = (Term 1) - (Term 2) + (Term 3) - (Term 4)
+                  !
+                  ! and Q(K,IC) = Q(K,IC) + DELQ.  
+                  !
+                  ! The term T0 is the amount of tracer that is scavenged 
+                  ! out of the box.
+                  !------------------------------------------------------------
+                  T0      =  CMFMC_BELOW * QC_SCAV   
+                  T1      =  CMFMC_BELOW * QC_PRES
+                  T2      = -CMFMC(K  )  * QC
+                  T3      =  CMFMC(K  )  * Q(K+1,IC)
+                  T4      = -CMFMC_BELOW * Q(K,  IC)
+                 
+                  TSUM    = T1 + T2 + T3 + T4 
+                  
+                  DELQ    = ( SDT / BMASS(K) ) * TSUM
+
+                  ! If DELQ > Q then do not make Q negative!!!
+                  IF ( Q(K,IC) + DELQ < 0 ) THEN
+                     DELQ = -Q(K,IC)
+                  ENDIF
+
+                  ! Increment the tracer array [v/v]
+                  Q(K,IC) = Q(K,IC) + DELQ
+
+                  ! check for infinity
+                  IF ( .not. IT_IS_FINITE( Q(K,IC) ) ) THEN
+                     PRINT*, 'Q IS INFINITY'
+                     CALL GEOS_CHEM_STOP
+                  ENDIF
+
+                  ! Return if we encounter NaN
+                  IF ( IT_IS_NAN( Q(K,IC) ) ) THEN 
+                     WRITE( 6, 250 )
+                     WRITE( 6, 255 ) K, IC, Q(K,IC) 
+ 250                 FORMAT( 'NaN encountered in DO_MERRA_CONVECTION!' )
+ 255                 FORMAT( 'K, IC, Q(K,IC): ', 2i4, 1x, es13.6 )
+                     RC = SMV_FAILURE
+                     RETURN
+                  ENDIF
+
+                  ! Archive T0 for use in the next section
+                  T0_SUM  = T0_SUM + T0
+ 
+                  !------------------------------------------------------------
+                  ! (3.3)  N D 1 4   D i a g n o s t i c
+                  !
+                  ! Archive upward mass flux due to wet convection.  
+                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
+                  ! for the tracer IC going out of the top of the layer K 
+                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                     DIAG14(K,IC) = DIAG14(K,IC) 
+     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                  ENDIF
+
+                  !------------------------------------------------------------
+                  ! (3.4)  N D 3 8   D i a g n o s t i c
+                  !
+                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
+                  ! internal timesteps.
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                     DIAG38(K,IC) = DIAG38(K,IC)
+     &                            + ( T0 * AREA_M2 / TCVV_DNS )
+
+                     ! check for infinity (added by hma, 20101117)
+                     IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                        PRINT*, 'DIAG38 IS INFINITY at K = ', K
+                        CALL GEOS_CHEM_STOP
+                     ENDIF
+                  ENDIF
+                  
+               ELSE
+
+                  !------------------------------------------------------------
+                  ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w 
+                  !------------------------------------------------------------
+
+                  ! If there is no cloud mass flux coming from below
+                  ! just set QC to the tracer concentration at this level
+                  QC = Q(K,IC)
+                  
+                  ! Bug fix for the cloud base layer, which is not necessarily
+                  ! in the boundary layer, and for MERRA, there could be 
+                  ! "secondary convection" plumes - one in the PBL and another 
+                  ! one not.  NOTE: T2 and T3 are the same terms as described 
+                  ! in the above section.  (swu, 08/13/2007)
+                  IF ( CMFMC(K) > TINYNUM ) THEN 
+
+                     ! Tracer convected from K -> K+1 
+                     T2   = -CMFMC(K) * QC
+
+                     ! Tracer subsiding from K+1 -> K 
+                     T3   =  CMFMC(K) * Q(K+1,IC)
+
+                     ! Change in tracer concentration
+                     DELQ = ( SDT / BMASS(K) ) * (T2 + T3)
+
+                     ! If DELQ > Q then do not make Q negative!!!
+                     IF ( Q(K,IC) + DELQ < 0.0d0 ) THEN 
+                        DELQ = -Q(K,IC)
+                     ENDIF
+  
+                     ! Add change in tracer to Q array
+                     Q(K,IC) = Q(K,IC) + DELQ
+
+                  ENDIF
+               ENDIF
+            ENDDO 
+            
+            !==================================================================
+            ! (4)  B e l o w   C l o u d   B a s e
+            !==================================================================
+            DO K = CLDBASE-1, 1, -1
+
+               ! Initialize
+               QDOWN       = 0d0
+               F_WASHOUT   = 0d0
+               WASHFRAC    = 0d0
+               ALPHA       = 0d0
+               ALPHA2      = 0d0
+               GAINED      = 0d0
+               WETLOSS     = 0d0
+               LOST        = 0d0
+               MASS_WASH   = 0d0
+               MASS_NOWASH = 0d0
+               K_RAIN      = 0d0
+               
+               ! Check if...
+               ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
+               ! (2) there is re-evaporation happening in grid box (I,J,K)
+               ! (3) there is tracer to re-evaporate
+               IF ( PDOWN(K+1)  > 0 .and.   
+     &              REEVAPCN(K) > 0 .and. 
+     &              T0_SUM      > 0        ) THEN
+
+                  ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
+                  ! experiencing washout 
+               
+                  ! Convert PDOWN the downward flux of precip leaving grid
+                  ! box (K+1) from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                  QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100d0  )
+
+                  ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
+                  ! leaving grid box (K+1). 
+                  K_RAIN   = LS_K_RAIN( QDOWN )
+                  F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN ) 
+                  
+                  ! Call WASHOUT to compute the fraction of tracer lost
+                  ! to washout in grid box (I,J,K)
+                  CALL WASHOUT( K,         IC,       BXHEIGHT(K), 
+     &                          T(K),      QDOWN,    DT,   
+     &                          F_WASHOUT, H2O2s(K), SO2s(K), 
+     &                          WASHFRAC,  AER )
+
+                  ! Check if the tracer is an aerosol or not
+                  IF ( AER == .TRUE. ) THEN
+ 
+                     !---------------------------------------------------------
+                     ! Washout of aerosol tracers
+                     ! This is modeled as a kinetic process
+                     !---------------------------------------------------------
+
+                     ! Define ALPHA, the fraction of raindrops that 
+                     ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+                     ALPHA   = ( REEVAPCN(K) * AD(K)          )
+     &                       / ( PDOWN(K+1)  * AREA_M2 * 10d0 )
+
+                     ! ALPHA2 is the fraction of the rained-out aerosols
+                     ! that gets resuspended in grid box (I,J,L)
+                     ALPHA2  = 0.5d0 * ALPHA
+
+                     ! GAINED is the rained out aerosol coming down from 
+                     ! grid box (I,J,L+1) that will evaporate and re-enter 
+                     ! the atmosphere in the gas phase in grid box (I,J,L).
+                     GAINED  = T0_SUM * ALPHA2
+
+                     ! Amount of aerosol lost to washout in grid box
+                     WETLOSS = Q(K,IC) * WASHFRAC - GAINED
+
+                     ! LOST is the rained out aerosol coming down from
+                     ! grid box (I,J,L+1) that will remain in the liquid
+                     ! phase in grid box (I,J,L) and will NOT re-evaporate.
+                     LOST    = T0_SUM - GAINED
+
+                     ! Update T0_SUM, the total amount of scavenged
+                     ! tracer that will be passed to the grid box below
+                     T0_SUM = T0_SUM + WETLOSS  
+
+
+                  ELSE
+
+                     !---------------------------------------------------------
+                     ! Washout of non-aerosol tracers
+                     ! This is modeled as an equilibrium process
+                     !---------------------------------------------------------
+
+                     ! MASS_NOWASH is the amount of non-aerosol tracer in 
+                     ! grid box (I,J,L) that is NOT available for washout.
+                     MASS_NOWASH = ( 1d0 - F_WASHOUT ) * Q(K,IC)
+               
+                     ! MASS_WASH is the total amount of non-aerosol tracer
+                     ! that is available for washout in grid box (I,J,L).
+                     ! It consists of the mass in the precipitating
+                     ! part of box (I,J,L), plus the previously rained-out
+                     ! tracer coming down from grid box (I,J,L+1).
+                     ! (Eq. 15, Jacob et al, 2000).
+                     MASS_WASH   = ( F_WASHOUT * Q(K,IC) ) + T0_SUM
+
+                     ! WETLOSS is the amount of tracer mass in 
+                     ! grid box (I,J,L) that is lost to washout.
+                     ! (Eq. 16, Jacob et al, 2000)
+                     WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM 
+                     
+                     ! The tracer left in grid box (I,J,L) is what was
+                     ! in originally in the non-precipitating fraction 
+                     ! of the box, plus MASS_WASH, less WETLOSS. 
+                     Q(K,IC)     = Q(K,IC) - WETLOSS
+                     
+                     ! Updated T0_SUM, the total scavenged tracer
+                     ! that will be passed to the grid box below
+                     T0_SUM      = T0_SUM + WETLOSS 
+
+                  ENDIF
+
+                  !------------------------------------------------------------
+                  ! N D 1 4   D i a g n o s t i c
+                  !
+                  ! Archive upward mass flux due to wet convection.  
+                  ! DTCSUM(K,IC) is the flux [kg/sec] in the box (I,J), 
+                  ! for the tracer IC going out of the top of the layer K 
+                  ! to the layer above (K+1)  (bey, 11/10/99). 
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG14 ) THEN
+                     DIAG14(K,IC) = DIAG14(K,IC) 
+     &                            + ( ( -T2-T3 ) * AREA_M2 / TCVV_DNS )
+                  ENDIF
+
+                  !------------------------------------------------------------
+                  !  N D 3 8   D i a g n o s t i c
+                  !
+                  ! Archive the loss of soluble tracer to wet scavenging in 
+                  ! cloud updrafts [kg/s].  We must divide by DNS, the # of 
+                  ! internal timesteps.
+                  !------------------------------------------------------------
+                  IF ( OPTIONS%USE_DIAG38 .and. F(K,IC) > 0d0 ) THEN
+                     DIAG38(K,IC) = DIAG38(K,IC)
+     &                            + ( T0_SUM * AREA_M2 / TCVV_DNS )
+                  ENDIF
+                
+                  ! CHECK for infinity (added by hma, 20101117)
+                  IF ( .not. IT_IS_FINITE( DIAG38(K,IC) ) ) THEN
+                     PRINT*, 'DIAG38 IS INFINITY at K = ', K
+                     CALL GEOS_CHEM_STOP
+                  ENDIF
+               ENDIF
+            ENDDO  
+
+            !==================================================================
+            ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
+            !
+            ! Pass the amount of Hg2 and HgP lost in wet  scavenging [kg] to 
+            ! "ocean_mercury_mod.f" via ADD_Hg2_WET and ADD_HgP_WET.   We must 
+            ! also divide  by DNS, the # of internal timesteps. 
+            ! (sas, bmy, eck, eds, 1/19/05, 1/6/06, 7/30/08)
+            !==================================================================
+ 
+            !--------------------------------------
+            ! Hg2 
+            !--------------------------------------
+            IF ( IS_Hg .and. IC == IDT%Hg2 ) THEN
+
+               ! Wet scavenged Hg(II) in [kg/s]
+               WET_Hg2 = ( T0_SUM * AREA_M2 / TCVV_DNS )
+               
+               ! Convert [kg/s] to [kg]
+               WET_Hg2 = WET_Hg2 * NDT 
+
+               ! Pass to "ocean_mercury_mod.f"
+               CALL ADD_Hg2_WD      ( I, J, IC, WET_Hg2 )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_Hg2 )
+            ENDIF
+
+            !--------------------------------------
+            ! HgP
+            !--------------------------------------
+            IF ( IS_Hg .and. IC == IDT%HgP ) THEN
+
+               ! Wet scavenged Hg(P) in [kg/s]
+               WET_HgP = ( T0_SUM * AREA_M2 / TCVV_DNS )
+
+               ! Convert [kg/s] to [kg]
+               WET_HgP = WET_HgP * NDT 
+
+               ! Pass to "ocean_mercury_mod.f"
+               CALL ADD_HgP_WD      ( I, J, IC, WET_HgP )
+               CALL ADD_Hg2_SNOWPACK( I, J, IC, WET_HgP )
+            ENDIF
+
+         ENDDO 
+      ENDDO      
+
+      !================================================================
+      ! Succesful return!
+      !================================================================
+
+      ! Set error code to success
+      RC                      = SMV_SUCCESS
+
+      ! Remove this routine name from error trace stack
+      IDENT%I_AM( IDENT%LEV ) = ''
+      IDENT%LEV               = IDENT%LEV - 1
+
+      END SUBROUTINE DO_MERRA_CONVECTION
+!EOC
       END MODULE CONVECTION_MOD

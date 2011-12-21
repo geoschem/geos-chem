@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doLatitude
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doLatitude
@@ -50,4 +51,3 @@ SUBROUTINE doLatitude
   
 END SUBROUTINE doLatitude
 !EOC
-!------------------------------------------------------------------------------

@@ -1,33 +1,34 @@
-! $Id: acetone_mod.f,v 1.2 2010/02/02 16:57:55 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: acetone_mod
+!
+! !DESCRIPTION: Module ACETONE\_MOD contains subroutines to emit the biogenic 
+!  flux of acetone into the full chemistry simulation.
+!\\
+!\\
+! !INTERFACE:
+!
       MODULE ACETONE_MOD
 !
-!******************************************************************************
-!  F90 module ACETONE_MOD contains subroutines to emit the biogenic flux of
-!  acetone into the full chemistry simulation (bdf, bmy, 9/18/01, 1/13/10)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) JO1D              : J-values for O1D [s-1]
-!  (2 ) XRESP             : Heterogenic respiration for leaf matter [gC/cm2/s]
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) READ_JO1D         : Reads in J-values for O1D from disk
-!  (2 ) READ_RESP         : Reads in NPP values (respiration) from disk
-!  (3 ) OCEAN_SOURCE_ACET : Applies ocean source of acetone to EMISRR
-!  (4 ) OCEAN_SINK_ACET   : Applies ocean sink of acetone to STT, after chem.
-!  (5 ) EMISS_BIOACET     : Subroutine for emitting biogenic acetone
-!  (6 ) CLEANUP_ACETONE   : Deallocates module variables
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by acetone_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f       : Module w/ routines for binary punch file I/O
-!  (2 ) diag_mod.f        : Module w/ GEOS-CHEM diagnostic arrays
-!  (3 ) directory_mod.f   : Module w/ GEOS-CHEM data & met field dirs
-!  (4 ) dao_mod.f         : Module w/ arrays for DAO met fields
-!  (5 ) error_mod.f       : Module w/ NaN and other error check routines
+      PUBLIC :: CLEANUP_ACETONE   
+      PUBLIC :: EMISS_BIOACET
+      PUBLIC :: OCEAN_SOURCE_ACET
+      PUBLIC :: OCEAN_SINK_ACET
+      PUBLIC :: READ_JO1D
+      PUBLIC :: READ_RESP
 !
-!  Reference:
+! !REMARKS:
+!  References:
 !  ============================================================================
 !  (1 ) Jacob, D.J., B.D. Field, E. Jin, I. Bey, Q. Li, J.A. Logan, and 
 !        R.M. Yantosca, "Atmospheric budget of acetone", Geophys. Res. Lett., 
@@ -35,7 +36,9 @@
 !  (2 ) Nightingale et al [2000a], J. Geophys. Res, 14, 373-387
 !  (3 ) Nightingale et al [2000b], Geophys. Res. Lett, 27, 2117-2120
 !
+! !REVISION HISTORY:
 !  NOTES:
+!  18 Sep 2001 - B. Field, R. Yantosca - Initial version  
 !  (1 ) Added changes from bdf and updated comments (bmy, 9/5/01)
 !  (2 ) Updated comments (bmy, 9/12/01)
 !  (3 ) Removed VERBOSE flag and all "print-to-log-file" diagnostics.  The
@@ -65,57 +68,67 @@
 !  (18) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (19) Updates for nested EU and NA grids (amv, bmy, 12/18/09)
 !  (20) Updates for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "acetone_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE :: JO1D
-      PRIVATE :: XRESP 
-      PRIVATE :: AVO
-      PRIVATE :: XNUMOL_C 
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
+! !PRIVATE TYPES:
+! 
       ! Array for J-O1D values
       REAL*8,  ALLOCATABLE :: JO1D(:,:)
 
       ! Array for heterotrophic respiration values
       REAL*8,  ALLOCATABLE :: XRESP(:,:) 
-
+!
+! !DEFINED PARAMETERS:
+!
       ! Avogadro's number
-      REAL*8,  PARAMETER   :: AVO = 6.022d23 
+      REAL*8,  PARAMETER   :: AVO      = 6.022d23 
 
       ! Molecules C / kg C 
-      REAL*8,  PARAMETER   :: XNUMOL_C = 6.022d+23 / 12d-3 
+      REAL*8,  PARAMETER   :: XNUMOL_C = AVO / 12d-3 
 
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_jo1d
+!
+! !DESCRIPTION: Subroutine READ\_JO1D reads in the J-Values for O1D from disk 
+!  that are needed for the biogenic acetone fluxes,
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_JO1D( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine READ_JO1D reads in the J-Values for O1D from disk that
-!  are needed for the biogenic acetone fluxes, (bdf, bmy, 9/14/01, 10/3/05)
+! !USES:
 !
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"                 ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month
+!
+! !REMARKS:
 !  J-values for O1D are are stored in the JO1D module array in [s^-1].
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : LONGITUDE center of grid box [degrees]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  14 Sep 2001 - B. Field    - Initial version
 !  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
 !        and to resize data block to (IIPAR,JJPAR).  Also use 3-argument
 !        form of GET_TAU0 (bmy, 11/15/01)
@@ -127,26 +140,18 @@
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/19/04)
 !  (6 ) Now can read data from GEOS and GCAP grids (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR,       ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER              :: AS
-      REAL*4               :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8               :: TAU0
-      CHARACTER(LEN=255)   :: FILENAME
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: AS
+      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8             :: TAU0
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READ_JO1D begins here!
@@ -189,25 +194,45 @@
       WRITE( 6, 110 ) MAXVAL( JO1D )
  110  FORMAT( '     - READ_JO1D: Max value of JO1D: ', es13.6 )
 
-      ! Return to calling program
       END SUBROUTINE READ_JO1D
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_resp
+!
+! !DESCRIPTION: Subroutine READ\_RESP reads in the monthly heterotrophic 
+!  respiration measured in g of plant matter/m\^2 flowing out of the biosphere.
+!  This is needed for the biogenic acetone fluxes.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE READ_RESP( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine READ_RESP reads in the monthly heterotrophic respiration 
-!  measured in g of plant matter/m^2 flowing out of the biosphere. This is 
-!  needed for the biogenic acetone fluxes. (bdf, bmy, 9/14/01, 10/3/05)
+! !USES:
 !
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
+
+#     include "CMN_SIZE"                  ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+!
+! !REMARKS:
 !  Respiration values are stored in the RESP module array in [g C/m2/s].
-!
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : LONGITUDE center of grid box [degrees]
-!
-!  NOTES:
+! 
+! !REVISION HISTORY: 
+!  14 Sep 2001 - B. Field    - Initial version
 !  (1 ) Now use TRANSFER_2D from "transfer_mod" to cast from REAL*4 to REAL*8
 !        and to resize data block to (IIPAR,JJPAR).  Bug fix: THISMONTH > 12
 !        is never valid.  Also use 3-argument form of GET_TAU0 (bmy, 11/15/01)
@@ -219,26 +244,18 @@
 !  (5 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (6 ) Now can read files for both GEOS and GCAP grids (bmy, 8/16/05)
 !  (7 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!      
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,        READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_2D
-
-#     include "CMN_SIZE"   ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      LOGICAL, SAVE        :: FIRST = .TRUE.
-      INTEGER              :: AS
-      REAL*4               :: ARRAY(IGLOB,JGLOB,1)
-      REAL*8               :: TAU0, TAU1
-      CHARACTER(LEN=255)   :: FILENAME
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      INTEGER            :: AS
+      REAL*4             :: ARRAY(IGLOB,JGLOB,1)
+      REAL*8             :: TAU0, TAU1
+      CHARACTER(LEN=255) :: FILENAME
 
       !=================================================================
       ! READ_RESP begins here!
@@ -283,27 +300,49 @@
       ! Convert RESP field to [g C/m2/s]
       XRESP = XRESP / ( ( TAU1 - TAU0 ) * 3600d0 )
 
-      ! Return to calling program
       END SUBROUTINE READ_RESP
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ocean_source_acet
+!
+! !DESCRIPTION: Subroutine OCEAN\_SOURCE\_ACET specifies the ocean source of 
+!  acetone.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OCEAN_SOURCE_ACET( I, J, ACETONE )
 !
-!******************************************************************************
-!  Subroutine OCEAN_SOURCE_ACET specifies the ocean source of acetone.
-!  (bdf, bmy, 9/12/01, 1/13/10)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) I       (REAL*8) : LONGITUDE center of grid box [degrees]
-!  (2 ) J       (REAL*8) : LATITUDE  center of grid box [degrees]
+      USE ERROR_MOD, ONLY : CHECK_VALUE
+      USE DAO_MOD,   ONLY : ALBD, TS
+      USE DIAG_MOD,  ONLY : AD11
+      USE GRID_MOD,  ONLY : GET_AREA_CM2
+      USE TIME_MOD,  ONLY : GET_TS_EMIS
+
+#     include "CMN_SIZE"                  ! Size parameters
+#     include "CMN_DEP"                   ! FRCLND
+#     include "CMN_DIAG"                  ! ND11
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (3 ) ACETONE (REAL*8) : Acetone emission at grid box (I,J) [atoms C/box/s]
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)    :: I         ! GEOS-Chem longitude index
+      INTEGER, INTENT(IN)    :: J         ! GEOS-Chem latitude index
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(INOUT) :: ACETONE   ! Acetone emission [atoms C/s]
+!
+! !REMARKS:
+
+! 
+! !REVISION HISTORY: 
+!  14 Sep 2001 - B. Field    - Initial version
 !  (1 ) Now compute u = SQRT( U10M^2 + V10M^2 ) as SQRT( SFCWINDSQR(I,J) ).
 !        This is necessary since U10M and V10M are missing for 1996, and
 !        need to be computed from UWND and VWND.  (bmy, 9/5/01)
@@ -336,29 +375,21 @@
 !  (15) Additional scale factors for NESTED_NA and NESTED_EU calculated and 
 !        included (amv, bmy, 12/18/09)
 !  (16) Added scale factor for GEOS-4 1 x 1.25 grid (lok, bmy, 1/13/10)
-!******************************************************************************
-! 
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : CHECK_VALUE
-      USE DAO_MOD,   ONLY : ALBD, TS
-      USE DIAG_MOD,  ONLY : AD11
-      USE GRID_MOD,  ONLY : GET_AREA_CM2
-      USE TIME_MOD,  ONLY : GET_TS_EMIS
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_DEP"      ! FRCLND
-#     include "CMN_DIAG"     ! ND11
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: I, J
-      REAL*8,  INTENT(INOUT) :: ACETONE
-      
-      ! Local variables
+!  13 Aug 2010 - R. Yantosca - Treat MERRA in the same way as GEOS-5
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!  04 Nov 2010 - R. Yantosca - Cleaned up #if statements for clarity
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8                 :: KG, U, TC, SC, kl, KKL, HSTAR, KL600
       REAL*8                 :: DTSRCE, OCEAN_ACET, AREA_CM2, FOCEAN
-
+      REAL*8,  EXTERNAL      :: SFCWINDSQR
+!
+! !DEFINED PARAMETERS:
+!
       ! ALPHA scale factor in kg*s^2/cm
       REAL*8,  PARAMETER     :: OCEAN_SCALE = 3.63d11     
 
@@ -368,103 +399,146 @@
       REAL*8,  PARAMETER     :: A2 =  2.20642d0
       REAL*8,  PARAMETER     :: A3 = -0.01410642d0
 
-      ! External functions
-      REAL*8,  EXTERNAL      :: SFCWINDSQR
-
       !=================================================================
       ! Since the algorithm below was developed for the 4x5 GEOS-STRAT
       ! model, we need to scale the emissions to the A Posterioris in 
-      ! Jacob et al 2002.  Define a further scale factor below.
+      ! Jacob et al 2002 = 16.74 Tg C/yr.
       !
       ! This scaling is necessary in order (1) to account for variations
       ! in surface temperature and wind speed between the different
       ! GEOS met field versions and (2) to account for the different
       ! surface areas between the 1x1, 2x2.5 and 4x5 grid boxes.
-      !
-      ! The sacle factor for GEOS5 where calculated using 2005/07 to 
-      ! 2006/06. (tmf, 3/5/09)
-      ! 
-      ! GEOS_5 2x2.5 and NESTED EU and NA scale factors calculated using
-      ! 2005/01-2007/01 (amv, Nov 9, 2009)
-      ! 
-      ! Model  Res   ACET Produced    Target        Scale factor  
-      ! ----------------------------------------------------------------
-      ! GEOS-4 4x5   19.0973 Tg C   16.74 Tg C  16.74/19.0973 = 0.8765
-      ! GEOS-4 2x25  80.2888 Tg C   16.74 Tg C  16.74/80.2888 = 0.2085
-      ! GEOS-3 4x5   20.16   Tg C   16.74 Tg C  16.74/20.16   = 0.83
-      ! GEOS-3 2x25  80.76   Tg C   16.74 Tg C  16.74/80.76   = 0.2075
-      ! GEOS-3 1x1                                            = 0.05
-      ! GEOS-S 2x25                                           = 0.25
-      ! GEOS-1 2x25                                           = 0.25
-      ! GEOS_5 4x5   17.5272 Tg C   16.74 Tg C  16.74/17.5272 = 0.9551
-      ! GEOS_5 4x5 NESTED_CH DOMAIN     produces ACET  2.16838 Tg C
-      ! GEOS_5 05x0666 NESTED_CH DOMAIN produces ACET 134.757 Tg C
-      ! GEOS_5 05X0666 scale factor = 0.9551 * (2.16838 / 134.757) = 0.01537
-      ! GEOS_5 2x25  18.92 Tg C     16.74 Tg C  16.74/18.92   = 
-      ! GEOS_5 2x25 NESTED_NA DOMAIN produces 1.6794 Tg C
-      ! GEOS_5 05x0666 NESTED_NA DOMAIN produces 1.724 TgC
-      ! GEOS_5 05x0666 scale factor = 0.015369 * 1.6794/1.724  = 0.01497
-      ! GEOS_5 2x25 NESTED_EU DOMAIN produces 0.2868 Tg C
-      ! GEOS_5 05x0666 NESTED_EU DOMAIN produces 0.2689 Tg C
-      ! GEOS_5 05x0666 scale factor = 0.015369 * 0.2868/0.2689  = 0.01639
       !=================================================================
-#if   defined( GEOS_4 ) && defined( GRID4x5 )
+#if   defined( MERRA ) && defined( GRID4x5 ) 
+
+      !-----------------------------------------------------------------
+      ! %%% MERRA, 4 x 5, global %%%
+      !
+      ! Acetone produced : 17.0919 Tg C
+      ! Scale factor     : 16.74 / 17.0919 = 0.979411
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.979411d0
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! %%% MERRA, 2 x 2.5, global %%%
+      !
+      ! %%% SCALING NEEDS TO BE DONE WHEN MET IS FINALLY AVAILABLE %%%
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 1d0
+
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
  
-      ! GEOS-4 4x5 
+      !-----------------------------------------------------------------
+      ! %%% GEOS-5, 4 x 5, global %%%
+      !
+      ! Acetone produced : 17.5272 Tg C
+      ! Scale factor     : 16.74 / 17.5272 = 0.9551
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR =   0.9551d0
+
+#elif defined( GEOS_5 ) && defined( GRID2x25 ) 
+
+      !-----------------------------------------------------------------
+      ! %%% GEOS-5, 2 x 2.5, global %%%
+      !
+      ! Acetone produced : 75.6781 Tg C
+      ! Scale factor     : 16.74 / 75.6781 = 0.2212
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0
+
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_CH )
+
+      !-----------------------------------------------------------------
+      ! %%% GEOS-5, 0.5 x 0.666, NESTED CHINA %%%     (May Fu, Dan Chen)
+      !
+      ! ACET; 4x5 BC region      : 2.16838 Tg C
+      ! ACET; 0.5 x 0.666 region : 134.757 Tg C
+      ! Scale factor             : 0.9551*(2.16838/134.757) = 0.01537
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
+
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_NA )
+
+      !-----------------------------------------------------------------
+      ! %%% GEOS-5, 0.5 x 0.666, NESTED N. AMERICA %%%   (van Donkelaar)
+      !
+      ! ACET; 2x25 BC region     : 1.6794 Tg C
+      ! ACET; 0.5 x 0.666 region : 1.724  Tg C
+      ! Scale factor             : 0.015369*(1.6794/1.724) = 0.01497
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01497d0
+ 
+#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined ( NESTED_EU )
+
+      !-----------------------------------------------------------------
+      ! %%% GEOS-5, 0.5 x 0.666, NESTED EUROPE %%%       (van Donkelaar)
+      !
+      ! ACET; 2x25 BC region     : 0.2868 Tg C
+      ! ACET; 0.5 x 0.666 region : 0.2689 Tg C
+      ! Scale factor             : 0.015369*(0.2868/0.2689) = 0.01639
+      !-----------------------------------------------------------------
+      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01639d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
+ 
+      !-----------------------------------------------------------------
+      ! %%% GEOS-4, 4 x 5, global %%%
+      !
+      ! Acetone produced : 19.0973 Tg C
+      ! Scale factor     : 16.74 / 19.0973 = 0.8765
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.8765d0
  
 #elif defined( GEOS_4 ) && defined( GRID2x25 )
  
-      ! GEOS-4 2 x 2.5 (accounts for 2x2.5 surface area)
+      !-----------------------------------------------------------------
+      ! %%% GEOS-4, 2 x 2.5, global %%%
+      !
+      ! Acetone produced : 80.2888 Tg C
+      ! Scale factor     : 16.74 / 80.2888 = 0.2085
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.2085d0
  
 #elif defined( GEOS_4 ) && defined( GRID1x125 )
  
-      ! GEOS-4 1 x 1.25 (accounts for 1x1.25 surface area) (lok, bmy, 1/13/10)
+      !-----------------------------------------------------------------
+      ! %%% GEOS-4, 1 x 1.25, global %%%                    (Lok Lamsal)
+      !
+      ! Acetone produced : 290.4233 Tg C
+      ! Scale factor     : 16.74 / 290.4233 = 0.05764
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05764d0
  
 #elif  defined( GEOS_3 ) && defined( GRID4x5 )
  
-      ! GEOS-3 4x5 (accounts for higher surface temp in GEOS-3)
+      !-----------------------------------------------------------------
+      ! %%% GEOS-3, 4 x 5, global %%%
+      !
+      ! Acetone produced : 20.16 Tg C
+      ! Scale factor     : 16.74 / 20.16 =  0.83
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.83d0
  
 #elif defined( GEOS_3 ) && defined( GRID2x25 )
  
-      ! GEOS-3 2 x 2.5 (also accounts for 2x2.5 surface area)
+      !-----------------------------------------------------------------
+      ! %%% GEOS-3, 2 x 2.5, global %%%
+      !
+      ! Acetone produced : 80.76 Tg C
+      ! Scale factor     : 16.74 / 80.76  = 0.2075
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.2075d0
  
 #elif defined( GEOS_3 ) && defined( GRID1x1 )
  
-      ! GEOS-3 1 x 1 (accounts for 1x1 surface area)
+      !-----------------------------------------------------------------
+      ! %%% GEOS-3, 1 x 1, NESTED ?? %%%
+      ! Acetone produced : 334.8 Tg C
+      ! Scale factor     : 16.74 / 334.8  = 0.05
+      !-----------------------------------------------------------------
       REAL*8, PARAMETER :: SCALE_FACTOR = 0.05d0
- 
-#elif defined( GEOS_5 ) 
- 
-#if defined( GRID05x0666 ) && defined ( NESTED_CH )
- 
-      ! GEOS-5 0.5 x 0.667, scaled to 4x5 (dan, 11/6/08)
-      ! This scale factor produces too little acetone. (tmf, 3/05/09)
-      !REAL*8, PARAMETER :: SCALE_FACTOR = 0.0008d0
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.015369d0      
-
-#elif defined( GRID05x0666 ) && defined ( NESTED_NA )
-
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01497d0
- 
-#elif defined( GRID05x0666 ) && defined ( NESTED_EU )
-
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.01639d0
-
-#elif defined( GRID4x5 )
- 
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.9551d0
- 
-#elif defined( GRID2x25 )
- 
-      !REAL*8, PARAMETER :: SCALE_FACTOR = 0.25d0
-      REAL*8, PARAMETER :: SCALE_FACTOR = 0.2212d0
- 
-#endif
  
 #else
       
@@ -577,22 +651,41 @@
      &                               ( AREA_CM2   * DTSRCE   )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE OCEAN_SOURCE_ACET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ocean_sink_acet
+!
+! !DESCRIPTION: Subroutine OCEAN\_SINK\_ACET applies the ocean sink to global
+!  acetone concentrations.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OCEAN_SINK_ACET( ACETONE )
 !
-!******************************************************************************
-!  Subroutine OCEAN_SINK_ACET applies the ocean sink to global
-!  acetone concentrations. (bdf, bmy, 9/14/01, 2/11/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) ACETONE (REAL*8) : Array for surface acetone values [kg C]
+      USE DAO_MOD,  ONLY : ALBD
+      USE DAO_MOD,  ONLY : TS
+      USE DIAG_MOD, ONLY : AD11
+      USE GRID_MOD, ONLY : GET_AREA_CM2
+      USE TIME_MOD, ONLY : GET_TS_CHEM
+
+#     include "CMN_SIZE"                              ! Size parameters 
+#     include "CMN_DIAG"                              ! ND11
+#     include "CMN_DEP"                               ! FRCLND 
 !
-!  NOTES:
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8, INTENT(INOUT) :: ACETONE(IIPAR,JJPAR)   ! Acetone mass [kg C]
+! 
+! !REVISION HISTORY: 
+!  14 Sep 2001 - B. Field    - Initial version
 !  (1 ) Remove references to CMN_UV10M and CMN_LWI -- these are now
 !        obsolete in GEOS-CHEM versions 4.18 and higher (bmy, 9/5/01)
 !  (2 ) Now compute u = SQRT( U10M^2 + V10M^2 ) as SQRT( SFCWINDSQR(I,J) ).
@@ -617,42 +710,34 @@
 !        "time_mod.f".  Remove reference to CMN header file. (bmy, 2/11/03)
 !  (12) Now use Nightingale et al 2000b formulation for piston velocity KL.
 !        (swu, bmy, 8/16/05)
-!******************************************************************************
-! 
-      ! References to F90 modules
-      USE DAO_MOD,  ONLY : ALBD, TS
-      USE DIAG_MOD, ONLY : AD11
-      USE GRID_MOD, ONLY : GET_AREA_CM2
-      USE TIME_MOD, ONLY : GET_TS_CHEM
-
-#     include "CMN_SIZE"     ! Size parameters 
-#     include "CMN_DIAG"     ! ND11
-#     include "CMN_DEP"      ! FRCLND 
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: ACETONE(IIPAR,JJPAR)
-
-      ! Local variables
-      INTEGER                :: I, IREF, J, JREF
-
-      REAL*8                 :: KH298, DHR, KH, U, TC, SC, KL, KG 
-      REAL*8                 :: KKL, CG, F, T1L, H, KL600, FLUX, HSTAR
-      REAL*8                 :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
-      REAL*8                 :: PRE_ACET
-
-      ! Optimized value of BETA for ocean sink found by
-      ! Emily Jin from inverse modeling analysis
-      REAL*8, PARAMETER      :: OCEANSINK_SCALE = 0.15d0
-
-      ! Coefficients for fitting the Schmidt number for acetone
-      REAL*8, PARAMETER      :: A0 =  3287.687d0
-      REAL*8, PARAMETER      :: A1 = -136.2176d0
-      REAL*8, PARAMETER      :: A2 =  2.20642d0
-      REAL*8, PARAMETER      :: A3 = -0.01410642d0
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER           :: I, IREF, J, JREF
+      REAL*8            :: KH298, DHR, KH, U, TC, SC, KL, KG 
+      REAL*8            :: KKL, CG, F, T1L, H, KL600, FLUX, HSTAR
+      REAL*8            :: AREA_CM2, DTCHEM, FOCEAN, OCEAN_ACET
+      REAL*8            :: PRE_ACET
 
       ! External functions
-      REAL*8, EXTERNAL       :: BOXVL, SFCWINDSQR
-      
+      REAL*8, EXTERNAL  :: BOXVL, SFCWINDSQR
+!
+! !DEFINED PARAMETERS:
+!
+      ! Optimized value of BETA for ocean sink found by
+      ! Emily Jin from inverse modeling analysis
+      REAL*8, PARAMETER :: OCEANSINK_SCALE = 0.15d0
+
+      ! Coefficients for fitting the Schmidt number for acetone
+      REAL*8, PARAMETER :: A0 =  3287.687d0
+      REAL*8, PARAMETER :: A1 = -136.2176d0
+      REAL*8, PARAMETER :: A2 =  2.20642d0
+      REAL*8, PARAMETER :: A3 = -0.01410642d0
+
       !=================================================================
       ! OCEAN_SINK_ACET begins here! 
       !
@@ -772,33 +857,53 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE OCEAN_SINK_ACET
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emiss_bioacet
+!
+! !DESCRIPTION: Subroutine EMISS\_BIOACET computes the biogenic emissions of 
+!  ACETONE from monoterpenes, isoprene, methyl butenol, dry leaf matter, and 
+!  grasslands.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISS_BIOACET( I,    J,    TMMP,  EMMO, 
      &                          EMIS, EMMB, GRASS, ACETONE )
 !
-!******************************************************************************
-!  Subroutine EMISS_BIOACET computes the biogenic emissions of ACETONE
-!  from monoterpenes, isoprene, methyl butenol, dry leaf matter, and 
-!  grasslands. (bdf, bmy, 9/18/01, 2/11/03)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1-2) I, J    (INTEGER) : Lon/lat grid box indices
-!  (3  ) TMMP    (REAL*8 ) : Surface temperature at (I,J)       [K]
-!  (4  ) EMMO    (REAL*8 ) : Monoterpene emission at (I,J)      [at C/box/step]
-!  (5  ) EMIS    (REAL*8 ) : Isoprene emission at (I,J)         [at C/box/step]
-!  (6  ) EMMB    (REAL*8 ) : Methyl Butenol emission at (I,J)   [at C/box/step]
-!  (7  ) EMGR    (REAL*8 ) : Isop. emission from grass at (I,J) [at C/box/step]
+      USE DIAG_MOD, ONLY : AD11
+      USE GRID_MOD, ONLY : GET_AREA_M2
+      USE GRID_MOD, ONLY : GET_XMID
+      USE GRID_MOD, ONLY : GET_YMID
+      USE TIME_MOD, ONLY : GET_TS_EMIS
+
+#     include "CMN_SIZE"                  ! Size parameters
+#     include "CMN_MONOT"                 ! BASEMONOT
+#     include "CMN_DIAG"                  ! ND11
 !
-!  Arguments as Input/Output:
-!  ============================================================================
-!  (2  ) ACETONE (REAL*8 ) : Total biogenic acetone emission [atoms C/box/s]
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      INTEGER, INTENT(IN)    :: I         ! Grid box longitude index
+      INTEGER, INTENT(IN)    :: J         ! Grid box latitude index
+      REAL*8,  INTENT(IN)    :: TMMP      ! Surface temperature [K]
+      REAL*8,  INTENT(IN)    :: EMMO      ! Monoterpene emission [atoms C]
+      REAL*8,  INTENT(IN)    :: EMIS      ! Isoprene emission [atoms C]
+      REAL*8,  INTENT(IN)    :: EMMB      ! Methylbutenol emission  [atoms C]
+      REAL*8,  INTENT(IN)    :: GRASS     ! Isoprene from grasslands [atoms C]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      REAL*8,  INTENT(INOUT) :: ACETONE   ! Biogenic acetone [atoms C/s]
+! 
+! !REVISION HISTORY: 
+!  18 Sep 2001 - B. Field    - Initial version
 !  (1 ) Now pass acetone array (e.g. from STT) thru the argument list, since
 !        this avoids dependence on IDTACET in this program (bmy, 8/1/01)
 !  (2 ) Updated scale factors (bdf, bmy, 9/5/01)
@@ -814,23 +919,13 @@
 !        box surface area in m2, then convert to cm2.   Now use function
 !        GET_TS_EMIS from "time_mod.f".  Remove reference to CMN header
 !        file. (bmy, 2/11/03)
-!******************************************************************************
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DIAG_MOD, ONLY : AD11
-      USE GRID_MOD, ONLY : GET_AREA_M2, GET_XMID, GET_YMID
-      USE TIME_MOD, ONLY : GET_TS_EMIS
-
-#     include "CMN_SIZE"     ! Size parameters
-#     include "CMN_MONOT"    ! BASEMONOT
-#     include "CMN_DIAG"     ! ND11
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: I, J 
-      REAL*8,  INTENT(IN)    :: TMMP, EMMO, EMIS, EMMB, GRASS
-      REAL*8,  INTENT(INOUT) :: ACETONE
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       REAL*8                 :: EMMO_MOL,    YIELD_MO   
       REAL*8                 :: YIELD_RESP,  ACET_MOL,    ACET_MB    
       REAL*8                 :: ACET_MO,     DTSRCE,      AREA_CM2 
@@ -1023,23 +1118,31 @@
      &                 ( ACET_GRASS / ( AREA_CM2 * DTSRCE ) )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE EMISS_BIOACET
-
+!EOC
 !------------------------------------------------------------------------------
-
-      SUBROUTINE CLEANUP_ACETONE
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine CLEANUP_ACETONE deallocates module arrays (bmy, 9/14/01)
-!******************************************************************************
-!      
+! !IROUTINE: cleanup_acetone
+!
+! !DESCRIPTION: Subroutine CLEANUP\_ACETONE deallocates module arrays
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE CLEANUP_ACETONE
+! 
+! !REVISION HISTORY: 
+!  14 Sep 2001 - R. Yantosca - Initial version
+!  04 Nov 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       IF ( ALLOCATED( JO1D  ) ) DEALLOCATE( JO1D  )
       IF ( ALLOCATED( XRESP ) ) DEALLOCATE( XRESP )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_ACETONE   
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE ACETONE_MOD

@@ -1,31 +1,72 @@
-! $Id: ohsave.f,v 1.1 2009/09/16 14:06:18 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: ohsave
+!
+! !DESCRIPTION: Subroutine OHSAVE stores the concentrations of OH, HO2, 
+!  NO, NO2, and NO3 for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and 
+!  NO2/NOx fractions are computed and returned to the calling program. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE OHSAVE( N_TRACERS, XNUMOL,  STT,    FRACO3,  
      &                   FRACNO,    FRACNO2, SAVEOH, SAVEHO2, 
      &                   SAVENO,    SAVENO2, SAVENO3 )
 !
-!******************************************************************************
-!  Subroutine OHSAVE stores the concentrations of OH, HO2, NO, NO2, and NO3
-!  for the ND43 diagnostic.  Also the O3/Ox, NO/NOx and NO2/NOx fractions
-!  are computed and returned to the calling program. (bmy, 2/27/02, 1/19/07) 
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) N_TRACERS (INTEGER) : Number of tracers in XNUMOL and STT
-!  (2 ) XNUMOL    (REAL*8 ) : Array of molec/kg for each tracer
-!  (3 ) STT       (REAL*8 ) : Array containing CTM tracers
+      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
+      USE DIAG_MOD,     ONLY : DIAGCHLORO
+      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
+      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
+
+      IMPLICIT NONE
+
+#     include "CMN_SIZE"     ! Size parameters
+#     include "comode.h"     ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (4 ) FRACO3    (REAL*8 ) : Array of O3/Ox   fractions 
-!  (5 ) FRACNO    (REAL*8 ) : Array of NO/NOx  fractions 
-!  (6 ) FRACNO2   (REAL*8 ) : Array of NO2/NOx fractions
-!  (7 ) SAVEOH    (REAL*8 ) : Array of OH  concentrations [molec/cm3]
-!  (8 ) SAVEHO2   (REAL*8 ) : Array of HO2 concentrations [v/v]
-!  (9 ) SAVENO    (REAL*8 ) : Array of NO  concentrations [v/v]
-!  (10) SAVENO2   (REAL*8 ) : Array of NO2 concentrations [v/v]
-!  (11) SAVENO3   (REAL*8 ) : Array of NO3 concentrations [v/v]
+! !INPUT PARAMETERS: 
 !
-!  NOTES:
+      ! Number of tracers in XNUMOL and STT
+      INTEGER, INTENT(IN) :: N_TRACERS
+
+      ! Array of molec/kg for each tracer
+      REAL*8, INTENT(IN)  :: XNUMOL(N_TRACERS)
+
+      ! Array containing CTM tracers
+      REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS) 
+!
+! !OUTPUT PARAMETERS:
+!
+      ! Array of O3/Ox fractions 
+      REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
+
+      ! Array of NO/NOx fractions 
+      REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
+
+      ! Array of NO2/NOx fractions
+      REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
+
+      ! Array of OH  concentrations [molec/cm3]
+      REAL*8, INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
+
+      ! Array of HO2 concentrations [v/v]
+      REAL*8, INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
+
+      ! Array of NO  concentrations [v/v]
+      REAL*8, INTENT(OUT) :: SAVENO(IIPAR,JJPAR,LLPAR)     
+
+      ! Array of NO2 concentrations [v/v]
+      REAL*8, INTENT(OUT) :: SAVENO2(IIPAR,JJPAR,LLPAR)
+
+      ! Array of NO3 concentrations [v/v]
+      REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
+!
+! !REVISION HISTORY: 
+!  27 Feb 2002 - R. Yantosca - Initial version
 !  (1 ) Original code from lwh, gmg, djj, jyl, etc, 1990's.  Modified for
 !        GEOS-CHEM by Bob Yantosca et al.
 !  (2 ) Added comment header and F90 declaration syntax.  Also now specify
@@ -44,35 +85,15 @@
 !  (9 ) Reset FRAC* and SAVE* arrays, so that we don't carry dubious data
 !        over from boxes that used to be in the tropopause but aren't anymore.
 !        (phs, 1/19/07)
-!******************************************************************************
+!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE COMODE_MOD,   ONLY : AIRDENS, CSPEC, JLOP, T3, VOLUME
-      USE DIAG_MOD,     ONLY : DIAGCHLORO
-      USE TRACERID_MOD, ONLY : IDTOX, IDTNOX, IDO3,  IDNO
-      USE TRACERID_MOD, ONLY : IDNO2, IDOH,   IDHO2, IDNO3  
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"   ! Size parameters
-#     include "comode.h"   ! VOLUME, CSPEC, NPVERT, NLAT, NLONG
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: N_TRACERS
-      REAL*8, INTENT(IN)  :: XNUMOL(N_TRACERS)
-      REAL*8, INTENT(IN)  :: STT(IIPAR,JJPAR,LLPAR,N_TRACERS) 
-      REAL*8, INTENT(OUT) :: FRACO3(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: FRACNO(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: FRACNO2(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: SAVEOH(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: SAVEHO2(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: SAVENO(IIPAR,JJPAR,LLPAR)     
-      REAL*8, INTENT(OUT) :: SAVENO2(IIPAR,JJPAR,LLPAR)
-      REAL*8, INTENT(OUT) :: SAVENO3(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
-      INTEGER             :: I, J, L, JLOOP   ! (bmy, 7/20/04)
-      REAL*8              :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L, JLOOP   ! (bmy, 7/20/04)
+      REAL*8  :: TEMPOX, TEMPNOX  !, KCLO, XLOSS, XOHMASS
 
       !=================================================================
       ! OHSAVE begins here!
@@ -145,5 +166,5 @@
  370  CONTINUE
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE OHSAVE
+!EOC

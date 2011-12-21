@@ -6,8 +6,8 @@
 ! !IROUTINE: doNPP
 !
 ! !DESCRIPTION: Subroutin doNPP calculate net primary production (NPP)
-
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doNPP
@@ -21,8 +21,7 @@ SUBROUTINE doNPP
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -97,4 +96,3 @@ SUBROUTINE doNPP
   ENDIF
 END SUBROUTINE doNPP
 !EOC
-!------------------------------------------------------------------------------

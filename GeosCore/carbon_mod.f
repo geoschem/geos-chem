@@ -453,43 +453,40 @@
          !    SOA production from dicarbonyls (tmf, 12/07/07) 
          IF ( IDTSOAG > 0 ) THEN
 
-            ! Get grid box cloud fraction 
-            ! (tmf, 2/26/07)
+            ! Get grid box cloud fraction (tmf, 2/26/07)
+            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
             CALL GET_VCLDF
 
             ! Cloud uptake
             CALL SOAG_CLOUD
-            IF ( LPRT ) 
-     &       CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
+            IF ( LPRT )
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_CLOUD')        
 
             ! Aqueous aerosol uptake
             CALL SOAG_LIGGIO_DIFF
             IF ( LPRT ) 
-     &       CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAG_LIGGIO_DIFF')        
 
          ENDIF
 
          IF ( IDTSOAM > 0 ) THEN
          
-            ! Get grid box cloud fraction 
-            ! (tmf, 2/26/07)
+            ! Get grid box cloud fraction (tmf, 2/26/07)
+            ! NOTE: We skip this for GEOS-5/MERRA met (skim, bmy, 1/14/10)
             CALL GET_VCLDF
 
             ! Cloud uptake
             CALL SOAM_CLOUD
             IF ( LPRT ) 
-     &       CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
+     &         CALL DEBUG_MSG('### CHEMCARBON: a SOAM_CLOUD')        
 
             ! Aqueous aerosol uptake
             CALL SOAM_LIGGIO_DIFF
             IF ( LPRT ) 
-     &       CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
-
-
+     &         CALL DEBUG_MSG( '### CHEMCARBON: a SOAM_LIGGIO_DIFF' )        
            
-         ENDIF   
-
-
+         ENDIF
+   
       ENDIF
 
       ! Return to calling program
@@ -6228,6 +6225,7 @@ c
 !
 !  NOTES:
 !  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
+!  14 Jan 2011 - R. Yantosca - Return if VCLDF is not allocated
 !******************************************************************************
 !
       ! References to F90 modules 
@@ -6246,6 +6244,11 @@ c
       !=================================================================
       ! GET_VCLDF begins here!
       !=================================================================
+
+      ! Exit if we VCLDF is not allocated.  We will now get the cloud
+      ! fraction from the GEOS-5 or MERRA met fields. (skim, bmy, 1/14/10)
+      IF ( .not. ALLOCATED( VCLDF ) ) RETURN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, PSFC, PRES, RH2, R0, B0 )
@@ -6287,8 +6290,9 @@ c
       FUNCTION GET_LWC( T ) RESULT( LWC )
 !
 !******************************************************************************
-!  Function GET_LWC returns the cloud liquid water content at a GEOS-CHEM
-!  grid box as a function of temperature. (rjp, bmy, 10/31/02, 1/14/03)
+!  Function GET_LWC returns the cloud liquid water content [g H2O/m3 air] at a 
+!  GEOS-CHEM grid box as a function of temperature. (rjp, bmy, 10/31/02, 
+!  1/14/03)
 !
 !  Arguments as Input:
 !  ============================================================================
@@ -6296,6 +6300,7 @@ c
 !
 !  NOTES:
 !  (1 ) Copied from 'sulfate_mod.f' for cloud uptake of GLYX and MGLY (tmf, 2/26/07)
+!  18 Jan 2011 - R. Yantosca - Updated comments
 !******************************************************************************
 !
       ! Arguments
@@ -6342,11 +6347,14 @@ c
 !  (1 ) SOAG (SOA product of GLYX is produced at existing hydrophilic aerosol
 !        surface. (tmf, 2/26/07)
 !  (2 ) Assume marine and continental cloud droplet size (tmf, 2/26/07)
+!  14 Jan 2011 - R. Yantosca - Now compute cloud fraction and liquid water
+!                              content directly from GEOS-5 & MERRA met fields
 !******************************************************************************
 !
       ! Reference to diagnostic arrays
       USE DAO_MOD,         ONLY : AD, T, AIRVOL
       USE DAO_MOD,         ONLY : IS_LAND        ! return true if sfc grid box is land
+      USE DAO_MOD,         ONLY : AIRDEN, CLDF, QL
       USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE TIME_MOD,        ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
@@ -6422,11 +6430,35 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
+#if   defined( GEOS_5 ) || defined( MERRA )
+
+         !---------------------------------------------
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
+         ! (skim, bmy, 1/14/11)
+         !---------------------------------------------
+
+         ! Get cloud fraction from met fields
+         FC      = CLDF(L,I,J)
+
+         ! Get liquid water content within cloud [g/m3] directly from met
+         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+
+         !%%% NOTE: Someone should investigate effect of dividing LWC by the
+         !%%% cloud fraction, as is done in sulfate_mod.f (bmy, 5/27/11)
+
+#else
+         !---------------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !---------------------------------------------
+
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [g/m3]
          LWC     = GET_LWC( XTEMP ) * FC
+
+#endif
 
          !==============================================================
          ! If (1) there is cloud, (2) there is GLYX present, and 
@@ -6524,6 +6556,7 @@ c
       ! Reference to diagnostic arrays
       USE DAO_MOD,         ONLY : AD, T, AIRVOL
       USE DAO_MOD,         ONLY : IS_LAND        ! return true if sfc grid box is land
+      USE DAO_MOD,         ONLY : CLDF, QL, AIRDEN
       USE DIAG_MOD,        ONLY : AD07_SOAGM
       USE TIME_MOD,        ONLY : GET_TS_CHEM
       USE TROPOPAUSE_MOD,  ONLY : ITS_IN_THE_STRAT
@@ -6599,11 +6632,32 @@ c
          ! GET gas mixing ratio [v/v]
          XGASMIX = XGASM / XMW / ( XAIRM / 28.97d0 )
 
+#if   defined( GEOS_5 ) || defined( MERRA )
+
+         !---------------------------------------------
+         ! GEOS-5/MERRA: Get LWC, FC from met fields
+         ! (skim, bmy, 1/14/11)
+         !---------------------------------------------
+
+         ! Get cloud fraction from met fields [unitless]
+         FC      = CLDF(L,I,J)
+
+         ! Get liquid water content within cloud [g/m3] directly from met
+         ! Units: [kg H2O/kg air] * [kg air/m3] * [1000 g/kg] = [g H2O/m3]
+         LWC     = QL(I,J,L) * AIRDEN(L,I,J) * 1d3
+
+#else
+         !---------------------------------------------
+         ! Otherwise, compute FC, LWC as before
+         !---------------------------------------------
+
          ! Volume cloud fraction (Sundqvist et al 1989) [unitless]
          FC      = VCLDF(I,J,L)
 
          ! Liquid water content in cloudy area of grid box [g/m3]
          LWC     = GET_LWC( XTEMP ) * FC
+
+#endif
 
          !==============================================================
          ! If (1) there is cloud, (2) there is MGLY present, and 
@@ -6891,6 +6945,8 @@ c
 !  (5 ) Now set I1_NA, I2_NA, J1_NA, J2_NA appropriately for both 1 x 1 and
 !        0.5 x 0.666 nested grids (yxw, dan, bmy, 11/6/08)
 !  (6 ) Now set parameters for NESTED_EU grid (amv, bmy, 12/19/09)
+!  14 Jan 2011 - R. Yantosca - If we are using GEOS-5 or MERRA met, then get
+!                              the cloud fraction directly from the met fields.
 !******************************************************************************
 !
       ! References to F90 modules
@@ -7011,9 +7067,14 @@ c
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
          ORVC_SESQ = 0d0
 
+#if   !defined( GEOS_5 ) && !defined( MERRA )
+         ! If we are using GEOS-5 or MERRA met, then get the cloud fraction 
+         ! directly from the met fields.  (skim, bmy, 1/14/10)
          ALLOCATE( VCLDF( IIPAR, JJPAR, LLTROP ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'VCLDF' )
+
          VCLDF = 0d0
+#endif
 
 ! move to soaprod_mod.f (dkh, 11/09/06)  
 !         ALLOCATE( GPROD( IIPAR, JJPAR, LLPAR, NPROD, MHC ), STAT=AS )

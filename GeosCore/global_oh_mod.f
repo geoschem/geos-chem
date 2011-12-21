@@ -1,27 +1,36 @@
-! $Id: global_oh_mod.f,v 1.1 2009/09/16 14:06:25 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: global_oh_mod
+!
+! !DESCRIPTION: Module GLOBAL\_OH\_MOD contains variables and routines for 
+!  reading the global monthly mean OH concentration from disk. 
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE GLOBAL_OH_MOD
 !
-!******************************************************************************
-!  Module GLOBAL_OH_MOD contains variables and routines for reading the
-!  global monthly mean OH concentration from disk. (bmy, 7/28/00, 10/3/05)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) OH (REAL*8)       : stores global monthly mean OH field
-!  
-!  Module Routines:
-!  ============================================================================
-!  (1 ) GET_OH            : Wrapper for GET_GLOBAL_OH
-!  (2 ) GET_GLOBAL_OH     : Reads global monthly mean OH from disk
-!  (3 ) INIT_GLOBAL_OH    : Allocates & initializes the OH array
-!  (4 ) CLEANUP_GLOBAL_OH : Deallocates the OH array
+      IMPLICIT NONE
+      PRIVATE
 !
-!  GEOS-CHEM modules referenced by global_nox_mod.f
-!  ============================================================================
-!  (1 ) bpch2_mod.f  : Module containing routines for binary punch file I/O
-!  (2 ) error_mod.f  : Module containing NaN and other error-check routines
+! !PUBLIC DATA MEMBERS:
 !
-!  NOTES:
+      ! Array to store global monthly mean OH field [molec/cm3]
+      REAL*8, PUBLIC, ALLOCATABLE :: OH(:,:,:)
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CLEANUP_GLOBAL_OH
+      PUBLIC :: GET_GLOBAL_OH
+      PUBLIC :: INIT_GLOBAL_OH
+!
+! !REVISION HISTORY:
+!  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Updated comments (bmy, 9/4/01)
 !  (2 ) Now use routines from "transfer_mod.f" to regrid OH to 30 levels
 !        for reduced GEOS-3 grid.  Also size OH array properly. (bmy, 1/14/02)
@@ -34,37 +43,45 @@
 !  (8 ) Cosmetic changes to simplify output (bmy, 3/27/03)
 !  (9 ) Bug fix: OH should be (IIPAR,JJPAR,LLPAR) (bmy, 5/4/04)
 !  (10) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!     
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
-
-      ! Array to store global monthly mean OH field
-      REAL*8, ALLOCATABLE :: OH(:,:,:)
-
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
-      !=================================================================
-      CONTAINS
-
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
 !------------------------------------------------------------------------------
-
+!BOC
+      CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_global_oh
+!
+! !DESCRIPTION: Subroutine GET\_GLOBAL\_OH reads global OH from binary 
+!  punch files stored in the /data/ctm/GEOS\_MEAN directory.  This OH data 
+!  is needed as oxidant for various offline chemistry mechanisms.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE GET_GLOBAL_OH( THISMONTH )
 !
-!******************************************************************************
-!  Subroutine GET_GLOBAL_OH reads global OH from binary punch files stored
-!  in the /data/ctm/GEOS_MEAN directory.  This OH data is needed as oxidant
-!  for various chemistry mechanisms (HCN, Tagged CO, etc...)  
-!  (bmy, 7/28/00, 10/3/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ===========================================================================
-!  (1 ) THISMONTH (INTEGER) : Current month number (1-12)
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT
+      USE BPCH2_MOD,     ONLY : GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0
+      USE BPCH2_MOD,     ONLY : READ_BPCH2
+      USE DIRECTORY_MOD, ONLY : OH_DIR
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+
+#     include "CMN_SIZE"                  ! Size parameters
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)  :: THISMONTH   ! Current month
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) GET_GLOBAL_OH assumes that we are reading global OH data that occupies
 !        all CTM levels.  Contact Bob Yantosca (bmy@io.harvard.edu) for IDL
 !        regridding code which will produce the appropriate OH files.
@@ -80,29 +97,20 @@
 !  (7 ) Add Mat's OH as an option.  Also read bpch file quietly (bmy, 5/4/04)
 !  (8 ) Now use OH_DIR from "directory_mod.f" (bmy, 7/20/04)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE DIRECTORY_MOD, ONLY : OH_DIR
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-
-      IMPLICIT NONE
-
-#     include "CMN_SIZE"    ! Size parameters
-
-      ! Arguments
-      INTEGER, INTENT(IN)  :: THISMONTH
-
-      ! Local variables
-      INTEGER              :: I, J, L
-      REAL*4               :: ARRAY(IGLOB,JGLOB,LGLOB)
-      REAL*8               :: XTAU
-      CHARACTER(LEN=255)   :: FILENAME
+! !LOCAL VARIABLES:
+!
+      INTEGER            :: I, J, L
+      REAL*4             :: ARRAY(IGLOB,JGLOB,LGLOB)
+      REAL*8             :: XTAU
+      CHARACTER(LEN=255) :: FILENAME
 
       ! First time flag
-      LOGICAL, SAVE        :: FIRST = .TRUE. 
+      LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       !=================================================================
       ! GET_GLOBAL_OH begins here!
@@ -134,30 +142,42 @@
       ! Assign data from ARRAY to the module variable OH
       CALL TRANSFER_3D( ARRAY, OH )
 
-      ! Return to calling program
       END SUBROUTINE GET_GLOBAL_OH
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_global_oh
+!
+! !DESCRIPTION: Subroutine INIT\_GLOBAL\_OH allocates and zeroes
+!  all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_GLOBAL_OH
 !
-!******************************************************************************
-!  Subroutine INIT_GLOBAL_OH allocates and zeroes the OH array, which holds 
-!  global monthly mean OH concentrations. (bmy, 7/28/00, 5/4/04)
+! !USES:
 !
-!  NOTES:
+      USE ERROR_MOD, ONLY : ALLOC_ERR
+
+#     include "CMN_SIZE" 
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) OH array now needs to be sized (IGLOB,JGLOB,LGLOB) (bmy, 1/14/02)
 !  (2 ) Also eliminated obsolete code from 11/01 (bmy, 2/27/02)
 !  (3 ) Now references ALLOC_ERR from "error_mod.f" (bmy, 10/15/02)
 !  (4 ) OH should be (IIPAR,JJPAR,LLPAR): avoid subscript errors (bmy, 5/4/04)
-!******************************************************************************
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-#     include "CMN_SIZE" 
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
@@ -171,27 +191,33 @@
       ! Zero OH array
       OH = 0d0
 
-      ! Return to calling program
       END SUBROUTINE INIT_GLOBAL_OH
-      
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_global_oh
+!
+! !DESCRIPTION: Subroutine CLEANUP\_GLOBAL\_OH deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_GLOBAL_OH
-!
-!******************************************************************************
-!  Subroutine CLEANUP_GLOBAL_OH deallocates the OH array. (bmy, 7/28/00)
-!
-!  NOTES:
-!******************************************************************************
-!        
+! 
+! !REVISION HISTORY: 
+!  28 Jul 2000 - R. Yantosca - Initial version
+!  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_GLOBAL_OH begins here!
       !=================================================================
       IF ( ALLOCATED( OH ) ) DEALLOCATE( OH ) 
      
-      ! Return to calling program
       END SUBROUTINE CLEANUP_GLOBAL_OH
-
-!------------------------------------------------------------------------------
-
+!EOC
       END MODULE GLOBAL_OH_MOD

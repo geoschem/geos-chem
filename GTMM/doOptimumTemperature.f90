@@ -7,7 +7,8 @@
 !
 ! !DESCRIPTION: Defines the optimum temperature; this is the air temperature
 !  in the month when the LAI is highest
-!
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doOptimumTemperature
@@ -21,8 +22,7 @@ SUBROUTINE doOptimumTemperature
   implicit none
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Parallelization
+!  09 July 2010 - C. Carouge  - Parallelization
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -77,4 +77,3 @@ SUBROUTINE doOptimumTemperature
   
 END SUBROUTINE doOptimumTemperature
 !EOC
-!------------------------------------------------------------------------------

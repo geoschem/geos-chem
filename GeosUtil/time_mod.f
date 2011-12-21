@@ -1,4 +1,3 @@
-! $Id: time_mod.f,v 1.2 2010/02/02 16:57:46 bmy Exp $
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
 !------------------------------------------------------------------------------
@@ -33,6 +32,7 @@
       PUBLIC  :: SET_CT_DYN
       PUBLIC  :: SET_CT_EMIS
       PUBLIC  :: SET_CT_DIAG
+      PUBLIC  :: SET_CT_A1
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_A6
       PUBLIC  :: SET_CT_I6
@@ -76,22 +76,27 @@
       PUBLIC  :: GET_CT_CONV
       PUBLIC  :: GET_CT_DYN
       PUBLIC  :: GET_CT_EMIS
+      PUBLIC  :: GET_CT_A1
       PUBLIC  :: GET_CT_A3
       PUBLIC  :: GET_CT_A6
       PUBLIC  :: GET_CT_I6
       PUBLIC  :: GET_CT_XTRA
       PUBLIC  :: GET_CT_DIAG
+      PUBLIC  :: GET_A1_TIME
       PUBLIC  :: GET_A3_TIME
       PUBLIC  :: GET_A6_TIME
       PUBLIC  :: GET_I6_TIME
+      PUBLIC  :: GET_FIRST_A1_TIME
       PUBLIC  :: GET_FIRST_A3_TIME
       PUBLIC  :: GET_FIRST_A6_TIME
+      PUBLIC  :: GET_FIRST_I6_TIME
       PUBLIC  :: ITS_TIME_FOR_CHEM
       PUBLIC  :: ITS_TIME_FOR_CONV
       PUBLIC  :: ITS_TIME_FOR_DYN
       PUBLIC  :: ITS_TIME_FOR_EMIS
       PUBLIC  :: ITS_TIME_FOR_UNIT
       PUBLIC  :: ITS_TIME_FOR_DIAG
+      PUBLIC  :: ITS_TIME_FOR_A1
       PUBLIC  :: ITS_TIME_FOR_A3
       PUBLIC  :: ITS_TIME_FOR_A6
       PUBLIC  :: ITS_TIME_FOR_I6
@@ -167,6 +172,10 @@
 !  27 Apr 2010 - R. Yantosca - Added TS_SUN_2 to hold 1/2 of the interval
 !                              for computing SUNCOS.
 !  27 Apr 2010 - R. Yantosca - Added public routine GET_TS_SUN_2
+!  19 Aug 2010 - R. Yantosca - Added variable CT_A1 and routine SET_CT_A1
+!  20 Aug 2010 - R. Yantosca - Added function ITS_TIME_FOR_A1
+!  27 Sep 2010 - R. Yantosca - Added function GET_FIRST_I6_TIME
+!  17 Dec 2010 - R. Yantosca - Bug fix for HHMMSS=240000 in GET_TIME_AHEAD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,14 +191,15 @@
       REAL*8            :: GMT,        DIAGb,       DIAGe
 
       ! Timesteps
-      INTEGER           :: TS_CHEM,   TS_CONV,     TS_DIAG
-      INTEGER           :: TS_DYN,    TS_EMIS,     TS_UNIT
+      INTEGER           :: TS_CHEM,    TS_CONV,     TS_DIAG
+      INTEGER           :: TS_DYN,     TS_EMIS,     TS_UNIT
       INTEGER           :: TS_SUN_2
 
       ! Timestep counters
-      INTEGER           :: CT_CHEM,   CT_CONV,     CT_DYN    
-      INTEGER           :: CT_EMIS,   CT_A3,       CT_A6
-      INTEGER           :: CT_I6,     CT_XTRA,     CT_DIAG
+      INTEGER           :: CT_CHEM,    CT_CONV,     CT_DYN    
+      INTEGER           :: CT_EMIS,    CT_A3,       CT_A6
+      INTEGER           :: CT_I6,      CT_XTRA,     CT_DIAG
+      INTEGER           :: CT_A1
 
       ! Astronomical Julian Date at 0 GMT, 1 Jan 1985
       REAL*8, PARAMETER :: JD85 = 2446066.5d0
@@ -347,6 +357,8 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
+!                              MERRA met data goes back prior to 1985
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -359,15 +371,21 @@
       ! SET_BEGIN_TIME begins here!
       !=================================================================
 
-      ! Make sure NHMSb is valid
+      ! Error check THISNHMSb
       IF ( THISNHMSb > 235959 ) THEN
          CALL ERROR_STOP( 'NHMSb cannot be greater than 23:59:59!',
      &                    'SET_BEGIN_TIME (time_mod.f)' )
       ENDIF
 
-      ! Make sure THISNYMDb uses 4 digits for the year
-      ! and is not less than 1985/01/01
-      IF ( THISNYMDb < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 12/16/10:
+! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
+!      ! Make sure THISNYMDb uses 4 digits for the year
+!      ! and is not less than 1985/01/01
+!      IF ( THISNYMDb < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+      ! Error check THISNYMDb
+      IF ( THISNYMDb < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDb must be in the format YYYYMMDD!',
      &                    'SET_BEGIN_TIME (time_mod.f)' )
 
@@ -415,6 +433,8 @@
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  16 Dec 2010 - R. Yantosca - Updated error check for THISNYMDe, since 
+!                              MERRA met data goes back prior to 1985
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -427,15 +447,21 @@
       ! SET_END_TIME begins here!
       !=================================================================
 
-      ! Error check to make sure 
+      ! Error check THISNHMS
       IF ( THISNHMSe > 235959 ) THEN
          CALL ERROR_STOP( 'NHMSe cannot be greater than 23:59:59!',
      &                    'SET_END_TIME (time_mod.f)' )
       ENDIF
 
-      ! Make sure THISNYMDb uses 4 digits for the year
-      ! and is not less than 1985/01/01
-      IF ( THISNYMDe < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 12/16/10:
+! MERRA data now goes back prior to 1985. (bmy, 12/16/10)
+!!      ! Make sure THISNYMDb uses 4 digits for the year
+!!      ! and is not less than 1985/01/01
+!!      IF ( THISNYMDe < 19850101 ) THEN
+!-----------------------------------------------------------------------------
+      ! Error check THISNYMDe
+      IF ( THISNYMDe < 19000101 ) THEN
          CALL ERROR_STOP( 'NYMDe must be in the format YYYYMMDD!',
      &                    'SET_END_TIME (time_mod.f)' )
 
@@ -782,6 +808,39 @@
       ENDIF
 
       END SUBROUTINE SET_CT_DIAG
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_ct_a1
+!
+! !DESCRIPTION: Subroutine SET\_CT\_A1 increments CT\_A1, the counter of the 
+!  number of times we have read in A1 fields.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_CT_A1( INCREMENT, RESET )
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN), OPTIONAL :: INCREMENT  ! Increment counter?
+      LOGICAL, INTENT(IN), OPTIONAL :: RESET      ! Reset counter?
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      IF ( PRESENT( INCREMENT ) ) THEN
+         CT_A1 = CT_A1 + 1
+      ELSE IF ( PRESENT( RESET ) ) THEN
+         CT_A1 = 0
+      ENDIF
+
+      END SUBROUTINE SET_CT_A1
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -1300,13 +1359,14 @@
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for GCAP leap year case (phs, bmy, 12/8/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-      INTEGER :: THISYEAR, THISMONTH, THISDAY
+      INTEGER :: THISYEAR, THISMONTH, THISDAY, TMP
       REAL*8  :: JD
 
       !=================================================================
@@ -1318,6 +1378,23 @@
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( JD, DATE(1), DATE(2) )
+
+      ! Check to see if HHMMSS is 240000.  This may occur due to a
+      ! roundoff error in CALDATE.  If this is the case, then add 1 
+      ! to the date and then set HHMMSS = 0.  Use the GET_JD and 
+      ! CALDATE functions to do this computation rigorously.
+      IF ( DATE(2) == 240000 ) THEN
+
+         ! Split the date into Y/M/D variables
+         CALL YMD_EXTRACT( DATE(1), THISYEAR, THISMONTH, THISDAY )
+
+         ! Increment the Astronomical Julian Date by 1 day
+         TMP = THISYEAR*10000 + THISMONTH*100 + THISDAY
+         JD  = GET_JD( TMP, 000000 ) + 1
+
+         ! Convert to YYYY/MM/DD and hh:mm:ss
+         CALL CALDATE( JD, DATE(1), DATE(2) )
+      ENDIF
 
 #if   defined( GCAP )
 
@@ -1337,7 +1414,6 @@
 
 #endif
 
-      ! Return to calling program
       END FUNCTION GET_TIME_AHEAD
 !EOC
 !------------------------------------------------------------------------------
@@ -2048,7 +2124,7 @@
 !
 ! !IROUTINE: get_ts_sun_2
 !
-! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS_SUN_2, which is 1/2 of
+! !DESCRIPTION: Function GET\_TS\_SUN\_2 returns TS\_SUN\_2, which is 1/2 of
 !  the interval at which we are computing the cosine of the solar zenith
 !  angle, aka SUNCOS.  This is required to move the time at which we compute
 !  SUNCOS to the middle of the chemistry timestep interval.
@@ -2193,9 +2269,38 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_ct_a1
+!
+! !DESCRIPTION: Function GET\_CT\_A1 returns the A1 fields timestep 
+!  counter to the calling program.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_CT_A1() RESULT( THIS_CT_A1 )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: THIS_CT_A1   ! # of A-3 timesteps
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      THIS_CT_A1 = CT_A1
+
+      END FUNCTION GET_CT_A1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_ct_a3
 !
-! !DESCRIPTION: Function GET\_CT\_CHEM returns the A-3 fields timestep 
+! !DESCRIPTION: Function GET\_CT\_A3 returns the A-3 fields timestep 
 !  counter to the calling program.
 !\\
 !\\
@@ -2339,6 +2444,50 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: get_a1_time
+!
+! !DESCRIPTION: Function GET\_A1\_TIME returns the correct YYYYMMDD and HHMMSS 
+!  values that are needed to read in the next average 1-hour (A-1) fields. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_A1_TIME() RESULT( DATE )
+!
+! !USES:
+!
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  19 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+#if   defined( MERRA )
+
+      ! MERRA met fields are 1-hour time-averages, timestamped at the
+      ! center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
+      DATE = GET_TIME_AHEAD( 30 )
+
+#else
+      
+      ! Otherwise return the current time
+      DATE = GET_TIME_AHEAD( 0 )
+
+#endif
+
+      END FUNCTION GET_A1_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: get_a3_time
 !
 ! !DESCRIPTION: Function GET\_A3\_TIME returns the correct YYYYMMDD and HHMMSS 
@@ -2440,19 +2589,29 @@
 !
       INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
 !  
+! !REMARKS:
+!  Modified for start times other than 0 GMT.  However someone should check
+!  to make sure it works properly for the GCAP simulation. (bmy, 9/27/10)
+!
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  (1 ) Bug fix for GCAP: skip over Feb 29th (no leapyears). (bmy, 4/24/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Now works for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+! 
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: HH, MM, SS, MINS, OFFSET
 
 #if   defined( GCAP ) 
 
-      !-------------------------------
-      ! GCAP met fields: no leapyears
-      !-------------------------------
+      !=================================================================
+      ! GCAP MET FIELDS: There are no leapyears; adjust accordingly
+      !=================================================================
 
       ! If 18 GMT on Feb 28th, the next I-6 time is 0 GMT on Mar 1st
       IF ( MONTH == 2 .and. DAY == 28 .and. HOUR == 18 ) THEN
@@ -2462,14 +2621,81 @@
 
 #endif
 
-      !-------------------------------
-      ! GEOS met fields: w/ leapyears
-      !-------------------------------
+      !=================================================================
+      ! ALL MET FIELDS:
+      !=================================================================
+ 
+      IF ( FIRST ) THEN
 
-      ! We need to read in the I-6 fields 6h (360 mins) ahead of time
-      DATE = GET_TIME_AHEAD( 360 )
+         !--------------------------------------------------------------
+         ! FIRST-TIME ONLY!  Get the proper # of hours until the next 
+         ! I6 time.  Also works for start times other than 0 GMT.
+         !--------------------------------------------------------------
+
+         ! Split NHMS into hours, mins, seconds
+         CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+         ! Compute minutes elapsed in the 6-hour interval
+         MINS   = MOD( HH, 6 )*60 + MM
+
+         ! Compute offset to next I-6 time
+         OFFSET = 360 - MINS
+
+         ! Get YYYY/MM/DD and hh:mm:ss to next I-6 time
+         DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+      ELSE
+
+         !--------------------------------------------------------------
+         ! Other than the 1st time: Search 360 mins ahead
+         !--------------------------------------------------------------
+
+         ! We need to read in the I-6 fields 6h (360 mins) ahead of time
+         DATE = GET_TIME_AHEAD( 360 )
+
+      ENDIF
 
       END FUNCTION GET_I6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_a1_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_A1\_TIME returns the correct YYYYMMDD
+!  and HHMMSS values the first time that A-3 fields are read in from disk. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_A1_TIME() RESULT( DATE )
+!
+! !USES:
+!
+#     include "define.h"
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  26 Jun 2003 - R. Yantosca - Initial Version
+!  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      ! Return the first A-1 time
+      DATE = GET_A1_TIME()
+  
+      END FUNCTION GET_FIRST_A1_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2499,21 +2725,50 @@
 !  (1 ) Now modified for GCAP and GEOS-5 data (swu, bmy, 5/24/05) 
 !  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
 #if   defined( GEOS_3 )
+
+      !==================================================================
+      ! GEOS-3: A3 fields indexed by start time
+      !==================================================================
 
       ! For GEOS-1, GEOS-STRAT, GEOS-3: Return the current date/time
       DATE = (/ NYMD, NHMS /)
 
 #else
-  
+
+      !==================================================================
+      ! GEOS-4, GEOS-5, MERRA, GCAP: 
+      ! A3 fields are indexed at the midpoint of the 3-hr interval
+      !==================================================================
+
+      !--------------------------------------------------------------------
+      ! Prior to 9/27/10:
       ! For GEOS-4, GEOS-5, and GCAP: Call GET_A3_TIME to return 
       ! the date/time under which the A-3 fields are timestamped
-      DATE = GET_A3_TIME()
-    
+      !DATE = GET_A3_TIME()
+      !--------------------------------------------------------------------
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+      ! Compute minutes elapsed in the 3-hour interval
+      MINS   = MOD( HH, 3 )*60 + MM
+      
+      ! Compute offset to midpoint of 3hr interval
+      OFFSET = 180 - ( MINS + 90 )
+
+      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
+      DATE   = GET_TIME_AHEAD( OFFSET )
+
 #endif
 
       END FUNCTION GET_FIRST_A3_TIME
@@ -2546,24 +2801,105 @@
 !  (1 ) Now modified for GEOS-4 "a_llk_03" and "a_llk_04" fields (bmy, 3/22/04)
 !  (2 ) Modified for GCAP and GEOS-5 met fields (swu, bmy, 5/24/05)
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
 
 #if   defined( GCAP )
 
-      ! For GCAP data: Call GET_A6_TIME to return date/time
+      !==================================================================
+      ! GCAP MET FIELDS
+      !==================================================================
+
+      ! Call GET_A6_TIME to return date/time
       ! under which the A-6 fields are timestamped
       DATE = GET_A6_TIME()      
 
 #else
 
-      ! For GEOS data: Return the current date/time
-      DATE = (/ NYMD, NHMS /)
+      !==================================================================
+      ! GEOS-3, GEOS-4, GEOS-5, MERRA MET FIELDS
+      !==================================================================
+
+      !---------------------------------------------------------
+      ! Prior to 9/27/10:
+      !! For GEOS data: Return the current date/time
+      !DATE = (/ NYMD, NHMS /)
+      !---------------------------------------------------------
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 6-hour interval
+      MINS   = MOD( HH, 6 )*60 + MM
+
+      ! Compute offset to midpoint of 6-hour interval
+      OFFSET = 360 - ( MINS + 180 )
+
+      IF ( MINS < 180 ) THEN
+         OFFSET = -MINS
+      ELSE
+         OFFSET = 360 - MINS
+      ENDIF
+
+      ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
 
 #endif
 
       END FUNCTION GET_FIRST_A6_TIME
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_first_i6_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I6\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-6 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_FIRST_I6_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+      INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+! 
+! !REVISION HISTORY: 
+!  27 Sep 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS, MINS, OFFSET
+
+      !==================================================================
+      ! Compute first I-6 time for all met field types
+      !==================================================================
+
+      ! Split NYMS into hours, mins, seconds
+      CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
+
+      ! Compute minutes elapsed in the 6-hour interval
+      MINS   = MOD( HH, 6 )*60 + MM
+
+      ! Compute offset to nearest I-6 time
+      OFFSET = -MINS
+
+      ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+      DATE   = GET_TIME_AHEAD( OFFSET ) 
+
+      END FUNCTION GET_FIRST_I6_TIME
 !EOC
 !------------------------------------------------------------------------------
 !          Harvard University Atmospheric Chemistry Modeling Group            !
@@ -2752,10 +3088,39 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: its_time_for_a1
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_A1 returns TRUE if it is time to read 
+!  in A1 (average 1-hr fields) and FALSE otherwise. 
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION ITS_TIME_FOR_A1() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: FLAG 
+! 
+! !REVISION HISTORY: 
+!  20 Aug 2010 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+      ! We read A1 fields every 3 hours
+      FLAG = ( MOD( NHMS, 010000 ) == 0 )
+
+      END FUNCTION ITS_TIME_FOR_A1
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: its_time_for_a3
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A3 returns TRUE if it is time to read 
-!  in A-3 (average 3-h fields) and FALSE otherwise. 
+!  in A3 (average 3-hr fields) and FALSE otherwise. 
 !\\
 !\\
 ! !INTERFACE:
@@ -2772,7 +3137,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ! We read A-3 fields every 3 hours
+      ! We read A3 fields every 3 hours
       FLAG = ( MOD( NHMS, 030000 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_A3
@@ -2785,7 +3150,7 @@
 ! !IROUTINE: its_time_for_a6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_A6 returns TRUE if it is time to read 
-!  in A-6 (average 6-h fields) and FALSE otherwise.
+!  in A6 (average 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -2842,7 +3207,7 @@
 ! !IROUTINE: its_time_for_i6
 !
 ! !DESCRIPTION: Function ITS\_TIME\_FOR\_I6 returns TRUE if it is time to read 
-!  in I-6 (instantaneous 6-h fields) and FALSE otherwise.
+!  in I6 (instantaneous 6-hr fields) and FALSE otherwise.
 !\\
 !\\
 ! !INTERFACE:
@@ -2859,8 +3224,15 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARAIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      
       ! We read in I-6 fields at 00, 06, 12, 18 GMT
-      FLAG = ( MOD( NHMS, 060000 ) == 0 )
+      FLAG = ( ( MOD( NHMS, 060000 ) == 0 ) .or. FIRST )
+      
+      FIRST = .FALSE.
 
       END FUNCTION ITS_TIME_FOR_I6
 !EOC
@@ -3772,8 +4144,6 @@
 
       END FUNCTION GET_NYMD_DIAG
 !EOC
-
-
       END MODULE TIME_MOD
 
 

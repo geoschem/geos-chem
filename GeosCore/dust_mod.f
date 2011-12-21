@@ -1,51 +1,41 @@
-! $Id: dust_mod.f,v 1.1 2009/09/16 14:06:33 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: dust_mod
+!
+! !DESCRIPTION: Module DUST\_MOD contains routines for computing dust aerosol 
+!  emissions, chemistry, and optical depths.
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE DUST_MOD
 !
-!******************************************************************************
-!  Module DUST_MOD contains routines for computing dust aerosol emissions,
-!  chemistry, and optical depths. (rjp, tdf, bmy, 4/14/04, 1/23/07)
+! !USES:
 !
-!  Module Variables:
-!  ============================================================================
-!  (1 ) FRAC_S   (REAL*8 ) : Fraction of each size classes (GINOUX only)
-!  (2 ) DUSTREFF (REAL*8 ) : Dust particle radii [m]
-!  (3 ) DUSTDEN  (REAL*8 ) : Soil density [kg/m3]
-!  (4 ) IDDEP    (INTEGER) : Dust ID flags for drydep
-!  (5 ) DRYDST1  (INTEGER) : Index for DST1 in drydep array
-!  (6 ) DRYDST2  (INTEGER) : Index for DST2 in drydep array
-!  (7 ) DRYDST3  (INTEGER) : Index for DST3 in drydep array
-!  (8 ) DRYDST4  (INTEGER) : Index for DST4 in drydep array
+      IMPLICIT NONE
+      PRIVATE
 !
-!  Module Routines:
-!  ============================================================================
-!  (1 ) CHEMDUST           : Driver routine for dust chemistry
-!  (2 ) DRY_SETTLING       : Routine which performs dust settling
-!  (3 ) DRY_DEPOSITION     : Routine which performs dust dry deposition
-!  (4 ) EMISSDUST          : Driver routine for dust emission
-!  (5 ) SRC_DUST_DEAD      : Dust emissions according to DEAD   source function
-!  (6 ) SRC_DUST_GINOUX    : Dust emissions according to GINOUX source function
-!  (7 ) RDUST_ONLINE       : Computes dust optical depths (online dust)
-!  (8 ) RDUST_OFFLINE      : Computes dust optical depths (monthly mean dust)
-!  (9 ) INIT_DUST          : Allocates & initializes all module variables
-!  (10) CLEANUP_DUST       : Deallocates all module variables
+! !PUBLIC MEMBER FUNCTIONS:
 !
-!  GEOS-CHEM modules referenced by "dust_mod.f"
-!  ============================================================================
-!  (1 ) dao_mod.f          : Module containing arrays for DAO met fields
-!  (2 ) diag_mod.f         : Module containing GEOS-CHEM diagnostic arrays
-!  (3 ) directory_mod.f    : Module containing GEOS-CHEM data & met field dirs
-!  (4 ) drydep_mod.f       : Module containing GEOS-CHEM drydep routines
-!  (5 ) dust_dead_mod.f    : Module containing Zender's DEAD dust routines
-!  (6 ) error_mod.f        : Module containing I/O error and NaN check routines
-!  (7 ) file_mod.f         : Contains file unit numbers and error checks
-!  (8 ) grid_mod.f         : Module containing horizontal grid information
-!  (9 ) logical_mod.f      : Module containing GEOS-CHEM logical switches
-!  (10) pressure_mod.f     : Module containing routines to compute P(I,J,L)
-!  (11) time_mod.f         : Module containing routines for computing time/date
-!  (12) tracer_mod.f       : Module containing GEOS-CHEM tracer array STT etc.
-!  (13) tracerid_mod.f     : Module containing pointers to tracers & emissions
-!  
-!  NOTES:
+      PUBLIC  :: CHEMDUST      
+      PUBLIC  :: EMISSDUST
+      PUBLIC  :: RDUST_ONLINE
+      PUBLIC  :: RDUST_OFFLINE
+      PUBLIC  :: INIT_DUST
+      PUBLIC  :: CLEANUP_DUST
+!     
+! !PRIVATE MEMBER FUNCTIONS:
+!
+      PRIVATE :: DRY_SETTLING
+      PRIVATE :: DRY_DEPOSITION
+      PRIVATE :: SRC_DUST_DEAD
+      PRIVATE :: SRC_DUST_GINOUX
+!
+!  !REVISION HISTORY:
+!  30 Mar 2004 - T. D. Fairlie - Initial version
 !  (1 ) Bug fix in SRC_DUST_DEAD (bmy, 4/14/04)
 !  (2 ) Now references "logical_mod.f", "directory_mod.f", and "tracer_mod.f"
 !        Added comments. (bmy, 7/2/04)
@@ -62,56 +52,40 @@
 !  (11) Add AOD output for all dust size bins (clh, 5/7/10)
 !  (12) Modify AOD output to wavelength specified in jv_spec_aod.dat 
 !       (clh, 05/07/10)
-!******************************************************************************
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix in SRC_DUST_DEAD
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      IMPLICIT NONE
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "dust_mod.f"
-      !=================================================================
-
-      ! PRIVATE module variables
-      PRIVATE                :: DRYDST1, DRYDST2,  DRYDST3, DRYDST4 
-      PRIVATE                :: DUSTDEN, DUSTREFF, FRAC_S,  IDDEP
-
-      ! PRIVATE module routines
-      PRIVATE                :: DRY_SETTLING
-      PRIVATE                :: DRY_DEPOSITION
-      PRIVATE                :: SRC_DUST_DEAD
-      PRIVATE                :: SRC_DUST_GINOUX
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !PRIVATE TYPES:
+!
       INTEGER                :: DRYDST1, DRYDST2, DRYDST3, DRYDST4
       INTEGER, ALLOCATABLE   :: IDDEP(:)
       REAL*8,  ALLOCATABLE   :: FRAC_S(:)
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
-      !=================================================================
-      ! MODULE ROUTINES -- follow below the "CONTAINS" statement
-      !=================================================================
       CONTAINS
-
-!-----------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chemdust
+!
+! !DESCRIPTION: Subroutine CHEMDUST is the interface between the GEOS-Chem 
+!  main program and the dust chemistry routines that mostly calculates dust
+!  dry deposition.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEMDUST
 !
-!******************************************************************************
-!  Subroutine CHEMDUST is the interface between the GEOS-CHEM main program and
-!  the dust chemistry routines that mostly calculates dust dry deposition.
-!  (tdf, bmy, 3/30/04, 5/23/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references STT from "tracer_mod.f" and LDUST from "logical_mod.f"
-!        (bmy, 7/20/04)
-!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP
       USE LOGICAL_MOD,  ONLY : LDRYD,   LDUST
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
@@ -119,10 +93,22 @@
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
 #     include "CMN_SIZE"     ! Size parameters
-
-      ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
-      INTEGER               :: N
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - T. D. Fairlie - Initial version
+!  (1 ) Now references STT from "tracer_mod.f" and LDUST from "logical_mod.f"
+!        (bmy, 7/20/04)
+!  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (6 ) Now only do dry deposition if LDRYD = T (bmy, 5/23/06)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      INTEGER       :: N
 
       !=================================================================
       ! CHEMDUST begins here!
@@ -181,27 +167,25 @@
          CALL DRY_DEPOSITION( STT(:,:,:,IDTDST1:IDTDST4) )
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHEMDUST
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_settling 
+!
+! !DESCRIPTION: Subroutine DRY\_SETTLING computes the dry settling of 
+!  dust tracers.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DRY_SETTLING( TC )
 !
-!******************************************************************************
-!  Subroutine DRY_SETTLING computes the dry settling of dust tracers.
-!  (tdf, bmy, 3/30/04, 10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Dust tracer array 
-!
-!  NOTES
-!  (1 ) Updated comments, cosmetic changes (bmy, 3/30/04)
-!  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
-!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!******************************************************************************
-! 
       USE DAO_MOD,      ONLY : T, BXHEIGHT
       USE DIAG_MOD,     ONLY : AD44
       USE PRESSURE_MOD, ONLY : GET_PCENTER
@@ -213,11 +197,23 @@
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_GCTM"     ! g0
 #     include "CMN_DIAG"     ! ND44
-
-      ! Arguments
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-
-      ! Local variables
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - T. D. Fairlie - Initial version
+!  (1 ) Updated comments, cosmetic changes (bmy, 3/30/04)
+!  (2 ) Remove reference to CMN, it's not needed (bmy, 7/20/04)
+!  (3 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER               :: I, J, L, N
       REAL*8                :: DT_SETTL, DELZ,  DELZ1
       REAL*8                :: REFF,     DEN,   CONST   
@@ -379,26 +375,25 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRY_SETTLING
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_deposition
+!
+! !DESCRIPTION: Subroutine DRY\_DEPOSITION computes the loss of dust due to 
+!  dry deposition at the surface using an implicit method. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DRY_DEPOSITION( TC )
 !
-!******************************************************************************
-!  Subroutine DRY_DEPOSITION computes the loss of dust due to dry deposition
-!  at the surface using an implicit method. (tdf, bmy, 3/30/04, 10/25/05)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8) : Dust tracer array   
-!
-!  NOTES: 
-!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE DRYDEP_MOD,   ONLY : DEPSAV 
       USE TIME_MOD,     ONLY : GET_TS_CHEM
@@ -408,13 +403,23 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! ND44
-
-      ! Arguments
-      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-
-      ! local variables
-      INTEGER               :: I,   J,   L,      N
-      REAL*8                :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - T. D. Fairlie - Initial version
+!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,   J,   L,      N
+      REAL*8  :: OLD, NEW, DTCHEM, FLUX, AREA_CM2
 
       !=================================================================
       ! DRY_DEPOSITION begins here!
@@ -467,34 +472,46 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRY_DEPOSITION
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emissdust
+!
+! !DESCRIPTION: Subroutine EMISSDUST is the driver routine for the dust 
+!  emission module.  You may call either the GINOUX or the DEAD dust source 
+!  function. 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSDUST
 !
-!******************************************************************************
-!  Subroutine EMISSDUST is the driver routine for the dust emission
-!  module.  You may call either the GINOUX or the DEAD dust source 
-!  function. (tdf, bmy, 3/30/04, 10/3/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
-!        STT from "tracer_mod.f" (bmy, 7/20/04)
-!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!******************************************************************************
-!
-      ! References to F(0 modules
       USE ERROR_MOD,    ONLY : ERROR_STOP, DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LDEAD, LDUST, LPRT
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTDST1, IDTDST2, IDTDST3, IDTDST4
 
 #     include "CMN_SIZE"     ! Size parameters
-      
-      ! Local variables
-      LOGICAL, SAVE         :: FIRST = .TRUE.
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - T. D. Fairlie - Initial version
+!  (1 ) Now reference LDEAD, LDUST, LPRT from "logical_mod.f".  Now reference!
+!        STT from "tracer_mod.f" (bmy, 7/20/04)
+!  (2 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE :: FIRST = .TRUE.
       
       !=================================================================
       ! EMISSDUST begins here!
@@ -540,52 +557,27 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSDUST: a SRC_DUST_GINOUX')
 
       ENDIF     
-      ! Return to calling program
+
       END SUBROUTINE EMISSDUST
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: src_dust_dead
+!
+! !DESCRIPTION: Subroutine SRC\_DUST\_DEAD is the DEAD model dust emission 
+!  scheme, alternative to Ginoux scheme.  Increments the TC array with 
+!  emissions from the DEAD model.  
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SRC_DUST_DEAD( TC )
 !
-!******************************************************************************
-!  Subroutine SRC_DUST_DEAD is the DEAD model dust emission scheme, 
-!  alternative to Ginoux scheme.  Increments the TC array with emissions 
-!  from the DEAD model.  (tdf, bmy, 4/8/04, 1/23/07)
+! !USES:
 !
-!  Input:
-!         SRCE_FUNK Source function                               (-)
-!         for 1: Sand, 2: Silt, 3: Clay
-!         DUSTDEN   Dust density                                  (kg/m3)
-!         DUSTREFF  Effective radius                              (um)
-!         AD        Air mass for each grid box                    (kg)
-!         NTDT      Time step                                     (s)
-!         W10M      Velocity at the anemometer level (10meters)   (m/s)
-!         GWET      Surface wetness                               (-)
-!
-!  Parameters used in GEOS-CHEM
-!
-!  Longitude: IIPAR 
-!  Latitude : JJPAR 
-!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
-!  Size bins: NDSTBIN  =   4
-!
-!  Dust properties used in GOCART
-!
-!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
-!  Radius: 0.7, 1.5, 2.5, 4  (um)
-!  Density: 2500, 2650, 2650, 2650 (kg/m3)
-!
-!  NOTES:
-!  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
-!  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
-!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
-!  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
-!  (6 ) Updated output statement (bmy, 1/23/07)
-!  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,       ONLY : BXHEIGHT,     GWETTOP,   LWI
       USE DAO_MOD,       ONLY : SNOW,         SPHU,      T    
       USE DAO_MOD,       ONLY : TS,           UWND,      VWND
@@ -605,16 +597,55 @@
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! ND06
 #     include "CMN_GCTM"      ! g0
-
-      !----------------
-      ! Arguments
-      !----------------
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-
-      !-----------------
-      ! Local variables
-      !-----------------
-
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+!
+! !REMARKS:
+!  Input:
+!         SRCE_FUNK Source function                               (-)
+!         for 1: Sand, 2: Silt, 3: Clay
+!         DUSTDEN   Dust density                                  (kg/m3)
+!         DUSTREFF  Effective radius                              (um)
+!         AD        Air mass for each grid box                    (kg)
+!         NTDT      Time step                                     (s)
+!         W10M      Velocity at the anemometer level (10meters)   (m/s)
+!         GWET      Surface wetness                               (-)
+!                                                                             .
+!  Parameters used in GEOS-CHEM
+!                                                                             .
+!  Longitude: IIPAR
+!  Latitude : JJPAR 
+!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
+!  Size bins: NDSTBIN  =   4
+!                                                                             .
+!  Dust properties used in GOCART
+!                                                                             .
+!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
+!  Radius: 0.7, 1.5, 2.5, 4  (um)
+!  Density: 2500, 2650, 2650, 2650 (kg/m3)! 
+! 
+! !REVISION HISTORY: 
+!  08 Apr 2004 - T. D. Fairlie - Initial version
+!  (1 ) Added OpenMP parallelization, added comments (bmy, 4/8/04)
+!  (2 ) Bug fix: DSRC needs to be held PRIVATE (bmy, 4/14/04)
+!  (3 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  (4 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
+!  (5 ) Bug fix: It should be SNOW/1d3 not SNOW*1d3 (tdf, bmy, 11/18/05)
+!  (6 ) Updated output statement (bmy, 1/23/07)
+!  (7 ) Use SNOMAS (m H2O) for GEOS-5 (bmy, 1/24/07)
+!  25 Aug 2010 - R. Yantosca - Treat MERRA in the same way as for GEOS-5
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  03 Sep 2010 - R. Yantosca - Bug fix, SNOMAS was mislabled in GEOS-5
+!                              and has units of mm H2O instead of m H2O
+!                              so we need to convert to m H2O.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       ! Scalars
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,      J,      L,       N
@@ -642,9 +673,11 @@
       REAL*8                 :: SNW_HGT_LQD(IIPAR)   ! equivalent snow ht.
       REAL*8                 :: DSRC(IIPAR,NDSTBIN)  ! dust mixing ratio incr.
 
-      !----------------
-      ! Parameters
-      !----------------
+      ! External functions
+      REAL*8,  EXTERNAL       :: SFCWINDSQR
+!
+! !DEFINED PARAMETERS:
+!
       REAL*8, PARAMETER      :: Ch_dust = 9.375d-10
       REAL*8, PARAMETER      :: G       = g0 * 1.D2
       REAL*8, PARAMETER      :: RHOA    = 1.25D-3
@@ -652,9 +685,6 @@
       REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
-
-      ! External functions
-      REAL*8,  EXTERNAL       :: SFCWINDSQR
 
       !=================================================================
       ! SRC_DUST_DEAD begins here!
@@ -747,8 +777,16 @@
             ORO(I)         = OROGRAPHY(I,J) 
 
             ! Snow height [m H2O]
-#if   defined( GEOS_5  )
-            SNW_HGT_LQD(I) = SNOMAS(I,J)
+#if   defined( GEOS_5 ) || defined( MERRA )
+            !--------------------------------------------------------------
+            ! Prior to 9/3/10:
+            ! SNOMAS in GEOS-5 was originally reported as m H2O but this
+            ! was mis-lableled.  Both GEOS-5 and MERRA SNOMAS field have 
+            ! units of liquid-equivalent mm H2O.  Therefore, we need to
+            ! divide by 1000 to convert mm to m. (bmy, 9/3/10)
+            !SNW_HGT_LQD(I) = SNOMAS(I,J)
+            !--------------------------------------------------------------
+            SNW_HGT_LQD(I) = SNOMAS(I,J) / 1000d0
 #else
             SNW_HGT_LQD(I) = SNOW(I,J) / 1000d0
 #endif
@@ -788,72 +826,33 @@
       ENDDO  
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE SRC_DUST_DEAD
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: src_dust_ginoux
+!
+! !DESCRIPTION: Paul GINOUX dust source function.  This subroutine updates 
+!  the surface mixing ratio of dust aerosols for NDSTBIN size bins.  The 
+!  uplifting of dust depends in space on the source function, and in time 
+!  and space on the soil moisture and surface wind speed (10 meters).  Dust 
+!  is uplifted if the wind speed is greater than a threshold velocity which
+!  is calculated with the formula of Marticorena et al.  (JGR, v.102, 
+!  pp 23277-23287, 1997).  To run this subroutine you need the source 
+!  function which can be obtained by contacting Paul Ginoux at 
+!  ginoux@rondo.gsfc.nasa.gov/  If you are not using GEOS DAS met fields, 
+!  you will most likely need to adapt the adjusting parameter.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE SRC_DUST_GINOUX( TC )
 !
-!******************************************************************************
-!  Paul GINOUX dust source function 
-!  (Added to GEOS-CHEM, tdf, bmy, 4/8/04, 7/20/04)
+! !USES:
 !
-!  This subroutine updates the surface mixing ratio of dust aerosols for
-!  NDSTBIN size bins. The uplifting of dust depends in space on the source 
-!  function, and in time and space on the soil moisture and surface
-!  wind speed (10 meters). Dust is uplifted if the wind speed is greater
-!  than a threshold velocity which is calculated with the formula of
-!  Marticorena et al.  (JGR, v.102, p 23277-23287, 1997).
-!  To run this subroutine you need the source function which can be
-!  obtained by contacting Paul Ginoux at ginoux@rondo.gsfc.nasa.gov
-!  If you are not using GEOS DAS met fields, you will most likely need
-!  to adapt the adjusting parameter.
-! 
-!  Contact: Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
-! 
-! 
-!  Input:
-!    SRCE_FUNK Source function                               (-)
-!              for 1: Sand, 2: Silt, 3: Clay
-!
-!    DUSTDEN   Dust density                                  (kg/m3)
-!    DUSTREFF  Effective radius                              (um)
-!    AD        Air mass for each grid box                    (kg)
-!    NTDT      Time step                                     (s)
-!    W10m      Velocity at the anemometer level (10meters)   (m/s)
-!    GWET      Surface wetness                               (-)
-!       
-! 
-!  Parameters used in GEOS-CHEM
-! 
-!  Longitude: IIPAR 
-!  Latitude : JJPAR 
-!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
-!  Size bins: NDSTBIN  =   4
-! 
-!  Dust properties used in GOCART
-! 
-!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
-!  Radius: 0.7, 1.5, 2.5, 4  (um)
-!  Density: 2500, 2650, 2650, 2650 (kg/m3)
-! 
-!  References:
-!  ============================================================================
-!  (1 ) Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
-!        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
-!        with the GOCART model", J. Geophys. Res., 2001
-!  (2 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
-!        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
-!        optical thickness from the GOCART model and comparisons with
-!        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
-!
-!  NOTES:
-!  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
-!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
-!******************************************************************************
-!     
-      ! References to F90 modules
       USE BPCH2_MOD,     ONLY : GET_RES_EXT
       USE DAO_MOD,       ONLY : GWETTOP   
       USE DIAG_MOD,      ONLY : AD06
@@ -865,11 +864,59 @@
 #     include "CMN_SIZE"  ! Size parameters
 #     include "CMN_DIAG"  ! ND19, LD13 (for now)
 #     include "CMN_GCTM"  ! g0
-
-      ! Arguments
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)
-
-      ! Local variables
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR,NDSTBIN)  ! Dust mass [kg]
+!
+! !REMARKS:
+!  Input:
+!    SRCE_FUNK Source function                               (-)
+!              for 1: Sand, 2: Silt, 3: Clay
+!                                                                             .
+!    DUSTDEN   Dust density                                  (kg/m3)
+!    DUSTREFF  Effective radius                              (um)
+!    AD        Air mass for each grid box                    (kg)
+!    NTDT      Time step                                     (s)
+!    W10m      Velocity at the anemometer level (10meters)   (m/s)
+!    GWET      Surface wetness                               (-)
+!                                                                             .
+!  Parameters used in GEOS-CHEM
+!                                                                             .
+!  Longitude: IIPAR 
+!  Latitude : JJPAR 
+!  Levels   : LLPAR  =  20 (GEOS-1), 26 (GEOS-strat), 30 (GEOS-terra)
+!  Size bins: NDSTBIN  =   4
+!                                                                             .
+!  Dust properties used in GOCART
+!                                                                             .
+!  Size classes: 01-1, 1-1.8, 1.8-3, 3-6 (um)
+!  Radius: 0.7, 1.5, 2.5, 4  (um)
+!  Density: 2500, 2650, 2650, 2650 (kg/m3)
+!                                                                             .
+!  References:
+!  ============================================================================
+!  (1 ) Ginoux, P., M. Chin, I. Tegen, J. Prospero, B. Hoben, O. Dubovik,
+!        and S.-J. Lin, "Sources and distributions of dust aerosols simulated
+!        with the GOCART model", J. Geophys. Res., 2001
+!  (2 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
+!        J. Logan, A. Higurashi, and T. Nakajima, "Tropospheric aerosol
+!        optical thickness from the GOCART model and comparisons with
+!        satellite and sunphotometers measurements", J. Atmos Sci., 2001.
+!                                                                             .
+!  Contact: Paul Ginoux (ginoux@rondo.gsfc.nasa.gov) 
+! 
+! !REVISION HISTORY:
+!  08 Apr 2004 - T. D. Fairlie - Initial version
+!  (1 ) Added OpenMP parallelization (bmy, 4/8/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f" (bmy, 7/20/04)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I, J, N, M, IOS
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
@@ -1029,31 +1076,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE SRC_DUST_GINOUX
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdust_online
+!
+! !DESCRIPTION: Subroutine RDUST\_ONLINE reads global mineral dust 
+!  concentrations as determined by P. Ginoux.  Calculates dust optical 
+!  depth at each level for the FAST-J routine "set\_prof.f". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDUST_ONLINE( DUST )
 !
-!******************************************************************************
-!  Subroutine RDUST reads global mineral dust concentrations as determined 
-!  by P. Ginoux.  Calculates dust optical depth at each level for the
-!  FAST-J routine "set_prof.f". (rvm, rjp, tdf, bmy, 4/1/04, 7/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DUST (REAL*8) : Dust from soils [kg/m3]
-!
-!  NOTES:
-!  (1 ) Bundled into "dust_mod.f" (bmy, 4/1/04)
-!  (2 ) Now references DATA_DIR from "directory_mod.f".  Now parallelize over
-!        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
-!  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
-!       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE 
       USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
       USE DAO_MOD,       ONLY : BXHEIGHT
@@ -1064,17 +1106,29 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      IMPLICIT NONE
-
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA, QAA_AOD (clh)
-#     include "CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
-
-      ! Arguments
-      REAL*8, INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
-
-      ! Local variables
+#     include "cmn_fj.h"      ! LPAR, CMN_SIZE
+#     include "jv_cmn.h"      ! ODMDUST, QAA, RAA, QAA_AOD (clh)
+#     include "CMN_DIAG"      ! ND21, LD21
+#     include "comode.h"      ! NTTLOOP
+!
+! !INPUT/OUTPUT PARAMETERS: 
+! 
+      REAL*8, INTENT(IN) :: DUST(IIPAR,JJPAR,LLPAR,NDUST)   ! Dust [kg/m3]
+! 
+! !REVISION HISTORY: 
+!  01 Apr 2004 - R. Martin, R. Park - Initial version
+!  (1 ) Bundled into "dust_mod.f" (bmy, 4/1/04)
+!  (2 ) Now references DATA_DIR from "directory_mod.f".  Now parallelize over
+!        the L-dimension for ND21 diagnostics. (bmy, 7/20/04)
+!  (3 ) Archive only hydrophilic aerosol/aqueous dust surface area 
+!       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER            :: I, J, JLOOP, L, N
       REAL*8             :: MSDENS(NDUST), XTAU
       ! Added to calculate aqueous dust surface area (WTAREA, WERADIUS)
@@ -1232,24 +1286,52 @@
          ENDDO
       ENDIF 
 
-      ! Return to calling program
       END SUBROUTINE RDUST_ONLINE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rdust_offline
+!
+! !DESCRIPTION: Subroutine RDUST\_OFFLINE reads global mineral dust 
+!  concentrations as determined by P. Ginoux.  Calculates dust optical 
+!  depth at each level for the FAST-J routine "set\_prof.f". 
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE RDUST_OFFLINE( THISMONTH, THISYEAR )
 !
-!******************************************************************************
-!  Subroutine RDUST_OFFLINE reads global mineral dust concentrations as 
-!  determined by P. Ginoux.  Calculates dust optical depth at each level for 
-!  the FAST-J routine "set_prof.f". (rvm, bmy, 9/30/00, 8/4/06)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) THISMONTH (INTEGER) : Number of the current month (1-12)
-!  (2 ) THISYEAR  (INTEGER) : 4-digit year number (e.g. 1996, 2001)
+      ! References to F90 modules
+      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
+      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
+      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
+      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
+      USE DAO_MOD,       ONLY : BXHEIGHT
+      USE DIAG_MOD,      ONLY : AD21
+      USE DIRECTORY_MOD, ONLY : DATA_DIR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
+      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
+      USE DAO_MOD,       ONLY : RH
+
+      IMPLICIT NONE
+
+#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
+#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
+#     include "CMN_DIAG"   ! ND21, LD21
+#     include "comode.h"   ! NTTLOOP
 !
-!  NOTES:
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: THISMONTH   ! Current month (1-12)
+      INTEGER, INTENT(IN) :: THISYEAR    ! Current year  (YYYY format)
+!
+! !REVISION HISTORY: 
 !  (1 ) RDUST was patterned after rdaerosol.f (rvm, 9/30/00)
 !  (2 ) Don't worry about rewinding the binary file...reading from
 !        binary files is pretty fast.  And it's only done once a month.
@@ -1298,32 +1380,13 @@
 !  (21) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
 !  (22) Archive only hydrophilic aerosol/aqueous dust surface area 
 !       (excluding BCPO and OCPO), WTAREA and WERADIUS. (tmf, 3/6/09)
-!******************************************************************************
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE BPCH2_MOD,     ONLY : GET_NAME_EXT, GET_RES_EXT
-      USE BPCH2_MOD,     ONLY : GET_TAU0,     READ_BPCH2
-      USE COMODE_MOD,    ONLY : ERADIUS, IXSAVE, IYSAVE
-      USE COMODE_MOD,    ONLY : IZSAVE,  JLOP,   TAREA
-      USE DAO_MOD,       ONLY : BXHEIGHT
-      USE DIAG_MOD,      ONLY : AD21
-      USE DIRECTORY_MOD, ONLY : DATA_DIR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE TRANSFER_MOD,  ONLY : TRANSFER_3D
-      USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
-      USE DAO_MOD,       ONLY : RH
-
-      IMPLICIT NONE
-
-#     include "cmn_fj.h"   ! LPAR, CMN_SIZE
-#     include "jv_cmn.h"   ! ODMDUST, QAA, RAA
-#     include "CMN_DIAG"   ! ND21, LD21
-#     include "comode.h"   ! NTTLOOP
-
-      ! Arguments
-      INTEGER, INTENT(IN) :: THISMONTH, THISYEAR
-
-      ! Local variables
+! !LOCAL VARIABLES:
+!
       INTEGER             :: I, J, JLOOP, L, N
       INTEGER, SAVE       :: MONTH_LAST = -999
       REAL*4              :: TEMP(IGLOB,JGLOB,LGLOB)
@@ -1512,27 +1575,39 @@
          ENDIF 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE RDUST_OFFLINE
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_dust
+!
+! !DESCRIPTION: Subroutine INIT\_DUST allocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_DUST
 !
-!******************************************************************************
-!  Subroutine INIT_DUST allocates all module arrays (bmy, 3/30/04)
-! 
-!  NOTES:
-!  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
-!******************************************************************************
+! !USES:
 !
-      ! References to F90 modules
       USE LOGICAL_MOD, ONLY : LDEAD
       USE ERROR_MOD,   ONLY : ALLOC_ERR
 
-#     include "CMN_SIZE"  ! Size parameters
-      
-      ! Local variables
+#     include "CMN_SIZE"    ! Size parameters
+! 
+! !REVISION HISTORY: 
+!  30 Mar 2004 - R. Yantosca - Initial version
+!  (1 ) Now references LDEAD from "logical_mod.f" (bmy, 7/20/04)
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS
 
@@ -1568,19 +1643,28 @@
       ! Reset flag
       IS_INIT = .TRUE.
 
-      ! Return to calling program
       END SUBROUTINE INIT_DUST
-
-!-----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_dust
+!
+! !DESCRIPTION: Subroutine CLEANUP\_DUST deallocates all module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_DUST
-!
-!******************************************************************************
-!  Subroutine CLEANUP_DUST deallocates all module arrays (bmy, 3/30/04)
 ! 
-!  NOTES:
-!******************************************************************************
-!
+! !REVISION HISTORY: 
+!  30 Mar 2004 - R. Yantosca - Initial version
+!  25 Aug 2010 - R. Yantosca - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
       !=================================================================
       ! CLEANUP_DUST begins here!
       !=================================================================
@@ -1589,10 +1673,6 @@
       IF ( ALLOCATED( DUSTREFF ) ) DEALLOCATE( DUSTREFF )
       IF ( ALLOCATED( DUSTDEN  ) ) DEALLOCATE( DUSTDEN  )
 
-      ! Return to calling program
       END SUBROUTINE CLEANUP_DUST
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE DUST_MOD

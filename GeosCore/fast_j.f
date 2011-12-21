@@ -1,34 +1,67 @@
-! $Id: fast_j.f,v 1.3 2010/02/02 16:57:53 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !ROUTINE: fast_j.f
+!
+! !DESCRIPTION: Subroutine FAST\_J loops over longitude and latitude, and
+!  calls PHOTOJ to compute J-Values for each column at every chemistry 
+!  time-step.  
+!\\
+!\\
+!  References:
+!
+! \begin{enumerate}
+! \item H. Liu, J.H. Crawford, R.B. Pierce, P. Norris, S.E. Platnick, G. Chen,
+!       J.A. Logan, R.M. Yantosca, M.J. Evans, C. Kittaka, Y. Feng, and 
+!       X. Tie, \emph{Radiative effect of clouds on tropospheric chemistry 
+!       in a global three-dimensional chemical transport model}, 
+!       \underline{J. Geophys. Res.}, \textbf{111}, D20303, 
+!       doi:10.1029/2005JD006403, 2006. 
+!       http://research.nianet.org/~hyl/publications/liu2006\_cloud1.abs.html
+! \end{enumerate}
+!
+! !INTERFACE:
+!
       SUBROUTINE FAST_J( SUNCOS, OD, ALBD )  
 !
-!******************************************************************************
-!  Subroutine FAST_J loops over longitude and latitude, and calls PHOTOJ 
-!  to compute J-Values for each column at every chemistry time-step.  
-!  (ppm, 4/98; bmy, rvm, 9/99, 2/6/04; hyl, 4/25/04; phs, bmy, 10/15/09)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) SUNCOS (REAL*8) : Cosine of solar zenith angle [unitless]
-!  (2 ) OD     (REAL*8) : Cloud optical depth          [unitless]
-!  (3 ) ALBD   (REAL*8) : UV albedo                    [unitless]
+      USE DAO_MOD,      ONLY : T, CLDF
+      USE ERROR_MOD,    ONLY : ERROR_STOP
+      USE GRID_MOD,     ONLY : GET_YMID
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
+      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
+      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
+      USE TOMS_MOD,     ONLY : READ_TOMS
+
+      IMPLICIT NONE
+
+#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
+#     include "jv_cmn.h"     ! ODMDUST, PJ
+!
+! !INPUT PARAMETERS: 
+!
+      ! Cosine of solar zenith angle [unitless]
+      REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)   
+
+      ! Cloud optical depth [unitless]
+      REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
+
+      ! UV albedo [unitless]
+      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)    
+!
+! !REMARKS:
 !
 !  Parameter to choose cloud overlap algorithm:
 !  ============================================================================
 !  (1 ) OVERLAP (INTEGER) : 1 - Linear Approximation (used up to v7-04-12)
 !                           2 - Approximate Random Overlap (default)
 !                           3 - Maximum Random Overlap (computation intensive)
-!  
-!  References:
-!  ============================================================================
-!  (1) H. Liu, J.H. Crawford, R.B. Pierce, P. Norris, S.E. Platnick, G. Chen,
-!       J.A. Logan, R.M. Yantosca, M.J. Evans, C. Kittaka, Y. Feng, and 
-!       X. Tie, "Radiative effect of clouds on tropospheric chemistry in a 
-!       global three-dimensional chemical transport model", J. Geophys. Res., 
-!       vol.111, D20303, doi:10.1029/2005JD006403, 2006. 
-!       http://research.nianet.org/~hyl/publications/liu2006_cloud1.abs.html
 !
-!  NOTES:
-!  ======
+! !REVISION HISTORY:
+!  01 Apr 1998 - P. Murti, R. Martin, R. Yantosca - Initial version
 !  (1 ) Call this routine EACH chemistry time-step, before solver.
 !  (2 ) This routine must know IMAX, JMAX, LMAX. 
 !  (3 ) Now use new !$OMP compiler directives for parallelization (bmy, 5/2/00)
@@ -72,47 +105,33 @@
 !  (19) Now can handle GEOS-5 reprocessed met data with OPTDEPTH being
 !        in-cloud optical depths. (bmy, hyl, 10/24/08)
 !  (10) Remove references to IN_CLOUD_OD (bmy, 10/15/09)
-!******************************************************************************
+!  13 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2010 - R. Yantosca - Treat GEOS-5 in the same way as MERRA
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,      ONLY : T, CLDF
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GRID_MOD,     ONLY : GET_YMID
-      USE PRESSURE_MOD, ONLY : GET_PEDGE
-      USE TIME_MOD,     ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
-      USE TIME_MOD,     ONLY : GET_TAU,   GET_YEAR
-      USE TOMS_MOD,     ONLY : READ_TOMS
-
-      IMPLICIT NONE
-
-#     include "cmn_fj.h"     ! IPAR, JPAR, LPAR, CMN_SIZE
-#     include "jv_cmn.h"     ! ODMDUST, PJ
-
-      ! Arguments
-      REAL*8, INTENT(IN)    :: SUNCOS(MAXIJ)
-      REAL*8, INTENT(IN)    :: OD(LLPAR,IIPAR,JJPAR) 
-      REAL*8, INTENT(IN)    :: ALBD(IIPAR,JJPAR)     
-      
-      ! Local variables
-      INTEGER, SAVE         :: LASTMONTH = -1
-      INTEGER               :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
-      REAL*8                :: CSZA, PRES, SFCA, YLAT
-      REAL*8                :: TEMP(LLPAR), OPTD(LLPAR)
-      REAL*8                :: OPTDUST(LLPAR,NDUST)
-      REAL*8                :: OPTAER(LLPAR,NAER*NRH)
+! !LOCAL VARIABLES:
+!
+      INTEGER, SAVE      :: LASTMONTH = -1
+      INTEGER            :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L
+      REAL*8             :: CSZA, PRES, SFCA, YLAT
+      REAL*8             :: TEMP(LLPAR), OPTD(LLPAR)
+      REAL*8             :: OPTDUST(LLPAR,NDUST)
+      REAL*8             :: OPTAER(LLPAR,NAER*NRH)
 
       ! Local variables for cloud overlap (hyl, phs)
-      INTEGER               :: NUMB, KK, I
-      INTEGER               :: INDIC(LLPAR+1)
-      INTEGER               :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
-      INTEGER               :: KBOT(LLPAR)
-      INTEGER               :: KTOP(LLPAR)
-      INTEGER               :: INDICATOR(LLPAR+2)
-      REAL*8                :: FMAX(LLPAR)  ! maximum cloud fraction 
+      INTEGER           :: NUMB, KK, I
+      INTEGER            :: INDIC(LLPAR+1)
+      INTEGER            :: INDGEN(LLPAR+1) = (/ (i,i=1,LLPAR+1) /)
+      INTEGER            :: KBOT(LLPAR)
+      INTEGER            :: KTOP(LLPAR)
+      INTEGER            :: INDICATOR(LLPAR+2)
+      REAL*8             :: FMAX(LLPAR)  ! maximum cloud fraction 
                                             !  in a block, size can be to 
                                             !  FIX(LLPAR)+1
-      REAL*8                :: CLDF1D(LLPAR)
-      REAL*8                :: ODNEW(LLPAR)
+      REAL*8             :: CLDF1D(LLPAR)
+      REAL*8             :: ODNEW(LLPAR)
 
       ! NOTE: Switch from linear approximation (OVERLAP=1) to approximate
       ! random overlap (OVERLAP=2) because we have re-processed the GEOS-5
@@ -208,7 +227,7 @@
             !===========================================================
             IF ( OVERLAP == 1 ) then
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
                ! Column cloud fraction (not less than zero)
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
@@ -238,7 +257,7 @@
                CLDF1D = CLDF(1:LLPAR,NLON,NLAT)
                WHERE ( CLDF1D < 0d0 ) CLDF1D = 0d0
                
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
                ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                ! optical depth & cloud fractions regridded with RegridTau)
@@ -341,7 +360,7 @@
                   ! Max cloud fraction
                   FMAX(KK) = MAXVAL( CLDF1D(KBOT(KK):KTOP(KK)) )
 
-#if   defined( GEOS_5 )
+#if   defined( GEOS_5 ) || defined( MERRA )
 
                   ! NOTE: for the reprocessed GEOS-5 met fields (i.e. with
                   ! optical depth & cloud fractions regridded with RegridTau)
@@ -392,3 +411,4 @@
       ! END OF SUBROUTINE FAST-J
       !-----------------------------------------------------------
       END SUBROUTINE FAST_J
+!EOC

@@ -5,8 +5,9 @@
 !
 ! !IROUTINE: doTreeCarbonHg
 !
-! !DESCRIPTION:
-!
+! !DESCRIPTION: This subroutine ...
+!\\
+!\\
 ! !INTERFACE:
 !
 SUBROUTINE doTreeCarbonHg
@@ -17,15 +18,14 @@ SUBROUTINE doTreeCarbonHg
   USE loadCASAinput
   USE defineArrays
   
-  implicit none
+  IMPLICIT NONE
 !
 ! !REVISION HISTORY:
-!
-! 9 July 2010 - C. Carouge  - Adapted for restarting simulations. 
-!                             Parallelization
-!EOC
+!  09 July 2010 - C. Carouge  - Adapted for restarting simulations. 
+!                               Parallelization
+!EOP
 !------------------------------------------------------------------------------
-!BOP
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -682,4 +682,3 @@ SUBROUTINE doTreeCarbonHg
   ENDIF
 END SUBROUTINE doTreeCarbonHg
 !EOC    
-!------------------------------------------------------------------------------
