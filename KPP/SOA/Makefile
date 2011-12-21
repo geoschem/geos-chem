@@ -66,10 +66,10 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # Source code files
-SRC  = $(wildcard gckpp*.f90)
+SRC  = $(wildcard gckpp*.F90)
 
 # Object files
-OBJ  = $(SRC:.f90=.o)
+OBJ  = $(SRC:.F90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!

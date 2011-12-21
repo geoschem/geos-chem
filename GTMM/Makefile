@@ -63,10 +63,10 @@ include $(ROOTDIR)/Makefile_header.mk
 #=============================================================================
 
 # Source code files
-SRC  = $(wildcard *.f90)
+SRC  = $(wildcard *.F90)
 
 # Object files
-OBJ  = $(SRC:.f90=.o)
+OBJ  = $(SRC:.F90=.o)
 
 #=============================================================================
 # Makefile targets: type "make help" for a complete listing!
@@ -98,115 +98,115 @@ help:
 # correct order of compilation (so we don't have to do that ourselves!)
 #=============================================================================
 
-CleanupCASAarrays.o            : CleanupCASAarrays.f90 defineConstants.o     \
+CleanupCASAarrays.o            : CleanupCASAarrays.F90 defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-GTMM.o                         : GTMM.f90              defineConstants.o     \
+GTMM.o                         : GTMM.F90              defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o        \
                                  dorestart_mod.o       input_gtmm_mod.o
 
-GTMM_coupled.o                 : GTMM_coupled.f90      defineConstants.o     \
+GTMM_coupled.o                 : GTMM_coupled.F90      defineConstants.o     \
                                  defineArrays.o        dorestart_mod.o       \
 	                         loadCASAinput.o       input_gtmm_mod.o      
 
-HgOutForGEOS.o                 : HgOutForGEOS.f90      defineConstants.o     \
+HgOutForGEOS.o                 : HgOutForGEOS.F90      defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o        \
                                  CasaRegridModule.o
 
-assignAgeClassToRunningPool.o  : assignAgeClassToRunningPool.f90             \
+assignAgeClassToRunningPool.o  : assignAgeClassToRunningPool.F90             \
                                  defineConstants.o     loadCASAinput.o       \
                                  defineArrays.o          
 
-assignRanPoolToAgeClass.o      : assignRanPoolToAgeClass.f90                 \
+assignRanPoolToAgeClass.o      : assignRanPoolToAgeClass.F90                 \
                                  defineConstants.o     loadCASAinput.o       \
                                  defineArrays.o          
 
-defineArrays.o                 : defineArrays.f90      defineConstants.o
+defineArrays.o                 : defineArrays.F90      defineConstants.o
 
-doFPARandLAI.o                 : doFPARandLAI.f90      defineConstants.o     \
+doFPARandLAI.o                 : doFPARandLAI.F90      defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doHerbCarbon.o                 : doHerbCarbon.f90      defineConstants.o     \
+doHerbCarbon.o                 : doHerbCarbon.F90      defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o
-#	$(F90) -O0 -c $(FREEFORM) doHerbCarbon.f90
+#	$(F90) -O0 -c $(FREEFORM) doHerbCarbon.F90
 
-doHerbCarbonHg.o               : doHerbCarbonHg.f90    defineConstants.o     \
+doHerbCarbonHg.o               : doHerbCarbonHg.F90    defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
-#	$(F90) -O0 -c $(FREEFORM) doHerbCarbonHg.f90
+#	$(F90) -O0 -c $(FREEFORM) doHerbCarbonHg.F90
 
-doHerbivory.o                  : doHerbivory.f90       defineConstants.o     \
-                                 loadCASAinput.o       defineArrays.o          
-
-doHgDeposition.o               : doHgDeposition.f90    defineConstants.o     \
+doHerbivory.o                  : doHerbivory.F90       defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doLatitude.o                   : doLatitude.f90        defineConstants.o     \
+doHgDeposition.o               : doHgDeposition.F90    defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doLeafRootShedding.o           : doLeafRootShedding.f90 defineConstants.o    \
+doLatitude.o                   : doLatitude.F90        defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doMaxHg.o                      : doMaxHg.f90           defineConstants.o     \
+doLeafRootShedding.o           : doLeafRootShedding.F90 defineConstants.o    \
                                  loadCASAinput.o       defineArrays.o          
 
-doNPP.o                        : doNPP.f90             defineConstants.o     \
+doMaxHg.o                      : doMaxHg.F90           defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doOptimumTemperature.o         : doOptimumTemperature.f90 defineConstants.o  \
+doNPP.o                        : doNPP.F90             defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doPET.o                        : doPET.f90             defineConstants.o     \
+doOptimumTemperature.o         : doOptimumTemperature.F90 defineConstants.o  \
                                  loadCASAinput.o       defineArrays.o          
 
-doSoilMoisture.o               : doSoilMoisture.f90    defineConstants.o     \
+doPET.o                        : doPET.F90             defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-doTreeCarbon.o                 : doTreeCarbon.f90      defineConstants.o     \
-                                 loadCASAinput.o       defineArrays.o          
-#	$(F90) -O0 -c $(FREEFORM) doTreeCarbon.f90
-
-doTreeCarbonHg.o               : doTreeCarbonHg.f90    defineConstants.o     \
-                                 loadCASAinput.o       defineArrays.o          
-#	$(F90) -O0 -c $(FREEFORM) doTreeCarbonHg.f90
-
-getAgeClassBF.o                : getAgeClassBF.f90     defineConstants.o     \
+doSoilMoisture.o               : doSoilMoisture.F90    defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-getFireParams.o                : getFireParams.f90     defineConstants.o     \
+doTreeCarbon.o                 : doTreeCarbon.F90      defineConstants.o     \
+                                 loadCASAinput.o       defineArrays.o          
+#	$(F90) -O0 -c $(FREEFORM) doTreeCarbon.F90
+
+doTreeCarbonHg.o               : doTreeCarbonHg.F90    defineConstants.o     \
+                                 loadCASAinput.o       defineArrays.o          
+#	$(F90) -O0 -c $(FREEFORM) doTreeCarbonHg.F90
+
+getAgeClassBF.o                : getAgeClassBF.F90     defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-getFuelWood.o                  : getFuelWood.f90       defineConstants.o     \
+getFireParams.o                : getFireParams.F90     defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-getSoilMoistParams.o           : getSoilMoistParams.f90 defineConstants.o     \
+getFuelWood.o                  : getFuelWood.F90       defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-getSoilParams.o                : getSoilParams.f90     defineConstants.o     \
+getSoilMoistParams.o           : getSoilMoistParams.F90 defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-input_gtmm_mod.o               : input_gtmm_mod.f90    defineConstants.o     \
+getSoilParams.o                : getSoilParams.F90     defineConstants.o     \
+                                 loadCASAinput.o       defineArrays.o          
+
+input_gtmm_mod.o               : input_gtmm_mod.F90    defineConstants.o     \
                                  defineArrays.o
 
-load_GC_data.o                 : load_GC_data.f90      defineConstants.o     \
+load_GC_data.o                 : load_GC_data.F90      defineConstants.o     \
                                  loadCASAinput.o       CasaRegridModule.o   
 
-loadCASAinput.o                : loadCASAinput.f90     defineConstants.o     \
+loadCASAinput.o                : loadCASAinput.F90     defineConstants.o     \
                                  defineArrays.o        CasaRegridModule.o
 
-loadHgDeposition.o             : loadHgDeposition.f90  defineConstants.o     \
+loadHgDeposition.o             : loadHgDeposition.F90  defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o        \
                                  CasaRegridModule.o
 
-organizeAgeClasses.o           : organizeAgeClasses.f90 defineConstants.o     \
+organizeAgeClasses.o           : organizeAgeClasses.F90 defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
 
-processData.o                  : processData.f90       defineConstants.o     \
+processData.o                  : processData.F90       defineConstants.o     \
                                  loadCASAinput.o       defineArrays.o          
-#	$(F90) -O0 -c $(FREEFORM) processData.f90
+#	$(F90) -O0 -c $(FREEFORM) processData.F90
 
-sort_pick_veg.o                : sort_pick_veg.f90     defineConstants.o
+sort_pick_veg.o                : sort_pick_veg.F90     defineConstants.o
 
-dorestart_mod.o                : dorestart_mod.f90     defineConstants.o     \
+dorestart_mod.o                : dorestart_mod.F90     defineConstants.o     \
                                  defineArrays.o
 
 #EOC	
