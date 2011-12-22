@@ -43,6 +43,8 @@
 #  29 Jul 2011 - R. Yantosca - Added planeflight_mod
 #  22 Aug 2011 - R. Yantosca - Added retro_mod
 #   7 Sep 2011 - R. Yantosca - Added gfed3_biomass_mod, *jv*_mod files
+#  22 Dec 2011 - M. Payer    - Added aerosol_mod, drydep_mod, seasalt_mod,
+#                              and sulfate_mod
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -59,6 +61,7 @@ $(HDR)/jv_cmn_mod.F                  \
 $(HDR)/jv_mie_mod.F                  \
 $(CORE)/main.F                       \
 $(CORE)/acetone_mod.F                \
+$(CORE)/aerosol_mod.F                \
 $(CORE)/arctas_ship_emiss_mod.F	     \
 $(CORE)/bravo_mod.F                  \
 $(CORE)/cac_anthro_mod.F             \
@@ -79,6 +82,7 @@ $(CORE)/diag56_mod.F                 \
 $(CORE)/diag_pl_mod.F                \
 $(CORE)/diag_oh_mod.F                \
 $(CORE)/diag_mod.F                   \
+$(CORE)/drydep_mod.F                 \
 $(CORE)/dust_mod.F                   \
 $(CORE)/emep_mod.F                   \
 $(CORE)/emissions_mod.F              \
@@ -112,6 +116,8 @@ $(CORE)/planeflight_mod.F            \
 $(CORE)/retro_mod.F                  \
 $(CORE)/RnPbBe_mod.F                 \
 $(CORE)/scale_anthro_mod.F           \
+$(CORE)/seasalt_mod.F                \
+$(CORE)/sulfate_mod.F                \
 $(CORE)/tagged_ox_mod.F              \
 $(CORE)/toms_mod.F                   \
 $(CORE)/tropopause_mod.F             \

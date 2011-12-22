@@ -1,57 +1,46 @@
-! $Id: seasalt_mod.f,v 1.4 2010/02/02 16:57:51 bmy Exp $
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: seasalt_mod
+!
+! !DESCRIPTION: Module SEASALT\_MOD contains arrays and routines for performing
+!  either a coupled chemistry/aerosol run or an offline seasalt aerosol
+!  simulation. Original code taken from Mian Chin's GOCART model and modified
+!  accordingly. (bec, rjp, bmy, 6/22/00, 11/23/09)
+!\\
+!\\
+! !INTERFACE: 
+!
       MODULE SEASALT_MOD
 !
-!******************************************************************************
-!  Module SEASALT_MOD contains arrays and routines for performing either a
-!  coupled chemistry/aerosol run or an offline seasalt aerosol simulation.
-!  Original code taken from Mian Chin's GOCART model and modified accordingly.
-!  (bec, rjp, bmy, 6/22/00, 11/23/09)
+! !USES:
 !
+      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
+
+      IMPLICIT NONE
+#     include "define.h"
+      PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+      PUBLIC :: CHEMSEASALT
+      PUBLIC :: EMISSSEASALT
+      PUBLIC :: CLEANUP_SEASALT
+      PUBLIC :: GET_ALK
+!
+! !PUBLIC DATA MEMBERS:
+!
+      PUBLIC :: SALT_V
+      PUBLIC :: DMID
+!
+! !REMARKS:
 !  Seasalt aerosol species: (1) Accumulation mode (usually 0.1 -  0.5 um)
 !                           (2) Coarse mode       (usually 0.5 - 10.0 um)
 !
 !  NOTE: You can change the bin sizes for accumulation mode and coarse
 !        mode seasalt in the "input.geos" file in v7-yy-zz and higher.
-!
-!  Module Variables:
-!  ============================================================================
-!  (1 ) DRYSALA  (INTEGER) : Drydep index for accumulation mode sea salt
-!  (2 ) DRYSALC  (INTEGER) : Drydep index for coarse mode sea salt
-!  (3 ) NSALT    (INTEGER) : Number of sea salt tracers
-!  (4 ) IDDEP    (INTEGER) : Drydep index array for sea salt tracers
-!  (5 ) REDGE    (REAL*8 ) : Array for edges of seasalt radius bins
-!  (6 ) RMID     (REAL*8 ) : Array for centers of seasalt radius bins
-!  (7 ) SRC      (REAL*8 ) : Array for baseline seasalt emission/bin [kg/m2]
-!  (7 ) SRC_N    (REAL*8 ) : Array for baseline seasalt emission/bin [#/m2]
-!  (8 ) SS_DEN   (REAL*8 ) : Sea salt density [kg/m3]
-!  (9 ) ALK_EMIS (REAL*8 ) : Array for alkalinity [kg]
-!  (10) N_DENS   (REAL*8 ) : Number density of seasalt emissions [#/m3]
-!  (11) SALT_V   (REAL*8)  : Log-normal volum size distribution for sea salt
-!
-!  Module Routines:
-!  ============================================================================
-!  (1 ) CHEMSEASALT        : Driver routine for sea salt loss processes
-!  (2 ) WET SETTLING       : Routine which performs wet settling of sea salt
-!  (3 ) DRY_DEPOSITION     : Routine which performs dry deposition of sea salt
-!  (4 ) EMISSSEASALT       : Driver routine for sea salt emissions
-!  (5 ) SRCSALT            : Updates surface mixing ratio for sea salt
-!  (6 ) GET_ALK            : Gets the alkalinity of seasalt emissions
-!  (6 ) INIT_SEASALT       : Allocates all module arrays
-!  (7 ) CLEANUP_SEASALT    : Deallocates all module arrays
-!
-!  GEOS-CHEM modules referenced by "seasalt_mod.f":
-!  ============================================================================
-!  (1 ) dao_mod.f          : Module w/ arrays for GMAO met fields
-!  (2 ) diag_mod.f         : Module w/ GEOS-CHEM diagnostic arrays
-!  (3 ) drydep_mod.f       : Module w/ GEOS-CHEM drydep routines
-!  (4 ) error_mod.f        : Module w/ I/O error and NaN check routines
-!  (5 ) grid_mod.f         : Module w/ horizontal grid information
-!  (6 ) logical_mod.f      : Module w/ GEOS-CHEM logical switches
-!  (7 ) pbl_mix_mod.f      : Module w/ routines for PBL height & mixing
-!  (8 ) pressure_mod.f     : Module w/ routines to compute P(I,J,L)
-!  (9 ) time_mod.f         : Module w/ routines to compute date & time
-!  (10) tracer_mod.f       : Module w/ GEOS-CHEM tracer array STT etc.
-!  (11) tracerid_mod.f     : Module w/ pointers to tracers & emissions 
 !
 !  References:
 !  ============================================================================
@@ -63,7 +52,7 @@
 !        aerosols in the atmosphere. 1. Model development", J. Geophys. Res.,
 !        v. 102, 3805-3818, 1997.
 !
-!  NOTES:  
+! !REVISION HISTORY:
 !  (1 ) Now references "logical_mod.f" and "tracer_mod.f".  Comment out 
 !        SS_SIZE, this has been replaced by SALA_REDGE_um and SALC_REDGE_um
 !        from "tracer_mod.f".  Increased NR_MAX to 200. (bmy, 7/20/04)
@@ -79,39 +68,37 @@
 !  (10) Save surface emissions separately (emis_save) for non-local scheme.
 !        (ccc, 5/14/09)
 !  (11) Bug fixes in GET_ALK and SRCSALT (bec, lyj, bmy, 11/23/09)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
-
-      IMPLICIT NONE
-#     include "define.h"
-
-      !=================================================================
-      ! MODULE PRIVATE DECLARATIONS -- keep certain internal variables 
-      ! and routines from being seen outside "seasalt_mod.f"
-      !=================================================================
-
-      ! Make everyting PRIVATE ...
-      PRIVATE
- 
-      ! ... except these variables (jaegle 5/11/11)
-      PUBLIC :: SALT_V
-      PUBLIC :: DMID
-
-      ! ... except these routines
-      PUBLIC :: CHEMSEASALT
-      PUBLIC :: EMISSSEASALT
-      PUBLIC :: CLEANUP_SEASALT
-      PUBLIC :: GET_ALK
-
-      !=================================================================
-      ! MODULE VARIABLES
-      !=================================================================
+! !DEFINED PARAMETERS:
+!
+      INTEGER, PARAMETER   :: NSALT = 2    ! Number of sea salt tracers
+      INTEGER, PARAMETER   :: NR_MAX = 200
+!
+! !PRIVATE TYPES:
+!
+      !========================================================================
+      ! Module Variables:
+      !
+      ! DRYSALA  : Drydep index for accumulation mode sea salt
+      ! DRYSALC  : Drydep index for coarse mode sea salt
+      ! IDDEP    : Drydep index array for sea salt tracers
+      ! REDGE    : Array for edges of seasalt radius bins
+      ! RMID     : Array for centers of seasalt radius bins
+      ! SRC      : Array for baseline seasalt emission/bin [kg/m2]
+      ! SRC_N    : Array for baseline seasalt emission/bin [#/m2]
+      ! SS_DEN   : Sea salt density [kg/m3]
+      ! ALK_EMIS : Array for alkalinity [kg]
+      ! N_DENS   : Number density of seasalt emissions [#/m3]
+      ! SALT_V   : Log-normal volum size distribution for sea salt
+      !=======================================================================-
 
       ! Scalars
-      INTEGER, PARAMETER   :: NSALT = 2
-      INTEGER, PARAMETER   :: NR_MAX = 200
-      INTEGER              :: DRYSALA, DRYSALC
+      INTEGER              :: DRYSALA
+      INTEGER              :: DRYSALC
 
       ! Arrays
       INTEGER              :: IDDEP(NSALT)
@@ -130,32 +117,44 @@
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
       CONTAINS
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chemseasalt
+!
+! !DESCRIPTION: Subroutine CHEMSEASALT is the interface between the GEOS-CHEM
+!  main program and the seasalt chemistry routines that mostly calculates
+!  seasalt dry deposition (rjp, bmy, 1/24/02, 5/23/06)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CHEMSEASALT
 !
-!******************************************************************************
-!  Subroutine CHEMSEASALT is the interface between the GEOS-CHEM main program 
-!  and the seasalt chemistry routines that mostly calculates seasalt dry 
-!  deposition (rjp, bmy, 1/24/02, 5/23/06)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
-!        "logical_mod.f" (bmy, 7/20/04)
-!  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DRYDEP_MOD,   ONLY : DEPNAME, NUMDEP
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT,    LDRYD
       USE TRACER_MOD,   ONLY : STT
       USE TRACERID_MOD, ONLY : IDTSALA, IDTSALC
 
-      USE CMN_SIZE_MOD       ! Size parameters 
-
-      ! Local variables
+      USE CMN_SIZE_MOD       ! Size parameters
+! 
+! !REVISION HISTORY:
+!  (1 ) Now reference STT from "tracer_mod.f".  Now references LPRT from
+!        "logical_mod.f" (bmy, 7/20/04)
+!  (2 ) Now only call DRY_DEPOSITION if LDRYD=T (bec, bmy, 5/23/06)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: N
 
@@ -222,40 +221,25 @@
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSEASALT: DRY_DEP, Coarse')
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE CHEMSEASALT
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: wet_settling
+!
+! !DESCRIPTION: Subroutine WET\_SETTLING performs wet settling of sea salt.
+!  (bec, rjp, bmy, 4/20/04, 6/11/08)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE WET_SETTLING( TC, N )
 !
-!******************************************************************************
-!  Subroutine WET_SETTLING performs wet settling of sea salt.
-!  (bec, rjp, bmy, 4/20/04, 6/11/08)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Sea salt tracer [kg]
-!  (2 ) N  (INTEGER) : N=1 is accum mode; N=2 is coarse mode
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Contains modified tracer
-!
-!  NOTES:
-!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
-!        (bmy, 7/20/04)
-!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
-!  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
-!         argument (phs, 5/1/08)
-!  (5 ) Update sea salt density calculation using Tang et al. (1997) (bec, jaegle 5/11/11)
-!  (6 ) Update hygroscopic growth for sea salt using Lewis and Schwartz (2006) and and density
-!       calculation based on Tang et al. (1997) (bec, jaegle 5/11/11)
-!  (7 ) Itegrate settling velocity over entire size distribution (jaegle 5/11/11)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DAO_MOD,       ONLY : T, BXHEIGHT, RH
       USE DIAG_MOD,      ONLY : AD44
       USE DRYDEP_MOD,    ONLY : DEPSAV
@@ -270,12 +254,36 @@
       USE CMN_SIZE_MOD        ! Size parameters
       USE CMN_DIAG_MOD        ! ND44
       USE CMN_GCTM_MOD        ! g0
-
-      ! Argumetns
-      INTEGER, INTENT(IN)    :: N
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [kg]
+!
+! !REVISION HISTORY:
+!  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
+!        (bmy, 7/20/04)
+!  (2 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (3 ) Bug fix: DTCHEM has to be REAL*8, not integer. (bmy, 9/7/06)
+!  (4 ) Now limit relative humidity to [tiny(real*8),0.99] range for DLOG
+!         argument (phs, 5/1/08)
+!  (5 ) Update sea salt density calculation using Tang et al. (1997) (bec,
+!       jaegle 5/11/11)
+!  (6 ) Update hygroscopic growth for sea salt using Lewis and Schwartz (2006)
+!       and and density calculation based on Tang et al. (1997) (bec, jaegle
+!       5/11/11)
+!  (7 ) Itegrate settling velocity over entire size distribution (jaegle
+!        5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I,      J,     L
       REAL*8                 :: DELZ,   DELZ1, REFF,     DEN
       REAL*8                 :: P,      DP,    PDP,      TEMP        
@@ -605,35 +613,25 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE WET_SETTLING
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_deposition
+!
+! !DESCRIPTION: Subroutine DRY\_DEPOSITION computes the loss of sea salt by dry
+!  deposition at the surface, using an implicit method (bec, rjp, bmy, 4/20/04)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE DRY_DEPOSITION( TC, N )
 !
-!******************************************************************************
-!  Subroutine DRY_DEPOSITION computes the loss of sea salt by dry deposition
-!  at the surface, using an implicit method. (bec, rjp, bmy, 4/20/04)
+! !USES:
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Sea salt tracer [kg]
-!  (2 ) N  (INTEGER) : N=1 is accum mode; N=2 is coarse mode
-!
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Contains modified tracer
-!
-!  NOTES:
-!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
-!  (2 ) Update to calculate the drydep throughout the entire PBL instead of just
-!       at the surface. This is more in line with what is done in dry_dep.f. This
-!       is only used if LNLPBL is turned off (or for GEOS-4 and prior met fields).
-!       (jaegle 5/11/11)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE DIAG_MOD,     ONLY : AD44
       USE DRYDEP_MOD,   ONLY : DEPSAV 
       USE TRACER_MOD,   ONLY : XNUMOL
@@ -643,16 +641,31 @@
       ! Add PBL variables (jaegle  5/5/11)
       USE PBL_MIX_MOD, ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
 
-
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_DIAG_MOD       ! ND44
       USE CMN_GCTM_MOD       ! g0
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: N
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: N   ! N=1 is accum mode; N=2 is coarse mode
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [kg]
+!
+! !REVISION HISTORY:
+!  (1 ) Now references XNUMOL from "tracer_mod.f" (bmy, 10/25/05)
+!  (2 ) Update to calculate the drydep throughout the entire PBL instead of
+!       just at the surface. This is more in line with what is done in
+!       dry_dep.f. This is only used if LNLPBL is turned off (or for GEOS-4 and
+!       prior met fields). (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       INTEGER                :: I,        J,     L,      DTCHEM
       REAL*8                 :: OLD,      NEW,   G,      REFF
       REAL*8                 :: DIAM,     U_TS0, REYNOL, ALPHA 
@@ -740,29 +753,26 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Return to calling program
       END SUBROUTINE DRY_DEPOSITION
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: emissseasalt
+!
+! !DESCRIPTION: Subroutine EMISSSEASALT is the interface between the GEOS-CHEM
+!  model and the SEASALT emissions routines in "seasalt\_mod.f".
+!  (bec, rjp, bmy, 3/24/03, 2/22/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE EMISSSEASALT
 !
-!******************************************************************************
-!  Subroutine EMISSSEASALT is the interface between the GEOS-CHEM model
-!  and the SEASALT emissions routines in "seasalt_mod.f".
-!  (bec, rjp, bmy, 3/24/03, 2/22/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
-!        (bmy, 7/20/04)
-!  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
-!        (bmy, 1/26/05)
-!  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
-!  (4 ) Now call INIT_SEASALT on the first timestep.  Also initialize ALK_EMIS
-!        and N_DENS on each timestep. (bec, bmy, 4/13/05)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
       USE TRACER_MOD,   ONLY : STT
@@ -770,8 +780,22 @@
       USE VDIFF_PRE_MOD,ONLY : emis_save ! (Lin, 03/31/09)
 
       USE CMN_SIZE_MOD       ! Size parameters
-
-      ! Local variables
+!
+! !REVISION HISTORY: 
+!  (1 ) Now references LPRT from "logical_mod.f" and STT from "tracer_mod.f".
+!        (bmy, 7/20/04)
+!  (2 ) Now make sure IDTSALA, IDTSALC are nonzero before calling SRCSALT.
+!        (bmy, 1/26/05)
+!  (3 ) Remove reference to header file "CMN" (bmy, 2/22/05)
+!  (4 ) Now call INIT_SEASALT on the first timestep.  Also initialize ALK_EMIS
+!        and N_DENS on each timestep. (bec, bmy, 4/13/05)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
 
@@ -829,39 +853,64 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-      ! Return to calling program
+
       END SUBROUTINE EMISSSEASALT
-
-!-----------------------------------------------------------------------------
-
-      SUBROUTINE SRCSALT( TC, N )
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  The new SRCSALT is based on the sea salt source function of Gong (2003) with
-!  the empirical sea surface temperature (SST) dependence of Jaegle et al. (2011). This
-!  SST dependence was derived based on comparisons to cruise observations of
-!  coarse mode sea salt mass concentrations.
+! !IROUTINE: srcsalt
+!
+! !DESCRIPTION: Subroutine SRCSALT is based on the sea salt source function of
+!  Gong (2003) with the empirical sea surface temperature (SST) dependence of
+!  Jaegle et al. (2011). This SST dependence was derived based on comparisons
+!  to cruise observations of coarse mode sea salt mass concentrations.
 ! 
 !  Contact: Lyatt Jaegle (jaegle@uw.edu)
 !
-! Old:
+!!-----------------------------------------------------------------------------
+!!Prior to 12/22/11: 
 !!  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
 !!  aerosols for NSALT size bins.  The generation of sea salt aerosols
 !!  has been parameterized following Monahan et al. [1986] parameterization
 !!  as described by Gong et al. [1997].  (bec, rjp, bmy, 4/20/04, 11/23/09)
-! 
+!! 
 !!  Contact: Becky Alexander (bec@io.harvard.edu) or 
 !!           Rokjin Park     (rjp@io.harvard.edu)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Sea salt tracer array [v/v]
-!  (2 ) N  (INTEGER) : N=1 denotes accumulation mode; N=2 denotes coarse mode
+!!-----------------------------------------------------------------------------
+!\\
+!\\
+! !INTERFACE:
 !
-!  Arguments as Output:
-!  ============================================================================
-!  (1 ) TC (REAL*8 ) : Contains modified sea salt concentration [v/v]
+      SUBROUTINE SRCSALT( TC, N )
 !
+! !USES:
+!
+      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
+      ! Add TSKIN (jaegle 5/11/11)
+      USE DAO_MOD,       ONLY : TSKIN ! jaegle
+      USE DIAG_MOD,      ONLY : AD08
+      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
+      USE GRID_MOD,      ONLY : GET_AREA_M2
+      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE TIME_MOD,      ONLY : GET_TS_EMIS
+      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
+
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! ND44, ND08
+      USE CMN_GCTM_MOD        ! PI
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN)    :: N  ! N=1 is accum mode; N=2 is coarse mode
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt tracer [v/v]
+!
+! !REMARKS:
 !  References:
 !  ============================================================================
 !  (1 ) Chin, M., P. Ginoux, S. Kinne, B. Holben, B. Duncan, R. Martin,
@@ -878,8 +927,8 @@
 !        distribution of sea salt aerosols: New constraints from in situ and 
 !        remote sensing observations", Atmos. Chem. Phys., 11, 3137-3157, 
 !        doi:10.5194/acp-11-3137-2011.
-! 
-!  NOTES:
+!
+! !REVISION HISTORY: 
 !  (1 ) Now references SALA_REDGE_um and SALC_REDGE_um from "tracer_mod.f"
 !        (bmy, 7/20/04)
 !  (2 ) Now references GET_FRAC_OF_PBL and GET_PBL_TOP_L from "pbl_mix_mod.f".
@@ -894,29 +943,15 @@
 !        for the seasalt base source, since we need the logarithm to the base
 !        10. (jaegle, bec, bmy, 11/23/09)
 !  (6 ) Update to use the Gong (2003) source function (jaegle 5/11/11)
-!  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003) (jaegle 5/11/11)
-!******************************************************************************
+!  (7 ) Apply an empirical sea surface temperature dependence to Gong (2003)
+!       (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
-      ! References to F90 modules
-      USE DAO_MOD,       ONLY : PBL, AD, IS_WATER, AIRVOL
-      ! Add TSKIN (jaegle 5/11/11)
-      USE DAO_MOD,       ONLY : TSKIN ! jaegle
-      USE DIAG_MOD,      ONLY : AD08
-      USE ERROR_MOD,     ONLY : DEBUG_MSG, ERROR_STOP
-      USE GRID_MOD,      ONLY : GET_AREA_M2
-      USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
-      USE TIME_MOD,      ONLY : GET_TS_EMIS
-      USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
-
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE CMN_DIAG_MOD        ! ND44, ND08
-      USE CMN_GCTM_MOD        ! PI
-
-      ! Arguments
-      INTEGER, INTENT(IN)    :: N
-      REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
-
-      ! Local variables 
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE          :: FIRST = .TRUE.
       INTEGER                :: I,     J,      L
       INTEGER                :: R,     NR,     NTOP
@@ -1162,39 +1197,52 @@
       ENDDO
 !$OMP END PARALLEL DO  
 
-      ! Return to calling program
       END SUBROUTINE SRCSALT
-
+!EOC
 !------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_alk
+!
+! !DESCRIPTION: Subroutine GET\_ALK returns the seasalt alkalinity emitted at
+!  each timestep to sulfate\_mod.f for chemistry on seasalt aerosols.
+!  (bec, 12/7/04, 11/23/09)
+!\\
+!\\
+! !INTERFACE:
+!
 
       SUBROUTINE GET_ALK( I, J, L, ALK1, ALK2, Kt1, Kt2, Kt1N, Kt2N )
 !
-!******************************************************************************
-!  Function GET_ALK returns the seasalt alkalinity emitted at each timestep to
-!  sulfate_mod.f for chemistry on seasalt aerosols.
-!  (bec, 12/7/04, 11/23/09)
-! 
-!  Arguments as Input:
-!  ============================================================================
-!
-!  NOTES:
-!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
-!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
-!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
-!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
-!******************************************************************************
+! !USES:
 !
       USE DAO_MOD,      ONLY : AD, RH
       USE ERROR_MOD,    ONLY : IT_IS_NAN
       USE TRACER_MOD,   ONLY : SALA_REDGE_um, SALC_REDGE_um
-
-      ! Arguments
+!
+! !INPUT PARAMETERS: 
+!
       INTEGER, INTENT(IN)  :: I, J, L 
-      
-      ! Return value
-      REAL*8, INTENT(OUT)  :: ALK1, ALK2 ! [kg]
+!
+! !OUTPUT PARAMETERS: 
+!
+      REAL*8, INTENT(OUT)  :: ALK1, ALK2           ! [kg]
       REAL*8, INTENT(OUT)  :: Kt1, Kt2, Kt1N, Kt2N ! [s-1]
- 
+!
+! !REVISION HISTORY: 
+!  (1 ) Becky Alexander says we can remove AREA1, AREA2 (bec, bmy, 9/5/06)
+!  (2 ) Bug fix to remove a double-substitution.  Replace code lines for 
+!        TERM{123}A, TERM{123}B, TERM{123}AN, TERM{123}BN. (bec, bmy, 7/18/08)
+!  (3 ) Updated hygroscopic growth parameters (bec, bmy, 11/23/09)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       REAL*8,  PARAMETER :: PI = 3.14159265
       REAL*8             :: N1, N2, Kt
       REAL*8             :: HGF, ALK
@@ -1207,12 +1255,12 @@
       REAL*8             :: a1, a2, b1, b2, a1N, a2N, b1N, b2N
       REAL*8,  PARAMETER :: MINDAT = 1.d-20
       INTEGER            :: IRH
-      REAL*8,  PARAMETER   :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
-      REAL*8,  PARAMETER   :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
-      REAL*8,  PARAMETER   :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
-      REAL*8,  PARAMETER   :: v = 3.0d4 !cm/s
+      REAL*8,  PARAMETER :: gamma_SO2 = 0.11d0 !from Worsnop et al. (1989)
+      REAL*8,  PARAMETER :: gamma_HNO3 = 0.2d0 !from JPL [2001] 
+      REAL*8,  PARAMETER :: Dg = 0.2d0 !gas phase diffusion coeff. [cm2/s]
+      REAL*8,  PARAMETER :: v = 3.0d4  !cm/s
 
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE      :: FIRST = .TRUE.
  
       !=================================================================
       ! GET_ALK begins here!
@@ -1341,29 +1389,40 @@
 
       ENDIF
 
-      ! Return to calling program
       END SUBROUTINE GET_ALK
-
+!EOC
 !------------------------------------------------------------------------------
-
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_seasalt
+!
+! !DESCRIPTION: Subroutine INIT\_SEASALT initializes and zeroes all module
+!  arrays (bmy, 4/26/04, 4/13/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE INIT_SEASALT
 !
-!******************************************************************************
-!  Subroutine INIT_SEASALT initializes and zeroes all module arrays 
-!  (bmy, 4/26/04, 4/13/05)
+! !USES:
 !
-!  NOTES:
-!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
-!        ALK_EMIS & N_DENS.  Now reference F77_CMN_SIZE. (bec, bmy, 4/13/05)
-!  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
-!******************************************************************************
-!
-      ! References to F90 modules
       USE ERROR_MOD, ONLY : ALLOC_ERR
 
       USE CMN_SIZE_MOD
-
-      ! Local variables
+!
+! !REVISION HISTORY:
+!  (1 ) Now exit if we have allocated arrays before.  Now also allocate 
+!        ALK_EMIS & N_DENS.  Now reference F77_CMN_SIZE. (bec, bmy, 4/13/05)
+!  (2 ) Added SALT_V and DMID (jaegle 5/11/11)
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
       LOGICAL, SAVE :: IS_INIT = .FALSE.
       INTEGER       :: AS
 
@@ -1410,22 +1469,32 @@
       ! Reset IS_INIT
       IS_INIT = .TRUE.
 
-      ! Return to calling program
       END SUBROUTINE INIT_SEASALT
-
-!----------------------------------------------------------------------------
-
+!EOC
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: cleanup_seasalt
+!
+! !DESCRIPTION: Subroutine CLEANUP\_SEASALT deallocates all module arrays 
+!  (bmy, 4/26/04, 4/13/05)
+!\\
+!\\
+! !INTERFACE:
+!
       SUBROUTINE CLEANUP_SEASALT
 !
-!******************************************************************************
-!  Subroutine INIT_SEASALT deallocates all module arrays 
-!  (bmy, 4/26/04, 4/13/05)
-!
-!  NOTES:
+! !REVISION HISTORY:
 !  (1 ) Now deallocates ALK_EMIS, N_DENS, SRC_N (bec, bmy, 4/13/05)
 !  (2 ) Deallocated SALT_V and DMID (jaegle 5/11/11)
-!******************************************************************************
+!  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
+
       !=================================================================
       ! CLEANUP_SEASALT begins here!
       !=================================================================
@@ -1438,11 +1507,6 @@
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
 
-
-      ! Return to calling program
       END SUBROUTINE CLEANUP_SEASALT
-
-!------------------------------------------------------------------------------
-
-      ! End of module
+!EOC
       END MODULE SEASALT_MOD
