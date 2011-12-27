@@ -95,6 +95,12 @@
       USE TRACERID_MOD,      ONLY : IDECO,         IDEPRPE,   NEMANTHRO 
       USE TRACERID_MOD,      ONLY : IDEMONX, IDEC2H4
       USE TRACERID_MOD,      ONLY : IDTMONX, IDTC2H4
+      !jpp, 8/24/07: adding a USE, ONLY statement to see IDECHBr3
+      USE TRACERID_MOD,      ONLY : IDECHBr3, IDECH2Br2
+      USE BROMOCARB_MOD,     ONLY : EMIS_CHBr3, EMIS_CH2Br2
+      ! testing
+      use error_mod,         only : geos_chem_stop
+
  
       IMPLICIT NONE
 
@@ -124,6 +130,16 @@
 
       ! Molecules C / kg C
       REAL*8,  PARAMETER     :: XNUMOL_C = 6.022d+23 / 12d-3 
+
+      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+      ! jpp
+      REAL*8                 :: AREA_M2 !jpp 9/10/07: wanted m^2 area of boxes
+      REAL*8,  PARAMETER     :: MWT_CHBr3  = 2.53d-1 !Molecular weight of CHBr3 [kg/mol], (jpp, 9/10/07)
+      REAL*8,  PARAMETER     :: MWT_CH2Br2 = 1.74d-1 !Molecular weight of CH2Br2 [kg/mol], (jpp, 9/16/07)
+      !jpp: debugging
+      REAL*8                 :: CHBr3_SUM
+      REAL*8                 :: CH2Br2_SUM
+      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
       ! External functions
       REAL*8, EXTERNAL       :: BOXVL,   XLTMMP,    EMISOP 
@@ -180,6 +196,12 @@
       EMISRRN     = 0d0
       EMISRR      = 0d0
       GEMISNOX2   = 0d0
+      !jpp: debugging
+      ! calculate the sums of emissions just to be
+      ! careful.
+      CHBr3_SUM = 0d0
+      CH2Br2_SUM = 0d0
+
       
       ! Loop over latitudes
       IJLOOP = 0
@@ -188,6 +210,9 @@
 
          ! Compute surface area of grid boxes in cm^2 
          AREA_CM2 = GET_AREA_CM2( J )
+         ! jpp, 9/10/07: wanted surface area in m^2
+         AREA_M2  = AREA_CM2 / (100.d0 ** 2)
+
 
          ! Loop over longitues
          DO I = 1, IIPAR
@@ -495,6 +520,33 @@
             ENDIF
 !=======================================================================
 
+
+!
+!-----------------------------------------------------------------------------
+! BIOGENIC CHBr3 and CH2Br2 EMISSIONS, (jpp, 8/24/07)
+!  Both in [molecules/box/s] as expected by setemiss.f
+!
+!
+
+            IF ( IDECHBr3 /= 0 ) THEN
+               EMISRR(I,J,IDECHBr3) = EMIS_CHBr3(I,J)
+            ENDIF
+
+            IF ( IDECH2Br2 /= 0 ) THEN
+               EMISRR(I,J,IDECH2Br2) = EMIS_CH2Br2(I,J)
+            ENDIF
+
+            !jpp: debugging
+            CHBr3_SUM  = CHBr3_SUM  + EMISRR(I,J,IDECHBr3)
+            CH2Br2_SUM = CH2Br2_SUM + EMISRR(I,J,IDECH2Br2)
+
+
+!jp            IF ( EMISRR(I,J,IDECHBr3) .GT. 0d0 ) THEN
+!jp               WRITE(6,*) 'jpp in emissdr.f'
+!jp               WRITE(6,*) 'EMISRR(I,J,IDECHBr3) =', EMISRR(I,J,IDECHBr3)
+!jp            ENDIF
+
+
 !
 !******************************************************************************
 !  ND46 diagnostic: Biogenic emissions 
@@ -532,11 +584,29 @@
                   ! C2H4 emissions [atoms C/cm2/s] -- tracer #6 (tmf, 1/13/06)
                   AD46(I,J,6) = AD46(I,J,6) + 
      &            ( EMIS * BIOSCALEC2H4 / AREA_CM2 / DTSRCE )
+
+               ! CHBr3 emissions [kg/m2/s] -- tracer #6
+                  AD46(I,J,7) = AD46(I,J,7) + ( EMISRR(I,J,IDECHBr3) / 
+     &                 AREA_M2) * ( MWT_CHBr3 / AVG ) !AVG is avagadro's # from comode.h
+
+               ! CH2Br2 emissions [kg/m2/s] -- tracer #6
+                  AD46(I,J,8) = AD46(I,J,8) + ( EMISRR(I,J,IDECH2Br2) / 
+     &                 AREA_M2) * ( MWT_CH2Br2 / AVG ) !AVG is avagadro's # from comode.h
+
                
                ENDIF  
             ENDIF
          ENDDO
       ENDDO
+
+      !jpp: debugging
+      CHBr3_SUM  = ( CHBr3_SUM ) * ( MWT_CHBr3 / AVG ) * 
+     &     (3.1536d+7) / (1.d6)
+      CH2Br2_SUM = ( CH2Br2_SUM ) * ( MWT_CH2Br2/AVG ) *
+     &     (3.1536d+7) / (1.d6)
+      WRITE(6,*) 'jpp in emissdr: total over all boxes'
+      WRITE(6,*) 'CHBr3_SUM =', CHBr3_SUM
+      WRITE(6,*) 'CH2Br2_SUM =', CH2Br2_SUM
 
       ! Return to calling program
       END SUBROUTINE EMISSDR                                                

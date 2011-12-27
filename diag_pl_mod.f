@@ -101,7 +101,7 @@
       ! Scalars
       LOGICAL                        :: DO_SAVE_PL
       LOGICAL                        :: DO_SAVE_O3
-      INTEGER, PARAMETER             :: MAXMEM  = 10
+      INTEGER, PARAMETER             :: MAXMEM  = 12  ! jpp replaced 10 (12/7/2011)
       INTEGER, PARAMETER             :: MMAXFAM = 40  ! MAXFAM=40 in "CMN_SIZE"
       INTEGER                        :: NFAM
       INTEGER                        :: YYYYMMDD
@@ -223,7 +223,7 @@
 #     include "comode.h"
       
       ! Parameters
-      INTEGER, PARAMETER :: MAXPL=100, MAXMEM=10
+      INTEGER, PARAMETER :: MAXPL=100, MAXMEM=12 ! jpp replaced MAXMEM = 10
 
       ! Local variables
       INTEGER            :: F, ICOUNT, I, J, INDEX, IOS

@@ -278,6 +278,13 @@
       ! Added (lin, 03/31/09)
       USE LOGICAL_MOD,       ONLY : LNLPBL
       USE VDIFF_MOD,         ONLY : DO_PBL_MIX_2
+      ! jpp, 2/12/08: for setting CH3Br concentrations in pbl
+      USE BROMOCARB_MOD,     ONLY : SET_CH3Br, SET_BRO
+      ! jpp, 3/22/10: adding items for Linoz... better strat
+      !               to trop. O3 fluxes.
+      USE LOGICAL_MOD,       ONLY : LLINOZ
+      USE LINOZ_MOD,         ONLY : LINOZ_READ
+
 
       ! Force all variables to be declared explicitly
       IMPLICIT NONE
@@ -340,7 +347,11 @@
          IF ( ITS_AN_AEROSOL_SIM() ) CALL INIT_COMODE
          IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a INIT_COMODE' )
       ENDIF
-         
+
+      ! Added to read input file for linoz strat (dbj, jliu, bmy, 10/16/09)
+      ! ** jpp, 3/22/10: added this line from v.8-02-02
+      IF ( LLINOZ ) CALL LINOZ_READ
+
       ! Allocate arrays from "global_ch4_mod.f" for CH4 run 
       IF ( ITS_A_CH4_SIM() ) CALL INIT_GLOBAL_CH4
 
@@ -905,6 +916,24 @@
             IF ( ITS_TIME_FOR_UNIT() )
      &         CALL CONVERT_UNITS( 1, N_TRACERS, TCVV, AD, STT ) ! kg -> v/v
 
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT, 
+     &           ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.br.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &           STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF
 
          !-------------------------------
@@ -968,6 +997,24 @@
             !             ***** E M I S S I O N S *****
             !========================================================
             IF ( LEMIS ) CALL DO_EMISSIONS
+
+            !========================================================
+            !jpp, 2/12/08: putting a call to SET_CH3Br
+            !              which is in bromocarb_mod.f
+            !       ***** Fix CH3Br Concentration in PBL *****
+            ! Kludge: eventually I want to keep the concentration
+            !         entirely fixed! Ask around on how to...
+            !========================================================
+            IF ( LEMIS ) CALL SET_CH3Br( N_TRACERS, TCVV, AD, STT,
+     &           ITS_TIME_FOR_UNIT() )
+
+            ! ----------------------------------------------------
+            ! If selected in input.br.geos, then set the MBL
+            ! concentration of BrO equal to 1 pptv during daytime.
+            ! ----------------------------------------------------
+            IF ( LEMIS ) CALL SET_BRO( N_TRACERS, TCVV, AD, SUNCOS,
+     &           STT, ITS_TIME_FOR_UNIT() )
+
          ENDIF    
 
          !===========================================================

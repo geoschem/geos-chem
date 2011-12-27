@@ -683,7 +683,8 @@
       REAL*8                 :: QC(IIPAR,JJPAR) 
 
       ! TINY = a very small number
-      REAL*8, PARAMETER      :: TINY = 1d-14 
+      REAL*8, PARAMETER      :: TINY  = 1d-14 
+      REAL*8, PARAMETER      :: TINY2 = 1d-30
 
       ! ISOL is an index for the diagnostic arrays
       INTEGER                :: ISOL
@@ -1178,7 +1179,7 @@
       DO L = 1,LLPAR
       DO J = 1,JJPAR
       DO I = 1,IIPAR
-         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY)
+         Q(I,J,L,N) = MAX(Q(I,J,L,N),TINY2) !jpp, fixed 3/7/2011
       ENDDO
       ENDDO
       ENDDO

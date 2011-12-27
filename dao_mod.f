@@ -194,6 +194,10 @@
       REAL*8,  ALLOCATABLE :: DTRAIN(:,:,:)
       REAL*8,  ALLOCATABLE :: ENTRAIN(:,:,:)
       REAL*8,  ALLOCATABLE :: EVAP(:,:)
+      REAL*8,  ALLOCATABLE :: FRLAND(:,:)
+      REAL*8,  ALLOCATABLE :: FROCEAN(:,:)
+      REAL*8,  ALLOCATABLE :: FRLANDIC(:,:)
+      REAL*8,  ALLOCATABLE :: FRLAKE(:,:)
       REAL*8,  ALLOCATABLE :: GRN(:,:)
       REAL*8,  ALLOCATABLE :: GWETROOT(:,:)
       REAL*8,  ALLOCATABLE :: GWETTOP(:,:)
@@ -2077,6 +2081,26 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EVAP' )
       EVAP = 0d0
 
+      ! Fraction of grid box that is land
+      ALLOCATE( FRLAND( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAND' )
+      FRLAND = 0d0
+
+      ! Fraction of grid box that is lakes
+      ALLOCATE( FRLAKE( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLAKE' )
+      FRLAKE = 0d0
+
+      ! Fraction of grid box that is ocean
+      ALLOCATE( FROCEAN( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FROCEAN' )
+      FROCEAN = 0d0
+
+      ! Fraction of grid box that is land ice
+      ALLOCATE( FRLANDIC( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRLANDIC' )
+      FRLANDIC = 0d0
+
       ! GEOS-5 greenness index
       ALLOCATE( GRN( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRN' )
@@ -2282,6 +2306,10 @@
       IF ( ALLOCATED( DTRAIN   ) ) DEALLOCATE( DTRAIN   )
       IF ( ALLOCATED( ENTRAIN  ) ) DEALLOCATE( ENTRAIN  ) 
       IF ( ALLOCATED( EVAP     ) ) DEALLOCATE( EVAP     ) 
+      IF ( ALLOCATED( FRLAND   ) ) DEALLOCATE( FRLAND   )
+      IF ( ALLOCATED( FRLAKE   ) ) DEALLOCATE( FRLAKE   )
+      IF ( ALLOCATED( FROCEAN  ) ) DEALLOCATE( FROCEAN  )
+      IF ( ALLOCATED( FRLANDIC ) ) DEALLOCATE( FRLANDIC )
       IF ( ALLOCATED( GRN      ) ) DEALLOCATE( GRN      ) 
       IF ( ALLOCATED( GWETROOT ) ) DEALLOCATE( GWETROOT ) 
       IF ( ALLOCATED( GWETTOP  ) ) DEALLOCATE( GWETTOP  )

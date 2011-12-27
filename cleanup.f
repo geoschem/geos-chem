@@ -124,6 +124,8 @@
       USE HCN_CH3CN_MOD,           ONLY : CLEANUP_HCN_CH3CN
       USE LAI_MOD,                 ONLY : CLEANUP_LAI
       USE LIGHTNING_NOX_MOD,       ONLY : CLEANUP_LIGHTNING_NOX
+      ! jpp, 3/22/10: took linoz from v8-02-02 code
+      USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MEGAN_MOD,               ONLY : CLEANUP_MEGAN
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
@@ -144,6 +146,11 @@
       USE UVALBEDO_MOD,            ONLY : CLEANUP_UVALBEDO
       USE VISTAS_ANTHRO_MOD,       ONLY : CLEANUP_VISTAS_ANTHRO
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
+      ! jpp, 6/17/09
+      USE bromocarb_mod,           only : cleanup_bromocarb
+      ! jpp lifetime calculations
+      USE LIFETIME_MOD,         ONLY : CLEANUP_LIFETIME
+
 
       IMPLICIT NONE
 
@@ -165,6 +172,7 @@
       CALL CLEANUP_BIOMASS
       CALL CLEANUP_BIOFUEL
       CALL CLEANUP_BRAVO
+      call cleanup_bromocarb  ! jpp, 6/17/09
       CALL CLEANUP_C2H6
       CALL CLEANUP_CAC_ANTHRO
       CALL CLEANUP_CARBON
@@ -197,7 +205,9 @@
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LAI
+      CALL CLEANUP_LIFETIME ! jpp, 7/08/09
       CALL CLEANUP_LIGHTNING_NOX
+      CALL CLEANUP_LINOZ    ! jpp, 3/22/10, took from v8-02-04
       CALL CLEANUP_MEGAN
       CALL CLEANUP_MERCURY
       CALL CLEANUP_OCEAN_MERCURY

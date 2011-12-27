@@ -35,6 +35,7 @@
       USE DIAG_MOD,       ONLY : LTOH,  CTOH,  LTOTH, CTOTH, LTNO2
       USE DIAG_MOD,       ONLY : CTNO2, LTHO2, CTHO2, LTNO3, CTNO3
       USE DIAG_MOD,       ONLY : CTO3_24h
+      USE DIAG_MOD,       ONLY : LT_Br, CT_Br
       USE TIME_MOD,       ONLY : GET_LOCALTIME
       USE TIME_MOD,       ONLY : ITS_TIME_FOR_DYN, ITS_TIME_FOR_CHEM
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP
@@ -47,6 +48,7 @@
       ! Local variables
       LOGICAL             :: IS_ND22, IS_ND43, IS_ND45, IS_ND45_O3
       LOGICAL             :: IS_ND47, IS_ND65
+      LOGICAL             :: is_nd53 ! jpp, 4/24/2011
       INTEGER             :: I,       J,       L
       REAL*8              :: LT(IIPAR)
 
@@ -61,6 +63,8 @@
       IS_ND43    = ( ND43 > 0 .and. ITS_TIME_FOR_CHEM() )
       IS_ND47    = ( ND47 > 0                           )
       IS_ND65    = ( ND65 > 0                           )
+      ! jpp, 4/24/2011
+      IS_ND53 = ( ND53 > 0 )
 
       ! Pre-compute local time 
       DO I = 1, IIPAR
@@ -122,6 +126,22 @@
                LTJV(I,J) = 0
             ENDIF
          ENDIF
+
+         !--------------------------------------
+         ! ND53 -- rate constant, diagnostic
+         !         for Br-chem. jpp, 4/24/2011
+         !--------------------------------------
+         IF ( IS_ND53 ) THEN
+
+            ! Archive if we fall w/in the local time limits
+            IF ( LT(I) >= 9.d0 .and. LT(I) <= 17.d0 ) THEN
+               LT_br(I,J) = 1
+               CT_br(I,J) = CT_br(I,J) + 1
+            ELSE
+               LT_br(I,J) = 0
+            ENDIF
+         ENDIF
+
 
          !-----------------------------
          ! ND43 -- OH, NO, NO2, HO2

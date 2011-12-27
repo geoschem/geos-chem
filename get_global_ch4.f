@@ -291,6 +291,15 @@
          
       ENDIF
 
+
+!      ! jpp: kludge 8/10/09 !!!! FLAG !!!!
+!      ! I'm seeting these values to pre-industrial background
+!      ! concentrations. This is simply to test the effects on bromine.
+!      A3090S = 700.0d0
+!      A0030S = 700.0d0
+!      A0030N = 700.0d0
+!      A3090N = 700.0d0
+
       !=================================================================
       ! Print the latitudinal CH4 gradient for this year to stdout
       !=================================================================

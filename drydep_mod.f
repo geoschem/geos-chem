@@ -190,9 +190,15 @@
       !=================================================================
       ! MODULE VARIABLES 
       !=================================================================
-
+      ! jpp, 6/13/09: changed MAXDEP from 50 to 53 to allow
+      !               dry deposition for HBr, HOBr, and BrNO3
+      !
+      !     ( 2) Changed MAXDEP from 53 to 54 to include Br2 drydep.
+      !          Testing if this could be important over nighttime.
+      !          (jpp, 1/13/2011)
+      !
       ! Parameters
-      INTEGER, PARAMETER   :: MAXDEP    = 50
+      INTEGER, PARAMETER   :: MAXDEP    = 54 ! jpp replaced 50; (2) replaced 53
       INTEGER, PARAMETER   :: NNTYPE    = 15     ! NTYPE    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNPOLY    = 20     ! NPOLY    from "CMN_SIZE"
       INTEGER, PARAMETER   :: NNVEGTYPE = 74     ! NVEGTYPE from "CMN_SIZE"
@@ -299,6 +305,13 @@
       USE DAO_MOD,      ONLY : AD, ALBD, BXHEIGHT, SUNCOS
       USE ERROR_MOD,    ONLY : DEBUG_MSG
       USE LOGICAL_MOD,  ONLY : LPRT
+      ! jpp, debugging.. . this is used to create
+      ! array for use in ND49 diagnostic
+      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr
+      ! jpp, using get_gmt to output at the proper
+      ! gmt time
+      USE TIME_MOD,     ONLY : GET_GMT
+
 
 #     include "CMN_SIZE" ! Size parameters
 #     include "CMN_DIAG" ! ND44
@@ -3045,6 +3058,8 @@ C** Load array DVEL
       USE TRACERID_MOD, ONLY : IDTGLYC
       USE TRACERID_MOD, ONLY : IDTAPAN, IDTENPAN, IDTGLPAN
       USE TRACERID_MOD, ONLY : IDTGPAN, IDTMPAN, IDTNIPAN
+      ! jpp, 2/27/08, using tracer id's for HOBr and HBr dry dep
+      USE TRACERID_MOD, ONLY : IDTHOBr,   IDTHBr, IDTBrNO3, IDTBr2
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -3328,7 +3343,98 @@ C** Load array DVEL
             HSTAR(NUMDEP)   = 0d0
             F0(NUMDEP)      = 0d0
             XMW(NUMDEP)     = 0d0
-            AIROSOL(NUMDEP) = .FALSE.   
+            AIROSOL(NUMDEP) = .FALSE.
+
+         !--------------------------------------------
+         ! jpp, 2/27/08, adding HOBr and HBr dry dep
+         ! HOBr
+         ELSE IF ( N == IDTHOBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            ! jpp, debugging
+            write(6,*) 'jpp, drydep: HOBr identified: ', numdep
+            NTRAIND(NUMDEP) = IDTHOBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HOBr'
+            ! from R. Sander's compilation...
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !              coefficient is calculated as the avg
+            !              of the following values (as found in
+            !              R. Sander's document).
+            !  1. Blatchley et al. 1992 (they said > 1.9E3, so I make it 2E3
+            !  2. Frenzel et al. 1996 (this is an estimate, 6.1E3)
+            !  3. Mozurkewich et al. 1995 (thermo calculation, 1.8E0)
+            !
+            ! -----------------------------------
+            ! jpp 1/14/2011: changing Hstar from
+            !                2.8d3 to 6.1d3, consistent
+            !                with p-TOMCAT. ref: Freznel et al. 1998
+            HSTAR(NUMDEP)   = 6.1d+3 !2.8d+3
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 97d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! HBr
+         ELSE IF ( N == IDTHBR ) THEN
+            NUMDEP          = NUMDEP + 1
+            ! jpp, debugging
+            write(6,*) 'jpp, drydep: HBr identified: ', numdep
+            NTRAIND(NUMDEP) = IDTHBr
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'HBr'
+            ! R. Sander's compilation sheet...
+            ! Chameides [1992]
+!            HSTAR(NUMDEP)   = 7.2d-1
+!            HSTAR(NUMDEP)   = 7.1d+8
+!            HSTAR(NUMDEP)   = 2.9d+7
+! from my own calculation:
+            ! jpp 4/27/09: This adjusted Henry's Law
+            !           coefficient is calculated as
+            !           the average of the adjusted
+            !           quantities from the following sources
+            !           (all listed in R. Sander's Henry's law document)
+            !   1. Brimblecombe and Clegg 1989
+            !   2. Wagman et al. 1982
+            !   3. Chameides and Stelson 1992
+!            HSTAR(NUMDEP)   = 2.97d+16
+            ! jpp, 1/14/2011: made Hstar consistent with
+            !                 p-TOMCAT. Ref: Dean 1992.
+            !                 Assuming a pH of 7 for the
+            !                 plant stomata.
+            HSTAR(NUMDEP)   = 7.1d+15
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 81d-3
+            AIROSOL(NUMDEP) = .FALSE.
+
+         ! BrNO3
+         ELSE IF ( N == IDTBRNO3 ) THEN
+            NUMDEP          = NUMDEP + 1
+            ! jpp, debugging
+            write(6,*) 'jpp, drydep: BrNO3 identified: ', numdep
+            NTRAIND(NUMDEP) = IDTBrNO3
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'BrNO3'
+            ! see R. Sander's compilation...
+            ! infininte Hstar
+            HSTAR(NUMDEP)   = 1.d+20
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 142.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         !--------------------------------------------
+
+         ELSE IF ( N == IDTBR2 ) THEN
+            NUMDEP          = NUMDEP + 1
+            ! jpp, debugging
+            write(6,*) 'jpp, drydep: Br2 identified: ', numdep
+            NTRAIND(NUMDEP) = IDTBr2
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'Br2'
+            ! taken from Table 2 of Yang et al. 2005, assuming
+            ! that the temperature = 298 K (jpp, 1/13/2011)
+            HSTAR(NUMDEP)   = 0.76d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 160.d-3
+            AIROSOL(NUMDEP) = .FALSE.
+         !--------------------------------------------
 
          !----------------------------------
          ! Sulfur & Nitrate aerosol tracers

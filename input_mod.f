@@ -160,7 +160,8 @@
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
-      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
+!jpp      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
+      CHARACTER(LEN=255) :: FILENAME = 'input.br.geos'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
       CHARACTER(LEN=255) :: DIAGINFO  
@@ -521,6 +522,7 @@
 !        INIT_TRANSFER (bmy, 11/5/07)
 !  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
+!  (10) Now read LLINOZ switch from input.geos file (dbm, bmy, 10/16/09)
 !******************************************************************************
 !
       ! References to F90 modules
@@ -530,7 +532,7 @@
       USE DIRECTORY_MOD, ONLY : TEMP_DIR   
       USE GRID_MOD,      ONLY : SET_XOFFSET, SET_YOFFSET,  COMPUTE_GRID
       USE LOGICAL_MOD,   ONLY : LSVGLB,      LUNZIP,       LWAIT
-      USE LOGICAL_MOD,   ONLY : LVARTROP
+      USE LOGICAL_MOD,   ONLY : LVARTROP,    LLINOZ !jpp, 3/22/2010
       USE RESTART_MOD,   ONLY : SET_RESTART
       USE TIME_MOD,      ONLY : SET_BEGIN_TIME,   SET_END_TIME 
       USE TIME_MOD,      ONLY : SET_CURRENT_TIME, SET_DIAGb
@@ -614,6 +616,10 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:16' )
       READ( SUBSTRS(1:N), *     ) LVARTROP
 
+      ! LINOZ chemistry in the stratosphere
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_simulation_menu:17' )
+      READ( SUBSTRS(1:N), *     ) LLINOZ  
+
       ! I0, J0
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'read_simulation_menu:17' )
       READ( SUBSTRS(1:N), *     ) I0, J0
@@ -652,6 +658,7 @@
       WRITE( 6, 120     ) 'Unzip met fields?           : ', LUNZIP
       WRITE( 6, 120     ) 'Wait for met fields?        : ', LWAIT
       WRITE( 6, 120     ) 'Use variable tropopause?    : ', LVARTROP
+      WRITE( 6, 120     ) 'Use LINOZ strat chemistry?  : ', LLINOZ
       WRITE( 6, 130     ) 'Global offsets I0, J0       : ', I0, J0
 
       ! Format statements
@@ -944,7 +951,7 @@
 
       ! Format statement
  100  FORMAT( I3, 1x, A10, 6x, F6.1 )
- 110  FORMAT( 5x, '===> ', f4.1, 1x, A4  )
+ 110  FORMAT( 5x, '===> ', f4.1, 1x, A6  ) ! jpp, changed from A4 for printing
  120  FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
       !=================================================================
@@ -1330,6 +1337,8 @@
       USE LOGICAL_MOD, ONLY : LARCSHIP,   LEMEPSHIP, LICARTT,   LGFED2BB 
       USE LOGICAL_MOD, ONLY : L8DAYBB,    L3HRBB,    LSYNOPBB
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM
+      !jpp 8/23/07:
+      USE LOGICAL_MOD, ONLY : LWARWICK_VSLS, LSSABr2, LFIX_PBL_BRO
 
 #     include "CMN_SIZE"    ! Size parameters
 #     include "CMN_O3"      ! FSCALYR
@@ -1512,12 +1521,39 @@
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:41' )
       READ( SUBSTRS(1:N), * ) LAVHRRLAI
 
-      ! Separator line
+      !jpp: Use the Warwick(2006), scenario 3? (400Gg/yr of CHBr3)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:42' )
+      READ( SUBSTRS(1:N), * ) LWARWICK_VSLS
+
+      !jpp: Use sea-salt Br2 emissions? Currently Monahan w/ Yang et al. 2005
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:43' )
+      READ( SUBSTRS(1:N), * ) LSSABr2
+
+      !jpp: Set PBL BrO concentrations equal to 1ppt during the day?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:44' )
+      READ( SUBSTRS(1:N), * ) LFIX_PBL_BRO
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_emissions_menu:45' )
 
       !=================================================================
       ! Error check logical flags
       !=================================================================
+
+      ! -----------------------------------------------------------------
+      ! jpp, 5/10/10: if we're using the 1ppt daytime PBL BrO option,
+      !              then shut off the LSSABr2 emissions if they were
+      !              accidentally left on.
+      ! -----------------------------------------------------------------
+      IF ( LFIX_PBL_BRO .and. LSSABr2 ) THEN
+         LSSABr2 = .FALSE. ! turn off sea-salt emissions
+                           ! to avoid conflict.
+         write(6,'(a)') 'Warning in input_mod.f: LSSABr2 was'
+     &        // ' left ON when LFIX_PBL_BRO was also selected.'
+         write(6,'(a)') 'Turning off sea-salt emissions and'
+     &        // ' selecting the 1pptv PBL daytime BrO simulation.'
+      ENDIF
+
 
       ! Define these flags for backwards compatibility
       LFOSSIL      = LANTHRO
@@ -1738,6 +1774,8 @@
       WRITE( 6, 100     ) '     or ARCTAS  SHIP SO2 ?  : ', LARCSHIP
       WRITE( 6, 100     ) 'Use COOKE for OC/BC N.-Amer.: ', LCOOKE
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
+      WRITE( 6, 100     ) 'Turn on the Warwick VSLs?   : ', 
+     &     LWARWICK_VSLS
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2784,12 +2822,12 @@
       READ( SUBSTRS(1), * ) ND52
       CALL SET_TINDEX( 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
-      !--------------------------
-      ! ND53: Free
-      !--------------------------
+      !-----------------------------------
+      ! ND53: Lifetime Diag, jpp 7/08/09
+      !-----------------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
+      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -2820,7 +2858,7 @@
       CALL SET_TINDEX( 57, ND57, SUBSTRS(2:N), N-1, PD57 )
 
       !--------------------------
-      ! ND58: Free
+      ! ND58: Ice surface area [cm2/cm3] (jpp, 7/5/2011)
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58
@@ -3565,7 +3603,7 @@
 
       ! Local variables
       LOGICAL              :: EOF, DO_SAVE_PL, DO_SAVE_O3
-      INTEGER, PARAMETER   :: MAXMEM=10
+      INTEGER, PARAMETER   :: MAXMEM=12 ! jpp replaced 10
       INTEGER              :: F, M, N, NFAM
       INTEGER              :: FAM_NMEM(MAXFAM)
       REAL*8               :: FAM_COEF(MAXMEM,MAXFAM)
@@ -4477,6 +4515,7 @@
       ! >> (dkh, 02/12/09) 
       USE LOGICAL_MOD,   ONLY : LSVCSPEC 
       ! << 
+      USE LOGICAL_MOD,   ONLY : LLINOZ !jpp, 3/22/10
       
       !=================================================================
       ! INIT_INPUT begins here!
@@ -4562,6 +4601,7 @@
       LSPLIT       = .FALSE.
       LWETD        = .FALSE.
       LVARTROP     = .FALSE.
+      LLINOZ       = .FALSE. ! jpp, 3/22/10
 
       ! Initialize counters
       CT1          = 0

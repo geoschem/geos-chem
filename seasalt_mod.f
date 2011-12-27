@@ -530,7 +530,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE EMISSSEASALT
+      SUBROUTINE EMISSSEASALT(SSA_Br2)
 !
 !******************************************************************************
 !  Subroutine EMISSSEASALT is the interface between the GEOS-CHEM model
@@ -556,13 +556,21 @@
 
 #     include "CMN_SIZE"     ! Size parameters
 
+      ! Input variables (jpp, 3/2/10)
+      REAL*8, intent(out)   :: SSA_Br2(IIPAR, JJPAR)
+
       ! Local variables
       LOGICAL, SAVE         :: FIRST = .TRUE.
       INTEGER               :: I, J, L, N
-
+      ! jpp, 3/2/10
+      real*8                :: tmpbr2(IIPAR, JJPAR)
+      
       !=================================================================
       ! EMISSSEASALT begins here! 
       !=================================================================
+
+      ! Initialize Br2 emission arrays
+      tmpbr2(:,:) = 0.d0; SSA_Br2(:,:) = 0.d0
 
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### in EMISSEASALT' )
@@ -591,15 +599,25 @@
 
       ! Accumulation mode emissions
       IF ( IDTSALA > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALA), 1 )
+         CALL SRCSALT( STT(:,:,:,IDTSALA), tmpbr2(:,:), 1 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Accum' )
       ENDIF
 
+      ! 1. store contributions of Br2 emissions
+      !    from accumulation mode: (jpp, 3/2/10)
+      SSA_Br2(:,:) = tmpbr2(:,:)
+      ! reset the temporary variable
+      tmpbr2(:,:)  = 0.d0
+
       ! Coarse mode emissions
       IF ( IDTSALC > 0 ) THEN
-         CALL SRCSALT( STT(:,:,:,IDTSALC), 2 )
+         CALL SRCSALT( STT(:,:,:,IDTSALC), tmpbr2(:,:), 2 )
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSEASALT: Coarse' )
       ENDIF
+
+      ! 2. add in contributions of Br2 emissions
+      !    from the coarse mode: (jpp, 3/2/10)
+      SSA_Br2(:,:) = SSA_Br2(:,:) + tmpbr2(:,:)
 
       ! save surface emis for non-local PBL mixing (vdiff_mod.f) (units: kg)
       ! (Lin, 06/09/08) 
@@ -619,7 +637,7 @@
 
 !-----------------------------------------------------------------------------
 
-      SUBROUTINE SRCSALT( TC, N )
+      SUBROUTINE SRCSALT( TC, SSA_Br2, N )
 !
 !******************************************************************************
 !  Subroutine SRCSALT updates the surface mixing ratio of dry sea salt
@@ -668,6 +686,7 @@
       USE PBL_MIX_MOD,   ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE TIME_MOD,      ONLY : GET_TS_EMIS
       USE TRACER_MOD,    ONLY : SALA_REDGE_um, SALC_REDGE_um, XNUMOL
+      USE SSA_BROMINE_MOD, ONLY : EMISS_SSA_BROMINE
 
 #     include "CMN_SIZE"      ! Size parameters
 #     include "CMN_DIAG"      ! ND44, ND08
@@ -676,6 +695,8 @@
       ! Arguments
       INTEGER, INTENT(IN)    :: N
       REAL*8,  INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR)
+      !jpp, 3/2/10
+      REAL*8,  INTENT(OUT)   :: SSA_Br2(IIPAR,JJPAR)
 
       ! Local variables 
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -686,10 +707,12 @@
       REAL*8                 :: FEMIS, A_M2
       REAL*8                 :: SALT(IIPAR,JJPAR)
       REAL*8                 :: SALT_N(IIPAR,JJPAR)
+      ! jpp, 3/2/10
+      REAL*8                 :: br2_kg_emiss, salt_current
 
       ! Increment of radius for Emission integration (um)
       REAL*8, PARAMETER      :: DR    = 5.d-2
-      REAL*8, PARAMETER      :: BETHA = 1.d0
+      REAL*8, PARAMETER      :: BETHA = 2.d0 ! jpp, 3/3/10: Lyatt's fixes
 
       ! External functions
       REAL*8,  EXTERNAL      :: SFCWINDSQR
@@ -698,6 +721,9 @@
       ! SRCSALT begins here!
       !=================================================================
       
+      ! initialize the Br2 sea-salt emissions
+      SSA_Br2(:,:) = 0.d0
+
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS() * 60d0
 
@@ -760,18 +786,41 @@
             ! Upper edge of IRth bin
             REDGE(R,N) = REDGE(R-1,N) + DR 
 
+!jp            ! Sea salt base source [kg/m2]
+!jp            SRC(R,N)  = CONST * SS_DEN( N ) 
+!jp     &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
+!jp     &           * 10d0**( 1.19d0*
+!jp     &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
+!jp     &           / BETHA**2         
+!jp
+!jp            ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
+!jp            SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
+!jp     &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
+!jp     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
+!jp     &           /0.65d0)**2))/ BETHA**2  
+
+            ! -------------------------------------------------
+            ! IMPORTANT NOTE!
+            !
+            ! The math form of Monahan's equation meant
+            ! log10, not ln. LOG in fortran is base e...
+            ! so I am updating for Lyatt's fixes.
+            ! -------------------------------------------------
             ! Sea salt base source [kg/m2]
             SRC(R,N)  = CONST * SS_DEN( N ) 
      &           * ( 1.d0 + 0.057d0*( BETHA * RMID(R,N) )**1.05d0 )
      &           * 10d0**( 1.19d0*
-     &                  EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))/0.65d0)**2))
+     &                  EXP(-((0.38d0-
+     &           LOG10(BETHA*RMID(R,N)))/0.65d0)**2))
      &           / BETHA**2         
 
             ! Sea salt base source [#/m2] (bec, bmy, 4/13/05)
             SRC_N(R,N) = CONST_N * (1.d0/RMID(R,N)**3)
      &           * (1.d0+0.057d0*(BETHA*RMID(R,N))**1.05d0)
-     &           * 10d0**(1.19d0*EXP(-((0.38d0-LOG(BETHA*RMID(R,N)))
-     &           /0.65d0)**2))/ BETHA**2  
+     &           * 10d0**(1.19d0*EXP(-((0.38d0-
+     &           LOG10(BETHA*RMID(R,N)))
+     &           /0.65d0)**2))/ BETHA**2
+
 
 !### Debug
 !###           WRITE( 6, 100 ) R,REDGE(R-1,N),RMID(R,N),REDGE(R,N),SRC(R,N)
@@ -816,6 +865,24 @@
                   ! (bec, bmy, 4/13/05)
                   SALT_N(I,J) = SALT_N(I,J) +
      &                          ( SRC_N(R,N) * A_M2 * W10M**3.41d0 )
+
+                  ! jpp, 3/3/10: since the SALT arrays are integrations
+                  !              I cannot use them for each independent
+                  !              radius... that's why I'm getting too
+                  !              much bromine. So I'm making a tmp
+                  !              array to store only the current
+                  !              Dry Radius bin. [kg]
+                  salt_current = ( SRC(R,N)   * A_M2 * W10M**3.41d0 )
+
+                  ! --------------------------------------------------
+                  ! jpp, 3/2/10: Accounting for the bromine emissions
+                  ! now. Store mass flux [kg] of Br2 based on how much
+                  ! aerosol there is emitted in this box.
+                  ! --------------------------------------------------
+                  call EMISS_SSA_BROMINE( J, RMID(R, N), 
+     &                 salt_current, br2_kg_emiss )
+
+                  SSA_Br2(I,J) = SSA_Br2(I,J) + br2_kg_emiss
 
                ENDDO
             ENDIF
@@ -960,13 +1027,19 @@
          IRH = MAX(  1, IRH )
          IRH = MIN( 99, IRH )
 
+         ! ------------------------------------
+         ! jpp, 3/3/10:
+         ! updated to B. Alexander's fixes for
+         ! the hygroscopic growth factors...
+         ! this is fixed in version 8-02-04
+         ! ------------------------------------
          ! hygroscopic growth factor for sea-salt from Chin et al. (2002)
-         IF ( IRH < 100 ) HGF = 2.2d0
-         IF ( IRH < 99  ) HGF = 1.9d0
-         IF ( IRH < 95  ) HGF = 1.8d0
-         IF ( IRH < 90  ) HGF = 1.6d0
-         IF ( IRH < 80  ) HGF = 1.5d0
-         IF ( IRH < 70  ) HGF = 1.4d0
+         IF ( IRH < 100 ) HGF = 4.8d0
+         IF ( IRH < 99  ) HGF = 2.9d0
+         IF ( IRH < 95  ) HGF = 2.4d0
+         IF ( IRH < 90  ) HGF = 2.0d0
+         IF ( IRH < 80  ) HGF = 1.8d0
+         IF ( IRH < 70  ) HGF = 1.6d0
          IF ( IRH < 50  ) HGF = 1.0d0
 	
          ! radius of sea-salt aerosol size bins [cm] accounting for 

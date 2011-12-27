@@ -427,7 +427,16 @@
       ! NEMPARA = max number of anthropogenic emission species
       ! NEMPARB = max number of biogenic      emission species
       !=================================================================
-      INTEGER, PARAMETER :: NNPAR   = 73
+      ! ==========================================================
+      ! jpp 6/5/09: 
+      !      ( 1) changed NNPAR from 73 to 83 to accomodate the
+      !           10 bromine species I'm using.
+      !      ( 2) added 2 to NEMPARB, to allow for the 2 biogenic
+      !           VSL emissions I'm using (CH2Br2 and CHBr3).
+      ! ==========================================================
+!      INTEGER, PARAMETER :: NNPAR   = 73
+      INTEGER, PARAMETER :: NNPAR   = 83
+
 !----------------------------------------------------
 ! Prior to 3/4/08:
 !      INTEGER, PARAMETER :: NEMPARA = 10
@@ -441,7 +450,14 @@
 !      INTEGER, PARAMETER :: NEMPARB = 1
 !----------------------------------------------------
       ! Add biogenic emissions: MBO, MONX. (tmf, 1/7/09) 
-      INTEGER, PARAMETER :: NEMPARB = 3
+! ==========================================================
+! jpp changed NEMPARB from 3 to 5 to accomodate CH2Br2 and
+!     CHBr3 emissions in the model. (6/5/09)
+! jpp 3/2/10:
+!      ( 1) added 1 to NEMPARB, to emit sea-salt Br2 as
+!           a biogenic emission. (5 to 6)
+! ==========================================================
+      INTEGER, PARAMETER :: NEMPARB = 6
 
       !=================================================================
       ! OTHER PARAMETERS 

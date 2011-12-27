@@ -99,6 +99,8 @@
       USE TRACER_MOD                 
       USE TAGGED_CO_MOD,          ONLY : EMISS_TAGGED_CO
       USE VISTAS_ANTHRO_MOD,      ONLY : EMISS_VISTAS_ANTHRO
+      !jpp, 8/4/10
+      USE SSA_BROMINE_MOD,        ONLY : EMIT_Br2
 
 #     include "CMN_SIZE"               ! Size parameters
 #     include "CMN_O3"                 ! FSCLYR
@@ -143,6 +145,9 @@
 !
       INTEGER                     :: MONTH, YEAR
       REAL*8                      :: BIOMASS(IIPAR,JJPAR,NBIOMAX)
+      ! jpp, 3/2/10: adding variable for sea-salt emissions
+      !              of Br2.
+      REAL*8                      :: SSA_Br2(IIPAR,JJPAR)
 
       !=================================================================
       ! DO_EMISSIONS begins here!
@@ -215,10 +220,15 @@
          CALL EMISSDR
 
          ! Emissions for various aerosol types
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) ! jpp, 3/2/10
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST
+
+         ! jpp, 3/2/10:
+         ! Now distribute the Br2 emitted from SSA, through
+         ! the full mixed layer.
+         CALL EMIT_BR2(SSA_Br2)
 
       ELSE IF ( ITS_AN_AEROSOL_SIM() ) THEN
          
@@ -266,7 +276,7 @@
      $        CALL EMISS_ARCTAS_SHIP( YEAR )
 
          ! Emissions for various aerosol types
-         IF ( LSSALT            ) CALL EMISSSEASALT
+         IF ( LSSALT            ) CALL EMISSSEASALT(ssa_br2) !jpp, 3/2/10
          IF ( LSULF .or. LCRYST ) CALL EMISSSULFATE
          IF ( LCARB             ) CALL EMISSCARBON
          IF ( LDUST             ) CALL EMISSDUST

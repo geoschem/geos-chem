@@ -160,6 +160,8 @@
       LOGICAL :: LBIOGENIC
       LOGICAL :: LCAC
       LOGICAL :: LBRAVO
+      LOGICAL :: LWARWICK_VSLS  !jpp 8/23/07: adding a bromocarb on/off switch
+      LOGICAL :: LFIX_PBL_BrO   !jpp 5/10/10: adding a 1pptv PBL BrO on/off switch
       LOGICAL :: LEDGAR
       LOGICAL :: LEDGARNOx
       LOGICAL :: LEDGARCO
@@ -195,6 +197,8 @@
       LOGICAL :: L8DAYBB
       LOGICAL :: L3HRBB
       LOGICAL :: LSYNOPBB
+      LOGICAL :: LSSABr2 ! jpp, 3/28/2010: selector for sea-salt
+                         !                 Br2 emissions.
 
       ! Transport and strat BC's
       LOGICAL :: LFILL
@@ -203,6 +207,8 @@
       LOGICAL :: LTPFV
       LOGICAL :: LUPBD
       LOGICAL :: LWINDO
+      ! jpp, 3/22/10: took linoz from v8-02-04
+      LOGICAL :: LLINOZ          ! Use LINOZ chemistry in the stratosphere?
 
       ! Met fields
       LOGICAL :: LUNZIP

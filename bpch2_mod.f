@@ -143,6 +143,9 @@
       ! Read file type identifier
       READ( IUNIT, IOSTAT=IOS ) FTI
 
+      !jpp, debugging:
+      print *, 'FTI =', FTI
+
       ! Error check
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 
      &               'open_bpch2_for_read:2' )

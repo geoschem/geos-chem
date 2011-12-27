@@ -7,6 +7,8 @@ SHELL = /bin/sh
 
 # IFORT compilation options
 FFLAGS = -cpp -w -O2 -auto -noalign -convert big_endian 
+#FFLAGS = -cpp -noalign -convert big_endian -g -traceback 
+#FFLAGS = -cpp -CB -w -g -auto -par-threshold[0] -noalign -convert big_endian 
  
 # IFORT compilation options (for debugging: no optimization)
 #FFLAGS = -cpp -w -noalign -convert big_endian -g -traceback -CB
@@ -34,6 +36,7 @@ boxvl.o                       \
 calcrate.o                    \
 chemdr.o                      \
 cleanup.o                     \
+cldice_HBrHOBr_rxn.o          \
 decomp.o                      \
 diag1.o                       \
 diag3.o                       \
@@ -210,6 +213,7 @@ restart_mod.o                 \
 rpmares_mod.o                 \
 isoropia_mod.o                \
 wetscav_mod.o                 \
+ssa_bromine_mod.o             \
 seasalt_mod.o                 \
 sulfate_mod.o                 \
 hcn_ch3cn_mod.o               \
@@ -232,9 +236,12 @@ tpcore_mod.o                  \
 tpcore_window_mod.o           \
 tpcore_geos5_window_mod.o     \
 transport_mod.o               \
+linoz_mod.o                   \
 upbdflx_mod.o                 \
 chemistry_mod.o               \
+bromocarb_mod.o               \
 emissions_mod.o               \
+lifetime_mod.o                \
 gamap_mod.o                   \
 input_mod.o            
 
@@ -294,6 +301,7 @@ biomass_mod.o                  : biomass_mod.f                  CMN_DIAG CMN_SIZ
 boxvl.o                        : boxvl.f                        
 bpch2_mod.o                    : bpch2_mod.f                    CMN_SIZE define.h define.h 
 bravo_mod.o                    : bravo_mod.f                    CMN_O3 CMN_SIZE define.h 
+bromocarb_mod.o                : bromocarb_mod.f                CMN_DEP CMN_DIAG CMN_SIZE
 c2h6_mod.o                     : c2h6_mod.f                     CMN CMN_DIAG CMN_O3 CMN_SIZE define.h 
 cac_anthro_mod.o               : cac_anthro_mod.f               CMN_O3 CMN_SIZE define.h 
 calcrate.o                     : calcrate.f                     CMN CMN_DIAG CMN_SIZE define.h comode.h 
@@ -303,6 +311,7 @@ charpak_mod.o                  : charpak_mod.f
 chemdr.o                       : chemdr.f                       CMN CMN_DEP CMN_DIAG CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
 chemistry_mod.o                : chemistry_mod.f                CMN_DIAG CMN_SIZE define.h comode.h 
 cleanup.o                      : cleanup.f                      define.h 
+cldice_HBrHOBr_rxn.o           : cldice_HBrHOBr_rxn.f
 co2_mod.o                      : co2_mod.f                      CMN_SIZE define.h 
 comode_mod.o                   : comode_mod.f                   CMN_SIZE define.h comode.h 
 convection_mod.o               : convection_mod.f               CMN_DIAG CMN_SIZE define.h 
@@ -337,6 +346,7 @@ emisop_grass.o                 : emisop_grass.f                 CMN_ISOP CMN_SIZ
 emisop_mb.o                    : emisop_mb.f                    CMN_ISOP CMN_SIZE define.h CMN_VEL 
 emissdr.o                      : emissdr.f                      CMN CMN_DIAG CMN_MONOT CMN_NOX CMN_O3 CMN_SIZE define.h comode.h 
 emissions_mod.o                : emissions_mod.f                CMN_O3 CMN_SIZE define.h 
+ssa_bromine_mod.o              : ssa_bromine_mod.f              CMN_SIZE comode.h CMN_DIAG CMN_O3
 emmonot.o                      : emmonot.f                      CMN_MONOT CMN_SIZE define.h CMN_VEL 
 epa_nei_mod.o                  : epa_nei_mod.f                  CMN_O3 CMN_SIZE define.h 
 error_mod.o                    : error_mod.f                    define.h 
@@ -380,7 +390,9 @@ julday_mod.o                   : julday_mod.f
 jv_index.o                     : jv_index.f                     cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                      : ksparse.f                      CMN_SIZE define.h comode.h 
 lai_mod.o                      : lai_mod.f                      CMN_SIZE define.h 
+lifetime_mod.o                 : lifetime_mod.f                 CMN_SIZE comode.h
 lightning_nox_mod.o            : lightning_nox_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
+linoz_mod.o                    : linoz_mod.f                    CMN CMN_SIZE
 logical_mod.o                  : logical_mod.f                  
 lump.o                         : lump.f                         CMN_SIZE define.h comode.h 
 main.o                         : main.f                         CMN_DIAG CMN_GCTM CMN_SIZE CMN_O3 define.h 

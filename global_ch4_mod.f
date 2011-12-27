@@ -1343,28 +1343,76 @@
       ! External functions
       REAL*8, EXTERNAL :: BOXVL
 
+
+      ! ------------------------------------------------
+      ! jpp, 9/29/09:
+      !  ** took replaced this code with that from
+      !     ccarouge's v.8-02-03 after mine didn't work.
+      !     Not all of the inputs were declared for
+      !     the CH4_OHSAVE
+      ! ------------------------------------------------
+
       !=================================================================
       ! CH4_OHSAVE begins here!
       !
-      ! Archive quantities for CH3CCl3 lifetime diagnostic
+      ! (1) Pass OH mass, total air mass, and  to "diag_oh_mod.f"
+      ! (2) ND59: Diagnostic for CH3CCl3 calculation
       !=================================================================
-      IF ( ND23 > 0 ) THEN
-         DO L = 1, MAXVAL( LPAUSE )
-         DO J = 1, JJPAR 
-         DO I = 1, IIPAR 
-            
-            ! Only process tropospheric boxes (bmy, 4/17/00)
-            IF ( L < LPAUSE(I,J) ) THEN
-               OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
-               MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
 
-               ! Pass OH mass & total mass to "diag_oh_mod.f"
-               CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST )
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-      ENDIF
+      ! 1. Calculate OH mass and total air mass
+      DO L = 1, MAXVAL( LPAUSE )
+      DO J = 1, JJPAR 
+      DO I = 1, IIPAR 
+         ! Only process tropospheric boxes (bmy, 4/17/00)
+         IF ( L < LPAUSE(I,J) ) THEN
+
+            ! Calculate OH mass [molec / box]
+            OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
+
+            ! Calculate total air mass [molec / box]
+            MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
+
+            ! Calculate CH3CCl3 + OH rate constant from JPL '06
+            ! [cm3 / molec / s]
+            KCLO   = 1.64d-12 * EXP( -1520.d0 / Tavg(I,J,L) )
+
+            ! Calculate Loss term [molec / box / s]
+            LOSS   = KCLO            * BOH(I,J,L)  *
+     &               BAIRDENS(I,J,L) * BOXVL(I,J,L)
+
+
+            ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
+            ! which calculates mass-weighted mean [OH] and CH3CCl3
+            ! lifetime.
+            CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS )
+
+         ENDIF
+      ENDDO
+      ENDDO
+      ENDDO
+
+!jpt      !=================================================================
+!jpt      ! CH4_OHSAVE begins here!
+!jpt      !
+!jpt      ! Archive quantities for CH3CCl3 lifetime diagnostic
+!jpt      !=================================================================
+!jpt      IF ( ND23 > 0 ) THEN
+!jpt         DO L = 1, MAXVAL( LPAUSE )
+!jpt         DO J = 1, JJPAR 
+!jpt         DO I = 1, IIPAR 
+!jpt            
+!jpt            ! Only process tropospheric boxes (bmy, 4/17/00)
+!jpt            IF ( L < LPAUSE(I,J) ) THEN
+!jpt               OHMASS = BOH(I,J,L) * BAIRDENS(I,J,L) * BOXVL(I,J,L)
+!jpt               MASST  = BAIRDENS(I,J,L) * BOXVL(I,J,L)
+!jpt
+!jpt               ! Pass OH mass & total mass to "diag_oh_mod.f"
+!jpt               CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST )
+!jpt            ENDIF
+!jpt         ENDDO
+!jpt         ENDDO
+!jpt         ENDDO
+!jpt      ENDIF
 
       ! Return to calling program
       END SUBROUTINE CH4_OHSAVE

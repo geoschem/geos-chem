@@ -104,13 +104,16 @@
 !        ITS_A_TAGOX_SIM from "tracer_mod.f" (bmy, 7/20/04)
 !  (2 ) Now references ITS_A_H2HD_SIM from "tracer_mod.f".  Now call routine
 !        UPBDFLX_HD for H2/HD simulation. (lyj, phs, 9/18/07)
+!  (3 ) Added support for LINOZ (dbm, jliu, bmy, 10/16/09)
+!      * jpp took from v.8-02-02, (3/22/10)
 !******************************************************************************
 !
       ! References to F90 modules
       USE ERROR_MOD,   ONLY : DEBUG_MSG
-      USE LOGICAL_MOD, ONLY : LPRT
+      USE LOGICAL_MOD, ONLY : LPRT, LLINOZ ! jpp, 3/22/10
       USE TRACER_MOD,  ONLY : ITS_A_FULLCHEM_SIM, ITS_A_TAGOX_SIM
       USE TRACER_MOD,  ONLY : ITS_A_H2HD_SIM
+      USE LINOZ_MOD,   ONLY : DO_LINOZ ! jpp, 3/22/10
 
 #     include "CMN_SIZE"  ! Size parameters
 
@@ -125,7 +128,12 @@
          !---------------
 
          ! Ox from strat 
-         CALL UPBDFLX_O3
+         ! dbj changed for linoz
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ
+         ELSE
+            CALL UPBDFLX_O3
+         ENDIF
 
          ! NOy from strat
          CALL UPBDFLX_NOY( 1 )
@@ -137,7 +145,12 @@
          !---------------
 
          ! Ox from strat
-         CALL UPBDFLX_O3
+         ! dbj changed for linoz
+         IF ( LLINOZ ) THEN 
+            CALL DO_LINOZ
+         ELSE
+            CALL UPBDFLX_O3
+         ENDIF
 
       ELSE IF ( ITS_A_H2HD_SIM() ) THEN
 
