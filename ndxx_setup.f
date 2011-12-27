@@ -155,7 +155,6 @@
       USE DIAG_MOD,        ONLY : AD18,        CT18,        AD21
       USE DIAG_MOD,        ONLY : AD21_cr,     AD22,        LTJV
       USE DIAG_MOD,        ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,        ONLY : LT_Br, CT_Br ! jpp, 4/24/2011
       USE DIAG_MOD,        ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,        ONLY : AD30,        AD31
       USE DIAG_MOD,        ONLY : AD32_ac,     AD32_an,     AD32_bb
@@ -173,7 +172,6 @@
       USE DIAG_MOD,        ONLY : AD55,        AD66,        AD67
       USE DIAG_MOD,        ONLY : AD68,        AD69,        CTO3
       USE DIAG_MOD,        ONLY : AD10,        AD10em,      CTO3_24h
-      USE DIAG_MOD,        ONLY : AD58, AD58_COUNT ! jpp, 7/5/2011
       USE DIAG_OH_MOD,     ONLY : INIT_DIAG_OH
       USE DRYDEP_MOD,      ONLY : NUMDEP
       USE ERROR_MOD,       ONLY : ALLOC_ERR,   ERROR_STOP
@@ -546,24 +544,6 @@
          ALLOCATE( CTJV( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
       ENDIF
-
-      !=================================================================
-      ! ND53: New time selection for the Br species lifetime module
-      !       jpp, 4/24/2011
-      !=================================================================
-      if ( ND53 > 0 ) then
-         ! Locations where LT is between HR1_JV and HR2_JV
-         ALLOCATE( LT_Br( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LT_Br' )
-
-         ! Number of times where LT is between HR1_JV and HR2_JV
-         ALLOCATE( CT_Br( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT_Br' )
-
-         ! initialize
-         LT_Br(:,:) = 0
-         CT_Br(:,:) = 0
-      endif
 
       !=================================================================
       ! ND27: Flux of Ox across the annual mean tropopause [kg/s]
@@ -968,10 +948,8 @@
       ENDIF
 
       !=================================================================
-      ! ND53: Bromine lifetime diagnostic (jpp, 7/08/09)
+      ! ND53: Free diagnostics
       !=================================================================
-      ! ** presently, AD53 is allocated inside of lifetime_mod.f
-
 
       !=================================================================
       !
@@ -992,23 +970,6 @@
       IF ( ND55 > 0 ) THEN
          ALLOCATE( AD55( IIPAR, JJPAR, PD55 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD55' )
-      ENDIF
-
-      !=================================================================
-      ! ND58: ice surface area density diag. [cm2/cm3] (jpp, 7/5/2011)
-      !       --> uses AD55 array (allocatable)
-      !=================================================================
-      IF ( ND58 > 0 ) THEN
-         LD58 = MIN( ND58, LLPAR )
-
-         ALLOCATE( AD58( IIPAR, JJPAR, LD58, PD58 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58' )
-         ALLOCATE( AD58_COUNT( IIPAR, JJPAR, LD58, PD58 ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58_COUNT' )
-
-         ! initialize these diagnostic variables
-         AD58_COUNT(:,:,:,:) = 0
-         AD58(:,:,:,:)       = 0.d0
       ENDIF
 
       !=================================================================

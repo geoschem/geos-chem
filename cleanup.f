@@ -148,9 +148,6 @@
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
       ! jpp, 6/17/09
       USE bromocarb_mod,           only : cleanup_bromocarb
-      ! jpp lifetime calculations
-      USE LIFETIME_MOD,         ONLY : CLEANUP_LIFETIME
-
 
       IMPLICIT NONE
 
@@ -205,7 +202,6 @@
       CALL CLEANUP_H2_HD
       CALL CLEANUP_HCN_CH3CN
       CALL CLEANUP_LAI
-      CALL CLEANUP_LIFETIME ! jpp, 7/08/09
       CALL CLEANUP_LIGHTNING_NOX
       CALL CLEANUP_LINOZ    ! jpp, 3/22/10, took from v8-02-04
       CALL CLEANUP_MEGAN

@@ -1252,18 +1252,6 @@
       DESCRIPT(N) = 'gamma HO2'
       OFFSET(N)   = SPACING * 49
 
-      ! New ND53 diagnostic for bromine lifetimes. (jpp, 7/08/09)
-      N           = N + 1
-      CATEGORY(N) = 'LIFE_T'
-      DESCRIPT(N) = 'Bromine Rate Constants'
-      OFFSET(N)   = SPACING * 50
-
-      ! New ND58 for cloud ice surface area. (jpp, 7/5/2011)
-      N           = N + 1
-      CATEGORY(N) = 'CLD-ICEA'
-      DESCRIPT(N) = 'ice surface area'
-      OFFSET(N)   = SPACING * 51
-
       ! Number of categories
       NCATS = N
       
@@ -1316,10 +1304,6 @@
       USE TRACERID_MOD, ONLY : IDTSOA1, IDTSOA2, IDTSOA3, NEMANTHRO
       USE TRACERID_MOD, ONLY : IDTSOA4, IDTSOAM, IDTSOAG
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD, GET_WETDEP_NSOL
-      ! jpp, for lifetime diag 53
-      USE LIFETIME_MOD, ONLY : LOSS_NUM
-      !jpp, debugging
-      use error_mod,    only : geos_chem_stop
 
 #     include "CMN_SIZE"     ! Size parameters
 #     include "CMN_DIAG"     ! NDxx flags
@@ -1327,12 +1311,6 @@
       ! Local variables
       INTEGER               :: N, NN, NYMDb, NHMSb, T
       LOGICAL               :: DO_TIMESERIES
-      ! jpp, declaring a rxn # temporary array
-      ! for outputting the name of lifetime arrays
-      CHARACTER(LEN=3) :: rxnstr
-
-      ! jpp local variable:
-      INTEGER :: lt_rxnnum
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -2979,88 +2957,6 @@
          SCALE(T,52) = 1e0
       ENDIF
 
-      !-------------------------------------
-      ! Lifetime Calculations Diag (ND53)
-      ! jpp 7/09/08
-      !-------------------------------------
-
-      IF ( ND53 > 0 ) THEN
-
-         ! jpp, debugging
-         print *, 'jpp: in ND53 selection'
-         
-         ! hardwired # of lifetimes
-         ! to track
-         NTRAC(53) = 32!30!26!25!24 ! jpp, 3/10/2010: updated to include BrNO3 hydrolysis
-                       ! now 30 to accomodate new Br + hydrocarb. reactions
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(53)
-
-            ! the smv2.log rxn #
-            lt_rxnnum = LOSS_NUM(T)
-
-            SELECT CASE( T )
-               CASE(1, 2)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'Br2_r'//rxnstr
-                  FNAME(T,53) = 'Br2 Loss Rate to Rxn '//rxnstr
-!               CASE(3,4,5,6,7,8)
-               CASE(3:12)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'Br_r'//rxnstr
-                  FNAME(T,53) = 'Br Loss Rate to Rxn '//rxnstr
-!               CASE(9,10,11,12,13,14,15)
-               CASE(13:19)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'BrO_r'//rxnstr
-                  FNAME(T,53) = 'BrO Loss Rate to Rxn '//rxnstr
-               CASE(20,21)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'HOBr_r'//rxnstr
-                  FNAME(T,53) = 'HOBr Loss Rate to Rxn '//rxnstr
-               CASE(22,23)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'HBr_r'//rxnstr
-                  FNAME(T,53) = 'HBr Loss Rate to Rxn '//rxnstr
-               CASE(24)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'BrNO2_r'//rxnstr
-                  FNAME(T,53) = 'BrNO2 Loss Rate to Rxn '//rxnstr
-               CASE(25:28)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'BrNO3_r'//rxnstr
-                  FNAME(T,53) = 'BrNO3 Loss Rate to Rxn '//rxnstr
-               CASE(29,30)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'CHBr3_r'//rxnstr
-                  FNAME(T,53) = 'CHBr3 Loss Rate to Rxn '//rxnstr
-               CASE(31)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'CH2Br2_r'//rxnstr
-                  FNAME(T,53) = 'CH2Br2 Loss Rate to Rxn '//rxnstr
-               CASE(32)
-                  write( rxnstr, '(i3)' ) lt_rxnnum
-                  NAME (T,53) = 'CH3Br_r'//rxnstr
-                  FNAME(T,53) = 'CH3Br Loss Rate to Rxn '//rxnstr
-            END SELECT
-            print *, 'T =', T
-            ! Define common quantities
-            INDEX(T,53) = T + ( SPACING * 50 )
-            MOLC (T,53) = 0 ! 0 molecules of carbon
-            MWT  (T,53) = 0e0
-            SCALE(T,53) = 1e0
-            UNIT(T,53)  = 's'
-
-         ENDDO
-
- 500     FORMAT(i3)
-
-      ENDIF
-
-      ! jpp, debugging:
-      print *, 'out of the ND53 selection'
-
       !-------------------------------------      
       ! Time in the troposphere (ND54)
       !-------------------------------------      
@@ -3145,35 +3041,6 @@
             MOLC (T,56) = 1
             MWT  (T,56) = 0e0
             SCALE(T,56) = 1e0
-         ENDDO
-      ENDIF
-
-      !-------------------------------------      
-      ! Ice surface area (ND58)
-      !-------------------------------------      
-      IF ( ND58 > 0 ) THEN 
-
-         ! Number of tracers
-         NTRAC(58) = 1
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(58)
-
-            ! Get name and unit for each met field
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,58) = 'CL-ICE_A'
-                  FNAME(T,58) = 'cloud ice surface area'
-                  UNIT (T,58) = 'cm2/cm3'
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            INDEX(T,58) = T + ( SPACING * 51 )
-            MOLC (T,58) = 1
-            MWT  (T,58) = 0e0
-            SCALE(T,58) = 1e0
          ENDDO
       ENDIF
 

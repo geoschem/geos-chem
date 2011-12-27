@@ -242,21 +242,11 @@
       ! For ND52 -- gamma HO2 diagnostic
       REAL*4,  ALLOCATABLE :: AD52(:,:,:)
 
-      ! For ND53 -- bromine lifetime diagnostic (jpp, 7/08/09)
-      REAL*8,  ALLOCATABLE :: AD53(:,:,:,:)
-      ! jpp, 4/24/2011
-      INTEGER, ALLOCATABLE :: LT_br(:,:) ! local time
-      INTEGER, ALLOCATABLE :: CT_br(:,:) ! counter of local time
-
       ! For ND54 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD54(:,:,:)
 
       ! For ND55 -- tropopause diagnostics
       REAL*4,  ALLOCATABLE :: AD55(:,:,:)
-
-      ! For ND58 -- ice surface area [cm2/cm3], (jpp, 7/5/2011)
-      REAL*4,  ALLOCATABLE :: AD58(:,:,:,:)
-      integer, ALLOCATABLE :: ad58_count(:,:,:,:) ! count for averaging
 
       ! For ND66 -- I-6 fields diagnostic
       REAL*4,  ALLOCATABLE :: AD66(:,:,:,:)      
@@ -366,11 +356,8 @@
       IF ( ALLOCATED( AD46        ) ) DEALLOCATE( AD46        )
       IF ( ALLOCATED( AD47        ) ) DEALLOCATE( AD47        )
       IF ( ALLOCATED( AD52        ) ) DEALLOCATE( AD52        )
-      IF ( ALLOCATED( AD53        ) ) DEALLOCATE( AD53        )
       IF ( ALLOCATED( AD54        ) ) DEALLOCATE( AD54        )
       IF ( ALLOCATED( AD55        ) ) DEALLOCATE( AD55        )
-      IF ( ALLOCATED( AD58        ) ) DEALLOCATE( AD58        ) ! jpp, 7/5/2011
-      IF ( ALLOCATED( AD58_COUNT  ) ) DEALLOCATE( AD58_COUNT  ) ! jpp, 7/5/2011
       IF ( ALLOCATED( AD66        ) ) DEALLOCATE( AD66        )
       IF ( ALLOCATED( AD68        ) ) DEALLOCATE( AD68        )
       IF ( ALLOCATED( AD69        ) ) DEALLOCATE( AD69        )
@@ -400,8 +387,6 @@
       IF ( ALLOCATED( MASSFLUP    ) ) DEALLOCATE( MASSFLUP    )
       IF ( ALLOCATED( TURBFLUP    ) ) DEALLOCATE( TURBFLUP    )
       IF ( ALLOCATED( STT_TEMPO2  ) ) DEALLOCATE( STT_TEMPO2  )
-      IF ( ALLOCATED( LT_br       ) ) DEALLOCATE( LT_br       )
-      IF ( ALLOCATED( CT_br       ) ) DEALLOCATE( CT_br       ) 
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG

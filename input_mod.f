@@ -160,8 +160,7 @@
       INTEGER            :: TS_EMIS
       INTEGER            :: TS_UNIT
       INTEGER            :: CT1, CT2, CT3
-!jpp      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
-      CHARACTER(LEN=255) :: FILENAME = 'input.br.geos'
+      CHARACTER(LEN=255) :: FILENAME = 'input.geos'
       CHARACTER(LEN=255) :: TOPTITLE
       CHARACTER(LEN=255) :: BPCH_FILE
       CHARACTER(LEN=255) :: DIAGINFO  
@@ -1776,6 +1775,8 @@
       WRITE( 6, 100     ) 'Turn on AVHRR-derived LAI?  : ', LAVHRRLAI
       WRITE( 6, 100     ) 'Turn on the Warwick VSLs?   : ', 
      &     LWARWICK_VSLS
+      WRITE( 6, 100     ) 'Use seasalt Br2 emissions?  : ', LSSABr2
+      WRITE( 6, 100     ) 'Set day PBL BrO conc to 1ppt: ', LFIX_PBL_BRO
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
@@ -2822,12 +2823,12 @@
       READ( SUBSTRS(1), * ) ND52
       CALL SET_TINDEX( 52, ND52, SUBSTRS(2:N), N-1, PD52 )
 
-      !-----------------------------------
-      ! ND53: Lifetime Diag, jpp 7/08/09
-      !-----------------------------------
+      !--------------------------
+      ! ND53: Free
+      !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:52' )
       READ( SUBSTRS(1), * ) ND53
-      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, PD53 )
+      CALL SET_TINDEX( 53, ND53, SUBSTRS(2:N), N-1, N_TRACERS )
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -2858,7 +2859,7 @@
       CALL SET_TINDEX( 57, ND57, SUBSTRS(2:N), N-1, PD57 )
 
       !--------------------------
-      ! ND58: Ice surface area [cm2/cm3] (jpp, 7/5/2011)
+      ! ND58: Free
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'read_diagnostic_menu:57' )
       READ( SUBSTRS(1), * ) ND58

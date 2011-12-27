@@ -178,9 +178,6 @@
       USE TIME_MOD,             ONLY : GET_NYMD,     GET_NHMS
       USE LOGICAL_MOD,          ONLY : LSVCSPEC
       USE LOGICAL_MOD,          ONLY : LNLPBL ! (Lin, 03/31/09)
-      ! jpp, 7/08/09: allowing for storage of lifetime quantities
-      USE LIFETIME_MOD,         ONLY : INIT_LIFETIME, SET_VARS_4LT
-      USE LIFETIME_MOD,         ONLY : SAVE_RXN_RATES
 
       IMPLICIT NONE
 
@@ -338,23 +335,6 @@
          !### Debug
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after SETEMDEP' )
 
-         !-------------------------------------------------
-         ! jpp, 6/28/08, initialize the lifetime module
-         ! jpp, debugging
-!jpt_6-11-2011         print *, 'jpp: initializing lifetime_mod'
-!jpt_6-11-2011         call flush(6)
-!jpt_6-11-2011
-!jpt_6-11-2011         CALL INIT_LIFETIME
-!jpt_6-11-2011         print *, 'jpp: post-initializing lifetime_mod'
-!jpt_6-11-2011         call flush(6)
-!jpt_6-11-2011
-!jpt_6-11-2011         ! store the desired reaction numbers to retrieve
-!jpt_6-11-2011         ! rxn rates for lifetime calculations, jpp 7/2/08
-!jpt_6-11-2011         CALL SET_VARS_4LT
-!jpt_6-11-2011         print *, 'jpp: post-set_vars_4lt '
-!jpt_6-11-2011         call flush(6)
-         !-------------------------------------------------
-
       ENDIF
 
       !=================================================================
@@ -484,18 +464,6 @@
       
       !### Debug
       IF ( LPRT ) CALL DEBUG_MSG( '### CHEMDR: after PHYSPROC' )
-
-      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-      ! jpp: Call lifetime_mod to archive reaction rates (TRATE)
-      !      for further lifetime calculations
-      ! call lifetimes
-!jpt      print *, 'saving reaction rate constants'
-!jpt      call flush(6)
-!jpt      call save_rxn_rates       ! this is an alternative approach
-!jpt      print *, 'post-saving reaction rate constants'
-!jpt      call flush(6)
-      ! +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 
       ! SCHEM applies a simplified strat chemistry in order
       ! to prevent stuff from building up in the stratosphere

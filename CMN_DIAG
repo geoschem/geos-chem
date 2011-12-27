@@ -119,11 +119,11 @@
       INTEGER, PARAMETER :: PD50=0            
       INTEGER, PARAMETER :: PD51=0           
       INTEGER, PARAMETER :: PD52=1 
-      INTEGER, PARAMETER :: PD53=32 !jpp replaced 30; jpp replaced 26, 3/8/2011
+      INTEGER, PARAMETER :: PD53=0
       INTEGER, PARAMETER :: PD54=0           
       INTEGER, PARAMETER :: PD55=3
       INTEGER, PARAMETER :: PD57=0           
-      INTEGER, PARAMETER :: PD58=1  ! jpp replaced 0 for ice surface area
+      INTEGER, PARAMETER :: PD58=0
       INTEGER, PARAMETER :: PD59=0            
       INTEGER, PARAMETER :: PD60=0          
       INTEGER, PARAMETER :: PD61=0
@@ -150,19 +150,17 @@
 ! Added LD10 (phs, 9/18/07)
 ! Added LD31 (bmy, 5/8/07)
 ! Added LD52 (jaegle, 02/26/09)
-! Added LD53 (jpp, 07/08/09)
-! Added LD58 (jpp, 07/08/09)
       INTEGER                                                           
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52, LD53, LD58
+     &   LD52
 
       COMMON /CDIAG1/                                                   
      &   LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22, LD24,    
      &   LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47, LD54, LD64,
      &   LD65, LD66, LD68, LD01, LD02, LD05, LD07, LD09, LD10, LD31,
-     &   LD52, LD53, LD58
+     &   LD52
 !----------------------------------------------------------------------------
 ! NDxx diagnostic flags
       INTEGER                                                           

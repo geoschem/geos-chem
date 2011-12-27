@@ -122,7 +122,6 @@
       USE DIAG_MOD,     ONLY : AD18,        CT18,        AD21
       USE DIAG_MOD,     ONLY : AD21_cr,     AD22,        LTJV
       USE DIAG_MOD,     ONLY : CTJV,        MASSFLEW,    MASSFLNS
-      USE DIAG_MOD,     ONLY : CT_Br ! jpp, 4/24/2011... new counting for lifetime mod
       USE DIAG_MOD,     ONLY : MASSFLUP,    AD28,        AD29
       USE DIAG_MOD,     ONLY : AD30,        AD31
       USE DIAG_MOD,     ONLY : AD32_ac,     AD32_an,     AD32_bb
@@ -139,7 +138,6 @@
       USE DIAG_MOD,     ONLY : AD52
       USE DIAG_MOD,     ONLY : AD54,        CTO3,        CTO3_24h
       USE DIAG_MOD,     ONLY : AD55,        AD66,        AD67
-      USE DIAG_MOD,     ONLY : AD58,  AD58_COUNT ! jpp, 7/5/2011
       USE DIAG_MOD,     ONLY : AD68,        AD69
       USE DIAG_MOD,     ONLY : AD10,        AD10em
       USE DIAG03_MOD,   ONLY : ND03,        WRITE_DIAG03
@@ -182,12 +180,6 @@
       USE WETSCAV_MOD,  ONLY : GET_WETDEP_IDWETD  
       ! jpp, 6/8/09
       USE TRACERID_MOD, ONLY : IDTCHBr3, IDTCH2Br2, IDTBr2
-      !jpp, building lifetime module for
-      !     output to gamap
-      USE DIAG_MOD,     ONLY : AD53
-      USE LIFETIME_MOD, ONLY : rate_const_count
-      use comode_mod,   only : ixsave, iysave, izsave
-
 
       IMPLICIT NONE
 
@@ -217,11 +209,6 @@
       CHARACTER (LEN=20) :: MODELNAME 
       CHARACTER (LEN=40) :: UNIT
       CHARACTER (LEN=40) :: RESERVED = ''
-
-      ! jpp, new loop variable name
-      INTEGER  :: jloop, ix, iy, iz
-      ! jpp, debugging
-      integer :: ct_gt0
 
 !
 !******************************************************************************
@@ -2913,90 +2900,6 @@
 
 !
 !******************************************************************************
-!  ND53: Lifetime Calculations Module
-!  jpp, 7/9/08
-!
-!  # : Field   : Description                        : Units     : Scale Factor
-! ---------------------------------------------------------------------------
-! (1) LIFE-T=$ : Lifetime of tracers to single rxns : seconds   : None
-!******************************************************************************
-!
-
-      IF ( ND53 > 0 ) THEN
-         CATEGORY = 'LIFE_T'
-!         UNIT = 's'
-!         UNIT = 'molecules cm-3 s-1'
-         UNIT = 'cm3 molecule-1 s-1'
-         SCALE_TMP = FLOAT( CT_Br ) + 1d-20
-
-         ! jpp, hardwiring for now... once debugged
-         ! make sure that this is read in properly
-         ! from input_mod.f
-         LD53 = 47
-
-         ct_gt0 = 0
-
-         DO M = 1, TMAX(53)     ! cycle through the species
-            N = TINDEX(53, M)   ! N holds the max # of loss rxns
-            IF ( N > PD53 ) CYCLE ! max number of reactions
-            NN = N
-
-            ! jpp, 7/9/08:
-            ! L cycles through all combinations of the
-            ! species of interest and they're individual
-            ! loss reactions.
-            ! ordering is as follows
-            ! 1. tracer1, rxn1
-            ! 2. tracer1, rxn2
-            ! .
-            ! .
-            ! .
-            ! i. tracer1, rxni
-            ! i+1. tracer2, rxn1
-            ! i+2. tracer2, rxn2
-            ! etc.
-
-
-            ! loop over all grid boxes
-            do ix = 1, IIPAR
-               do iy = 1, JJPAR
-                  do iz = 1, LLPAR
-
-                     ! cycle if the desired
-                     ! altitude range is too large...
-                     IF( iz > LD53) CYCLE
-!jpt                     if (rate_const_count(ix,iy,iz,M) > 0 ) then
-                     ARRAY(ix,iy,iz) = AD53(ix,iy,iz,M) /
-     &                    dble( scale_tmp(ix,iy) )
-!jpt     &                       dble(rate_const_count(ix,iy,iz,M))
-!jpt                     else
-!jpt                        ARRAY(ix,iy,iz) = 0.d0
-!jpt                        ct_gt0 = ct_gt0 + 1
-!jpt                     endif
-
-                  enddo
-               enddo
-            enddo
-
-            ! jpp, debugging
-            print *, 'number of zero values =', ct_gt0
-
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &           HALFPOLAR, CENTER180, CATEGORY, NN,
-     &           UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &           IIPAR,     JJPAR,     LD53,     IFIRST,
-     &           JFIRST,    LFIRST,    ARRAY(:,:,1:LD53) )
-
-            ! reset the array
-            ARRAY(:,:,:) = 0.d0
-
-         ENDDO
-
-      ENDIF
-
-!
-!******************************************************************************
 !  ND54: Time-in-the-Troposphere diagnostic
 !
 !   # : Field   : Description                 : Units     : Scale Factor
@@ -3054,47 +2957,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     1,        IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
-      ENDIF
-!
-!******************************************************************************
-!  ND58: Ice surface area diagnostic (jpp, 7/5/2011)
-!
-!   # : Field   : Description                 : Units     : Scale Factor
-!  ---------------------------------------------------------------------------
-!  (1) CLD-ICEA : cloud ice surface area      : cm2/cm3   : AD58_COUNT
-!******************************************************************************
-!
-      IF ( ND58 > 0 ) THEN
-         CATEGORY = 'CLD-ICEA'
-
-         DO M = 1, TMAX(58)
-            N  = TINDEX(58,M)
-            IF ( N > PD58 ) CYCLE
-            NN = N
-
-            print *, 'jpp testing diag3, nd58'
-            print *, 'M =', M
-            print *, 'N =', N
-            print *, 'LD58 =',LD58
-            print *, 'TMAX(58) =', TMAX(58)
-
-            UNIT = 'cm2/cm3'
-
-            DO IX = 1, IIPAR
-            DO IY = 1, JJPAR
-            DO L = 1, LD58
-               ARRAY(ix,iy,L) = AD58(ix,iy,L,1) /
-     &              dble(AD58_COUNT(ix,iy,L,1))
-            ENDDO
-            ENDDO
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD58,       IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,:) )
          ENDDO
       ENDIF
 

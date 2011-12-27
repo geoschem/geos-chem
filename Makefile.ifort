@@ -241,7 +241,6 @@ upbdflx_mod.o                 \
 chemistry_mod.o               \
 bromocarb_mod.o               \
 emissions_mod.o               \
-lifetime_mod.o                \
 gamap_mod.o                   \
 input_mod.o            
 
@@ -390,7 +389,6 @@ julday_mod.o                   : julday_mod.f
 jv_index.o                     : jv_index.f                     cmn_fj.h CMN_SIZE define.h comode.h 
 ksparse.o                      : ksparse.f                      CMN_SIZE define.h comode.h 
 lai_mod.o                      : lai_mod.f                      CMN_SIZE define.h 
-lifetime_mod.o                 : lifetime_mod.f                 CMN_SIZE comode.h
 lightning_nox_mod.o            : lightning_nox_mod.f            CMN_DIAG CMN_GCTM CMN_SIZE define.h define.h 
 linoz_mod.o                    : linoz_mod.f                    CMN CMN_SIZE
 logical_mod.o                  : logical_mod.f                  

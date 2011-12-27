@@ -79,7 +79,6 @@
       USE DAO_MOD,         ONLY : IS_ICE
       USE LOGICAL_MOD,     ONLY : LNLPBL ! (Lin, 03/31/09)
       ! jpp, testing
-      USE LIFETIME_MOD,    ONLY : ARCHIVE_RXNS_NEW
       USE LOGICAL_MOD,     ONLY : LWARWICK_VSLS
       ! jpp, added the following for BrNO3 recycling 
       ! off of clouds (3/17/2011)
@@ -92,7 +91,6 @@
       USE TRACERID_MOD,    ONLY : IDTHBr, IDTHOBr
       USE ERROR_MOD,       ONLY : is_safe_div
       USE TRACER_MOD,      ONLY : STT
-      USE DIAG_MOD,        ONLY : AD58, AD58_COUNT ! for ice suface area (jpp, 5/7/2011)
 
       IMPLICIT NONE
 
@@ -126,8 +124,6 @@
       REAL*8  :: FEXP2,KCO1,KCO2,KCO
       ! External functions
       REAL*8, EXTERNAL :: RTFUNC, FYRNO3,  ARSL1K,  FJFUNC, FYHORO
-      ! jpp, 2/28/2011
-!      REAL*8, EXTERNAL :: CLD1K_BrNO3
 
       CHARACTER*8      :: SPECNAME !jpp, replaced *4... more length for Br species
 
@@ -987,12 +983,6 @@ C  dependence of HO2/NO3 + HO2 on water vapor
             RRATE(KLOOP, NK2HBr)  = ki_hbr
             RRATE(KLOOP, NK2HOBr) = ki_hobr
 
-            ! and store the ice area for ND58 diagnostic
-            AD58(IX,IY,IZ,1) = AD58(IX,IY,IZ,1) + DAREA
-            AD58_COUNT(IX,IY,IZ,1) = AD58_COUNT(IX,IY,IZ,1)
-     &           + 1
-            
-
          ELSE
 
             !===========================================================
@@ -1092,13 +1082,6 @@ C
             SPECNAME         = NAMEGAS(IRM(1,NK,NCS))
             IFNC             = DEFPRAT(NK,NCS) + 0.01D0
             IBRCH            = 10.D0*(DEFPRAT(NK,NCS)-IFNC) + 0.5D0
-
-!jpt            ! jpp, debugging
-!jpt            if ( specname == 'HOBr' ) then
-!jpt               print*, 'BrO photorate # :', nkn
-!jpt               call flush(6)
-!jpt               call geos_chem_stop
-!jpt            endif
 
             DO KLOOP            = 1, KTLOOP 
                JLOOP            = LREORDER(KLOOP+JLOOPLO)
@@ -1335,10 +1318,6 @@ C *********************************************************************
 C                ARCHIVE FOR PLANE-FOLLOWING DIAGNOSTIC   
 C *********************************************************************
 C
-
-      ! jpp, trying new approach for getting reaction rates
-!jpt_6-11-2011      call archive_rxns_new( suncos )
-
       ! Pass JO1D and N2O5 to "planeflight_mod.f" (mje, bmy, 8/7/03)
       CALL ARCHIVE_RXNS_FOR_PF( DUMMY, DUMMY2 )
 C
