@@ -1,0 +1,10 @@
+*.a
+*.mod
+*.o
+*.pdf
+*.ps
+*.tex
+H
+S
+a.out
+geos

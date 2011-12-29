@@ -1,73 +1,91 @@
-# $Id: Makefile,v 1.5 2009/01/30 20:03:36 bmy Exp $
+#------------------------------------------------------------------------------
+#          Harvard University Atmospheric Chemistry Modeling Group            !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: Makefile (in doc subdirectory)
+#
+# !DESCRIPTION: Makefile for building the documentation (in PDF and 
+#  PostScript formats) for the GEOS-Chem model source code, makefiles,
+#  and related scripts.
+#\\
+#\\
+# !REMARKS:
+# To build the documentation, call "make" with the following syntax:
+#
+#   make TARGET [ OPTIONAL-FLAGS ]
+#
+# To display a complete list of options, type "make help".
+#
+# You must have the LaTeX utilities (latex, dvips, dvipdf) installed
+# on your system in order to build the documentation.
+#
+# !REVISION HISTORY: 
+#  16 Sep 2009 - R. Yantosca - Initial version
+#  21 Sep 2009 - R. Yantosca - Now call Makefile in help directory to
+#                              display the help screen options
+#  19 Nov 2009 - R. Yantosca - Now build documentation for Makefiles in the
+#                              GeosUtil and GeosCore subdirectories
+#  11 Dec 2009 - R. Yantosca - Now get SHELL from Makefile_header.mk
+#  28 Jan 2010 - R. Yantosca - Now add the Makefiles in the GeosTomas and
+#                              ISOROPIA subdirs to the documentation
+#  27 Aug 2010 - R. Yantosca - Brought up to date for newly documented code
+#  31 Aug 2010 - R. Yantosca - Add documentation for GTMM routines
+#  14 Sep 2010 - R. Yantosca - Now split make commands into include files
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+
 #==============================================================================
-# Makefile: to create PDF and PS documentation from the ProTeX headers
-#           contained in GEOS-Chem F90 module files. (bmy, 12/17/08, 1/28/09)
+# Initialization
 #==============================================================================
 
-# List of "phony" targets (i.e. targets not associated with files)
-.PHONY: all docclean
+# Define variables
+ROOTDIR := ..
+BIN     := $(ROOTDIR)/bin
+BPCH    := $(ROOTDIR)/GeosBpch
+CORE    := $(ROOTDIR)/GeosCore
+DOC     := $(ROOTDIR)/doc
+GTMM    := $(ROOTDIR)/GTMM
+HDR     := $(ROOTDIR)/Headers
+HELP    := $(ROOTDIR)/help
+ISO     := $(ROOTDIR)/ISOROPIA
+KPP     := $(ROOTDIR)/KPP
+TOM     := $(ROOTDIR)/GeosTomas
+UTIL    := $(ROOTDIR)/GeosUtil
 
-# Make all documentation
-all: tpcore emissions
+# Get the Unix shell in SHELL from the Makefile_header.mk
+include $(ROOTDIR)/Makefile_header.mk
 
-# Remove all Latex, PS, PDF files
+#==============================================================================
+# Makefile targets
+#==============================================================================
+
+.PHONY: all docclean help
+
+all: srcdoc utildoc gtmmdoc makedoc
+
 clean:
 	rm -f *.tex *.ps *.pdf
 
-#---------------------------
-# tpcore_fvdas_mod.f90
-#---------------------------
+help:
+	@$(MAKE) -C $(HELPDIR)
 
-# Documentation files
-TPCORE_F90 =             \
-tpcore_fvdas.intro       \
-../tpcore_fvdas_mod.f90  \
-../pjc_pfix_mod.f 
+#==============================================================================
+# Build the GEOS-Chem documentation
+#==============================================================================
 
-TPCORE_TEX = tpcore_fvdas.tex
-TPCORE_DVI = tpcore_fvdas.dvi
-TPCORE_PDF = tpcore_fvdas.pdf
-TPCORE_PS  = tpcore_fvdas.ps
+# Commands to build the source code documentation
+include ./Makefile_SrcDoc.mk
 
-# Build LaTeX, *.pdf, and *.ps documentation
-tpcore: 
-	rm -f $(TPCORE_TEX)
-	protex -sf $(TPCORE_F90) > $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	latex $(TPCORE_TEX)
-	dvipdf $(TPCORE_DVI) $(TPCORE_PDF)
-	dvips $(TPCORE_DVI) -o $(TPCORE_PS)
-	rm -f *.aux *.dvi *.log *.toc
+# Commands to build the utility module documentation
+include ./Makefile_UtilDoc.mk
+
+# Commands to build the makefile documentation
+include ./Makefile_MakeDoc.mk
+
+# Commands to build the GTMM documentation
+include ./Makefile_GtmmDoc.mk
 
 
-#---------------------------
-# Emissions document
-#---------------------------
-
-# Documentation files
-EMISS_F90 =                  \
-emissions.intro              \
-../emissions_mod.f           \
-../arctas_ship_emiss_mod.f   \
-../bravo_mod.f               \
-../cac_anthro_mod.f          \
-../emep_mod.f                \
-../scale_anthro_mod.f        \
-../vistas_anthro_mod.f 
-
-EMISS_TEX = emissions.tex
-EMISS_DVI = emissions.dvi
-EMISS_PDF = emissions.pdf
-EMISS_PS  = emissions.ps
-
-# Build LaTeX, *.pdf, and *.ps documentation
-emissions: 
-	rm -f $(EMISS_TEX)
-	protex -sf $(EMISS_F90) > $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	latex $(EMISS_TEX)
-	dvipdf $(EMISS_DVI) $(EMISS_PDF)
-	dvips $(EMISS_DVI) -o $(EMISS_PS)
-	rm -f *.aux *.dvi *.log *.toc
+#EOC

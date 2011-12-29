@@ -1,0 +1,54 @@
+README -- describes contents of GeosTomas directory
+21 Jan 2011
+Bob Yantosca and Claire Carouge
+geos-chem-support@as.harvard.edu
+
+
+Files:
+------
+Makefile	  	-- GEOS-Chem routines that have been 
+aero_drydep.f		   modified to reference the TOMAS aerosol
+carbon_mod.f		   microphysics package.  These are kept
+chemdr.f		   in a separate GeosTomas directory so that
+chemistry_mod.f		   they do not interfere with the routines
+cleanup.f		   in the GeosCore directory.
+diag3.f
+diag_mod.f		   The GeosTomas directory only needs to
+diag_pl_mod.f		   contain the files that have been modified
+drydep_mod.f		   for TOMAS.  The Makefile will look for
+dust_mod.f		   all other files from the GeosCore directory
+emissions_mod.f		   using the VPATH option in GNU Make.
+gamap_mod.f
+initialize.f		   NOTE to GEOS-Chem developers: When you 
+input_mod.f		   make changes to any of these routines 
+isoropia_mod.f		   in the GeosCore directory, you must also
+logical_mod.f 		   make the same modifications to the
+ndxx_setup.f		   corresponding routines in the GeosTomas
+planeflight_mod.f  	   directory.
+seasalt_mod.f
+sulfate_mod.f		   Maybe in the near future we can work 
+tomas_mod.f		   towards integrating TOMAS into the GeosCore
+tomas_tpcore_mod.f90	   directory more cleanly.  However, due to 
+tpcore_mod.f		   the large number of modifications that were
+tpcore_window_mod.f	   necessary for TOMAS, it was quicker to 
+tracerid_mod.f		   implement the TOMAS code in a separate
+wetscav_mod.f		   subdirectory.  
+xtra_read_mod.f				-- Bob Y. (1/25/10)
+
+
+
+NOTE TO TOMAS DEVELOPERS: 
+-------------------------
+The wet scavenging algorithms in wetscav_mod.f have
+been totally rewritten.  We therefore now have the following modules:
+
+wetscav_mod.f_orig : The "original", untouched code from v8-03-02
+wetscav_mod.f_new  : The "new" wet scavenging code from v9-01-01
+wetscav_mod.f      : Right now this is a copy of wetscav_f.orig
+
+You will therefore have to put all of the TOMAS microphysics into the 
+wetscav_mod.f_new file in routines WETDEP and WETDEP_MERRA.  This task
+is beyond the scope of the GEOS-Chem Support Team. 
+
+-- Bob Yantosca (21 Jan 2011)
+

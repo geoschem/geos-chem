@@ -1,0 +1,9 @@
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+! !MODULE: GEOS-Chem include files
+! !DESCRIPTION: Here follows a list of include files used by the
+   GEOS-Chem modules and subroutines.
+!EOP
+!------------------------------------------------------------------------------
