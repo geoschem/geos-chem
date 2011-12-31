@@ -544,9 +544,9 @@
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
 !      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 3.3D13
 #if defined (GRID4x5)
-      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*.5742d0 ! for sunlight function
+      REAL*8, PARAMETER  :: SOIL_EMIS_FAC = 2.4D-2*0.71d0 ! for sunlight function
 #elif defined(GRID2x25)
-      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*.5742d0*4d0
+      REAL*8, PARAMETER :: SOIL_EMIS_FAC=2.4D-2*0.71d0*4d0
 #endif
 
       !=================================================================

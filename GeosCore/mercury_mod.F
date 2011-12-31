@@ -159,6 +159,7 @@
 !       (eds 7/30/08)
 !  13 Aug 2010 - R. Yantosca - Add modifications for MERRA (treat like GEOS-5)
 !  01 Apr 2011 - H. Amos      - added LVEGEMIS, distinct from LGCAPEMIS
+!  27 Sep 2011 - H. Amos     - Remove LHg_WETDasHNO3 logical, it's obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -170,7 +171,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM,     LRED_JNO2, LGEOSLWC
       USE DEPO_MERCURY_MOD , ONLY : LHGSNOW, ADD_HG2_SNOWPACK
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
-      USE OCEAN_MERCURY_MOD, ONLY : LHg_WETDasHNO3, STRAT_BR_FACTOR
+      USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly, LOHO3CHEM
       USE OCEAN_MERCURY_MOD, ONLY : LnoUSAemis,  LBROCHEM
 
@@ -190,7 +191,6 @@
       PUBLIC :: CLEANUP_MERCURY
       PUBLIC :: INIT_MERCURY
       PUBLIC :: EMISSMERCURY
-      PUBLIC :: LHg_WETDasHNO3
       PUBLIC :: PARTITIONHG
       
       !=================================================================
@@ -266,6 +266,8 @@
       USE TRACERID_MOD,  ONLY : N_HG_CATS
       USE TIME_MOD,      ONLY : ITS_TIME_FOR_A3 
       USE DRYDEP_MOD,    ONLY : DRYHg0, DRYHg2, DRYHgP
+      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp        !hma
+      USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2 !hma
 
       USE CMN_SIZE_MOD        ! Size parameters
 
@@ -323,7 +325,15 @@
       IF (LHg2HalfAerosol) THEN
          K_DRYD2 = ( DEPSAV(:,:,DRYHg2) +  DEPSAV(:,:,DRYHgP) ) / 2D0
       ELSE
-         K_DRYD2 = DEPSAV(:,:,DRYHg2)
+         !--------------------------------------------------------
+         ! Previous to 25 Oct 2011, H Amos
+         !K_DRYD2 = DEPSAV(:,:,DRYHg2)
+         !
+         ! Weigh dry dep velocity by gas and aerosol fractions. 
+         ! [ref: Amos et al., 2011, submitted to ACP]
+         K_DRYD2 = ( DEPSAV(:,:,DRYHg2)*Fg(:,:,1) + 
+     &               DEPSAV(:,:,DRYHgP)*Fp(:,:,1) )
+         !--------------------------------------------------------
       ENDIF
 
 
@@ -3025,6 +3035,11 @@
 
       ENDIF
  
+      ! Assume HgP is part of the pool of Hg2 
+      ! available for gas-particle partitioning
+      EHg2_an = EHg2_an + EHgP_an
+      EHgP_an = 0d0 * EHgP_an
+
       !=================================================================
       ! Read distribution of Hg on land.
       ! See explanation in Selin et al., GBC 2008
@@ -3038,20 +3053,29 @@
       XTAU     = GET_TAU0( 1, 1, 1985 )
 
       IF ( LPREINDHG ) THEN
-         FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201110/soilHg.102311.preind.bpch'
-      !        !add H. Amos soil spinup for chemistry tuning 9/23/11
-         !implemented 10/19/11 eck
-!     &        'mercury_201007/soilhg.preind.cdh.bpch'
-      ELSEIF (LGEIA05) THEN
-         !add H. Amos soil spinup for chemistry tuning 9/23/11
-         !implemented 10/19/11 eck for GEIA 05 inventory
-         FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201110/soilHg.102311.presentday.bpch'
+         !-----------------------
+         ! Pre-industrial 
+         !-----------------------
+#if   defined( GEOS_5 ) && defined( GRID4x5 )
+         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
+     &              'soilHg.preind.4x5.bpch'  !hma, 09  Jun 2011
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
+         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
+     &              'soilHg.preind.2x25.bpch' ! hma, 19 Dec 2011
+#endif
 
       ELSE
-         FILENAME=TRIM( DATA_DIR )           //
-     &        'mercury_201007/soilhg.presentday.cdh.bpch'
+         !-----------------------
+         ! Present day
+         !-----------------------
+#if   defined( GEOS_5 ) && defined( GRID4x5 )
+         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
+     &              'soilHg.presentday.4x5.bpch'  !hma, 09  Jun 2011
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
+         FILENAME = '/home/h/hamos/GC/input_files/Hg/soilHg/'//
+     &              'soilHg.presentday.2x25.bpch' ! hma, 19 Dec 2011
+#endif
+
       ENDIF
 
       ! Echo info
@@ -4142,10 +4166,27 @@
 
       SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY, HGPFRAC )
 
+!******************************************************************************
+!  SUBROUTINE PARTITIONHG partitions the Hg2 tracer between gas and particle
+!  phases for the purpose of wet/dry deposition.
+!
+!  Arguments as Input/Output:
+!  ============================================================================
+!  DIRECTION  : 1 for forward , split Hg2 into gas and particle phases
+!             : 2 for backward, return gas and particle phases to Hg2 tracer
+!  STT_COPY   : STT array of tracer concentrations
+!  HGPFRAC    : The fraction of particulate Hg which is refractory
+!
+!  NOTES:
+!   12-Jul-2010 H. Amos - Add option to partition Hg2 according to Fg/Fp
+!   02-Jan-2011 H. Amos - Add/clean up comments
+!******************************************************************************
+
       ! References to F90 modules
       USE ERROR_MOD,    ONLY : SAFE_DIV, GEOS_CHEM_STOP
       USE TRACERID_MOD, ONLY : ID_HG2, ID_HGP
       USE TRACER_MOD,   ONLY : N_TRACERS
+      USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -4160,9 +4201,6 @@
       ! PARTITIONHG begins here!
       !=================================================================
       
-      ! Do nothing unless the flag to partition half of Hg2 as particulate
-      IF (.NOT. LHG2HALFAEROSOL ) RETURN
-
       SELECT CASE (DIRECTION) 
          CASE (1) ! Split Hg2 into equal parts gaseous and particulate
 
@@ -4174,20 +4212,38 @@
             DO J=1, JJPAR
             DO I=1, IIPAR
 
-               ! Fraction of particulate Hg which is refractory
-               ! If there is no initial Hg2 or HgP, then assume 50%
-               HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
-     &                 ( STT_COPY(I,J,L,ID_HGP(1)) +
-     &                   0.5D0 * STT_COPY(I,J,L,ID_HG2(1)) ),
-     &                 0.5D0 )
+              IF ( LHG2HALFAEROSOL ) THEN ! partition Hg2 50/50
 
-               ! Combine reactive particulate Hg2 with refractory HgP
-               STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
-     &              0.5D0 * STT_COPY(I,J,L,ID_HG2(1))
-               STT_COPY(I,J,L,ID_HG2(1)) = 0.5D0 *
-     &              STT_COPY(I,J,L,ID_HG2(1))
+                ! Fraction of particulate Hg which is refractory
+                ! If there is no initial Hg2 or HgP, then assume 50%
+                HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
+     &                  ( STT_COPY(I,J,L,ID_HGP(1)) +
+     &                    0.5D0 * STT_COPY(I,J,L,ID_HG2(1)) ),
+     &                  0.5D0 )
+
+                ! Combine reactive particulate Hg2 with refractory HgP
+                STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
+     &               0.5D0 * STT_COPY(I,J,L,ID_HG2(1))
+                STT_COPY(I,J,L,ID_HG2(1)) = 0.5D0 *
+     &               STT_COPY(I,J,L,ID_HG2(1))
+
+              ELSE ! temperature dependent Hg2 partitioning
+                                 
+                ! Fraction of particulate Hg which is refractory
+                ! If there is no initial Hg2 or HgP, then assume 50%
+                HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
+     &                  ( STT_COPY(I,J,L,ID_HGP(1)) +
+     &                    Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(1)) ),
+     &                  0.5D0 )
+
+                ! Combine reactive particulate Hg2 with refractory HgP
+                STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
+     &               Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(1))
+                STT_COPY(I,J,L,ID_HG2(1)) = Fg(I,J,L) *
+     &               STT_COPY(I,J,L,ID_HG2(1))
+
+              ENDIF
                   
-
             ENDDO
             ENDDO
             ENDDO
@@ -4218,8 +4274,6 @@
 
          END SELECT
 
-
-
       ! Return to calling program
       END SUBROUTINE PARTITIONHG
 
@@ -4238,6 +4292,7 @@
 !        N_TRACERS from "tracer_mod.f". (bmy, 2/24/05)
 !  (2 ) EHg0_an, EHg2_an, EHgP_an are now 2-D arrays.  Now modified for 
 !        updated ocean mercury module. (eck, cdh, sas, bmy, 4/6/06)
+!  27 Sep 2011 - H. Amos - remove LHg_WETDasHNO3 logical, it's obsolete
 !******************************************************************************
 !
       ! References to F90 modules
@@ -4424,19 +4479,10 @@
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
       LGEOSLWC=.TRUE. ! Use GEOS LWC
 
-      ! Switch enables wet scavenging with equal efficiency to HNO3,
-      ! plus we enable washout by snow and ice (T<268K), which has 
-      ! mysteriously not occured for any species. 
-      ! If this switch is FALSE, then deposition occurs as in
-      ! Holmes et al. (2010) (cdh, 5/20/09)
-      LHg_WETDasHNO3=.FALSE.
-
       ! Switch specifies that Hg2 is 50% bound to aerosol and 50% in
-      ! gas phase. This affects dry deposition. Wet deposition is 
-      ! unaffected by this switch, but the simulation is internally
-      ! consistent if LHg_WETDasHNO3 is TRUE, since all Hg2 then deposits
-      ! with equal efficiency as aerosols
-      LHg2HalfAerosol = .TRUE.
+      ! gas phase (TRUE). If FALSE, then use temperature dependent 
+      ! partitioning as described in Amos et al. (2011, ACPD)
+      LHg2HalfAerosol = .FALSE.
 
       ! Switch turns on snowpack Hg storage until snowmelt
       LHGSNOW = .TRUE.
