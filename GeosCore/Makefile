@@ -417,7 +417,7 @@ diag04_mod.o                : diag04_mod.F
 diag1.o                     : diag1.F                                        \
                               dao_mod.o               diag_mod.o             \
                               tracer_mod.o            tracerid_mod.o         \
-                              tropopause_mod.o
+                              tropopause_mod.o        ocean_mercury_mod.o
 
 diag3.o                     : diag3.F                                        \
                               biofuel_mod.o           biomass_mod.o          \
@@ -846,7 +846,7 @@ pjc_pfix_mod.o              : pjc_pfix_mod.F
 
 planeflight_mod.o           : planeflight_mod.F                              \
                               comode_mod.o            dao_mod.o              \
-                              tracer_mod.o            tropopause_mod.o  
+                              tracer_mod.o            tropopause_mod.o       
 
 precipfrac.o                : precipfrac.F            dao_mod.o
 
