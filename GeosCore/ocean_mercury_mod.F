@@ -482,7 +482,7 @@
 
       ! Below ~10 km, use GEOS-Chem sulfate aerosol
       ! Above ~10 km, use WACCM sulfate aerosol
-      ! 10km ~ level 30 if using 47L reduced grid. 
+      ! 10km is about level 30 if using 47L reduced grid. 
       ! (H Amos, 29 Nov 2011)
 
       !DO L = 1, 30
@@ -541,8 +541,6 @@
       ENDDO 
 
 !$OMP END PARALLEL DO
-
-  
 
       !-------------------------------------------!
       ! Store Fg and Fp in ND03 diagnostic.       ! 
