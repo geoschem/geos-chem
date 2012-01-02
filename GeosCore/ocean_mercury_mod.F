@@ -740,6 +740,8 @@
 !  12 Apr 2011 - J. Fisher   - Add missing code from Holmes 2010
 !  27 Jul 2011 - R. Yantosca - Use the D exponent in the defnition of KD_PART, 
 !                              or else the PGI compiler will crash
+!  09 Nov 2011 - H. Amos     - Apply Anne's bug fix for the Hg(0) evasion 
+!                              and uptake diagnostics
 !******************************************************************************
 !
       ! References to F90 modules
@@ -1521,32 +1523,36 @@
                ! TURN OFF EVASION
 !               FLUX(I,J,NN)= MIN(0.,FLUX(I,J,NN))
 
-               
-               !Xtra diagnostic: compute flux up and flux down
-               FUP(I,J,NN)   = ( Kw * CHg0aq )
-               FDOWN(I,J,NN) = ( Kw * CHg0 / H )                          
+               !Prior to 09 Nov 2011, H Amos ---------------------
+               !Extra diagnostic: compute flux up and flux down
+               !FUP(I,J,NN)   = ( Kw * CHg0aq )
+               !FDOWN(I,J,NN) = ( Kw * CHg0 / H )     
+               !--------------------------------------------------
 
 
                ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
                ! Also account for ocean fraction of grid box
                FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
 
-               FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
-               FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !Prior to 09 Nov 2011, H Amos ---------------------             
+               !FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !--------------------------------------------------
+
                !--------------------------------------------------------
                ! Flux limited by ocean and atm Hg(0)
                !--------------------------------------------------------
 
+               !Prior to 09 Nov 2011, H Amos --------------------- 
                ! Cap the flux w/ the available Hg(0) ocean mass
+               !IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN 
+               !   FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE 
+               !   FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
+               !ENDIF
                IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN 
                   FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE 
-                  FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
                ENDIF
-               
-               ! Cap FUP with available Hg(0) ocean mass (eck)
-!               IF (FUP(I,J,NN)*DTSRCE>Hg0aq(I,J,NN)) THEN
-!                  FUP(I,J,NN) = Hg0aq(I,J,NN)/DTSRCE
-!               ENDIF
+               !--------------------------------------------------
 
                 
                ! Cap the neg flux w/ the available Hg(0) atm mass
@@ -1598,9 +1604,18 @@
                ! HgP ocean mass [kg]
                AD03(I,J,11) = AD03(I,J,11) + HgPaq(I,J) 
 
+               !Prior to 09 Nov 2011, H Amos --------------------------
                ! flux up and down (eck)
-               AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
-               AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
+               !AD03(I,J,16) = AD03(I,J,16) + FUP(I,J,ID_Hg_tot)*DTSRCE
+               !AD03(I,J,17) = AD03(I,J,17) + FDOWN(I,J,ID_Hg_tot)*DTSRCE
+               IF (FLUX(I,J,ID_Hg_tot) > 0d0) THEN
+                  AD03(I,J,16) = AD03(I,J,16) 
+     &                           + FLUX(I,J,ID_Hg_tot) * DTSRCE
+               ELSE IF (FLUX(I,J,ID_Hg_tot) < 0d0) THEN
+                  AD03(I,J,17) = AD03(I,J,17) 
+     &                           + ( abs(FLUX(I,J,ID_Hg_tot) * DTSRCE ))
+               ENDIF
+               !-------------------------------------------------------
 
             ENDIF
 
