@@ -86,6 +86,7 @@
       USE PBL_MIX_MOD,       ONLY : DO_PBL_MIX
       USE OCEAN_MERCURY_MOD, ONLY : MAKE_OCEAN_Hg_RESTART
       USE OCEAN_MERCURY_MOD, ONLY : READ_OCEAN_Hg_RESTART
+      USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2 ! hma, 20120101
       USE PLANEFLIGHT_MOD,   ONLY : PLANEFLIGHT
       USE PLANEFLIGHT_MOD,   ONLY : SETUP_PLANEFLIGHT 
       USE PRESSURE_MOD,      ONLY : INIT_PRESSURE
@@ -895,6 +896,12 @@
                   CALL ANTHROEMS( SEASON )              
                ENDIF
             ENDIF
+         ENDIF
+
+         ! Hg2 gas-particle partitioning (H Amos, 25 Oct 2011)
+         IF ( ITS_A_MERCURY_SIM() .and. ITS_A_NEW_MONTH() ) THEN
+            CALL PARTITION_Hg2( MONTH )
+            IF ( LPRT ) CALL DEBUG_MSG( '### MAIN: a PARTITION_Hg2' )
          ENDIF
 
          !==============================================================
