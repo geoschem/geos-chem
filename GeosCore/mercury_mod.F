@@ -254,20 +254,20 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DRYDEP_MOD,    ONLY : DEPSAV
-      USE ERROR_MOD,     ONLY : DEBUG_MSG
-      USE GLOBAL_O3_MOD, ONLY : GET_GLOBAL_O3
-      USE GLOBAL_OH_MOD, ONLY : GET_GLOBAL_OH
-      USE GLOBAL_BR_MOD, ONLY : GET_GLOBAL_BR
-      USE PBL_MIX_MOD,   ONLY : GET_PBL_MAX_L
-      USE LOGICAL_MOD,   ONLY : LPRT, LGTMM, LNLPBL 
-      USE TIME_MOD,      ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TRACER_MOD,    ONLY : N_TRACERS
-      USE TRACERID_MOD,  ONLY : N_HG_CATS
-      USE TIME_MOD,      ONLY : ITS_TIME_FOR_A3 
-      USE DRYDEP_MOD,    ONLY : DRYHg0, DRYHg2, DRYHgP
-      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp        !hma
-      USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2 !hma
+      USE DRYDEP_MOD       , ONLY : DEPSAV
+      USE ERROR_MOD        , ONLY : DEBUG_MSG
+      USE GLOBAL_O3_MOD    , ONLY : GET_GLOBAL_O3
+      USE GLOBAL_OH_MOD    , ONLY : GET_GLOBAL_OH
+      USE GLOBAL_BR_MOD    , ONLY : GET_GLOBAL_BR
+      USE PBL_MIX_MOD      , ONLY : GET_PBL_MAX_L
+      USE LOGICAL_MOD      , ONLY : LPRT, LGTMM, LNLPBL 
+      USE TIME_MOD         , ONLY : GET_MONTH, ITS_A_NEW_MONTH
+      USE TRACER_MOD       , ONLY : N_TRACERS
+      USE TRACERID_MOD     , ONLY : N_HG_CATS
+      USE TIME_MOD         , ONLY : ITS_TIME_FOR_A3 
+      USE DRYDEP_MOD       , ONLY : DRYHg0, DRYHg2, DRYHgP
+      USE OCEAN_MERCURY_MOD, ONLY : Fg, Fp  
+      USE OCEAN_MERCURY_MOD, ONLY : PARTITION_Hg2
 
       USE CMN_SIZE_MOD        ! Size parameters
 
@@ -1353,14 +1353,14 @@
       USE ERROR_MOD,   ONLY : ERROR_STOP
 
       ! Arguments
-      REAL*8,  INTENT(IN)  :: OLD_Hg0, OLD_Hg2,  DT
-      REAL*8,  INTENT(IN)  :: K_OX,    K_RED,    K_DEP0,    K_DEP2
-      REAL*8,  INTENT(IN)  :: E_KOX_T, E_KRED_T
-      REAL*8,  INTENT(OUT) :: NEW_Hg0, NEW_Hg2,  GROSS_OX  
-      REAL*8,  INTENT(OUT) :: DEP_HG0,  DEP_HG2
+      REAL*8,  INTENT(IN)  :: OLD_Hg0 , OLD_Hg2  , DT
+      REAL*8,  INTENT(IN)  :: K_OX    , K_RED    , K_DEP0  ,    K_DEP2
+      REAL*8,  INTENT(IN)  :: E_KOX_T , E_KRED_T
+      REAL*8,  INTENT(OUT) :: NEW_Hg0 , NEW_Hg2  , GROSS_OX  
+      REAL*8,  INTENT(OUT) :: DEP_HG0 , DEP_HG2
 
       ! Local variables
-      REAL*8               :: K, RAD, E_RAD_T, AA, QTY1, QTY2
+      REAL*8               :: K, RAD   , E_RAD_T  , AA, QTY1, QTY2
       REAL*8               :: E_KDEP0_T, E_KDEP2_T
 
       !=================================================================
@@ -1781,12 +1781,12 @@
 !******************************************************************************
 !
       ! Refernces to F90 modules
-      USE DIAG03_MOD,   ONLY : ND03, LD03
-      USE GRID_MOD,     ONLY : GET_AREA_CM2
-      USE LOGICAL_MOD,  ONLY : LSPLIT
-      USE PBL_MIX_MOD,  ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
-      USE TIME_MOD,     ONLY : GET_TS_CHEM
-      USE TRACER_MOD,   ONLY : STT,       XNUMOL
+      USE DIAG03_MOD  , ONLY : ND03, LD03
+      USE GRID_MOD    , ONLY : GET_AREA_CM2
+      USE LOGICAL_MOD , ONLY : LSPLIT
+      USE PBL_MIX_MOD , ONLY : GET_FRAC_UNDER_PBLTOP, GET_PBL_MAX_L
+      USE TIME_MOD    , ONLY : GET_TS_CHEM
+      USE TRACER_MOD  , ONLY : STT,       XNUMOL
       USE TRACERID_MOD, ONLY : ID_HgP,    N_Hg_CATS
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -1867,12 +1867,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DIAG_MOD,         ONLY : AD44
-      USE GRID_MOD,         ONLY : GET_AREA_CM2
-      USE TRACER_MOD,       ONLY : STT, XNUMOL
+      USE DIAG_MOD        , ONLY : AD44
+      USE GRID_MOD        , ONLY : GET_AREA_CM2
+      USE TRACER_MOD      , ONLY : STT, XNUMOL
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_DD
-      USE TRACERID_MOD,     ONLY : IS_HgP
-      USE LOGICAL_MOD,      ONLY : LNLPBL
+      USE TRACERID_MOD    , ONLY : IS_HgP
+      USE LOGICAL_MOD     , ONLY : LNLPBL
 
       USE CMN_SIZE_MOD   ! Size parameters
       USE CMN_DIAG_MOD   ! ND44 
@@ -3316,7 +3316,7 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : AD
+      USE DAO_MOD      , ONLY : AD
       USE GLOBAL_O3_MOD, ONLY : O3
 
       USE CMN_SIZE_MOD  ! Size parameters
@@ -3358,9 +3358,9 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,       ONLY : SUNCOS
+      USE DAO_MOD      , ONLY : SUNCOS
       USE GLOBAL_OH_MOD, ONLY : OH
-      USE TIME_MOD,      ONLY : GET_TS_CHEM
+      USE TIME_MOD     , ONLY : GET_TS_CHEM
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -3420,19 +3420,19 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,        ONLY : SUNCOS, AD, T
-      USE GLOBAL_BR_MOD,  ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
-      USE GLOBAL_BR_MOD,  ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_LOCALTIME 
-      USE TIME_MOD,       ONLY : ITS_A_NEW_DAY
+      USE DAO_MOD       , ONLY : SUNCOS, AD, T
+      USE GLOBAL_BR_MOD , ONLY : BR_MERGE,  BR_TROP,  BR_STRAT, J_BRO
+      USE GLOBAL_BR_MOD , ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
+      USE TIME_MOD      , ONLY : GET_TS_CHEM, GET_LOCALTIME 
+      USE TIME_MOD      , ONLY : ITS_A_NEW_DAY
       USE TROPOPAUSE_MOD, ONLY : ITS_IN_THE_TROP, ITS_IN_THE_STRAT
-      USE DAO_MOD,        ONLY : IS_WATER
-      USE PBL_MIX_MOD,    ONLY   : GET_FRAC_UNDER_PBLTOP
-      USE GRID_MOD,       ONLY : GET_YMID
-      USE TIME_MOD,       ONLY : GET_MONTH
-      USE DAO_MOD,        ONLY : LWI, GET_OBK, IS_ICE
-      USE PRESSURE_MOD,   ONLY : GET_PCENTER
-      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE DAO_MOD       , ONLY : IS_WATER
+      USE PBL_MIX_MOD   , ONLY : GET_FRAC_UNDER_PBLTOP
+      USE GRID_MOD      , ONLY : GET_YMID
+      USE TIME_MOD      , ONLY : GET_MONTH
+      USE DAO_MOD       , ONLY : LWI, GET_OBK, IS_ICE
+      USE PRESSURE_MOD  , ONLY : GET_PCENTER
+      USE ERROR_MOD     , ONLY : SAFE_DIV
 
       USE CMN_SIZE_MOD  ! Size parameters
       USE CMN_DEP_MOD   ! FRCLND
@@ -3777,12 +3777,12 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE GRID_MOD,     ONLY : GET_XMID, GET_YMID
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE TRACERID_MOD, ONLY : ID_Hg0,    ID_Hg2,   ID_HgP
-      USE TRACERID_MOD, ONLY : ID_Hg_tot, ID_Hg_na, ID_Hg_eu, ID_Hg_as
-      USE TRACERID_MOD, ONLY : ID_Hg_rw,  ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
+      USE GRID_MOD    , ONLY : GET_XMID  , GET_YMID
+      USE ERROR_MOD   , ONLY : ERROR_STOP
+      USE TRACER_MOD  , ONLY : N_TRACERS
+      USE TRACERID_MOD, ONLY : ID_Hg0    , ID_Hg2  , ID_HgP
+      USE TRACERID_MOD, ONLY : ID_Hg_tot , ID_Hg_na, ID_Hg_eu, ID_Hg_as
+      USE TRACERID_MOD, ONLY : ID_Hg_rw  , ID_Hg_oc, ID_Hg_ln, ID_Hg_nt
 
       USE CMN_SIZE_MOD     ! Size parameters
 
@@ -3907,10 +3907,10 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DAO_MOD,     ONLY : IS_WATER, RH
+      USE DAO_MOD    , ONLY : IS_WATER, RH
       USE PBL_MIX_MOD, ONLY : GET_PBL_TOP_M
-      USE FILE_MOD,    ONLY : IU_FILE
-      USE RNPBBE_MOD,  ONLY : SLQ
+      USE FILE_MOD   , ONLY : IU_FILE
+      USE RNPBBE_MOD , ONLY : SLQ
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DEP_MOD      ! FRCLND
@@ -4296,13 +4296,13 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE DRYDEP_MOD,   ONLY : DEPNAME,   NUMDEP
-      USE ERROR_MOD,    ONLY : ALLOC_ERR, ERROR_STOP
-      USE LOGICAL_MOD,  ONLY : LSPLIT,    LDRYD,     LNLPBL
-      USE LOGICAL_MOD,  ONLY : LGTMM
-      USE TRACER_MOD,   ONLY : N_TRACERS
+      USE DRYDEP_MOD  , ONLY : DEPNAME  , NUMDEP
+      USE ERROR_MOD   , ONLY : ALLOC_ERR, ERROR_STOP
+      USE LOGICAL_MOD , ONLY : LSPLIT   , LDRYD     , LNLPBL
+      USE LOGICAL_MOD , ONLY : LGTMM
+      USE TRACER_MOD  , ONLY : N_TRACERS
       USE TRACERID_MOD, ONLY : N_Hg_CATS
-      USE LAI_MOD,      ONLY : INIT_LAI
+      USE LAI_MOD     , ONLY : INIT_LAI
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! ND44
