@@ -233,7 +233,7 @@
 !       Atmos Env
 !   (4) Vijayaraghavan et al (2008). Plume-in-grid modeling of atmopsheric 
 !       mercury   
-!   (5) Amos et al. (2011, submitted). Gas-particle partitioning of Hg(II)
+!   (5) Amos et al. (2012, ACPD). Gas-particle partitioning of Hg(II)
 !       and its effect on global mercury deposition
 !
 !  Ratio of reactive mercury adsorbed onto particulate matter to reactive
@@ -535,7 +535,7 @@
             
         ! Fraction of Hg(II) in the particle phase (unitless)
         Fp(I,J,L) = 1d0 - Fg(I,J,L)
-  
+
       ENDDO
       ENDDO
       ENDDO 
@@ -559,7 +559,7 @@
             IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
                PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.f'
                CALL GEOS_CHEM_STOP 
-            ENDIF
+            ENDIF           
 
             ! write AD03 diagnostics
             IF ( ND03 > 0 ) THEN
