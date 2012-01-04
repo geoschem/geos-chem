@@ -2080,7 +2080,7 @@
 
       SUBROUTINE EMITHG( I, J, L, ID, E_HG )
 !
-!******************************************************************************
+!*****************************************************************************
 !  Subroutine EMITHG directs emission either to STT directly or to EMIS_SAVE
 !  for use by the non-local PBL mixing. This is a programming convenience.
 !  (cdh, 08/27/09)
@@ -4164,7 +4164,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY, HGPFRAC )
+      SUBROUTINE PARTITIONHG( DIRECTION, STT_COPY )
 
 !******************************************************************************
 !  SUBROUTINE PARTITIONHG partitions the Hg2 tracer between gas and particle
@@ -4175,24 +4175,25 @@
 !  DIRECTION  : 1 for forward , split Hg2 into gas and particle phases
 !             : 2 for backward, return gas and particle phases to Hg2 tracer
 !  STT_COPY   : STT array of tracer concentrations
-!  HGPFRAC    : The fraction of particulate Hg which is refractory
 !
 !  NOTES:
 !   12-Jul-2010 H. Amos - Add option to partition Hg2 according to Fg/Fp
 !   02-Jan-2011 H. Amos - Add/clean up comments
+!   04 Jan 2012 H. Amos - modify algorithms to reflect the fact that 
+!                         anthropogenic Hg(p) is now emitted as Hg(II) (i.e. it's
+!                         no longer considered refractory). 
 !******************************************************************************
 
       ! References to F90 modules
-      USE ERROR_MOD,    ONLY : SAFE_DIV, GEOS_CHEM_STOP
-      USE TRACERID_MOD, ONLY : ID_HG2, ID_HGP
-      USE TRACER_MOD,   ONLY : N_TRACERS
-      USE OCEAN_MERCURY_MOD, ONLY : Fp, Fg
+      USE ERROR_MOD        , ONLY : SAFE_DIV  , GEOS_CHEM_STOP
+      USE TRACERID_MOD     , ONLY : ID_HG2    , ID_HGP
+      USE TRACER_MOD       , ONLY : N_TRACERS
+      USE OCEAN_MERCURY_MOD, ONLY : Fp        , Fg
 
       USE CMN_SIZE_MOD  ! Size parameters
 
       INTEGER, INTENT(IN)     :: DIRECTION
       REAL*8, INTENT(INOUT)   :: STT_COPY(IIPAR,JJPAR,LLPAR,N_TRACERS)
-      REAL*8, INTENT(INOUT)   :: HGPFRAC(IIPAR,JJPAR,LLPAR)
 
       INTEGER                 :: I,J,L
 
@@ -4202,7 +4203,11 @@
       !=================================================================
       
       SELECT CASE (DIRECTION) 
-         CASE (1) ! Split Hg2 into equal parts gaseous and particulate
+         CASE (1) ! Split Hg2 into gas and particle phases
+
+            ! Note: Now that anthropogenic Hg(p) is emitted as Hg(II)
+            !       and not treated as refractory particulate Hg, the
+            !       Hg(p) tracer is empty. (hma, 20120104)
 
 
 !$OMP PARALLEL DO
@@ -4212,36 +4217,26 @@
             DO J=1, JJPAR
             DO I=1, IIPAR
 
-              IF ( LHG2HALFAEROSOL ) THEN ! partition Hg2 50/50
+              IF ( LHG2HALFAEROSOL ) THEN 
+                !----------------------------
+                ! Partition Hg(II) 50/50
+                !----------------------------
 
-                ! Fraction of particulate Hg which is refractory
-                ! If there is no initial Hg2 or HgP, then assume 50%
-                HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
-     &                  ( STT_COPY(I,J,L,ID_HGP(1)) +
-     &                    0.5D0 * STT_COPY(I,J,L,ID_HG2(1)) ),
-     &                  0.5D0 )
-
-                ! Combine reactive particulate Hg2 with refractory HgP
-                STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
+                ! Put particulate Hg(II) into the Hg(p) tracer
+                STT_COPY(I,J,L,ID_HGP(1)) = 
      &               0.5D0 * STT_COPY(I,J,L,ID_HG2(1))
                 STT_COPY(I,J,L,ID_HG2(1)) = 0.5D0 *
      &               STT_COPY(I,J,L,ID_HG2(1))
+              ELSE 
+               !--------------------------------------------
+               ! temperature dependent Hg(II) partitioning
+               !--------------------------------------------
 
-              ELSE ! temperature dependent Hg2 partitioning
-                                 
-                ! Fraction of particulate Hg which is refractory
-                ! If there is no initial Hg2 or HgP, then assume 50%
-                HGPFRAC(I,J,L) = SAFE_DIV( STT_COPY(I,J,L,ID_HGP(1)), 
-     &                  ( STT_COPY(I,J,L,ID_HGP(1)) +
-     &                    Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(1)) ),
-     &                  0.5D0 )
-
-                ! Combine reactive particulate Hg2 with refractory HgP
-                STT_COPY(I,J,L,ID_HGP(1)) = STT_COPY(I,J,L,ID_HGP(1)) +
+                ! Put particulate Hg(II) into the Hg(p) tracer
+                STT_COPY(I,J,L,ID_HGP(1)) = 
      &               Fp(I,J,L) * STT_COPY(I,J,L,ID_HG2(1))
                 STT_COPY(I,J,L,ID_HG2(1)) = Fg(I,J,L) *
      &               STT_COPY(I,J,L,ID_HG2(1))
-
               ENDIF
                   
             ENDDO
@@ -4249,8 +4244,7 @@
             ENDDO
 !$OMP END PARALLEL DO
       
-
-         CASE(2) ! Recombine reactive particulate Hg2 with reactive gaseous Hg2
+         CASE(2) ! Recombine particulate Hg2 with  gaseous Hg2
             
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -4259,9 +4253,8 @@
             DO J=1, JJPAR
             DO I=1, IIPAR
                STT_COPY(I,J,L,ID_HG2(1)) = STT_COPY(I,J,L,ID_HG2(1)) +
-     &              (1D0 - HGPFRAC(I,J,L) ) * STT_COPY(I,J,L,ID_HGP(1))
-               STT_COPY(I,J,L,ID_HGP(1)) = HGPFRAC(I,J,L) * 
-     &              STT_COPY(I,J,L,ID_HGP(1))
+     &                                     STT_COPY(I,J,L,ID_HGP(1))
+               STT_COPY(I,J,L,ID_HGP(1)) = 0d0
             ENDDO
             ENDDO
             ENDDO               

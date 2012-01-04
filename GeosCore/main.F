@@ -238,7 +238,6 @@
       INTEGER            :: ELAPSED_SEC,   NHMSb, RC
       INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
       REAL*8             :: TAU,           TAUb         
-      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -1098,14 +1097,14 @@
                
                ! Partition Hg(II) between aerosol and gas
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 1, STT, HGPFRAC )
+                  CALL PARTITIONHG( 1, STT )
                ENDIF
       
                CALL DO_CONVECTION
 
                ! Return all reactive particulate Hg(II) to total Hg(II) tracer
                IF ( ITS_A_MERCURY_SIM() ) THEN
-                  CALL PARTITIONHG( 2, STT, HGPFRAC )
+                  CALL PARTITIONHG( 2, STT )
                ENDIF
       
                !### Debug
@@ -1169,14 +1168,14 @@
 
             ! Add partition Hg(II) between aerosol and gas
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 1, STT, HGPFRAC )
+               CALL PARTITIONHG( 1, STT )
             ENDIF            
      
             CALL DO_WETDEP
             
             ! Return all reactive particulate Hg(II) to total Hg(II) tracer
             IF ( ITS_A_MERCURY_SIM() ) THEN
-               CALL PARTITIONHG( 2, STT, HGPFRAC )
+               CALL PARTITIONHG( 2, STT )
             ENDIF 
 
          ENDIF
