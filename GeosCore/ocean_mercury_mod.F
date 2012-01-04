@@ -233,7 +233,7 @@
 !       Atmos Env
 !   (4) Vijayaraghavan et al (2008). Plume-in-grid modeling of atmopsheric 
 !       mercury   
-!   (5) Amos et al. (2011, submitted). Gas-particle partitioning of Hg(II)
+!   (5) Amos et al. (2012, ACPD). Gas-particle partitioning of Hg(II)
 !       and its effect on global mercury deposition
 !
 !  Ratio of reactive mercury adsorbed onto particulate matter to reactive
@@ -475,6 +475,15 @@
       ! convert REAL*4 to REAL*8 
       CALL TRANSFER_3D_TROP( ARRAY_UTLS , SO4_WAC )
 
+#if defined( GRID2x25 )
+      ! convert mol/mol to ppb
+      ! Note: At 4x5, both GC and WACCM aerosols are read in
+      !       as mol/mol. At 2x2.5, GC aerosols are read in as
+      !       ppb and WACCM aerosols as mol/mol. It's an IDL 
+      !       idiosyncracy. Convert WACCM aerosols to same units
+      !       as GC aerosols. (hma, 20120104)
+      SO4_WAC = 1d9 * SO4_WAC
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -482,7 +491,7 @@
 
       ! Below ~10 km, use GEOS-Chem sulfate aerosol
       ! Above ~10 km, use WACCM sulfate aerosol
-      ! 10km ~ level 30 if using 47L reduced grid. 
+      ! 10km is about level 30 if using 47L reduced grid. 
       ! (H Amos, 29 Nov 2011)
 
       !DO L = 1, 30
@@ -514,16 +523,24 @@
         ! Sum aerosol types (ppbv) to get bulk aerosol                     
         !                                                                  
         ! - Multiply species by CU factor as part of unit conversion from  
-        !    ppbv --> ug/m3                                                 
-        ! - Reduce dust by a factor of 2 (Fairlie et al, 2010)             
+        !    ppbv --> ug/m3 
+        ! Scale dust from 4x5 run (ref: Fairlie et al. (2010))            
         BULK_CONC(I,J,L) = CU(1)*SO4_CONC(I,J,L)                   +
      &                     CU(2)*(BC_CONC(I,J,L) + OC_CONC(I,J,L)) +
      &                     CU(3)*NIT_CONC(I,J,L)                   +
      &                     CU(4)*NH4_CONC(I,J,L) +
-     &                     CU(5)*(DST_CONC(I,J,L)/2d0)
+     &                     CU(5)*(DST_CONC(I,J,L)*2d0)           
       
         ! convert bulk aerosol mass concentration  to ug/m3
-        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  ) 
+        ! Note: Even though both bpch files say the unit is 'ppb',
+        !       4x5 gets read in as mol/mol and 2x2.5 gets read in
+        !       as ppb, so only 4x5 needs to be scaled by 1d9.
+        !       (hma, 20120104)
+#if defined( GRID4x5 )
+        BULK_CONC(I,J,L) = 1d9 * ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+#elif defined( GRID2x25 )
+        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * AIRDEN(L,I,J)  )
+#endif 
 
         ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
         ! adsorbed onto aerosol to Hg2 in the  gas phase) 
@@ -541,8 +558,6 @@
       ENDDO 
 
 !$OMP END PARALLEL DO
-
-  
 
       !-------------------------------------------!
       ! Store Fg and Fp in ND03 diagnostic.       ! 
