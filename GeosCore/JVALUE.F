@@ -21,7 +21,8 @@ c
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY : LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
@@ -32,7 +33,7 @@ c
 !=============== LOCAL VARIABLES =======================================
       integer j, k
       real*8  wave, xseco3, xseco2
-      real*8  AVGF(lpar),XQO3(NB),XQO2(NB)
+      real*8  AVGF(LLPAR),XQO3(NB),XQO2(NB)
 !
       do J=1,jpnl
         do K=NW1,NW2
@@ -41,7 +42,7 @@ c
       enddo
 c
 c---SZA check
-c      write(6,1000) SZA, RFLECT, (OD(nslon,nslat,j),j=1,lpar)
+c      write(6,1000) SZA, RFLECT, (OD(nslon,nslat,j),j=1,LLPAR)
       if(SZA.gt.szamax) GOTO 99
 c
 !---Calculate spherical weighting functions

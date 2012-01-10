@@ -135,7 +135,7 @@
       INTEGER                :: MX(IIPAR)
       INTEGER                :: IDEEP(IIPAR)
       INTEGER                :: IL1G=1
-      INTEGER                :: IL2G=JJPAR
+      INTEGER                :: IL2G
       REAL*8                 :: DPG(IIPAR,LLPAR)
       REAL*8                 :: ED(IIPAR,LLPAR)
       REAL*8                 :: UPDEG(IIPAR,LLPAR)
@@ -156,7 +156,8 @@
 
       ! Fake entrainment in non-entraining plumes (swu, bmy, 6/9/05)
       ENTRAINN = 0d0
- 
+      IL2G=JJPAR
+
       ! Loop over latitudes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

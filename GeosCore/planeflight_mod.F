@@ -1073,7 +1073,6 @@
       USE TIME_MOD,     ONLY : GET_TAU,        GET_TS_DIAG
       USE TRACER_MOD,   ONLY : STT,            TCVV
 
-      USE CMN_FJ_MOD,   ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
       USE JV_CMN_MOD         ! ODAER, QAA, QAA_AOD
       USE COMODE_LOOP_MOD    ! CSPEC, etc.
 ! 

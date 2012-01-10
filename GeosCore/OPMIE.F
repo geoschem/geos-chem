@@ -43,17 +43,17 @@ c
 !-----------------------------------------------------------------------
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD
       USE JV_MIE_MOD
 
       IMPLICIT NONE
 
-      integer jndlev(lpar),jaddlv(nc),jaddto(nc+1)
+      integer jndlev(LLPAR),jaddlv(nc),jaddto(nc+1)
       integer KW,km,i,j,k,l,ix,j1
       real*8 QXMIE(MX),XLAER(MX),SSALB(MX)
       real*8 xlo2,xlo3,xlray,xltau,zk,taudn,tauup,zk2
-      real*8 WAVEL,XQO2(NB),XQO3(NB),FMEAN(lpar),POMEGAJ(2*M__,NC+1)
+      real*8 WAVEL,XQO2(NB),XQO3(NB),FMEAN(LLPAR),POMEGAJ(2*M__,NC+1)
       real*8 DTAUX(NB),PIRAY(NB),PIAER(MX,NB),TTAU(NC+1),FTAU(NC+1)
       real*8 ftaulog,dttau,dpomega(2*M__)
       real*8 ftaulog2,dttau2,dpomega2(2*M__)
@@ -146,7 +146,7 @@ c  layers; the index of these layers is kept in the jndlev array.
 c
 c  Set lower boundary and levels to calculate J-values at 
       J1=2*J1-1
-      do j=1,lpar
+      do j=1,LLPAR
         jndlev(j)=2*j
       enddo
 c
@@ -247,7 +247,7 @@ c
 
 c     write(6,1300) jndlev
 c     write(6,1300) jaddto
-      do i=1,lpar
+      do i=1,LLPAR
          jndlev(i)=jndlev(i)+jaddto(jndlev(i)-1)
       enddo
 
@@ -416,7 +416,7 @@ c
 !-----------------------------------------
 c  Accumulate attenuation for selected levels
       l=2*(NC+jaddto(J1))+3
-      do j=1,lpar
+      do j=1,LLPAR
         k=l-(2*jndlev(j))
         if(k.gt.ND-2) then
           FMEAN(j) = 0.d0

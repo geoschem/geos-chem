@@ -138,6 +138,8 @@
       REAL*8,  ALLOCATABLE :: EMPLANECO2(:,:,:)
       REAL*8,  ALLOCATABLE :: CHEMCO2(:,:,:)
       REAL*8,  ALLOCATABLE :: EMIS_SUB(:,:)
+
+      REAL*8, ALLOCATABLE, SAVE :: CHEMSRC(:,:,:) !dbj, msl
 !
 ! !DEFINED PARAMETERS:
 !
@@ -220,7 +222,6 @@
       INTEGER                :: DAY,   DOY,    HOUR, MONTH, YEAR   
       REAL*8                 :: A_CM2, DTSRCE, E_CO2
       REAL*8                 :: biomass_sum, bionet_sum
-      REAL*8, SAVE           :: CHEMSRC(IIPAR,JJPAR,LLPAR)  ! dbj
 
       ! External functions     
       REAL*8, EXTERNAL       :: BOXVL    ! dbj
@@ -3245,6 +3246,10 @@
       ALLOCATE( OCEAN_REGION( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCEAN_REGION' )
       OCEAN_REGION = 0
+
+      ALLOCATE( CHEMSRC(IIPAR,JJPAR,LLPAR), STAT=AS )
+      IF ( AS /=0 ) CALL ALLOC_ERR( 'CHEMSRC' )
+      CHEMSRC = 0.d0
 
       !=================================================================
       ! Read in annual mean emissions

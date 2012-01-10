@@ -841,6 +841,7 @@
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! Diagnostic switches & arrays
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
 
       IMPLICIT NONE
 #     include "define.h"
@@ -1010,8 +1011,8 @@
       LOGICAL, SAVE          :: IS_Hg = .TRUE.
       INTEGER                :: I, J, K, KTOP, L, N, NDT
       INTEGER                :: IC, ISTEP, JUMP, JS, JN, NS
-      INTEGER                :: IMR, JNP, NLAY
-      REAL*8,  SAVE          :: DSIG(LLPAR)
+      INTEGER                :: IMR, JNP, NLAY, AS
+      REAL*8, ALLOCATABLE, SAVE :: DSIG(:)
       REAL*8                 :: SDT, CMOUT, ENTRN, DQ, AREA_M2
       REAL*8                 :: T0, T1, T2, T3, T4, TSUM, DELQ
       REAL*8                 :: DTCSUM(IIPAR,JJPAR,LLPAR,NC)
@@ -1061,6 +1062,9 @@
          ! NOTE: We don't need to do this for GEOS-5 (bmy, 6/27/07)
          ! DSIG is the sigma-level thickness (NOTE: this assumes that
          ! we are using a pure-sigma grid.  Use new routine for fvDAS.)
+         ALLOCATE( DSIG(LLPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DSIG_CONVECTION' )
+
          DO L = 1, LLPAR        
             DSIG(L) = GET_BP(L) - GET_BP(L+1)
          ENDDO

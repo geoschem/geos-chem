@@ -133,7 +133,7 @@
       INTEGER, PARAMETER :: PD62=NNPAR        
       INTEGER, PARAMETER :: PD63=0           
       INTEGER, PARAMETER :: PD64=0
-      INTEGER, PARAMETER :: PD65=LLPAR*MAXFAM 
+      INTEGER :: PD65
       INTEGER, PARAMETER :: PD66=6           
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
       INTEGER, PARAMETER :: PD68=4            
@@ -253,6 +253,16 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_DIAG_MOD
+      CONTAINS
+
+      SUBROUTINE SET_CMN_DIAG_MOD
+      
+        IMPLICIT NONE
+
+        PD65=LLPAR*MAXFAM 
+
+      END SUBROUTINE SET_CMN_DIAG_MOD
+
+      END MODULE CMN_DIAG_MOD
 !EOC
 

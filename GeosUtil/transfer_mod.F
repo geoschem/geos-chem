@@ -185,7 +185,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)     ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLPAR)     ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -199,7 +199,7 @@
 !  (1 ) A-6 fields are dimensioned (LLPAR,IIPAR,JJPAR) since for Fortran
 !        efficiency, since the code loops over vertical layers L in a column
 !        located above a certain surface location (I,J). (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LLPAR for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
@@ -216,7 +216,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J, L
-      REAL*4  :: INCOL(LGLOB)
+      REAL*4  :: INCOL(LLPAR)
       
       !================================================================
       ! TRANSFER_A6 begins here!
@@ -236,7 +236,7 @@
 !$OMP END PARALLEL DO
 
       ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !=================================================================
       ! Collapse levels in the stratosphere 
@@ -249,7 +249,7 @@
       DO I = 1, IIPAR
 
          ! Store vertical column at (IREF,JREF) in a 1-D vector
-         INCOL = IN( I+I0, J+J0, 1:LGLOB )
+         INCOL = IN( I+I0, J+J0, 1:LLPAR )
             
 #if   defined( GEOS_3 ) 
 
@@ -259,16 +259,16 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time, starting at L=23
-         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(24,I,J) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(25,I,J) = LUMP_2( INCOL, LGLOB, 27 )
+         OUT(23,I,J) = LUMP_2( INCOL, LLPAR, 23 )
+         OUT(24,I,J) = LUMP_2( INCOL, LLPAR, 25 )
+         OUT(25,I,J) = LUMP_2( INCOL, LLPAR, 27 )
 
          ! Lump 4 levels together at a time, starting at L=29
-         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 45 ) 
+         OUT(26,I,J) = LUMP_4( INCOL, LLPAR, 29 )
+         OUT(27,I,J) = LUMP_4( INCOL, LLPAR, 33 )
+         OUT(28,I,J) = LUMP_4( INCOL, LLPAR, 37 ) 
+         OUT(29,I,J) = LUMP_4( INCOL, LLPAR, 41 ) 
+         OUT(30,I,J) = LUMP_4( INCOL, LLPAR, 45 ) 
 
 #elif defined( GEOS_4 )
 
@@ -278,19 +278,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(20,I,J) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(21,I,J) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(22,I,J) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(23,I,J) = LUMP_2( INCOL, LGLOB, 26 )
+         OUT(20,I,J) = LUMP_2( INCOL, LLPAR, 20 )
+         OUT(21,I,J) = LUMP_2( INCOL, LLPAR, 22 )
+         OUT(22,I,J) = LUMP_2( INCOL, LLPAR, 24 )
+         OUT(23,I,J) = LUMP_2( INCOL, LLPAR, 26 )
 
          ! Lump 4 levels together at a time
-         OUT(24,I,J) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(25,I,J) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(26,I,J) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(27,I,J) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(28,I,J) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(29,I,J) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(30,I,J) = LUMP_4( INCOL, LGLOB, 52 ) 
+         OUT(24,I,J) = LUMP_4( INCOL, LLPAR, 28 )
+         OUT(25,I,J) = LUMP_4( INCOL, LLPAR, 32 )
+         OUT(26,I,J) = LUMP_4( INCOL, LLPAR, 36 ) 
+         OUT(27,I,J) = LUMP_4( INCOL, LLPAR, 40 ) 
+         OUT(28,I,J) = LUMP_4( INCOL, LLPAR, 44 ) 
+         OUT(29,I,J) = LUMP_4( INCOL, LLPAR, 48 ) 
+         OUT(30,I,J) = LUMP_4( INCOL, LLPAR, 52 ) 
 
 #elif defined( GEOS_5 ) || defined( MERRA )
 
@@ -300,19 +300,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(37,I,J) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(38,I,J) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(39,I,J) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(40,I,J) = LUMP_2( INCOL, LGLOB, 43 )
+         OUT(37,I,J) = LUMP_2( INCOL, LLPAR, 37 )
+         OUT(38,I,J) = LUMP_2( INCOL, LLPAR, 39 )
+         OUT(39,I,J) = LUMP_2( INCOL, LLPAR, 41 )
+         OUT(40,I,J) = LUMP_2( INCOL, LLPAR, 43 )
 
          ! Lump 4 levels together at a time
-         OUT(41,I,J) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(42,I,J) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(43,I,J) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(44,I,J) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(45,I,J) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(46,I,J) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(47,I,J) = LUMP_4( INCOL, LGLOB, 69 ) 
+         OUT(41,I,J) = LUMP_4( INCOL, LLPAR, 45 )
+         OUT(42,I,J) = LUMP_4( INCOL, LLPAR, 49 )
+         OUT(43,I,J) = LUMP_4( INCOL, LLPAR, 53 ) 
+         OUT(44,I,J) = LUMP_4( INCOL, LLPAR, 57 ) 
+         OUT(45,I,J) = LUMP_4( INCOL, LLPAR, 61 ) 
+         OUT(46,I,J) = LUMP_4( INCOL, LLPAR, 65 ) 
+         OUT(47,I,J) = LUMP_4( INCOL, LLPAR, 69 ) 
 
 #endif
 
@@ -330,7 +330,7 @@
 ! !IROUTINE: 
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LLPAR
 !  to LLPAR) if necessary.
 !\\
 !\\
@@ -340,7 +340,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLPAR)    ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -350,7 +350,7 @@
 !  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LLPAR for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use functions GET_XOFFSET and GET_YOFFSET from "grid_mod.f".
 !        Now I0, J0 are local variables. (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
@@ -366,7 +366,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: I, J
-      REAL*4  :: INCOL(LGLOB)
+      REAL*4  :: INCOL(LLPAR)
      
       !================================================================
       ! TRANSFER_3D begins here!
@@ -376,7 +376,7 @@
       OUT(:,:,1:L_COPY) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0, 1:L_COPY )
 
       ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !================================================================
       ! Collapse levels in the stratosphere
@@ -390,7 +390,7 @@
       DO I = 1, IIPAR
 
          ! Copy a vertical column into INCOL
-         INCOL = IN( I+I0, J+J0, 1:LGLOB )
+         INCOL = IN( I+I0, J+J0, 1:LLPAR )
 
 #if   defined( GEOS_3 ) 
 
@@ -400,16 +400,16 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time, starting at L=23
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(I,J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(I,J,25) = LUMP_2( INCOL, LGLOB, 27 )
+         OUT(I,J,23) = LUMP_2( INCOL, LLPAR, 23 )
+         OUT(I,J,24) = LUMP_2( INCOL, LLPAR, 25 )
+         OUT(I,J,25) = LUMP_2( INCOL, LLPAR, 27 )
 
          ! Lump 4 levels together at a time, starting at L=29
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
+         OUT(I,J,26) = LUMP_4( INCOL, LLPAR, 29 )
+         OUT(I,J,27) = LUMP_4( INCOL, LLPAR, 33 )
+         OUT(I,J,28) = LUMP_4( INCOL, LLPAR, 37 ) 
+         OUT(I,J,29) = LUMP_4( INCOL, LLPAR, 41 ) 
+         OUT(I,J,30) = LUMP_4( INCOL, LLPAR, 45 ) 
 
 #elif defined( GEOS_4 )
 
@@ -419,19 +419,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time, starting at L=20
-         OUT(I,J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(I,J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(I,J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(I,J,23) = LUMP_2( INCOL, LGLOB, 26 )
+         OUT(I,J,20) = LUMP_2( INCOL, LLPAR, 20 )
+         OUT(I,J,21) = LUMP_2( INCOL, LLPAR, 22 )
+         OUT(I,J,22) = LUMP_2( INCOL, LLPAR, 24 )
+         OUT(I,J,23) = LUMP_2( INCOL, LLPAR, 26 )
 
          ! Lump 4 levels together at a time, starting at L=28
-         OUT(I,J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(I,J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(I,J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(I,J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(I,J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(I,J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(I,J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+         OUT(I,J,24) = LUMP_4( INCOL, LLPAR, 28 )
+         OUT(I,J,25) = LUMP_4( INCOL, LLPAR, 32 )
+         OUT(I,J,26) = LUMP_4( INCOL, LLPAR, 36 ) 
+         OUT(I,J,27) = LUMP_4( INCOL, LLPAR, 40 ) 
+         OUT(I,J,28) = LUMP_4( INCOL, LLPAR, 44 ) 
+         OUT(I,J,29) = LUMP_4( INCOL, LLPAR, 48 ) 
+         OUT(I,J,30) = LUMP_4( INCOL, LLPAR, 52 ) 
 
 #elif defined( GEOS_5 ) || defined( MERRA )
 
@@ -441,19 +441,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(I,J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(I,J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(I,J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(I,J,40) = LUMP_2( INCOL, LGLOB, 43 )
+         OUT(I,J,37) = LUMP_2( INCOL, LLPAR, 37 )
+         OUT(I,J,38) = LUMP_2( INCOL, LLPAR, 39 )
+         OUT(I,J,39) = LUMP_2( INCOL, LLPAR, 41 )
+         OUT(I,J,40) = LUMP_2( INCOL, LLPAR, 43 )
 
          ! Lump 4 levels together at a time
-         OUT(I,J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(I,J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(I,J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(I,J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(I,J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(I,J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(I,J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+         OUT(I,J,41) = LUMP_4( INCOL, LLPAR, 45 )
+         OUT(I,J,42) = LUMP_4( INCOL, LLPAR, 49 )
+         OUT(I,J,43) = LUMP_4( INCOL, LLPAR, 53 ) 
+         OUT(I,J,44) = LUMP_4( INCOL, LLPAR, 57 ) 
+         OUT(I,J,45) = LUMP_4( INCOL, LLPAR, 61 ) 
+         OUT(I,J,46) = LUMP_4( INCOL, LLPAR, 65 ) 
+         OUT(I,J,47) = LUMP_4( INCOL, LLPAR, 69 ) 
 
 #endif
 
@@ -471,7 +471,7 @@
 ! !IROUTINE: 
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D transfers 3-dimensional data from a 
-!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LGLOB
+!  REAL*4  array to a REAL*8 array.  Vertical layers are collapsed (from LLPAR
 !  to LLPAR) if necessary.
 !\\
 !\\
@@ -481,11 +481,11 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB)    ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLPAR)    ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LGLOB)   ! Output data
+      REAL*8,  INTENT(OUT) :: OUT(IIPAR,JJPAR,LLPAR)   ! Output data
 ! 
 ! !REVISION HISTORY: 
 !  04 Aug 2011 - C. Holmes - Initial version, copied from TRANSFER_3D
@@ -522,7 +522,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)    ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLPAR+1)    ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -549,7 +549,7 @@
       OUT(:,:,1:L_COPY+1) = IN( 1+I0:IIPAR+I0,1+J0:JJPAR+J0,1:L_COPY+1 )
 
       ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !================================================================
       ! Return GEOS-5 pressure edges for reduced grid
@@ -595,7 +595,7 @@
 ! !IROUTINE: transfer_3d_lp1
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_3D\_Lp1 transfers 3-D data from a REAL*4 
-!  array of dimension (IIPAR,JJPAR,LGLOB+1) to a REAL*8 array of dimension 
+!  array of dimension (IIPAR,JJPAR,LLPAR+1) to a REAL*8 array of dimension 
 !  (IIPAR,JJPAR,LLPAR+1).  Regrid in the vertical if needed.
 !\\
 !\\
@@ -605,7 +605,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LGLOB+1)    ! Input data
+      REAL*4,  INTENT(IN)  :: IN(IIPAR,JJPAR,LLPAR+1)    ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -624,7 +624,7 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.  
       INTEGER       :: I, J
-      REAL*4        :: INCOL(LGLOB)
+      REAL*4        :: INCOL(LLPAR)
      
       !=================================================================
       ! TRANSFER_3D_Lp1 begins here!
@@ -634,7 +634,7 @@
       OUT(:,:,1:L_COPY+1) = IN( 1+I0:IIPAR+I0, 1+J0:JJPAR+J0,1:L_COPY+1)
 
       ! Exit if we are running full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !=================================================================
       ! Collapse levels in the stratosphere
@@ -735,7 +735,7 @@
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R4 transfers zonal-mean data from 
 !  a REAL*4 array to a REAL*8 array.  Vertical levels are collapsed (from 
-!  LGLOB to LLPAR) if necessary. (mje, bmy, 9/21/01, 2/8/07)
+!  LLPAR to LLPAR) if necessary. (mje, bmy, 9/21/01, 2/8/07)
 !\\
 !\\
 ! !INTERFACE:
@@ -744,7 +744,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(JJPAR,LGLOB)     ! Input data
+      REAL*4,  INTENT(IN)  :: IN(JJPAR,LLPAR)     ! Input data
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -754,7 +754,7 @@
 !  19 Sep 2001 - M. Evans    - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LLPAR for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
 !        local variables (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
@@ -769,7 +769,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: J
-      REAL*4  :: INCOL(LGLOB)
+      REAL*4  :: INCOL(LLPAR)
      
       !================================================================
       ! TRANSFER_ZONAL_R4 begins here!
@@ -779,7 +779,7 @@
       OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
 
       ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !================================================================
       ! Collapse levels in the stratosphere
@@ -792,7 +792,7 @@
       DO J = 1, JJPAR
 
          ! Store vertical column at (I,J) in a 1-D vector
-         INCOL = IN( J+J0, 1:LGLOB )
+         INCOL = IN( J+J0, 1:LLPAR )
 
 #if   defined( GEOS_3 )
 
@@ -802,16 +802,16 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
+         OUT(J,23) = LUMP_2( INCOL, LLPAR, 23 )
+         OUT(J,24) = LUMP_2( INCOL, LLPAR, 25 )
+         OUT(J,25) = LUMP_2( INCOL, LLPAR, 27 )
 
          ! Lump 4 levels together at a time
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
+         OUT(J,26) = LUMP_4( INCOL, LLPAR, 29 )
+         OUT(J,27) = LUMP_4( INCOL, LLPAR, 33 )
+         OUT(J,28) = LUMP_4( INCOL, LLPAR, 37 ) 
+         OUT(J,29) = LUMP_4( INCOL, LLPAR, 41 ) 
+         OUT(J,30) = LUMP_4( INCOL, LLPAR, 45 ) 
 
 #elif defined( GEOS_4 )
       
@@ -821,19 +821,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
+         OUT(J,20) = LUMP_2( INCOL, LLPAR, 20 )
+         OUT(J,21) = LUMP_2( INCOL, LLPAR, 22 )
+         OUT(J,22) = LUMP_2( INCOL, LLPAR, 24 )
+         OUT(J,23) = LUMP_2( INCOL, LLPAR, 26 )
 
          ! Lump 4 levels together at a time
-         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+         OUT(J,24) = LUMP_4( INCOL, LLPAR, 28 )
+         OUT(J,25) = LUMP_4( INCOL, LLPAR, 32 )
+         OUT(J,26) = LUMP_4( INCOL, LLPAR, 36 ) 
+         OUT(J,27) = LUMP_4( INCOL, LLPAR, 40 ) 
+         OUT(J,28) = LUMP_4( INCOL, LLPAR, 44 ) 
+         OUT(J,29) = LUMP_4( INCOL, LLPAR, 48 ) 
+         OUT(J,30) = LUMP_4( INCOL, LLPAR, 52 ) 
 
 #elif defined( GEOS_5 ) || defined( MERRA )
 
@@ -843,19 +843,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
+         OUT(J,37) = LUMP_2( INCOL, LLPAR, 37 )
+         OUT(J,38) = LUMP_2( INCOL, LLPAR, 39 )
+         OUT(J,39) = LUMP_2( INCOL, LLPAR, 41 )
+         OUT(J,40) = LUMP_2( INCOL, LLPAR, 43 )
 
          ! Lump 4 levels together at a time
-         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+         OUT(J,41) = LUMP_4( INCOL, LLPAR, 45 )
+         OUT(J,42) = LUMP_4( INCOL, LLPAR, 49 )
+         OUT(J,43) = LUMP_4( INCOL, LLPAR, 53 ) 
+         OUT(J,44) = LUMP_4( INCOL, LLPAR, 57 ) 
+         OUT(J,45) = LUMP_4( INCOL, LLPAR, 61 ) 
+         OUT(J,46) = LUMP_4( INCOL, LLPAR, 65 ) 
+         OUT(J,47) = LUMP_4( INCOL, LLPAR, 69 ) 
 
 #endif
 
@@ -872,7 +872,7 @@
 ! !IROUTINE: transfer_zonal_r8
 !
 ! !DESCRIPTION: Subroutine TRANSFER\_ZONAL\_R8 transfers zonal mean or lat-alt 
-!  data from a REAL*4 array of dimension (JJPAR,LGLOB) to a REAL*8 array of 
+!  data from a REAL*4 array of dimension (JJPAR,LLPAR) to a REAL*8 array of 
 !  dimension (JJPAR,LLPAR).   Regrid data in the vertical if necessary by
 !  lumping levels.
 !\\
@@ -883,7 +883,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL*4,  INTENT(IN)  :: IN(JJPAR,LGLOB)    ! Input data
+      REAL*4,  INTENT(IN)  :: IN(JJPAR,LLPAR)    ! Input data
 !
 ! !OUTPUT PARAMETERS: 
 ! 
@@ -893,7 +893,7 @@
 !  19 Sep 2001 - R. Yantosca - Initial version
 !  (1 ) Lump levels together in groups of 2 or 4, as dictated by Mat Evans.
 !        (bmy, 9/21/01)
-!  (2 ) Assumes that LLPAR == LGLOB for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
+!  (2 ) Assumes that LLPAR == LLPAR for GEOS-1, GEOS-STRAT (bmy, 9/21/01)
 !  (3 ) Now use function GET_YOFFSET from "grid_mod.f".  Now I0 and J0 are 
 !        local variables (bmy, 3/11/03)
 !  (4 ) Added code to regrid GEOS-4 from 55 --> 30 levels (mje, bmy, 10/31/03)
@@ -908,7 +908,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER :: J
-      REAL*4  :: INCOL(LGLOB)
+      REAL*4  :: INCOL(LLPAR)
      
       !================================================================
       ! TRANSFER_ZONAL_R8 begins here!
@@ -918,7 +918,7 @@
       OUT(:,1:L_COPY) = IN( 1+J0:JJPAR+J0, 1:L_COPY )
 
       ! Exit if we are running at full vertical resolution
-      IF ( LLPAR == LGLOB ) RETURN
+      IF ( LLPAR == LLPAR ) RETURN
 
       !================================================================
       ! Collapse levels in the stratosphere
@@ -931,7 +931,7 @@
       DO J = 1, JJPAR
 
          ! Store vertical column at (I,J) in a 1-D vector
-         INCOL = IN( J+J0, 1:LGLOB )
+         INCOL = IN( J+J0, 1:LLPAR )
 
 #if   defined( GEOS_3 )
 
@@ -941,16 +941,16 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 23 )
-         OUT(J,24) = LUMP_2( INCOL, LGLOB, 25 )
-         OUT(J,25) = LUMP_2( INCOL, LGLOB, 27 )
+         OUT(J,23) = LUMP_2( INCOL, LLPAR, 23 )
+         OUT(J,24) = LUMP_2( INCOL, LLPAR, 25 )
+         OUT(J,25) = LUMP_2( INCOL, LLPAR, 27 )
 
          ! Lump 4 levels together at a time
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 29 )
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 33 )
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 37 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 41 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 45 ) 
+         OUT(J,26) = LUMP_4( INCOL, LLPAR, 29 )
+         OUT(J,27) = LUMP_4( INCOL, LLPAR, 33 )
+         OUT(J,28) = LUMP_4( INCOL, LLPAR, 37 ) 
+         OUT(J,29) = LUMP_4( INCOL, LLPAR, 41 ) 
+         OUT(J,30) = LUMP_4( INCOL, LLPAR, 45 ) 
 
 #elif defined( GEOS_4 )
 
@@ -960,19 +960,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,20) = LUMP_2( INCOL, LGLOB, 20 )
-         OUT(J,21) = LUMP_2( INCOL, LGLOB, 22 )
-         OUT(J,22) = LUMP_2( INCOL, LGLOB, 24 )
-         OUT(J,23) = LUMP_2( INCOL, LGLOB, 26 )
+         OUT(J,20) = LUMP_2( INCOL, LLPAR, 20 )
+         OUT(J,21) = LUMP_2( INCOL, LLPAR, 22 )
+         OUT(J,22) = LUMP_2( INCOL, LLPAR, 24 )
+         OUT(J,23) = LUMP_2( INCOL, LLPAR, 26 )
 
          ! Lump 4 levels together at a time
-         OUT(J,24) = LUMP_4( INCOL, LGLOB, 28 )
-         OUT(J,25) = LUMP_4( INCOL, LGLOB, 32 )
-         OUT(J,26) = LUMP_4( INCOL, LGLOB, 36 ) 
-         OUT(J,27) = LUMP_4( INCOL, LGLOB, 40 ) 
-         OUT(J,28) = LUMP_4( INCOL, LGLOB, 44 ) 
-         OUT(J,29) = LUMP_4( INCOL, LGLOB, 48 ) 
-         OUT(J,30) = LUMP_4( INCOL, LGLOB, 52 ) 
+         OUT(J,24) = LUMP_4( INCOL, LLPAR, 28 )
+         OUT(J,25) = LUMP_4( INCOL, LLPAR, 32 )
+         OUT(J,26) = LUMP_4( INCOL, LLPAR, 36 ) 
+         OUT(J,27) = LUMP_4( INCOL, LLPAR, 40 ) 
+         OUT(J,28) = LUMP_4( INCOL, LLPAR, 44 ) 
+         OUT(J,29) = LUMP_4( INCOL, LLPAR, 48 ) 
+         OUT(J,30) = LUMP_4( INCOL, LLPAR, 52 ) 
 
 #elif defined( GEOS_5 ) || defined( MERRA )
 
@@ -982,19 +982,19 @@
          !--------------------------------------------------------------
 
          ! Lump 2 levels together at a time
-         OUT(J,37) = LUMP_2( INCOL, LGLOB, 37 )
-         OUT(J,38) = LUMP_2( INCOL, LGLOB, 39 )
-         OUT(J,39) = LUMP_2( INCOL, LGLOB, 41 )
-         OUT(J,40) = LUMP_2( INCOL, LGLOB, 43 )
+         OUT(J,37) = LUMP_2( INCOL, LLPAR, 37 )
+         OUT(J,38) = LUMP_2( INCOL, LLPAR, 39 )
+         OUT(J,39) = LUMP_2( INCOL, LLPAR, 41 )
+         OUT(J,40) = LUMP_2( INCOL, LLPAR, 43 )
 
          ! Lump 4 levels together at a time
-         OUT(J,41) = LUMP_4( INCOL, LGLOB, 45 )
-         OUT(J,42) = LUMP_4( INCOL, LGLOB, 49 )
-         OUT(J,43) = LUMP_4( INCOL, LGLOB, 53 ) 
-         OUT(J,44) = LUMP_4( INCOL, LGLOB, 57 ) 
-         OUT(J,45) = LUMP_4( INCOL, LGLOB, 61 ) 
-         OUT(J,46) = LUMP_4( INCOL, LGLOB, 65 ) 
-         OUT(J,47) = LUMP_4( INCOL, LGLOB, 69 ) 
+         OUT(J,41) = LUMP_4( INCOL, LLPAR, 45 )
+         OUT(J,42) = LUMP_4( INCOL, LLPAR, 49 )
+         OUT(J,43) = LUMP_4( INCOL, LLPAR, 53 ) 
+         OUT(J,44) = LUMP_4( INCOL, LLPAR, 57 ) 
+         OUT(J,45) = LUMP_4( INCOL, LLPAR, 61 ) 
+         OUT(J,46) = LUMP_4( INCOL, LLPAR, 65 ) 
+         OUT(J,47) = LUMP_4( INCOL, LLPAR, 69 ) 
 #endif
 
       ENDDO
@@ -1684,10 +1684,10 @@
       !-----------------------------------------------------------------
       ! Get the # of levels to copy in the vertical 
       !-----------------------------------------------------------------
-      IF ( LLPAR == LGLOB ) THEN
+      IF ( LLPAR == LLPAR ) THEN
 
          ! Full vertical resolution; copy all levels!
-         L_COPY = LGLOB 
+         L_COPY = LLPAR 
 
       ELSE
 
@@ -1700,7 +1700,7 @@
 #elif defined( MERRA  )
          L_COPY = 36       ! MERRA: Copy up to L=36
 #elif defined( GCAP   )
-         L_COPY = LGLOB    ! GCAP: Copy all levels
+         L_COPY = LLPAR    ! GCAP: Copy all levels
 #endif
 
       ENDIF
@@ -1710,7 +1710,7 @@
       !=================================================================
 
       ! Allocate the EDGE_IN array
-      ALLOCATE( EDGE_IN( LGLOB + 1 ), STAT=AS )
+      ALLOCATE( EDGE_IN( LLPAR + 1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EDGE_IN' )
       EDGE_IN = 0d0
 

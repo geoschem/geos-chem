@@ -491,7 +491,7 @@
       USE DAO_MOD,      ONLY : QI,      QL,       RH,       SPHU 
       USE DAO_MOD,      ONLY : T,       TAUCLI,   TAUCLW,   UPDE
       USE DAO_MOD,      ONLY : UPDN,    UWND,     VWND,     ZMEU
-      USE DAO_MOD,      ONLY : ZMMD,    ZMMU,     T_FULLGRID
+      USE DAO_MOD,      ONLY : ZMMD,    ZMMU
 
       USE CMN_SIZE_MOD  ! Size parameters
 
@@ -520,8 +520,7 @@
       !=================================================================
       CALL READ_A6( NYMD=NYMD,     NHMS=NHMS,       
      &              CLDF=CLDF,     CLDMAS=CLDMAS, CLDTOPS=CLDTOPS, 
-     &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP,
-     &              T_FULLGRID=T_FULLGRID )
+     &              DTRAIN=DTRAIN, MOISTQ=MOISTQ, OPTDEPTH=OPTDEP )
 
 #elif defined( GEOS_4 )
 
@@ -533,8 +532,7 @@
      &              CLDF=CLDF,     HKBETA=HKBETA,   HKETA=HKETA,   
      &              MOISTQ=MOISTQ, OPTDEPTH=OPTDEP, Q=SPHU,        
      &              T=T,           U=UWND,          V=VWND,        
-     &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU, 
-     &              T_FULLGRID=T_FULLGRID ) 
+     &              ZMEU=ZMEU,     ZMMD=ZMMD,       ZMMU=ZMMU ) 
 
 #elif defined( GEOS_5 )
 
@@ -559,8 +557,7 @@
      &              Q=SPHU,            QL=QL,             
      &              QI=QI,             T=T,               
      &              TAUCLI=TAUCLI,     TAUCLW=TAUCLW,     
-     &              U=UWND,            V=VWND,
-     &              T_FULLGRID=T_FULLGRID ) 
+     &              U=UWND,            V=VWND         ) 
 
 
 #elif defined( GCAP ) 
@@ -578,7 +575,7 @@
      &              OPTDEPTH=OPTDEP,    Q=SPHU,            
      &              T=T,                U=UWND,            
      &              UPDE=UPDE,          UPDN=UPDN,  
-     &              V=VWND,             T_FULLGRID=T_FULLGRID )
+     &              V=VWND )
           
       ! Create 2-D CLDFRC field from 3-D CLDF field
       CALL MAKE_GCAP_CLDFRC( CLDF, CLDFRC )
@@ -754,7 +751,7 @@
      &                    Q,         QI,        QL,        RH,        
      &                    T,         TAUCLI,    TAUCLW,    U,         
      &                    UPDE,      UPDN,      V,         ZMEU,      
-     &                    ZMMD,      ZMMU,      T_FULLGRID )
+     &                    ZMMD,      ZMMU )
 !
 !******************************************************************************
 !  Subroutine READ_A6 reads A-6 (avg 6-hr) met fields from disk. 
@@ -833,7 +830,6 @@
       USE TIME_MOD,     ONLY : SET_CT_A6,   TIMESTAMP_STRING
       USE TRANSFER_MOD, ONLY : TRANSFER_A6, TRANSFER_3D_Lp1
       USE TRANSFER_MOD, ONLY : TRANSFER_3D, TRANSFER_G5_PLE
-      USE TRANSFER_MOD, ONLY : TRANSFER_3D_NOLUMP
 
       USE CMN_SIZE_MOD               ! Size parameters
       USE CMN_DIAG_MOD               ! ND66, ND67
@@ -879,7 +875,6 @@
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMEU(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMD(IIPAR,JJPAR,LLPAR)
       REAL*8,  INTENT(OUT), OPTIONAL :: ZMMU(IIPAR,JJPAR,LLPAR)
-      REAL*8,  INTENT(OUT), OPTIONAL :: T_FULLGRID(IIPAR,JJPAR,LGLOB)
 
       ! Local variables
       INTEGER                        :: I, IJLOOP, J, K, L
@@ -1288,8 +1283,6 @@
                IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_A6, 'read_a6:29' )
 
                IF ( CHECK_TIME( XYMD, XHMS, NYMD, NHMS ) ) THEN
-                  IF ( PRESENT( T_FULLGRID) ) 
-     &                 CALL TRANSFER_3D_NOLUMP( D, T_FULLGRID )
                   IF ( PRESENT( T ) ) CALL TRANSFER_3D( D, T )
                   NFOUND = NFOUND + 1 
                ENDIF

@@ -33,13 +33,14 @@ c  only covers the jpnl levels actually needed by the CTM.
 
       USE FJX_ACET_MOD
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL
+      USE CMN_SIZE_MOD, ONLY: LLPAR
       USE JV_CMN_MOD
 
       IMPLICIT NONE
 
 !=============== INPUT PARAMETERS ======================================
-      REAL*8,  INTENT(IN) :: T(LPAR)
+      REAL*8,  INTENT(IN) :: T(LLPAR)
       INTEGER, INTENT(IN) :: IDAY
 
 !=============== LOCAL VARIABLES =======================================

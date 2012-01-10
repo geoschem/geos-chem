@@ -15,8 +15,8 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD,   ONLY : JPMAX, LPAR, IPAR, JPAR
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH, IIPAR, JJPAR, LLPAR
+      USE CMN_FJ_MOD,   ONLY : JPMAX
 
       IMPLICIT NONE
       PUBLIC
@@ -29,8 +29,8 @@
       ! NW  Maximum number of wavelength bins that can be used
       ! NP  Maximum number of aerosol/cloud types that can be used
       ! MX  Number of aerosol/cloud types supplied from CTM
-      INTEGER, PARAMETER :: NB      = LPAR+1
-      INTEGER, PARAMETER :: NC      = 2*NB
+      INTEGER :: NB
+      INTEGER :: NC
       INTEGER, PARAMETER :: NS      = 51
       INTEGER, PARAMETER :: NW      = 15
       INTEGER, PARAMETER :: NP      = 56
@@ -64,8 +64,8 @@
       REAL*8  :: RAA_AOD(NP),SSA_AOD(NP)
 
       REAL*8  :: TREF(51,18,12),OREF(51,18,12),BREF(51)           
-      REAL*8  :: ODMDUST(IPAR,JPAR,LPAR,NDUST)
-      REAL*8  :: ODAER(IPAR,JPAR,LPAR,NAER*NRH)
+      REAL*8, ALLOCATABLE  :: ODMDUST(:,:,:,:)
+      REAL*8, ALLOCATABLE  :: ODAER(:,:,:,:)
 
       REAL*8  :: jfacta(JPMAX),zpdep(NW,7)
       INTEGER :: npdep,jpdep(NS),jind(JPMAX)
@@ -82,11 +82,13 @@
       !-----------------------------------------------------------------------
       ! These common blocks MUST be held local for the parallelization 
       ! (bmy, 5/2/00)
-      REAL*8   :: TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB)    
-      REAL*8   :: AER(MX,NB),AMF(NB,NB),RFLECT,SZA,U0,TANHT
-      REAL*8   :: zj(LPAR,JPMAX)
-      REAL*8   :: FFF(NW,lpar),VALJ(NS)
-      INTEGER  :: jadsub(NC)
+      REAL*8, ALLOCATABLE   :: TJ(:),PJ(:),DM(:),DO3(:),DBC(:),Z(:)    
+      REAL*8, ALLOCATABLE   :: AER(:,:),AMF(:,:)
+      REAL*8   :: RFLECT,SZA,U0,TANHT
+      REAL*8, ALLOCATABLE   :: zj(:,:)
+      REAL*8, ALLOCATABLE   :: FFF(:,:)
+      REAL*8   :: VALJ(NS)
+      INTEGER, ALLOCATABLE  :: jadsub(:)
 
 !$OMP THREADPRIVATE( TJ, PJ, DM, DO3, DBC, Z)           
 !$OMP THREADPRIVATE( AER, AMF, RFLECT, SZA, U0, TANHT)
@@ -118,14 +120,14 @@
 !                                                                             .
 !  (6) For including aerosol optical depths: (rvm, bmy, 9/30/00)
 !      (a) Increase MX from 3 to 10 .  
-!      (c) Add ODMDUST(IPAR,JPAR,LPAR,NDUST) to common block /CLIM/
+!      (c) Add ODMDUST(IIPAR,JJPAR,LLPAR,NDUST) to common block /CLIM/
 !                                                                             .
 !  (7) Move NDUST to CMN_SIZE to avoid conflicts (bmy, 11/15/01)
 !                                                                             .
 !  (8) For updating aerosol optical depths again (rvm, bmy, 2/27/02):
 !      (a) Change NP from 21 to 56
 !      (b) Change MX from 10 to 35
-!      (c) Add ODAER(IPAR,JPAR,LPAR,NAER*NRH) to common block /CLIM/
+!      (c) Add ODAER(IIPAR,JJPAR,LLPAR,NAER*NRH) to common block /CLIM/
 !                                                                             .
 !  (9) Changed RCS ID tag comment character from "C" to "!" to allow freeform
 !       compilation.  Also added & continuation characters in column 73
@@ -152,5 +154,26 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      CONTAINS
+
+      SUBROUTINE SET_JV_CMN_MOD
+
+      IMPLICIT NONE
+      
+      INTEGER AS
+      
+      NB      = LLPAR+1
+      NC      = 2*NB
+
+      ALLOCATE(
+     & TJ(NB),PJ(NB+1),DM(NB),DO3(NB),DBC(NB),Z(NB),
+     & AER(MX,NB),AMF(NB,NB), zj(LLPAR,JPMAX),
+     & FFF(NW,LLPAR), jadsub(NC),
+     & ODMDUST(IIPAR,JJPAR,LLPAR,NDUST),
+     & ODAER(IIPAR,JJPAR,LLPAR,NAER*NRH),
+     & STAT=AS)
+
+      END SUBROUTINE SET_JV_CMN_MOD
+
       END MODULE JV_CMN_MOD
 !EOC

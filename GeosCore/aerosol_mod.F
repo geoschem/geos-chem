@@ -93,6 +93,12 @@
       REAL*8, ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
       REAL*8, ALLOCATABLE :: SOILDUST(:,:,:,:)
 
+      ! Mass of hydrophobic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: DAERSL(:,:,:,:)
+
+      ! Mass of hydrophilic aerosol from Mian Chin
+      REAL*8, ALLOCATABLE, SAVE   :: WAERSL(:,:,:,:)
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -562,7 +568,7 @@
 
       USE CMN_SIZE_MOD,  ONLY : NNPAR, NDSTBIN, IIPAR, JJPAR, LLTROP
       USE CMN_SIZE_MOD,  ONLY : LLPAR, MAXFAM, NEMPARA, NEMPARB, LGLOB
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ   ! LPAR, F77_CMN_SIZE
       USE JV_CMN_MOD   ! ODAER, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD   ! NTLOOP
       USE CMN_DIAG_MOD   ! ND21, LD21
@@ -583,12 +589,6 @@
       REAL*8              :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL*8              :: MSDENS(NAER), XTAU, DRYAREA
 
-
-      ! Mass of hydrophobic aerosol from Mian Chin
-      REAL*8, SAVE        :: DAERSL(IIPAR,JJPAR,LLPAR,2)       
-
-      ! Mass of hydrophilic aerosol from Mian Chin
-      REAL*8, SAVE        :: WAERSL(IIPAR,JJPAR,LLPAR,NAER)    
 
       ! Effective radius at RH bins read in from "jv_spec.dat"
       REAL*8		  :: RW(NRH)	
@@ -1429,6 +1429,16 @@
       ALLOCATE( SOILDUST( IIPAR, JJPAR, LLPAR, NDUST ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SOILDUST' )
       SOILDUST = 0d0
+
+      ! Mass of hydrophobic aerosol from Mian Chin
+      ALLOCATE( DAERSL(IIPAR,JJPAR,LLPAR,2), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'DAERSL' )
+      DAERSL = 0d0
+
+      ! Mass of hydrophilic aerosol from Mian Chin
+      ALLOCATE( WAERSL(IIPAR,JJPAR,LLPAR,NAER), STAT=AS)       
+      IF ( AS /= 0) CALL ALLOC_ERR( 'WAERSL' )
+      DAERSL = 0d0
 
       ! Return to calling program
       END SUBROUTINE INIT_AEROSOL

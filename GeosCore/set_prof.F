@@ -68,17 +68,17 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ  ! IPAR, JPAR, LPAR, JPPJ, JPNL
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD            !, ONLY : NDUST, NAER, PJ
 
       IMPLICIT NONE
 
       ! Argument
       INTEGER, INTENT(IN)    :: DAY, MONTH,  NLAT, NLON
-      REAL*8,  INTENT(IN)    :: SA,   YLAT,  T(LPAR)
-      REAL*8,  INTENT(INOUT) :: ODCOL(LPAR)
-      REAL*8,  INTENT(IN)    :: OPTDUST(LPAR,NDUST)  
-      REAL*8,  INTENT(IN)    :: OPTAER(LPAR,NAER*NRH)  
+      REAL*8,  INTENT(IN)    :: SA,   YLAT,  T(LLPAR)
+      REAL*8,  INTENT(INOUT) :: ODCOL(LLPAR)
+      REAL*8,  INTENT(IN)    :: OPTDUST(LLPAR,NDUST)  
+      REAL*8,  INTENT(IN)    :: OPTAER(LLPAR,NAER*NRH)  
 
       ! Local variables
       INTEGER                :: I, K, L, M, N
@@ -177,7 +177,7 @@
       ! Calculate effective altitudes using scale height at each level
       !=================================================================
       Z(1) = 0.D0
-      DO I = 1, LPAR
+      DO I = 1, LLPAR
          SCALEH = 1.3806D-19 * MASFAC * TJ(I)
          Z(I+1) = Z(I) - ( LOG( PJ(I+1) / PJ(I) ) * SCALEH )
       ENDDO
@@ -188,7 +188,7 @@
       ! independent of wavelength; assume limiting temperature for 
       ! ice of -40 deg C.
       !=================================================================
-      DO I = 1, LPAR
+      DO I = 1, LLPAR
          AER(1,I) = DBC(I) * 10.D0 * ( Z(I+1) - Z(I) )
 
          ! Turn off uniform black carbon profile (rvm, bmy, 2/27/02)
@@ -215,7 +215,7 @@
       ENDDO
 
       DO K = 1, MX
-         AER(K,LPAR+1) = 0.D0
+         AER(K,LLPAR+1) = 0.D0
       ENDDO
 
       !=================================================================

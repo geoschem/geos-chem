@@ -153,7 +153,7 @@
 
       ! For GTMM for mercury simulations. (ccc, 6/7/10)
       USE WETSCAV_MOD,       ONLY : GET_WETDEP_IDWETD  
-      USE MERCURY_MOD,       ONLY : PARTITIONHG
+      USE MERCURY_MOD,       ONLY : PARTITIONHG, HGPFRAC
 
       ! For MERRA met fields (bmy, 8/19/10)
       USE MERRA_A1_MOD,      ONLY : GET_MERRA_A1_FIELDS
@@ -173,9 +173,19 @@
       USE COMODE_LOOP_MOD         ! SMVGEAR common blocks
       USE CMN_DIAG_MOD            ! Diagnostic switches, NJDAY
       USE CMN_GCTM_MOD            ! Physical constants
-
 #if defined( DEVEL )
       USE TMP_TYPE_MOD,      ONLY : CHEM_STATE, INIT_CHEMSTATE
+      USE CMN_DEP_MOD,       ONLY : SET_CMN_DEP_MOD
+      USE CMN_ISOP_MOD,      ONLY : SET_CMN_ISOP_MOD
+      USE CMN_MONOT_MOD,     ONLY : SET_CMN_MONOT_MOD
+      USE CMN_NOX_MOD,       ONLY : SET_CMN_NOX_MOD
+      USE CMN_O3_MOD,        ONLY : SET_CMN_O3_MOD
+      USE CMN_VEL_MOD,       ONLY : SET_CMN_VEL_MOD
+      USE CMN_MOD,           ONLY : SET_CMN_MOD
+      USE CMN_FJ_MOD,        ONLY : SET_CMN_FJ_MOD
+      USE JV_CMN_MOD,        ONLY : SET_JV_CMN_MOD
+      USE COMMSOIL_MOD,      ONLY : SET_COMMSOIL_MOD
+      USE VDIFF_PRE_MOD,     ONLY : SET_VDIFF_PRE_MOD
 #endif
 
       IMPLICIT NONE
@@ -241,7 +251,6 @@
       INTEGER            :: ELAPSED_SEC,   NHMSb, RC
       INTEGER            :: ELAPSED_TODAY, HOUR,  MINUTE
       REAL*8             :: TAU,           TAUb         
-      REAL*8             :: HGPFRAC(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=255) :: ZTYPE
 
       !=================================================================
@@ -249,7 +258,25 @@
       !=================================================================
 
       RC=0 ! Error flag. Default 0 is "no error"
-      
+
+#if defined( DEVEL )
+      CALL SET_CMN_SIZE_MOD
+      CALL SET_CMN_DEP_MOD
+      CALL SET_CMN_DIAG_MOD
+      CALL SET_CMN_ISOP_MOD
+      CALL SET_CMN_MONOT_MOD
+      CALL SET_CMN_NOX_MOD
+      CALL SET_CMN_O3_MOD
+      CALL SET_CMN_VEL_MOD
+      CALL SET_CMN_MOD
+      CALL SET_CMN_FJ_MOD
+      CALL SET_COMMSOIL_MOD
+      CALL SET_COMODE_LOOP_MOD
+      CALL SET_JV_CMN_MOD
+
+      CALL SET_VDIFF_PRE_MOD
+#endif
+
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 

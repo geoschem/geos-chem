@@ -23,7 +23,7 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! Baseline emission
-      REAL*8 :: BASEMONOT(MAXIJ,NTYPE)
+      REAL*8, ALLOCATABLE :: BASEMONOT(:,:)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -36,5 +36,19 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      CONTAINS
+
+      SUBROUTINE SET_CMN_MONOT_MOD
+
+      IMPLICIT NONE
+      
+      INTEGER AS
+
+      ALLOCATE(
+     &     BASEMONOT(MAXIJ,NTYPE),
+     &     STAT=AS)
+
+      END SUBROUTINE SET_CMN_MONOT_MOD
+      
       END MODULE CMN_MONOT_MOD
 !EOC

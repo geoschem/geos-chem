@@ -25,7 +25,7 @@
 #     include "define.h"
 
       USE CMN_SIZE_MOD
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ
       USE CMN_FJ_MOD, ONLY : ZPJ, RINDEX
 
       IMPLICIT NONE

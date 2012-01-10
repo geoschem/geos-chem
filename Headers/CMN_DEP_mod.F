@@ -22,22 +22,22 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! IREG   - Number of landtypes in grid square (I,J)
-      INTEGER :: IREG(IIPAR,JJPAR)                                
+      INTEGER, ALLOCATABLE :: IREG(:,:)                                
 
       ! ILAND  - Land type ID in grid square (I,J) for IREG landtypes
-      INTEGER :: ILAND(IIPAR,JJPAR,NTYPE)
+      INTEGER, ALLOCATABLE :: ILAND(:,:,:)
 
       ! IUSE   - Fraction ((per mil) of gridbox area occupied by land type
-      INTEGER :: IUSE(IIPAR,JJPAR,NTYPE)                          
+      INTEGER, ALLOCATABLE :: IUSE(:,:,:)
 
       ! Fraction of land in grid box
-      REAL*8  :: FRCLND(IIPAR,JJPAR)
+      REAL*8, ALLOCATABLE :: FRCLND(:,:)
 
       ! XLAI    - Leaf Area Index of land type for current MONTH
-      REAL*8  :: XLAI(IIPAR,JJPAR,NTYPE)
+      REAL*8, ALLOCATABLE :: XLAI(:,:,:)
 
       ! XLAI2   - Leaf Area Index of land type for following MONTH
-      REAL*8  :: XLAI2(IIPAR,JJPAR,NTYPE)
+      REAL*8, ALLOCATABLE :: XLAI2(:,:,:)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -51,5 +51,24 @@
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_DEP_MOD
+      CONTAINS
+
+      SUBROUTINE SET_CMN_DEP_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &     IREG(IIPAR,JJPAR),
+     &     ILAND(IIPAR,JJPAR,NTYPE),
+     &     IUSE(IIPAR,JJPAR,NTYPE),                        
+     &     FRCLND(IIPAR,JJPAR),
+     &     XLAI(IIPAR,JJPAR,NTYPE),
+     &     XLAI2(IIPAR,JJPAR,NTYPE),
+     &     STAT=AS)
+      
+      END SUBROUTINE SET_CMN_DEP_MOD
+
+      END MODULE CMN_DEP_MOD
 !EOC

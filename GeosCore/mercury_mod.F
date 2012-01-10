@@ -187,6 +187,7 @@
       PUBLIC :: EMISSMERCURY
       PUBLIC :: LHg_WETDasHNO3
       PUBLIC :: PARTITIONHG
+      PUBLIC :: HGPFRAC
       
       !=================================================================
       ! MODULE VARIABLES
@@ -227,6 +228,7 @@
       ! Henry's Law constant for Hg2 [mol /L /atm]
       REAL*8, PARAMETER     :: HL       = 1.4d6
  
+      REAL*8, ALLOCATABLE :: HGPFRAC(:,:,:)
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -5105,6 +5107,10 @@ c$$$
       ALLOCATE( JNO2( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'JNO2' )
       JNO2 = 0d0
+
+      ALLOCATE( HGPFRAC( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HGPFRAC' )
+      HGPFRAC = 0d0
 
       ! Initialize LAI arrays
       CALL INIT_LAI

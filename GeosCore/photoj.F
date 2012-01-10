@@ -44,8 +44,8 @@
 !
 #     include "define.h"
 
-      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH
-      USE CMN_FJ_MOD, ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ, JPNL, ZPJ
+      USE CMN_SIZE_MOD, ONLY : NDUST, NAER, NRH, LLPAR
+      USE CMN_FJ_MOD, ONLY : JPMAX, JPPJ, JPNL, ZPJ
       USE JV_CMN_MOD, ONLY : ZJ, U0, SZA, SZAMAX
 
       IMPLICIT NONE
@@ -53,10 +53,10 @@
       ! Arguments
       INTEGER, INTENT(IN)    :: DAY,   DAY_OF_YR, MONTH
       INTEGER, INTENT(IN)    :: NLAT,  NLON
-      REAL*8,  INTENT(IN)    :: YLAT,  T(LPAR),   OD(LPAR) 
+      REAL*8,  INTENT(IN)    :: YLAT,  T(LLPAR),   OD(LLPAR) 
       REAL*8,  INTENT(IN)    :: CSZA,  SA
-      REAL*8,  INTENT(INOUT) :: OPTDUST(LPAR,NDUST)   !(rvm, bmy, 9/30/00)
-      REAL*8,  INTENT(INOUT) :: OPTAER(LPAR,NAER*NRH) !(rvm, bmy, 2/27/02)
+      REAL*8,  INTENT(INOUT) :: OPTDUST(LLPAR,NDUST)   !(rvm, bmy, 9/30/00)
+      REAL*8,  INTENT(INOUT) :: OPTAER(LLPAR,NAER*NRH) !(rvm, bmy, 2/27/02)
 
       ! Local variables
       INTEGER                :: I, J

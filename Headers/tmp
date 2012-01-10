@@ -1,0 +1,275 @@
+#if   defined( GCAP ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! GCAP: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+      INTEGER :: LLPAR      = LGLOB
+      INTEGER, PARAMETER :: LLTROP_FIX = LLTROP     
+
+#elif defined( GEOS_3 ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-3: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 25        !  -- 48 levels
+#endif
+      INTEGER, PARAMETER :: LLTROP_FIX = 20 
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_3 ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-3: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 144
+      INTEGER :: JGLOB      = 91
+      INTEGER :: LGLOB      = 48            
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 25        !  -- 48 levels
+#endif 
+      INTEGER, PARAMETER :: LLTROP_FIX = 20
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_3 ) && defined( GRID1x1 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-3: 1 x 1 
+      !-----------------------------------------------------------------
+#if   defined( NESTED_CH )
+      INTEGER :: IGLOB      = 81        ! CHINA NESTED 1x1
+      INTEGER :: JGLOB      = 67
+      INTEGER :: LGLOB      = 48           
+#elif defined( NESTED_NA )
+      INTEGER :: IGLOB      = 101       ! N. AMERICA NESTED 1x1
+      INTEGER :: JGLOB      = 51    
+      INTEGER :: LGLOB      = 48    
+#else
+      INTEGER :: IGLOB      = 360       ! GLOBAL GRID 1x1
+      INTEGER :: JGLOB      = 181
+      INTEGER :: LGLOB      = 48                 
+
+#endif
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 24        !  -- 30 levels  
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 25        !  -- 48 levels
+#endif
+      INTEGER, PARAMETER :: LLTROP_FIX = 20
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_4 ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-4: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 72
+      INTEGER :: JGLOB      = 46
+      INTEGER :: LGLOB      = 55           
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED ) 
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+#endif
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_4 ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-4: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 144
+      INTEGER :: JGLOB      = 91
+      INTEGER :: LGLOB      = 55
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+#else 
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+#endif
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_4 ) && defined( GRID1x125 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-4: 1 x 1.2.5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 288
+      INTEGER :: JGLOB      = 181
+      INTEGER :: LGLOB      = 55
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 30        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 22        !  -- 30 levels
+#else 
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP     = 23        !  -- 55 levels
+#endif
+      INTEGER, PARAMETER :: LLTROP_FIX = 17
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 72
+      INTEGER :: JGLOB      = 46
+      INTEGER :: LGLOB      = 72         
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED ) 
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 144
+      INTEGER :: JGLOB      = 91
+      INTEGER :: LGLOB      = 72
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else 
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID1x125 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5: 1 x 1.25
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 288
+      INTEGER :: JGLOB      = 181
+      INTEGER :: LGLOB      = 72
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
+#else 
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels    
+      INTEGER, PARAMETER :: LLTROP     = 40
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( GEOS_5 ) && defined( GRID05x0666 )
+
+      !-----------------------------------------------------------------
+      ! GEOS-5: 0.5 x 0.666
+      !-----------------------------------------------------------------
+#if   defined( NESTED_CH )
+      INTEGER :: IGLOB      = 121       ! NESTED CHINA   0.5x0.666
+      INTEGER :: JGLOB      = 133
+      INTEGER :: LGLOB      = 72
+#elif defined( NESTED_NA )
+      INTEGER :: IGLOB      = 151       ! NESTED N.AMER. 0.5x0.666
+      INTEGER :: JGLOB      = 121
+      INTEGER :: LGLOB      = 72
+#elif defined( NESTED_EU )
+      INTEGER :: IGLOB      = 121       ! NESTED EUROPE  0.5x0.666
+      INTEGER :: JGLOB      = 81
+      INTEGER :: LGLOB      = 72
+#endif
+      INTEGER :: IIPAR      = IGLOB  
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( MERRA ) && defined( GRID4x5 )
+
+      !-----------------------------------------------------------------
+      ! MERRA: 4 x 5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 72
+      INTEGER :: JGLOB      = 46
+      INTEGER :: LGLOB      = 72         
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED ) 
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels 
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#elif defined( MERRA ) && defined( GRID2x25 )
+
+      !-----------------------------------------------------------------
+      ! MERRA: 2 x 2.5
+      !-----------------------------------------------------------------
+      INTEGER :: IGLOB      = 144
+      INTEGER :: JGLOB      = 91
+      INTEGER :: LGLOB      = 72
+      INTEGER :: IIPAR      = IGLOB
+      INTEGER :: JJPAR      = JGLOB
+#if   defined( GRIDREDUCED )
+      INTEGER :: LLPAR      = 47        ! Reduced vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 38        !  -- 47 levels
+      INTEGER, PARAMETER :: LLTROP     = 38  
+#else 
+      INTEGER :: LLPAR      = LGLOB     ! Full vertical grid
+      INTEGER, PARAMETER :: LLTROP_FIX = 40        !  -- 72 levels
+      INTEGER, PARAMETER :: LLTROP     = 40  
+#endif
+      REAL*8,  PARAMETER :: PTOP       = 0.01d0
+
+#endif

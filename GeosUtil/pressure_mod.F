@@ -311,7 +311,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LLGLOB+1 is the atm top.
+!  L=LLLPAR+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -476,11 +476,11 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP' )
       BP = 0d0
 
-      ALLOCATE( AP_FULLGRID( LGLOB+1 ), STAT=AS )
+      ALLOCATE( AP_FULLGRID( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AP_FULLGRID' )
       AP = 1d0
 
-      ALLOCATE( BP_FULLGRID( LGLOB+1 ), STAT=AS )
+      ALLOCATE( BP_FULLGRID( LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0d0
 

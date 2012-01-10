@@ -24,11 +24,11 @@
 !
       ! polynomial fitting's coeffcients
       REAL*8 :: SOPCOEFF(NPOLY)
-      REAL*8 :: BASEISOP(MAXIJ,NTYPE)
+      REAL*8, ALLOCATABLE :: BASEISOP(:,:)
 
       ! Added for EMISOP_GRASS and EMISOP_MB (bdf, bmy, 8/1/01)
-      REAL*8 :: BASEGRASS(MAXIJ)
-      REAL*8 :: BASEMB(MAXIJ)
+      REAL*8, ALLOCATABLE :: BASEGRASS(:)
+      REAL*8, ALLOCATABLE :: BASEMB(:)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,5 +41,21 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-	END MODULE CMN_ISOP_MOD
+      CONTAINS
+
+      SUBROUTINE SET_CMN_ISOP_MOD
+
+      IMPLICIT NONE
+      
+      INTEGER AS
+
+      ALLOCATE(
+     &     BASEISOP(MAXIJ,NTYPE),
+     &     BASEGRASS(MAXIJ),
+     &     BASEMB(MAXIJ),
+     &     STAT=AS)
+
+      END SUBROUTINE SET_CMN_ISOP_MOD
+      
+      END MODULE CMN_ISOP_MOD
 !EOC

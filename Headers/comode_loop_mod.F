@@ -125,8 +125,8 @@
 !
       INTEGER ILAT,ILONG,IVERT,IPLUME,IPVERT,ITLOOP,KBLOOP,MXBLOCK
       INTEGER IMLOOP,ILAYER,ILTLOOP,MAXDAYS
-      PARAMETER (ILAT    = JJPAR                   )  
-      PARAMETER (ILONG   = IIPAR                   )  
+!      PARAMETER (ILAT    = JJPAR                   )  
+!      PARAMETER (ILONG   = IIPAR                   )  
 
       ! LLTROP is the max number of tropospheric levels 
       PARAMETER (IVERT   = LLTROP                  )  
@@ -134,15 +134,15 @@
       ! GEOS-CHEM does not use plumes...set IPLUME=0 
       PARAMETER (IPLUME  = 0                       )
       PARAMETER (IPVERT  = IVERT + IPLUME          )
-      PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
+!      PARAMETER (ITLOOP  = ILAT * ILONG * IPVERT   )
 
       ! Regular
       PARAMETER (KBLOOP  = 24                       )
-      PARAMETER (IMLOOP  = ILAT * ILONG            )
+!      PARAMETER (IMLOOP  = ILAT * ILONG            )
       PARAMETER (ILAYER  = IVERT + 1               )
-      PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
+!      PARAMETER (ILTLOOP = IMLOOP * ILAYER         )
       PARAMETER (MAXDAYS = 1000                    )
-      PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
+!      PARAMETER (MXBLOCK = 16 + ITLOOP/KBLOOP      )
 !
 ! ************************* TRACER PARAMETERS ****************************
 ! IDEMS    = EMISSION ID NUMBER (WHICH SPECIES)
@@ -383,11 +383,11 @@
 ! *               SET REAL AND INTEGER ARRAY VARIABLES                *
 ! *********************************************************************
 !
-      INTEGER ::        JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
-     &                  JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK)
+      INTEGER, ALLOCATABLE ::  JLOWVAR( :), KTLPVAR( :), 
+     &                         JLOFIXED(:), JHIFIXED(:)
 
-      INTEGER ::        JREORDER(ITLOOP), LREORDER(ITLOOP), 
-     &                  ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS)
+      INTEGER, ALLOCATABLE ::  JREORDER(:), LREORDER(:), 
+     &                         ITWO(    :), NCSLOOP( :,:)
 
       ! Add NKSPECG for DMS+OH+O2 rxn (bdf, bmy, 4/18/03)
       ! Added NKSPECF, NKSPECH to /IDICS/ for C2H4 chemistry (tmf, 3/6/09) 
@@ -493,7 +493,7 @@
       ! /DKBLOOP0/ needs to be held THREADPRIVATE
       REAL*8  :: CC2(KBLOOP,0:MXARRAY)  
 
-      INTEGER :: MLOP(ILAT,ILONG), JLOP_SMV(ILAT,ILONG,ILAYER)
+      INTEGER, ALLOCATABLE :: MLOP(:,:), JLOP_SMV(:,:,:)
 
       INTEGER :: 
      &  NKPHOTRAT(IPHOT,ICS),      NPPHOTRAT(IPHOT,ICS),  
@@ -579,7 +579,7 @@
 
       REAL*8 ::  PERTS2(MORDER,3), PERTST(MORDER,3)
 
-      INTEGER :: JLLOW(MXBLOCK), KLHI(MXBLOCK)
+      INTEGER, ALLOCATABLE :: JLLOW(:), KLHI(:)
 
       REAL*8 ::  XGDFCF, ASTKCF, RUARSL, RH100
 
@@ -623,5 +623,32 @@
 ! ****************** END OF COMMON BLOCK COMODE.H *********************
 ! *********************************************************************
 !
-	END MODULE COMODE_LOOP_MOD
+      CONTAINS
+
+      SUBROUTINE SET_COMODE_LOOP_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ILAT    = JJPAR
+      ILONG   = IIPAR
+      ITLOOP  = ILAT * ILONG * IPVERT
+      IMLOOP  = ILAT * ILONG
+      ILTLOOP = IMLOOP * ILAYER
+      MXBLOCK = 16 + ITLOOP/KBLOOP
+
+      ALLOCATE(
+     &     MLOP(ILAT,ILONG),
+     &     JLOP_SMV(ILAT,ILONG,ILAYER),
+     &     JLLOW(MXBLOCK), KLHI(MXBLOCK),
+     &     JLOWVAR( MXBLOCK), KTLPVAR( MXBLOCK), 
+     &     JLOFIXED(MXBLOCK), JHIFIXED(MXBLOCK),
+     &     JREORDER(ITLOOP), LREORDER(ITLOOP), 
+     &     ITWO(    ITLOOP), NCSLOOP( ITLOOP,ICS),
+     &     STAT=AS)
+
+      END SUBROUTINE SET_COMODE_LOOP_MOD
+
+      END MODULE COMODE_LOOP_MOD
 !EOC

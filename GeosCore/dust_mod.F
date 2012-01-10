@@ -67,6 +67,8 @@
       REAL*8,  ALLOCATABLE   :: DUSTREFF(:)
       REAL*8,  ALLOCATABLE   :: DUSTDEN(:)
       
+      REAL*8, ALLOCATABLE, SAVE :: SRCE_FUNC(:,:,:)
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -934,7 +936,6 @@
       INTEGER                :: I, J, N, M, IOS
       INTEGER                :: IPOINT(NDSTBIN) = (/3, 2, 2, 2/)
       REAL*4                 :: ARRAY(IIPAR,JJPAR,3)
-      REAL*8, SAVE           :: SRCE_FUNC(IIPAR,JJPAR,3)
       REAL*8                 :: W10M,   DEN,  DIAM,   U_TS0, U_TS
       REAL*8                 :: SRCE_P, DSRC, REYNOL, ALPHA, BETA
       REAL*8                 :: GAMMA,  CW,   DTSRCE, AREA_M2
@@ -1119,7 +1120,7 @@
       USE COMODE_MOD,    ONLY : WTAREA, WERADIUS
       USE DAO_MOD,       ONLY : RH
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
+!      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ      
       USE JV_CMN_MOD          ! ODMDUST, QAA, RAA, QAA_AOD (clh)
       USE COMODE_LOOP_MOD     ! NTTLOOP
 
@@ -1361,7 +1362,7 @@
 
 #     include "define.h"
 
-      USE CMN_FJ_MOD,    ONLY : IPAR, JPAR, LPAR, JPMAX, JPPJ
+      USE CMN_FJ_MOD,    ONLY : JPMAX, JPPJ
       USE JV_CMN_MOD,    ONLY : ODMDUST, QAA, RAA, RAA_AOD, QAA_AOD
       USE COMODE_LOOP_MOD     ! NTTLOOP
       USE CMN_DIAG_MOD        ! ND21, LD21
@@ -1719,6 +1720,10 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'FRAC_S' )
          FRAC_S(1:NDSTBIN)   = (/ 0.095d0, 0.3d0, 0.3d0, 0.3d0 /)
       ENDIF
+
+      ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
+      SRCE_FUNC = 0.d0
 
       ! Reset flag
       IS_INIT = .TRUE.

@@ -57,8 +57,15 @@
 !        [molec CO/cm2/s].  Adjust unit conversion accordingly. (bmy, 9/27/06)
 !******************************************************************************
 !
+      USE CMN_SIZE_MOD  ! Size parameters
+
       IMPLICIT NONE
 #     include "define.h"
+
+      REAL*8, ALLOCATABLE :: OCDATA(:,:) ! ocean field for emiss. flux
+      REAL*8, ALLOCATABLE :: EFCH4R(:,:) ! emission flux from rice
+      REAL*8, ALLOCATABLE :: EFCH4W(:,:) ! emission flux from wetlands
+      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -129,12 +136,12 @@
       ! Arguments
       INTEGER, INTENT(IN) ::  THISMONTH    ! month of the year (1, 2, .., 12)
 
-      ! Local common blocks (shared with OPEN_CH3I_FILES)      
-      REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
-      REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
-      REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
-      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
-      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
+!      ! Local common blocks (shared with OPEN_CH3I_FILES)      
+!      REAL*8              :: OCDATA(IIPAR,JJPAR) ! ocean field for emiss. flux
+!      REAL*8              :: EFCH4R(IIPAR,JJPAR) ! emission flux from rice
+!      REAL*8              :: EFCH4W(IIPAR,JJPAR) ! emission flux from wetlands
+!      REAL*8              :: CH3ISUM(5)          ! sum of emissions in kg/yr
+!      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
       
       ! Local variables
       REAL*4              :: Q1(IIPAR,JJPAR,1)
@@ -352,12 +359,12 @@
       USE CMN_DEP_MOD     ! RADIAT, FRCLND
 
       ! Local common blocks (shared with OPEN_CH3I_FILES)
-      REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
-      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
-      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
-      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
+!      REAL*8 :: OCDATA(IIPAR,JJPAR)   ! scaled ocean net primary prod.
+!      REAL*8 :: EFCH4R(IIPAR,JJPAR)  ! scaled emission flux from rice
+!      REAL*8 :: EFCH4W(IIPAR,JJPAR)  ! scaled emission flux from wetlands
+!      REAL*8 :: CH3ISUM(5)           ! sum of emissions in kg/yr
 
-      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
+!      COMMON /CH3IFLDS/ OCDATA, EFCH4R, EFCH4W, CH3ISUM
 
       ! Local variables:
       LOGICAL, SAVE      :: FIRSTEMISS = .TRUE.
@@ -1095,6 +1102,20 @@
       ! Return to calling program
       END SUBROUTINE CHEMCH3I
 
+!------------------------------------------------------------------------------
+      SUBROUTINE SET_CH3I_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     &  OCDATA(IIPAR,JJPAR),      ! ocean field for emiss. flux
+     &  EFCH4R(IIPAR,JJPAR),      ! emission flux from rice
+     &  EFCH4W(IIPAR,JJPAR),      ! emission flux from wetlands
+     &  STAT=AS)
+ 
+      END SUBROUTINE SET_CH3I_MOD
 !------------------------------------------------------------------------------
 
       END MODULE CH3I_MOD

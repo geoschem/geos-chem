@@ -504,7 +504,7 @@
 !
 ! !IROUTINE: airqnt_fullgrid
 !
-! !DESCRIPTION: Subroutine AIRQNT_FULLGRID calculates the same quantities as 
+! !DESCRIPTION: Subroutine AIRQNT\_FULLGRID calculates the same quantities as 
 !  AIRQNT, but for the full, unlumped vertical grid of the GEOS GCM.
 !\\
 !\\

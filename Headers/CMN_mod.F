@@ -23,11 +23,11 @@
 ! !PUBLIC DATA MEMBERS:
 !
       ! LPAUSE  stores the annual mean tropopause (bmy, 12/6/99)
-      INTEGER :: LPAUSE(IIPAR,JJPAR)
+      INTEGER, ALLOCATABLE :: LPAUSE(:,:)
 
       ! IFLX stores the flags for ND27 diagnostic (bmy, 12/6/99)
       ! This is mostly obsolete by now (bmy, 8/24/11)
-      INTEGER :: IFLX(IIPAR,JJPAR)
+      INTEGER, ALLOCATABLE :: IFLX(:,:)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,5 +40,20 @@
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
+      CONTAINS
+
+      SUBROUTINE SET_CMN_MOD
+
+      IMPLICIT NONE
+
+      INTEGER AS
+
+      ALLOCATE(
+     & LPAUSE(IIPAR,JJPAR),
+     & IFLX(IIPAR,JJPAR),
+     & STAT=AS)
+
+      END SUBROUTINE SET_CMN_MOD
+
       END MODULE CMN_MOD
 !EOC
