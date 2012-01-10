@@ -142,6 +142,7 @@
 !                            over snow and ice based on Nilsson & Rannik, 2001
 !  21 Dec 2011 - M. Payer  - Updates for sea salt (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer  - Added ProTeX headers
+!  10 Jan 2012 - M. Payer  - Update to use local surface pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,6 +318,7 @@
 !  07 Oct 2011 - R. Yantosca - Rename SUNCOS30 to SUNCOS_MID, which is the
 !                              cos(SZA) at the midpt of the chemistry timestep
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Added local surface pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -338,7 +340,7 @@
       REAL*8            :: RHB(MAXIJ)         ! Relative humidity [unitless]
       REAL*8            :: DVEL(MAXIJ,MAXDEP) ! Drydep velocities [m/s]
       ! add pressure and 10m wind (jaegle 5/11/11)
-      REAL*8            :: PRESSU(MAXIJ)      ! Sea level pressure [Pa]
+      REAL*8            :: PRESSU(MAXIJ)      ! Local surface pressure [Pa]
       REAL*8            :: W10(MAXIJ)         ! 10m windspeed [m/s]
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
@@ -363,7 +365,8 @@
       ENDIF
  
       ! Call METERO to obtain meterological fields (all 1-D arrays)
-      ! Added SLP as PRESSU and 10m windspeed as W10 (jaegle 5/11/11)
+      ! Added sfc pressure as PRESSU and 10m windspeed as W10 
+      !  (jaegle 5/11/11, mpayer 1/10/12)
       CALL METERO( CZ1, TC0,   OBK, CFRAC, RADIAT, 
      &             AZO, USTAR, ZH,  LSNOW, RHB, PRESSU, W10 )
 
@@ -398,7 +401,7 @@
 
          ! THIK = thickness of surface layer [m]
          THIK    = BXHEIGHT(I,J,1)
-
+         
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
          ! to the thickness of the 1st layer (rjp, bmy, 7/21/03)
@@ -560,10 +563,9 @@
 !
       USE DAO_MOD,      ONLY : ALBD,   BXHEIGHT, CLDFRC, GET_OBK
       USE DAO_MOD,      ONLY : RADSWG, RH,       TS,     USTAR,   Z0
-      ! Add SLP (jaegle 5/11/11)
-      USE DAO_MOD,      ONLY : SLP
       USE PBL_MIX_MOD,  ONLY : GET_PBL_TOP_m
       USE MEGANUT_MOD,  ONLY : XLTMMP
+      USE PRESSURE_MOD, ONLY : GET_PEDGE
                                   
       USE CMN_SIZE_MOD       ! Size parameters
       USE CMN_GCTM_MOD       ! Physical constants
@@ -579,8 +581,8 @@
       REAL*8,  INTENT(OUT)  :: RHB(MAXIJ)    ! Rel humidity at sfc [unitless]
       REAL*8,  INTENT(OUT)  :: USTR(MAXIJ)   ! Friction velocity [m/s]
       REAL*8,  INTENT(OUT)  :: ZH(MAXIJ)     ! PBL height [m]
-      !  add the following 2 outputs (jaegle 5/5/11)
-      REAL*8,  INTENT(OUT)  :: PRESSU(MAXIJ) ! Sea level pressure [Pa]
+      ! add the following 2 outputs (jaegle 5/5/11, mpayer 1/10/12)
+      REAL*8,  INTENT(OUT)  :: PRESSU(MAXIJ) ! Local surface pressure [Pa]
       REAL*8,  INTENT(OUT)  :: W10(MAXIJ)    ! 10 meter windspeed [m/s]
 
       ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
@@ -623,6 +625,8 @@
 !  (8 ) Move XLTMMP function to module MEGANUT_MOD. (ccc, 11/20/09)
 !  (9 ) Add sea level pressure and 10m windspeed as arguments (jaegle 5/11/11)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Added local surface pressure
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -631,6 +635,7 @@
 !
       INTEGER               :: I,  J,  IJLOOP
       REAL*8                :: THIK
+      REAL*8                :: SP
 
       ! External functions
       REAL*8, EXTERNAL      :: SFCWINDSQR ! Surface wind speed (jaegle 5/11/11)
@@ -661,6 +666,12 @@
 
          ! Midpoint height of first model level [m]
          CZ1(IJLOOP) = THIK / 2.0d0
+
+         ! Local surface pressure [hPa] (mpayer, 1/10/12)
+         SP          = GET_PEDGE(I,J,1)
+
+         ! Convert from hPa to Pa for SFCPRESS
+         PRESSU(IJLOOP) = SP * 1.d2
 
          !==============================================================
          ! Return meterological quantities as 1-D arrays for DEPVEL
@@ -694,13 +705,10 @@
 
          ! Relative humidity @ surface [unitless] (bec, bmy, 4/13/05)
          !RHB(IJLOOP)    = MIN( 0.99d0, RH(I,J,1) * 1.d-2 ) 
-         !  changed to 98% due to vapor pressure lowering above sea sater (Lewis & Schwartz, 2004)
+         !  changed to 98% due to vapor pressure lowering above sea water
+         !  (Lewis & Schwartz, 2004)
          !  jaegle (5/11/11)
          RHB(IJLOOP)    = MIN( 0.98d0, RH(I,J,1) * 1.d-2 )
-
-         ! Sea level pressure (jaegle 5/11/11). 
-         ! SLP is in hPa, convert from hPa to Pa for PRESSU.
-         PRESSU(IJLOOP) = SLP(I,J) * 1.d2
 
          ! 10m windspeed (jaegle 5/11/11)
          W10(IJLOOP)    =  SQRT( SFCWINDSQR(I,J) )
@@ -1316,7 +1324,7 @@
 !     SUNCOS(IJLOOP) - Cosine of solar zenith angle
 !     LSNOW(IJLOOP)  - Logical for snow and sea ice
 !     RHB(IJLOOP)    - Relative humidity at the surface
-!     PRESSU(IJLOOP) - Sea level pressure
+!     PRESSU(IJLOOP) - Local surface pressure
 !     W10(IJLOOP)    - 10m wind speed
 !
 !  Need as input for each species K (passed):
@@ -1415,6 +1423,7 @@
 !                            - Modified to used Slinn & Slinn (1980) over Ocean
 !                              surfaces
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
+!  10 Jan 2012 - M. Payer    - Updated to use local surface pressure
 !
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
@@ -1454,8 +1463,9 @@
 
       ! Added relative humidity array (bec, bmy, 4/13/05)
       REAL*8 :: RHB(MAXIJ)
-      !  Added SLP and W10 array (jaegle,5/5/11)
-      REAL*8 :: PRESSU(MAXIJ),W10(MAXIJ)
+      ! Added PRESSU and W10 arrays (jaegle,5/5/11, mpayer 1/10/12)
+      REAL*8 :: PRESSU(MAXIJ)
+      REAL*8 :: W10(MAXIJ)
 
       REAL*8  RI(NTYPE),RLU(NTYPE),RAC(NTYPE),RGSS(NTYPE),
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
@@ -1488,8 +1498,13 @@
       INTEGER IOLSON,II,IW
       INTEGER K,IJLOOP,LDT
       REAL*8  RCLX,RIXX,BIOFIT
-      REAL*8  PRESS
-      DATA PRESS /1.5D5/
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Remove arbitrary pressure value of 1500 hPa and use local surface pressure
+! instead (mpayer, 1/10/12)
+!      REAL*8  PRESS
+!      DATA PRESS /1.5D5/
+!------------------------------------------------------------------------------
 !
 ! Logical for snow and sea ice
 !
@@ -1675,9 +1690,14 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
                XMWH2O = 18.D-3
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
+!  mpayer 1/10/12)
 !               RIXX = RIX*DIFFG(TEMPK,PRESS,XMWH2O)/
 !     C              DIFFG(TEMPK,PRESS,XMW(K))
-!* Replace PRESS with actual sea level pressure (PRESSU) (jaegle 5/11/11)
+!     C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
+!------------------------------------------------------------------------------
                RIXX = RIX*DIFFG(TEMPK,PRESSU(IJLOOP),XMWH2O)/
      C              DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K))
      C              + 1.D0/(HSTAR(K)/3000.D0+100.D0*F0(K))
@@ -1748,11 +1768,14 @@
 !---------------------------------------------------------------------------
 
                   ! [Zhang et al., 2001]
-		  ! Modified to use actual slp in instead of fixed value
-		  ! also added W10 (10m windspeed) (jaegle 5/11/11)
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
+!  mpayer 1/10/12);  also added W10 (10m windspeed) (jaegle 5/11/11)
 !                  RSURFC(K,LDT) = 
 !     &               AERO_SFCRSII( K,     II,            PRESS*1D-3, 
 !     &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP) )
+!------------------------------------------------------------------------------
                   RSURFC(K,LDT) = 
      &               AERO_SFCRSII( K,     II,   PRESSU(IJLOOP)*1D-3, 
      &                             TEMPK, USTAR(IJLOOP), RHB(IJLOOP),
@@ -1775,9 +1798,14 @@
 !     &             DUST_sfcRsI(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
 
                   ! [Zhang et al., 2001]
-                  ! Modified to use actual slp (jaegle 5/11/11)
-                  RSURFC(K,LDT) = 
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Replace PRESS with local surface pressure (PRESSU) (jaegle 5/11/11,
+!  mpayer 1/10/12)
+!                  RSURFC(K,LDT) = 
 !     &             DUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, USTAR(IJLOOP))
+!------------------------------------------------------------------------------
+                  RSURFC(K,LDT) = 
      &             DUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK, 
      &             USTAR(IJLOOP))
 
@@ -1802,8 +1830,14 @@
 !                  IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(IJLOOP)*
 !     x                                 (-CZH)**0.6667D0
 
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
+!                  RSURFC(K, LDT) =
+!     &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK,
+!------------------------------------------------------------------------------
                   RSURFC(K, LDT) =
-     &                ADUST_SFCRSII(K, II, PRESS*1D-3, TEMPK, 
+     &                ADUST_SFCRSII(K, II, PRESSU(IJLOOP)*1D-3, TEMPK,
      &                              USTAR(IJLOOP))
                   
 !*                                 
@@ -2068,7 +2102,12 @@
 !** cited on p. 16,476 of Jacob et al. [1992]
                DAIR = 0.2D0*1.D-4
                RB = (2.D0/CKUSTR)*
-     x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
+!------------------------------------------------------------------------------
+! Prior to 1/10/12:
+! Replace PRESS with local surface pressure (PRESSU) (mpayer, 1/10/12)
+!     x              (DAIR/DIFFG(TEMPK,PRESS,XMW(K)))**0.667D0
+!------------------------------------------------------------------------------
+     x              (DAIR/DIFFG(TEMPK,PRESSU(IJLOOP),XMW(K)))**0.667D0
                IF (AIROSOL(K)) RB=0.D0
                C1X(K) = RA + RB + RSURFC(K,LDT)
  215        CONTINUE
