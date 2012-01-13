@@ -3,8 +3,8 @@
 #------------------------------------------------------------------------------
 #BOI
 # !TITLE: GEOS-Chem Reference, Vol. 1: Makefiles
-# !AUTHORS: Bob Yantosca, Claire Carouge, and Philippe Le Sager
-# !AFFILIATION: School of Engineering and Applied Sciences, Harvard University
-# !DATE: December 16, 2010
+# !AUTHORS: Bob Yantosca, Michael Long, Melissa Payer and Matthew Cooper
+# !AFFILIATION: GEOS-Chem Support Team
+# !DATE: 22 August 2011
 #EOI
 #------------------------------------------------------------------------------
